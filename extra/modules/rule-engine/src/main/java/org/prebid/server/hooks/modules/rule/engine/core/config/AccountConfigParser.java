@@ -4,22 +4,24 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
-import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.hooks.modules.rule.engine.core.config.model.AccountConfig;
+import org.prebid.server.hooks.modules.rule.engine.core.request.context.RequestResultContext;
+import org.prebid.server.hooks.modules.rule.engine.core.request.context.RequestSchemaContext;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.PerStageRule;
-import org.prebid.server.hooks.modules.rule.engine.core.request.RequestContext;
 
 import java.util.Objects;
 
 public class AccountConfigParser {
 
     private final ObjectMapper mapper;
-    private final StageConfigParser<RequestContext, BidRequest, AuctionContext> processedAuctionRequestStageParser;
+    private final StageConfigParser<
+            RequestSchemaContext, BidRequest, RequestResultContext> processedAuctionRequestStageParser;
 
     public AccountConfigParser(
             ObjectMapper mapper,
-            StageConfigParser<RequestContext, BidRequest, AuctionContext> processedAuctionRequestStageParser) {
+            StageConfigParser<
+                    RequestSchemaContext, BidRequest, RequestResultContext> processedAuctionRequestStageParser) {
 
         this.mapper = Objects.requireNonNull(mapper);
         this.processedAuctionRequestStageParser = Objects.requireNonNull(processedAuctionRequestStageParser);

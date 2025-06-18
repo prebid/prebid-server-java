@@ -3,7 +3,7 @@ package org.prebid.server.hooks.modules.rule.engine.core.request.schema.function
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Device;
-import org.prebid.server.hooks.modules.rule.engine.core.request.RequestContext;
+import org.prebid.server.hooks.modules.rule.engine.core.request.context.RequestSchemaContext;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunctionArguments;
 import org.prebid.server.hooks.modules.rule.engine.core.util.ValidationUtils;
@@ -11,14 +11,14 @@ import org.prebid.server.util.StreamUtil;
 
 import java.util.Optional;
 
-public class DeviceTypeInFunction implements SchemaFunction<RequestContext> {
+public class DeviceTypeInFunction implements SchemaFunction<RequestSchemaContext> {
 
     public static final String NAME = "deviceTypeIn";
 
     public static final String TYPES_FIELD = "types";
 
     @Override
-    public String extract(SchemaFunctionArguments<RequestContext> arguments) {
+    public String extract(SchemaFunctionArguments<RequestSchemaContext> arguments) {
         final Integer deviceType = Optional.ofNullable(arguments.getOperand().getBidRequest().getDevice())
                 .map(Device::getDevicetype)
                 .orElse(null);

@@ -17,8 +17,6 @@ public class InfrastructureArguments<C> {
 
     String ruleFired;
 
-    String impId;
-
     String analyticsKey;
 
     String modelVersion;

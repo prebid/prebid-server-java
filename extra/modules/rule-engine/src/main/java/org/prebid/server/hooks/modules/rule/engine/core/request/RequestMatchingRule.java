@@ -4,6 +4,8 @@ import com.iab.openrtb.request.BidRequest;
 import org.apache.commons.collections4.SetUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.hooks.modules.rule.engine.core.request.context.RequestResultContext;
+import org.prebid.server.hooks.modules.rule.engine.core.request.context.RequestSchemaContext;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.Rule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleConfig;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleResult;
@@ -25,20 +27,20 @@ import java.util.stream.IntStream;
 
 import static org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunction.UNDEFINED_RESULT;
 
-public class RequestMatchingRule implements Rule<BidRequest, AuctionContext> {
+public class RequestMatchingRule implements Rule<BidRequest, RequestResultContext> {
 
     private static final String GLOBAL_IMP_ID = "*";
 
-    private final Schema<RequestContext> schema;
+    private final Schema<RequestSchemaContext> schema;
     private final Set<String> schemaFunctionNames;
-    private final RuleTree<RuleConfig<BidRequest, AuctionContext>> ruleTree;
+    private final RuleTree<RuleConfig<BidRequest, RequestResultContext>> ruleTree;
 
     private final String modelVersion;
     private final String analyticsKey;
     private final String datacenter;
 
-    public RequestMatchingRule(Schema<RequestContext> schema,
-                               RuleTree<RuleConfig<BidRequest, AuctionContext>> ruleTree,
+    public RequestMatchingRule(Schema<RequestSchemaContext> schema,
+                               RuleTree<RuleConfig<BidRequest, RequestResultContext>> ruleTree,
                                String modelVersion,
                                String analyticsKey,
                                String datacenter) {
@@ -55,43 +57,45 @@ public class RequestMatchingRule implements Rule<BidRequest, AuctionContext> {
     }
 
     @Override
-    public RuleResult<BidRequest> process(BidRequest bidRequest, AuctionContext context) {
+    public RuleResult<BidRequest> process(BidRequest bidRequest, RequestResultContext context) {
         return SetUtils.intersection(schemaFunctionNames, RequestSpecification.PER_IMP_SCHEMA_FUNCTIONS).isEmpty()
-                ? processRule(bidRequest, GLOBAL_IMP_ID, context)
+                ? processRule(bidRequest, GLOBAL_IMP_ID, context.getAuctionContext())
                 : processPerImpRule(bidRequest, context);
     }
 
-    private RuleResult<BidRequest> processPerImpRule(BidRequest bidRequest, AuctionContext context) {
+    private RuleResult<BidRequest> processPerImpRule(BidRequest bidRequest, RequestResultContext context) {
         return bidRequest.getImp().stream().reduce(
                 RuleResult.unaltered(bidRequest),
-                (result, imp) ->
-                        result.mergeWith(processRule(result.getUpdateResult().getValue(), imp.getId(), context)),
+                (result, imp) -> result.mergeWith(
+                        processRule(
+                                result.getUpdateResult().getValue(),
+                                imp.getId(),
+                                context.getAuctionContext())),
                 RuleResult::mergeWith);
     }
 
     private RuleResult<BidRequest> processRule(BidRequest bidRequest, String impId, AuctionContext auctionContext) {
-        final RequestContext requestContext = RequestContext.of(bidRequest, impId, datacenter);
+        final RequestSchemaContext schemaFunctionContext = RequestSchemaContext.of(bidRequest, impId, datacenter);
 
-        final List<SchemaFunctionHolder<RequestContext>> schemaFunctions = schema.getFunctions();
+        final List<SchemaFunctionHolder<RequestSchemaContext>> schemaFunctions = schema.getFunctions();
         final List<String> matchers = schemaFunctions.stream()
                 .map(holder -> holder.getSchemaFunction().extract(
-                        SchemaFunctionArguments.of(requestContext, holder.getConfig())))
+                        SchemaFunctionArguments.of(schemaFunctionContext, holder.getConfig())))
                 .map(matcher -> StringUtils.defaultIfEmpty(matcher, UNDEFINED_RESULT))
                 .toList();
 
-        final LookupResult<RuleConfig<BidRequest, AuctionContext>> lookupResult;
+        final LookupResult<RuleConfig<BidRequest, RequestResultContext>> lookupResult;
         try {
             lookupResult = ruleTree.lookup(matchers);
         } catch (NoMatchingRuleException e) {
             return RuleResult.unaltered(bidRequest);
         }
 
-        final RuleConfig<BidRequest, AuctionContext> ruleConfig = lookupResult.getValue();
+        final RuleConfig<BidRequest, RequestResultContext> ruleConfig = lookupResult.getValue();
 
-        final InfrastructureArguments<AuctionContext> infrastructureArguments =
-                InfrastructureArguments.<AuctionContext>builder()
-                        .context(auctionContext)
-                        .impId(impId)
+        final InfrastructureArguments<RequestResultContext> infrastructureArguments =
+                InfrastructureArguments.<RequestResultContext>builder()
+                        .context(RequestResultContext.of(auctionContext, impId))
                         .schemaFunctionResults(mergeWithSchema(schema, matchers))
                         .schemaFunctionMatches(mergeWithSchema(schema, lookupResult.getMatches()))
                         .ruleFired(ruleConfig.getCondition())
@@ -107,7 +111,7 @@ public class RequestMatchingRule implements Rule<BidRequest, AuctionContext> {
                 RuleResult::mergeWith);
     }
 
-    private static Map<String, String> mergeWithSchema(Schema<RequestContext> schema, List<String> values) {
+    private static Map<String, String> mergeWithSchema(Schema<RequestSchemaContext> schema, List<String> values) {
         return IntStream.range(0, values.size())
                 .boxed()
                 .collect(Collectors.toMap(

@@ -3,14 +3,15 @@ package org.prebid.server.hooks.modules.rule.engine.core.request.result.function
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.hooks.execution.v1.analytics.TagsImpl;
+import org.prebid.server.hooks.modules.rule.engine.core.request.context.RequestResultContext;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleResult;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.result.InfrastructureArguments;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.result.ResultFunction;
@@ -29,7 +30,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
-public abstract class FilterBiddersFunction implements ResultFunction<BidRequest, AuctionContext> {
+public abstract class FilterBiddersFunction implements ResultFunction<BidRequest, RequestResultContext> {
 
     private final ObjectMapper mapper;
     protected final BidderCatalog bidderCatalog;
@@ -40,15 +41,17 @@ public abstract class FilterBiddersFunction implements ResultFunction<BidRequest
     }
 
     @Override
-    public RuleResult<BidRequest> apply(ResultFunctionArguments<BidRequest, AuctionContext> arguments) {
+    public RuleResult<BidRequest> apply(ResultFunctionArguments<BidRequest, RequestResultContext> arguments) {
         final FilterBiddersFunctionConfig config = parseConfig(arguments.getConfig());
 
         final BidRequest bidRequest = arguments.getOperand();
-        final InfrastructureArguments<AuctionContext> infrastructureArguments = arguments.getInfrastructureArguments();
-        final UidsCookie uidsCookie = infrastructureArguments.getContext().getUidsCookie();
+        final InfrastructureArguments<RequestResultContext> infrastructureArguments =
+                arguments.getInfrastructureArguments();
+
+        final UidsCookie uidsCookie = infrastructureArguments.getContext().getAuctionContext().getUidsCookie();
         final Boolean ifSyncedId = config.getIfSyncedId();
         final BidRejectionReason rejectionReason = config.getSeatNonBid();
-        final String impId = infrastructureArguments.getImpId();
+        final String impId = infrastructureArguments.getContext().getImpId();
 
         final List<Activity> activities = new ArrayList<>();
         final List<Imp> updatedImps = new ArrayList<>();
@@ -93,7 +96,7 @@ public abstract class FilterBiddersFunction implements ResultFunction<BidRequest
     }
 
     @Override
-    public void validateConfig(JsonNode config) {
+    public void validateConfig(ObjectNode config) {
         final FilterBiddersFunctionConfig parsedConfig = parseConfig(config);
         if (parsedConfig == null) {
             throw new ConfigurationValidationException("Configuration is required, but not provided");

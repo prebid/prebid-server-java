@@ -4,9 +4,9 @@ import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Future;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
-import org.prebid.server.hooks.execution.v1.analytics.TagsImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.rule.engine.core.cache.RuleRegistry;
+import org.prebid.server.hooks.modules.rule.engine.core.request.context.RequestResultContext;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.PerStageRule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.Rule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleResult;
@@ -18,7 +18,6 @@ import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.ProcessedAuctionRequestHook;
 import org.prebid.server.model.UpdateResult;
 
-import java.util.Collections;
 import java.util.Objects;
 
 public class RuleEngineProcessedAuctionRequestHook implements ProcessedAuctionRequestHook {
@@ -44,13 +43,13 @@ public class RuleEngineProcessedAuctionRequestHook implements ProcessedAuctionRe
                 .recover(RuleEngineProcessedAuctionRequestHook::failure);
     }
 
-    private static RuleResult<BidRequest> executeSafely(Rule<BidRequest, AuctionContext> rule,
+    private static RuleResult<BidRequest> executeSafely(Rule<BidRequest, RequestResultContext> rule,
                                                         BidRequest bidRequest,
                                                         AuctionContext context) {
 
         return rule != null
-                ? rule.process(bidRequest, context)
-                : RuleResult.of(UpdateResult.unaltered(bidRequest), TagsImpl.of(Collections.emptyList()));
+                ? rule.process(bidRequest, RequestResultContext.of(context, "*"))
+                : RuleResult.unaltered(bidRequest);
     }
 
     private static InvocationResult<AuctionRequestPayload> succeeded(RuleResult<BidRequest> result) {

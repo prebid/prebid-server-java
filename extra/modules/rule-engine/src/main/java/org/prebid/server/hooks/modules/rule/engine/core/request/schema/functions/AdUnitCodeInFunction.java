@@ -7,7 +7,7 @@ import com.iab.openrtb.request.Imp;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.hooks.modules.rule.engine.core.request.util.AdUnitCodeUtils;
-import org.prebid.server.hooks.modules.rule.engine.core.request.RequestContext;
+import org.prebid.server.hooks.modules.rule.engine.core.request.context.RequestSchemaContext;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunctionArguments;
 import org.prebid.server.hooks.modules.rule.engine.core.util.ValidationUtils;
@@ -18,15 +18,15 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class AdUnitCodeInFunction implements SchemaFunction<RequestContext> {
+public class AdUnitCodeInFunction implements SchemaFunction<RequestSchemaContext> {
 
     public static final String NAME = "adUnitCodeIn";
 
     private static final String CODES_FIELD = "codes";
 
     @Override
-    public String extract(SchemaFunctionArguments<RequestContext> arguments) {
-        final RequestContext context = arguments.getOperand();
+    public String extract(SchemaFunctionArguments<RequestSchemaContext> arguments) {
+        final RequestSchemaContext context = arguments.getOperand();
         final String impId = context.getImpId();
         final BidRequest bidRequest = context.getBidRequest();
 

@@ -2,8 +2,10 @@ package org.prebid.server.hooks.modules.rule.engine.core.request;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iab.openrtb.request.BidRequest;
-import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.hooks.modules.rule.engine.core.request.context.RequestResultContext;
+import org.prebid.server.hooks.modules.rule.engine.core.request.context.RequestSchemaContext;
+import org.prebid.server.hooks.modules.rule.engine.core.request.result.functions.LogATagFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.request.result.functions.filter.ExcludeBiddersFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.request.result.functions.filter.IncludeBiddersFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.AdUnitCodeFunction;
@@ -36,13 +38,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-public class RequestSpecification implements StageSpecification<RequestContext, BidRequest, AuctionContext> {
+public class RequestSpecification implements
+        StageSpecification<RequestSchemaContext, BidRequest, RequestResultContext> {
 
     public static final Set<String> PER_IMP_SCHEMA_FUNCTIONS =
             Set.of(AdUnitCodeFunction.NAME, MediaTypeInFunction.NAME);
 
-    private final Map<String, SchemaFunction<RequestContext>> schemaFunctions;
-    private final Map<String, ResultFunction<BidRequest, AuctionContext>> resultFunctions;
+    private final Map<String, SchemaFunction<RequestSchemaContext>> schemaFunctions;
+    private final Map<String, ResultFunction<BidRequest, RequestResultContext>> resultFunctions;
 
     public RequestSpecification(ObjectMapper mapper,
                                 BidderCatalog bidderCatalog) {
@@ -72,11 +75,12 @@ public class RequestSpecification implements StageSpecification<RequestContext, 
 
         resultFunctions = Map.of(
                 ExcludeBiddersFunction.NAME, new ExcludeBiddersFunction(mapper, bidderCatalog),
-                IncludeBiddersFunction.NAME, new IncludeBiddersFunction(mapper, bidderCatalog));
+                IncludeBiddersFunction.NAME, new IncludeBiddersFunction(mapper, bidderCatalog),
+                LogATagFunction.NAME, new LogATagFunction(mapper));
     }
 
-    public SchemaFunction<RequestContext> schemaFunctionByName(String name) {
-        final SchemaFunction<RequestContext> function = schemaFunctions.get(name);
+    public SchemaFunction<RequestSchemaContext> schemaFunctionByName(String name) {
+        final SchemaFunction<RequestSchemaContext> function = schemaFunctions.get(name);
         if (function == null) {
             throw new InvalidSchemaFunctionException(name);
         }
@@ -84,8 +88,8 @@ public class RequestSpecification implements StageSpecification<RequestContext, 
         return function;
     }
 
-    public ResultFunction<BidRequest, AuctionContext> resultFunctionByName(String name) {
-        final ResultFunction<BidRequest, AuctionContext> function = resultFunctions.get(name);
+    public ResultFunction<BidRequest, RequestResultContext> resultFunctionByName(String name) {
+        final ResultFunction<BidRequest, RequestResultContext> function = resultFunctions.get(name);
         if (function == null) {
             throw new InvalidSchemaFunctionException(name);
         }

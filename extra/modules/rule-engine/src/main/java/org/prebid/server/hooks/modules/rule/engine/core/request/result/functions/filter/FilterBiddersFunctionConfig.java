@@ -13,7 +13,7 @@ public class FilterBiddersFunctionConfig {
     Set<String> bidders;
 
     @Builder.Default
-    BidRejectionReason seatNonBid = 203;
+    BidRejectionReason seatNonBid;
 
     Boolean ifSyncedId;
 
