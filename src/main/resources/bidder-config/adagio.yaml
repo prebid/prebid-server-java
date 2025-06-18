@@ -1,0 +1,22 @@
+adapters:
+  adagio:
+    # Please deploy this config in each of your datacenters with the appropriate regional subdomain.
+    # Replace the `REGION` by one of the value below:
+    # - For AMER: las => (https://mp-las.4dex.io/pbserver)
+    # - For EMEA: ams => (https://mp-ams.4dex.io/pbserver)
+    # - For APAC: tyo => (https://mp-tyo.4dex.io/pbserver)
+    endpoint: https://mp-REGION.4dex.io/pbserver
+    ortb-version: "2.6"
+    endpoint-compression: gzip
+    meta-info:
+      maintainer-email: dev@adagio.io
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 617
