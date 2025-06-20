@@ -1,7 +1,11 @@
 package org.prebid.server.functional.tests.privacy
 
 import io.netty.handler.codec.http.HttpResponseStatus
-import org.prebid.server.functional.model.bidder.BidderName
+import org.prebid.server.functional.model.config.AccountConfig
+import org.prebid.server.functional.model.config.AccountGdprConfig
+import org.prebid.server.functional.model.config.AccountPrivacyConfig
+import org.prebid.server.functional.model.config.PurposeConfig
+import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.GppSectionId
 import org.prebid.server.functional.model.request.cookiesync.CookieSyncRequest
 import org.prebid.server.functional.model.response.cookiesync.UserSyncInfo
@@ -17,6 +21,8 @@ import org.prebid.server.functional.util.privacy.gpp.UsV1Consent
 
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.config.Purpose.P1
+import static org.prebid.server.functional.model.config.PurposeEnforcement.NO
 import static org.prebid.server.functional.model.request.GppSectionId.TCF_EU_V2
 import static org.prebid.server.functional.model.request.GppSectionId.USP_V1
 import static org.prebid.server.functional.model.response.cookiesync.UserSyncInfo.Type.IFRAME
@@ -394,6 +400,77 @@ class GppCookieSyncSpec extends BaseSpec {
         def bidderStatus = response.getBidderUserSync(GENERIC)
         assert HttpUtil.findUrlParameterValue(bidderStatus.userSync?.url, "gpp") == ""
         assert HttpUtil.findUrlParameterValue(bidderStatus.userSync?.url, "gpp_sid") == gppSid.value
+
+        and: "Response shouldn't contains any error"
+        assert !bidderStatus.error
+    }
+
+    def "PBS shouldn't emit error message when request does contain gdpr config and global skip gdpr config disabled for adapter"() {
+        given: "Pbs config with usersync.#userSyncFormat.url"
+        def pbsConfig = [
+                "adapters.${GENERIC.value}.meta-info.vendor-id"                          : GENERIC_VENDOR_ID as String,
+                "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url"         : USER_SYNC_URL,
+                "adapters.${GENERIC.value}.usersync.skipwhen.gdpr"                       : 'false',
+                "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.support-cors": CORS_SUPPORT.toString()]
+        def prebidServerService = pbsServiceFactory.getService(pbsConfig)
+
+        and: "Default CookieSyncRequest with gdpr config"
+        def gppSid = TCF_EU_V2
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            it.gppSid = gppSid.intValue
+            it.gdpr = 1
+            it.gdprConsent = new TcfConsent.Builder().setPurposesLITransparency(DEVICE_ACCESS)
+                    .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                    .build()
+            it.account = PBSUtils.randomNumber
+        }
+
+        and: "Save account config with requireConsent into DB"
+        def purposes = [(P1): new PurposeConfig(enforcePurpose: NO, enforceVendors: false)]
+        def accountGdprConfig = new AccountGdprConfig(purposes: purposes)
+        def privacyConfig = new AccountPrivacyConfig(gdpr: accountGdprConfig)
+        def account = new Account(uuid: cookieSyncRequest.account, config: new AccountConfig(privacy: privacyConfig))
+        accountDao.save(account)
+
+        when: "PBS processes cookie sync request"
+        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
+
+        then: "Response should contain proper userSync url"
+        def bidderStatus = response.getBidderUserSync(GENERIC)
+        assert bidderStatus.userSync?.url == USER_SYNC_URL
+
+        and: "Response shouldn't contains any error"
+        assert !bidderStatus.error
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
+    }
+
+    def "PBS shouldn't emit error message when request does contain gdpr config and global skip gdpr config default for adapter"() {
+        given: "Default CookieSyncRequest with gdpr config"
+        def gppSid = TCF_EU_V2
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            it.gppSid = gppSid.intValue
+            it.gdpr = 1
+            it.gdprConsent = new TcfConsent.Builder().setPurposesLITransparency(DEVICE_ACCESS)
+                    .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                    .build()
+            it.account = PBSUtils.randomNumber
+        }
+
+        and: "Save account config with requireConsent into DB"
+        def purposes = [(P1): new PurposeConfig(enforcePurpose: NO, enforceVendors: false)]
+        def accountGdprConfig = new AccountGdprConfig(purposes: purposes)
+        def privacyConfig = new AccountPrivacyConfig(gdpr: accountGdprConfig)
+        def account = new Account(uuid: cookieSyncRequest.account, config: new AccountConfig(privacy: privacyConfig))
+        accountDao.save(account)
+
+        when: "PBS processes cookie sync request"
+        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
+
+        then: "Response should contain proper userSync url"
+        def bidderStatus = response.getBidderUserSync(GENERIC)
+        assert bidderStatus.userSync?.url == USER_SYNC_URL
 
         and: "Response shouldn't contains any error"
         assert !bidderStatus.error
