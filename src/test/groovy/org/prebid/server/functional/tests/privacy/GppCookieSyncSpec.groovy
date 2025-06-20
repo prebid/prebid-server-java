@@ -415,9 +415,8 @@ class GppCookieSyncSpec extends BaseSpec {
         def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default CookieSyncRequest with gdpr config"
-        def gppSid = TCF_EU_V2
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
-            it.gppSid = gppSid.intValue
+            it.gppSid = TCF_EU_V2
             it.gdpr = 1
             it.gdprConsent = new TcfConsent.Builder().setPurposesLITransparency(DEVICE_ACCESS)
                     .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
@@ -448,9 +447,8 @@ class GppCookieSyncSpec extends BaseSpec {
 
     def "PBS shouldn't emit error message when request does contain gdpr config and global skip gdpr config default for adapter"() {
         given: "Default CookieSyncRequest with gdpr config"
-        def gppSid = TCF_EU_V2
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
-            it.gppSid = gppSid.intValue
+            it.gppSid = TCF_EU_V2
             it.gdpr = 1
             it.gdprConsent = new TcfConsent.Builder().setPurposesLITransparency(DEVICE_ACCESS)
                     .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
