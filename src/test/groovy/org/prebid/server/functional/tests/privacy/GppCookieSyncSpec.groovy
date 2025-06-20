@@ -15,6 +15,7 @@ import org.prebid.server.functional.util.privacy.TcfConsent
 import org.prebid.server.functional.util.privacy.gpp.TcfEuV2Consent
 import org.prebid.server.functional.util.privacy.gpp.UsV1Consent
 
+import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.request.GppSectionId.TCF_EU_V2
 import static org.prebid.server.functional.model.request.GppSectionId.USP_V1
@@ -279,7 +280,6 @@ class GppCookieSyncSpec extends BaseSpec {
         given: "Default CookieSyncRequest with gdpr config"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             it.gppSid = TCF_EU_V2.intValue
-            it.gpp = null
             it.gdpr = 1
             it.gdprConsent = new TcfConsent.Builder().build()
         }
@@ -299,9 +299,8 @@ class GppCookieSyncSpec extends BaseSpec {
     def "PBS should emit proper error message when alias request contain gdpr config and global skip gdpr config for adapter"() {
         given: "Default CookieSyncRequest with gdpr config"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
-            it.bidders = [BidderName.ALIAS]
+            it.bidders = [ALIAS]
             it.gppSid = TCF_EU_V2.intValue
-            it.gpp = null
             it.gdpr = 1
             it.gdprConsent = new TcfConsent.Builder().build()
         }
@@ -352,7 +351,7 @@ class GppCookieSyncSpec extends BaseSpec {
         given: "Default CookieSyncRequest with gpp and gppSid"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             it.gppSid = TCF_EU_V2.intValue
-            it.bidders = [BidderName.ALIAS]
+            it.bidders = [ALIAS]
             it.gpp = new UsV1Consent.Builder().build()
             it.gppSid = gppSid
         }
@@ -384,7 +383,6 @@ class GppCookieSyncSpec extends BaseSpec {
         def gppSid = TCF_EU_V2
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             it.gppSid = gppSid.intValue
-            it.gpp = null
             it.gdpr = 0
             it.gdprConsent = new TcfConsent.Builder().build()
         }
@@ -397,7 +395,7 @@ class GppCookieSyncSpec extends BaseSpec {
         assert HttpUtil.findUrlParameterValue(bidderStatus.userSync?.url, "gpp") == ""
         assert HttpUtil.findUrlParameterValue(bidderStatus.userSync?.url, "gpp_sid") == gppSid.value
 
-        and: "Shouldn't contains any error"
+        and: "Response shouldn't contains any error"
         assert !bidderStatus.error
     }
 
@@ -419,14 +417,13 @@ class GppCookieSyncSpec extends BaseSpec {
         assert HttpUtil.findUrlParameterValue(bidderStatus.userSync?.url, "gpp") == gpp.toString()
         assert HttpUtil.findUrlParameterValue(bidderStatus.userSync?.url, "gpp_sid") == gppSid
 
-        and: "Shouldn't contains any error"
+        and: "Response shouldn't contains any error"
         assert !bidderStatus.error
     }
 
     def "PBS should also include validation warning when request matches skip config and has validation issue at same time"() {
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             it.gppSid = PBSUtils.getRandomNumberWithExclusion(TCF_EU_V2.intValue)
-            it.gpp = null
             it.gdpr = 1
             it.gdprConsent = new TcfConsent.Builder().build()
         }
