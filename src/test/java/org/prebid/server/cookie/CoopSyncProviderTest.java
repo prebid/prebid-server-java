@@ -176,6 +176,8 @@ public class CoopSyncProviderTest {
                 Optional.of(Usersyncer.of(
                         "cookie-family-name",
                         UsersyncMethod.builder().build(),
+                        null,
+                        false,
                         null)));
     }
 }
