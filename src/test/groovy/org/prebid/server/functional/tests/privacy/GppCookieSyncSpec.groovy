@@ -18,6 +18,7 @@ import org.prebid.server.functional.util.privacy.CcpaConsent
 import org.prebid.server.functional.util.privacy.TcfConsent
 import org.prebid.server.functional.util.privacy.gpp.TcfEuV2Consent
 import org.prebid.server.functional.util.privacy.gpp.UsV1Consent
+import spock.lang.IgnoreRest
 
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
@@ -416,9 +417,10 @@ class GppCookieSyncSpec extends BaseSpec {
 
         and: "Default CookieSyncRequest with gdpr config"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
-            it.gppSid = TCF_EU_V2
+            it.gppSid = TCF_EU_V2.value
             it.gdpr = 1
-            it.gdprConsent = new TcfConsent.Builder().setPurposesLITransparency(DEVICE_ACCESS)
+            it.gdprConsent = new TcfConsent.Builder()
+                    .setPurposesLITransparency(DEVICE_ACCESS)
                     .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
                     .build()
             it.account = PBSUtils.randomNumber
@@ -448,9 +450,10 @@ class GppCookieSyncSpec extends BaseSpec {
     def "PBS shouldn't emit error message when request does contain gdpr config and global skip gdpr config default for adapter"() {
         given: "Default CookieSyncRequest with gdpr config"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
-            it.gppSid = TCF_EU_V2
+            it.gppSid = TCF_EU_V2.value
             it.gdpr = 1
-            it.gdprConsent = new TcfConsent.Builder().setPurposesLITransparency(DEVICE_ACCESS)
+            it.gdprConsent = new TcfConsent.Builder()
+                    .setPurposesLITransparency(DEVICE_ACCESS)
                     .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
                     .build()
             it.account = PBSUtils.randomNumber
