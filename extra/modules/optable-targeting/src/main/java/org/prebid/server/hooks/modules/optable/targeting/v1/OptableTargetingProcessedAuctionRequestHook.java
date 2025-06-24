@@ -33,7 +33,6 @@ import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.ProcessedAuctionRequestHook;
 
 import java.util.Objects;
-import java.util.function.Function;
 
 public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuctionRequestHook {
 
@@ -77,7 +76,7 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
                     moduleContext.setOptableTargetingExecutionTime(
                             System.currentTimeMillis() - callTargetingAPITimestamp);
                     moduleContext.setEnrichRequestStatus(EnrichmentStatus.failure());
-                    return failure(BidRequestCleaner.instance(), moduleContext);
+                    return update(BidRequestCleaner.instance(), moduleContext);
                 });
     }
 
@@ -126,12 +125,14 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
         moduleContext.setTargeting(targetingResult.getAudience());
         moduleContext.setEnrichRequestStatus(EnrichmentStatus.success());
         return update(
-                BidRequestEnricher.of(targetingResult).compose(BidRequestCleaner.instance()),
+                BidRequestCleaner.instance()
+                        .andThen(BidRequestEnricher.of(targetingResult))
+                        ::apply,
                 moduleContext);
     }
 
     private static Future<InvocationResult<AuctionRequestPayload>> update(
-            Function<AuctionRequestPayload, AuctionRequestPayload> payloadUpdate,
+            PayloadUpdate<AuctionRequestPayload> payloadUpdate,
             ModuleContext moduleContext) {
 
         return Future.succeededFuture(
@@ -139,16 +140,9 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
                         .status(InvocationStatus.success)
                         .action(InvocationAction.update)
                         .analyticsTags(AnalyticTagsResolver.toEnrichRequestAnalyticTags(moduleContext))
-                        .payloadUpdate(payloadUpdate::apply)
+                        .payloadUpdate(payloadUpdate)
                         .moduleContext(moduleContext)
                         .build());
-    }
-
-    private static Future<InvocationResult<AuctionRequestPayload>> failure(
-            PayloadUpdate<AuctionRequestPayload> payloadUpdate,
-            ModuleContext moduleContext) {
-
-        return update(payloadUpdate, moduleContext);
     }
 
     @Override

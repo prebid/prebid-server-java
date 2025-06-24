@@ -27,13 +27,11 @@ import java.util.Objects;
 public class OptableTargetingAuctionResponseHook implements AuctionResponseHook {
 
     private static final String CODE = "optable-targeting-auction-response-hook";
+
     private final ConfigResolver configResolver;
     private final ObjectMapper objectMapper;
 
-    public OptableTargetingAuctionResponseHook(
-            ConfigResolver configResolver,
-            ObjectMapper objectMapper) {
-
+    public OptableTargetingAuctionResponseHook(ConfigResolver configResolver, ObjectMapper objectMapper) {
         this.configResolver = Objects.requireNonNull(configResolver);
         this.objectMapper = Objects.requireNonNull(objectMapper);
     }
@@ -70,7 +68,8 @@ public class OptableTargetingAuctionResponseHook implements AuctionResponseHook 
     }
 
     private Future<InvocationResult<AuctionResponsePayload>> update(
-            PayloadUpdate<AuctionResponsePayload> payloadUpdate, ModuleContext moduleContext) {
+            PayloadUpdate<AuctionResponsePayload> payloadUpdate,
+            ModuleContext moduleContext) {
 
         return Future.succeededFuture(
                 InvocationResultImpl.<AuctionResponsePayload>builder()

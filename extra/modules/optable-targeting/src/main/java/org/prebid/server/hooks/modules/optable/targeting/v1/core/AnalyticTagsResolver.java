@@ -29,30 +29,22 @@ public class AnalyticTagsResolver {
     }
 
     public static Tags toEnrichRequestAnalyticTags(ModuleContext moduleContext) {
-        final String requestEnrichmentStatus = toEnrichmentStatusValue(moduleContext.getEnrichRequestStatus());
-
-        final List<Activity> activities = new ArrayList<>();
-        activities.add(ActivityImpl.of(ACTIVITY_ENRICH_REQUEST,
-                requestEnrichmentStatus,
-                toResults(STATUS_EXECUTION_TIME, String.valueOf(moduleContext.getOptableTargetingExecutionTime()))));
-
-        return TagsImpl.of(activities);
+        return TagsImpl.of(Collections.singletonList(ActivityImpl.of(
+                ACTIVITY_ENRICH_REQUEST,
+                toEnrichmentStatusValue(moduleContext.getEnrichRequestStatus()),
+                toResults(STATUS_EXECUTION_TIME, String.valueOf(moduleContext.getOptableTargetingExecutionTime())))));
     }
 
     public static Tags toEnrichResponseAnalyticTags(ModuleContext moduleContext) {
-        final EnrichmentStatus responseEnrichmentStatus = moduleContext.getEnrichResponseStatus();
-        final String responseEnrichmentStatusValue = toEnrichmentStatusValue(responseEnrichmentStatus);
-        final String responseEnrichmentStatusReason = toEnrichmentStatusReason(moduleContext.getEnrichResponseStatus());
-
         final List<Activity> activities = new ArrayList<>();
-
         if (moduleContext.isAdserverTargetingEnabled()) {
-            activities.add(ActivityImpl.of(ACTIVITY_ENRICH_RESPONSE,
-                    responseEnrichmentStatusValue,
-                    toResults(STATUS_REASON, responseEnrichmentStatusReason)));
+            activities.add(ActivityImpl.of(
+                    ACTIVITY_ENRICH_RESPONSE,
+                    toEnrichmentStatusValue(moduleContext.getEnrichResponseStatus()),
+                    toResults(STATUS_REASON, toEnrichmentStatusReason(moduleContext.getEnrichResponseStatus()))));
         }
 
-        return TagsImpl.of(activities);
+        return TagsImpl.of(Collections.unmodifiableList(activities));
     }
 
     private static String toEnrichmentStatusValue(EnrichmentStatus enrichRequestStatus) {

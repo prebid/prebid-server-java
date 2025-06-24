@@ -69,10 +69,10 @@ public class OptableTargetingConfig {
 
     @Bean(name = "apiClient")
     APIClient apiClientImpl(OptableHttpClientWrapper httpClientWrapper,
-                        @Value("${logging.sampling-rate:0.01}")
-                        double logSamplingRate,
-                        OptableTargetingProperties properties,
-                        OptableResponseMapper responseParser) {
+                            @Value("${logging.sampling-rate:0.01}")
+                            double logSamplingRate,
+                            OptableTargetingProperties properties,
+                            OptableResponseMapper responseParser) {
 
         return new APIClientImpl(
                 properties.getApiEndpoint(),

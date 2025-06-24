@@ -15,12 +15,4 @@ public class OptableCall {
     public static OptableCall succeededHttp(HttpRequest request, HttpResponse response) {
         return new OptableCall(request, response);
     }
-
-    public static OptableCall failedHttp(HttpRequest request) {
-        return new OptableCall(request, null);
-    }
-
-    public static OptableCall failedHttp(HttpResponse response) {
-        return new OptableCall(null, response);
-    }
 }
