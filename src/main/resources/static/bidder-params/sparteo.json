@@ -30,6 +30,5 @@
     },
     "required": [
         "networkId"
-    ],
-    "additionalProperties": true
+    ]
 }

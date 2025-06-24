@@ -1,15 +1,19 @@
 package org.prebid.server.proto.openrtb.ext.request.sparteo;
 
+import com.fasterxml.jackson.annotation.JsonAnyGetter;
+import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.NonNull;
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Value;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @Value(staticConstructor = "of")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ExtImpSparteo {
 
-    @NonNull
     @JsonProperty("networkId")
     String networkId;
 
@@ -27,4 +31,16 @@ public class ExtImpSparteo {
 
     @JsonProperty("custom5")
     String custom5;
+
+    Map<String, JsonNode> additionalProperties = new HashMap<>();
+
+    @JsonAnySetter
+    public void addAdditionalProperty(String key, JsonNode value) {
+        additionalProperties.put(key, value);
+    }
+
+    @JsonAnyGetter
+    public Map<String, JsonNode> getAdditionalProperties() {
+        return additionalProperties;
+    }
 }

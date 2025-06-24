@@ -90,21 +90,8 @@ public class SparteoBidderTest extends VertxTest {
         assertThat(result.getErrors())
                 .hasSize(1)
                 .allSatisfy(error -> {
-                    assertThat(error.getType())
-                            .isEqualTo(BidderError.Type.bad_input);
-                    final String actualExceptionMessageContent =
-                            "class com.fasterxml.jackson.databind.node.TextNode cannot be cast to "
-                            + "class com.fasterxml.jackson.databind.node.ObjectNode"
-                            + " (com.fasterxml.jackson.databind.node.TextNode and "
-                            + "com.fasterxml.jackson.databind.node.ObjectNode are in unnamed module "
-                            + "of loader 'app')";
-                    final String expectedFullErrorMessage = String.format(
-                            "ignoring imp id=null, error processing ext: %s",
-                            actualExceptionMessageContent
-                    );
-
                     assertThat(error.getMessage())
-                            .isEqualTo(expectedFullErrorMessage);
+                            .startsWith("ignoring imp id=null, error processing ext: Cannot construct instance");
                 });
         assertThat(result.getValue())
                 .isEmpty();

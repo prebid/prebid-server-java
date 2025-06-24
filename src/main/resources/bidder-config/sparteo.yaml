@@ -13,8 +13,8 @@ adapters:
         - native
       supported-vendors:
       vendor-id: 1028
-    userSync:
+    usersync:
       cookie-family-name: sparteo
       iframe:
         url: "https://sync.sparteo.com/s2s_sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect_url={{redirect_url}}"
-        supportCors: true
+        support-cors: true
