@@ -34,7 +34,6 @@ public class WURFLService implements FileProcessor {
     }
 
     public Future<?> setDataPath(String dataFilePath) {
-
         try {
             final WURFLEngine engine = this.createEngine(dataFilePath);
             this.arWurflEngine.set(engine);

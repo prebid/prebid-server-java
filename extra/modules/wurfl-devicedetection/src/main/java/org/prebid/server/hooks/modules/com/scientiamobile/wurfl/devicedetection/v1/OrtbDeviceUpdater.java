@@ -23,7 +23,6 @@ public class OrtbDeviceUpdater {
 
     public Device update(Device ortbDevice, com.scientiamobile.wurfl.core.Device wurflDevice,
                          Set<String> staticCaps, Set<String> virtualCaps, boolean addExtCaps) {
-
         final Device.DeviceBuilder deviceBuilder = ortbDevice.toBuilder();
 
         // make
@@ -163,7 +162,6 @@ public class OrtbDeviceUpdater {
     private UpdateResult<BigDecimal> tryUpdateBigDecimalField(BigDecimal fromOrtbDevice,
                                                               com.scientiamobile.wurfl.core.Device wurflDevice,
                                                               String capName) {
-
         if (fromOrtbDevice != null) {
             return UpdateResult.unaltered(fromOrtbDevice);
         }
@@ -204,7 +202,6 @@ public class OrtbDeviceUpdater {
     }
 
     public static Integer getOrtb2DeviceType(final com.scientiamobile.wurfl.core.Device wurflDevice) {
-
         final boolean isPhone;
         final boolean isTablet;
 

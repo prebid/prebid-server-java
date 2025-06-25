@@ -17,7 +17,6 @@ public class WURFLDeviceDetectionEntrypointHook implements EntrypointHook {
     @Override
     public Future<InvocationResult<EntrypointPayload>> call(
             EntrypointPayload entrypointPayload, InvocationContext invocationContext) {
-
         final AuctionRequestHeadersContext bidRequestHeadersContext = AuctionRequestHeadersContext.from(
                 entrypointPayload.headers());
         return Future.succeededFuture(

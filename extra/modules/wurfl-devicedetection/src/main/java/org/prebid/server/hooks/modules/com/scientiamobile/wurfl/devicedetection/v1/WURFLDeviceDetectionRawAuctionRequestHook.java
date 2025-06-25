@@ -73,14 +73,15 @@ public class WURFLDeviceDetectionRawAuctionRequestHook implements RawAuctionRequ
                 requestHeaders = headersContext.getHeaders();
             }
 
-            final Map<String, String> headers = new HeadersResolver().resolve(ortbDevice, requestHeaders);
-            final Optional<com.scientiamobile.wurfl.core.Device> wurflDevice = wurflService.lookupDevice(headers);
-            if (wurflDevice.isEmpty()) {
-                LOG.info("No WURFL device found, returning original bid request");
-                return noUpdateResultFuture();
-            }
-
             try {
+
+                final Map<String, String> headers = new HeadersResolver().resolve(ortbDevice, requestHeaders);
+                final Optional<com.scientiamobile.wurfl.core.Device> wurflDevice = wurflService.lookupDevice(headers);
+                if (wurflDevice.isEmpty()) {
+                    LOG.info("No WURFL device found, returning original bid request");
+                    return noUpdateResultFuture();
+                }
+
                 final Device updatedDevice = ortbDeviceUpdater.update(ortbDevice, wurflDevice.get(),
                         wurflService.getAllCapabilities(),
                         wurflService.getAllVirtualCapabilities(),
@@ -98,8 +99,8 @@ public class WURFLDeviceDetectionRawAuctionRequestHook implements RawAuctionRequ
                 );
             } catch (Exception e) {
                 LOG.error("Exception " + e.getMessage());
+                return noUpdateResultFuture();
             }
-
         }
 
         return noUpdateResultFuture();
@@ -127,7 +128,6 @@ public class WURFLDeviceDetectionRawAuctionRequestHook implements RawAuctionRequ
     }
 
     private boolean isAccountValid(AuctionContext auctionContext) {
-
         return Optional.ofNullable(auctionContext)
                 .map(AuctionContext::getAccount)
                 .map(Account::getId)

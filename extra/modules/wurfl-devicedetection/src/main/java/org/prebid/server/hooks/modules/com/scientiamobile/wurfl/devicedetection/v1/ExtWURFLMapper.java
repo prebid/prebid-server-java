@@ -22,7 +22,6 @@ public class ExtWURFLMapper {
     private static final String WURFL_ID_PROPERTY = "wurfl_id";
 
     public ObjectNode mapExtProperties() {
-
         final ObjectMapper objectMapper = ObjectMapperProvider.mapper();
         final ObjectNode wurflNode = objectMapper.createObjectNode();
 

@@ -34,7 +34,6 @@ public class WURFLDeviceDetectionConfiguration {
     @Bean
     public WURFLDeviceDetectionModule wurflDeviceDetectionModule(WURFLDeviceDetectionConfigProperties
                                                                          configProperties, Vertx vertx) {
-
         final WURFLService wurflService = new WURFLService(null, configProperties);
         final FileSyncer fileSyncer = createFileSyncer(configProperties, wurflService, vertx);
         fileSyncer.sync();
