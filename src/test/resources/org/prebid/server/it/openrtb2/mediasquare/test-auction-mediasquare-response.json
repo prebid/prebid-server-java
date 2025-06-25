@@ -1,0 +1,87 @@
+{
+  "id": "70e5672c-515b-406e-967c-fcc2b04de04f",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "1",
+          "impid": "2c35e25e-e7d3-41bf-b810-06a449f456b9",
+          "price": 2,
+          "adm": "\u003c!-- This is an example --\u003e",
+          "adomain": [
+            "mediasquare.fr"
+          ],
+          "crid": "msq_test|fakeCreative",
+          "w": 250,
+          "mtype": 1,
+          "exp": 300,
+          "ext": {
+            "dsa": {
+              "behalf": "Advertiser",
+              "paid": "Advertiser",
+              "transparency": {
+                "domain": "dsp1domain.com",
+                "dsaparams": [
+                  1,
+                  2
+                ]
+              },
+              "adrender": 1
+            },
+            "prebid": {
+              "type": "banner",
+              "meta": {
+                "adaptercode": "mediasquare",
+                "advertiserDomains": [
+                  "mediasquare.fr"
+                ],
+                "mediaType": "banner"
+              }
+            },
+            "origbidcpm": 2,
+            "origbidcur": "USD"
+          }
+        },
+        {
+          "id": "2",
+          "impid": "2059a3e6-71a3-43ea-8290-b5ceb13d35a8",
+          "price": 0.02,
+          "adm": "\u003c!-- This is an example --\u003e",
+          "adomain": [
+            "mediasquare.fr"
+          ],
+          "crid": "msq_test|fakeCreative",
+          "w": 250,
+          "mtype": 1,
+          "exp": 300,
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "meta": {
+                "adaptercode": "mediasquare",
+                "advertiserDomains": [
+                  "mediasquare.fr"
+                ],
+                "mediaType": "banner"
+              }
+            },
+            "origbidcpm": 0.02,
+            "origbidcur": "USD"
+          }
+        }
+      ],
+      "seat": "mediasquare",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "mediasquare": "{{ mediasquare.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}
