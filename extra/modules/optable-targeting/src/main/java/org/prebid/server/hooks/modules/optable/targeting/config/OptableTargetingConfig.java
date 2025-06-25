@@ -127,13 +127,15 @@ public class OptableTargetingConfig {
     @Bean
     OptableTargetingModule optableTargetingModule(ConfigResolver configResolver,
                                                   OptableTargeting optableTargeting,
-                                                  UserFpdActivityMask userFpdActivityMask) {
+                                                  UserFpdActivityMask userFpdActivityMask,
+                                                  JsonMerger jsonMerger) {
 
         return new OptableTargetingModule(List.of(
                 new OptableTargetingProcessedAuctionRequestHook(
                         configResolver,
                         optableTargeting,
-                        userFpdActivityMask),
+                        userFpdActivityMask,
+                        jsonMerger),
                 new OptableTargetingAuctionResponseHook(
                         configResolver,
                         ObjectMapperProvider.mapper())));

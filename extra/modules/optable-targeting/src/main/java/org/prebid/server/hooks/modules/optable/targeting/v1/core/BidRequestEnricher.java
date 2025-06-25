@@ -1,12 +1,12 @@
 package org.prebid.server.hooks.modules.optable.targeting.v1.core;
 
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Data;
 import com.iab.openrtb.request.Eid;
 import lombok.Value;
 import lombok.experimental.Accessors;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
-import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Data;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Ortb2;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.User;

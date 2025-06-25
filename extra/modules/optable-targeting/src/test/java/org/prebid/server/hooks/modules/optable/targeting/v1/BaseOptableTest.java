@@ -5,9 +5,11 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.gpp.encoder.GppModel;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Data;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Geo;
+import com.iab.openrtb.request.Segment;
 import com.iab.openrtb.request.Uid;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
@@ -29,10 +31,10 @@ import org.prebid.server.hooks.modules.optable.targeting.model.config.CachePrope
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Audience;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.AudienceId;
-import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Data;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Ortb2;
-import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Segment;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
+import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.json.JsonMerger;
 import org.prebid.server.json.ObjectMapperProvider;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.Privacy;
@@ -54,6 +56,8 @@ import java.util.function.UnaryOperator;
 public abstract class BaseOptableTest {
 
     protected final ObjectMapper mapper = ObjectMapperProvider.mapper();
+
+    protected final JsonMerger jsonMerger = new JsonMerger(new JacksonMapper(mapper));
 
     protected ModuleContext givenModuleContext() {
         return givenModuleContext(null);
@@ -84,8 +88,12 @@ public abstract class BaseOptableTest {
     }
 
     protected BidRequest givenBidRequest() {
+        return givenBidRequest((List<Eid>) null);
+    }
+
+    protected BidRequest givenBidRequest(List<Eid> eids) {
         return BidRequest.builder()
-                .user(givenUser())
+                .user(givenUser(eids))
                 .device(givenDevice())
                 .cur(List.of("USD"))
                 .build();
@@ -113,7 +121,26 @@ public abstract class BaseOptableTest {
                 .build();
     }
 
+    protected TargetingResult givenTargetingResultWithEids(List<Eid> eids) {
+        return givenTargetingResult(eids, null);
+    }
+
     protected TargetingResult givenTargetingResult() {
+        return givenTargetingResult(List.of(Eid.builder()
+                        .source("source")
+                        .uids(List.of(Uid.builder()
+                                .id("id")
+                                .build()))
+                        .build()),
+                List.of(Data.builder()
+                        .id("id")
+                        .segment(List.of(Segment.builder()
+                                .id("id")
+                                .build()))
+                        .build()));
+    }
+
+    protected TargetingResult givenTargetingResult(List<Eid> eids, List<Data> data) {
         return new TargetingResult(
                 List.of(new Audience(
                         "provider",
@@ -122,15 +149,7 @@ public abstract class BaseOptableTest {
                         1
                 )),
                 new Ortb2(
-                        new org.prebid.server.hooks.modules.optable.targeting.model.openrtb.User(
-                                List.of(Eid.builder()
-                                                .source("source")
-                                                .uids(List.of(Uid.builder()
-                                                                .id("id")
-                                                        .build()))
-                                        .build()),
-                                List.of(new Data("id", List.of(new Segment("id", null))))
-                        )
+                        new org.prebid.server.hooks.modules.optable.targeting.model.openrtb.User(eids, data)
                 )
         );
     }
@@ -140,6 +159,10 @@ public abstract class BaseOptableTest {
     }
 
     protected User givenUser() {
+        return givenUser(null);
+    }
+
+    protected User givenUser(List<Eid> eids) {
         final ObjectNode optable = mapper.createObjectNode();
         optable.set("email", TextNode.valueOf("email"));
         optable.set("phone", TextNode.valueOf("phone"));
@@ -150,6 +173,7 @@ public abstract class BaseOptableTest {
         extUser.addProperty("optable", optable);
 
         return User.builder()
+                .eids(eids)
                 .geo(Geo.builder().country("country-u").region("region-u").build())
                 .ext(extUser)
                 .build();

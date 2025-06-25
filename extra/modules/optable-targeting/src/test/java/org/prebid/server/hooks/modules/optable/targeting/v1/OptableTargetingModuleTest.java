@@ -11,6 +11,8 @@ import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargetin
 import org.prebid.server.hooks.v1.Hook;
 import org.prebid.server.hooks.v1.InvocationContext;
 import org.prebid.server.hooks.v1.Module;
+import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.json.JsonMerger;
 import org.prebid.server.json.ObjectMapperProvider;
 
 import java.util.Collection;
@@ -35,6 +37,7 @@ public class OptableTargetingModuleTest {
     UserFpdActivityMask userFpdActivityMask;
 
     ObjectMapper mapper = ObjectMapperProvider.mapper();
+    JsonMerger jsonMerger = new JsonMerger(new JacksonMapper(mapper));
 
     @Test
     public void shouldReturnNonBlankCode() {
@@ -57,7 +60,8 @@ public class OptableTargetingModuleTest {
                 List.of(new OptableTargetingProcessedAuctionRequestHook(
                         configResolver,
                         optableTargeting,
-                        userFpdActivityMask),
+                        userFpdActivityMask,
+                        jsonMerger),
                         new OptableTargetingAuctionResponseHook(
                                 configResolver,
                                 mapper));
