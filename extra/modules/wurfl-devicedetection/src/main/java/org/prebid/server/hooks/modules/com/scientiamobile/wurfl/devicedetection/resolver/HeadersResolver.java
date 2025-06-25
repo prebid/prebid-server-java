@@ -3,7 +3,8 @@ package org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection
 import com.iab.openrtb.request.BrandVersion;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.UserAgent;
-import lombok.extern.slf4j.Slf4j;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 
@@ -12,9 +13,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-@Slf4j
 public class HeadersResolver {
 
+    private static final Logger LOG = LoggerFactory.getLogger(HeadersResolver.class);
     static final String SEC_CH_UA = "Sec-CH-UA";
     static final String SEC_CH_UA_PLATFORM = "Sec-CH-UA-Platform";
     static final String SEC_CH_UA_PLATFORM_VERSION = "Sec-CH-UA-Platform-Version";
@@ -43,7 +44,7 @@ public class HeadersResolver {
         final Map<String, String> resolvedHeaders = new HashMap<>();
 
         if (device == null) {
-            log.warn("ORBT Device is null");
+            LOG.warn("ORBT Device is null");
             return resolvedHeaders;
         }
 
@@ -60,14 +61,14 @@ public class HeadersResolver {
         final Map<String, String> headers = new HashMap<>();
 
         if (sua == null) {
-            log.warn("Sua is null, returning empty headers");
+            LOG.warn("Sua is null, returning empty headers");
             return new HashMap<>();
         }
 
         // Browser brands and versions
         final List<BrandVersion> brands = sua.getBrowsers();
         if (CollectionUtils.isEmpty(brands)) {
-            log.warn("No browser brands and versions found");
+            LOG.warn("No browser brands and versions found");
             return headers;
         }
 

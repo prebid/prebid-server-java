@@ -3,18 +3,20 @@ package org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection
 import com.scientiamobile.wurfl.core.Device;
 import com.scientiamobile.wurfl.core.WURFLEngine;
 import io.vertx.core.Future;
-import lombok.extern.slf4j.Slf4j;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.execution.file.FileProcessor;
 import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.config.WURFLDeviceDetectionConfigProperties;
-import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.model.WURFLEngineInitializer;
+import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.model.WURFLEngineUtils;
 
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
-@Slf4j
 public class WURFLService implements FileProcessor {
+
+    private static final Logger LOG = LoggerFactory.getLogger(WURFLService.class);
 
     private final AtomicReference<WURFLEngine> arWurflEngine = new AtomicReference<>();
     private final WURFLDeviceDetectionConfigProperties configProperties;
@@ -25,12 +27,9 @@ public class WURFLService implements FileProcessor {
     }
 
     protected WURFLEngine createEngine(String dataFilePath) {
-        final WURFLEngine wurflEngine = WURFLEngineInitializer.builder()
-                .configProperties(configProperties)
-                .wurflFilePath(dataFilePath)
-                .build().initWURFLEngine();
+        final WURFLEngine wurflEngine = WURFLEngineUtils.initializeEngine(configProperties, dataFilePath);
         wurflEngine.load();
-        log.info("WURFL Engine initialized");
+        LOG.info("WURFL Engine initialized");
         return wurflEngine;
     }
 

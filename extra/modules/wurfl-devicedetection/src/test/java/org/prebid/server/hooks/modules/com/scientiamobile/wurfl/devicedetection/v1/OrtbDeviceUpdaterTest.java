@@ -3,7 +3,6 @@ package org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.Device;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
-import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,7 +21,6 @@ import static org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedet
 import static org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.mock.WURFLDeviceMock.WURFLDeviceMockFactory.mockTablet;
 import static org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.mock.WURFLDeviceMock.WURFLDeviceMockFactory.mockUnknownDevice;
 
-@Slf4j
 @ExtendWith(MockitoExtension.class)
 class OrtbDeviceUpdaterTest {
 

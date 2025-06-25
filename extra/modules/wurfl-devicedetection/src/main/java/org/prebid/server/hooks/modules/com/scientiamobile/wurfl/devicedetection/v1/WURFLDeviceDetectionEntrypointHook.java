@@ -1,6 +1,5 @@
 package org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.v1;
 
-import lombok.extern.slf4j.Slf4j;
 import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.model.AuctionRequestHeadersContext;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationContext;
@@ -11,7 +10,6 @@ import org.prebid.server.hooks.v1.entrypoint.EntrypointPayload;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import io.vertx.core.Future;
 
-@Slf4j
 public class WURFLDeviceDetectionEntrypointHook implements EntrypointHook {
 
     private static final String CODE = "wurfl-devicedetection-entrypoint-hook";

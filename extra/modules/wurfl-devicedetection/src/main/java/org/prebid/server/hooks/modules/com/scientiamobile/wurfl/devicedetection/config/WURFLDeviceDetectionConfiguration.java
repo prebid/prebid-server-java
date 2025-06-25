@@ -1,6 +1,6 @@
 package org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.config;
 
-import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.model.WURFLEngineInitializer;
+import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.model.WURFLEngineUtils;
 import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.v1.WURFLDeviceDetectionEntrypointHook;
 import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.v1.WURFLDeviceDetectionModule;
 import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.v1.WURFLDeviceDetectionRawAuctionRequestHook;
@@ -77,13 +77,13 @@ public class WURFLDeviceDetectionConfiguration {
     private String createTempPath(WURFLDeviceDetectionConfigProperties configProperties) {
         final String basePath = configProperties.getFileDirPath();
         final String fileName = "tmp_"
-                + WURFLEngineInitializer.extractWURFLFileName(configProperties.getFileSnapshotUrl());
+                + WURFLEngineUtils.extractWURFLFileName(configProperties.getFileSnapshotUrl());
         return Path.of(basePath, fileName).toString();
     }
 
     private String createDownloadPath(WURFLDeviceDetectionConfigProperties configProperties) {
         final String basePath = configProperties.getFileDirPath();
-        final String fileName = WURFLEngineInitializer.extractWURFLFileName(configProperties.getFileSnapshotUrl());
+        final String fileName = WURFLEngineUtils.extractWURFLFileName(configProperties.getFileSnapshotUrl());
         return Path.of(basePath, fileName).toString();
     }
 
