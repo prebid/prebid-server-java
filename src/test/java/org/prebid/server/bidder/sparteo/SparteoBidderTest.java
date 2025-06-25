@@ -102,9 +102,9 @@ public class SparteoBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(
                         Imp.builder()
-                        .id("imp1")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, "invalid")))
-                        .build()))
+                                .id("imp1")
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, "invalid")))
+                                .build()))
                 .build();
 
         final Result<List<HttpRequest<BidRequest>>> result = sparteoBidder.makeHttpRequests(bidRequest);
@@ -123,8 +123,7 @@ public class SparteoBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(asList(
                         Imp.builder().id("imp1").ext(mapper.valueToTree(ExtPrebid.of(null, "invalid"))).build(),
-                        Imp.builder().id("imp2").ext(validExt).build()
-                ))
+                        Imp.builder().id("imp2").ext(validExt).build()))
                 .build();
 
         final Result<List<HttpRequest<BidRequest>>> result = sparteoBidder.makeHttpRequests(bidRequest);
@@ -207,8 +206,7 @@ public class SparteoBidderTest extends VertxTest {
                 .site(Site.builder().publisher(Publisher.builder().build()).build())
                 .imp(asList(
                         Imp.builder().id("imp1").ext(impExt1).build(),
-                        Imp.builder().id("imp2").ext(impExt2).build()
-                ))
+                        Imp.builder().id("imp2").ext(impExt2).build()))
                 .build();
 
         final Result<List<HttpRequest<BidRequest>>> result = sparteoBidder.makeHttpRequests(bidRequest);
@@ -352,9 +350,10 @@ public class SparteoBidderTest extends VertxTest {
         final ObjectNode impExt = jacksonMapper.mapper().createObjectNode();
         impExt.set("bidder", jacksonMapper.mapper().createObjectNode().put("networkId", "testNetworkId"));
 
-        final ObjectNode publisherExtNode = jacksonMapper.mapper().createObjectNode();
-        publisherExtNode.put("otherField", "otherValue");
-        final ExtPublisher extPublisher = jacksonMapper.mapper().convertValue(publisherExtNode, ExtPublisher.class);
+        final ObjectNode publisherExtJson = jacksonMapper.mapper().createObjectNode();
+        publisherExtJson.put("otherField", "otherValue");
+        final ExtPublisher extPublisher = jacksonMapper.mapper()
+                .convertValue(publisherExtJson, ExtPublisher.class);
 
         final BidRequest bidRequest = BidRequest.builder()
                 .site(Site.builder().publisher(Publisher.builder().ext(extPublisher).build()).build())
@@ -382,16 +381,21 @@ public class SparteoBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnEmptyListIfHttpResponseStatusCodeIs204() {
+    public void makeBidsShouldReturnErrorIfHttpResponseStatusCodeIs204() {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, 204, "");
         final BidRequest bidRequest = BidRequest.builder().build();
 
         final Result<List<BidderBid>> result = sparteoBidder.makeBids(httpCall, bidRequest);
 
         assertThat(result.getErrors())
-                .isEmpty();
-        assertThat(result.getValue())
-                .isEmpty();
+                .hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getMessage())
+                            .startsWith("Failed to decode: No content to map due to end-of-input");
+                });
+
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
@@ -401,15 +405,13 @@ public class SparteoBidderTest extends VertxTest {
 
         final Result<List<BidderBid>> result = sparteoBidder.makeBids(httpCall, bidRequest);
 
-        assertThat(result.getValue())
-                .isEmpty();
+        assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors())
                 .hasSize(1)
                 .allSatisfy(error -> {
-                    assertThat(error.getType())
-                            .isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
                     assertThat(error.getMessage())
-                            .isEqualTo("HTTP status 400 returned from Sparteo");
+                            .startsWith("Failed to decode: Unrecognized token 'Bad'");
                 });
     }
 
@@ -420,16 +422,14 @@ public class SparteoBidderTest extends VertxTest {
 
         final Result<List<BidderBid>> result = sparteoBidder.makeBids(httpCall, bidRequest);
 
-        assertThat(result.getValue())
-                .isEmpty();
+        assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors())
                 .hasSize(1)
                 .allSatisfy(error -> {
                     assertThat(error.getType())
                             .isEqualTo(BidderError.Type.bad_server_response);
 
-                    final String expectedMessageStart = "Failed to decode Sparteo response: "
-                            + "Failed to decode: Unrecognized token 'invalid_json'";
+                    final String expectedMessageStart = "Failed to decode: Unrecognized token 'invalid_json'";
                     assertThat(error.getMessage())
                             .startsWith(expectedMessageStart);
                 });
@@ -470,8 +470,9 @@ public class SparteoBidderTest extends VertxTest {
                 .adm("adm-banner")
                 .ext(createBidExtWithType(BidType.banner.getName()))
                 .build();
+
         final BidResponse bidResponse = BidResponse.builder()
-                .cur("USD")
+                .cur("EUR")
                 .seatbid(singletonList(SeatBid.builder().bid(singletonList(bid)).build()))
                 .build();
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, 200, mapper.writeValueAsString(bidResponse));
@@ -479,8 +480,11 @@ public class SparteoBidderTest extends VertxTest {
 
         final Result<List<BidderBid>> result = sparteoBidder.makeBids(httpCall, bidRequest);
 
+        final Bid expectedBid = bid.toBuilder().mtype(1).build();
+        final BidderBid expectedBidderBid = BidderBid.of(expectedBid, BidType.banner, "EUR");
+
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsExactly(BidderBid.of(bid, BidType.banner, "USD"));
+        assertThat(result.getValue()).containsExactly(expectedBidderBid);
     }
 
     @Test
@@ -500,8 +504,11 @@ public class SparteoBidderTest extends VertxTest {
 
         final Result<List<BidderBid>> result = sparteoBidder.makeBids(httpCall, bidRequest);
 
+        final Bid expectedBid = bid.toBuilder().mtype(2).build();
+        final BidderBid expectedBidderBid = BidderBid.of(expectedBid, BidType.video, "EUR");
+
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsExactly(BidderBid.of(bid, BidType.video, "EUR"));
+        assertThat(result.getValue()).containsExactly(expectedBidderBid);
     }
 
     @Test
@@ -513,7 +520,7 @@ public class SparteoBidderTest extends VertxTest {
                 .ext(createBidExtWithType(BidType.xNative.getName()))
                 .build();
         final BidResponse bidResponse = BidResponse.builder()
-                .cur("GBP")
+                .cur("EUR")
                 .seatbid(singletonList(SeatBid.builder().bid(singletonList(bid)).build()))
                 .build();
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, 200, mapper.writeValueAsString(bidResponse));
@@ -521,8 +528,11 @@ public class SparteoBidderTest extends VertxTest {
 
         final Result<List<BidderBid>> result = sparteoBidder.makeBids(httpCall, bidRequest);
 
+        final Bid expectedBid = bid.toBuilder().mtype(4).build();
+        final BidderBid expectedBidderBid = BidderBid.of(expectedBid, BidType.xNative, "EUR");
+
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsExactly(BidderBid.of(bid, BidType.xNative, "GBP"));
+        assertThat(result.getValue()).containsExactly(expectedBidderBid);
     }
 
     @Test
@@ -532,16 +542,14 @@ public class SparteoBidderTest extends VertxTest {
                 .price(BigDecimal.valueOf(1.0))
                 .ext(createBidExtWithType(BidType.audio.getName()))
                 .build();
-
         final Bid bannerBid = Bid.builder()
                 .impid("impBanner")
                 .price(BigDecimal.valueOf(2.0))
                 .ext(createBidExtWithType(BidType.banner.getName()))
                 .build();
-
         final BidResponse bidResponse = BidResponse.builder()
-                .cur("USD")
-                .seatbid(singletonList(SeatBid.builder().bid(asList(audioBid, bannerBid)).build()))
+                .cur("EUR")
+                .seatbid(singletonList(SeatBid.builder().bid(List.of(audioBid, bannerBid)).build()))
                 .build();
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, 200, mapper.writeValueAsString(bidResponse));
         final BidRequest bidRequest = BidRequest.builder().build();
@@ -551,15 +559,14 @@ public class SparteoBidderTest extends VertxTest {
         assertThat(result.getErrors())
                 .hasSize(1)
                 .extracting(BidderError::getMessage)
-                .containsExactly(
-                        String.format("Audio bid type not supported by this adapter for impression id: impAudio",
-                        audioBid.getImpid()
-                ));
+                .containsExactly("Audio bid type not supported by this adapter for impression id: %s"
+                        .formatted(audioBid.getImpid()));
+        final Bid expectedBannerBid = bannerBid.toBuilder().mtype(1).build();
 
         assertThat(result.getValue())
                 .hasSize(1)
                 .extracting(BidderBid::getBid)
-                .containsExactly(bannerBid);
+                .containsExactly(expectedBannerBid);
     }
 
     @Test
@@ -576,10 +583,7 @@ public class SparteoBidderTest extends VertxTest {
         assertThat(result.getErrors())
                 .hasSize(1)
                 .extracting(BidderError::getMessage)
-                .containsExactly(
-                        String.format("Bid extension or bid.ext.prebid missing for impression id: imp1",
-                        bid.getImpid())
-                );
+                .containsExactly("Failed to parse bid mediatype for impression \"imp1\"");
     }
 
     @Test
@@ -596,10 +600,7 @@ public class SparteoBidderTest extends VertxTest {
         assertThat(result.getErrors())
                 .hasSize(1)
                 .extracting(BidderError::getMessage)
-                .containsExactly(
-                        String.format("Bid extension or bid.ext.prebid missing for impression id: imp1",
-                        bid.getImpid()
-                ));
+                .containsExactly("Failed to parse bid mediatype for impression \"imp1\"");
     }
 
     @Test
@@ -616,10 +617,7 @@ public class SparteoBidderTest extends VertxTest {
         assertThat(result.getErrors())
                 .hasSize(1)
                 .extracting(BidderError::getMessage)
-                .containsExactly(
-                        String.format("Missing type in bid.ext.prebid for impression id: imp1",
-                        bid.getImpid()
-                ));
+                .containsExactly("Failed to parse bid mediatype for impression \"imp1\"");
     }
 
     @Test
@@ -639,10 +637,7 @@ public class SparteoBidderTest extends VertxTest {
         assertThat(result.getErrors())
                 .hasSize(1)
                 .extracting(BidderError::getMessage)
-                .element(0).asString().startsWith(
-                        String.format("Failed to parse bid.ext.prebid for impression id: imp1, error: ",
-                        bid.getImpid()
-                ));
+                .containsExactly("Failed to parse bid mediatype for impression \"imp1\"");
     }
 
     @Test
@@ -659,9 +654,7 @@ public class SparteoBidderTest extends VertxTest {
         assertThat(result.getErrors())
                 .hasSize(1)
                 .extracting(BidderError::getMessage)
-                .element(0).asString().startsWith(
-                    String.format("Failed to parse bid.ext.prebid for impression id: imp1, error: ", bid.getImpid())
-                );
+                .containsExactly("Failed to parse bid mediatype for impression \"imp1\"");
     }
 
     @Test
@@ -677,15 +670,18 @@ public class SparteoBidderTest extends VertxTest {
                 .seatbid(singletonList(SeatBid.builder().bid(bids).build()))
                 .build();
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, 200, mapper.writeValueAsString(bidResponse));
+        final BidRequest bidRequest = BidRequest.builder().build();
 
-        final Result<List<BidderBid>> result = sparteoBidder.makeBids(httpCall, BidRequest.builder().build());
+        final Result<List<BidderBid>> result = sparteoBidder.makeBids(httpCall, bidRequest);
 
-        assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().get(0).getBid()).isEqualTo(validBid);
-        assertThat(result.getErrors())
+        final Bid expectedBid = validBid.toBuilder().mtype(1).build();
+
+        assertThat(result.getValue())
                 .hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsExactly("Received null bid object within a seatbid.");
+                .extracting(BidderBid::getBid)
+                .containsExactly(expectedBid);
+
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -716,8 +712,7 @@ public class SparteoBidderTest extends VertxTest {
                 .containsExactlyInAnyOrder(
                         tuple("imp1", BidType.banner),
                         tuple("imp2", BidType.video),
-                        tuple("imp3", BidType.xNative)
-                );
+                        tuple("imp3", BidType.xNative));
     }
 
     @Test
@@ -797,6 +792,7 @@ public class SparteoBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldNotModifyPublisherExtIfSiteNetworkIdIsNull() {
         final ObjectNode impExt = jacksonMapper.mapper().createObjectNode();
+        impExt.set("bidder", jacksonMapper.mapper().createObjectNode().put("someOtherParam", "someValue"));
 
         final ObjectNode publisherExtJson = jacksonMapper.mapper().createObjectNode();
         publisherExtJson.put("existing", "value");
@@ -875,10 +871,7 @@ public class SparteoBidderTest extends VertxTest {
         assertThat(result.getErrors())
                 .hasSize(1)
                 .extracting(BidderError::getMessage)
-                .containsExactly(
-                        String.format("Bid extension or bid.ext.prebid missing for impression id: %s",
-                        bid.getImpid())
-                );
+                .containsExactly("Failed to parse bid mediatype for impression \"imp1\"");
     }
 
     @Test
@@ -890,13 +883,15 @@ public class SparteoBidderTest extends VertxTest {
         final List<SeatBid> seatBidsWithNull = new ArrayList<>();
         seatBidsWithNull.add(validSeatBid);
         seatBidsWithNull.add(null);
-        seatBidsWithNull.add(SeatBid.builder().bid(singletonList(
-                Bid.builder()
+        final Bid anotherValidBid = Bid.builder()
                 .impid("anotherValidImp")
                 .price(BigDecimal.ONE)
                 .ext(bidExt)
-                .build()
-        )).build());
+                .build();
+
+        final SeatBid anotherValidSeatBid = SeatBid.builder().bid(singletonList(anotherValidBid)).build();
+
+        seatBidsWithNull.add(anotherValidSeatBid);
 
         final BidResponse bidResponse = BidResponse.builder()
                 .cur("USD")

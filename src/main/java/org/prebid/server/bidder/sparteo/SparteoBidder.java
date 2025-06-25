@@ -17,6 +17,7 @@ import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
@@ -31,6 +32,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 public class SparteoBidder implements Bidder<BidRequest> {
 
@@ -50,19 +52,21 @@ public class SparteoBidder implements Bidder<BidRequest> {
 
         for (Imp imp : request.getImp()) {
             try {
-                final JsonNode bidderNode = imp.getExt().get("bidder");
+                final ObjectNode impExt = mapper.mapper().convertValue(imp.getExt(), ObjectNode.class);
+
+                final JsonNode bidderNode = impExt.get("bidder");
                 final ExtImpSparteo bidderParams = mapper.mapper().treeToValue(bidderNode, ExtImpSparteo.class);
 
                 if (siteNetworkId == null && bidderParams.getNetworkId() != null) {
                     siteNetworkId = bidderParams.getNetworkId();
                 }
 
-                final ObjectNode modifiedExt = buildImpExt(imp, bidderParams, mapper);
+                final ObjectNode modifiedExt = buildImpExt(impExt, bidderParams, mapper);
 
                 modifiedImps.add(imp.toBuilder().ext(modifiedExt).build());
-            } catch (NullPointerException | JsonProcessingException e) {
+            } catch (JsonProcessingException e) {
                 errors.add(BidderError.badInput(
-                        String.format("ignoring imp id=%s, error processing ext: %s",
+                        "ignoring imp id=%s, error processing ext: %s".formatted(
                                 imp.getId(), e.getMessage())));
             }
         }
@@ -81,55 +85,30 @@ public class SparteoBidder implements Bidder<BidRequest> {
         return Result.of(Collections.singletonList(call), errors);
     }
 
-    @Override
-    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
-        final List<BidderError> errors = new ArrayList<>();
-        final int statusCode = httpCall.getResponse().getStatusCode();
-
-        if (statusCode == 204) {
-            return Result.of(Collections.emptyList(), errors);
-        }
-
-        if (statusCode != 200) {
-            return Result.withError(BidderError.badServerResponse(
-                    String.format("HTTP status %d returned from Sparteo", statusCode)));
-        }
-
-        try {
-            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(bidResponse, errors), errors);
-        } catch (DecodeException e) {
-            return Result.withError(BidderError.badServerResponse(
-                    String.format("Failed to decode Sparteo response: %s", e.getMessage())));
-        }
-    }
-
-    private ObjectNode buildImpExt(Imp imp, ExtImpSparteo bidderParams, JacksonMapper mapper)
+    private ObjectNode buildImpExt(ObjectNode impExt, ExtImpSparteo bidderParams, JacksonMapper mapper)
         throws JsonProcessingException {
 
-        final ObjectNode extMap = mapper.mapper().convertValue(imp.getExt(), ObjectNode.class);
+        impExt.remove("bidder");
 
-        extMap.remove("bidder");
-
-        final JsonNode sparteoNode = extMap.get("sparteo");
+        final JsonNode sparteoNode = impExt.get("sparteo");
         final ObjectNode outgoingParamsNode;
 
         if (sparteoNode != null && sparteoNode.isObject() && sparteoNode.has("params")
                 && sparteoNode.get("params").isObject()) {
             outgoingParamsNode = (ObjectNode) sparteoNode.get("params");
         } else {
-            outgoingParamsNode = extMap.putObject("sparteo").putObject("params");
+            outgoingParamsNode = impExt.putObject("sparteo").putObject("params");
         }
 
         final ObjectNode bidderParamsAsNode = mapper.mapper().convertValue(bidderParams, ObjectNode.class);
         outgoingParamsNode.setAll(bidderParamsAsNode);
 
-        final JsonNode prebidNode = extMap.get("prebid");
+        final JsonNode prebidNode = impExt.get("prebid");
         if (prebidNode != null && prebidNode.has("adunitcode")) {
             outgoingParamsNode.set("adUnitCode", prebidNode.get("adunitcode"));
         }
 
-        return extMap;
+        return impExt;
     }
 
     private Site modifySite(Site site, String siteNetworkId, JacksonMapper mapper) {
@@ -165,6 +144,17 @@ public class SparteoBidder implements Bidder<BidRequest> {
                 .build();
     }
 
+    @Override
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
+        try {
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            final List<BidderError> errors = new ArrayList<>();
+            return Result.of(extractBids(bidResponse, errors), errors);
+        } catch (DecodeException e) {
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
+        }
+    }
+
     private List<BidderBid> extractBids(BidResponse bidResponse, List<BidderError> errors) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
@@ -175,66 +165,54 @@ public class SparteoBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> {
-                    if (bid == null) {
-                        errors.add(BidderError.badServerResponse("Received null bid object within a seatbid."));
-                        return null;
-                    }
-                    return toBidderBid(bid, bidResponse.getCur(), errors);
-                })
+                .filter(Objects::nonNull)
+                .map(bid -> toBidderBid(bid, bidResponse.getCur(), errors))
                 .filter(Objects::nonNull)
                 .toList();
     }
 
-    private BidderBid toBidderBid(Bid bid, String currency, List<BidderError> errors) {
+    private BidType getBidType(Bid bid) throws PreBidException {
+        final BidType bidType = Optional.ofNullable(bid.getExt())
+                .map(ext -> ext.get("prebid"))
+                .filter(JsonNode::isObject)
+                .map(this::parseExtBidPrebid)
+                .map(ExtBidPrebid::getType)
+                .orElseThrow(() -> new PreBidException(
+                        "Failed to parse bid mediatype for impression \"%s\"".formatted(bid.getImpid())));
+
+        if (bidType == BidType.audio) {
+            throw new PreBidException(
+                    "Audio bid type not supported by this adapter for impression id: %s".formatted(bid.getImpid()));
+        }
+
+        return bidType;
+    }
+
+    private ExtBidPrebid parseExtBidPrebid(JsonNode prebidNode) {
         try {
-            final BidType bidType = getBidTypeFromBidExtension(bid);
-            return BidderBid.of(bid, bidType, currency);
-        } catch (Exception e) {
-            errors.add(BidderError.badServerResponse(e.getMessage()));
+            return mapper.mapper().treeToValue(prebidNode, ExtBidPrebid.class);
+        } catch (JsonProcessingException e) {
             return null;
         }
     }
 
-    private BidType getBidTypeFromBidExtension(Bid bid) throws Exception {
-        final ObjectNode bidExtNode = bid.getExt();
-
-        if (bidExtNode == null || !bidExtNode.hasNonNull("prebid")) {
-            throw new Exception(
-                    String.format("Bid extension or bid.ext.prebid missing for impression id: %s",
-                    bid.getImpid())
-            );
-        }
-
-        final JsonNode prebidNode = bidExtNode.get("prebid");
-        final ExtBidPrebid extBidPrebid;
-
+    private BidderBid toBidderBid(Bid bid, String currency, List<BidderError> errors) {
         try {
-            extBidPrebid = mapper.mapper().treeToValue(prebidNode, ExtBidPrebid.class);
-        } catch (JsonProcessingException e) {
-            throw new Exception(
-                    String.format("Failed to parse bid.ext.prebid for impression id: %s, error: %s",
-                    bid.getImpid(),
-                    e.getMessage()
-                ),
-            e);
-        }
+            final BidType bidType = getBidType(bid);
 
-        if (extBidPrebid == null || extBidPrebid.getType() == null) {
-            throw new Exception(
-                    String.format("Missing type in bid.ext.prebid for impression id: %s",
-                    bid.getImpid()
-            ));
-        }
+            final Integer mtype = switch (bidType) {
+                case banner -> 1;
+                case video -> 2;
+                case xNative -> 4;
+                default -> null;
+            };
 
-        final BidType bidType = extBidPrebid.getType();
-        if (bidType == BidType.audio) {
-            throw new Exception(
-                    String.format("Audio bid type not supported by this adapter for impression id: %s",
-                    bid.getImpid())
-            );
-        }
+            final Bid bidWithMtype = mtype != null ? bid.toBuilder().mtype(mtype).build() : bid;
 
-        return bidType;
+            return BidderBid.of(bidWithMtype, bidType, currency);
+        } catch (PreBidException e) {
+            errors.add(BidderError.badServerResponse(e.getMessage()));
+            return null;
+        }
     }
 }
