@@ -58,19 +58,19 @@ public class HeadersResolver {
 
         final BrandVersion platform = sua.getPlatform();
         if (platform != null) {
-            headers.put(HttpUtil.SEC_CH_UA_PLATFORM.toString(), escape(platform.getBrand()));
+            headers.put(HttpUtil.SEC_CH_UA_PLATFORM.toString(), platform.getBrand());
             headers.put(HttpUtil.SEC_CH_UA_PLATFORM_VERSION.toString(),
-                    escape(versionFromTokens(platform.getVersion())));
+                    versionFromTokens(platform.getVersion()));
         }
 
         final String model = sua.getModel();
         if (StringUtils.isNotEmpty(model)) {
-            headers.put(HttpUtil.SEC_CH_UA_MODEL.toString(), escape(model));
+            headers.put(HttpUtil.SEC_CH_UA_MODEL.toString(), model);
         }
 
         final String arch = sua.getArchitecture();
         if (StringUtils.isNotEmpty(arch)) {
-            headers.put(HttpUtil.SEC_CH_UA_ARCH.toString(), escape(arch));
+            headers.put(HttpUtil.SEC_CH_UA_ARCH.toString(), arch);
         }
 
         final Integer mobile = sua.getMobile();
@@ -84,14 +84,10 @@ public class HeadersResolver {
     private String brandListAsString(List<BrandVersion> versions) {
         return versions.stream()
                 .filter(brandVersion -> brandVersion.getBrand() != null)
-                .map(brandVersion -> "%s;v=\"%s\"".formatted(
-                        escape(brandVersion.getBrand()),
+                .map(brandVersion -> "\"%s\";v=\"%s\"".formatted(
+                        brandVersion.getBrand(),
                         versionFromTokens(brandVersion.getVersion())))
                 .collect(Collectors.joining(", "));
-    }
-
-    private static String escape(String value) {
-        return '"' + value.replace("\"", "\\\"") + '"';
     }
 
     private static String versionFromTokens(List<String> tokens) {

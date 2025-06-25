@@ -82,10 +82,10 @@ class HeadersResolverTest {
         assertThat(result)
                 .containsEntry("Sec-CH-UA", "\"Chrome\";v=\"100.0.0\"")
                 .containsEntry("Sec-CH-UA-Full-Version-List", "\"Chrome\";v=\"100.0.0\"")
-                .containsEntry("Sec-CH-UA-Platform", "\"Windows\"")
-                .containsEntry("Sec-CH-UA-Platform-Version", "\"10.0.0\"")
-                .containsEntry("Sec-CH-UA-Model", "\"Test Model\"")
-                .containsEntry("Sec-CH-UA-Arch", "\"x86\"")
+                .containsEntry("Sec-CH-UA-Platform", "Windows")
+                .containsEntry("Sec-CH-UA-Platform-Version", "10.0.0")
+                .containsEntry("Sec-CH-UA-Model", "Test Model")
+                .containsEntry("Sec-CH-UA-Arch", "x86")
                 .containsEntry("Sec-CH-UA-Mobile", "?0");
     }
 
@@ -130,10 +130,10 @@ class HeadersResolverTest {
         assertThat(result)
                 .containsEntry("Sec-CH-UA", "\"Chrome\";v=\"100.0.0\"")
                 .containsEntry("Sec-CH-UA-Full-Version-List", "\"Chrome\";v=\"100.0.0\"")
-                .containsEntry("Sec-CH-UA-Platform", "\"Windows\"")
-                .containsEntry("Sec-CH-UA-Platform-Version", "\"10.0.0\"")
-                .containsEntry("Sec-CH-UA-Model", "\"Test Model\"")
-                .containsEntry("Sec-CH-UA-Arch", "\"x86\"")
+                .containsEntry("Sec-CH-UA-Platform", "Windows")
+                .containsEntry("Sec-CH-UA-Platform-Version", "10.0.0")
+                .containsEntry("Sec-CH-UA-Model", "Test Model")
+                .containsEntry("Sec-CH-UA-Arch", "x86")
                 .containsEntry("Sec-CH-UA-Mobile", "?0");
     }
 
