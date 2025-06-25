@@ -5,6 +5,7 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.UserAgent;
 import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
+import org.prebid.server.util.HttpUtil;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 
@@ -16,17 +17,8 @@ import java.util.stream.Collectors;
 public class HeadersResolver {
 
     private static final Logger LOG = LoggerFactory.getLogger(HeadersResolver.class);
-    static final String SEC_CH_UA = "Sec-CH-UA";
-    static final String SEC_CH_UA_PLATFORM = "Sec-CH-UA-Platform";
-    static final String SEC_CH_UA_PLATFORM_VERSION = "Sec-CH-UA-Platform-Version";
-    static final String SEC_CH_UA_MOBILE = "Sec-CH-UA-Mobile";
-    static final String SEC_CH_UA_ARCH = "Sec-CH-UA-Arch";
-    static final String SEC_CH_UA_MODEL = "Sec-CH-UA-Model";
-    static final String SEC_CH_UA_FULL_VERSION_LIST = "Sec-CH-UA-Full-Version-List";
-    static final String USER_AGENT = "User-Agent";
 
     public Map<String, String> resolve(Device device, Map<String, String> headers) {
-
         if (device == null && headers == null) {
             return new HashMap<>();
         }
@@ -40,7 +32,6 @@ public class HeadersResolver {
     }
 
     private Map<String, String> resolveFromOrtbDevice(Device device) {
-
         final Map<String, String> resolvedHeaders = new HashMap<>();
 
         if (device == null) {
@@ -49,7 +40,7 @@ public class HeadersResolver {
         }
 
         if (device.getUa() != null) {
-            resolvedHeaders.put(USER_AGENT, device.getUa());
+            resolvedHeaders.put(HttpUtil.USER_AGENT_HEADER.toString(), device.getUa());
         }
 
         resolvedHeaders.putAll(resolveFromSua(device.getSua()));
@@ -57,7 +48,6 @@ public class HeadersResolver {
     }
 
     private Map<String, String> resolveFromSua(UserAgent sua) {
-
         final Map<String, String> headers = new HashMap<>();
 
         if (sua == null) {
@@ -73,38 +63,38 @@ public class HeadersResolver {
         }
 
         final String brandList = brandListAsString(brands);
-        headers.put(SEC_CH_UA, brandList);
-        headers.put(SEC_CH_UA_FULL_VERSION_LIST, brandList);
+        headers.put(HttpUtil.SEC_CH_UA.toString(), brandList);
+        headers.put(HttpUtil.SEC_CH_UA_FULL_VERSION_LIST.toString(), brandList);
 
         // Platform
         final BrandVersion brandNameVersion = sua.getPlatform();
         if (brandNameVersion != null) {
-            headers.put(SEC_CH_UA_PLATFORM, escape(brandNameVersion.getBrand()));
-            headers.put(SEC_CH_UA_PLATFORM_VERSION, escape(versionFromTokens(brandNameVersion.getVersion())));
+            headers.put(HttpUtil.SEC_CH_UA_PLATFORM.toString(), escape(brandNameVersion.getBrand()));
+            headers.put(HttpUtil.SEC_CH_UA_PLATFORM_VERSION.toString(),
+                    escape(versionFromTokens(brandNameVersion.getVersion())));
         }
 
         // Model
         final String model = sua.getModel();
         if (model != null && !model.isEmpty()) {
-            headers.put(SEC_CH_UA_MODEL, escape(model));
+            headers.put(HttpUtil.SEC_CH_UA_MODEL.toString(), escape(model));
         }
 
         // Architecture
         final String arch = sua.getArchitecture();
         if (arch != null && !arch.isEmpty()) {
-            headers.put(SEC_CH_UA_ARCH, escape(arch));
+            headers.put(HttpUtil.SEC_CH_UA_ARCH.toString(), escape(arch));
         }
 
         // Mobile
         final Integer mobile = sua.getMobile();
         if (mobile != null) {
-            headers.put(SEC_CH_UA_MOBILE, "?" + mobile);
+            headers.put(HttpUtil.SEC_CH_UA_MOBILE.toString(), "?" + mobile);
         }
         return headers;
     }
 
     private String brandListAsString(List<BrandVersion> versions) {
-
         final String brandNameString = versions.stream()
                 .filter(brandVersion -> brandVersion.getBrand() != null)
                 .map(brandVersion -> {
