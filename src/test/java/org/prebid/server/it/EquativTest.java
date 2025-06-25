@@ -13,7 +13,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 
-// Alias for Smartadserver
 public class EquativTest extends IntegrationTest {
 
     @Test

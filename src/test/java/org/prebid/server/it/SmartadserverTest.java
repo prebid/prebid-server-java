@@ -31,5 +31,4 @@ public class SmartadserverTest extends IntegrationTest {
         assertJsonEquals("openrtb2/smartadserver/test-auction-smartadserver-response.json", response,
                 singletonList("smartadserver"));
     }
-
 }
