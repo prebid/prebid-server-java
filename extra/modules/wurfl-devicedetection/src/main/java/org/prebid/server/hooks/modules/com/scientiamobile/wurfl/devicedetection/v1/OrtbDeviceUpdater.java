@@ -3,7 +3,8 @@ package org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection
 import com.iab.openrtb.request.Device;
 import com.scientiamobile.wurfl.core.exc.CapabilityNotDefinedException;
 import com.scientiamobile.wurfl.core.exc.VirtualCapabilityNotDefinedException;
-import lombok.extern.slf4j.Slf4j;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.model.UpdateResult;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
@@ -11,20 +12,17 @@ import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import java.math.BigDecimal;
 import java.util.Set;
 
-@Slf4j
 public class OrtbDeviceUpdater {
 
+    private static final Logger LOG = LoggerFactory.getLogger(OrtbDeviceUpdater.class);
     private static final String WURFL_PROPERTY = "wurfl";
     private static final Set<String> VIRTUAL_CAPABILITY_NAMES = Set.of(
-
             "advertised_device_os",
             "advertised_device_os_version",
-            "pixel_density"
-    );
+            "pixel_density");
 
     public Device update(Device ortbDevice, com.scientiamobile.wurfl.core.Device wurflDevice,
                          Set<String> staticCaps, Set<String> virtualCaps, boolean addExtCaps) {
-
         final Device.DeviceBuilder deviceBuilder = ortbDevice.toBuilder();
 
         // make
@@ -164,7 +162,6 @@ public class OrtbDeviceUpdater {
     private UpdateResult<BigDecimal> tryUpdateBigDecimalField(BigDecimal fromOrtbDevice,
                                                               com.scientiamobile.wurfl.core.Device wurflDevice,
                                                               String capName) {
-
         if (fromOrtbDevice != null) {
             return UpdateResult.unaltered(fromOrtbDevice);
         }
@@ -180,7 +177,7 @@ public class OrtbDeviceUpdater {
                 pxRatio = new BigDecimal(fromWurfl);
                 return UpdateResult.updated(pxRatio);
             } catch (NullPointerException e) {
-                log.warn("Cannot convert WURFL device pixel density {} to ortb device pxratio", pxRatio);
+                LOG.warn("Cannot convert WURFL device pixel density {} to ortb device pxratio", pxRatio);
             }
         }
 
@@ -205,7 +202,6 @@ public class OrtbDeviceUpdater {
     }
 
     public static Integer getOrtb2DeviceType(final com.scientiamobile.wurfl.core.Device wurflDevice) {
-
         final boolean isPhone;
         final boolean isTablet;
 
@@ -246,7 +242,7 @@ public class OrtbDeviceUpdater {
             return 7;
         }
 
-        return null; // Return null for undefined device type
+        return null; // Return null for an undefined device type
     }
 
 }

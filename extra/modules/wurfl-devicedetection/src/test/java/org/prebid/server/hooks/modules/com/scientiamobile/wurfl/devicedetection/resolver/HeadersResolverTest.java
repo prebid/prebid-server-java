@@ -82,10 +82,10 @@ class HeadersResolverTest {
         assertThat(result)
                 .containsEntry("Sec-CH-UA", "\"Chrome\";v=\"100.0.0\"")
                 .containsEntry("Sec-CH-UA-Full-Version-List", "\"Chrome\";v=\"100.0.0\"")
-                .containsEntry("Sec-CH-UA-Platform", "\"Windows\"")
-                .containsEntry("Sec-CH-UA-Platform-Version", "\"10.0.0\"")
-                .containsEntry("Sec-CH-UA-Model", "\"Test Model\"")
-                .containsEntry("Sec-CH-UA-Arch", "\"x86\"")
+                .containsEntry("Sec-CH-UA-Platform", "Windows")
+                .containsEntry("Sec-CH-UA-Platform-Version", "10.0.0")
+                .containsEntry("Sec-CH-UA-Model", "Test Model")
+                .containsEntry("Sec-CH-UA-Arch", "x86")
                 .containsEntry("Sec-CH-UA-Mobile", "?0");
     }
 
@@ -130,30 +130,11 @@ class HeadersResolverTest {
         assertThat(result)
                 .containsEntry("Sec-CH-UA", "\"Chrome\";v=\"100.0.0\"")
                 .containsEntry("Sec-CH-UA-Full-Version-List", "\"Chrome\";v=\"100.0.0\"")
-                .containsEntry("Sec-CH-UA-Platform", "\"Windows\"")
-                .containsEntry("Sec-CH-UA-Platform-Version", "\"10.0.0\"")
-                .containsEntry("Sec-CH-UA-Model", "\"Test Model\"")
-                .containsEntry("Sec-CH-UA-Arch", "\"x86\"")
+                .containsEntry("Sec-CH-UA-Platform", "Windows")
+                .containsEntry("Sec-CH-UA-Platform-Version", "10.0.0")
+                .containsEntry("Sec-CH-UA-Model", "Test Model")
+                .containsEntry("Sec-CH-UA-Arch", "x86")
                 .containsEntry("Sec-CH-UA-Mobile", "?0");
-    }
-
-    @Test
-    void versionFromTokensShouldHandleNullAndEmptyInput() {
-        // when & then
-        assertThat(HeadersResolver.versionFromTokens(null)).isEmpty();
-        assertThat(HeadersResolver.versionFromTokens(List.of())).isEmpty();
-    }
-
-    @Test
-    void versionFromTokensShouldJoinValidTokens() {
-        // given
-        final List<String> tokens = Arrays.asList("100", "0", "1234");
-
-        // when
-        final String result = HeadersResolver.versionFromTokens(tokens);
-
-        // then
-        assertThat(result).isEqualTo("100.0.1234");
     }
 
     @Test

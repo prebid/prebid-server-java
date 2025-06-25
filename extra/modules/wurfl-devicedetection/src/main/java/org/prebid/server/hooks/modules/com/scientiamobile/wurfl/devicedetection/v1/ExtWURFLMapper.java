@@ -1,15 +1,18 @@
 package org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.v1;
 
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.prebid.server.json.ObjectMapperProvider;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
-import lombok.extern.slf4j.Slf4j;
 
 import java.util.Set;
 
 @Builder
-@Slf4j
 public class ExtWURFLMapper {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ExtWURFLMapper.class);
 
     private final Set<String> staticCaps;
     private final Set<String> virtualCaps;
@@ -19,8 +22,7 @@ public class ExtWURFLMapper {
     private static final String WURFL_ID_PROPERTY = "wurfl_id";
 
     public ObjectNode mapExtProperties() {
-
-        final ObjectMapper objectMapper = new ObjectMapper();
+        final ObjectMapper objectMapper = ObjectMapperProvider.mapper();
         final ObjectNode wurflNode = objectMapper.createObjectNode();
 
         wurflNode.put(WURFL_ID_PROPERTY, wurflDevice.getId());
@@ -34,7 +36,7 @@ public class ExtWURFLMapper {
                         wurflNode.put(capability, value);
                     }
                 } catch (Exception e) {
-                    log.warn("Error getting capability for {}: {}", capability, e.getMessage());
+                    LOG.warn("Error getting capability for {}: {}", capability, e.getMessage());
                 }
             }
 
@@ -45,7 +47,7 @@ public class ExtWURFLMapper {
                         wurflNode.put(virtualCapability, value);
                     }
                 } catch (Exception e) {
-                    log.warn("Could not fetch virtual capability {}", virtualCapability);
+                    LOG.warn("Could not fetch virtual capability {}", virtualCapability);
                 }
             }
         }
