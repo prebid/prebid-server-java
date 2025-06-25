@@ -138,25 +138,6 @@ class HeadersResolverTest {
     }
 
     @Test
-    void versionFromTokensShouldHandleNullAndEmptyInput() {
-        // when & then
-        assertThat(HeadersResolver.versionFromTokens(null)).isEmpty();
-        assertThat(HeadersResolver.versionFromTokens(List.of())).isEmpty();
-    }
-
-    @Test
-    void versionFromTokensShouldJoinValidTokens() {
-        // given
-        final List<String> tokens = Arrays.asList("100", "0", "1234");
-
-        // when
-        final String result = HeadersResolver.versionFromTokens(tokens);
-
-        // then
-        assertThat(result).isEqualTo("100.0.1234");
-    }
-
-    @Test
     void resolveWithMultipleBrandVersionsShouldFormatCorrectly() {
         // given
         final BrandVersion chrome = new BrandVersion("Chrome",

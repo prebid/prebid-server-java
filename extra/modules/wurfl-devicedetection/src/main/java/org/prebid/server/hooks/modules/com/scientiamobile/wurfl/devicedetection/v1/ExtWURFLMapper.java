@@ -3,6 +3,7 @@ package org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection
 import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.prebid.server.json.ObjectMapperProvider;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
 
@@ -22,7 +23,7 @@ public class ExtWURFLMapper {
 
     public ObjectNode mapExtProperties() {
 
-        final ObjectMapper objectMapper = new ObjectMapper();
+        final ObjectMapper objectMapper = ObjectMapperProvider.mapper();
         final ObjectNode wurflNode = objectMapper.createObjectNode();
 
         wurflNode.put(WURFL_ID_PROPERTY, wurflDevice.getId());
