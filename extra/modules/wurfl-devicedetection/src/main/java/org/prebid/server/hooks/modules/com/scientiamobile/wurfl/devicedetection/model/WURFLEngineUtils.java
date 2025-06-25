@@ -5,7 +5,7 @@ import com.scientiamobile.wurfl.core.WURFLEngine;
 import com.scientiamobile.wurfl.core.cache.LRUMapCacheProvider;
 import com.scientiamobile.wurfl.core.cache.NullCacheProvider;
 import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.config.WURFLDeviceDetectionConfigProperties;
-import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.exc.WURFLModuleConfigurationException;
+import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.exc.WURFLDeviceDetectionException;
 
 import java.net.URI;
 import java.nio.file.Paths;
@@ -78,7 +78,7 @@ public class WURFLEngineUtils {
                                 Please make sure that your license has the needed capabilities or upgrade it.
                     """.formatted(String.join(",", unsupportedStaticCaps));
 
-            throw new WURFLModuleConfigurationException(failedCheckMessage);
+            throw new WURFLDeviceDetectionException(failedCheckMessage);
         }
     }
 }
