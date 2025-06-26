@@ -31,7 +31,6 @@ import org.prebid.server.hooks.v1.PayloadUpdate;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.ProcessedAuctionRequestHook;
-import org.prebid.server.json.JsonMerger;
 
 import java.util.Objects;
 
@@ -42,17 +41,14 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
     private final ConfigResolver configResolver;
     private final OptableTargeting optableTargeting;
     private final UserFpdActivityMask userFpdActivityMask;
-    private final JsonMerger jsonMerger;
 
     public OptableTargetingProcessedAuctionRequestHook(ConfigResolver configResolver,
                                                        OptableTargeting optableTargeting,
-                                                       UserFpdActivityMask userFpdActivityMask,
-                                                       JsonMerger jsonMerger) {
+                                                       UserFpdActivityMask userFpdActivityMask) {
 
         this.configResolver = Objects.requireNonNull(configResolver);
         this.optableTargeting = Objects.requireNonNull(optableTargeting);
         this.userFpdActivityMask = Objects.requireNonNull(userFpdActivityMask);
-        this.jsonMerger = Objects.requireNonNull(jsonMerger);
     }
 
     @Override

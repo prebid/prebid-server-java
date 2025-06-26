@@ -1,5 +1,6 @@
 package org.prebid.server.hooks.modules.optable.targeting.v1.core.merger;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.Test;
 
@@ -7,7 +8,9 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class ExtMergerTest extends BaseMergerTest {
+public class ExtMergerTest {
+
+    protected final ObjectMapper mapper = new ObjectMapper();
 
     @Test
     public void shouldMergeTwoExtObjects() {
@@ -61,5 +64,12 @@ public class ExtMergerTest extends BaseMergerTest {
 
         // then
         assertThat(result).isNull();
+    }
+
+    protected ObjectNode givenExt(Map<String, String> fields) {
+        final ObjectNode ext = mapper.createObjectNode();
+        fields.forEach(ext::put);
+
+        return ext;
     }
 }

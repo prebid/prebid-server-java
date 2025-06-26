@@ -3,81 +3,136 @@ package org.prebid.server.hooks.modules.optable.targeting.v1.core;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Data;
 import com.iab.openrtb.request.Eid;
-import lombok.Value;
-import lombok.experimental.Accessors;
+import com.iab.openrtb.request.Segment;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Ortb2;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.User;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.merger.DataMerger;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.merger.EidsMerger;
 import org.prebid.server.hooks.v1.PayloadUpdate;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 
-import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-@Accessors(fluent = true)
-@Value(staticConstructor = "of")
 public class BidRequestEnricher implements PayloadUpdate<AuctionRequestPayload> {
 
-    TargetingResult targetingResult;
+    private final TargetingResult targetingResult;
+
+    private BidRequestEnricher(TargetingResult targetingResult) {
+        this.targetingResult = targetingResult;
+    }
+
+    public static BidRequestEnricher of(TargetingResult targetingResult) {
+        return new BidRequestEnricher(targetingResult);
+    }
 
     @Override
     public AuctionRequestPayload apply(AuctionRequestPayload payload) {
-        return AuctionRequestPayloadImpl.of(enrichBidRequest(payload.bidRequest(), targetingResult));
+        return AuctionRequestPayloadImpl.of(enrichBidRequest(payload.bidRequest()));
     }
 
-    private static BidRequest enrichBidRequest(BidRequest bidRequest, TargetingResult targetingResults) {
-        if (bidRequest == null || targetingResults == null) {
+    private BidRequest enrichBidRequest(BidRequest bidRequest) {
+        if (bidRequest == null || targetingResult == null) {
             return bidRequest;
         }
 
-        final User optableUser = getUser(targetingResults);
+        final User optableUser = Optional.of(targetingResult)
+                .map(TargetingResult::getOrtb2)
+                .map(Ortb2::getUser)
+                .orElse(null);
+
         if (optableUser == null) {
             return bidRequest;
         }
 
-        final com.iab.openrtb.request.User bidRequestUser = getOrCreateUser(bidRequest);
+        final com.iab.openrtb.request.User bidRequestUser = Optional.ofNullable(bidRequest.getUser())
+                .orElseGet(() -> com.iab.openrtb.request.User.builder().build());
 
         return bidRequest.toBuilder()
                 .user(mergeUserData(bidRequestUser, optableUser))
                 .build();
     }
 
-    private static com.iab.openrtb.request.User mergeUserData(com.iab.openrtb.request.User user, User optableUser) {
-        final com.iab.openrtb.request.User.UserBuilder userBuilder = user.toBuilder();
+    private com.iab.openrtb.request.User mergeUserData(com.iab.openrtb.request.User user, User optableUser) {
+        return user.toBuilder()
+                .eids(mergeEids(user.getEids(), optableUser.getEids()))
+                .data(mergeData(user.getData(), optableUser.getData()))
+                .build();
+    }
 
-        final List<Eid> eids = optableUser.getEids();
-        final List<Data> data = optableUser.getData();
+    private List<Eid> mergeEids(List<Eid> destination, List<Eid> source) {
+        return merge(
+                destination,
+                source,
+                Eid::getSource);
+    }
 
-        if (!CollectionUtils.isEmpty(eids)) {
-            userBuilder.eids(EidsMerger.merge(user.getEids(), eids));
+    private List<Data> mergeData(List<Data> destination, List<Data> source) {
+        if (CollectionUtils.isEmpty(destination)) {
+            return source;
         }
 
-        if (!CollectionUtils.isEmpty(data)) {
-            userBuilder.data(DataMerger.merge(user.getData(), data));
+        if (CollectionUtils.isEmpty(source)) {
+            return destination;
         }
 
-        return userBuilder.build();
+        final Map<String, Data> idToSourceData = source.stream()
+                .collect(Collectors.toMap(Data::getId, Function.identity(), (a, b) -> b, LinkedHashMap::new));
+
+        final Set<String> mergedDataIds = new HashSet<>();
+
+        final Stream<Data> mergedData = destination.stream()
+                .map(destinationData -> mergeDataEntry(destinationData, idToSourceData, mergedDataIds));
+
+        return Stream.concat(mergedData, source.stream().filter(it -> !mergedDataIds.contains(it.getId()))).toList();
     }
 
-    private static User getUser(TargetingResult targetingResults) {
-        return Optional.ofNullable(targetingResults)
-                .map(TargetingResult::getOrtb2)
-                .map(Ortb2::getUser)
-                .orElse(null);
+    private Data mergeData(Data destinationData, Data sourceData) {
+        return Data.builder()
+                .id(destinationData.getId())
+                .name(destinationData.getName())
+                .ext(destinationData.getExt())
+                .segment(merge(destinationData.getSegment(), sourceData.getSegment(), Segment::getId))
+                .build();
     }
 
-    private static com.iab.openrtb.request.User getOrCreateUser(BidRequest bidRequest) {
-        return getUserOpt(bidRequest)
-                .orElseGet(() -> com.iab.openrtb.request.User.builder().eids(new ArrayList<>()).build());
+    private Data mergeDataEntry(Data destinationData, Map<String, Data> idToSourceData, Set<String> mergedDataIds) {
+        return Optional.ofNullable(idToSourceData.get(destinationData.getId()))
+                .map(sourceData -> {
+                    mergedDataIds.add(sourceData.getId());
+                    return mergeData(destinationData, sourceData);
+                })
+                .orElse(destinationData);
     }
 
-    private static Optional<com.iab.openrtb.request.User> getUserOpt(BidRequest bidRequest) {
-        return Optional.ofNullable(bidRequest)
-                .map(BidRequest::getUser);
+    private static <T, ID> List<T> merge(List<T> destination,
+                                         List<T> source,
+                                         Function<T, ID> idExtractor) {
+
+        if (CollectionUtils.isEmpty(source)) {
+            return destination;
+        }
+
+        if (CollectionUtils.isEmpty(destination)) {
+            return source;
+        }
+
+        final Set<ID> existingIds = destination.stream()
+                .map(idExtractor)
+                .collect(Collectors.toSet());
+
+        final List<T> uniqueFromSource = source.stream()
+                .filter(entry -> !existingIds.contains(idExtractor.apply(entry)))
+                .toList();
+
+        return Stream.concat(destination.stream(), uniqueFromSource.stream()).toList();
     }
 }

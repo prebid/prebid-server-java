@@ -33,8 +33,6 @@ import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Audience;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.AudienceId;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Ortb2;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
-import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.json.JsonMerger;
 import org.prebid.server.json.ObjectMapperProvider;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.Privacy;
@@ -56,8 +54,6 @@ import java.util.function.UnaryOperator;
 public abstract class BaseOptableTest {
 
     protected final ObjectMapper mapper = ObjectMapperProvider.mapper();
-
-    protected final JsonMerger jsonMerger = new JsonMerger(new JacksonMapper(mapper));
 
     protected ModuleContext givenModuleContext() {
         return givenModuleContext(null);
@@ -88,10 +84,14 @@ public abstract class BaseOptableTest {
     }
 
     protected BidRequest givenBidRequest() {
-        return givenBidRequest((List<Eid>) null);
+        return givenBidRequestWithUserEids((List<Eid>) null);
     }
 
-    protected BidRequest givenBidRequest(List<Eid> eids) {
+    protected static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer) {
+        return bidRequestCustomizer.apply(BidRequest.builder().id("requestId")).build();
+    }
+
+    protected BidRequest givenBidRequestWithUserEids(List<Eid> eids) {
         return BidRequest.builder()
                 .user(givenUser(eids))
                 .device(givenDevice())
@@ -99,8 +99,12 @@ public abstract class BaseOptableTest {
                 .build();
     }
 
-    protected static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer) {
-        return bidRequestCustomizer.apply(BidRequest.builder().id("requestId")).build();
+    protected BidRequest givenBidRequestWithUserData(List<Data> data) {
+        return BidRequest.builder()
+                .user(givenUserWithData(data))
+                .device(givenDevice())
+                .cur(List.of("USD"))
+                .build();
     }
 
     protected BidResponse givenBidResponse() {
@@ -123,6 +127,10 @@ public abstract class BaseOptableTest {
 
     protected TargetingResult givenTargetingResultWithEids(List<Eid> eids) {
         return givenTargetingResult(eids, null);
+    }
+
+    protected TargetingResult givenTargetingResultWithData(List<Data> data) {
+        return givenTargetingResult(null, data);
     }
 
     protected TargetingResult givenTargetingResult() {
@@ -176,6 +184,12 @@ public abstract class BaseOptableTest {
                 .eids(eids)
                 .geo(Geo.builder().country("country-u").region("region-u").build())
                 .ext(extUser)
+                .build();
+    }
+
+    protected User givenUserWithData(List<Data> data) {
+        return User.builder()
+                .data(data)
                 .build();
     }
 

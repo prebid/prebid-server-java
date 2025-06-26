@@ -64,8 +64,7 @@ public class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptable
         target = new OptableTargetingProcessedAuctionRequestHook(
                 configResolver,
                 optableTargeting,
-                userFpdActivityMask,
-                jsonMerger);
+                userFpdActivityMask);
     }
 
     @Test
