@@ -206,7 +206,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
-import static org.prebid.server.auction.model.BidRejectionReason.REQUEST_BLOCKED_UNACCEPTABLE_CURRENCY;
 import static org.prebid.server.auction.model.BidRejectionReason.NO_BID;
 import static org.prebid.server.auction.model.BidRejectionReason.REQUEST_BLOCKED_UNACCEPTABLE_CURRENCY;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
@@ -4061,8 +4060,8 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(result.result())
                 .extracting(AuctionContext::getBidRejectionTrackers)
                 .extracting(rejectionTrackers -> rejectionTrackers.get("bidder1"))
-                .extracting(BidRejectionTracker::getRejectedImps)
-                .isEqualTo(Set.of(RejectedImp.of("impId1", REQUEST_BLOCKED_UNACCEPTABLE_CURRENCY)));
+                .extracting(BidRejectionTracker::getRejected)
+                .isEqualTo(Set.of(RejectedImp.of("bidder1", "impId1", REQUEST_BLOCKED_UNACCEPTABLE_CURRENCY)));
     }
 
     @Test
@@ -4095,12 +4094,12 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(result.succeeded()).isTrue();
         final Map<String, BidRejectionTracker> actualTrackers = result.result().getBidRejectionTrackers();
         assertThat(actualTrackers.keySet()).containsOnly("bidder1", "bidder2");
-        assertThat(actualTrackers.get("bidder1").getRejectedImps()).containsOnly(
-                RejectedImp.of("impId1", NO_BID),
-                RejectedImp.of("impId2", NO_BID));
-        assertThat(actualTrackers.get("bidder2").getRejectedImps()).containsOnly(
-                RejectedImp.of("impId1", NO_BID),
-                RejectedImp.of("impId2", NO_BID));
+        assertThat(actualTrackers.get("bidder1").getRejected()).containsOnly(
+                RejectedImp.of("bidder1", "impId1", NO_BID),
+                RejectedImp.of("bidder1", "impId2", NO_BID));
+        assertThat(actualTrackers.get("bidder2").getRejected()).containsOnly(
+                RejectedImp.of("bidder2", "impId1", NO_BID),
+                RejectedImp.of("bidder2", "impId2", NO_BID));
     }
 
     @Test

@@ -1811,24 +1811,24 @@ public class HookStageExecutorTest extends VertxTest {
         assertThat(bidRejectionTrackers.keySet()).containsOnly("bidderA", "bidderB", "bidderC");
         assertThat(bidRejectionTrackers.get("bidderA").getAllRejected()).containsOnly(
                 entry("impId1", List.of(
-                        RejectedImp.of("impId1", REQUEST_BLOCKED_OPTIMIZED),
-                        RejectedImp.of("impId1", REQUEST_BLOCKED_UNSUPPORTED_MEDIA_TYPE))),
+                        RejectedImp.of("bidderA", "impId1", REQUEST_BLOCKED_OPTIMIZED),
+                        RejectedImp.of("bidderA", "impId1", REQUEST_BLOCKED_UNSUPPORTED_MEDIA_TYPE))),
                 entry("impId3", List.of(
-                        RejectedImp.of("impId3", REQUEST_BLOCKED_GENERAL),
-                        RejectedImp.of("impId3", REQUEST_BLOCKED_GENERAL))));
+                        RejectedImp.of("bidderA", "impId3", REQUEST_BLOCKED_GENERAL),
+                        RejectedImp.of("bidderA", "impId3", REQUEST_BLOCKED_GENERAL))));
         assertThat(bidRejectionTrackers.get("bidderB").getAllRejected()).containsOnly(
                 entry("impId2", List.of(
-                        RejectedImp.of("impId2", REQUEST_BLOCKED_UNACCEPTABLE_CURRENCY),
-                        RejectedImp.of("impId2", REQUEST_BLOCKED_PRIVACY))),
+                        RejectedImp.of("bidderB", "impId2", REQUEST_BLOCKED_UNACCEPTABLE_CURRENCY),
+                        RejectedImp.of("bidderB", "impId2", REQUEST_BLOCKED_PRIVACY))),
                 entry("impId3", List.of(
-                        RejectedImp.of("impId3", REQUEST_BLOCKED_GENERAL),
-                        RejectedImp.of("impId3", REQUEST_BLOCKED_GENERAL))));
+                        RejectedImp.of("bidderB", "impId3", REQUEST_BLOCKED_GENERAL),
+                        RejectedImp.of("bidderB", "impId3", REQUEST_BLOCKED_GENERAL))));
         assertThat(bidRejectionTrackers.get("bidderC").getAllRejected()).containsOnly(
                 entry("impId4", List.of(
-                        RejectedImp.of("impId4", REQUEST_BLOCKED_GENERAL),
-                        RejectedImp.of("impId4", REQUEST_BLOCKED_GENERAL),
-                        RejectedImp.of("impId4", REQUEST_BLOCKED_GENERAL),
-                        RejectedImp.of("impId4", REQUEST_BLOCKED_GENERAL))));
+                        RejectedImp.of("bidderC", "impId4", REQUEST_BLOCKED_GENERAL),
+                        RejectedImp.of("bidderC", "impId4", REQUEST_BLOCKED_GENERAL),
+                        RejectedImp.of("bidderC", "impId4", REQUEST_BLOCKED_GENERAL),
+                        RejectedImp.of("bidderC", "impId4", REQUEST_BLOCKED_GENERAL))));
     }
 
     @Test

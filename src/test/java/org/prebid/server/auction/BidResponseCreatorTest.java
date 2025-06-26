@@ -21,7 +21,6 @@ import com.iab.openrtb.response.Response;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
 import org.apache.commons.collections4.MapUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -4393,7 +4392,7 @@ public class BidResponseCreatorTest extends VertxTest {
     public void shouldPopulateExtPrebidSeatNonBidWhenReturnAllBidStatusFlagIsTrue() {
         // given
         final BidRejectionTracker bidRejectionTracker = mock(BidRejectionTracker.class);
-        given(bidRejectionTracker.getRejectedImps()).willReturn(singleton(RejectedImp.of("impId2", NO_BID)));
+        given(bidRejectionTracker.getRejected()).willReturn(singleton(RejectedImp.of("someBidder", "impId2", NO_BID)));
 
         final Bid bid = Bid.builder().id("bidId").price(BigDecimal.valueOf(3.67)).impid("impId").build();
         final List<BidderResponse> bidderResponses = singletonList(

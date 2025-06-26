@@ -65,7 +65,6 @@ public class PbRichmediaFilterAllProcessedBidResponsesHookTest {
 
     private PbRichmediaFilterAllProcessedBidResponsesHook target;
 
-
     @BeforeEach
     public void setUp() {
         target = new PbRichmediaFilterAllProcessedBidResponsesHook(

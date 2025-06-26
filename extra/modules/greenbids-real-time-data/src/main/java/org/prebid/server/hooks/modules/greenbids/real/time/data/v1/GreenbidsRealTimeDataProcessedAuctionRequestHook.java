@@ -156,7 +156,8 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
         return Future.succeededFuture(InvocationResultImpl.<AuctionRequestPayload>builder()
                 .status(InvocationStatus.success)
                 .action(invocationResult.getInvocationAction())
-                .payloadUpdate(payload -> AuctionRequestPayloadImpl.of(GreenbidsPayloadUpdater.update(bidRequest, impsBiddersFilterMap)))
+                .payloadUpdate(payload -> AuctionRequestPayloadImpl.of(
+                        GreenbidsPayloadUpdater.update(bidRequest, impsBiddersFilterMap)))
                 .analyticsTags(toAnalyticsTags(invocationResult.getAnalyticsResult()))
                 .rejections(toRejections(impsBiddersFilterMap))
                 .build());

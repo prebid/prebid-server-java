@@ -6,7 +6,6 @@ import lombok.Builder;
 import lombok.Value;
 import lombok.experimental.Accessors;
 import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.hooks.v1.bidder.BidderInvocationContext;
 import org.prebid.server.model.Endpoint;

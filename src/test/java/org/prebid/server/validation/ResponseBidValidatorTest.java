@@ -39,6 +39,7 @@ import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.prebid.server.auction.model.BidRejectionReason.RESPONSE_REJECTED_GENERAL;
 import static org.prebid.server.auction.model.BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_NOT_SECURE;
 import static org.prebid.server.auction.model.BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_SIZE_NOT_ALLOWED;
 import static org.prebid.server.settings.model.BidValidationEnforcement.enforce;
@@ -565,7 +566,7 @@ public class ResponseBidValidatorTest extends VertxTest {
         assertThat(result.getErrors())
                 .containsOnly("invalid bidder code seat was set by the adapter bidder for the account account");
         verify(metrics).updateSeatValidationMetrics(BIDDER_NAME);
-        verify(bidRejectionTracker).rejectBid(givenBid, BidRejectionReason.RESPONSE_REJECTED_GENERAL);
+        verify(bidRejectionTracker).reject(RejectedBid.of(givenBid, RESPONSE_REJECTED_GENERAL));
     }
 
     @Test

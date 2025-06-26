@@ -20,6 +20,11 @@ public class RejectedBid implements Rejected {
         return reason;
     }
 
+    @Override
+    public String seat() {
+        return bid.getSeat();
+    }
+
     public String bidId() {
         return bid.getBid().getId();
     }

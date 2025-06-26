@@ -87,6 +87,7 @@ public class BidRejectionTracker {
         if (rejected instanceof RejectedImp && rejected.reason().getValue() >= 300) {
             logger.warn("The rejected imp {} with the code {} equal to or higher than 300 assumes "
                     + "that there is a rejected bid that shouldn't be lost");
+            return;
         }
 
         final String impId = rejected.impId();
@@ -96,7 +97,10 @@ public class BidRejectionTracker {
                         MULTIPLE_REJECTIONS_WARNING_TEMPLATE.formatted(bidder, impId), logSamplingRate);
             }
 
-            rejectedBids.computeIfAbsent(impId, key -> new ArrayList<>()).add(rejected);
+            rejectedBids.computeIfAbsent(impId, key -> new ArrayList<>())
+                    .add(rejected instanceof RejectedImp
+                            ? RejectedImp.of(bidder, rejected.impId(), rejected.reason())
+                            : rejected);
 
             if (succeededBidsIds.containsKey(impId)) {
                 final String bidId = rejected instanceof RejectedBid ? ((RejectedBid) rejected).bidId() : null;
@@ -119,20 +123,20 @@ public class BidRejectionTracker {
         involvedImpIds.forEach(impId -> reject(RejectedImp.of(impId, reason)));
     }
 
-    public Set<RejectedImp> getRejectedImps() {
-        final Set<RejectedImp> rejectedImpIds = new HashSet<>();
+    public Set<Rejected> getRejected() {
+        final Set<Rejected> rejectedResult = new HashSet<>();
         for (String impId : involvedImpIds) {
             final Set<String> succeededBids = succeededBidsIds.getOrDefault(impId, Collections.emptySet());
             if (succeededBids.isEmpty()) {
                 if (rejectedBids.containsKey(impId)) {
-                    rejectedImpIds.add(RejectedImp.of(impId, rejectedBids.get(impId).getFirst().reason()));
+                    rejectedResult.add(rejectedBids.get(impId).getFirst());
                 } else {
-                    rejectedImpIds.add(RejectedImp.of(impId, BidRejectionReason.NO_BID));
+                    rejectedResult.add(RejectedImp.of(bidder, impId, BidRejectionReason.NO_BID));
                 }
             }
         }
 
-        return rejectedImpIds;
+        return rejectedResult;
     }
 
     public Map<String, List<Rejected>> getAllRejected() {
@@ -141,7 +145,7 @@ public class BidRejectionTracker {
             final Set<String> succeededBids = succeededBidsIds.getOrDefault(impId, Collections.emptySet());
             if (succeededBids.isEmpty() && !rejectedBids.containsKey(impId)) {
                 missingImpIds.computeIfAbsent(impId, key -> new ArrayList<>())
-                        .add(RejectedImp.of(impId, BidRejectionReason.NO_BID));
+                        .add(RejectedImp.of(bidder, impId, BidRejectionReason.NO_BID));
             }
         }
 

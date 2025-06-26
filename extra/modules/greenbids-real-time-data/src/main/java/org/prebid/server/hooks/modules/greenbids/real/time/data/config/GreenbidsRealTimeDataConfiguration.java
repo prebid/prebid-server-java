@@ -8,8 +8,6 @@ import io.vertx.core.Vertx;
 import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.FilterService;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.GreenbidsInferenceDataService;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.core.GreenbidsInvocationService;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.core.GreenbidsInferenceDataService;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.ModelCache;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.OnnxModelRunner;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.core.OnnxModelRunnerFactory;

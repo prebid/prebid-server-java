@@ -11,6 +11,7 @@ import java.util.Set;
 import static java.util.Collections.singleton;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.prebid.server.auction.model.BidRejectionReason.ERROR_GENERAL;
 import static org.prebid.server.auction.model.BidRejectionReason.ERROR_INVALID_BID_RESPONSE;
 import static org.prebid.server.auction.model.BidRejectionReason.ERROR_TIMED_OUT;
@@ -38,9 +39,9 @@ public class BidRejectionTrackerTest {
         target.succeed(singleton(bid));
 
         // then
-        assertThat(target.getRejectedImps()).isEmpty();
+        assertThat(target.getRejected()).isEmpty();
         assertThat(target.getAllRejected())
-                .containsOnly(entry("impId1", List.of(RejectedImp.of("impId1", ERROR_GENERAL))));
+                .containsOnly(entry("impId1", List.of(RejectedImp.of("bidder", "impId1", ERROR_GENERAL))));
     }
 
     @Test
@@ -53,7 +54,7 @@ public class BidRejectionTrackerTest {
         target.succeed(singleton(bid));
 
         // then
-        assertThat(target.getRejectedImps()).isEmpty();
+        assertThat(target.getRejected()).isEmpty();
         assertThat(target.getAllRejected())
                 .containsOnly(entry("impId1", List.of(RejectedBid.of(bid, ERROR_GENERAL))));
     }
@@ -68,9 +69,10 @@ public class BidRejectionTrackerTest {
         target.succeed(singleton(bid));
 
         // then
-        assertThat(target.getRejectedImps()).containsOnly(RejectedImp.of("impId1", ERROR_GENERAL));
+        assertThat(target.getRejected()).extracting(Rejected::seat, Rejected::impId, Rejected::reason)
+                .containsOnly(tuple("bidder", "impId1", ERROR_GENERAL));
         assertThat(target.getAllRejected())
-                .containsOnly(entry("impId1", List.of(RejectedImp.of("impId1", ERROR_GENERAL))));
+                .containsOnly(entry("impId1", List.of(RejectedImp.of("bidder", "impId1", ERROR_GENERAL))));
     }
 
     @Test
@@ -84,7 +86,8 @@ public class BidRejectionTrackerTest {
         target.succeed(singleton(bid2));
 
         // then
-        assertThat(target.getRejectedImps()).containsOnly(RejectedImp.of("impId1", ERROR_GENERAL));
+        assertThat(target.getRejected()).extracting(Rejected::seat, Rejected::impId, Rejected::reason)
+                .containsOnly(tuple("seat", "impId1", ERROR_GENERAL));
         assertThat(target.getAllRejected())
                 .containsOnly(entry("impId1", List.of(RejectedBid.of(bid1, ERROR_GENERAL))));
     }
@@ -95,9 +98,10 @@ public class BidRejectionTrackerTest {
         target.reject(RejectedImp.of("impId1", ERROR_GENERAL));
 
         // then
-        assertThat(target.getRejectedImps()).containsOnly(RejectedImp.of("impId1", ERROR_GENERAL));
+        assertThat(target.getRejected()).extracting(Rejected::seat, Rejected::impId, Rejected::reason)
+                .containsOnly(tuple("bidder", "impId1", ERROR_GENERAL));
         assertThat(target.getAllRejected())
-                .containsOnly(entry("impId1", List.of(RejectedImp.of("impId1", ERROR_GENERAL))));
+                .containsOnly(entry("impId1", List.of(RejectedImp.of("bidder", "impId1", ERROR_GENERAL))));
     }
 
     @Test
@@ -107,7 +111,8 @@ public class BidRejectionTrackerTest {
         target.reject(RejectedBid.of(bid, ERROR_GENERAL));
 
         // then
-        assertThat(target.getRejectedImps()).containsOnly(RejectedImp.of("impId1", ERROR_GENERAL));
+        assertThat(target.getRejected()).extracting(Rejected::seat, Rejected::impId, Rejected::reason)
+                .containsOnly(tuple("seat", "impId1", ERROR_GENERAL));
         assertThat(target.getAllRejected())
                 .containsOnly(entry("impId1", List.of(RejectedBid.of(bid, ERROR_GENERAL))));
     }
@@ -123,7 +128,7 @@ public class BidRejectionTrackerTest {
         target.reject(RejectedBid.of(bid1, ERROR_GENERAL));
 
         // then
-        assertThat(target.getRejectedImps()).isEmpty();
+        assertThat(target.getRejected()).isEmpty();
         assertThat(target.getAllRejected())
                 .containsOnly(entry("impId1", List.of(RejectedBid.of(bid1, ERROR_GENERAL))));
     }
@@ -137,11 +142,12 @@ public class BidRejectionTrackerTest {
         target.reject(RejectedImp.of("impId1", ERROR_INVALID_BID_RESPONSE));
 
         // then
-        assertThat(target.getRejectedImps()).containsOnly(RejectedImp.of("impId1", ERROR_GENERAL));
+        assertThat(target.getRejected()).extracting(Rejected::seat, Rejected::impId, Rejected::reason)
+                .containsOnly(tuple("bidder", "impId1", ERROR_GENERAL));
         assertThat(target.getAllRejected())
                 .containsOnly(entry("impId1", List.of(
-                        RejectedImp.of("impId1", ERROR_GENERAL),
-                        RejectedImp.of("impId1", ERROR_INVALID_BID_RESPONSE))));
+                        RejectedImp.of("bidder", "impId1", ERROR_GENERAL),
+                        RejectedImp.of("bidder", "impId1", ERROR_INVALID_BID_RESPONSE))));
     }
 
     @Test
@@ -155,8 +161,8 @@ public class BidRejectionTrackerTest {
         target.reject(RejectedBid.of(bid2, RESPONSE_REJECTED_BELOW_FLOOR));
 
         // then
-        assertThat(target.getRejectedImps())
-                .containsOnly(RejectedImp.of("impId1", RESPONSE_REJECTED_GENERAL));
+        assertThat(target.getRejected()).extracting(Rejected::seat, Rejected::impId, Rejected::reason)
+                .containsOnly(tuple("seat", "impId1", RESPONSE_REJECTED_GENERAL));
         assertThat(target.getAllRejected())
                 .containsOnly(entry("impId1", List.of(
                         RejectedBid.of(bid1, RESPONSE_REJECTED_GENERAL),
@@ -173,19 +179,19 @@ public class BidRejectionTrackerTest {
         target.rejectAll(ERROR_TIMED_OUT);
 
         // then
-        assertThat(target.getRejectedImps())
+        assertThat(target.getRejected()).extracting(Rejected::seat, Rejected::impId, Rejected::reason)
                 .containsOnly(
-                        RejectedImp.of("impId1", NO_BID),
-                        RejectedImp.of("impId2", ERROR_TIMED_OUT),
-                        RejectedImp.of("impId3", ERROR_TIMED_OUT));
+                        tuple("bidder", "impId1", NO_BID),
+                        tuple("bidder", "impId2", ERROR_TIMED_OUT),
+                        tuple("bidder", "impId3", ERROR_TIMED_OUT));
 
         assertThat(target.getAllRejected())
                 .containsOnly(
                         entry("impId1", List.of(
-                                RejectedImp.of("impId1", NO_BID),
-                                RejectedImp.of("impId1", ERROR_TIMED_OUT))),
-                        entry("impId2", List.of(RejectedImp.of("impId2", ERROR_TIMED_OUT))),
-                        entry("impId3", List.of(RejectedImp.of("impId3", ERROR_TIMED_OUT))));
+                                RejectedImp.of("bidder", "impId1", NO_BID),
+                                RejectedImp.of("bidder", "impId1", ERROR_TIMED_OUT))),
+                        entry("impId2", List.of(RejectedImp.of("bidder", "impId2", ERROR_TIMED_OUT))),
+                        entry("impId3", List.of(RejectedImp.of("bidder", "impId3", ERROR_TIMED_OUT))));
     }
 
     @Test
@@ -205,11 +211,11 @@ public class BidRejectionTrackerTest {
                 RejectedBid.of(bid3, RESPONSE_REJECTED_DSA_PRIVACY)));
 
         // then
-        assertThat(target.getRejectedImps())
+        assertThat(target.getRejected()).extracting(Rejected::seat, Rejected::impId, Rejected::reason)
                 .containsOnly(
-                        RejectedImp.of("impId1", RESPONSE_REJECTED_GENERAL),
-                        RejectedImp.of("impId2", RESPONSE_REJECTED_DSA_PRIVACY),
-                        RejectedImp.of("impId3", RESPONSE_REJECTED_DSA_PRIVACY));
+                        tuple("seat", "impId1", RESPONSE_REJECTED_GENERAL),
+                        tuple("seat", "impId2", RESPONSE_REJECTED_DSA_PRIVACY),
+                        tuple("seat", "impId3", RESPONSE_REJECTED_DSA_PRIVACY));
 
         assertThat(target.getAllRejected())
                 .containsOnly(
@@ -228,7 +234,8 @@ public class BidRejectionTrackerTest {
         target.succeed(singleton(bid));
 
         // then
-        assertThat(target.getRejectedImps()).containsOnly(RejectedImp.of("impId1", NO_BID));
+        assertThat(target.getRejected()).extracting(Rejected::seat, Rejected::impId, Rejected::reason)
+                .containsOnly(tuple("bidder", "impId1", NO_BID));
     }
 
     private BidderBid givenBid(String bidId, String impId) {

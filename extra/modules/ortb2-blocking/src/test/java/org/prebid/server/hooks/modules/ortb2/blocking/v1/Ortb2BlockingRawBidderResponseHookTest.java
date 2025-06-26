@@ -8,10 +8,8 @@ import com.iab.openrtb.response.Bid;
 import io.vertx.core.Future;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.RejectedBid;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
@@ -38,12 +36,10 @@ import org.prebid.server.json.ObjectMapperProvider;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.util.List;
-import java.util.Map;
 import java.util.function.UnaryOperator;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
-import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;

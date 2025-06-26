@@ -166,7 +166,7 @@ public class ResponseBidValidator {
 
             final String message = "invalid bidder code %s was set by the adapter %s for the account %s"
                     .formatted(bid.getSeat(), bidder, account.getId());
-            bidRejectionTracker.rejectBid(bid, BidRejectionReason.RESPONSE_REJECTED_GENERAL);
+            bidRejectionTracker.reject(RejectedBid.of(bid, BidRejectionReason.RESPONSE_REJECTED_GENERAL));
             metrics.updateSeatValidationMetrics(bidder);
             alternateBidderCodeLogger.warn(message, logSamplingRate);
             throw new ValidationException(message);

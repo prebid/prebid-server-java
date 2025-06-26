@@ -33,9 +33,6 @@ import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.prebid.server.auction.model.BidRejectionReason.RESPONSE_REJECTED_ADVERTISER_BLOCKED;
 import static org.prebid.server.auction.model.BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE;
 
@@ -665,7 +662,6 @@ public class BidsBlockerTest {
                                     BlockedAttributes blockedAttributes,
                                     boolean debugEnabled) {
 
-        return BidsBlocker.create(
-                bids, "bidder1", ortbVersion, accountConfig, blockedAttributes, bidRejectionTracker, debugEnabled);
+        return BidsBlocker.create(bids, "bidder1", ortbVersion, accountConfig, blockedAttributes, debugEnabled);
     }
 }
