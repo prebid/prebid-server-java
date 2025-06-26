@@ -33,13 +33,16 @@ import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.prebid.server.auction.model.BidRejectionReason.RESPONSE_REJECTED_ADVERTISER_BLOCKED;
 import static org.prebid.server.auction.model.BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE;
 
 @ExtendWith(MockitoExtension.class)
 public class BidsBlockerTest {
 
-    private static final ObjectMapper mapper = new ObjectMapper()
+    private static final ObjectMapper MAPPER = new ObjectMapper()
             .setPropertyNamingStrategy(PropertyNamingStrategies.KEBAB_CASE)
             .setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
@@ -49,7 +52,7 @@ public class BidsBlockerTest {
     public void shouldReturnEmptyResultWhenNoBlockingResponseConfig() {
         // given
         final List<BidderBid> bids = singletonList(bid());
-        final BidsBlocker blocker = BidsBlocker.create(bids, "bidder1", ORTB_VERSION, null, null, true);
+        final BidsBlocker blocker = bidsBlocker(bids, ORTB_VERSION, null, null, true);
 
         // when and then
         assertThat(blocker.block()).satisfies(BidsBlockerTest::isEmpty);
@@ -58,11 +61,11 @@ public class BidsBlockerTest {
     @Test
     public void shouldReturnEmptyResultWithErrorWhenInvalidAccountConfig() {
         // given
-        final ObjectNode accountConfig = mapper.createObjectNode()
+        final ObjectNode accountConfig = MAPPER.createObjectNode()
                 .put("attributes", 1);
 
         final List<BidderBid> bids = singletonList(bid());
-        final BidsBlocker blocker = BidsBlocker.create(bids, "bidder1", ORTB_VERSION, accountConfig, null, true);
+        final BidsBlocker blocker = bidsBlocker(bids, ORTB_VERSION, accountConfig, null, true);
 
         // when and then
         assertThat(blocker.block()).isEqualTo(ExecutionResult.builder()
@@ -73,11 +76,11 @@ public class BidsBlockerTest {
     @Test
     public void shouldReturnEmptyResultWithoutErrorWhenInvalidAccountConfigAndDebugDisabled() {
         // given
-        final ObjectNode accountConfig = mapper.createObjectNode()
+        final ObjectNode accountConfig = MAPPER.createObjectNode()
                 .put("attributes", 1);
 
         final List<BidderBid> bids = singletonList(bid());
-        final BidsBlocker blocker = BidsBlocker.create(bids, "bidder1", ORTB_VERSION, accountConfig, null, false);
+        final BidsBlocker blocker = bidsBlocker(bids, ORTB_VERSION, accountConfig, null, false);
 
         // when and then
         assertThat(blocker.block()).isEqualTo(ExecutionResult.empty());
@@ -96,7 +99,7 @@ public class BidsBlockerTest {
 
         // when
         final List<BidderBid> bids = singletonList(bid());
-        final BidsBlocker blocker = BidsBlocker.create(bids, "bidder1", ORTB_VERSION, accountConfig, null, true);
+        final BidsBlocker blocker = bidsBlocker(bids, ORTB_VERSION, accountConfig, null, true);
 
         // when and then
         assertThat(blocker.block()).satisfies(BidsBlockerTest::isEmpty);
@@ -115,7 +118,7 @@ public class BidsBlockerTest {
 
         // when
         final List<BidderBid> bids = singletonList(bid());
-        final BidsBlocker blocker = BidsBlocker.create(bids, "bidder1", ORTB_VERSION, accountConfig, null, true);
+        final BidsBlocker blocker = bidsBlocker(bids, ORTB_VERSION, accountConfig, null, true);
 
         // when and then
         assertThat(blocker.block()).satisfies(BidsBlockerTest::isEmpty);
@@ -134,7 +137,7 @@ public class BidsBlockerTest {
 
         // when
         final List<BidderBid> bids = singletonList(bid());
-        final BidsBlocker blocker = BidsBlocker.create(bids, "bidder1", ORTB_VERSION, accountConfig, null, false);
+        final BidsBlocker blocker = bidsBlocker(bids, ORTB_VERSION, accountConfig, null, false);
 
         // when and then
         assertThat(blocker.block()).satisfies(result -> hasValue(result, 0));
@@ -152,7 +155,7 @@ public class BidsBlockerTest {
         // when
         final List<BidderBid> bids = singletonList(bid(bid -> bid.adomain(singletonList("domain1.com"))));
         final BlockedAttributes blockedAttributes = attributesWithBadv(singletonList("domain1.com"));
-        final BidsBlocker blocker = BidsBlocker.create(bids, "bidder1", ORTB_VERSION, accountConfig, blockedAttributes, true);
+        final BidsBlocker blocker = bidsBlocker(bids, ORTB_VERSION, accountConfig, blockedAttributes, true);
 
         // when and then
         assertThat(blocker.block()).satisfies(BidsBlockerTest::isEmpty);
@@ -171,7 +174,7 @@ public class BidsBlockerTest {
         // when
         final List<BidderBid> bids = singletonList(bid(bid -> bid.adomain(singletonList("domain1.com"))));
         final BlockedAttributes blockedAttributes = attributesWithBadv(singletonList("domain2.com"));
-        final BidsBlocker blocker = BidsBlocker.create(bids, "bidder1", ORTB_VERSION, accountConfig, blockedAttributes, true);
+        final BidsBlocker blocker = bidsBlocker(bids, ORTB_VERSION, accountConfig, blockedAttributes, true);
 
         // when and then
         assertThat(blocker.block()).satisfies(BidsBlockerTest::isEmpty);
@@ -190,7 +193,8 @@ public class BidsBlockerTest {
         // when
         final BidderBid bid = bid(bidBuilder -> bidBuilder.adomain(singletonList("domain1.com")));
         final BlockedAttributes blockedAttributes = attributesWithBadv(singletonList("domain1.com"));
-        final BidsBlocker blocker = BidsBlocker.create(singletonList(bid), "bidder1", ORTB_VERSION, accountConfig, blockedAttributes, false);
+        final BidsBlocker blocker = bidsBlocker(
+                singletonList(bid), ORTB_VERSION, accountConfig, blockedAttributes, false);
 
         // when and then
         assertThat(blocker.block()).satisfies(result -> {
@@ -210,7 +214,7 @@ public class BidsBlockerTest {
 
         // when
         final List<BidderBid> bids = singletonList(bid(bid -> bid.adomain(singletonList("domain1.com"))));
-        final BidsBlocker blocker = BidsBlocker.create(bids, "bidder1", ORTB_VERSION, accountConfig, null, true);
+        final BidsBlocker blocker = bidsBlocker(bids, ORTB_VERSION, accountConfig, null, true);
 
         // when and then
         assertThat(blocker.block()).satisfies(BidsBlockerTest::isEmpty);
@@ -233,7 +237,7 @@ public class BidsBlockerTest {
         final BlockedAttributes blockedAttributes = BlockedAttributes.builder()
                 .battr(singletonMap(MediaType.BANNER, singletonMap("impId1", asList(1, 2))))
                 .build();
-        final BidsBlocker blocker = BidsBlocker.create(bids, "bidder1", ORTB_VERSION, accountConfig, blockedAttributes, true);
+        final BidsBlocker blocker = bidsBlocker(bids, ORTB_VERSION, accountConfig, blockedAttributes, true);
 
         // when and then
         assertThat(blocker.block()).satisfies(BidsBlockerTest::isEmpty);
@@ -256,7 +260,7 @@ public class BidsBlockerTest {
         final BlockedAttributes blockedAttributes = BlockedAttributes.builder()
                 .battr(singletonMap(MediaType.VIDEO, singletonMap("impId1", asList(1, 2))))
                 .build();
-        final BidsBlocker blocker = BidsBlocker.create(bids, "bidder1", ORTB_VERSION, accountConfig, blockedAttributes, true);
+        final BidsBlocker blocker = bidsBlocker(bids, ORTB_VERSION, accountConfig, blockedAttributes, true);
 
         // when and then
         assertThat(blocker.block()).satisfies(BidsBlockerTest::isEmpty);
@@ -279,7 +283,7 @@ public class BidsBlockerTest {
         final BlockedAttributes blockedAttributes = BlockedAttributes.builder()
                 .battr(singletonMap(MediaType.AUDIO, singletonMap("impId1", asList(1, 2))))
                 .build();
-        final BidsBlocker blocker = BidsBlocker.create(bids, "bidder1", ORTB_VERSION, accountConfig, blockedAttributes, true);
+        final BidsBlocker blocker = bidsBlocker(bids, ORTB_VERSION, accountConfig, blockedAttributes, true);
 
         // when and then
         assertThat(blocker.block()).satisfies(BidsBlockerTest::isEmpty);
@@ -299,7 +303,8 @@ public class BidsBlockerTest {
         // when
         final BidderBid bid = bid(bidBuilder -> bidBuilder.adomain(singletonList("domain1.com")));
         final BlockedAttributes blockedAttributes = attributesWithBadv(singletonList("domain1.com"));
-        final BidsBlocker blocker = BidsBlocker.create(singletonList(bid), "bidder1", ORTB_VERSION, accountConfig, blockedAttributes, true);
+        final BidsBlocker blocker = bidsBlocker(
+                singletonList(bid), ORTB_VERSION, accountConfig, blockedAttributes, true);
 
         // when and then
         assertThat(blocker.block()).satisfies(BidsBlockerTest::isEmpty);
@@ -319,7 +324,8 @@ public class BidsBlockerTest {
         // when
         final BidderBid bid = bid(bidBuilder -> bidBuilder.adomain(singletonList("domain1.com")));
         final BlockedAttributes blockedAttributes = attributesWithBadv(singletonList("domain1.com"));
-        final BidsBlocker blocker = BidsBlocker.create(singletonList(bid), "bidder1", ORTB_VERSION, accountConfig, blockedAttributes, false);
+        final BidsBlocker blocker = bidsBlocker(
+                singletonList(bid), ORTB_VERSION, accountConfig, blockedAttributes, false);
 
         // when and then
         assertThat(blocker.block()).satisfies(result -> {
@@ -340,7 +346,7 @@ public class BidsBlockerTest {
 
         // when
         final BidderBid bid = bid();
-        final BidsBlocker blocker = BidsBlocker.create(singletonList(bid), "bidder1", ORTB_VERSION, accountConfig, null, true);
+        final BidsBlocker blocker = bidsBlocker(singletonList(bid), ORTB_VERSION, accountConfig, null, true);
 
         // when and then
         assertThat(blocker.block()).satisfies(result -> {
@@ -363,7 +369,7 @@ public class BidsBlockerTest {
 
         // when
         final BidderBid bid = bid();
-        final BidsBlocker blocker = BidsBlocker.create(singletonList(bid), "bidder1", ORTB_VERSION, accountConfig, null, false);
+        final BidsBlocker blocker = bidsBlocker(singletonList(bid), ORTB_VERSION, accountConfig, null, false);
 
         // when and then
         assertThat(blocker.block()).satisfies(result -> {
@@ -413,7 +419,7 @@ public class BidsBlockerTest {
                 .bapp(asList("app1", "app2", "app3"))
                 .battr(singletonMap(MediaType.BANNER, singletonMap("impId2", asList(1, 2, 3))))
                 .build();
-        final BidsBlocker blocker = BidsBlocker.create(bids, "bidder1", ORTB_VERSION, accountConfig, blockedAttributes, true);
+        final BidsBlocker blocker = bidsBlocker(bids, ORTB_VERSION, accountConfig, blockedAttributes, true);
 
         // when and then
         assertThat(blocker.block()).satisfies(result -> {
@@ -495,7 +501,7 @@ public class BidsBlockerTest {
                 .bapp(asList("app1", "app2"))
                 .battr(singletonMap(MediaType.BANNER, singletonMap("impId1", asList(1, 2))))
                 .build();
-        final BidsBlocker blocker = BidsBlocker.create(bids, "bidder1", ORTB_VERSION, accountConfig, blockedAttributes, true);
+        final BidsBlocker blocker = bidsBlocker(bids, ORTB_VERSION, accountConfig, blockedAttributes, true);
 
         // when and then
         assertThat(blocker.block()).satisfies(result -> {
@@ -535,7 +541,7 @@ public class BidsBlockerTest {
                 bid(bid -> bid.cattax(3)),
                 bid());
         final BlockedAttributes blockedAttributes = BlockedAttributes.builder().build();
-        final BidsBlocker blocker = BidsBlocker.create(bids, "bidder1", ORTB_VERSION, accountConfig, blockedAttributes, true);
+        final BidsBlocker blocker = bidsBlocker(bids, ORTB_VERSION, accountConfig, blockedAttributes, true);
 
         // when and then
         assertThat(blocker.block())
@@ -556,8 +562,8 @@ public class BidsBlockerTest {
         // when
         final List<BidderBid> bids = singletonList(bid());
         final BlockedAttributes blockedAttributes = BlockedAttributes.builder().build();
-        final BidsBlocker blocker = BidsBlocker.create(
-                bids, "bidder1", OrtbVersion.ORTB_2_6, accountConfig, blockedAttributes, true);
+        final BidsBlocker blocker = bidsBlocker(
+                bids, OrtbVersion.ORTB_2_6, accountConfig, blockedAttributes, true);
 
         // when and then
         assertThat(blocker.block())
@@ -580,8 +586,8 @@ public class BidsBlockerTest {
                 bid(bid -> bid.cattax(1)),
                 bid(bid -> bid.cattax(2)));
         final BlockedAttributes blockedAttributes = BlockedAttributes.builder().cattaxComplement(2).build();
-        final BidsBlocker blocker = BidsBlocker.create(
-                bids, "bidder1", OrtbVersion.ORTB_2_6, accountConfig, blockedAttributes, true);
+        final BidsBlocker blocker = bidsBlocker(
+                bids, OrtbVersion.ORTB_2_6, accountConfig, blockedAttributes, true);
 
         // when and then
         assertThat(blocker.block()).satisfies(result -> {
@@ -606,8 +612,8 @@ public class BidsBlockerTest {
                 bid(bid -> bid.cattax(1)),
                 bid(bid -> bid.cattax(2)));
         final BlockedAttributes blockedAttributes = BlockedAttributes.builder().build();
-        final BidsBlocker blocker = BidsBlocker.create(
-                bids, "bidder1", OrtbVersion.ORTB_2_6, accountConfig, blockedAttributes, true);
+        final BidsBlocker blocker = bidsBlocker(
+                bids, OrtbVersion.ORTB_2_6, accountConfig, blockedAttributes, true);
 
         // when and then
         assertThat(blocker.block()).satisfies(result -> {
@@ -636,7 +642,7 @@ public class BidsBlockerTest {
     }
 
     private static ObjectNode toObjectNode(ModuleConfig config) {
-        return mapper.valueToTree(config);
+        return MAPPER.valueToTree(config);
     }
 
     private static void isEmpty(ExecutionResult<BlockedBids> result) {
@@ -651,5 +657,15 @@ public class BidsBlockerTest {
         assertThat(result.getErrors()).isNull();
         assertThat(result.getWarnings()).isNull();
         assertThat(result.getDebugMessages()).isNull();
+    }
+
+    private BidsBlocker bidsBlocker(List<BidderBid> bids,
+                                    OrtbVersion ortbVersion,
+                                    ObjectNode accountConfig,
+                                    BlockedAttributes blockedAttributes,
+                                    boolean debugEnabled) {
+
+        return BidsBlocker.create(
+                bids, "bidder1", ortbVersion, accountConfig, blockedAttributes, bidRejectionTracker, debugEnabled);
     }
 }

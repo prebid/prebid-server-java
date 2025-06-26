@@ -21,7 +21,7 @@ import org.mockito.BDDMockito;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
-import org.prebid.server.auction.BidderAliases;
+import org.prebid.server.auction.aliases.BidderAliases;
 import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.BidderRequest;

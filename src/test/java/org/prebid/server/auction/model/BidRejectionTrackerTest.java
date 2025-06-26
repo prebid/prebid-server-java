@@ -34,7 +34,7 @@ public class BidRejectionTrackerTest {
         target.reject(RejectedImp.of("impId1", ERROR_GENERAL));
 
         // when
-        final BidderBid bid = BidderBid.builder().bid(Bid.builder().id("bidId1").impid("impId1").build()).build();
+        final BidderBid bid = givenBid("bidId1", "impId1");
         target.succeed(singleton(bid));
 
         // then
@@ -46,7 +46,7 @@ public class BidRejectionTrackerTest {
     @Test
     public void succeedShouldRestoreImpFromBidRejection() {
         // given
-        final BidderBid bid = BidderBid.builder().bid(Bid.builder().id("bidId1").impid("impId1").build()).build();
+        final BidderBid bid = givenBid("bidId1", "impId1");
         target.reject(RejectedBid.of(bid, ERROR_GENERAL));
 
         // when
@@ -64,7 +64,7 @@ public class BidRejectionTrackerTest {
         target.reject(RejectedImp.of("impId1", ERROR_GENERAL));
 
         // when
-        final BidderBid bid = BidderBid.builder().bid(Bid.builder().id("bidId2").impid("impId2").build()).build();
+        final BidderBid bid = givenBid("bidId2", "impId2");
         target.succeed(singleton(bid));
 
         // then
@@ -76,11 +76,11 @@ public class BidRejectionTrackerTest {
     @Test
     public void succeedShouldIgnoreUninvolvedImpIdsOnBidRejection() {
         // given
-        final BidderBid bid1 = BidderBid.builder().bid(Bid.builder().id("bidId1").impid("impId1").build()).build();
+        final BidderBid bid1 = givenBid("bidId1", "impId1");
         target.reject(RejectedBid.of(bid1, ERROR_GENERAL));
 
         // when
-        final BidderBid bid2 = BidderBid.builder().bid(Bid.builder().id("bidId2").impid("impId2").build()).build();
+        final BidderBid bid2 = givenBid("bidId2", "impId2");
         target.succeed(singleton(bid2));
 
         // then
@@ -103,7 +103,7 @@ public class BidRejectionTrackerTest {
     @Test
     public void rejectBidShouldRecordBidRejectionFirstTimeIfImpIdIsInvolved() {
         // when
-        final BidderBid bid = BidderBid.builder().bid(Bid.builder().id("bidId1").impid("impId1").build()).build();
+        final BidderBid bid = givenBid("bidId1", "impId1");
         target.reject(RejectedBid.of(bid, ERROR_GENERAL));
 
         // then
@@ -115,8 +115,8 @@ public class BidRejectionTrackerTest {
     @Test
     public void rejectBidShouldRecordBidRejectionAfterPreviouslySucceededBid() {
         // given
-        final BidderBid bid1 = BidderBid.builder().bid(Bid.builder().id("bidId1").impid("impId1").build()).build();
-        final BidderBid bid2 = BidderBid.builder().bid(Bid.builder().id("bidId2").impid("impId1").build()).build();
+        final BidderBid bid1 = givenBid("bidId1", "impId1");
+        final BidderBid bid2 = givenBid("bidId2", "impId1");
         target.succeed(Set.of(bid1, bid2));
 
         // when
@@ -147,11 +147,11 @@ public class BidRejectionTrackerTest {
     @Test
     public void rejectBidShouldNotRecordImpRejectionButRecordBidRejectionEvenIfImpIsAlreadyRejected() {
         // given
-        final BidderBid bid1 = BidderBid.builder().bid(Bid.builder().id("bidId1").impid("impId1").build()).build();
+        final BidderBid bid1 = givenBid("bidId1", "impId1");
         target.reject(RejectedBid.of(bid1, RESPONSE_REJECTED_GENERAL));
 
         // when
-        final BidderBid bid2 = BidderBid.builder().bid(Bid.builder().id("bidId2").impid("impId1").build()).build();
+        final BidderBid bid2 = givenBid("bidId2", "impId1");
         target.reject(RejectedBid.of(bid2, RESPONSE_REJECTED_BELOW_FLOOR));
 
         // then
@@ -192,13 +192,13 @@ public class BidRejectionTrackerTest {
     public void rejectBidsShouldTryRejectingEachBid() {
         // given
         target = new BidRejectionTracker("bidder", Set.of("impId1", "impId2", "impId3"), 0);
-        final BidderBid bid0 = BidderBid.builder().bid(Bid.builder().id("bidId0").impid("impId1").build()).build();
+        final BidderBid bid0 = givenBid("bidId0", "impId1");
         target.reject(RejectedBid.of(bid0, RESPONSE_REJECTED_GENERAL));
 
         // when
-        final BidderBid bid1 = BidderBid.builder().bid(Bid.builder().id("bidId1").impid("impId1").build()).build();
-        final BidderBid bid2 = BidderBid.builder().bid(Bid.builder().id("bidId2").impid("impId2").build()).build();
-        final BidderBid bid3 = BidderBid.builder().bid(Bid.builder().id("bidId3").impid("impId3").build()).build();
+        final BidderBid bid1 = givenBid("bidId1", "impId1");
+        final BidderBid bid2 = givenBid("bidId2", "impId2");
+        final BidderBid bid3 = givenBid("bidId3", "impId3");
         target.reject(Set.of(
                 RejectedBid.of(bid1, RESPONSE_REJECTED_DSA_PRIVACY),
                 RejectedBid.of(bid2, RESPONSE_REJECTED_DSA_PRIVACY),
@@ -229,5 +229,12 @@ public class BidRejectionTrackerTest {
 
         // then
         assertThat(target.getRejectedImps()).containsOnly(RejectedImp.of("impId1", NO_BID));
+    }
+
+    private BidderBid givenBid(String bidId, String impId) {
+        return BidderBid.builder()
+                .seat("seat")
+                .bid(Bid.builder().id(bidId).impid(impId).build())
+                .build();
     }
 }

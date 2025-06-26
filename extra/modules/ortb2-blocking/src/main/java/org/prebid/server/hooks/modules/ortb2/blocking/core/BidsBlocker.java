@@ -333,7 +333,7 @@ public class BidsBlocker {
         }
         final AttributeCheckResult<String> bappResult = blockingResult.getBappCheckResult();
         if (bappResult.isFailed()) {
-            values.put(BUNDLE_FIELD, bappResult.getFailedValues().get(0));
+            values.put(BUNDLE_FIELD, bappResult.getFailedValues().getFirst());
         }
         final AttributeCheckResult<Integer> battrResult = blockingResult.getBattrCheckResult();
         if (battrResult.isFailed()) {

@@ -25,8 +25,8 @@ public class BidResponsesMraidFilter {
     public MraidFilterResult filterByPattern(String mraidScriptPattern,
                                              List<BidderResponse> responses) {
 
-        List<BidderResponse> filteredResponses = new ArrayList<>();
-        List<AnalyticsResult> analyticsResults = new ArrayList<>();
+        final List<BidderResponse> filteredResponses = new ArrayList<>();
+        final List<AnalyticsResult> analyticsResults = new ArrayList<>();
 
         for (BidderResponse bidderResponse : responses) {
             final BidderSeatBid seatBid = bidderResponse.getSeatBid();

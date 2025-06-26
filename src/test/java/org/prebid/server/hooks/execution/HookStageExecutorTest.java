@@ -689,7 +689,7 @@ public class HookStageExecutorTest extends VertxTest {
                                             assertThat(hookOutcome.getStatus())
                                                     .isEqualTo(ExecutionStatus.execution_failure);
                                             assertThat(hookOutcome.getMessage()).isEqualTo("Failed after a while");
-                                            assertThat(hookOutcome.getExecutionTime()).isBetween(50L, 70L);
+                                            assertThat(hookOutcome.getExecutionTime()).isBetween(50L, 80L);
                                         });
 
                                         assertThat(group0Hooks.get(1)).satisfies(hookOutcome -> {

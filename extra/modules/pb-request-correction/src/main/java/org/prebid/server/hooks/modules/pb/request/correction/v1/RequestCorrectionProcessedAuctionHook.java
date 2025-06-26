@@ -28,7 +28,9 @@ public class RequestCorrectionProcessedAuctionHook implements ProcessedAuctionRe
     private final RequestCorrectionProvider requestCorrectionProvider;
     private final ObjectMapper mapper;
 
-    public RequestCorrectionProcessedAuctionHook(RequestCorrectionProvider requestCorrectionProvider, ObjectMapper mapper) {
+    public RequestCorrectionProcessedAuctionHook(RequestCorrectionProvider requestCorrectionProvider,
+                                                 ObjectMapper mapper) {
+
         this.requestCorrectionProvider = Objects.requireNonNull(requestCorrectionProvider);
         this.mapper = Objects.requireNonNull(mapper);
     }

@@ -17,4 +17,5 @@ class BidderParams {
     def appid
     def placementid
     def dependencies
+    def additionalProperties
 }

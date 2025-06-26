@@ -7,4 +7,3 @@ public class AdQueryResponse {
 
     AdQueryDataResponse data;
 }
-

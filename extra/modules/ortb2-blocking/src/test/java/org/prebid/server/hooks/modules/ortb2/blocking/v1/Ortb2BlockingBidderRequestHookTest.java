@@ -48,7 +48,7 @@ import static org.mockito.BDDMockito.given;
 @ExtendWith(MockitoExtension.class)
 public class Ortb2BlockingBidderRequestHookTest {
 
-    private static final ObjectMapper mapper = new ObjectMapper()
+    private static final ObjectMapper MAPPER = new ObjectMapper()
             .setPropertyNamingStrategy(PropertyNamingStrategies.KEBAB_CASE)
             .setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
@@ -94,7 +94,7 @@ public class Ortb2BlockingBidderRequestHookTest {
     @Test
     public void shouldReturnResultWithNoActionAndErrorWhenInvalidAccountConfig() {
         // given
-        final ObjectNode accountConfig = mapper.createObjectNode()
+        final ObjectNode accountConfig = MAPPER.createObjectNode()
                 .put("attributes", 1);
 
         // when
@@ -115,7 +115,7 @@ public class Ortb2BlockingBidderRequestHookTest {
     @Test
     public void shouldReturnResultWithNoActionAndNoErrorWhenInvalidAccountConfigAndDebugDisabled() {
         // given
-        final ObjectNode accountConfig = mapper.createObjectNode()
+        final ObjectNode accountConfig = MAPPER.createObjectNode()
                 .put("attributes", 1);
 
         // when
@@ -282,6 +282,6 @@ public class Ortb2BlockingBidderRequestHookTest {
     }
 
     private static ObjectNode toObjectNode(ModuleConfig config) {
-        return mapper.valueToTree(config);
+        return MAPPER.valueToTree(config);
     }
 }

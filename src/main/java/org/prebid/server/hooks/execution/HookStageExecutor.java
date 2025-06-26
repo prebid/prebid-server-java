@@ -9,6 +9,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.collections4.map.DefaultedMap;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -163,7 +164,7 @@ public class HookStageExecutor {
     }
 
     private static ExecutionPlan validateExecutionPlan(ExecutionPlan plan, HookCatalog hookCatalog) {
-        plan.getEndpoints().values().stream()
+        MapUtils.emptyIfNull(plan.getEndpoints()).values().stream()
                 .map(EndpointExecutionPlan::getStages)
                 .map(Map::entrySet)
                 .flatMap(Collection::stream)
@@ -428,8 +429,7 @@ public class HookStageExecutor {
     }
 
     private static StageExecutionPlan stagePlanFrom(ExecutionPlan executionPlan, Endpoint endpoint, Stage stage) {
-        return executionPlan
-                .getEndpoints()
+        return MapUtils.emptyIfNull(executionPlan.getEndpoints())
                 .getOrDefault(endpoint, EndpointExecutionPlan.empty())
                 .getStages()
                 .getOrDefault(stage, StageExecutionPlan.empty());

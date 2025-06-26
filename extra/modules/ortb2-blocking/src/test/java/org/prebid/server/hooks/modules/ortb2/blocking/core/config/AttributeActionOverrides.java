@@ -36,42 +36,40 @@ public class AttributeActionOverrides<T> {
 
     public static <T> AttributeActionOverrides<T> blocked(List<ArrayOverride<T>> blocked) {
         return AttributeActionOverrides.<T>builder()
-            .blocked(blocked)
-            .build();
+                .blocked(blocked)
+                .build();
     }
 
     public static <T> AttributeActionOverrides<T> blockUnknown(List<BooleanOverride> blockUnknown) {
         return AttributeActionOverrides.<T>builder()
-            .blockUnknown(blockUnknown)
-            .build();
+                .blockUnknown(blockUnknown)
+                .build();
     }
 
-    public static <T> AttributeActionOverrides<T> blockFlags(
-        List<BooleanOverride> enforceBlocks,
-        List<BooleanOverride> blockUnknown) {
+    public static <T> AttributeActionOverrides<T> blockFlags(List<BooleanOverride> enforceBlocks,
+                                                             List<BooleanOverride> blockUnknown) {
 
         return AttributeActionOverrides.<T>builder()
-            .enforceBlocks(enforceBlocks)
-            .blockUnknown(blockUnknown)
-            .build();
+                .enforceBlocks(enforceBlocks)
+                .blockUnknown(blockUnknown)
+                .build();
     }
 
-    public static <T> AttributeActionOverrides<T> response(
-        List<BooleanOverride> enforceBlocks,
-        List<BooleanOverride> blockUnknown,
-        List<AllowedForDealsOverride<T>> allowedForDeals) {
+    public static <T> AttributeActionOverrides<T> response(List<BooleanOverride> enforceBlocks,
+                                                           List<BooleanOverride> blockUnknown,
+                                                           List<AllowedForDealsOverride<T>> allowedForDeals) {
 
         return AttributeActionOverrides.<T>builder()
-            .enforceBlocks(enforceBlocks)
-            .blockUnknown(blockUnknown)
-            .allowedForDeals(allowedForDeals)
-            .build();
+                .enforceBlocks(enforceBlocks)
+                .blockUnknown(blockUnknown)
+                .allowedForDeals(allowedForDeals)
+                .build();
     }
 
     public static <T> AttributeActionOverrides<T> allowedForDeals(List<AllowedForDealsOverride<T>> allowedForDeals) {
 
         return AttributeActionOverrides.<T>builder()
-            .allowedForDeals(allowedForDeals)
-            .build();
+                .allowedForDeals(allowedForDeals)
+                .build();
     }
 }

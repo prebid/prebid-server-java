@@ -4,12 +4,11 @@ import com.iab.openrtb.request.BidRequest;
 import io.netty.channel.ConnectTimeoutException;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.auction.BidderAliases;
+import org.prebid.server.auction.aliases.BidderAliases;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.auction.model.BidRejectionTracker;
@@ -131,8 +130,8 @@ public class HttpBidderRequester {
                         .map(httpCall -> processHttpCall(bidder, bidRequest, resultBuilder, httpCall)))
                 .toList();
 
-        return CompositeFuture.any(
-                        CompositeFuture.join(new ArrayList<>(httpRequestFutures)),
+        return Future.any(
+                        Future.join(httpRequestFutures),
                         completionTracker.future())
                 .map(ignored -> resultBuilder.toBidderSeatBid(debugEnabled))
                 .onSuccess(seatBid -> bidRejectionTracker.restoreFromRejection(seatBid.getBids()));
@@ -322,7 +321,7 @@ public class HttpBidderRequester {
     /**
      * Replaces body of {@link HttpResponse} with empty JSON object if response HTTP status code is equal to 204.
      * <p>
-     * Note: this will safe making bids by bidders from JSON parsing error.
+     * Note: this will save making bids by bidders from JSON parsing error.
      */
     private static <T> BidderCall<T> toHttpCallWithSafeResponseBody(BidderCall<T> httpCall) {
         final HttpResponse response = httpCall.getResponse();

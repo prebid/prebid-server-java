@@ -382,6 +382,10 @@ public class Metrics extends UpdatableMetrics {
         forAccount(accountId).response().validation().secure().incCounter(type);
     }
 
+    public void updateSeatValidationMetrics(String bidder) {
+        forAdapter(bidder).response().validation().incCounter(MetricName.seat);
+    }
+
     public void updateUserSyncOptoutMetric() {
         userSync().incCounter(MetricName.opt_outs);
     }
@@ -699,6 +703,26 @@ public class Metrics extends UpdatableMetrics {
         forAccount(accountId).cache().creativeTtl().updateHistogram(creativeType, creativeTtl);
     }
 
+    public void updateRequestsActivityDisallowedCount(Activity activity) {
+        requests().activities().forActivity(activity).incCounter(MetricName.disallowed_count);
+    }
+
+    public void updateAccountActivityDisallowedCount(String account, Activity activity) {
+        forAccount(account).activities().forActivity(activity).incCounter(MetricName.disallowed_count);
+    }
+
+    public void updateAdapterActivityDisallowedCount(String adapter, Activity activity) {
+        forAdapter(adapter).activities().forActivity(activity).incCounter(MetricName.disallowed_count);
+    }
+
+    public void updateRequestsActivityProcessedRulesCount() {
+        requests().activities().incCounter(MetricName.processed_rules_count);
+    }
+
+    public void updateAccountActivityProcessedRulesCount(String account) {
+        forAccount(account).activities().incCounter(MetricName.processed_rules_count);
+    }
+
     private static class HookMetricMapper {
 
         private static final EnumMap<ExecutionStatus, MetricName> STATUS_TO_METRIC =
@@ -725,25 +749,5 @@ public class Metrics extends UpdatableMetrics {
         static MetricName fromAction(ExecutionAction action) {
             return ACTION_TO_METRIC.getOrDefault(action, MetricName.unknown);
         }
-    }
-
-    public void updateRequestsActivityDisallowedCount(Activity activity) {
-        requests().activities().forActivity(activity).incCounter(MetricName.disallowed_count);
-    }
-
-    public void updateAccountActivityDisallowedCount(String account, Activity activity) {
-        forAccount(account).activities().forActivity(activity).incCounter(MetricName.disallowed_count);
-    }
-
-    public void updateAdapterActivityDisallowedCount(String adapter, Activity activity) {
-        forAdapter(adapter).activities().forActivity(activity).incCounter(MetricName.disallowed_count);
-    }
-
-    public void updateRequestsActivityProcessedRulesCount() {
-        requests().activities().incCounter(MetricName.processed_rules_count);
-    }
-
-    public void updateAccountActivityProcessedRulesCount(String account) {
-        forAccount(account).activities().incCounter(MetricName.processed_rules_count);
     }
 }

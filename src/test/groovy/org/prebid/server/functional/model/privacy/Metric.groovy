@@ -7,7 +7,6 @@ import org.prebid.server.functional.model.request.setuid.SetuidRequest
 
 enum Metric {
 
-    ALERT_GENERAL("alerts.general"),
     PROCESSED_ACTIVITY_RULES_COUNT("requests.activity.processedrules.count"),
     ACCOUNT_PROCESSED_RULES_COUNT("requests.activity.processedrules.count"),
     TEMPLATE_ADAPTER_DISALLOWED_COUNT("adapter.{bidderName}.activity.{activityType}.disallowed.count"),

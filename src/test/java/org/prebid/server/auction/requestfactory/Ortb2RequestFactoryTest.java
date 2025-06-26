@@ -1490,7 +1490,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                                         3,
                                         4,
                                         5,
-                                        List.of(org.prebid.server.settings.model.DsaTransparency.of(
+                                        List.of(DsaTransparency.of(
                                                 "domain",
                                                 List.of(1)))),
                                 null))
@@ -1552,7 +1552,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                                         0,
                                         1,
                                         2,
-                                        List.of(org.prebid.server.settings.model.DsaTransparency.of(
+                                        List.of(DsaTransparency.of(
                                                 "",
                                                 List.of(0)))),
                                 true))
@@ -1616,7 +1616,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                                         0,
                                         1,
                                         2,
-                                        List.of(org.prebid.server.settings.model.DsaTransparency.of(
+                                        List.of(DsaTransparency.of(
                                                 "",
                                                 List.of(0)))),
                                 true))

@@ -8,7 +8,7 @@ import lombok.Value;
 import java.util.Set;
 
 /**
- * Packages together the fields needed to make an http request.
+ * Packages together the fields needed to make a http request.
  */
 @Builder(toBuilder = true)
 @Value

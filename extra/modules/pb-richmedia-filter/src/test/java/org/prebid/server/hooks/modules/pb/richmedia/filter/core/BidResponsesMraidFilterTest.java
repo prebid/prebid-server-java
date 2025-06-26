@@ -27,7 +27,8 @@ public class BidResponsesMraidFilterTest {
         final BidderResponse responseB = givenBidderResponse("bidderB", List.of(givenBid("imp_id", "adm2")));
 
         // when
-        final MraidFilterResult filterResult = target.filterByPattern("mraid.js", List.of(responseA, responseB));
+        final MraidFilterResult filterResult = target.filterByPattern(
+                "mraid.js", List.of(responseA, responseB));
 
         // then
         assertThat(filterResult.getFilterResult()).containsExactly(responseA, responseB);

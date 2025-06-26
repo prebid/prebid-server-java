@@ -19,25 +19,23 @@ import static org.mockserver.model.JsonPathBody.jsonPath
 
 class Bidder extends NetworkScaffolding {
 
-    private static final String AUCTION_ENDPOINT = "/auction"
-
-    Bidder(MockServerContainer mockServerContainer) {
-        super(mockServerContainer, AUCTION_ENDPOINT)
+    Bidder(MockServerContainer mockServerContainer, String endpoint = "/auction") {
+        super(mockServerContainer, endpoint)
     }
 
     @Override
     protected HttpRequest getRequest(String bidRequestId) {
-        request().withPath(AUCTION_ENDPOINT)
+        request().withPath(endpoint)
                  .withBody(jsonPath("\$[?(@.id == '$bidRequestId')]"))
     }
 
     @Override
     protected HttpRequest getRequest() {
-        request().withPath(AUCTION_ENDPOINT)
+        request().withPath(endpoint)
     }
 
     HttpRequest getRequest(String bidRequestId, String requestMatchPath) {
-        request().withPath(AUCTION_ENDPOINT)
+        request().withPath(endpoint)
                  .withBody(jsonPath("\$[?(@.$requestMatchPath == '$bidRequestId')]"))
     }
 
