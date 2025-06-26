@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.sparteo;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
@@ -22,6 +23,7 @@ import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.sparteo.ExtImpSparteo;
+import org.prebid.server.proto.openrtb.ext.request.sparteo.ExtImpParamsSparteo;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.util.BidderUtil;
@@ -30,7 +32,9 @@ import org.prebid.server.util.HttpUtil;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -88,27 +92,45 @@ public class SparteoBidder implements Bidder<BidRequest> {
     private ObjectNode buildImpExt(ObjectNode impExt, ExtImpSparteo bidderParams, JacksonMapper mapper)
         throws JsonProcessingException {
 
-        impExt.remove("bidder");
+        final String adUnitCode = Optional.ofNullable(impExt.get("prebid"))
+                .map(prebidNode -> prebidNode.get("adunitcode"))
+                .filter(JsonNode::isTextual)
+                .map(JsonNode::asText)
+                .orElse(null);
 
-        final JsonNode sparteoNode = impExt.get("sparteo");
-        final ObjectNode outgoingParamsNode;
+        final Map<String, JsonNode> sparteoProperties = Optional.ofNullable(impExt.get("sparteo"))
+                .map(sparteoNode -> sparteoNode.get("params"))
+                .filter(JsonNode::isObject)
+                .map(paramsNode -> mapper.mapper().convertValue(paramsNode,
+                        new TypeReference<Map<String, JsonNode>>() { }))
+                .orElse(Collections.emptyMap());
 
-        if (sparteoNode != null && sparteoNode.isObject() && sparteoNode.has("params")
-                && sparteoNode.get("params").isObject()) {
-            outgoingParamsNode = (ObjectNode) sparteoNode.get("params");
-        } else {
-            outgoingParamsNode = impExt.putObject("sparteo").putObject("params");
-        }
+        final Map<String, JsonNode> additionnalProperties = new HashMap<>(sparteoProperties);
+        additionnalProperties.putAll(bidderParams.getAdditionalProperties());
 
-        final ObjectNode bidderParamsAsNode = mapper.mapper().convertValue(bidderParams, ObjectNode.class);
-        outgoingParamsNode.setAll(bidderParamsAsNode);
+        final ExtImpParamsSparteo sparteoParams = ExtImpParamsSparteo.of(
+                bidderParams.getNetworkId(),
+                bidderParams.getCustom1(),
+                bidderParams.getCustom2(),
+                bidderParams.getCustom3(),
+                bidderParams.getCustom4(),
+                bidderParams.getCustom5(),
+                adUnitCode,
+                additionnalProperties);
 
-        final JsonNode prebidNode = impExt.get("prebid");
-        if (prebidNode != null && prebidNode.has("adunitcode")) {
-            outgoingParamsNode.set("adUnitCode", prebidNode.get("adunitcode"));
-        }
+        final ObjectNode ext = mapper.mapper().createObjectNode();
 
-        return impExt;
+        impExt.fields().forEachRemaining(entry -> {
+            final String key = entry.getKey();
+            if (!key.equals("bidder") && !key.equals("sparteo")) {
+                ext.set(key, entry.getValue());
+            }
+        });
+
+        final ObjectNode sparteoParamsAsNode = mapper.mapper().convertValue(sparteoParams, ObjectNode.class);
+        ext.putObject("sparteo").set("params", sparteoParamsAsNode);
+
+        return ext;
     }
 
     private Site modifySite(Site site, String siteNetworkId, JacksonMapper mapper) {
