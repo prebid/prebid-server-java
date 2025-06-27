@@ -890,15 +890,14 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return vendorsUrls.isEmpty() ? null : vendorsUrls;
     }
 
-    private Integer getMaxBids(ExtRequest extRequest) {
+    private static Integer getMaxBids(ExtRequest extRequest) {
         final ExtRequestPrebid extRequestPrebid = extRequest != null ? extRequest.getPrebid() : null;
         final List<ExtRequestPrebidMultiBid> multibids = extRequestPrebid != null
                 ? extRequestPrebid.getMultibid() : null;
         final ExtRequestPrebidMultiBid extRequestPrebidMultiBid =
                 CollectionUtils.isNotEmpty(multibids) ? multibids.getFirst() : null;
-        final Integer multibidMaxBids = extRequestPrebidMultiBid != null ? extRequestPrebidMultiBid.getMaxBids() : null;
 
-        return multibidMaxBids != null ? multibidMaxBids : 1;
+        return extRequestPrebidMultiBid != null ? extRequestPrebidMultiBid.getMaxBids() : null;
     }
 
     private String getGpid(ObjectNode impExt) {
