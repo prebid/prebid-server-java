@@ -21,9 +21,9 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.sparteo.ExtImpSparteo;
-import org.prebid.server.proto.openrtb.ext.request.sparteo.ExtImpParamsSparteo;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.util.BidderUtil;
@@ -32,13 +32,16 @@ import org.prebid.server.util.HttpUtil;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
 public class SparteoBidder implements Bidder<BidRequest> {
+
+    private static final TypeReference<ExtPrebid<?, ExtImpSparteo>> TYPE_REFERENCE =
+            new TypeReference<>() { };
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -56,19 +59,16 @@ public class SparteoBidder implements Bidder<BidRequest> {
 
         for (Imp imp : request.getImp()) {
             try {
-                final ObjectNode impExt = mapper.mapper().convertValue(imp.getExt(), ObjectNode.class);
-
-                final JsonNode bidderNode = impExt.get("bidder");
-                final ExtImpSparteo bidderParams = mapper.mapper().treeToValue(bidderNode, ExtImpSparteo.class);
+                final ExtImpSparteo bidderParams = parseExtImp(imp);
 
                 if (siteNetworkId == null && bidderParams.getNetworkId() != null) {
                     siteNetworkId = bidderParams.getNetworkId();
                 }
 
-                final ObjectNode modifiedExt = buildImpExt(impExt, bidderParams, mapper);
+                final ObjectNode modifiedExt = modifyImpExt(imp);
 
                 modifiedImps.add(imp.toBuilder().ext(modifiedExt).build());
-            } catch (JsonProcessingException e) {
+            } catch (PreBidException e) {
                 errors.add(BidderError.badInput(
                         "ignoring imp id=%s, error processing ext: %s".formatted(
                                 imp.getId(), e.getMessage())));
@@ -89,48 +89,35 @@ public class SparteoBidder implements Bidder<BidRequest> {
         return Result.of(Collections.singletonList(call), errors);
     }
 
-    private ObjectNode buildImpExt(ObjectNode impExt, ExtImpSparteo bidderParams, JacksonMapper mapper)
-        throws JsonProcessingException {
+    private ExtImpSparteo parseExtImp(Imp imp) {
+        try {
+            return mapper.mapper().convertValue(imp.getExt(), TYPE_REFERENCE).getBidder();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException("invalid imp.ext");
+        }
+    }
 
-        final String adUnitCode = Optional.ofNullable(impExt.get("prebid"))
-                .map(prebidNode -> prebidNode.get("adunitcode"))
-                .filter(JsonNode::isTextual)
-                .map(JsonNode::asText)
-                .orElse(null);
+    private static ObjectNode modifyImpExt(Imp imp) {
+        final ObjectNode modifiedImpExt = imp.getExt().deepCopy();
+        final JsonNode sparteoJsonNode = modifiedImpExt.get("sparteo");
+        final ObjectNode sparteoNode = sparteoJsonNode == null || !sparteoJsonNode.isObject()
+                ? modifiedImpExt.putObject("sparteo")
+                : (ObjectNode) sparteoJsonNode;
 
-        final Map<String, JsonNode> sparteoProperties = Optional.ofNullable(impExt.get("sparteo"))
-                .map(sparteoNode -> sparteoNode.get("params"))
-                .filter(JsonNode::isObject)
-                .map(paramsNode -> mapper.mapper().convertValue(paramsNode,
-                        new TypeReference<Map<String, JsonNode>>() { }))
-                .orElse(Collections.emptyMap());
+        final JsonNode paramsJsonNode = sparteoNode.get("params");
+        final ObjectNode paramsNode = paramsJsonNode == null || !paramsJsonNode.isObject()
+                ? sparteoNode.putObject("params")
+                : (ObjectNode) paramsJsonNode;
 
-        final Map<String, JsonNode> additionnalProperties = new HashMap<>(sparteoProperties);
-        additionnalProperties.putAll(bidderParams.getAdditionalProperties());
-
-        final ExtImpParamsSparteo sparteoParams = ExtImpParamsSparteo.of(
-                bidderParams.getNetworkId(),
-                bidderParams.getCustom1(),
-                bidderParams.getCustom2(),
-                bidderParams.getCustom3(),
-                bidderParams.getCustom4(),
-                bidderParams.getCustom5(),
-                adUnitCode,
-                additionnalProperties);
-
-        final ObjectNode ext = mapper.mapper().createObjectNode();
-
-        impExt.fields().forEachRemaining(entry -> {
-            final String key = entry.getKey();
-            if (!key.equals("bidder") && !key.equals("sparteo")) {
-                ext.set(key, entry.getValue());
+        final JsonNode bidderJsonNode = modifiedImpExt.remove("bidder");
+        if (bidderJsonNode != null && bidderJsonNode.isObject()) {
+            final Iterator<Map.Entry<String, JsonNode>> fields = bidderJsonNode.fields();
+            while (fields.hasNext()) {
+                final Map.Entry<String, JsonNode> field = fields.next();
+                paramsNode.set(field.getKey(), field.getValue());
             }
-        });
-
-        final ObjectNode sparteoParamsAsNode = mapper.mapper().convertValue(sparteoParams, ObjectNode.class);
-        ext.putObject("sparteo").set("params", sparteoParamsAsNode);
-
-        return ext;
+        }
+        return modifiedImpExt;
     }
 
     private Site modifySite(Site site, String siteNetworkId, JacksonMapper mapper) {

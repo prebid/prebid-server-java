@@ -91,7 +91,7 @@ public class SparteoBidderTest extends VertxTest {
                 .hasSize(1)
                 .allSatisfy(error -> {
                     assertThat(error.getMessage())
-                            .startsWith("ignoring imp id=null, error processing ext: Cannot construct instance");
+                            .startsWith("ignoring imp id=null, error processing ext: invalid imp.ext");
                 });
         assertThat(result.getValue())
                 .isEmpty();
