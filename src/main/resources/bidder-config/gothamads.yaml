@@ -1,6 +1,12 @@
 adapters:
   gothamads:
     endpoint: http://us-e-node1.gothamads.com/?pass={{AccountID}}
+    aliases:
+      intenze:
+        enabled: false
+        endpoint: http://lb-east.intenze.co/?pass={{AccountID}}
+        meta-info:
+          maintainer-email: connect@intenze.co
     meta-info:
       maintainer-email: support@gothamads.com
       app-media-types:
