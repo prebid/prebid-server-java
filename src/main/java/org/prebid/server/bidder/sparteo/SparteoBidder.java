@@ -126,9 +126,8 @@ public class SparteoBidder implements Bidder<BidRequest> {
         }
 
         final Publisher publisher = site.getPublisher();
-        final ExtPublisher extPublisher;
 
-        extPublisher = publisher.getExt() != null
+        final ExtPublisher extPublisher = publisher.getExt() != null
                 ? publisher.getExt()
                 : ExtPublisher.empty();
 
