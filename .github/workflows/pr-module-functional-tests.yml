@@ -51,12 +51,12 @@ jobs:
         if: always()
         uses: dorny/test-reporter@v2
         with:
-          name: Functional Tests
+          name: 'Module functional tests'
           path: '**/target/failsafe-reports/TEST-*.xml'
           reporter: java-junit
+          use-actions-summary: 'true'
+          list-suites: 'failed'
+          list-tests: 'failed'
           fail-on-error: true
+          fail-on-empty: true
           token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Fail if functional tests failed
-        if: steps.build.outputs.exit_code != '0'
-        run: exit 1
