@@ -6,7 +6,6 @@ import lombok.Builder;
 import lombok.Value;
 import lombok.experimental.Accessors;
 import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.hooks.v1.bidder.BidderInvocationContext;
 import org.prebid.server.model.Endpoint;
@@ -35,7 +34,6 @@ public class BidderInvocationContextImpl implements BidderInvocationContext {
     String bidder;
 
     public static BidderInvocationContext of(String bidder,
-                                             BidRejectionTracker bidRejectionTracker,
                                              ObjectNode accountConfig,
                                              boolean debugEnabled) {
 
@@ -43,7 +41,6 @@ public class BidderInvocationContextImpl implements BidderInvocationContext {
                 .bidder(bidder)
                 .auctionContext(AuctionContext.builder()
                         .bidRequest(BidRequest.builder().build())
-                        .bidRejectionTrackers(Map.of(bidder, bidRejectionTracker))
                         .build())
                 .accountConfig(accountConfig)
                 .debugEnabled(debugEnabled)
@@ -52,7 +49,6 @@ public class BidderInvocationContextImpl implements BidderInvocationContext {
 
     public static BidderInvocationContext of(String bidder,
                                              Map<String, String> aliases,
-                                             BidRejectionTracker bidRejectionTracker,
                                              ObjectNode accountConfig,
                                              boolean debugEnabled) {
 
@@ -64,7 +60,6 @@ public class BidderInvocationContextImpl implements BidderInvocationContext {
                                         .aliases(aliases)
                                         .build()))
                                 .build())
-                        .bidRejectionTrackers(Map.of(bidder, bidRejectionTracker))
                         .build())
                 .accountConfig(accountConfig)
                 .debugEnabled(debugEnabled)
