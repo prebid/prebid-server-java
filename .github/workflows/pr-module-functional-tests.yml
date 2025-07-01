@@ -48,15 +48,14 @@ jobs:
           echo "exit_code=$result" >> "$GITHUB_OUTPUT"
 
       - name: Format build output for PR comment
-        if: steps.build.outputs.exit_code != '0'
-        uses: mikepenz/action-junit-report@v4
+        if: always()
+        uses: dorny/test-reporter@v2
         with:
-          report_paths: |
-            **/target/failsafe-reports/TEST-*.xml
-          comment: true
-          updateComment: true
+          name: Functional Tests
+          path: '**/target/failsafe-reports/TEST-*.xml'
+          reporter: java-junit
+          fail-on-error: true
           token: ${{ secrets.GITHUB_TOKEN }}
-          issue-number: ${{ github.event.pull_request.number }}
 
       - name: Fail if functional tests failed
         if: steps.build.outputs.exit_code != '0'
