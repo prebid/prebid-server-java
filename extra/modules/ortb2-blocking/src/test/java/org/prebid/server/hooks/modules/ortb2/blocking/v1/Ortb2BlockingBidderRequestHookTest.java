@@ -264,6 +264,7 @@ public class Ortb2BlockingBidderRequestHookTest {
                 true,
                 ortbVersion,
                 false,
+                false,
                 null,
                 null,
                 null,

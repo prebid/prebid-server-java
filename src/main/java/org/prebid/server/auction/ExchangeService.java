@@ -29,6 +29,7 @@ import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
 import org.prebid.server.activity.infrastructure.payload.impl.ActivityInvocationPayloadImpl;
 import org.prebid.server.activity.infrastructure.payload.impl.BidRequestActivityInvocationPayload;
+import org.prebid.server.auction.adpodding.AdPoddingImpDowngradingService;
 import org.prebid.server.auction.aliases.AlternateBidderCodesConfig;
 import org.prebid.server.auction.aliases.BidderAliases;
 import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessingResult;
@@ -156,6 +157,7 @@ public class ExchangeService {
     private final PriceFloorAdjuster priceFloorAdjuster;
     private final PriceFloorProcessor priceFloorProcessor;
     private final BidsAdjuster bidsAdjuster;
+    private final AdPoddingImpDowngradingService impDowngradingService;
     private final Metrics metrics;
     private final Clock clock;
     private final JacksonMapper mapper;
@@ -183,6 +185,7 @@ public class ExchangeService {
                            PriceFloorAdjuster priceFloorAdjuster,
                            PriceFloorProcessor priceFloorProcessor,
                            BidsAdjuster bidsAdjuster,
+                           AdPoddingImpDowngradingService impDowngradingService,
                            Metrics metrics,
                            Clock clock,
                            JacksonMapper mapper,
@@ -210,6 +213,7 @@ public class ExchangeService {
         this.priceFloorAdjuster = Objects.requireNonNull(priceFloorAdjuster);
         this.priceFloorProcessor = Objects.requireNonNull(priceFloorProcessor);
         this.bidsAdjuster = Objects.requireNonNull(bidsAdjuster);
+        this.impDowngradingService = Objects.requireNonNull(impDowngradingService);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
         this.mapper = Objects.requireNonNull(mapper);
@@ -887,6 +891,7 @@ public class ExchangeService {
                 .map(imp -> imp.toBuilder().ext(imp.getExt().deepCopy()).build())
                 .map(imp -> impAdjuster.adjust(imp, bidder, bidderAliases, debugWarnings))
                 .map(imp -> prepareImp(imp, bidder, bidRequest, transmitTid, useFirstPartyData, account, debugWarnings))
+                .flatMap(imp -> impDowngradingService.downgrade(imp, bidder, bidderAliases).stream())
                 .toList();
     }
 
@@ -919,6 +924,7 @@ public class ExchangeService {
                                      ObjectNode impExt,
                                      boolean transmitTid,
                                      boolean useFirstPartyData) {
+
         final JsonNode bidderNode = bidderParamsFromImpExt(impExt).get(bidder);
         final JsonNode impExtPrebid = cleanUpImpExtPrebid(impExt.get(PREBID_EXT));
         Optional.ofNullable(impExtPrebid).ifPresentOrElse(

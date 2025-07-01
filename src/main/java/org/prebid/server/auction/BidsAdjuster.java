@@ -2,6 +2,7 @@ package org.prebid.server.auction;
 
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.Bid;
+import org.prebid.server.auction.adpodding.AdPoddingBidDeduplicationService;
 import org.prebid.server.auction.aliases.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionParticipation;
@@ -27,16 +28,19 @@ public class BidsAdjuster {
     private final PriceFloorEnforcer priceFloorEnforcer;
     private final BidAdjustmentsProcessor bidAdjustmentsProcessor;
     private final DsaEnforcer dsaEnforcer;
+    private final AdPoddingBidDeduplicationService bidDeduplicationService;
 
     public BidsAdjuster(ResponseBidValidator responseBidValidator,
                         PriceFloorEnforcer priceFloorEnforcer,
                         BidAdjustmentsProcessor bidAdjustmentsProcessor,
-                        DsaEnforcer dsaEnforcer) {
+                        DsaEnforcer dsaEnforcer,
+                        AdPoddingBidDeduplicationService bidDeduplicationService) {
 
         this.responseBidValidator = Objects.requireNonNull(responseBidValidator);
         this.priceFloorEnforcer = Objects.requireNonNull(priceFloorEnforcer);
         this.bidAdjustmentsProcessor = Objects.requireNonNull(bidAdjustmentsProcessor);
         this.dsaEnforcer = Objects.requireNonNull(dsaEnforcer);
+        this.bidDeduplicationService = Objects.requireNonNull(bidDeduplicationService);
     }
 
     public List<AuctionParticipation> validateAndAdjustBids(List<AuctionParticipation> auctionParticipations,
@@ -49,7 +53,11 @@ public class BidsAdjuster {
                 .map(auctionParticipation -> bidAdjustmentsProcessor.enrichWithAdjustedBids(
                         auctionParticipation,
                         bidRequest))
-
+                .map(auctionParticipation -> bidDeduplicationService.deduplicate(
+                        auctionContext.getBidRequest(),
+                        auctionParticipation,
+                        auctionContext.getAccount(),
+                        auctionContext.getBidRejectionTrackers().get(auctionParticipation.getBidder())))
                 .map(auctionParticipation -> priceFloorEnforcer.enforce(
                         bidRequest,
                         auctionParticipation,

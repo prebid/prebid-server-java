@@ -29,6 +29,8 @@ public class BidderConfigurationProperties {
 
     private OrtbVersion ortbVersion;
 
+    private Boolean adpodSupported;
+
     @NotBlank
     private String endpoint;
 
@@ -63,6 +65,7 @@ public class BidderConfigurationProperties {
     private void init() {
         enabled = ObjectUtils.defaultIfNull(enabled, defaultProperties.getEnabled());
         ortbVersion = ObjectUtils.defaultIfNull(ortbVersion, defaultProperties.getOrtbVersion());
+        adpodSupported = ObjectUtils.defaultIfNull(adpodSupported, defaultProperties.getAdpodSupported());
         pbsEnforcesCcpa = ObjectUtils.defaultIfNull(pbsEnforcesCcpa, defaultProperties.getPbsEnforcesCcpa());
         modifyingVastXmlAllowed = ObjectUtils.defaultIfNull(
                 modifyingVastXmlAllowed, defaultProperties.getModifyingVastXmlAllowed());

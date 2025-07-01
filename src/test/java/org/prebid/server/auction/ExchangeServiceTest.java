@@ -25,6 +25,7 @@ import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.SupplyChain;
 import com.iab.openrtb.request.SupplyChainNode;
 import com.iab.openrtb.request.User;
+import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -43,6 +44,7 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
+import org.prebid.server.auction.adpodding.AdPoddingImpDowngradingService;
 import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessingResult;
 import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessor;
 import org.prebid.server.auction.model.AuctionContext;
@@ -272,6 +274,9 @@ public class ExchangeServiceTest extends VertxTest {
     @Mock(strictness = LENIENT)
     private BidsAdjuster bidsAdjuster;
 
+    @Mock(strictness = LENIENT)
+    private AdPoddingImpDowngradingService adPoddingImpDowngradingService;
+
     @Mock
     private Metrics metrics;
 
@@ -304,6 +309,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(bidderCatalog.bidderInfoByName(anyString())).willReturn(BidderInfo.create(
                 true,
                 null,
+                false,
                 false,
                 null,
                 null,
@@ -342,7 +348,11 @@ public class ExchangeServiceTest extends VertxTest {
         given(fpdResolver.resolveImpExt(any(), anyBoolean()))
                 .willAnswer(invocation -> invocation.getArgument(0));
 
-        given(impAdjuster.adjust(any(), any(), any(), any())).willAnswer(invocation -> invocation.getArgument(0));
+        given(impAdjuster.adjust(any(), any(), any(), any()))
+                .willAnswer(invocation -> invocation.getArgument(0));
+
+        given(adPoddingImpDowngradingService.downgrade(any(), any(), any()))
+                .willAnswer(invocation -> singletonList((Imp) invocation.getArgument(0)));
 
         given(supplyChainResolver.resolveForBidder(anyString(), any())).willReturn(null);
 
@@ -526,6 +536,45 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(actualImp).isEqualTo(givenImp);
         assertThat(actualImp.getExt()).isNotSameAs(givenImp.getExt());
         assertThat(actualImp.getExt()).isEqualTo(givenImp.getExt());
+    }
+
+    @Test
+    public void shouldIncreaseImpNumberWhenDowngradingReturningTwoImps() {
+        // given
+        givenBidder(givenEmptySeatBid());
+
+        final Imp givenImp = givenImp(singletonMap("someBidder", 1), builder -> builder
+                .id("impId")
+                .video(Video.builder().maxduration(10).minduration(5).maxseq(2).podid(1).build()));
+
+        final BidRequest bidRequest = givenBidRequest(
+                singletonList(givenImp),
+                builder -> builder.id("requestId").tmax(500L));
+
+        final Imp downgradedImp1 = givenImp.toBuilder()
+                .id("impId-0")
+                .video(Video.builder().maxduration(10).minduration(5).build())
+                .build();
+
+        final Imp downgradedImp2 = givenImp.toBuilder()
+                .id("impId-1")
+                .video(Video.builder().maxduration(10).minduration(5).build())
+                .build();
+
+        given(adPoddingImpDowngradingService.downgrade(any(), any(), any()))
+                .willReturn(List.of(downgradedImp1, downgradedImp2));
+
+        // when
+        target.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        final BidRequest capturedBidRequest = captureBidRequest();
+        assertThat(capturedBidRequest).isEqualTo(BidRequest.builder()
+                .id("requestId")
+                .cur(singletonList("USD"))
+                .imp(List.of(downgradedImp1, downgradedImp2))
+                .tmax(500L)
+                .build());
     }
 
     @Test
@@ -4023,6 +4072,7 @@ public class ExchangeServiceTest extends VertxTest {
                 true,
                 null,
                 false,
+                false,
                 null,
                 null,
                 null,
@@ -4103,6 +4153,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(bidderCatalog.bidderInfoByName(anyString())).willReturn(BidderInfo.create(
                 true,
                 null,
+                false,
                 false,
                 null,
                 null,
@@ -4228,6 +4279,7 @@ public class ExchangeServiceTest extends VertxTest {
                 priceFloorAdjuster,
                 priceFloorProcessor,
                 bidsAdjuster,
+                adPoddingImpDowngradingService,
                 metrics,
                 clock,
                 jacksonMapper,

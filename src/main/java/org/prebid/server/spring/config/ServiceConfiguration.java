@@ -11,6 +11,8 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.activity.ActivitiesConfigResolver;
 import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
+import org.prebid.server.auction.adpodding.AdPoddingBidDeduplicationService;
+import org.prebid.server.auction.adpodding.AdPoddingImpDowngradingService;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.BidResponseCreator;
 import org.prebid.server.auction.BidResponsePostProcessor;
@@ -918,6 +920,7 @@ public class ServiceConfiguration {
             PriceFloorAdjuster priceFloorAdjuster,
             PriceFloorProcessor priceFloorProcessor,
             BidsAdjuster bidsAdjuster,
+            AdPoddingImpDowngradingService adPoddingImpDowngradingService,
             Metrics metrics,
             Clock clock,
             JacksonMapper mapper,
@@ -946,6 +949,7 @@ public class ServiceConfiguration {
                 priceFloorAdjuster,
                 priceFloorProcessor,
                 bidsAdjuster,
+                adPoddingImpDowngradingService,
                 metrics,
                 clock,
                 mapper,
@@ -957,9 +961,15 @@ public class ServiceConfiguration {
     BidsAdjuster bidsAdjuster(ResponseBidValidator responseBidValidator,
                               PriceFloorEnforcer priceFloorEnforcer,
                               DsaEnforcer dsaEnforcer,
-                              BidAdjustmentsProcessor bidAdjustmentsProcessor) {
+                              BidAdjustmentsProcessor bidAdjustmentsProcessor,
+                              AdPoddingBidDeduplicationService adPoddingBidDeduplicationService) {
 
-        return new BidsAdjuster(responseBidValidator, priceFloorEnforcer, bidAdjustmentsProcessor, dsaEnforcer);
+        return new BidsAdjuster(
+                responseBidValidator,
+                priceFloorEnforcer,
+                bidAdjustmentsProcessor,
+                dsaEnforcer,
+                adPoddingBidDeduplicationService);
     }
 
     @Bean
@@ -1117,12 +1127,18 @@ public class ServiceConfiguration {
     ResponseBidValidator responseValidator(
             @Value("${auction.validations.banner-creative-max-size}") BidValidationEnforcement bannerMaxSizeEnforcement,
             @Value("${auction.validations.secure-markup}") BidValidationEnforcement secureMarkupEnforcement,
+            @Value("${auction.validations.ad-podding:skip}") BidValidationEnforcement adPoddingEnforcement,
+            CurrencyConversionService currencyConversionService,
+            JacksonMapper mapper,
             Metrics metrics) {
 
         return new ResponseBidValidator(
                 bannerMaxSizeEnforcement,
                 secureMarkupEnforcement,
+                adPoddingEnforcement,
+                currencyConversionService,
                 metrics,
+                mapper,
                 logSamplingRate);
     }
 
@@ -1260,6 +1276,16 @@ public class ServiceConfiguration {
                 bidAdjustmentFactorResolver,
                 bidAdjustmentsResolver,
                 mapper);
+    }
+
+    @Bean
+    AdPoddingImpDowngradingService adPoddingImpDowngradingService(BidderCatalog bidderCatalog) {
+        return new AdPoddingImpDowngradingService(bidderCatalog);
+    }
+
+    @Bean
+    AdPoddingBidDeduplicationService adPoddingBidDeduplicationService(JacksonMapper jacksonMapper) {
+        return new AdPoddingBidDeduplicationService(jacksonMapper);
     }
 
     private static List<String> splitToList(String listAsString) {

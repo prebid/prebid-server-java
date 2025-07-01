@@ -12,6 +12,7 @@ class ValidationMetrics extends UpdatableMetrics {
 
     private final SpecificValidationMetrics sizeValidationMetrics;
     private final SpecificValidationMetrics secureValidationMetrics;
+    private final SpecificValidationMetrics adPoddingValidationMetrics;
 
     ValidationMetrics(MetricRegistry metricRegistry, CounterType counterType, String prefix) {
         super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),
@@ -21,6 +22,8 @@ class ValidationMetrics extends UpdatableMetrics {
                 metricRegistry, counterType, createPrefix(prefix), "size");
         secureValidationMetrics = new SpecificValidationMetrics(
                 metricRegistry, counterType, createPrefix(prefix), "secure");
+        adPoddingValidationMetrics = new SpecificValidationMetrics(
+                metricRegistry, counterType, createPrefix(prefix), "pod");
     }
 
     private static Function<MetricName, String> nameCreator(String prefix) {
@@ -37,5 +40,9 @@ class ValidationMetrics extends UpdatableMetrics {
 
     SpecificValidationMetrics secure() {
         return secureValidationMetrics;
+    }
+
+    SpecificValidationMetrics pod() {
+        return adPoddingValidationMetrics;
     }
 }
