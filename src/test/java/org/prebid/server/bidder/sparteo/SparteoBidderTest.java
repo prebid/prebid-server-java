@@ -475,7 +475,10 @@ public class SparteoBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorWhenResponseStatusIs204() {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(), 204, "");
+        final BidderCall<BidRequest> httpCall = BidderCall.succeededHttp(
+                HttpRequest.<BidRequest>builder().payload(givenBidRequest()).build(),
+                HttpResponse.of(204, null, ""),
+                null);
 
         // when
         final Result<List<BidderBid>> result = sparteoBidder.makeBids(httpCall, givenBidRequest());
@@ -493,7 +496,10 @@ public class SparteoBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorWhenResponseStatusIsNot200Or204() {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(), 400, "Bad Request");
+        final BidderCall<BidRequest> httpCall = BidderCall.succeededHttp(
+                HttpRequest.<BidRequest>builder().payload(givenBidRequest()).build(),
+                HttpResponse.of(400, null, "Bad Request"),
+                null);
 
         // when
         final Result<List<BidderBid>> result = sparteoBidder.makeBids(httpCall, givenBidRequest());
@@ -510,7 +516,10 @@ public class SparteoBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorWhenResponseBodyIsInvalidJson() {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(), 200, "invalid_json");
+        final BidderCall<BidRequest> httpCall = BidderCall.succeededHttp(
+                HttpRequest.<BidRequest>builder().payload(givenBidRequest()).build(),
+                HttpResponse.of(200, null, "invalid_json"),
+                null);
 
         // when
         final Result<List<BidderBid>> result = sparteoBidder.makeBids(httpCall, givenBidRequest());
@@ -527,7 +536,10 @@ public class SparteoBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyResultWhenBidResponseIsNull() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(), 200, mapper.writeValueAsString(null));
+        final BidderCall<BidRequest> httpCall = BidderCall.succeededHttp(
+                HttpRequest.<BidRequest>builder().payload(givenBidRequest()).build(),
+                HttpResponse.of(400, null, "null"),
+                null);
 
         // when
         final Result<List<BidderBid>> result = sparteoBidder.makeBids(httpCall, givenBidRequest());
@@ -543,7 +555,7 @@ public class SparteoBidderTest extends VertxTest {
         // given
         final BidResponse bidResponse = BidResponse.builder().seatbid(Collections.emptyList()).build();
         final BidderCall<BidRequest> httpCall =
-                givenHttpCall(givenBidRequest(), 200, mapper.writeValueAsString(bidResponse));
+                givenHttpCall(givenBidRequest(), bidResponse);
 
         // when
         final Result<List<BidderBid>> result = sparteoBidder.makeBids(httpCall, givenBidRequest());
@@ -560,7 +572,7 @@ public class SparteoBidderTest extends VertxTest {
                 BidType.banner.getName());
         final BidResponse bidResponse = givenBidResponse(bid, "EUR");
         final BidderCall<BidRequest> httpCall =
-                givenHttpCall(givenBidRequest(), 200, mapper.writeValueAsString(bidResponse));
+                givenHttpCall(givenBidRequest(), bidResponse);
 
         // when
         final Result<List<BidderBid>> result = sparteoBidder.makeBids(httpCall, givenBidRequest());
@@ -579,7 +591,7 @@ public class SparteoBidderTest extends VertxTest {
                 BidType.video.getName());
         final BidResponse bidResponse = givenBidResponse(bid, "EUR");
         final BidderCall<BidRequest> httpCall =
-                givenHttpCall(givenBidRequest(), 200, mapper.writeValueAsString(bidResponse));
+                givenHttpCall(givenBidRequest(), bidResponse);
 
         // when
         final Result<List<BidderBid>> result = sparteoBidder.makeBids(httpCall, givenBidRequest());
@@ -598,7 +610,7 @@ public class SparteoBidderTest extends VertxTest {
                 BidType.xNative.getName());
         final BidResponse bidResponse = givenBidResponse(bid, "EUR");
         final BidderCall<BidRequest> httpCall =
-                givenHttpCall(givenBidRequest(), 200, mapper.writeValueAsString(bidResponse));
+                givenHttpCall(givenBidRequest(), bidResponse);
 
         // when
         final Result<List<BidderBid>> result = sparteoBidder.makeBids(httpCall, givenBidRequest());
@@ -620,7 +632,7 @@ public class SparteoBidderTest extends VertxTest {
                 BidType.banner.getName());
         final BidResponse bidResponse = givenBidResponse(List.of(audioBid, bannerBid), "EUR");
         final BidderCall<BidRequest> httpCall =
-                givenHttpCall(givenBidRequest(), 200, mapper.writeValueAsString(bidResponse));
+                givenHttpCall(givenBidRequest(), bidResponse);
 
         // when
         final Result<List<BidderBid>> result = sparteoBidder.makeBids(httpCall, givenBidRequest());
@@ -641,7 +653,7 @@ public class SparteoBidderTest extends VertxTest {
         final Bid bid = givenBid(builder -> builder.impid("imp1").ext(null), null);
         final BidResponse bidResponse = givenBidResponse(bid, "USD");
         final BidderCall<BidRequest> httpCall =
-                givenHttpCall(givenBidRequest(), 200, mapper.writeValueAsString(bidResponse));
+                givenHttpCall(givenBidRequest(), bidResponse);
 
         // when
         final Result<List<BidderBid>> result = sparteoBidder.makeBids(httpCall, givenBidRequest());
@@ -659,7 +671,7 @@ public class SparteoBidderTest extends VertxTest {
         final Bid bid = givenBid(builder -> builder.impid("imp1").ext(mapper.createObjectNode()), null);
         final BidResponse bidResponse = givenBidResponse(bid, "USD");
         final BidderCall<BidRequest> httpCall =
-                givenHttpCall(givenBidRequest(), 200, mapper.writeValueAsString(bidResponse));
+                givenHttpCall(givenBidRequest(), bidResponse);
 
         // when
         final Result<List<BidderBid>> result = sparteoBidder.makeBids(httpCall, givenBidRequest());
@@ -677,7 +689,7 @@ public class SparteoBidderTest extends VertxTest {
         final Bid bid = givenBid(builder -> builder.impid("imp1").ext(createBidExtWithEmptyPrebid()), null);
         final BidResponse bidResponse = givenBidResponse(bid, "USD");
         final BidderCall<BidRequest> httpCall =
-                givenHttpCall(givenBidRequest(), 200, mapper.writeValueAsString(bidResponse));
+                givenHttpCall(givenBidRequest(), bidResponse);
 
         // when
         final Result<List<BidderBid>> result = sparteoBidder.makeBids(httpCall, givenBidRequest());
@@ -697,7 +709,7 @@ public class SparteoBidderTest extends VertxTest {
         final Bid bid = givenBid(builder -> builder.impid("imp1").ext(malformedExt), null);
         final BidResponse bidResponse = givenBidResponse(bid, "USD");
         final BidderCall<BidRequest> httpCall =
-                givenHttpCall(givenBidRequest(), 200, mapper.writeValueAsString(bidResponse));
+                givenHttpCall(givenBidRequest(), bidResponse);
 
         // when
         final Result<List<BidderBid>> result = sparteoBidder.makeBids(httpCall, givenBidRequest());
@@ -715,7 +727,7 @@ public class SparteoBidderTest extends VertxTest {
         final Bid bid = givenBid(builder -> builder.impid("imp1"), "unknown-type");
         final BidResponse bidResponse = givenBidResponse(bid, "USD");
         final BidderCall<BidRequest> httpCall =
-                givenHttpCall(givenBidRequest(), 200, mapper.writeValueAsString(bidResponse));
+                givenHttpCall(givenBidRequest(), bidResponse);
 
         // when
         final Result<List<BidderBid>> result = sparteoBidder.makeBids(httpCall, givenBidRequest());
@@ -739,7 +751,7 @@ public class SparteoBidderTest extends VertxTest {
 
         final BidResponse bidResponse = givenBidResponse(bids, "USD");
         final BidderCall<BidRequest> httpCall =
-                givenHttpCall(givenBidRequest(), 200, mapper.writeValueAsString(bidResponse));
+                givenHttpCall(givenBidRequest(), bidResponse);
 
         // when
         final Result<List<BidderBid>> result = sparteoBidder.makeBids(httpCall, givenBidRequest());
@@ -769,7 +781,7 @@ public class SparteoBidderTest extends VertxTest {
 
         final BidResponse bidResponse = BidResponse.builder().cur("USD").seatbid(asList(seatBid1, seatBid2)).build();
         final BidderCall<BidRequest> httpCall =
-                givenHttpCall(givenBidRequest(), 200, mapper.writeValueAsString(bidResponse));
+                givenHttpCall(givenBidRequest(), bidResponse);
 
         // when
         final Result<List<BidderBid>> result = sparteoBidder.makeBids(httpCall, givenBidRequest());
@@ -794,7 +806,7 @@ public class SparteoBidderTest extends VertxTest {
         final Bid bid = givenBid(builder -> builder.impid("imp1").ext(bidExtWithNullPrebid), null);
         final BidResponse bidResponse = givenBidResponse(bid, "USD");
         final BidderCall<BidRequest> httpCall =
-                givenHttpCall(givenBidRequest(), 200, mapper.writeValueAsString(bidResponse));
+                givenHttpCall(givenBidRequest(), bidResponse);
 
         // when
         final Result<List<BidderBid>> result = sparteoBidder.makeBids(httpCall, givenBidRequest());
@@ -826,7 +838,7 @@ public class SparteoBidderTest extends VertxTest {
 
         final BidResponse bidResponse = BidResponse.builder().cur("USD").seatbid(seatBidsWithNull).build();
         final BidderCall<BidRequest> httpCall =
-                givenHttpCall(givenBidRequest(), 200, mapper.writeValueAsString(bidResponse));
+                givenHttpCall(givenBidRequest(), bidResponse);
 
         // when
         final Result<List<BidderBid>> result = sparteoBidder.makeBids(httpCall, givenBidRequest());
@@ -846,7 +858,7 @@ public class SparteoBidderTest extends VertxTest {
         final BidResponse bidResponse =
                 BidResponse.builder().cur("USD").seatbid(singletonList(seatBidWithNullBids)).build();
         final BidderCall<BidRequest> httpCall =
-                givenHttpCall(givenBidRequest(), 200, mapper.writeValueAsString(bidResponse));
+                givenHttpCall(givenBidRequest(), bidResponse);
 
         // when
         final Result<List<BidderBid>> result = sparteoBidder.makeBids(httpCall, givenBidRequest());
@@ -863,7 +875,7 @@ public class SparteoBidderTest extends VertxTest {
         final BidResponse bidResponse =
                 BidResponse.builder().cur("USD").seatbid(singletonList(seatBidWithEmptyBids)).build();
         final BidderCall<BidRequest> httpCall =
-                givenHttpCall(givenBidRequest(), 200, mapper.writeValueAsString(bidResponse));
+                givenHttpCall(givenBidRequest(), bidResponse);
 
         // when
         final Result<List<BidderBid>> result = sparteoBidder.makeBids(httpCall, givenBidRequest());
@@ -907,11 +919,16 @@ public class SparteoBidderTest extends VertxTest {
         return givenBidResponse(singletonList(bid), currency);
     }
 
-    private BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, int statusCode, String body) {
-        return BidderCall.succeededHttp(
-                HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
-                HttpResponse.of(statusCode, null, body),
-                null);
+    private BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, BidResponse bidResponse) {
+        try {
+            final String body = mapper.writeValueAsString(bidResponse);
+            return BidderCall.succeededHttp(
+                    HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
+                    HttpResponse.of(200, null, body),
+                    null);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to serialize BidResponse in test setup", e);
+        }
     }
 
     private ObjectNode createBidExtWithType(String bidType) {

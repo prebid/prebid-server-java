@@ -16,21 +16,17 @@ public class SparteoTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromSparteoBanner() throws Exception {
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/sparteo-exchange"))
                 .withRequestBody(equalToJson(
-                    jsonFrom("openrtb2/sparteo/test-sparteo-bid-request.json")
-                ))
+                    jsonFrom("openrtb2/sparteo/test-sparteo-bid-request.json")))
                 .willReturn(aResponse().withBody(
-                    jsonFrom("openrtb2/sparteo/test-sparteo-bid-response.json")
-                )));
+                    jsonFrom("openrtb2/sparteo/test-sparteo-bid-response.json"))));
 
         final Response response = responseFor(
                 "openrtb2/sparteo/test-auction-sparteo-request.json",
-                Endpoint.openrtb2_auction
-        );
+                Endpoint.openrtb2_auction);
 
         assertJsonEquals(
                 "openrtb2/sparteo/test-auction-sparteo-response.json",
                 response,
-                singletonList("sparteo")
-        );
+                singletonList("sparteo"));
     }
 }
