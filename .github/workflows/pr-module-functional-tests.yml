@@ -47,17 +47,13 @@ jobs:
           result=${PIPESTATUS[0]}
           echo "exit_code=$result" >> "$GITHUB_OUTPUT"
 
-      - name: Check test reports location
-        run: |
-          echo "GITHUB_WORKSPACE = $GITHUB_WORKSPACE"
-          find $GITHUB_WORKSPACE -name 'TEST-*.xml'
-
       - name: Format build output for PR comment
         if: always()
         uses: dorny/test-reporter@v2.1.0
         with:
           name: 'Module functional tests'
-          path: '**/target/failsafe-reports/TEST-*.xml'
+          working-directory: 'target/failsafe-reports'
+          path: 'TEST-*.xml'
           reporter: java-junit
           use-actions-summary: 'true'
           list-suites: 'failed'
