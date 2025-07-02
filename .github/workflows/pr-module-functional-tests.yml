@@ -47,22 +47,17 @@ jobs:
           result=${PIPESTATUS[0]}
           echo "exit_code=$result" >> "$GITHUB_OUTPUT"
 
-      - name: Rename test reports to remove TEST- prefix
-        shell: bash
+      - name: Check test reports location
         run: |
-          shopt -s nullglob
-          for f in target/failsafe-reports/TEST-*.xml; do
-            filename=$(basename "$f")
-            mv "$f" "target/failsafe-reports/${filename#TEST-}"
-          done
+          echo "GITHUB_WORKSPACE = $GITHUB_WORKSPACE"
+          find $GITHUB_WORKSPACE -name 'TEST-*.xml'
 
       - name: Format build output for PR comment
         if: always()
         uses: dorny/test-reporter@v2.1.0
         with:
           name: 'Module functional tests'
-          working-directory: 'target/failsafe-reports'
-          path: '*.xml'
+          path: '**/target/failsafe-reports/TEST-*.xml'
           reporter: java-junit
           use-actions-summary: 'true'
           list-suites: 'failed'
