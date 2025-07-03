@@ -187,6 +187,21 @@ public class TheTradeDeskBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldReturnErrorWhenBothSupplySourceIdAndSupplyIdAreNull() {
+        final TheTradeDeskBidder bidderWithNullSupplyId = new TheTradeDeskBidder(ENDPOINT_URL, jacksonMapper, null);
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                imp -> imp.ext(impExt("publisher", null)));
+
+        final Result<List<HttpRequest<BidRequest>>> result = bidderWithNullSupplyId.makeHttpRequests(bidRequest);
+
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors().getFirst().getMessage())
+                .isEqualTo("Either supplySourceId or a default endpoint must be provided");
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
     public void makeHttpRequestsShouldReturnSiteWithExtImpPublisherWhenSiteAndAppArePresent() {
         final BidRequest bidRequest = givenBidRequest(
                 request -> request
