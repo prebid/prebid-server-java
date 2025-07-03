@@ -21,12 +21,15 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.gumgum.ExtImpGumgum;
 import org.prebid.server.proto.openrtb.ext.request.gumgum.ExtImpGumgumBanner;
 import org.prebid.server.proto.openrtb.ext.request.gumgum.ExtImpGumgumVideo;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 
@@ -36,6 +39,10 @@ import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
@@ -44,6 +51,124 @@ public class GumgumBidderTest extends VertxTest {
     private static final String ENDPOINT_URL = "https://test.endpoint.com/providers/prbds2s/bid";
 
     private final GumgumBidder target = new GumgumBidder(ENDPOINT_URL, jacksonMapper);
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder ->
+                impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(2)
+                .anySatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+                    assertThat(error.getMessage()).startsWith("Cannot deserialize value");
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldModifyImpressionsWhenValidInput() {
+        // given
+        final ObjectNode extImp = mapper.valueToTree(ExtPrebid.of(
+                ExtImpPrebid.builder().adUnitCode("adUnit123").build(),
+                ExtImpGumgum.of("zone", BigInteger.TEN, "irisId", null, "product")));
+
+        final BidRequest bidRequest = givenBidRequest(impBuilder ->
+                impBuilder.ext(extImp));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getTagid)
+                .containsExactly("adUnit123");
+    }
+
+    @Test
+    public void testMakeHttpRequestsShouldNotSetTagIdFromZoneWhenAdUnitIdIsMissing() throws IOException {
+        // given
+        final ObjectNode extImp = mapper.valueToTree(ExtPrebid.of(null,
+                ExtImpGumgum.of("zone123", BigInteger.TEN, "productA", null, "zone123")));
+
+        final Imp imp = Imp.builder()
+                .id("imp1")
+                .banner(Banner.builder().w(300).h(250).build())
+                .ext(extImp)
+                .build();
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .id("test-bid-request")
+                .imp(Collections.singletonList(imp))
+                .site(Site.builder().id("test-site").build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertNotNull(result);
+        assertFalse(result.getValue().isEmpty());
+
+        final byte[] requestBody = result.getValue().get(0).getBody();
+        final BidRequest modifiedRequest = mapper.readValue(requestBody, BidRequest.class);
+
+        assertFalse(modifiedRequest.getImp().isEmpty());
+
+        final Imp modifiedImp = modifiedRequest.getImp().get(0);
+
+        assertNull(modifiedImp.getTagid());
+        assertEquals("test-site", modifiedRequest.getSite().getId(), "zone123");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnModifiedBidRequestWhenValidInput() {
+        // given
+        final ObjectNode extImp = mapper.valueToTree(ExtPrebid.of(
+                ExtImpPrebid.builder().adUnitCode("adUnit123").build(),
+                ExtImpGumgum.of("zone", BigInteger.TEN, "irisId", null, "product")));
+
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(extImp));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getTagid)
+                .containsExactly("adUnit123");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldExtractAdUnitIdWhenPresent() {
+        // given
+        final ObjectNode extImp = mapper.valueToTree(ExtPrebid.of(
+                ExtImpPrebid.builder().adUnitCode("adUnit123").build(),
+                ExtImpGumgum.of("zone", BigInteger.TEN, "irisId", null, "product")));
+
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(extImp));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getTagid)
+                .containsExactly("adUnit123");
+    }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -422,4 +547,5 @@ public class GumgumBidderTest extends VertxTest {
                 HttpResponse.of(200, null, body),
                 null);
     }
+
 }
