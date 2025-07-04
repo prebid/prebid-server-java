@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.hooks.modules.optable.targeting.model.Query;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
@@ -18,7 +19,6 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -33,6 +33,9 @@ public class CachedAPIClientTest extends BaseOptableTest {
     @Mock
     private APIClientImpl apiClient;
 
+    @Mock(strictness = Mock.Strictness.LENIENT)
+    private Timeout timeout;
+
     private APIClient target;
 
     private OptableTargetingProperties properties;
@@ -41,6 +44,7 @@ public class CachedAPIClientTest extends BaseOptableTest {
     public void setUp() {
         properties = givenOptableTargetingProperties(true);
         target = new CachedAPIClient(apiClient, cache);
+        when(timeout.remaining()).thenReturn(1000L);
     }
 
     @Test
@@ -49,12 +53,12 @@ public class CachedAPIClientTest extends BaseOptableTest {
         when(cache.get(any())).thenReturn(Future.failedFuture("error"));
         when(cache.put(any(), any(), anyInt())).thenReturn(Future.succeededFuture());
         final Query query = givenQuery();
-        when(apiClient.getTargeting(any(), any(), any(), anyLong()))
+        when(apiClient.getTargeting(any(), any(), any(), any()))
                 .thenReturn(Future.succeededFuture(givenTargetingResult()));
 
         // when
         final Future<TargetingResult> targetingResult = target.getTargeting(
-                properties, query, List.of("8.8.8.8"), 100);
+                properties, query, List.of("8.8.8.8"), timeout);
 
         // then
         final User user = targetingResult.result().getOrtb2().getUser();
@@ -72,12 +76,12 @@ public class CachedAPIClientTest extends BaseOptableTest {
         when(cache.get(any())).thenReturn(Future.failedFuture(new IllegalArgumentException("message")));
         when(cache.put(any(), any(), anyInt())).thenReturn(Future.succeededFuture());
         final Query query = givenQuery();
-        when(apiClient.getTargeting(any(), any(), any(), anyLong()))
+        when(apiClient.getTargeting(any(), any(), any(), any()))
                 .thenReturn(Future.succeededFuture(givenTargetingResult()));
 
         // when
         final Future<TargetingResult> targetingResult = target.getTargeting(
-                properties, query, List.of("8.8.8.8"), 100);
+                properties, query, List.of("8.8.8.8"), timeout);
 
         // then
         final User user = targetingResult.result().getOrtb2().getUser();
@@ -86,7 +90,7 @@ public class CachedAPIClientTest extends BaseOptableTest {
                 .returns("id", it -> it.getEids().getFirst().getUids().getFirst().getId())
                 .returns("id", it -> it.getData().getFirst().getId())
                 .returns("id", it -> it.getData().getFirst().getSegment().getFirst().getId());
-        verify(apiClient, times(1)).getTargeting(any(), any(), any(), anyLong());
+        verify(apiClient, times(1)).getTargeting(any(), any(), any(), any());
         verify(cache).put(any(), eq(targetingResult.result()), anyInt());
     }
 
@@ -98,7 +102,7 @@ public class CachedAPIClientTest extends BaseOptableTest {
 
         // when
         final Future<TargetingResult> targetingResult = target.getTargeting(
-                properties, query, List.of("8.8.8.8"), 100);
+                properties, query, List.of("8.8.8.8"), timeout);
 
         // then
         final User user = targetingResult.result().getOrtb2().getUser();
@@ -108,7 +112,7 @@ public class CachedAPIClientTest extends BaseOptableTest {
                 .returns("id", it -> it.getData().getFirst().getId())
                 .returns("id", it -> it.getData().getFirst().getSegment().getFirst().getId());
         verify(cache, times(1)).get(any());
-        verify(apiClient, times(0)).getTargeting(any(), any(), any(), anyLong());
+        verify(apiClient, times(0)).getTargeting(any(), any(), any(), any());
         verify(cache, times(0)).put(any(), eq(targetingResult.result()), anyInt());
     }
 
@@ -118,11 +122,12 @@ public class CachedAPIClientTest extends BaseOptableTest {
         properties = givenOptableTargetingProperties(false);
         final Query query = givenQuery();
         when(cache.get(any())).thenReturn(Future.failedFuture("empty"));
-        when(apiClient.getTargeting(any(), any(), any(), anyLong())).thenReturn(null);
+        when(apiClient.getTargeting(any(), any(), any(), any()))
+                .thenReturn(Future.failedFuture(new NullPointerException()));
 
         // when
         final Future<TargetingResult> targetingResult = target.getTargeting(properties, query,
-                List.of("8.8.8.8"), 100);
+                List.of("8.8.8.8"), timeout);
 
         // then
         assertThat(targetingResult.result()).isNull();
@@ -134,12 +139,12 @@ public class CachedAPIClientTest extends BaseOptableTest {
         properties = givenOptableTargetingProperties(false);
         final Query query = givenQuery();
         when(cache.get(any())).thenReturn(Future.failedFuture("empty"));
-        when(apiClient.getTargeting(any(), any(), any(), anyLong()))
+        when(apiClient.getTargeting(any(), any(), any(), any()))
                 .thenReturn(Future.failedFuture("File"));
 
         // when
         final Future<TargetingResult> targetingResult = target.getTargeting(
-                properties, query, List.of("8.8.8.8"), 100);
+                properties, query, List.of("8.8.8.8"), timeout);
 
         // then
         assertThat(targetingResult.result()).isNull();

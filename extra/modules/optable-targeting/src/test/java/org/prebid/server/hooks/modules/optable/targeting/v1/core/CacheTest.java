@@ -6,6 +6,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.cache.PbcStorageService;
 import org.prebid.server.cache.proto.request.module.StorageDataType;
@@ -15,7 +16,6 @@ import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.AudienceI
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Ortb2;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.User;
-import org.prebid.server.hooks.modules.optable.targeting.v1.net.OptableResponseMapper;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.ObjectMapperProvider;
 
@@ -24,7 +24,6 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -34,15 +33,16 @@ public class CacheTest {
 
     @Mock
     private PbcStorageService pbcStorageService;
+    @Spy
+    private JacksonMapper jacksonMapper = new JacksonMapper(ObjectMapperProvider.mapper());
 
     private final JacksonMapper mapper = new JacksonMapper(ObjectMapperProvider.mapper());
-    private final OptableResponseMapper optableResponseMapper = spy(new OptableResponseMapper(mapper));
 
     private Cache target;
 
     @BeforeEach
     public void setUp() {
-        target = new Cache(pbcStorageService, optableResponseMapper);
+        target = new Cache(pbcStorageService, jacksonMapper);
     }
 
     @Test
@@ -56,7 +56,7 @@ public class CacheTest {
 
         // then
         Assertions.assertThat(result).isNull();
-        verify(optableResponseMapper, times(0)).parse(anyString());
+        verify(jacksonMapper, times(0)).decodeValue(anyString(), eq(TargetingResult.class));
     }
 
     @Test
@@ -75,7 +75,7 @@ public class CacheTest {
                 .isNotNull()
                 .isEqualTo(targetingResult);
 
-        verify(optableResponseMapper, times(1)).parse(anyString());
+        verify(jacksonMapper, times(1)).decodeValue(anyString(), eq(TargetingResult.class));
     }
 
     @Test

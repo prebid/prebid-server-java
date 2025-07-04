@@ -1,14 +1,11 @@
 package org.prebid.server.hooks.modules.optable.targeting.v1.core;
 
-import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.SetUtils;
 import org.prebid.server.auction.gpp.model.GppContext;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.hooks.modules.optable.targeting.model.OptableAttributes;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
-import org.prebid.server.privacy.model.PrivacyContext;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -45,25 +42,15 @@ public class OptableAttributesResolver {
     public static List<String> resolveIp(AuctionContext auctionContext) {
         final List<String> result = new ArrayList<>();
 
-        final Optional<AuctionContext> auctionContextOpt = Optional.ofNullable(auctionContext);
-
-        final Optional<Device> deviceOpt = auctionContextOpt
-                .map(AuctionContext::getBidRequest)
-                .map(BidRequest::getDevice);
-
+        final Optional<Device> deviceOpt = Optional.ofNullable(auctionContext.getBidRequest().getDevice());
         deviceOpt.map(Device::getIp).ifPresent(result::add);
         deviceOpt.map(Device::getIpv6).ifPresent(result::add);
 
         if (result.isEmpty()) {
-            auctionContextOpt.map(AuctionContext::getPrivacyContext)
-                    .map(PrivacyContext::getIpAddress)
+            Optional.ofNullable(auctionContext.getPrivacyContext().getTcfContext().getIpAddress())
                     .ifPresent(result::add);
         }
 
         return result;
-    }
-
-    public static String resolveIp(List<String> ips) {
-        return CollectionUtils.isNotEmpty(ips) ? ips.getFirst() : "none";
     }
 }

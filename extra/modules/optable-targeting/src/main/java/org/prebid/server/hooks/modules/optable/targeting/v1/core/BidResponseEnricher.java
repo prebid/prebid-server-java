@@ -7,89 +7,104 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import lombok.Value;
-import lombok.experimental.Accessors;
 import org.apache.commons.collections4.CollectionUtils;
+import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.hooks.execution.v1.auction.AuctionResponsePayloadImpl;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Audience;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.AudienceId;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.merger.ExtMerger;
 import org.prebid.server.hooks.v1.PayloadUpdate;
 import org.prebid.server.hooks.v1.auction.AuctionResponsePayload;
+import org.prebid.server.json.JsonMerger;
 
-import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
-@Accessors(fluent = true)
-@Value(staticConstructor = "of")
 public class BidResponseEnricher implements PayloadUpdate<AuctionResponsePayload> {
 
-    ObjectMapper mapper;
-    List<Audience> targeting;
+    private final List<Audience> targeting;
+    private final ObjectMapper mapper;
+    private final JsonMerger jsonMerger;
+
+    private BidResponseEnricher(List<Audience> targeting, ObjectMapper mapper, JsonMerger jsonMerger) {
+        this.targeting = targeting;
+        this.mapper = Objects.requireNonNull(mapper);
+        this.jsonMerger = Objects.requireNonNull(jsonMerger);
+    }
+
+    public static BidResponseEnricher of(List<Audience> targeting, ObjectMapper mapper, JsonMerger jsonMerger) {
+        return new BidResponseEnricher(targeting, mapper, jsonMerger);
+    }
 
     @Override
     public AuctionResponsePayload apply(AuctionResponsePayload payload) {
-        return AuctionResponsePayloadImpl.of(enrichBidResponse(mapper, payload.bidResponse(), targeting));
+        return AuctionResponsePayloadImpl.of(enrichBidResponse(payload.bidResponse(), targeting));
     }
 
-    private static BidResponse enrichBidResponse(ObjectMapper mapper,
-                                                 BidResponse bidResponse,
-                                                 List<Audience> targeting) {
-
-        if (bidResponse == null || CollectionUtils.isEmpty(targeting)) {
+    private BidResponse enrichBidResponse(BidResponse bidResponse, List<Audience> targeting) {
+        if (CollectionUtils.isEmpty(targeting)) {
             return bidResponse;
         }
 
-        final ObjectNode node = targetingToObjectNode(mapper, targeting);
-        if (node == null) {
+        final ObjectNode node = targetingToObjectNode(targeting);
+        if (node.isEmpty()) {
             return bidResponse;
         }
 
-        final List<SeatBid> seatBids = Optional.ofNullable(bidResponse.getSeatbid())
-                .orElse(Collections.emptyList())
-                .stream().map(seatBid -> {
-                    final List<Bid> bids = Optional.ofNullable(seatBid.getBid())
-                            .orElse(Collections.emptyList())
-                            .stream()
-                            .map(bid -> applyTargeting(mapper, bid, node))
-                            .toList();
-
-                    return seatBid.toBuilder().bid(bids).build();
-                }).toList();
+        final List<SeatBid> seatBids = CollectionUtils.emptyIfNull(bidResponse.getSeatbid()).stream()
+                .map(seatBid -> seatBid.toBuilder()
+                        .bid(CollectionUtils.emptyIfNull(seatBid.getBid()).stream()
+                                .map(bid -> applyTargeting(bid, node))
+                                .toList())
+                        .build())
+                .toList();
 
         return bidResponse.toBuilder()
                 .seatbid(seatBids)
                 .build();
     }
 
-    private static Bid applyTargeting(ObjectMapper mapper, Bid bid, ObjectNode node) {
-        final ObjectNode extNode = getOrCreateNode(mapper, bid.getExt());
-        final ObjectNode prebidNode = getOrCreateNode(mapper, (ObjectNode) extNode.get("prebid"));
-        final ObjectNode targetingNode = getOrCreateNode(mapper, (ObjectNode) prebidNode.get("targeting"));
-        final JsonNode mergedTargetingNode = ExtMerger.mergeExt(targetingNode, node);
-
-        prebidNode.set("targeting", mergedTargetingNode);
-        extNode.set("prebid", prebidNode);
-
-        return bid.toBuilder().ext(extNode).build();
-    }
-
-    private static ObjectNode getOrCreateNode(ObjectMapper mapper, ObjectNode node) {
-        return Optional.ofNullable(node).orElseGet(mapper::createObjectNode);
-    }
-
-    private static ObjectNode targetingToObjectNode(ObjectMapper mapper, List<Audience> targeting) {
+    private ObjectNode targetingToObjectNode(List<Audience> targeting) {
         final ObjectNode node = mapper.createObjectNode();
 
-        for (Audience audience: targeting) {
+        for (Audience audience : targeting) {
             final List<AudienceId> ids = audience.getIds();
-            if (CollectionUtils.isNotEmpty(ids)) {
-                final List<String> strIds = ids.stream().map(AudienceId::getId).toList();
-                node.putIfAbsent(audience.getKeyspace(), TextNode.valueOf(String.join(",", strIds)));
+            if (CollectionUtils.isEmpty(ids)) {
+                continue;
             }
+
+            final String joinedIds = ids.stream()
+                    .map(AudienceId::getId)
+                    .collect(Collectors.joining(","));
+            node.putIfAbsent(audience.getKeyspace(), TextNode.valueOf(joinedIds));
         }
 
         return node;
+    }
+
+    private Bid applyTargeting(Bid bid, ObjectNode node) {
+        final ObjectNode ext = Optional.ofNullable(bid.getExt())
+                .map(ObjectNode::deepCopy)
+                .orElseGet(mapper::createObjectNode);
+
+        final ObjectNode prebid = newNodeIfNull(ext.get("prebid"));
+        final ObjectNode targeting;
+        try {
+            targeting = (ObjectNode) jsonMerger.merge(node, newNodeIfNull(prebid.get("targeting")));
+        } catch (InvalidRequestException e) {
+            return bid;
+        }
+
+        prebid.set("targeting", targeting);
+        ext.set("prebid", prebid);
+
+        return bid.toBuilder().ext(ext).build();
+    }
+
+    private ObjectNode newNodeIfNull(JsonNode node) {
+        return node == null || !node.isObject()
+                ? mapper.createObjectNode()
+                : (ObjectNode) node;
     }
 }

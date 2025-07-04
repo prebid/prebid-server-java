@@ -20,6 +20,7 @@ import org.prebid.server.hooks.v1.PayloadUpdate;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionResponseHook;
 import org.prebid.server.hooks.v1.auction.AuctionResponsePayload;
+import org.prebid.server.json.JsonMerger;
 
 import java.util.List;
 import java.util.Objects;
@@ -31,9 +32,15 @@ public class OptableTargetingAuctionResponseHook implements AuctionResponseHook 
     private final ConfigResolver configResolver;
     private final ObjectMapper objectMapper;
 
-    public OptableTargetingAuctionResponseHook(ConfigResolver configResolver, ObjectMapper objectMapper) {
+    private final JsonMerger jsonMerger;
+
+    public OptableTargetingAuctionResponseHook(ConfigResolver configResolver,
+                                               ObjectMapper objectMapper,
+                                               JsonMerger jsonMerger) {
+
         this.configResolver = Objects.requireNonNull(configResolver);
         this.objectMapper = Objects.requireNonNull(objectMapper);
+        this.jsonMerger = Objects.requireNonNull(jsonMerger);
     }
 
     @Override
@@ -63,7 +70,7 @@ public class OptableTargetingAuctionResponseHook implements AuctionResponseHook 
         final List<Audience> targeting = moduleContext.getTargeting();
 
         return CollectionUtils.isNotEmpty(targeting)
-                ? update(BidResponseEnricher.of(objectMapper, targeting), moduleContext)
+                ? update(BidResponseEnricher.of(targeting, objectMapper, jsonMerger), moduleContext)
                 : success(moduleContext);
     }
 

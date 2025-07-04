@@ -33,6 +33,8 @@ import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Audience;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.AudienceId;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Ortb2;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
+import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.json.JsonMerger;
 import org.prebid.server.json.ObjectMapperProvider;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.Privacy;
@@ -54,6 +56,8 @@ import java.util.function.UnaryOperator;
 public abstract class BaseOptableTest {
 
     protected final ObjectMapper mapper = ObjectMapperProvider.mapper();
+
+    protected final JsonMerger jsonMerger = new JsonMerger(new JacksonMapper(mapper));
 
     protected ModuleContext givenModuleContext() {
         return givenModuleContext(null);

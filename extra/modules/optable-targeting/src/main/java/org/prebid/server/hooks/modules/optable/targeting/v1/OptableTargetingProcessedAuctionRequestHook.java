@@ -12,6 +12,7 @@ import org.prebid.server.activity.infrastructure.payload.impl.ActivityInvocation
 import org.prebid.server.activity.infrastructure.payload.impl.BidRequestActivityInvocationPayload;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
+import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.modules.optable.targeting.model.EnrichmentStatus;
 import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
@@ -60,7 +61,7 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
 
         final BidRequest bidRequest = applyActivityRestrictions(auctionRequestPayload.bidRequest(), invocationContext);
 
-        final long timeout = getHookRemainingTime(invocationContext);
+        final Timeout timeout = getHookTimeout(invocationContext);
         final OptableAttributes attributes = OptableAttributesResolver.resolveAttributes(
                 invocationContext.auctionContext(),
                 properties.getTimeout());
@@ -115,8 +116,8 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
                 .build();
     }
 
-    private long getHookRemainingTime(AuctionInvocationContext invocationContext) {
-        return invocationContext.timeout().remaining();
+    private Timeout getHookTimeout(AuctionInvocationContext invocationContext) {
+        return invocationContext.timeout();
     }
 
     private Future<InvocationResult<AuctionRequestPayload>> enrichedPayload(TargetingResult targetingResult,

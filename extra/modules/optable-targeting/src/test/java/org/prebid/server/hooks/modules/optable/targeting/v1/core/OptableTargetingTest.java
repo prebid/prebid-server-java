@@ -7,12 +7,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.hooks.modules.optable.targeting.model.Id;
 import org.prebid.server.hooks.modules.optable.targeting.model.OptableAttributes;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
 import org.prebid.server.hooks.modules.optable.targeting.v1.BaseOptableTest;
-import org.prebid.server.hooks.modules.optable.targeting.v1.net.APIClientFactory;
 import org.prebid.server.hooks.modules.optable.targeting.v1.net.APIClientImpl;
 import org.prebid.server.hooks.modules.optable.targeting.v1.net.CachedAPIClient;
 
@@ -21,7 +21,6 @@ import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -38,11 +37,9 @@ public class OptableTargetingTest extends BaseOptableTest {
     private APIClientImpl apiClient;
 
     @Mock
+    private Timeout timeout;
+
     private CachedAPIClient cachingAPIClient;
-
-    private APIClientFactory apiClientFactory;
-
-    private QueryBuilder queryBuilder = new QueryBuilder();
 
     private OptableTargeting target;
 
@@ -52,28 +49,28 @@ public class OptableTargetingTest extends BaseOptableTest {
 
     @BeforeEach
     public void setUp() {
-        apiClientFactory = new APIClientFactory(apiClient, cachingAPIClient, true);
         optableAttributes = givenOptableAttributes();
         properties = givenOptableTargetingProperties(true);
-        target = new OptableTargeting(idsMapper, queryBuilder, apiClientFactory);
+        cachingAPIClient = new CachedAPIClient(apiClient, cache);
+        target = new OptableTargeting(idsMapper, cachingAPIClient);
     }
 
     @Test
-    public void shouldUseNonCachedAPIClient() {
+    public void shouldCallNonCachedAPIClient() {
         // given
         final BidRequest bidRequest = givenBidRequest();
         properties = givenOptableTargetingProperties(false);
         when(idsMapper.toIds(any(), any())).thenReturn(List.of(Id.of(Id.ID5, "id")));
-        when(apiClient.getTargeting(any(), any(), any(), anyLong()))
+        when(apiClient.getTargeting(any(), any(), any(), any()))
                 .thenReturn(Future.succeededFuture(givenTargetingResult()));
 
         // when
         final Future<TargetingResult> targetingResult = target.getTargeting(
-                properties, bidRequest, optableAttributes, 100);
+                properties, bidRequest, optableAttributes, timeout);
 
         // then
         assertThat(targetingResult.result()).isNotNull();
-        verify(apiClient).getTargeting(any(), any(), any(), anyLong());
+        verify(apiClient).getTargeting(any(), any(), any(), any());
     }
 
     @Test
@@ -82,21 +79,23 @@ public class OptableTargetingTest extends BaseOptableTest {
         final BidRequest bidRequest = givenBidRequest();
         properties = givenOptableTargetingProperties(true);
         when(idsMapper.toIds(any(), any())).thenReturn(List.of(Id.of(Id.ID5, "id")));
-        when(cachingAPIClient.getTargeting(any(), any(), any(), anyLong()))
+        when(cache.get(any())).thenReturn(Future.failedFuture(new NullPointerException()));
+        when(apiClient.getTargeting(any(), any(), any(), any()))
                 .thenReturn(Future.succeededFuture(givenTargetingResult()));
 
         // when
         final Future<TargetingResult> targetingResult = target.getTargeting(
-                properties, bidRequest, optableAttributes, 100);
+                properties, bidRequest, optableAttributes, timeout);
 
         // then
-        assertThat(targetingResult.result()).isNotNull();
-        verify(cachingAPIClient).getTargeting(any(), any(), any(), anyLong());
+        verify(cache).get(any());
+        verify(apiClient).getTargeting(any(), any(), any(), any());
     }
 
     private OptableAttributes givenOptableAttributes() {
         return OptableAttributes.builder()
                 .gpp("gpp")
+                .ips(List.of("8.8.8.8"))
                 .gppSid(Set.of(2))
                 .build();
     }

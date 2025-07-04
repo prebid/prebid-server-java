@@ -1,6 +1,7 @@
 package org.prebid.server.hooks.modules.optable.targeting.config;
 
 import io.vertx.core.Vertx;
+import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
 import org.prebid.server.cache.PbcStorageService;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
@@ -11,19 +12,15 @@ import org.prebid.server.hooks.modules.optable.targeting.v1.core.Cache;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.IdsMapper;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargeting;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.QueryBuilder;
-import org.prebid.server.hooks.modules.optable.targeting.v1.net.APIClient;
-import org.prebid.server.hooks.modules.optable.targeting.v1.net.APIClientFactory;
 import org.prebid.server.hooks.modules.optable.targeting.v1.net.APIClientImpl;
 import org.prebid.server.hooks.modules.optable.targeting.v1.net.CachedAPIClient;
 import org.prebid.server.hooks.modules.optable.targeting.v1.net.OptableHttpClientWrapper;
-import org.prebid.server.hooks.modules.optable.targeting.v1.net.OptableResponseMapper;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.json.ObjectMapperProvider;
 import org.prebid.server.spring.config.VertxContextScope;
 import org.prebid.server.spring.config.model.HttpClientProperties;
-import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -50,16 +47,6 @@ public class OptableTargetingConfig {
     }
 
     @Bean
-    QueryBuilder queryBuilder() {
-        return new QueryBuilder();
-    }
-
-    @Bean
-    OptableResponseMapper optableResponseParser(JacksonMapper mapper) {
-        return new OptableResponseMapper(mapper);
-    }
-
-    @Bean
     @Scope(scopeName = VertxContextScope.NAME, proxyMode = ScopedProxyMode.TARGET_CLASS)
     @ConditionalOnProperty(prefix = "http-client.circuit-breaker", name = "enabled", havingValue = "false",
             matchIfMissing = true)
@@ -67,56 +54,40 @@ public class OptableTargetingConfig {
         return new OptableHttpClientWrapper(vertx, httpClientProperties);
     }
 
-    @Bean(name = "apiClient")
-    APIClient apiClientImpl(OptableHttpClientWrapper httpClientWrapper,
-                            @Value("${logging.sampling-rate:0.01}")
-                            double logSamplingRate,
-                            OptableTargetingProperties properties,
-                            OptableResponseMapper responseParser) {
+    @Bean
+    APIClientImpl apiClient(OptableHttpClientWrapper httpClientWrapper,
+                        @Value("${logging.sampling-rate:0.01}")
+                        double logSamplingRate,
+                        OptableTargetingProperties properties,
+                        JacksonMapper jacksonMapperr) {
 
         return new APIClientImpl(
                 properties.getApiEndpoint(),
                 httpClientWrapper.getHttpClient(),
-                logSamplingRate,
-                responseParser);
+                jacksonMapperr,
+                logSamplingRate);
     }
 
-    @Bean(name = "cachedAPIClient")
-    APIClient cachedApiClient(APIClientImpl apiClient, Cache cache) {
+    @Bean
+    @ConditionalOnProperty(name = {"storage.pbc.enabled", "cache.module.enabled"}, havingValue = "true")
+    CachedAPIClient cachedApiClient(APIClientImpl apiClient, Cache cache) {
         return new CachedAPIClient(apiClient, cache);
     }
 
     @Bean
-    APIClientFactory apiClientFactory(
-            @Qualifier("apiClient")
-            APIClient apiClient,
-            @Qualifier("cachedAPIClient")
-            APIClient cachedApiClient,
-            @Value("${storage.pbc.enabled:false}")
-            boolean storageEnabled,
-            @Value("${cache.module.enabled:false}")
-            boolean moduleCacheEnabled) {
-
-        return new APIClientFactory(
-                apiClient,
-                cachedApiClient,
-                storageEnabled && moduleCacheEnabled);
-    }
-
-    @Bean
-    Cache cache(PbcStorageService cacheService, OptableResponseMapper responseMapper) {
-        return new Cache(cacheService, responseMapper);
+    @ConditionalOnProperty(name = {"storage.pbc.enabled", "cache.module.enabled"}, havingValue = "true")
+    Cache cache(PbcStorageService cacheService, JacksonMapper jacksonMapper) {
+        return new Cache(cacheService, jacksonMapper);
     }
 
     @Bean
     OptableTargeting optableTargeting(IdsMapper parametersExtractor,
-                                      QueryBuilder queryBuilder,
-                                      APIClientFactory apiClientFactory) {
+                                      APIClientImpl apiClient,
+                                      @Autowired(required = false) CachedAPIClient cachedApiClient) {
 
         return new OptableTargeting(
                 parametersExtractor,
-                queryBuilder,
-                apiClientFactory);
+                ObjectUtils.firstNonNull(cachedApiClient, apiClient));
     }
 
     @Bean
@@ -127,7 +98,8 @@ public class OptableTargetingConfig {
     @Bean
     OptableTargetingModule optableTargetingModule(ConfigResolver configResolver,
                                                   OptableTargeting optableTargeting,
-                                                  UserFpdActivityMask userFpdActivityMask) {
+                                                  UserFpdActivityMask userFpdActivityMask,
+                                                  JsonMerger jsonMerger) {
 
         return new OptableTargetingModule(List.of(
                 new OptableTargetingProcessedAuctionRequestHook(
@@ -136,6 +108,7 @@ public class OptableTargetingConfig {
                         userFpdActivityMask),
                 new OptableTargetingAuctionResponseHook(
                         configResolver,
-                        ObjectMapperProvider.mapper())));
+                        ObjectMapperProvider.mapper(),
+                        jsonMerger)));
     }
 }

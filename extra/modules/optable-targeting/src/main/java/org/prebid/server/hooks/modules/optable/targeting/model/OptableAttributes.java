@@ -21,8 +21,4 @@ public class OptableAttributes {
     List<String> ips;
 
     Long timeout;
-
-    public static OptableAttributes empty() {
-        return OptableAttributes.builder().build();
-    }
 }

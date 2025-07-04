@@ -28,7 +28,6 @@ import org.prebid.server.json.JsonMerger;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -77,7 +76,7 @@ public class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptable
     public void shouldReturnResultWithPBSAnalyticsTags() {
         // given
         when(auctionRequestPayload.bidRequest()).thenReturn(givenBidRequest());
-        when(optableTargeting.getTargeting(any(), any(), any(), anyLong()))
+        when(optableTargeting.getTargeting(any(), any(), any(), any()))
                 .thenReturn(Future.succeededFuture(givenTargetingResult()));
 
         // when
@@ -101,7 +100,7 @@ public class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptable
     public void shouldReturnResultWithUpdateActionWhenOptableTargetingReturnTargeting() {
         // given
         when(auctionRequestPayload.bidRequest()).thenReturn(givenBidRequest());
-        when(optableTargeting.getTargeting(any(), any(), any(), anyLong()))
+        when(optableTargeting.getTargeting(any(), any(), any(), any()))
                 .thenReturn(Future.succeededFuture(givenTargetingResult()));
 
         // when
@@ -130,7 +129,7 @@ public class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptable
         // given
         when(invocationContext.timeout()).thenReturn(timeout);
         when(auctionRequestPayload.bidRequest()).thenReturn(givenBidRequest());
-        when(optableTargeting.getTargeting(any(), any(), any(), anyLong()))
+        when(optableTargeting.getTargeting(any(), any(), any(), any()))
                 .thenReturn(Future.succeededFuture(givenTargetingResult()));
 
         // when
@@ -159,7 +158,7 @@ public class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptable
     public void shouldReturnResultWithUpdateWhenOptableTargetingDoesntReturnResult() {
         // given
         when(auctionRequestPayload.bidRequest()).thenReturn(givenBidRequest());
-        when(optableTargeting.getTargeting(any(), any(), any(), anyLong())).thenReturn(Future.succeededFuture(null));
+        when(optableTargeting.getTargeting(any(), any(), any(), any())).thenReturn(Future.succeededFuture(null));
 
         // when
         final Future<InvocationResult<AuctionRequestPayload>> future = target.call(auctionRequestPayload,

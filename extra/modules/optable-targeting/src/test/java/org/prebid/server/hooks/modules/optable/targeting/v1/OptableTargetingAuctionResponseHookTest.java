@@ -49,7 +49,8 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
         configResolver = new ConfigResolver(mapper, jsonMerger, givenOptableTargetingProperties(false));
         target = new OptableTargetingAuctionResponseHook(
                 configResolver,
-                mapper);
+                mapper,
+                jsonMerger);
     }
 
     @Test
@@ -125,7 +126,8 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
                 List.of(new AudienceId("audienceId")), "keyspace", 1))));
         target = new OptableTargetingAuctionResponseHook(
                 configResolver,
-                mapper);
+                mapper,
+                jsonMerger);
 
         // when
         final Future<InvocationResult<AuctionResponsePayload>> future = target.call(auctionResponsePayload,

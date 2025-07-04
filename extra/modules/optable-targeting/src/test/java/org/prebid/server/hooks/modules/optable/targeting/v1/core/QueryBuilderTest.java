@@ -12,8 +12,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class QueryBuilderTest {
 
-    private QueryBuilder target;
-
     private OptableAttributes optableAttributes;
 
     private String idPrefixOrder;
@@ -21,7 +19,6 @@ public class QueryBuilderTest {
     @BeforeEach
     public void setUp() {
         optableAttributes = givenOptableAttributes();
-        target = new QueryBuilder();
         idPrefixOrder = "c,c1";
     }
 
@@ -31,10 +28,10 @@ public class QueryBuilderTest {
         final List<Id> ids = List.of(Id.of(Id.EMAIL, "email"), Id.of(Id.PHONE, "123"));
 
         // when
-        final Query query = target.build(ids, optableAttributes, idPrefixOrder);
+        final Query query = QueryBuilder.build(ids, optableAttributes, idPrefixOrder);
 
         // then
-        assertThat(query.getIds()).isEqualTo("e%3Aemail&id=p%3A123");
+        assertThat(query.getIds()).isEqualTo("&id=e%3Aemail&id=p%3A123");
         assertThat(query.getAttributes()).isEqualTo("&gdpr_consent=tcf&gdpr=1&timeout=100ms");
     }
 
@@ -44,10 +41,10 @@ public class QueryBuilderTest {
         final List<Id> ids = List.of(Id.of(Id.EMAIL, "email"), Id.of(Id.PHONE, "123"));
 
         // when
-        final Query query = target.build(ids, optableAttributes, idPrefixOrder);
+        final Query query = QueryBuilder.build(ids, optableAttributes, idPrefixOrder);
 
         // then
-        assertThat(query.getIds()).isEqualTo("e%3Aemail&id=p%3A123");
+        assertThat(query.getIds()).isEqualTo("&id=e%3Aemail&id=p%3A123");
         assertThat(query.getAttributes()).isEqualTo("&gdpr_consent=tcf&gdpr=1&timeout=100ms");
     }
 
@@ -57,7 +54,7 @@ public class QueryBuilderTest {
         final List<Id> ids = List.of(Id.of(Id.EMAIL, "email"), Id.of(Id.PHONE, "123"));
 
         // when
-        final String query = target.build(ids, optableAttributes, idPrefixOrder).toQueryString();
+        final String query = QueryBuilder.build(ids, optableAttributes, idPrefixOrder).toQueryString();
 
         // then
         assertThat(query).contains("e%3Aemail", "p%3A123");
@@ -69,7 +66,7 @@ public class QueryBuilderTest {
         final List<Id> ids = List.of(Id.of(Id.EMAIL, "email"), Id.of(Id.PHONE, "123"));
 
         // when
-        final String query = target.build(ids, optableAttributes, idPrefixOrder).toQueryString();
+        final String query = QueryBuilder.build(ids, optableAttributes, idPrefixOrder).toQueryString();
 
         // then
         assertThat(query).contains("&gdpr=1", "&gdpr_consent=tcf", "&timeout=100ms");
@@ -82,10 +79,10 @@ public class QueryBuilderTest {
                 Id.of("c", "234"));
 
         // when
-        final String query = target.build(ids, optableAttributes, idPrefixOrder).toQueryString();
+        final String query = QueryBuilder.build(ids, optableAttributes, idPrefixOrder).toQueryString();
 
         // then
-        assertThat(query).startsWith("c%3A234&id=c1%3A123&id=id5%3AID5&id=e%3Aemail");
+        assertThat(query).startsWith("&id=c%3A234&id=c1%3A123&id=id5%3AID5&id=e%3Aemail");
     }
 
     @Test
@@ -97,7 +94,7 @@ public class QueryBuilderTest {
                 .build();
 
         // when
-        final Query query = target.build(ids, attributes, idPrefixOrder);
+        final Query query = QueryBuilder.build(ids, attributes, idPrefixOrder);
 
         // then
 
@@ -113,7 +110,7 @@ public class QueryBuilderTest {
                 .build();
 
         // when
-        final Query query = target.build(ids, attributes, idPrefixOrder);
+        final Query query = QueryBuilder.build(ids, attributes, idPrefixOrder);
 
         // then
 

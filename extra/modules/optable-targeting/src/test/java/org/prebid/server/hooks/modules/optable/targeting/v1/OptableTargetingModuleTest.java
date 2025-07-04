@@ -1,6 +1,5 @@
 package org.prebid.server.hooks.modules.optable.targeting.v1;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -11,7 +10,6 @@ import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargetin
 import org.prebid.server.hooks.v1.Hook;
 import org.prebid.server.hooks.v1.InvocationContext;
 import org.prebid.server.hooks.v1.Module;
-import org.prebid.server.json.ObjectMapperProvider;
 
 import java.util.Collection;
 import java.util.List;
@@ -23,7 +21,7 @@ import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-public class OptableTargetingModuleTest {
+public class OptableTargetingModuleTest extends BaseOptableTest {
 
     @Mock
     ConfigResolver configResolver;
@@ -33,8 +31,6 @@ public class OptableTargetingModuleTest {
 
     @Mock(strictness = LENIENT)
     UserFpdActivityMask userFpdActivityMask;
-
-    ObjectMapper mapper = ObjectMapperProvider.mapper();
 
     @Test
     public void shouldReturnNonBlankCode() {
@@ -60,7 +56,8 @@ public class OptableTargetingModuleTest {
                         userFpdActivityMask),
                         new OptableTargetingAuctionResponseHook(
                                 configResolver,
-                                mapper));
+                                mapper,
+                                jsonMerger));
 
         final Module module = new OptableTargetingModule(hooks);
 

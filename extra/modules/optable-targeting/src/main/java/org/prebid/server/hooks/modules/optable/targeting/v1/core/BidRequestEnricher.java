@@ -12,8 +12,7 @@ import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.User;
 import org.prebid.server.hooks.v1.PayloadUpdate;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 
-import java.util.HashSet;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -75,7 +74,7 @@ public class BidRequestEnricher implements PayloadUpdate<AuctionRequestPayload> 
                 Eid::getSource);
     }
 
-    private List<Data> mergeData(List<Data> destination, List<Data> source) {
+    private static List<Data> mergeData(List<Data> destination, List<Data> source) {
         if (CollectionUtils.isEmpty(destination)) {
             return source;
         }
@@ -85,32 +84,21 @@ public class BidRequestEnricher implements PayloadUpdate<AuctionRequestPayload> 
         }
 
         final Map<String, Data> idToSourceData = source.stream()
-                .collect(Collectors.toMap(Data::getId, Function.identity(), (a, b) -> b, LinkedHashMap::new));
+                .collect(Collectors.toMap(Data::getId, Function.identity(), (a, b) -> b, HashMap::new));
 
-        final Set<String> mergedDataIds = new HashSet<>();
+        final List<Data> mergedData = destination.stream()
+                .map(destinationData -> idToSourceData.containsKey(destinationData.getId())
+                        ? mergeData(destinationData, idToSourceData.get(destinationData.getId()))
+                        : destinationData)
+                .toList();
 
-        final Stream<Data> mergedData = destination.stream()
-                .map(destinationData -> mergeDataEntry(destinationData, idToSourceData, mergedDataIds));
-
-        return Stream.concat(mergedData, source.stream().filter(it -> !mergedDataIds.contains(it.getId()))).toList();
+        return merge(mergedData, source, Data::getId);
     }
 
-    private Data mergeData(Data destinationData, Data sourceData) {
-        return Data.builder()
-                .id(destinationData.getId())
-                .name(destinationData.getName())
-                .ext(destinationData.getExt())
+    private static Data mergeData(Data destinationData, Data sourceData) {
+        return destinationData.toBuilder()
                 .segment(merge(destinationData.getSegment(), sourceData.getSegment(), Segment::getId))
                 .build();
-    }
-
-    private Data mergeDataEntry(Data destinationData, Map<String, Data> idToSourceData, Set<String> mergedDataIds) {
-        return Optional.ofNullable(idToSourceData.get(destinationData.getId()))
-                .map(sourceData -> {
-                    mergedDataIds.add(sourceData.getId());
-                    return mergeData(destinationData, sourceData);
-                })
-                .orElse(destinationData);
     }
 
     private static <T, ID> List<T> merge(List<T> destination,
@@ -129,10 +117,10 @@ public class BidRequestEnricher implements PayloadUpdate<AuctionRequestPayload> 
                 .map(idExtractor)
                 .collect(Collectors.toSet());
 
-        final List<T> uniqueFromSource = source.stream()
-                .filter(entry -> !existingIds.contains(idExtractor.apply(entry)))
+        return Stream.concat(
+                        destination.stream(),
+                        source.stream()
+                                .filter(entry -> !existingIds.contains(idExtractor.apply(entry))))
                 .toList();
-
-        return Stream.concat(destination.stream(), uniqueFromSource.stream()).toList();
     }
 }

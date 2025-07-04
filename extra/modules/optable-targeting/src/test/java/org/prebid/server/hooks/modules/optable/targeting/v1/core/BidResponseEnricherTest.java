@@ -20,8 +20,8 @@ public class BidResponseEnricherTest extends BaseOptableTest {
         final AuctionResponsePayload auctionResponsePayload = AuctionResponsePayloadImpl.of(givenBidResponse());
 
         // when
-        final AuctionResponsePayload result = BidResponseEnricher.of(
-                mapper, givenTargeting()).apply(auctionResponsePayload);
+        final AuctionResponsePayload result = BidResponseEnricher.of(givenTargeting(), mapper, jsonMerger)
+                .apply(auctionResponsePayload);
         final ObjectNode targeting = (ObjectNode) result.bidResponse().getSeatbid()
                 .getFirst()
                 .getBid()
@@ -41,7 +41,8 @@ public class BidResponseEnricherTest extends BaseOptableTest {
         final AuctionResponsePayload auctionResponsePayload = AuctionResponsePayloadImpl.of(givenBidResponse());
 
         // when
-        final AuctionResponsePayload result = BidResponseEnricher.of(mapper, null).apply(auctionResponsePayload);
+        final AuctionResponsePayload result = BidResponseEnricher.of(null, mapper, jsonMerger)
+                .apply(auctionResponsePayload);
         final ObjectNode targeting = (ObjectNode) result.bidResponse().getSeatbid()
                 .getFirst()
                 .getBid()
@@ -53,19 +54,6 @@ public class BidResponseEnricherTest extends BaseOptableTest {
         // then
         assertThat(result).isNotNull();
         assertThat(targeting.get("keyspace")).isNull();
-    }
-
-    @Test
-    public void shouldNotFailWhenResponseIsNull() {
-        // given
-        final AuctionResponsePayload auctionResponsePayload = AuctionResponsePayloadImpl.of(null);
-
-        // when
-        final AuctionResponsePayload result = BidResponseEnricher.of(mapper, givenTargeting())
-                .apply(auctionResponsePayload);
-
-        // then
-        assertThat(result.bidResponse()).isNull();
     }
 
     private List<Audience> givenTargeting() {

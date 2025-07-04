@@ -1,6 +1,7 @@
 package org.prebid.server.hooks.modules.optable.targeting.v1.core;
 
 import com.iab.gpp.encoder.GppModel;
+import com.iab.openrtb.request.BidRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -53,7 +54,7 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
         when(tcfContext.getConsentString()).thenReturn("consent");
         when(gppModel.encode()).thenReturn("consent");
         when(gppContext.scope()).thenReturn(GppContext.Scope.of(gppModel, Set.of(1)));
-        final AuctionContext auctionContext = givenAuctionContext(tcfContext, gppContext);
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest(), tcfContext, gppContext);
 
         // when
         final OptableAttributes result = OptableAttributesResolver.resolveAttributes(auctionContext,
@@ -71,9 +72,10 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
         final GppModel gppModel = mock();
         when(tcfContext.isConsentValid()).thenReturn(false);
         when(tcfContext.getConsentString()).thenReturn("consent");
+        when(tcfContext.getIpAddress()).thenReturn("8.8.8.8");
         when(gppModel.encode()).thenReturn("consent");
         when(gppContext.scope()).thenReturn(GppContext.Scope.of(gppModel, Set.of(1)));
-        final AuctionContext auctionContext = givenAuctionContext(tcfContext, gppContext);
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest(), tcfContext, gppContext);
 
         // when
         final OptableAttributes result = OptableAttributesResolver.resolveAttributes(auctionContext,
@@ -94,7 +96,7 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
         when(tcfContext.getConsentString()).thenReturn("consent");
         when(gppModel.encode()).thenReturn("consent");
         when(gppContext.scope()).thenReturn(GppContext.Scope.of(gppModel, Set.of(1)));
-        final AuctionContext auctionContext = givenAuctionContext(tcfContext, gppContext);
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest(), tcfContext, gppContext);
 
         // when
         final OptableAttributes result = OptableAttributesResolver.resolveAttributes(auctionContext,
@@ -117,8 +119,9 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
         return AuctionContext.builder().gppContext(gppContext).build();
     }
 
-    public AuctionContext givenAuctionContext(TcfContext tcfContext, GppContext gppContext) {
+    public AuctionContext givenAuctionContext(BidRequest bidRequest, TcfContext tcfContext, GppContext gppContext) {
         return AuctionContext.builder()
+                .bidRequest(bidRequest)
                 .privacyContext(PrivacyContext.of(Privacy.builder().build(), tcfContext, "8.8.8.8"))
                 .gppContext(gppContext).build();
     }
