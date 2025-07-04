@@ -1,0 +1,23 @@
+package org.prebid.server.functional.model.request.profile
+
+import groovy.transform.ToString
+import org.prebid.server.functional.model.request.auction.Imp
+import org.prebid.server.functional.util.PBSUtils
+
+import static ProfileMergePrecedence.PROFILE
+
+@ToString(includeNames = true, ignoreNulls = true)
+class ProfileImp extends Profile<Imp> {
+
+    static getProfile(String accountId,
+                      Imp imp = Imp.defaultImpression,
+                      String name = PBSUtils.randomString,
+                      ProfileMergePrecedence mergePrecedence = PROFILE) {
+
+        new ProfileImp(accountId: accountId,
+                name: name,
+                type: ProfileType.IMP,
+                mergePrecedence: mergePrecedence,
+                body: imp)
+    }
+}

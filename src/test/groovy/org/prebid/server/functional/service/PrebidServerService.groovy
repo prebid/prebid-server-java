@@ -431,6 +431,10 @@ class PrebidServerService implements ObjectMapperWrapper {
         })
     }
 
+    Boolean copyToContainer(String content, String containerPath) {
+        pbsContainer.copyToContainer(content, containerPath)
+    }
+
     Boolean isFileExist(String path) {
         pbsContainer.execInContainer("test", "-f", path).getExitCode() == 0
     }

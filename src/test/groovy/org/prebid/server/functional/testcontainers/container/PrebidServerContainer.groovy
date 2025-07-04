@@ -1,11 +1,23 @@
 package org.prebid.server.functional.testcontainers.container
 
+import com.github.dockerjava.api.DockerClient
+import com.github.dockerjava.api.command.InspectContainerResponse
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry
+import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream
 import org.prebid.server.functional.testcontainers.Dependencies
 import org.prebid.server.functional.testcontainers.PbsConfig
 import org.prebid.server.functional.util.SystemProperties
+import org.testcontainers.DockerClientFactory
 import org.testcontainers.containers.GenericContainer
 import org.testcontainers.containers.wait.strategy.Wait
+import org.testcontainers.utility.MountableFile
 
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
+
+import static java.nio.charset.StandardCharsets.UTF_8
 import static org.prebid.server.functional.testcontainers.PbsConfig.DEFAULT_ENV
 
 class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
@@ -93,6 +105,53 @@ class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
         property.replace(".", "_")
                 .replace("[", "_")
                 .replace("]", "_")
+    }
+
+    PrebidServerContainer copyToContainer(String content, String containerPath) {
+        String parentDir = getParentDirectory(containerPath)
+        createDirectoryInContainer(parentDir)
+
+        byte[] archive = createTarArchive(content, getFileName(containerPath))
+        copyArchiveToContainer(archive, parentDir)
+
+        return self()
+    }
+
+    private static String getParentDirectory(String containerPath) {
+        Path path = Paths.get(containerPath)
+        return path.getParent().toString()
+    }
+
+    private static String getFileName(String containerPath) {
+        return Paths.get(containerPath).getFileName().toString()
+    }
+
+    private void createDirectoryInContainer(String directory) {
+        execInContainer("mkdir", "-p", directory)
+    }
+
+    private static byte[] createTarArchive(String content, String fileName) {
+        byte[] data = content.getBytes(UTF_8)
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream()
+        TarArchiveOutputStream tar = new TarArchiveOutputStream(outputStream)
+        tar.longFileMode = TarArchiveOutputStream.LONGFILE_POSIX
+
+        TarArchiveEntry entry = new TarArchiveEntry(fileName)
+        entry.size = data.length
+        tar.putArchiveEntry(entry)
+        tar.write(data)
+        tar.closeArchiveEntry()
+        tar.finish()
+
+        return outputStream.toByteArray()
+    }
+
+    private void copyArchiveToContainer(byte[] archive, String destination) {
+        DockerClient client = DockerClientFactory.instance().client()
+        client.copyArchiveToContainerCmd(getContainerId())
+                .withTarInputStream(new ByteArrayInputStream(archive))
+                .withRemotePath(destination)
+                .exec()
     }
 
     // This is a workaround for cases when container is killed mid-test due to OOM
