@@ -60,14 +60,14 @@ public class BidRequestEnricher implements PayloadUpdate<AuctionRequestPayload> 
                 .build();
     }
 
-    private com.iab.openrtb.request.User mergeUserData(com.iab.openrtb.request.User user, User optableUser) {
+    private static com.iab.openrtb.request.User mergeUserData(com.iab.openrtb.request.User user, User optableUser) {
         return user.toBuilder()
                 .eids(mergeEids(user.getEids(), optableUser.getEids()))
                 .data(mergeData(user.getData(), optableUser.getData()))
                 .build();
     }
 
-    private List<Eid> mergeEids(List<Eid> destination, List<Eid> source) {
+    private static List<Eid> mergeEids(List<Eid> destination, List<Eid> source) {
         return merge(
                 destination,
                 source,
