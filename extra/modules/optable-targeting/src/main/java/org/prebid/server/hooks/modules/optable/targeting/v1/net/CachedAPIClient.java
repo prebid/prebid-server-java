@@ -17,10 +17,12 @@ public class CachedAPIClient implements APIClient {
 
     private final APIClient apiClient;
     private final Cache cache;
+    private final boolean isCircuitBreakerEnabled;
 
-    public CachedAPIClient(APIClient apiClient, Cache cache) {
+    public CachedAPIClient(APIClient apiClient, Cache cache, boolean isCircuitBreakerEnabled) {
         this.apiClient = Objects.requireNonNull(apiClient);
         this.cache = Objects.requireNonNull(cache);
+        this.isCircuitBreakerEnabled = isCircuitBreakerEnabled;
     }
 
     public Future<TargetingResult> getTargeting(OptableTargetingProperties properties,
@@ -37,8 +39,11 @@ public class CachedAPIClient implements APIClient {
         final String origin = properties.getOrigin();
 
         return cache.get(createCachingKey(tenant, origin, ips, query, true))
-                .recover(ignore -> apiClient.getTargeting(properties, query, ips, timeout)
-                        .recover(throwable -> Future.succeededFuture())
+               .recover(ignore ->
+                        apiClient.getTargeting(properties, query, ips, timeout)
+                        .recover(throwable -> isCircuitBreakerEnabled
+                                ? Future.succeededFuture(new TargetingResult(null, null))
+                                : Future.failedFuture(throwable))
                         .compose(result -> cache.put(
                                 createCachingKey(tenant, origin, ips, query, false),
                                         result,

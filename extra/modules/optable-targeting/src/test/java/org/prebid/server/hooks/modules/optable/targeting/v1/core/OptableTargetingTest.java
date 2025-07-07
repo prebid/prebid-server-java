@@ -51,7 +51,7 @@ public class OptableTargetingTest extends BaseOptableTest {
     public void setUp() {
         optableAttributes = givenOptableAttributes();
         properties = givenOptableTargetingProperties(true);
-        cachingAPIClient = new CachedAPIClient(apiClient, cache);
+        cachingAPIClient = new CachedAPIClient(apiClient, cache, false);
         target = new OptableTargeting(idsMapper, cachingAPIClient);
     }
 

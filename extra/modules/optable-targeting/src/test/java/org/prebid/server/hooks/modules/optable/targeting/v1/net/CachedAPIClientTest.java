@@ -43,7 +43,7 @@ public class CachedAPIClientTest extends BaseOptableTest {
     @BeforeEach
     public void setUp() {
         properties = givenOptableTargetingProperties(true);
-        target = new CachedAPIClient(apiClient, cache);
+        target = new CachedAPIClient(apiClient, cache, false);
         when(timeout.remaining()).thenReturn(1000L);
     }
 
@@ -119,7 +119,7 @@ public class CachedAPIClientTest extends BaseOptableTest {
     @Test
     public void shouldNotFailWhenApiClientIsFailed() {
         // given
-        properties = givenOptableTargetingProperties(false);
+        properties = givenOptableTargetingProperties(true);
         final Query query = givenQuery();
         when(cache.get(any())).thenReturn(Future.failedFuture("empty"));
         when(apiClient.getTargeting(any(), any(), any(), any()))
@@ -131,22 +131,29 @@ public class CachedAPIClientTest extends BaseOptableTest {
 
         // then
         assertThat(targetingResult.result()).isNull();
+        verify(cache, times(0)).put(any(), eq(targetingResult.result()), anyInt());
     }
 
     @Test
-    public void shouldNotFailWhenApiClientReturnsFailFuture() {
+    public void shouldCacheEmptyResultWhenCircuitBreakerIsOn() {
         // given
-        properties = givenOptableTargetingProperties(false);
+        properties = givenOptableTargetingProperties(true);
         final Query query = givenQuery();
         when(cache.get(any())).thenReturn(Future.failedFuture("empty"));
         when(apiClient.getTargeting(any(), any(), any(), any()))
-                .thenReturn(Future.failedFuture("File"));
+                .thenReturn(Future.failedFuture(new NullPointerException()));
+        when(cache.put(any(), any(), anyInt())).thenReturn(Future.succeededFuture());
 
         // when
-        final Future<TargetingResult> targetingResult = target.getTargeting(
-                properties, query, List.of("8.8.8.8"), timeout);
+        target = new CachedAPIClient(apiClient, cache, true);
+        final Future<TargetingResult> targetingResult = target.getTargeting(properties, query,
+                List.of("8.8.8.8"), timeout);
 
         // then
-        assertThat(targetingResult.result()).isNull();
+        final TargetingResult result = targetingResult.result();
+        assertThat(result).isNotNull();
+        assertThat(result.getOrtb2()).isNull();
+        assertThat(result.getAudience()).isNull();
+        verify(cache, times(1)).put(any(), eq(targetingResult.result()), anyInt());
     }
 }

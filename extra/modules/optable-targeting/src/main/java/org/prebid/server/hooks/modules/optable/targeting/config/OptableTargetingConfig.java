@@ -1,6 +1,5 @@
 package org.prebid.server.hooks.modules.optable.targeting.config;
 
-import io.vertx.core.Vertx;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
 import org.prebid.server.cache.PbcStorageService;
@@ -14,20 +13,16 @@ import org.prebid.server.hooks.modules.optable.targeting.v1.core.IdsMapper;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargeting;
 import org.prebid.server.hooks.modules.optable.targeting.v1.net.APIClientImpl;
 import org.prebid.server.hooks.modules.optable.targeting.v1.net.CachedAPIClient;
-import org.prebid.server.hooks.modules.optable.targeting.v1.net.OptableHttpClientWrapper;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.json.ObjectMapperProvider;
-import org.prebid.server.spring.config.VertxContextScope;
-import org.prebid.server.spring.config.model.HttpClientProperties;
+import org.prebid.server.vertx.httpclient.HttpClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Scope;
-import org.springframework.context.annotation.ScopedProxyMode;
 
 import java.util.List;
 
@@ -47,31 +42,27 @@ public class OptableTargetingConfig {
     }
 
     @Bean
-    @Scope(scopeName = VertxContextScope.NAME, proxyMode = ScopedProxyMode.TARGET_CLASS)
-    @ConditionalOnProperty(prefix = "http-client.circuit-breaker", name = "enabled", havingValue = "false",
-            matchIfMissing = true)
-    OptableHttpClientWrapper optableHttpClient(Vertx vertx, HttpClientProperties httpClientProperties) {
-        return new OptableHttpClientWrapper(vertx, httpClientProperties);
-    }
-
-    @Bean
-    APIClientImpl apiClient(OptableHttpClientWrapper httpClientWrapper,
-                        @Value("${logging.sampling-rate:0.01}")
-                        double logSamplingRate,
-                        OptableTargetingProperties properties,
-                        JacksonMapper jacksonMapperr) {
+    APIClientImpl apiClient(HttpClient httpClient,
+                            @Value("${logging.sampling-rate:0.01}")
+                            double logSamplingRate,
+                            OptableTargetingProperties properties,
+                            JacksonMapper jacksonMapperr) {
 
         return new APIClientImpl(
                 properties.getApiEndpoint(),
-                httpClientWrapper.getHttpClient(),
+                httpClient,
                 jacksonMapperr,
                 logSamplingRate);
     }
 
     @Bean
     @ConditionalOnProperty(name = {"storage.pbc.enabled", "cache.module.enabled"}, havingValue = "true")
-    CachedAPIClient cachedApiClient(APIClientImpl apiClient, Cache cache) {
-        return new CachedAPIClient(apiClient, cache);
+    CachedAPIClient cachedApiClient(APIClientImpl apiClient,
+                                    Cache cache,
+                                    @Value("${http-client.circuit-breaker.enabled:false}")
+                                    Boolean isCircuitBreakerEnabled) {
+
+        return new CachedAPIClient(apiClient, cache, isCircuitBreakerEnabled);
     }
 
     @Bean
