@@ -518,42 +518,6 @@ public class PubmaticBidder implements Bidder<BidRequest> {
                 : bidsFromResponse(bidResponse, bidderErrors);
     }
 
-    private static BidType getBidType(Bid bid, List<BidderError> errors) {
-        return switch (bid.getMtype()) {
-            case 1 -> BidType.banner;
-            case 2 -> BidType.video;
-            case 3 -> BidType.audio;
-            case 4 -> BidType.xNative;
-            case null, default -> {
-                errors.add(BidderError.badServerResponse("failed to parse bid mtype (%d) for impression id %s"
-                        .formatted(bid.getMtype(), bid.getImpid())));
-                yield null;
-            }
-        };
-    }
-
-    private static Integer getDuration(PubmaticBidExt bidExt) {
-        return Optional.ofNullable(bidExt)
-                .map(PubmaticBidExt::getVideo)
-                .map(VideoCreativeInfo::getDuration)
-                .orElse(null);
-    }
-
-    private PubmaticBidExt parseBidExt(ObjectNode bidExt, List<BidderError> errors) {
-        try {
-            return bidExt != null ? mapper.mapper().treeToValue(bidExt, PubmaticBidExt.class) : null;
-        } catch (JsonProcessingException e) {
-            errors.add(BidderError.badServerResponse(e.getMessage()));
-            return null;
-        }
-    }
-
-    private static boolean getInBannerVideo(PubmaticBidExt bidExt) {
-        return Optional.ofNullable(bidExt)
-                .map(PubmaticBidExt::getInBannerVideo)
-                .orElse(false);
-    }
-
     private String resolveNativeAdm(String adm, List<BidderError> bidderErrors) {
         final JsonNode admNode;
         try {
@@ -615,6 +579,29 @@ public class PubmaticBidder implements Bidder<BidRequest> {
                 .build();
     }
 
+    private PubmaticBidExt parseBidExt(ObjectNode bidExt, List<BidderError> errors) {
+        try {
+            return bidExt != null ? mapper.mapper().treeToValue(bidExt, PubmaticBidExt.class) : null;
+        } catch (JsonProcessingException e) {
+            errors.add(BidderError.badServerResponse(e.getMessage()));
+            return null;
+        }
+    }
+
+    private static BidType getBidType(Bid bid, List<BidderError> errors) {
+        return switch (bid.getMtype()) {
+            case 1 -> BidType.banner;
+            case 2 -> BidType.video;
+            case 3 -> BidType.audio;
+            case 4 -> BidType.xNative;
+            case null, default -> {
+                errors.add(BidderError.badServerResponse("failed to parse bid mtype (%d) for impression id %s"
+                        .formatted(bid.getMtype(), bid.getImpid())));
+                yield null;
+            }
+        };
+    }
+
     private ObjectNode updateBidExtWithExtPrebid(PubmaticBidExt pubmaticBidExt, BidType type, ObjectNode extBid) {
         final Integer duration = getDuration(pubmaticBidExt);
         final boolean inBannerVideo = getInBannerVideo(pubmaticBidExt);
@@ -629,6 +616,19 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         return extBid != null
                 ? extBid.set(PREBID, mapper.mapper().valueToTree(extBidPrebid))
                 : mapper.mapper().createObjectNode().set(PREBID, mapper.mapper().valueToTree(extBidPrebid));
+    }
+
+    private static Integer getDuration(PubmaticBidExt bidExt) {
+        return Optional.ofNullable(bidExt)
+                .map(PubmaticBidExt::getVideo)
+                .map(VideoCreativeInfo::getDuration)
+                .orElse(null);
+    }
+
+    private static boolean getInBannerVideo(PubmaticBidExt bidExt) {
+        return Optional.ofNullable(bidExt)
+                .map(PubmaticBidExt::getInBannerVideo)
+                .orElse(false);
     }
 
     private static Integer getDealPriority(PubmaticBidExt bidExt) {
