@@ -6,6 +6,7 @@ vertx:
   uploads-dir: file-uploads
   init-timeout-ms: 5000
   enable-per-client-endpoint-metrics: false
+  round-robin-inet-address: false
 server:
   max-initial-line-length: 8092
   max-headers-size: 16384

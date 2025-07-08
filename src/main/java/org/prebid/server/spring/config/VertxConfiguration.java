@@ -2,6 +2,7 @@ package org.prebid.server.spring.config;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
+import io.vertx.core.dns.AddressResolverOptions;
 import io.vertx.core.file.FileSystem;
 import io.vertx.ext.dropwizard.DropwizardMetricsOptions;
 import io.vertx.ext.dropwizard.Match;
@@ -23,7 +24,9 @@ public class VertxConfiguration {
     @Bean
     Vertx vertx(@Value("${vertx.worker-pool-size}") int workerPoolSize,
                 @Value("${vertx.enable-per-client-endpoint-metrics}") boolean enablePerClientEndpointMetrics,
-                @Value("${metrics.jmx.enabled}") boolean jmxEnabled) {
+                @Value("${metrics.jmx.enabled}") boolean jmxEnabled,
+                @Value("${vertx.round-robin-inet-address}") boolean roundRobinInetAddress) {
+
         final DropwizardMetricsOptions metricsOptions = new DropwizardMetricsOptions()
                 .setEnabled(true)
                 .setJmxEnabled(jmxEnabled)
@@ -32,10 +35,14 @@ public class VertxConfiguration {
             metricsOptions.addMonitoredHttpClientEndpoint(new Match().setValue(".*").setType(MatchType.REGEX));
         }
 
+        AddressResolverOptions addressResolverOptions = new AddressResolverOptions();
+        addressResolverOptions.setRoundRobinInetAddress(roundRobinInetAddress);
+
         final VertxOptions vertxOptions = new VertxOptions()
                 .setPreferNativeTransport(true)
                 .setWorkerPoolSize(workerPoolSize)
-                .setMetricsOptions(metricsOptions);
+                .setMetricsOptions(metricsOptions)
+                .setAddressResolverOptions(addressResolverOptions);
 
         final Vertx vertx = Vertx.vertx(vertxOptions);
         logger.info("Native transport enabled: {}", vertx.isNativeTransportEnabled());
