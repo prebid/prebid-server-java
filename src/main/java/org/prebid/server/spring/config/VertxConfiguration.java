@@ -35,7 +35,7 @@ public class VertxConfiguration {
             metricsOptions.addMonitoredHttpClientEndpoint(new Match().setValue(".*").setType(MatchType.REGEX));
         }
 
-        AddressResolverOptions addressResolverOptions = new AddressResolverOptions();
+        final AddressResolverOptions addressResolverOptions = new AddressResolverOptions();
         addressResolverOptions.setRoundRobinInetAddress(roundRobinInetAddress);
 
         final VertxOptions vertxOptions = new VertxOptions()
