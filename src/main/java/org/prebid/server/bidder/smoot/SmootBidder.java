@@ -63,6 +63,24 @@ public class SmootBidder implements Bidder<BidRequest> {
         return Result.of(httpRequests, errors);
     }
 
+    private ExtImpSmoot parseImpExt(Imp imp) {
+        try {
+            return mapper.mapper().convertValue(imp.getExt(), SMOOT_EXT_TYPE_REFERENCE).getBidder();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException("Error parsing imp.ext: " + e.getMessage());
+        }
+    }
+
+    private Imp modifyImp(Imp imp, ExtImpSmoot extImpSmoot) {
+        final SmootImpExt smootImpExt = StringUtils.isNotEmpty(extImpSmoot.getPlacementId())
+                ? SmootImpExt.publisher(extImpSmoot.getPlacementId())
+                : SmootImpExt.network(extImpSmoot.getEndpointId());
+
+        return imp.toBuilder()
+                .ext(mapper.mapper().createObjectNode().set("bidder", mapper.mapper().valueToTree(smootImpExt)))
+                .build();
+    }
+
     @Override
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
@@ -95,23 +113,5 @@ public class SmootBidder implements Bidder<BidRequest> {
             case null, default ->
                     throw new PreBidException("could not define media type for impression: " + bid.getImpid());
         };
-    }
-
-    private ExtImpSmoot parseImpExt(Imp imp) {
-        try {
-            return mapper.mapper().convertValue(imp.getExt(), SMOOT_EXT_TYPE_REFERENCE).getBidder();
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException("Error parsing imp.ext: " + e.getMessage());
-        }
-    }
-
-    private Imp modifyImp(Imp imp, ExtImpSmoot extImpSmoot) {
-        final SmootImpExt smootImpExt = StringUtils.isNotEmpty(extImpSmoot.getPlacementId())
-                ? SmootImpExt.publisher(extImpSmoot.getPlacementId())
-                : SmootImpExt.network(extImpSmoot.getEndpointId());
-
-        return imp.toBuilder()
-                .ext(mapper.mapper().createObjectNode().set("bidder", mapper.mapper().valueToTree(smootImpExt)))
-                .build();
     }
 }
