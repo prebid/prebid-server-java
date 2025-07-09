@@ -49,16 +49,6 @@ public class AdagioBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static BidType getBidType(Bid bid) {
-        return switch (bid.getMtype()) {
-            case 1 -> BidType.banner;
-            case 2 -> BidType.video;
-            case 4 -> BidType.xNative;
-            case null, default -> throw new PreBidException(
-                    "Could not define media type for impression: " + bid.getImpid());
-        };
-    }
-
     private List<BidderBid> extractBids(BidResponse bidResponse, List<BidderError> errors) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             errors.add(BidderError.badServerResponse("empty seatbid array"));
@@ -97,5 +87,15 @@ public class AdagioBidder implements Bidder<BidRequest> {
         } catch (IllegalArgumentException e) {
             throw new PreBidException("bid.ext can not be parsed");
         }
+    }
+
+    private static BidType getBidType(Bid bid) {
+        return switch (bid.getMtype()) {
+            case 1 -> BidType.banner;
+            case 2 -> BidType.video;
+            case 4 -> BidType.xNative;
+            case null, default -> throw new PreBidException(
+                    "Could not define media type for impression: " + bid.getImpid());
+        };
     }
 }
