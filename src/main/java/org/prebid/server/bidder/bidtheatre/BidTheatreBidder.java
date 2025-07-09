@@ -75,6 +75,7 @@ public class BidTheatreBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
                 .map(bid -> makeBid(bid, bidResponse.getCur(), errors))
                 .filter(Objects::nonNull)
                 .toList();
@@ -99,15 +100,21 @@ public class BidTheatreBidder implements Bidder<BidRequest> {
     }
 
     private BidType getMediaType(Bid bid, List<BidderError> errors) {
+        return Optional.ofNullable(bid.getExt())
+                .map(this::parseBidExt)
+                .map(ExtPrebid::getPrebid)
+                .map(ExtBidPrebid::getType)
+                .orElseGet(() -> {
+                    errors.add(BidderError.badServerResponse("Failed to parse impression \"%s\" mediatype"
+                            .formatted(bid.getImpid())));
+                    return null;
+                });
+    }
+
+    private ExtPrebid<ExtBidPrebid, ObjectNode> parseBidExt(ObjectNode ext) {
         try {
-            return Optional.ofNullable(bid.getExt())
-                    .map(ext -> mapper.mapper().convertValue(ext, EXT_PREBID_TYPE_REFERENCE))
-                    .map(ExtPrebid::getPrebid)
-                    .map(ExtBidPrebid::getType)
-                    .orElseThrow(IllegalArgumentException::new);
+            return mapper.mapper().convertValue(ext, EXT_PREBID_TYPE_REFERENCE);
         } catch (IllegalArgumentException e) {
-            errors.add(BidderError.badServerResponse("Failed to parse impression \"%s\" mediatype"
-                    .formatted(bid.getImpid())));
             return null;
         }
     }
