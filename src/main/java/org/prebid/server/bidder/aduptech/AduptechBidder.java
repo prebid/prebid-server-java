@@ -53,6 +53,15 @@ public class AduptechBidder implements Bidder<BidRequest> {
         this.targetCurrency = validateCurrency(targetCurrency);
     }
 
+    private static String validateCurrency(String code) {
+        try {
+            Currency.getInstance(code);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("invalid extra info: invalid TargetCurrency %s".formatted(code));
+        }
+        return code.toUpperCase();
+    }
+
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<Imp> modifiedImps = new ArrayList<>(request.getImp().size());
@@ -72,66 +81,6 @@ public class AduptechBidder implements Bidder<BidRequest> {
                 mapper);
 
         return Result.withValue(httpRequest);
-    }
-
-    @Override
-    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
-        try {
-            final List<BidderError> errors = new ArrayList<>();
-            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(bidResponse, errors), errors);
-        } catch (DecodeException e) {
-            return Result.withError(BidderError.badServerResponse(e.getMessage()));
-        }
-    }
-
-    private static String validateCurrency(String code) {
-        try {
-            Currency.getInstance(code);
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("invalid extra info: invalid TargetCurrency %s".formatted(code));
-        }
-        return code.toUpperCase();
-    }
-
-    private static MultiMap makeHeaders() {
-        return HttpUtil.headers().add(COMPONENT_ID_HEADER, COMPONENT_ID_HEADER_VALUE);
-    }
-
-    private static List<BidderBid> extractBids(BidResponse bidResponse, List<BidderError> errors) {
-        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
-            return Collections.emptyList();
-        }
-        return bidsFromResponse(bidResponse, errors);
-    }
-
-    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse, List<BidderError> errors) {
-        return bidResponse.getSeatbid().stream()
-                .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .filter(Objects::nonNull)
-                .map(bid -> makeBid(bid, bidResponse.getCur(), errors))
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
-    }
-
-    private static BidderBid makeBid(Bid bid, String currency, List<BidderError> errors) {
-        try {
-            return BidderBid.of(bid, getBidType(bid.getMtype()), currency);
-        } catch (PreBidException e) {
-            errors.add(BidderError.badServerResponse(e.getMessage()));
-            return null;
-        }
-    }
-
-    private static BidType getBidType(Integer markupType) {
-        return switch (markupType) {
-            case 1 -> BidType.banner;
-            case 4 -> BidType.xNative;
-            case null, default -> throw new PreBidException("Unknown markup type: " + markupType);
-        };
     }
 
     private Imp modifyImp(Imp imp, BidRequest bidRequest) {
@@ -168,5 +117,56 @@ public class AduptechBidder implements Bidder<BidRequest> {
                 targetCurrency);
 
         return Price.of(targetCurrency, convertedFloor);
+    }
+
+    private static MultiMap makeHeaders() {
+        return HttpUtil.headers().add(COMPONENT_ID_HEADER, COMPONENT_ID_HEADER_VALUE);
+    }
+
+    @Override
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
+        try {
+            final List<BidderError> errors = new ArrayList<>();
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            return Result.of(extractBids(bidResponse, errors), errors);
+        } catch (DecodeException e) {
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
+        }
+    }
+
+    private static List<BidderBid> extractBids(BidResponse bidResponse, List<BidderError> errors) {
+        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
+            return Collections.emptyList();
+        }
+        return bidsFromResponse(bidResponse, errors);
+    }
+
+    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse, List<BidderError> errors) {
+        return bidResponse.getSeatbid().stream()
+                .filter(Objects::nonNull)
+                .map(SeatBid::getBid)
+                .filter(Objects::nonNull)
+                .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
+                .map(bid -> makeBid(bid, bidResponse.getCur(), errors))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+    }
+
+    private static BidderBid makeBid(Bid bid, String currency, List<BidderError> errors) {
+        try {
+            return BidderBid.of(bid, getBidType(bid.getMtype()), currency);
+        } catch (PreBidException e) {
+            errors.add(BidderError.badServerResponse(e.getMessage()));
+            return null;
+        }
+    }
+
+    private static BidType getBidType(Integer markupType) {
+        return switch (markupType) {
+            case 1 -> BidType.banner;
+            case 4 -> BidType.xNative;
+            case null, default -> throw new PreBidException("Unknown markup type: " + markupType);
+        };
     }
 }

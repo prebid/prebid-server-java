@@ -45,8 +45,8 @@ public class AduptechConfiguration {
                         config.getEndpoint(),
                         mapper,
                         currencyConversionService,
-                        config.getTargetCurrency())
-                ).assemble();
+                        config.getTargetCurrency()))
+                .assemble();
     }
 
     @Data
