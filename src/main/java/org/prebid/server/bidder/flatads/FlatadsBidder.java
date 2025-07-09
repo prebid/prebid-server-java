@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
@@ -104,20 +105,27 @@ public class FlatadsBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(bidRequest, bidResponse), Collections.emptyList());
-        } catch (DecodeException | PreBidException e) {
+            final List<BidderError> errors = new ArrayList<>();
+            return Result.of(extractBids(bidRequest, bidResponse, errors), errors);
+        } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
+    private static List<BidderBid> extractBids(BidRequest bidRequest,
+                                               BidResponse bidResponse,
+                                               List<BidderError> errors) {
+
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
-        return bidsFromResponse(bidRequest, bidResponse);
+        return bidsFromResponse(bidRequest, bidResponse, errors);
     }
 
-    private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
+    private static List<BidderBid> bidsFromResponse(BidRequest bidRequest,
+                                                    BidResponse bidResponse,
+                                                    List<BidderError> errors) {
+
         final Map<String, Imp> imps = bidRequest.getImp().stream()
                 .collect(Collectors.toMap(Imp::getId, Function.identity()));
 
@@ -127,11 +135,17 @@ public class FlatadsBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), imps), bidResponse.getCur()))
+                .map(bid -> makeBid(bid, imps, bidResponse.getCur(), errors))
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
-    private static BidType getBidType(String impId, Map<String, Imp> imps) {
+    private static BidderBid makeBid(Bid bid, Map<String, Imp> imps, String currency, List<BidderError> errors) {
+        final BidType bidType = getBidType(bid.getImpid(), imps, errors);
+        return bidType == null ? null : BidderBid.of(bid, bidType, currency);
+    }
+
+    private static BidType getBidType(String impId, Map<String, Imp> imps, List<BidderError> errors) {
         final Imp imp = imps.get(impId);
         if (imp != null) {
             if (imp.getBanner() != null) {
@@ -143,6 +157,8 @@ public class FlatadsBidder implements Bidder<BidRequest> {
             }
         }
 
-        throw new PreBidException("The impression with ID %s is not present into the request".formatted(impId));
+        errors.add(BidderError.badServerResponse("The impression with ID %s is not present into the request"
+                .formatted(impId)));
+        return null;
     }
 }
