@@ -82,9 +82,10 @@ public class BidTheatreBidder implements Bidder<BidRequest> {
     }
 
     private BidderBid makeBid(Bid bid, String currency, List<BidderError> errors) {
-        final BidType mediaType = getMediaType(bid, errors);
-
+        final BidType mediaType = getMediaType(bid);
         if (mediaType == null) {
+            errors.add(BidderError.badServerResponse("Failed to parse impression \"%s\" mediatype"
+                    .formatted(bid.getImpid())));
             return null;
         }
 
@@ -99,16 +100,12 @@ public class BidTheatreBidder implements Bidder<BidRequest> {
         return BidderBid.of(modifiedBid, mediaType, currency);
     }
 
-    private BidType getMediaType(Bid bid, List<BidderError> errors) {
+    private BidType getMediaType(Bid bid) {
         return Optional.ofNullable(bid.getExt())
                 .map(this::parseBidExt)
                 .map(ExtPrebid::getPrebid)
                 .map(ExtBidPrebid::getType)
-                .orElseGet(() -> {
-                    errors.add(BidderError.badServerResponse("Failed to parse impression \"%s\" mediatype"
-                            .formatted(bid.getImpid())));
-                    return null;
-                });
+                .orElse(null);
     }
 
     private ExtPrebid<ExtBidPrebid, ObjectNode> parseBidExt(ObjectNode ext) {
