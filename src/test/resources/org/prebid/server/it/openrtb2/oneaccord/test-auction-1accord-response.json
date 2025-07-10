@@ -1,0 +1,42 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "exp": 300,
+          "mtype": 1,
+          "price": 5.78,
+          "adm": "adm00",
+          "crid": "crid00",
+          "w": 300,
+          "h": 250,
+          "ext": {
+            "origbidcpm": 5.78,
+            "prebid": {
+              "type": "banner",
+              "meta": {
+                "adaptercode": "1accord"
+              }
+            },
+            "bidType": "banner"
+          }
+        }
+      ],
+      "seat": "1accord",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "1accord": "{{ 1accord.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}
