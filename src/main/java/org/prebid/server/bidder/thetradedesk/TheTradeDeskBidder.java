@@ -166,6 +166,10 @@ public class TheTradeDeskBidder implements Bidder<BidRequest> {
     }
 
     private String resolveEndpoint(String sourceSupplyId) {
+        if (sourceSupplyId == null && supplyId == null) {
+            throw new PreBidException("Either supplySourceId or a default endpoint must be provided");
+        }
+
         return endpointUrl.replace(
                 SUPPLY_ID_MACRO,
                 HttpUtil.encodeUrl(StringUtils.defaultString(ObjectUtils.defaultIfNull(sourceSupplyId, supplyId))));
