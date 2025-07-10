@@ -1,0 +1,62 @@
+{
+  "user": [
+
+  ],
+  "audience": [
+    {
+      "provider": "optable.co",
+      "ids": [
+        {
+          "id": "audience_id"
+        }
+      ],
+      "keyspace": "keyspace",
+      "rtb_segtax": 1
+    }
+  ],
+  "ortb2": {
+    "user": {
+      "data": [
+        {
+          "id": "data_id",
+          "segment": [
+            {
+              "id": "segment_id"
+            }
+          ]
+        }
+      ],
+      "eids": [
+        {
+          "source": "eid_source1",
+          "uids": [
+            {
+              "id": "uid_id1",
+              "atype": 3,
+              "ext": {
+                "advertising_token": "advertising_token",
+                "refresh_token": "refresh_token",
+                "identity_expires": 1739281106209,
+                "refresh_from": 1739025506209,
+                "refresh_expires": 1741613906209,
+                "refresh_response_key": "refresh_response_key"
+              }
+            }
+          ]
+        },
+        {
+          "source": "eid_source2",
+          "uids": [
+            {
+              "id": "uid_id2",
+              "atype": 3,
+              "ext": {
+                "stype": "cto_bundle_hem_api"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
