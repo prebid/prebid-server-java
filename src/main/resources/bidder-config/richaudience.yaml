@@ -1,6 +1,6 @@
 adapters:
   richaudience:
-    endpoint: http://ortb.richaudience.com/ortb/?bidder=pbs
+    endpoint: https://ortb.richaudience.com/ortb/?bidder=pbs
     meta-info:
       maintainer-email: partnerintegrations@richaudience.com
       app-media-types:
