@@ -41,6 +41,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.pubmatic.ExtImpPubmatic;
 import org.prebid.server.proto.openrtb.ext.request.pubmatic.ExtImpPubmaticKeyVal;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidMeta;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.proto.openrtb.ext.response.ExtIgi;
 import org.prebid.server.proto.openrtb.ext.response.ExtIgiIgs;
@@ -59,6 +60,7 @@ import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.audio;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
@@ -1086,48 +1088,101 @@ public class PubmaticBidderTest extends VertxTest {
     public void makeBidderResponseShouldReturnBannerBid() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123").mtype(1))));
 
         // when
         final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getBids())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+
+        final ObjectNode expectedBidExt = mapper.createObjectNode().set("prebid", mapper.createObjectNode()
+                .set("meta", mapper.createObjectNode().put("mediaType", "banner")));
+
+        assertThat(result.getBids()).containsExactly(BidderBid.of(
+                Bid.builder().impid("123").mtype(1).ext(expectedBidExt).build(), banner, "USD"));
     }
 
     @Test
-    public void makeBidderResponseShouldReturnVideoBidIfExtBidContainsBidTypeOne() throws JsonProcessingException {
+    public void makeBidderResponseShouldReturnVideoBidWhenInBannerVideoIsTrue() throws JsonProcessingException {
         // given
-        final ObjectNode bidType = mapper.createObjectNode().put("BidType", 1);
+        final ObjectNode givenBidExt = mapper.createObjectNode().put("ibv", true);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                mapper.writeValueAsString(givenBidResponse(
+                        bidBuilder -> bidBuilder.impid("123").mtype(1).ext(givenBidExt))));
+
+        // when
+        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+
+        final ObjectNode expectedBidExt = mapper.createObjectNode()
+                .put("ibv", true)
+                .set("prebid", mapper.createObjectNode()
+                        .set("meta", mapper.createObjectNode().put("mediaType", "video")));
+
+        assertThat(result.getBids()).containsExactly(BidderBid.of(
+                Bid.builder().impid("123").mtype(1).ext(expectedBidExt).build(), banner, "USD"));
+    }
+
+    @Test
+    public void makeBidderResponseShouldReturnVideoBidIfExtBidContainsMtypeTwo() throws JsonProcessingException {
+        // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123").ext(bidType))));
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123").mtype(2))));
 
         // when
         final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getBids())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").ext(bidType).build(), video, "USD"));
+
+        final ObjectNode expectedBidExt = mapper.createObjectNode().set("prebid", mapper.createObjectNode()
+                .set("meta", mapper.createObjectNode().put("mediaType", "video")));
+
+        assertThat(result.getBids()).containsExactly(
+                BidderBid.of(Bid.builder().impid("123").mtype(2).ext(expectedBidExt).build(), video, "USD"));
     }
 
     @Test
-    public void makeBidderResponseShouldReturnXNativeBidIfExtBidContainsBidTypeTwo() throws JsonProcessingException {
+    public void makeBidderResponseShouldReturnAudioBidIfExtBidContainsMtype3() throws JsonProcessingException {
         // given
-        final ObjectNode bidType = mapper.createObjectNode().put("BidType", 2);
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123").ext(bidType))));
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123").mtype(3))));
 
         // when
         final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getBids())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").ext(bidType).build(), xNative, "USD"));
+
+        final ObjectNode expectedBidExt = mapper.createObjectNode().set("prebid", mapper.createObjectNode()
+                .set("meta", mapper.createObjectNode().put("mediaType", "audio")));
+
+        assertThat(result.getBids()).containsExactly(
+                BidderBid.of(Bid.builder().impid("123").mtype(3).ext(expectedBidExt).build(), audio, "USD"));
+    }
+
+    @Test
+    public void makeBidderResponseShouldReturnXNativeBidIfExtBidContainsMtypeFour() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123").mtype(4))));
+
+        // when
+        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+
+        final ObjectNode expectedBidExt = mapper.createObjectNode().set("prebid", mapper.createObjectNode()
+                .set("meta", mapper.createObjectNode().put("mediaType", "native")));
+
+        assertThat(result.getBids()).containsExactly(
+                BidderBid.of(Bid.builder().impid("123").mtype(4).ext(expectedBidExt).build(), xNative, "USD"));
     }
 
     @Test
@@ -1136,9 +1191,9 @@ public class PubmaticBidderTest extends VertxTest {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123")
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123").mtype(2)
                                 .ext(mapper.valueToTree(
-                                        PubmaticBidExt.of(null, VideoCreativeInfo.of(1), null, null))))));
+                                        PubmaticBidExt.of(VideoCreativeInfo.of(1), null, null, null))))));
 
         // when
         final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
@@ -1148,9 +1203,12 @@ public class PubmaticBidderTest extends VertxTest {
 
         final ObjectNode bidExt = mapper.createObjectNode();
         bidExt.set("video", mapper.valueToTree(VideoCreativeInfo.of(1)));
-        bidExt.set("prebid", mapper.valueToTree(ExtBidPrebid.builder().video(ExtBidPrebidVideo.of(1, null)).build()));
-        assertThat(result.getBids())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").ext(bidExt).build(), banner, "USD"));
+        bidExt.set("prebid", mapper.valueToTree(ExtBidPrebid.builder()
+                .meta(ExtBidPrebidMeta.builder().mediaType("video").build())
+                .video(ExtBidPrebidVideo.of(1, null))
+                .build()));
+        assertThat(result.getBids()).containsExactly(
+                BidderBid.of(Bid.builder().mtype(2).impid("123").ext(bidExt).build(), video, "USD"));
     }
 
     @Test
@@ -1161,7 +1219,7 @@ public class PubmaticBidderTest extends VertxTest {
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123")
                                 .ext(mapper.valueToTree(
-                                        PubmaticBidExt.of(null, VideoCreativeInfo.of(null), null, null))))));
+                                        PubmaticBidExt.of(VideoCreativeInfo.of(null), null, null, null))))));
 
         // when
         final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
@@ -1170,9 +1228,12 @@ public class PubmaticBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         final ObjectNode bidExt = mapper.createObjectNode();
         bidExt.set("video", mapper.valueToTree(VideoCreativeInfo.of(null)));
+        bidExt.set("prebid", mapper.valueToTree(ExtBidPrebid.builder()
+                .meta(ExtBidPrebidMeta.builder().mediaType("banner").build())
+                .build()));
 
-        assertThat(result.getBids())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").ext(bidExt).build(), banner, "USD"));
+        assertThat(result.getBids()).containsExactly(
+                BidderBid.of(Bid.builder().impid("123").mtype(1).ext(bidExt).build(), banner, "USD"));
     }
 
     @Test
@@ -1189,8 +1250,11 @@ public class PubmaticBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getBids()).containsExactly(
-                BidderBid.of(Bid.builder().impid("123").ext(mapper.createObjectNode()).build(), banner, "USD"));
+        final ObjectNode expectedBidExt = mapper.createObjectNode().set("prebid", mapper.createObjectNode()
+                .set("meta", mapper.createObjectNode().put("mediaType", "banner")));
+
+        assertThat(result.getBids()).containsExactly(BidderBid.of(
+                Bid.builder().impid("123").mtype(1).ext(expectedBidExt).build(), banner, "USD"));
     }
 
     @Test
@@ -1200,7 +1264,7 @@ public class PubmaticBidderTest extends VertxTest {
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123")
                                 .ext(mapper.valueToTree(
-                                        PubmaticBidExt.of(null, null, 12, null))))));
+                                        PubmaticBidExt.of(null, 12, null, null))))));
 
         // when
         final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
@@ -1219,7 +1283,7 @@ public class PubmaticBidderTest extends VertxTest {
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123")
                                 .ext(mapper.valueToTree(
-                                        PubmaticBidExt.of(null, null, 12, "marketplace"))))));
+                                        PubmaticBidExt.of(null, 12, "marketplace", null))))));
 
         // when
         final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
@@ -1240,10 +1304,10 @@ public class PubmaticBidderTest extends VertxTest {
         admNode.set("native", nativeNode);
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123")
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123").mtype(4)
                                 .adm(admNode.toString())
                                 .ext(mapper.valueToTree(
-                                        PubmaticBidExt.of(2, null, 12, null))))));
+                                        PubmaticBidExt.of(null, 12, null, null))))));
 
         // when
         final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
@@ -1269,24 +1333,32 @@ public class PubmaticBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getBids()).containsExactly(
-                BidderBid.of(Bid.builder().impid("123").cat(singletonList("cat1")).build(), banner, "USD"));
+        final ObjectNode expectedBidExt = mapper.createObjectNode().set("prebid", mapper.createObjectNode()
+                .set("meta", mapper.createObjectNode().put("mediaType", "banner")));
+
+        assertThat(result.getBids()).containsExactly(BidderBid.of(
+                Bid.builder()
+                        .impid("123")
+                        .mtype(1)
+                        .cat(singletonList("cat1"))
+                        .ext(expectedBidExt).build(),
+                banner,
+                "USD"));
     }
 
     @Test
     public void makeBidderResponseShouldReturnBannerBidIfExtBidContainsIllegalBidType() throws JsonProcessingException {
         // given
-        final ObjectNode bidType = mapper.createObjectNode().put("BidType", 100);
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123").ext(bidType))));
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123").mtype(100))));
 
         // when
         final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getBids())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").ext(bidType).build(), banner, "USD"));
+        assertThat(result.getErrors()).containsExactly(
+                BidderError.badServerResponse("failed to parse bid mtype (100) for impression id 123"));
+        assertThat(result.getBids()).isEmpty();
     }
 
     @Test
@@ -1306,8 +1378,11 @@ public class PubmaticBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getBids())
-                .containsExactly(BidderBid.of(Bid.builder().impid("imp_id").build(), banner, "USD"));
+        final ObjectNode expectedBidExt = mapper.createObjectNode().set("prebid", mapper.createObjectNode()
+                .set("meta", mapper.createObjectNode().put("mediaType", "banner")));
+
+        assertThat(result.getBids()).containsExactly(BidderBid.of(
+                Bid.builder().impid("imp_id").mtype(1).ext(expectedBidExt).build(), banner, "USD"));
 
         final ExtIgi igi = ExtIgi.builder()
                 .igs(singletonList(ExtIgiIgs.builder().impId("imp_id").config(auctionConfig).build()))
@@ -1325,7 +1400,7 @@ public class PubmaticBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123")
                                 .adm(admNode.toString())
                                 .ext(mapper.valueToTree(
-                                        PubmaticBidExt.of(2, null, 12, null))))));
+                                        PubmaticBidExt.of(null, 12, null, null))))));
 
         // when
         final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
@@ -1413,7 +1488,7 @@ public class PubmaticBidderTest extends VertxTest {
         return BidResponse.builder()
                 .cur("USD")
                 .seatbid(singletonList(SeatBid.builder()
-                        .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
+                        .bid(singletonList(bidCustomizer.apply(Bid.builder().mtype(1)).build()))
                         .build()))
                 .build();
     }
