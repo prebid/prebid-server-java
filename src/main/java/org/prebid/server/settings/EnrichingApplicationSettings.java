@@ -13,6 +13,7 @@ import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountPriceFloorsConfig;
 import org.prebid.server.settings.model.StoredDataResult;
+import org.prebid.server.settings.model.StoredProfileResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 
 import java.util.Map;
@@ -46,6 +47,16 @@ public class EnrichingApplicationSettings implements ApplicationSettings {
         this.defaultAccount = parseAccount(defaultAccountConfig, mapper);
     }
 
+    private static Account parseAccount(String accountConfig, JacksonMapper mapper) {
+        try {
+            return StringUtils.isNotBlank(accountConfig)
+                    ? mapper.decodeValue(accountConfig, Account.class)
+                    : null;
+        } catch (DecodeException e) {
+            throw new IllegalArgumentException("Could not parse default account configuration", e);
+        }
+    }
+
     @Override
     public Future<Account> getAccountById(String accountId, Timeout timeout) {
         if (StringUtils.isNotBlank(accountId)) {
@@ -59,6 +70,12 @@ public class EnrichingApplicationSettings implements ApplicationSettings {
         return recoverIfNeeded(new PreBidException("Unauthorized account: account id is empty"), StringUtils.EMPTY);
     }
 
+    private Account mergeAccounts(Account account) {
+        return defaultAccount == null
+                ? account
+                : jsonMerger.merge(account, defaultAccount, Account.class);
+    }
+
     private AccountPriceFloorsConfig extractDefaultPriceFloors() {
         return Optional.ofNullable(defaultAccount)
                 .map(Account::getAuction)
@@ -66,14 +83,11 @@ public class EnrichingApplicationSettings implements ApplicationSettings {
                 .orElse(null);
     }
 
-    private static Account parseAccount(String accountConfig, JacksonMapper mapper) {
-        try {
-            return StringUtils.isNotBlank(accountConfig)
-                    ? mapper.decodeValue(accountConfig, Account.class)
-                    : null;
-        } catch (DecodeException e) {
-            throw new IllegalArgumentException("Could not parse default account configuration", e);
-        }
+    private Future<Account> recoverIfNeeded(Throwable throwable, String accountId) {
+        // In case of invalid account return failed future
+        return enforceValidAccount
+                ? Future.failedFuture(throwable)
+                : Future.succeededFuture(mergeAccounts(Account.empty(accountId)));
     }
 
     @Override
@@ -83,16 +97,6 @@ public class EnrichingApplicationSettings implements ApplicationSettings {
                                                   Timeout timeout) {
 
         return delegate.getStoredData(accountId, requestIds, impIds, timeout);
-    }
-
-    @Override
-    public Future<StoredResponseDataResult> getStoredResponses(Set<String> responseIds, Timeout timeout) {
-        return delegate.getStoredResponses(responseIds, timeout);
-    }
-
-    @Override
-    public Future<Map<String, String>> getCategories(String primaryAdServer, String publisher, Timeout timeout) {
-        return delegate.getCategories(primaryAdServer, publisher, timeout);
     }
 
     @Override
@@ -113,16 +117,22 @@ public class EnrichingApplicationSettings implements ApplicationSettings {
         return delegate.getVideoStoredData(accountId, requestIds, impIds, timeout);
     }
 
-    private Account mergeAccounts(Account account) {
-        return defaultAccount == null
-                ? account
-                : jsonMerger.merge(account, defaultAccount, Account.class);
+    @Override
+    public Future<StoredProfileResult> getProfiles(String accountId,
+                                                   Set<String> requestIds,
+                                                   Set<String> impIds,
+                                                   Timeout timeout) {
+
+        return delegate.getProfiles(accountId, requestIds, impIds, timeout);
     }
 
-    private Future<Account> recoverIfNeeded(Throwable throwable, String accountId) {
-        // In case of invalid account return failed future
-        return enforceValidAccount
-                ? Future.failedFuture(throwable)
-                : Future.succeededFuture(mergeAccounts(Account.empty(accountId)));
+    @Override
+    public Future<StoredResponseDataResult> getStoredResponses(Set<String> responseIds, Timeout timeout) {
+        return delegate.getStoredResponses(responseIds, timeout);
+    }
+
+    @Override
+    public Future<Map<String, String>> getCategories(String primaryAdServer, String publisher, Timeout timeout) {
+        return delegate.getCategories(primaryAdServer, publisher, timeout);
     }
 }

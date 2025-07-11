@@ -13,6 +13,7 @@ import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredDataResult;
+import org.prebid.server.settings.model.StoredProfileResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 import software.amazon.awssdk.core.BytesWrapper;
 import software.amazon.awssdk.core.async.AsyncResponseTransformer;
@@ -132,17 +133,13 @@ public class S3ApplicationSettings implements ApplicationSettings {
         return StoredDataResult.of(storedIdToRequest, storedIdToImp, errors);
     }
 
-    private Set<String> missingStoredDataIds(Map<String, String> fileContents, Set<String> responseIds) {
-        return SetUtils.difference(responseIds, fileContents.keySet());
-    }
-
     @Override
     public Future<StoredDataResult> getAmpStoredData(String accountId,
                                                      Set<String> requestIds,
                                                      Set<String> impIds,
                                                      Timeout timeout) {
 
-        return getStoredData(accountId, requestIds, Collections.emptySet(), timeout);
+        return getStoredData(accountId, requestIds, impIds, timeout);
     }
 
     @Override
@@ -152,6 +149,16 @@ public class S3ApplicationSettings implements ApplicationSettings {
                                                        Timeout timeout) {
 
         return getStoredData(accountId, requestIds, impIds, timeout);
+    }
+
+    @Override
+    public Future<StoredProfileResult> getProfiles(String accountId,
+                                                   Set<String> requestIds,
+                                                   Set<String> impIds,
+                                                   Timeout timeout) {
+
+        // TODO: change to success
+        return Future.failedFuture("Not supported");
     }
 
     @Override
@@ -223,5 +230,9 @@ public class S3ApplicationSettings implements ApplicationSettings {
         });
 
         return promise.future();
+    }
+
+    private Set<String> missingStoredDataIds(Map<String, String> fileContents, Set<String> requestedIds) {
+        return SetUtils.difference(requestedIds, fileContents.keySet());
     }
 }

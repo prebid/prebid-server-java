@@ -9,8 +9,7 @@ public interface ParametrizedQueryHelper {
 
     String replaceAccountIdPlaceholder(String query);
 
-    String replaceStoredResponseIdPlaceholders(String query, int idsNumber);
-
     String replaceRequestAndImpIdPlaceholders(String query, int requestIdNumber, int impIdNumber);
 
+    String replaceStoredResponseIdPlaceholders(String query, int idsNumber);
 }
