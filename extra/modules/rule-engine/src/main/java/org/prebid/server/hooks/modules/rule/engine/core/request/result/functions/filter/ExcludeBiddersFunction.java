@@ -25,12 +25,13 @@ public class ExcludeBiddersFunction extends FilterBiddersFunction {
 
         final Set<String> removedBidders = new HashSet<>();
         final ObjectNode updatedExt = imp.getExt().deepCopy();
+
         for (String bidder : bidders) {
             if (ifSyncedId != null && ifSyncedId != isBidderIdSynced(bidder, uidsCookie)) {
                 continue;
             }
 
-            updatedExt.remove(bidder);
+            removeBidder(updatedExt, bidder);
             removedBidders.add(bidder);
         }
 

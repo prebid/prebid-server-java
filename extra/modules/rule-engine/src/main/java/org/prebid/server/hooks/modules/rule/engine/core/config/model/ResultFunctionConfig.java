@@ -8,5 +8,5 @@ public class ResultFunctionConfig {
 
     String function;
 
-    ObjectNode config;
+    ObjectNode args;
 }
