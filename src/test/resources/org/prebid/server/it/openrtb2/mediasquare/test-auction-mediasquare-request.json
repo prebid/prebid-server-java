@@ -1,0 +1,91 @@
+{
+  "id": "70e5672c-515b-406e-967c-fcc2b04de04f",
+  "imp": [
+    {
+      "id": "2c35e25e-e7d3-41bf-b810-06a449f456b9",
+      "bidfloor": 1,
+      "bidfloorcur": "USD",
+      "banner": {
+        "w": 970,
+        "h": 250
+      },
+      "ext": {
+        "mediasquare": {
+          "owner": "test",
+          "code": "publishername_atf_desktop_rg_pave"
+        }
+      }
+    },
+    {
+      "id": "2059a3e6-71a3-43ea-8290-b5ceb13d35a8",
+      "bidfloor": 0.01,
+      "bidfloorcur": "USD",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          },
+          {
+            "w": 300,
+            "h": 600
+          },
+          {
+            "w": 120,
+            "h": 600
+          }
+        ]
+      },
+      "ext": {
+        "mediasquare": {
+          "owner": "test",
+          "code": "publishername_atf_desktop_rg_pave"
+        }
+      }
+    }
+  ],
+  "app": {
+    "content": {
+    },
+    "domain": "debug.mediasquare.fr",
+    "id": "app-id-test",
+    "name": "debug.mediasquare.fr",
+    "publisher": {
+      "id": "MEDIA_SQUARE"
+    }
+  },
+  "device": {
+    "devicetype": 1,
+    "geo": {
+      "country": "FRA",
+      "ipservice": 3
+    },
+    "ip": "92.154.6.0",
+    "language": "fr"
+  },
+  "regs": {
+    "gdpr": 0,
+    "ext": {
+      "dsa": {
+        "dsarequired": 1,
+        "pubrender": 0,
+        "datatopub": 2,
+        "transparency": [
+          {
+            "domain": "platform1domain.com",
+            "dsaparams": [
+              1
+            ]
+          },
+          {
+            "domain": "SSP2domain.com",
+            "dsaparams": [
+              1,
+              2
+            ]
+          }
+        ]
+      }
+    }
+  }
+}
