@@ -95,6 +95,10 @@ public abstract class FilterBiddersFunction implements ResultFunction<BidRequest
                 .orElse(false);
     }
 
+    protected void removeBidder(ObjectNode impExt, String bidder) {
+        ((ObjectNode) impExt.get("prebid").get("bidder")).remove(bidder);
+    }
+
     @Override
     public void validateConfig(ObjectNode config) {
         final FilterBiddersFunctionConfig parsedConfig = parseConfig(config);

@@ -141,7 +141,7 @@ public class StageConfigParser<SCHEMA_PAYLOAD, RULE_PAYLOAD, CONTEXT> {
                 .map(config -> RuleAction.of(
                         config.getFunction(),
                         specification.resultFunctionByName(config.getFunction()),
-                        config.getConfig()))
+                        config.getArgs()))
                 .toList();
 
         actions.forEach(this::validateActionConfig);

@@ -30,7 +30,7 @@ public class IncludeBiddersFunction extends FilterBiddersFunction {
 
         for (String bidder : IteratorUtils.asIterable(ext.fieldNames())) {
             if (!bidders.contains(bidder)) {
-                updatedExt.remove(bidder);
+                removeBidder(updatedExt, bidder);
                 removedBidders.add(bidder);
             }
         }
