@@ -6,6 +6,7 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.rule.engine.core.cache.RuleRegistry;
+import org.prebid.server.hooks.modules.rule.engine.core.request.Granularity;
 import org.prebid.server.hooks.modules.rule.engine.core.request.context.RequestResultContext;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.PerStageRule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.Rule;
@@ -48,7 +49,7 @@ public class RuleEngineProcessedAuctionRequestHook implements ProcessedAuctionRe
                                                         AuctionContext context) {
 
         return rule != null
-                ? rule.process(bidRequest, RequestResultContext.of(context, "*"))
+                ? rule.process(bidRequest, RequestResultContext.of(context, Granularity.Request.instance()))
                 : RuleResult.unaltered(bidRequest);
     }
 

@@ -6,6 +6,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.hooks.modules.rule.engine.core.request.Granularity;
 import org.prebid.server.hooks.modules.rule.engine.core.request.context.RequestSchemaContext;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunctionArguments;
@@ -26,7 +27,7 @@ public class MediaTypeInFunction implements SchemaFunction<RequestSchemaContext>
     public String extract(SchemaFunctionArguments<RequestSchemaContext> arguments) {
         final RequestSchemaContext context = arguments.getOperand();
 
-        final String impId = context.getImpId();
+        final String impId = ((Granularity.Imp) arguments.getOperand().getGranularity()).impId();;
         final BidRequest bidRequest = context.getBidRequest();
 
         final Imp adUnit = ListUtils.emptyIfNull(bidRequest.getImp()).stream()

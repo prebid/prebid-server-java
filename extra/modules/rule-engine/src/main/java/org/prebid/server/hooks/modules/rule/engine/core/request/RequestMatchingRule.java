@@ -29,8 +29,6 @@ import static org.prebid.server.hooks.modules.rule.engine.core.rules.schema.Sche
 
 public class RequestMatchingRule implements Rule<BidRequest, RequestResultContext> {
 
-    private static final String GLOBAL_IMP_ID = "*";
-
     private final Schema<RequestSchemaContext> schema;
     private final Set<String> schemaFunctionNames;
     private final RuleTree<RuleConfig<BidRequest, RequestResultContext>> ruleTree;
@@ -59,23 +57,23 @@ public class RequestMatchingRule implements Rule<BidRequest, RequestResultContex
     @Override
     public RuleResult<BidRequest> process(BidRequest bidRequest, RequestResultContext context) {
         return SetUtils.intersection(schemaFunctionNames, RequestSpecification.PER_IMP_SCHEMA_FUNCTIONS).isEmpty()
-                ? processRule(bidRequest, GLOBAL_IMP_ID, context.getAuctionContext())
-                : processPerImpRule(bidRequest, context);
+                ? processRule(bidRequest, Granularity.Request.instance(), context.getAuctionContext())
+                : processPerImpRule(bidRequest, context.getAuctionContext());
     }
 
-    private RuleResult<BidRequest> processPerImpRule(BidRequest bidRequest, RequestResultContext context) {
+    private RuleResult<BidRequest> processPerImpRule(BidRequest bidRequest, AuctionContext context) {
         return bidRequest.getImp().stream().reduce(
                 RuleResult.unaltered(bidRequest),
                 (result, imp) -> result.mergeWith(
-                        processRule(
-                                result.getUpdateResult().getValue(),
-                                imp.getId(),
-                                context.getAuctionContext())),
+                        processRule(result.getUpdateResult().getValue(), new Granularity.Imp(imp.getId()), context)),
                 RuleResult::mergeWith);
     }
 
-    private RuleResult<BidRequest> processRule(BidRequest bidRequest, String impId, AuctionContext auctionContext) {
-        final RequestSchemaContext schemaFunctionContext = RequestSchemaContext.of(bidRequest, impId, datacenter);
+    private RuleResult<BidRequest> processRule(BidRequest bidRequest,
+                                               Granularity granularity,
+                                               AuctionContext auctionContext) {
+
+        final RequestSchemaContext schemaFunctionContext = RequestSchemaContext.of(bidRequest, granularity, datacenter);
 
         final List<SchemaFunctionHolder<RequestSchemaContext>> schemaFunctions = schema.getFunctions();
         final List<String> matchers = schemaFunctions.stream()
@@ -95,7 +93,7 @@ public class RequestMatchingRule implements Rule<BidRequest, RequestResultContex
 
         final InfrastructureArguments<RequestResultContext> infrastructureArguments =
                 InfrastructureArguments.<RequestResultContext>builder()
-                        .context(RequestResultContext.of(auctionContext, impId))
+                        .context(RequestResultContext.of(auctionContext, granularity))
                         .schemaFunctionResults(mergeWithSchema(schema, matchers))
                         .schemaFunctionMatches(mergeWithSchema(schema, lookupResult.getMatches()))
                         .ruleFired(ruleConfig.getCondition())
@@ -107,7 +105,10 @@ public class RequestMatchingRule implements Rule<BidRequest, RequestResultContex
                 RuleResult.unaltered(bidRequest),
                 (result, action) -> result.mergeWith(
                         action.getFunction().apply(
-                                ResultFunctionArguments.of(bidRequest, action.getConfig(), infrastructureArguments))),
+                                ResultFunctionArguments.of(
+                                        result.getUpdateResult().getValue(),
+                                        action.getConfig(),
+                                        infrastructureArguments))),
                 RuleResult::mergeWith);
     }
 
