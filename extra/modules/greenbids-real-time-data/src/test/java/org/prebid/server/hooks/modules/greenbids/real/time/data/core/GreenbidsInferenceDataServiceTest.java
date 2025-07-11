@@ -25,9 +25,7 @@ import java.net.InetAddress;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.List;
-import java.util.function.UnaryOperator;
 
-import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -73,8 +71,7 @@ public class GreenbidsInferenceDataServiceTest {
                 .ext(givenImpExt())
                 .banner(banner)
                 .build();
-        final Device device = givenDevice(identity());
-        final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device);
+        final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp));
 
         final CountryResponse countryResponse = mock(CountryResponse.class);
 
@@ -114,8 +111,9 @@ public class GreenbidsInferenceDataServiceTest {
                 .ext(givenImpExt())
                 .banner(banner)
                 .build();
-        final Device device = givenDevice(identity(), "FRA");
-        final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device);
+        final BidRequest bidRequest = givenBidRequest(
+                request -> request.device(givenDevice("FRA")),
+                List.of(imp));
 
         final ZonedDateTime timestamp = ZonedDateTime.now(ZoneId.of("UTC"));
         final Integer expectedHourBucket = timestamp.getHour();
@@ -151,8 +149,7 @@ public class GreenbidsInferenceDataServiceTest {
                 .ext(givenImpExt())
                 .banner(banner)
                 .build();
-        final Device device = givenDeviceWithoutIp(identity());
-        final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device);
+        final BidRequest bidRequest = givenBidRequest(request -> request.device(givenDeviceWithoutIp()), List.of(imp));
 
         final ZonedDateTime timestamp = ZonedDateTime.now(ZoneId.of("UTC"));
         final Integer expectedHourBucket = timestamp.getHour();
@@ -187,8 +184,7 @@ public class GreenbidsInferenceDataServiceTest {
                 .ext(givenImpExt())
                 .banner(banner)
                 .build();
-        final Device device = givenDevice(identity());
-        final BidRequest bidRequest = givenBidRequest(request -> request, List.of(imp), device);
+        final BidRequest bidRequest = givenBidRequest(request -> request.device(givenDevice()), List.of(imp));
 
         when(databaseReader.country(any(InetAddress.class))).thenThrow(new GeoIp2Exception("GeoIP failure"));
 
@@ -198,9 +194,9 @@ public class GreenbidsInferenceDataServiceTest {
                 .hasMessageContaining("Failed to fetch country from geoLite DB");
     }
 
-    private Device givenDeviceWithoutIp(UnaryOperator<Device.DeviceBuilder> deviceCustomizer) {
+    private Device givenDeviceWithoutIp() {
         final String userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36"
                 + " (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36";
-        return deviceCustomizer.apply(Device.builder().ua(userAgent)).build();
+        return Device.builder().ua(userAgent).build();
     }
 }
