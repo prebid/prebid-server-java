@@ -21,6 +21,7 @@ import org.prebid.server.hooks.v1.analytics.Activity;
 import org.prebid.server.model.UpdateResult;
 import org.prebid.server.proto.openrtb.ext.response.seatnonbid.NonBid;
 import org.prebid.server.proto.openrtb.ext.response.seatnonbid.SeatNonBid;
+import org.prebid.server.util.StreamUtil;
 import org.springframework.util.CollectionUtils;
 
 import java.util.ArrayList;
@@ -70,7 +71,7 @@ public abstract class FilterBiddersFunction implements ResultFunction<BidRequest
             seatNonBid.addAll(toSeatNonBid(result, rejectionReason));
         }
 
-        final UpdateResult<BidRequest> updateResult = removedBidders.isEmpty()
+        final UpdateResult<BidRequest> updateResult = !removedBidders.isEmpty()
                 ? UpdateResult.updated(bidRequest.toBuilder().imp(updatedImps).build())
                 : UpdateResult.unaltered(bidRequest);
 
@@ -96,7 +97,11 @@ public abstract class FilterBiddersFunction implements ResultFunction<BidRequest
     }
 
     protected void removeBidder(ObjectNode impExt, String bidder) {
-        ((ObjectNode) impExt.get("prebid").get("bidder")).remove(bidder);
+        final ObjectNode biddersNode = (ObjectNode) (impExt.get("prebid").get("bidder"));
+        StreamUtil.asStream(biddersNode.fieldNames())
+                .filter(bidder::equalsIgnoreCase)
+                .findAny()
+                .ifPresent(biddersNode::remove);
     }
 
     @Override
