@@ -20,7 +20,6 @@ import org.prebid.server.settings.model.AccountEventsConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.settings.model.AccountStatus;
-import org.prebid.server.settings.model.BidValidationEnforcement;
 import org.prebid.server.settings.model.EnabledForRequestType;
 import org.prebid.server.settings.model.EnforcePurpose;
 import org.prebid.server.settings.model.Purpose;
@@ -47,6 +46,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.prebid.server.settings.model.BidValidationEnforcement.enforce;
 
 @ExtendWith(MockitoExtension.class)
 public class FileApplicationSettingsTest extends VertxTest {
@@ -96,7 +96,8 @@ public class FileApplicationSettingsTest extends VertxTest {
                         + "truncate-target-attr: 20,"
                         + "default-integration: web,"
                         + "bid-validations: {"
-                        + "banner-creative-max-size: enforce"
+                        + "banner-creative-max-size: enforce,"
+                        + "ad-podding: enforce"
                         + "},"
                         + "events: {"
                         + "enabled: true"
@@ -151,7 +152,7 @@ public class FileApplicationSettingsTest extends VertxTest {
                         .videoCacheTtl(100)
                         .truncateTargetAttr(20)
                         .defaultIntegration("web")
-                        .bidValidations(AccountBidValidationConfig.of(BidValidationEnforcement.enforce))
+                        .bidValidations(AccountBidValidationConfig.of(enforce, enforce))
                         .events(AccountEventsConfig.of(true))
                         .build())
                 .privacy(AccountPrivacyConfig.builder()

@@ -19,6 +19,7 @@ public class BidderInfoCreator {
         return BidderInfo.create(
                 configurationProperties.getEnabled(),
                 configurationProperties.getOrtbVersion(),
+                configurationProperties.getAdpodSupported(),
                 configurationProperties.getDebug().getAllow(),
                 configurationProperties.getEndpoint(),
                 aliasOf,

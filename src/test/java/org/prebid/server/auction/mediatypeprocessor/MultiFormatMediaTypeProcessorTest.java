@@ -267,6 +267,7 @@ public class MultiFormatMediaTypeProcessorTest extends VertxTest {
                 true,
                 OrtbVersion.ORTB_2_6,
                 false,
+                false,
                 "endpoint",
                 null,
                 "maintainerEmail",
