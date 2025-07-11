@@ -8,7 +8,7 @@ import jakarta.persistence.GeneratedValue
 import jakarta.persistence.Id
 import jakarta.persistence.Table
 import org.prebid.server.functional.model.db.typeconverter.StoredAuctionResponseConfigTypeConverter
-import org.prebid.server.functional.model.db.typeconverter.StoredBidResponseConfigTypeConverter
+import org.prebid.server.functional.model.db.typeconverter.BidResponseConfigTypeConverter
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.SeatBid
 
@@ -29,6 +29,6 @@ class StoredResponse {
     @Convert(converter = StoredAuctionResponseConfigTypeConverter)
     SeatBid storedAuctionResponse
     @Column(name = "storedBidResponse")
-    @Convert(converter = StoredBidResponseConfigTypeConverter)
+    @Convert(converter = BidResponseConfigTypeConverter)
     BidResponse storedBidResponse
 }

@@ -7,7 +7,7 @@ import jakarta.persistence.Entity
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.Id
 import jakarta.persistence.Table
-import org.prebid.server.functional.model.db.typeconverter.StoredRequestConfigTypeConverter
+import org.prebid.server.functional.model.db.typeconverter.BidRequestConfigTypeConverter
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
 
@@ -27,7 +27,7 @@ class StoredRequest {
     @Column(name = "reqId")
     String requestId
     @Column(name = "requestData")
-    @Convert(converter = StoredRequestConfigTypeConverter)
+    @Convert(converter = BidRequestConfigTypeConverter)
     BidRequest requestData
 
     static StoredRequest getStoredRequest(AmpRequest ampRequest, BidRequest storedRequest) {
