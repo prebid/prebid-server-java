@@ -36,6 +36,7 @@ public class AccountConfigParser {
         }
 
         return PerStageRule.builder()
+                .version(parsedConfig.getTimestamp())
                 .processedAuctionRequestRule(processedAuctionRequestStageParser.parse(parsedConfig))
                 .build();
     }
