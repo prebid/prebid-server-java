@@ -77,7 +77,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         def response = floorsPbsService.sendAmpRequest(ampRequest)
 
         then: "PBS should suppress bids lower than floorRuleValue"
-        def bidPrice = getRoundedTargetingValueWithDefaultPrecision(floorValue)
+        def bidPrice = getRoundedTargetingValueWithDownPrecision(floorValue)
         verifyAll(response) {
             targeting["hb_pb_generic"] == bidPrice
             targeting["hb_pb"] == bidPrice

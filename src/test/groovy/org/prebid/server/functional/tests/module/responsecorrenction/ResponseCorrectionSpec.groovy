@@ -1,5 +1,9 @@
 package org.prebid.server.functional.tests.module.responsecorrenction
 
+import org.prebid.server.functional.model.config.AccountAuctionConfig
+import org.prebid.server.functional.model.config.AccountCacheConfig
+import org.prebid.server.functional.model.config.AccountConfig
+import org.prebid.server.functional.model.config.AccountHooksConfiguration
 import org.prebid.server.functional.model.config.AppVideoHtml
 import org.prebid.server.functional.model.config.PbResponseCorrection
 import org.prebid.server.functional.model.db.Account
@@ -562,6 +566,61 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
 
         and: "Response shouldn't contain warnings"
         assert !response.ext.warnings
+    }
+
+    def "PBS should modify response when requested video impression respond with invalid adm VAST keyword and disabled cache config"() {
+        given: "Start up time"
+        def start = Instant.now()
+
+        and: "Default bid request with APP and Video imp"
+        def bidRequest = getDefaultVideoRequest(APP)
+
+        and: "Set bidder response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid[0].bid[0].setAdm(PBSUtils.getRandomCase(admValue))
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        and: "Save account with enabled response correction module"
+        def accountWithResponseCorrectionModule = accountConfigWithResponseCorrectionModule(bidRequest).tap {
+            config.auction = new AccountAuctionConfig(cache: new AccountCacheConfig(enabled: false))
+        }
+        accountDao.save(accountWithResponseCorrectionModule)
+
+        when: "PBS processes auction request"
+        def response = pbsServiceWithResponseCorrectionModule.sendAuctionRequest(bidRequest)
+
+        then: "PBS should emit log"
+        def logsByTime = pbsServiceWithResponseCorrectionModule.getLogsByTime(start)
+        def bidId = bidResponse.seatbid[0].bid[0].id
+        def responseCorrection = getLogsByText(logsByTime, bidId)
+        assert responseCorrection.size() == 1
+        assert responseCorrection.any {
+            it.contains("Bid $bidId of bidder generic: changing media type to banner" as String)
+        }
+
+        and: "Response should contain seatBid"
+        assert response.seatbid.size() == 1
+
+        and: "Response should contain single seatBid with proper media type"
+        assert response.seatbid.bid.ext.prebid.type.flatten() == [BANNER]
+
+        and: "Response should contain single seatBid with proper meta media type"
+        assert response.seatbid.bid.ext.prebid.meta.mediaType.flatten() == [VIDEO.value]
+
+        and: "Response shouldn't contain errors"
+        assert !response.ext.errors
+
+        and: "Response shouldn't contain warnings"
+        assert !response.ext.warnings
+
+        where:
+        admValue << [
+                "<${' ' * PBSUtils.getRandomNumber(0, OPTIMAL_MAX_LENGTH)}VAST${PBSUtils.randomString}",
+                "<${' ' * PBSUtils.getRandomNumber(0, OPTIMAL_MAX_LENGTH)}VAST",
+                "<${' ' * PBSUtils.getRandomNumber(0, OPTIMAL_MAX_LENGTH)}VAST>",
+                "<${PBSUtils.randomString}VAST${' ' * PBSUtils.getRandomNumber(1, OPTIMAL_MAX_LENGTH)}"
+        ]
     }
 
     private static Account accountConfigWithResponseCorrectionModule(BidRequest bidRequest,

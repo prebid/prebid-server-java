@@ -376,10 +376,14 @@ class StoredResponseSpec extends BaseSpec {
         }
     }
 
-    private static final List<SeatBid> convertToComparableSeatBid(List<SeatBid> seatBid) {
-        seatBid*.tap {
-            it.bid*.ext = null
-            it.group = null
+    private static List<SeatBid> convertToComparableSeatBid(List<SeatBid> seatBids) {
+        seatBids*.tap { seatBid ->
+            seatBid.bid*.tap { bid ->
+                bid.ext = null
+                bid.price = bid.price.setScale(3)
+            }
+            seatBid.group = null
         }
+        seatBids
     }
 }

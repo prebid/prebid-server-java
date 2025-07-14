@@ -18,6 +18,7 @@ import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.MediaType
 import org.prebid.server.functional.util.PBSUtils
 
+import java.math.RoundingMode
 import java.time.Instant
 
 import static org.mockserver.model.HttpStatusCode.BAD_REQUEST_400
@@ -1172,5 +1173,9 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
     private static int getRuleSize(BidRequest bidRequest) {
         bidRequest?.ext?.prebid?.floors?.data?.modelGroups[0].values.size()
+    }
+
+    private static BigDecimal getAdjustedValue(BigDecimal floorValue, BigDecimal bidAdjustment) {
+        floorValue.divide(bidAdjustment, FLOOR_VALUE_PRECISION, RoundingMode.HALF_UP)
     }
 }

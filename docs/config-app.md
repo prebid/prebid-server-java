@@ -14,6 +14,7 @@ This section can be extended against standard [Spring configuration](https://doc
 This parameter exists to allow to change the location of the directory Vert.x will create because it will and there is no way to make it not.
 - `vertx.init-timeout-ms` - time to wait for asynchronous initialization steps completion before considering them stuck. When exceeded - exception is thrown and Prebid Server stops.
 - `vertx.enable-per-client-endpoint-metrics` - enables HTTP client metrics per destination endpoint (`host:port`)
+- `vertx.round-robin-inet-address` - enables round-robin inet address selection of the ip address to use
 
 ## Server
 - `server.max-headers-size` - set the maximum length of all headers.
@@ -284,6 +285,9 @@ For `JVM` metrics
 - `cache.scheme` - set the external Cache Service protocol: `http`, `https`, etc.
 - `cache.host` - set the external Cache Service destination in format `host:port`.
 - `cache.path` - set the external Cache Service path, for example `/cache`.
+- `cache.internal.scheme` - set the internal Cache Service protocol: `http`, `https`, etc., the internal scheme get priority over the external one when provided.
+- `cache.internal.host` - set the internal Cache Service destination in format `host:port`, the internal port get priority over the external one when provided.
+- `cache.internal.path` - set the internal Cache Service path, for example `/cache`, the internal path get priority over the external one when provided.
 - `storage.pbc.enabled` - If set to true, this will allow storing modules’ data in third-party storage.
 - `storage.pbc.path` - set the external Cache Service path for module caching, for example `/pbc-storage`.
 - `cache.api-key-secured` - if set to `true`, will cause Prebid Server to add a special API key header to Prebid Cache requests.
