@@ -1,6 +1,7 @@
 package org.prebid.server.functional.model.request.auction
 
 import groovy.transform.ToString
+import org.prebid.server.functional.util.PBSUtils
 
 @ToString(includeNames = true, ignoreNulls = true)
 class Device {
@@ -38,4 +39,16 @@ class Device {
     String macsha1
     String macmd5
     DeviceExt ext
+
+    static Device getDefault() {
+        new Device().tap {
+            didsha1 = PBSUtils.randomString
+            didmd5 = PBSUtils.randomString
+            dpidsha1 = PBSUtils.randomString
+            ifa = PBSUtils.randomString
+            macsha1 = PBSUtils.randomString
+            macmd5 = PBSUtils.randomString
+            dpidmd5 = PBSUtils.randomString
+        }
+    }
 }
