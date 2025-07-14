@@ -122,10 +122,17 @@ public class SettingsConfiguration {
                 @Value("${settings.http.endpoint}") String endpoint,
                 @Value("${settings.http.amp-endpoint}") String ampEndpoint,
                 @Value("${settings.http.video-endpoint}") String videoEndpoint,
-                @Value("${settings.http.category-endpoint}") String categoryEndpoint) {
+                @Value("${settings.http.category-endpoint}") String categoryEndpoint,
+                @Value("${settings.http.rfc3986-compatible:false}") boolean isRfc3986Compatible) {
 
-            return new HttpApplicationSettings(httpClient, mapper, endpoint, ampEndpoint, videoEndpoint,
-                    categoryEndpoint);
+            return new HttpApplicationSettings(
+                    httpClient,
+                    mapper,
+                    endpoint,
+                    ampEndpoint,
+                    videoEndpoint,
+                    categoryEndpoint,
+                    isRfc3986Compatible);
         }
     }
 
