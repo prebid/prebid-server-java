@@ -1,0 +1,21 @@
+adapters:
+  smoot:
+    endpoint: 'https://endpoint1.smoot.ai/pserver'
+    meta-info:
+      maintainer-email: 'info@smoot.ai'
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 0
+    usersync:
+      cookie-family-name: smoot
+      redirect:
+        support-cors: false
+        url: 'https://usync.smxconv.com/pbserver?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redir={{redirect_url}}'
+        uid-macro: '[UID]'
