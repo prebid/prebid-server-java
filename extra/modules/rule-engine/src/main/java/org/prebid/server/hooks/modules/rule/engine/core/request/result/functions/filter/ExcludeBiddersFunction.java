@@ -25,7 +25,7 @@ public class ExcludeBiddersFunction extends FilterBiddersFunction {
         return StreamUtil.asStream(biddersNode.fieldNames())
                 .filter(bidder -> FilterUtils.containsIgnoreCase(bidders.stream(), bidder))
                 .filter(bidder ->
-                        ifSyncedId == null || ifSyncedId != isBidderIdSynced(bidder.toLowerCase(), uidsCookie))
+                        ifSyncedId == null || ifSyncedId == isBidderIdSynced(bidder.toLowerCase(), uidsCookie))
                 .collect(Collectors.toSet());
     }
 
