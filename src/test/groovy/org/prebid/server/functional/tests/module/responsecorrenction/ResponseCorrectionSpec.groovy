@@ -588,10 +588,10 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         accountDao.save(accountWithResponseCorrectionModule)
 
         when: "PBS processes auction request"
-        def response = pbsServiceWithResponseCorrectionModule.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS should emit log"
-        def logsByTime = pbsServiceWithResponseCorrectionModule.getLogsByTime(start)
+        def logsByTime = pbsServiceWithMultipleModules.getLogsByTime(start)
         def bidId = bidResponse.seatbid[0].bid[0].id
         def responseCorrection = getLogsByText(logsByTime, bidId)
         assert responseCorrection.size() == 1
