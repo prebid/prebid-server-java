@@ -34,7 +34,7 @@ class Bidder extends NetworkScaffolding {
         request().withPath(endpoint)
     }
 
-    static HttpRequest getRequest(String bidRequestId, String requestMatchPath) {
+    HttpRequest getRequest(String bidRequestId, String requestMatchPath) {
         request().withPath(endpoint)
                  .withBody(jsonPath("\$[?(@.$requestMatchPath == '$bidRequestId')]"))
     }

@@ -36,10 +36,6 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         pbsServiceFactory.removeContainer(FLOORS_CONFIG + PbsConfig.currencyConverterConfig)
     }
 
-    def cleanupSpec() {
-        pbsServiceFactory.removeContainer(FLOORS_CONFIG + CURRENCY_CONVERTER_CONFIG)
-    }
-
     def "PBS should update bidFloor, bidFloorCur for signalling when request.cur is specified"() {
         given: "Default BidRequest with cur"
         def bidRequest = bidRequestWithFloors.tap {

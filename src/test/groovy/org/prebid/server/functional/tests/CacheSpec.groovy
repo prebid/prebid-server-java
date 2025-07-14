@@ -127,8 +127,6 @@ class CacheSpec extends BaseSpec {
         given: "Pbs config with disabled api-key-secured and pbc.api.key"
         def apiKey = PBSUtils.randomString
         def pbsConfig = ['pbc.api.key': apiKey, 'cache.api-key-secured': 'false']
-        def pbsConfig = ['pbc.api.key'          : apiKey,
-                         'cache.api-key-secured': 'false']
         def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default BidRequest with cache, targeting"
