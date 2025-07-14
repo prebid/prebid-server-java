@@ -21,7 +21,7 @@
             "prebid": {
               "type": "banner",
               "meta": {
-                "adaptercode": "smartadserver"
+                "adaptercode": "equativ"
               }
             },
             "origbidcpm": 0.5
@@ -29,14 +29,14 @@
           "mtype": 1
         }
       ],
-      "seat": "smartadserver",
+      "seat": "equativ",
       "group": 0
     }
   ],
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "smartadserver": "{{ smartadserver.response_time_ms }}"
+      "equativ": "{{ equativ.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 0
