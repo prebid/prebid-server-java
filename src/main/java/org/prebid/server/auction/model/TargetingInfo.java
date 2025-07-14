@@ -15,7 +15,5 @@ public class TargetingInfo {
 
     boolean isWinningBid;
 
-    boolean isBidderWinningBid;
-
     boolean isAddTargetBidderCode;
 }

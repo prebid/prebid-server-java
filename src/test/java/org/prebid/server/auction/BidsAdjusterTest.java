@@ -65,7 +65,7 @@ public class BidsAdjusterTest extends VertxTest {
 
         given(priceFloorEnforcer.enforce(any(), any(), any(), any())).willAnswer(inv -> inv.getArgument(1));
         given(dsaEnforcer.enforce(any(), any(), any())).willAnswer(inv -> inv.getArgument(1));
-        given(bidAdjustmentsProcessor.enrichWithAdjustedBids(any(), any(), any()))
+        given(bidAdjustmentsProcessor.enrichWithAdjustedBids(any(), any()))
                 .willAnswer(inv -> inv.getArgument(0));
 
         target = new BidsAdjuster(responseBidValidator, priceFloorEnforcer, bidAdjustmentsProcessor, dsaEnforcer);
@@ -88,7 +88,7 @@ public class BidsAdjusterTest extends VertxTest {
         final BidderBid adjustedBid =
                 givenBidderBid(Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.TEN).build(), "USD");
 
-        given(bidAdjustmentsProcessor.enrichWithAdjustedBids(any(), any(), any()))
+        given(bidAdjustmentsProcessor.enrichWithAdjustedBids(any(), any()))
                 .willReturn(AuctionParticipation.builder()
                         .bidder("bidder1")
                         .bidderResponse(BidderResponse.of(

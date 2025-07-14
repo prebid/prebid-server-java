@@ -1,6 +1,5 @@
 package org.prebid.server.functional.tests.pricefloors
 
-import org.prebid.server.functional.model.Currency
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountConfig
@@ -18,8 +17,8 @@ import org.prebid.server.functional.model.request.auction.ExtPrebidFloors
 import org.prebid.server.functional.model.request.auction.FetchStatus
 import org.prebid.server.functional.model.request.auction.Prebid
 import org.prebid.server.functional.model.request.auction.Video
-import org.prebid.server.functional.model.response.currencyrates.CurrencyRatesResponse
 import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.testcontainers.scaffolding.CurrencyConversion
 import org.prebid.server.functional.testcontainers.scaffolding.FloorsProvider
 import org.prebid.server.functional.tests.BaseSpec
 import org.prebid.server.functional.util.PBSUtils
@@ -59,13 +58,15 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
         "Price floors processing failed: $reason. Following parsing of request price floors is failed: $details"
     }
 
+    protected static final CurrencyConversion currencyConversion = new CurrencyConversion(networkServiceContainer)
+
+    protected static final int FLOOR_VALUE_PRECISION = 4
     private static final int DEFAULT_MODEL_WEIGHT = 1
-    private static final int CURRENCY_CONVERSION_PRECISION = 3
-    private static final int FLOOR_VALUE_PRECISION = 4
 
     protected final PrebidServerService floorsPbsService = pbsServiceFactory.getService(FLOORS_CONFIG + GENERIC_ALIAS_CONFIG)
 
     def setupSpec() {
+        currencyConversion.setCurrencyConversionRatesResponse()
         floorsProvider.setResponse()
     }
 
@@ -119,11 +120,6 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
         PBSUtils.getRandomNumber(DEFAULT_MODEL_WEIGHT, MAX_MODEL_WEIGHT)
     }
 
-    static BigDecimal getAdjustedValue(BigDecimal floorValue, BigDecimal bidAdjustment) {
-        def adjustedValue = floorValue / bidAdjustment
-        PBSUtils.roundDecimal(adjustedValue, FLOOR_VALUE_PRECISION)
-    }
-
     static BidRequest getBidRequestWithMultipleMediaTypes() {
         BidRequest.defaultBidRequest.tap { imp[0].video = Video.defaultVideo }
     }
@@ -157,13 +153,5 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
 
     protected BigDecimal getRoundedFloorValue(BigDecimal floorValue) {
         floorValue.setScale(FLOOR_VALUE_PRECISION, RoundingMode.HALF_EVEN)
-    }
-
-    protected BigDecimal getPriceAfterCurrencyConversion(BigDecimal value,
-                                                         Currency currencyFrom, Currency currencyTo,
-                                                         CurrencyRatesResponse currencyRatesResponse) {
-        def currencyRate = currencyRatesResponse.rates[currencyFrom.value][currencyTo.value]
-        def convertedValue = value * currencyRate
-        convertedValue.setScale(CURRENCY_CONVERSION_PRECISION, RoundingMode.HALF_EVEN)
     }
 }

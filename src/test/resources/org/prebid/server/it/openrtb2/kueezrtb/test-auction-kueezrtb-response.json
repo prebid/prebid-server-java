@@ -1,0 +1,43 @@
+{
+  "id": "some-request-id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "some-bid-id",
+          "impid": "some-impression-id",
+          "exp": 300,
+          "price": 1,
+          "adm": "<div>Some creative</div>",
+          "adid": "some-ad-id",
+          "cid": "test",
+          "crid": "some-creative-id",
+          "w": 320,
+          "h": 250,
+          "mtype": 1,
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "meta": {
+                "adaptercode": "kueezrtb"
+              }
+            },
+            "origbidcpm": 1
+          }
+        }
+      ],
+      "seat": "kueezrtb",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "kueezrtb": "{{ kueezrtb.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}

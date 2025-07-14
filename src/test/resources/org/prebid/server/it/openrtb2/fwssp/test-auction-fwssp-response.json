@@ -1,0 +1,40 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "12345_fwssp-test_1",
+          "impid": "imp-1",
+          "exp": 1500,
+          "price": 1.0,
+          "adid": "7857",
+          "adm": "<?xml version='1.0' encoding='UTF-8'?><VAST version='2.0'></VAST>",
+          "cid": "4001",
+          "crid": "7857",
+          "ext": {
+            "prebid": {
+              "type": "video",
+              "meta": {
+                "adaptercode": "fwssp"
+              }
+            },
+            "origbidcpm": 1
+          }
+        }
+      ],
+      "seat": "fwssp",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "fwssp": "{{ fwssp.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}

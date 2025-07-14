@@ -516,25 +516,6 @@ public class NoSignalBidderPriceFloorAdjusterTest extends VertxTest {
         verify(delegate).adjustForImp(givenImp, "bidder", givenBidRequest, givenAccount, debugWarnings);
     }
 
-    @Test
-    public void revertAdjustmentForImpShouldAlwaysAndOnlyCallDelegate() {
-        // given
-        final BidRequest givenBidRequest = BidRequest.builder().build();
-        final Imp givenImp = givenImp();
-        final Account givenAccount = Account.builder().build();
-
-        final Price expectedPrice = Price.of("EUR", BigDecimal.ONE);
-
-        given(delegate.revertAdjustmentForImp(givenImp, "bidder", givenBidRequest, givenAccount))
-                .willReturn(expectedPrice);
-
-        // when
-        final Price actual = target.revertAdjustmentForImp(givenImp, "bidder", givenBidRequest, givenAccount);
-
-        // then
-        assertThat(actual).isSameAs(expectedPrice);
-    }
-
     private static BidRequest givenBidRequest(List<String> modelGroupBidders,
                                               List<String> dataBidders,
                                               List<String> enforcementBidders) {
