@@ -10,7 +10,7 @@
       "ext": {
         "prebid": {
           "bidder": {
-            "smartadserver": {
+            "equativ": {
               "siteId": 1,
               "pageId": 2,
               "formatId": 3,
