@@ -9,7 +9,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.auction.gpp.model.GppContext;
 import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.hooks.modules.optable.targeting.model.OptableAttributes;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
 import org.prebid.server.hooks.modules.optable.targeting.v1.BaseOptableTest;
@@ -34,9 +33,6 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
     @Mock(strictness = LENIENT)
     private GppContext gppContext;
 
-    @Mock(strictness = LENIENT)
-    private GeoInfo geoInfo;
-
     @Mock
     private OptableTargetingProperties properties;
 
@@ -57,8 +53,8 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
         final AuctionContext auctionContext = givenAuctionContext(givenBidRequest(), tcfContext, gppContext);
 
         // when
-        final OptableAttributes result = OptableAttributesResolver.resolveAttributes(auctionContext,
-                properties.getTimeout());
+        final OptableAttributes result = OptableAttributesResolver.resolveAttributes(
+                auctionContext, properties.getTimeout());
 
         // then
         assertThat(result).isNotNull()
@@ -78,8 +74,8 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
         final AuctionContext auctionContext = givenAuctionContext(givenBidRequest(), tcfContext, gppContext);
 
         // when
-        final OptableAttributes result = OptableAttributesResolver.resolveAttributes(auctionContext,
-                properties.getTimeout());
+        final OptableAttributes result = OptableAttributesResolver.resolveAttributes(
+                auctionContext, properties.getTimeout());
 
         // then
         assertThat(result).isNotNull()
@@ -99,8 +95,8 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
         final AuctionContext auctionContext = givenAuctionContext(givenBidRequest(), tcfContext, gppContext);
 
         // when
-        final OptableAttributes result = OptableAttributesResolver.resolveAttributes(auctionContext,
-                properties.getTimeout());
+        final OptableAttributes result = OptableAttributesResolver.resolveAttributes(
+                auctionContext, properties.getTimeout());
 
         // then
         assertThat(result).isNotNull()
@@ -109,24 +105,11 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
                 .returns(Set.of(1), OptableAttributes::getGppSid);
     }
 
-    public AuctionContext givenAuctionContext(TcfContext tcfContext) {
-        return AuctionContext.builder()
-                .privacyContext(PrivacyContext.of(Privacy.builder().build(), tcfContext,
-                        "8.8.8.8")).build();
-    }
-
-    public AuctionContext givenAuctionContext(GppContext gppContext) {
-        return AuctionContext.builder().gppContext(gppContext).build();
-    }
-
     public AuctionContext givenAuctionContext(BidRequest bidRequest, TcfContext tcfContext, GppContext gppContext) {
         return AuctionContext.builder()
                 .bidRequest(bidRequest)
                 .privacyContext(PrivacyContext.of(Privacy.builder().build(), tcfContext, "8.8.8.8"))
-                .gppContext(gppContext).build();
-    }
-
-    public AuctionContext givenAuctionContext(GeoInfo geoInfo) {
-        return AuctionContext.builder().geoInfo(geoInfo).build();
+                .gppContext(gppContext)
+                .build();
     }
 }

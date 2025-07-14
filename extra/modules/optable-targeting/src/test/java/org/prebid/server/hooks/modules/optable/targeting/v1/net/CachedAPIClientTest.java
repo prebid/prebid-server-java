@@ -8,7 +8,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.hooks.modules.optable.targeting.model.Query;
-import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.User;
 import org.prebid.server.hooks.modules.optable.targeting.v1.BaseOptableTest;
@@ -27,22 +26,19 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 public class CachedAPIClientTest extends BaseOptableTest {
 
-    @Mock(strictness = Mock.Strictness.LENIENT)
-    private Cache cache;
-
     @Mock
     private APIClientImpl apiClient;
 
     @Mock(strictness = Mock.Strictness.LENIENT)
+    private Cache cache;
+
+    private CachedAPIClient target;
+
+    @Mock(strictness = Mock.Strictness.LENIENT)
     private Timeout timeout;
-
-    private APIClient target;
-
-    private OptableTargetingProperties properties;
 
     @BeforeEach
     public void setUp() {
-        properties = givenOptableTargetingProperties(true);
         target = new CachedAPIClient(apiClient, cache, false);
         when(timeout.remaining()).thenReturn(1000L);
     }
@@ -58,7 +54,10 @@ public class CachedAPIClientTest extends BaseOptableTest {
 
         // when
         final Future<TargetingResult> targetingResult = target.getTargeting(
-                properties, query, List.of("8.8.8.8"), timeout);
+                givenOptableTargetingProperties(true),
+                query,
+                List.of("8.8.8.8"),
+                timeout);
 
         // then
         final User user = targetingResult.result().getOrtb2().getUser();
@@ -81,7 +80,10 @@ public class CachedAPIClientTest extends BaseOptableTest {
 
         // when
         final Future<TargetingResult> targetingResult = target.getTargeting(
-                properties, query, List.of("8.8.8.8"), timeout);
+                givenOptableTargetingProperties(true),
+                query,
+                List.of("8.8.8.8"),
+                timeout);
 
         // then
         final User user = targetingResult.result().getOrtb2().getUser();
@@ -102,7 +104,10 @@ public class CachedAPIClientTest extends BaseOptableTest {
 
         // when
         final Future<TargetingResult> targetingResult = target.getTargeting(
-                properties, query, List.of("8.8.8.8"), timeout);
+                givenOptableTargetingProperties(true),
+                query,
+                List.of("8.8.8.8"),
+                timeout);
 
         // then
         final User user = targetingResult.result().getOrtb2().getUser();
@@ -119,15 +124,17 @@ public class CachedAPIClientTest extends BaseOptableTest {
     @Test
     public void shouldNotFailWhenApiClientIsFailed() {
         // given
-        properties = givenOptableTargetingProperties(true);
         final Query query = givenQuery();
         when(cache.get(any())).thenReturn(Future.failedFuture("empty"));
         when(apiClient.getTargeting(any(), any(), any(), any()))
                 .thenReturn(Future.failedFuture(new NullPointerException()));
 
         // when
-        final Future<TargetingResult> targetingResult = target.getTargeting(properties, query,
-                List.of("8.8.8.8"), timeout);
+        final Future<TargetingResult> targetingResult = target.getTargeting(
+                givenOptableTargetingProperties(true),
+                query,
+                List.of("8.8.8.8"),
+                timeout);
 
         // then
         assertThat(targetingResult.result()).isNull();
@@ -137,7 +144,6 @@ public class CachedAPIClientTest extends BaseOptableTest {
     @Test
     public void shouldCacheEmptyResultWhenCircuitBreakerIsOn() {
         // given
-        properties = givenOptableTargetingProperties(true);
         final Query query = givenQuery();
         when(cache.get(any())).thenReturn(Future.failedFuture("empty"));
         when(apiClient.getTargeting(any(), any(), any(), any()))
@@ -146,8 +152,11 @@ public class CachedAPIClientTest extends BaseOptableTest {
 
         // when
         target = new CachedAPIClient(apiClient, cache, true);
-        final Future<TargetingResult> targetingResult = target.getTargeting(properties, query,
-                List.of("8.8.8.8"), timeout);
+        final Future<TargetingResult> targetingResult = target.getTargeting(
+                givenOptableTargetingProperties(true),
+                query,
+                List.of("8.8.8.8"),
+                timeout);
 
         // then
         final TargetingResult result = targetingResult.result();

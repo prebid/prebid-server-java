@@ -1,6 +1,5 @@
 package org.prebid.server.hooks.modules.optable.targeting.v1;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.Future;
@@ -12,7 +11,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.hooks.execution.v1.auction.AuctionResponsePayloadImpl;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Audience;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.AudienceId;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.AuctionResponseValidator;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
@@ -20,8 +18,6 @@ import org.prebid.server.hooks.v1.InvocationStatus;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionResponseHook;
 import org.prebid.server.hooks.v1.auction.AuctionResponsePayload;
-import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.json.JsonMerger;
 
 import java.util.List;
 
@@ -32,16 +28,13 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
 
-    @Mock
-    AuctionResponsePayload auctionResponsePayload;
-    @Mock(strictness = LENIENT)
-    AuctionInvocationContext invocationContext;
-    private AuctionResponseValidator auctionResponseValidator;
-    private final ObjectMapper mapper = new ObjectMapper();
-    private final JsonMerger jsonMerger = new JsonMerger(new JacksonMapper(mapper));
+    private ConfigResolver configResolver;
     private AuctionResponseHook target;
 
-    private ConfigResolver configResolver;
+    @Mock
+    private AuctionResponsePayload auctionResponsePayload;
+    @Mock(strictness = LENIENT)
+    private AuctionInvocationContext invocationContext;
 
     @BeforeEach
     public void setUp() {
@@ -66,8 +59,8 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
         when(invocationContext.moduleContext()).thenReturn(givenModuleContext());
 
         // when
-        final Future<InvocationResult<AuctionResponsePayload>> future = target.call(auctionResponsePayload,
-                invocationContext);
+        final Future<InvocationResult<AuctionResponsePayload>> future =
+                target.call(auctionResponsePayload, invocationContext);
 
         // then
         assertThat(future).isNotNull();
@@ -85,13 +78,17 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
     @Test
     public void shouldReturnResultWithUpdateActionWhenAdvertiserTargetingOptionIsOn() {
         // given
-        when(invocationContext.moduleContext()).thenReturn(givenModuleContext(List.of(new Audience("provider",
-                List.of(new AudienceId("audienceId")), "keyspace", 1))));
+        when(invocationContext.moduleContext()).thenReturn(givenModuleContext(List.of(
+                new Audience(
+                        "provider",
+                        List.of(new AudienceId("audienceId")),
+                        "keyspace",
+                        1))));
         when(auctionResponsePayload.bidResponse()).thenReturn(givenBidResponse());
 
         // when
-        final Future<InvocationResult<AuctionResponsePayload>> future = target.call(auctionResponsePayload,
-                invocationContext);
+        final Future<InvocationResult<AuctionResponsePayload>> future =
+                target.call(auctionResponsePayload, invocationContext);
         final InvocationResult<AuctionResponsePayload> result = future.result();
         final BidResponse bidResponse = result
                 .payloadUpdate()
@@ -122,16 +119,16 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
     @Test
     public void shouldReturnResultWithNoActionWhenAdvertiserTargetingOptionIsOff() {
         // given
-        when(invocationContext.moduleContext()).thenReturn(givenModuleContext(List.of(new Audience("provider",
-                List.of(new AudienceId("audienceId")), "keyspace", 1))));
-        target = new OptableTargetingAuctionResponseHook(
-                configResolver,
-                mapper,
-                jsonMerger);
+        when(invocationContext.moduleContext()).thenReturn(givenModuleContext(List.of(
+                new Audience(
+                        "provider",
+                        List.of(new AudienceId("audienceId")),
+                        "keyspace",
+                        1))));
 
         // when
-        final Future<InvocationResult<AuctionResponsePayload>> future = target.call(auctionResponsePayload,
-                invocationContext);
+        final Future<InvocationResult<AuctionResponsePayload>> future =
+                target.call(auctionResponsePayload, invocationContext);
         final InvocationResult<AuctionResponsePayload> result = future.result();
 
         // then

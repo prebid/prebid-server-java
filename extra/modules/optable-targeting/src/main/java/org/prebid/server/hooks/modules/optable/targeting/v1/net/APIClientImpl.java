@@ -55,14 +55,10 @@ public class APIClientImpl implements APIClient {
         final String queryAsString = query.toQueryString();
         final MultiMap headers = headers(properties, ips);
 
-        try {
-            return httpClient.get(uri + queryAsString, headers, timeout.remaining())
-                    .compose(this::validateResponse)
-                    .map(this::parseResponse)
-                    .onFailure(exception -> logError(exception, uri));
-        } catch (Exception e) {
-            return Future.failedFuture(e);
-        }
+        return httpClient.get(uri + queryAsString, headers, timeout.remaining())
+                .compose(this::validateResponse)
+                .map(this::parseResponse)
+                .onFailure(exception -> logError(exception, uri));
     }
 
     private String resolveEndpoint(String tenant, String origin) {

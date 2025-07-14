@@ -56,13 +56,11 @@ public class BidResponseEnricherTest extends BaseOptableTest {
         assertThat(targeting.get("keyspace")).isNull();
     }
 
-    private List<Audience> givenTargeting() {
-        return List.of(
-                new Audience("provider",
-                        List.of(
-                                new AudienceId("audienceId"),
-                                new AudienceId("audienceId2")),
-                        "keyspace",
-                        1));
+    private static List<Audience> givenTargeting() {
+        return List.of(new Audience(
+                "provider",
+                List.of(new AudienceId("audienceId"), new AudienceId("audienceId2")),
+                "keyspace",
+                1));
     }
 }

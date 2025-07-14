@@ -33,8 +33,9 @@ public class CacheTest {
 
     @Mock
     private PbcStorageService pbcStorageService;
+
     @Spy
-    private JacksonMapper jacksonMapper = new JacksonMapper(ObjectMapperProvider.mapper());
+    private final JacksonMapper jacksonMapper = new JacksonMapper(ObjectMapperProvider.mapper());
 
     private final JacksonMapper mapper = new JacksonMapper(ObjectMapperProvider.mapper());
 
@@ -48,8 +49,8 @@ public class CacheTest {
     @Test
     public void cacheShouldNotCallMapperIfNoEntry() {
         // given
-        when(pbcStorageService.retrieveEntry(any(), any(), any())).thenReturn(
-                Future.succeededFuture(ModuleCacheResponse.empty()));
+        when(pbcStorageService.retrieveEntry(any(), any(), any()))
+                .thenReturn(Future.succeededFuture(ModuleCacheResponse.empty()));
 
         // when
         final TargetingResult result = target.get("key").result();
@@ -63,8 +64,10 @@ public class CacheTest {
     public void cacheShouldReturnEntry() {
         // given
         final TargetingResult targetingResult = givenTargetingResult();
-        when(pbcStorageService.retrieveEntry(any(), any(), any())).thenReturn(
-                Future.succeededFuture(ModuleCacheResponse.of("key", StorageDataType.TEXT,
+        when(pbcStorageService.retrieveEntry(any(), any(), any()))
+                .thenReturn(Future.succeededFuture(ModuleCacheResponse.of(
+                        "key",
+                        StorageDataType.TEXT,
                         mapper.encodeToString(targetingResult))));
 
         // when

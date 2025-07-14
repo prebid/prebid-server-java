@@ -14,6 +14,7 @@ import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Targeting
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.User;
 import org.prebid.server.hooks.modules.optable.targeting.v1.BaseOptableTest;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.httpclient.HttpClient;
 
 import java.util.List;
@@ -25,29 +26,21 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-public class APIClientTest extends BaseOptableTest {
-
-    private static final Double LOG_SAMPLING_RATE = 100.0;
-
-    private static final String ACCEPT_HEADER = "Accept";
-
-    private static final String AUTHORIZATION_HEADER = "Authorization";
-
-    private static final String X_FORWARDED_FOR_HEADER = "X-forwarded-for";
+public class APIClientImplTest extends BaseOptableTest {
 
     @Mock
     private HttpClient httpClient;
 
-    @Mock
-    private Timeout timeout;
+    private final JacksonMapper jacksonMapper = new JacksonMapper(mapper);
 
     private APIClient target;
 
-    private final JacksonMapper jacksonMapper = new JacksonMapper(mapper);
+    @Mock
+    private Timeout timeout;
 
     @BeforeEach
     public void setUp() {
-        target = new APIClientImpl("http://endpoint.optable.com", httpClient, jacksonMapper, LOG_SAMPLING_RATE);
+        target = new APIClientImpl("http://endpoint.optable.com", httpClient, jacksonMapper, 100);
     }
 
     @Test
@@ -57,8 +50,11 @@ public class APIClientTest extends BaseOptableTest {
                 .thenReturn(Future.succeededFuture(givenSuccessHttpResponse("targeting_response.json")));
 
         // when
-        final Future<TargetingResult> result = target.getTargeting(givenOptableTargetingProperties(false),
-                givenQuery(), List.of("8.8.8.8"), timeout);
+        final Future<TargetingResult> result = target.getTargeting(
+                givenOptableTargetingProperties(false),
+                givenQuery(),
+                List.of("8.8.8.8"),
+                timeout);
 
         // then
         assertThat(result.result()).isNotNull();
@@ -75,8 +71,11 @@ public class APIClientTest extends BaseOptableTest {
                 .thenReturn(Future.succeededFuture(givenFailHttpResponse("error_response.json")));
 
         // when
-        final Future<TargetingResult> result = target.getTargeting(givenOptableTargetingProperties(false),
-                givenQuery(), List.of("8.8.8.8"), timeout);
+        final Future<TargetingResult> result = target.getTargeting(
+                givenOptableTargetingProperties(false),
+                givenQuery(),
+                List.of("8.8.8.8"),
+                timeout);
 
         // then
         assertThat(result.result()).isNull();
@@ -89,8 +88,11 @@ public class APIClientTest extends BaseOptableTest {
                 .thenReturn(Future.succeededFuture(givenSuccessHttpResponse("plain_text_response.json")));
 
         // when
-        final Future<TargetingResult> result = target.getTargeting(givenOptableTargetingProperties(false),
-                givenQuery(), List.of("8.8.8.8"), timeout);
+        final Future<TargetingResult> result = target.getTargeting(
+                givenOptableTargetingProperties(false),
+                givenQuery(),
+                List.of("8.8.8.8"),
+                timeout);
 
         // then
         assertThat(result.result()).isNull();
@@ -99,11 +101,15 @@ public class APIClientTest extends BaseOptableTest {
     @Test
     public void shouldNotFailWhenHttpClientIsCrashed() {
         //  given
-        when(httpClient.get(any(), any(), anyLong())).thenThrow(new NullPointerException());
+        when(httpClient.get(any(), any(), anyLong()))
+                .thenReturn(Future.failedFuture(new NullPointerException()));
 
         // when
-        final Future<TargetingResult> result = target.getTargeting(givenOptableTargetingProperties(false),
-                givenQuery(), List.of("8.8.8.8"), timeout);
+        final Future<TargetingResult> result = target.getTargeting(
+                givenOptableTargetingProperties(false),
+                givenQuery(),
+                List.of("8.8.8.8"),
+                timeout);
 
         // then
         assertThat(result.result()).isNull();
@@ -112,13 +118,15 @@ public class APIClientTest extends BaseOptableTest {
     @Test
     public void shouldNotFailWhenInternalErrorOccurs() {
         //  given
-        when(httpClient.get(any(), any(), anyLong()))
-                .thenReturn(Future.succeededFuture(givenFailHttpResponse(HttpStatus.SC_INTERNAL_SERVER_ERROR,
-                        "plain_text_response.json")));
+        when(httpClient.get(any(), any(), anyLong())).thenReturn(Future.succeededFuture(
+                givenFailHttpResponse(HttpStatus.SC_INTERNAL_SERVER_ERROR, "plain_text_response.json")));
 
         // when
-        final Future<TargetingResult> result = target.getTargeting(givenOptableTargetingProperties(false),
-                givenQuery(), List.of("8.8.8.8"), timeout);
+        final Future<TargetingResult> result = target.getTargeting(
+                givenOptableTargetingProperties(false),
+                givenQuery(),
+                List.of("8.8.8.8"),
+                timeout);
 
         // then
         assertThat(result.result()).isNull();
@@ -127,7 +135,7 @@ public class APIClientTest extends BaseOptableTest {
     @Test
     public void shouldUseAuthorizationHeaderIfApiKeyIsPresent() {
         //  given
-        target = new APIClientImpl("http://endpoint.optable.com", httpClient, jacksonMapper, LOG_SAMPLING_RATE);
+        target = new APIClientImpl("http://endpoint.optable.com", httpClient, jacksonMapper, 10);
 
         when(httpClient.get(any(), any(), anyLong()))
                 .thenReturn(Future.succeededFuture(givenFailHttpResponse(HttpStatus.SC_INTERNAL_SERVER_ERROR,
@@ -140,17 +148,16 @@ public class APIClientTest extends BaseOptableTest {
         // then
         final ArgumentCaptor<MultiMap> headersCaptor = ArgumentCaptor.forClass(MultiMap.class);
         verify(httpClient).get(any(), headersCaptor.capture(), anyLong());
-        assertThat(headersCaptor.getValue().get(ACCEPT_HEADER)).isEqualTo("application/json");
-        assertThat(headersCaptor.getValue().get(AUTHORIZATION_HEADER)).isEqualTo("Bearer key");
+        assertThat(headersCaptor.getValue().get(HttpUtil.ACCEPT_HEADER)).isEqualTo("application/json");
+        assertThat(headersCaptor.getValue().get(HttpUtil.AUTHORIZATION_HEADER)).isEqualTo("Bearer key");
         assertThat(result.result()).isNull();
     }
 
     @Test
     public void shouldNotUseAuthorizationHeaderIfApiKeyIsAbsent() {
         //  given
-        when(httpClient.get(any(), any(), anyLong()))
-                .thenReturn(Future.succeededFuture(givenFailHttpResponse(HttpStatus.SC_INTERNAL_SERVER_ERROR,
-                        "plain_text_response.json")));
+        when(httpClient.get(any(), any(), anyLong())).thenReturn(Future.succeededFuture(
+                givenFailHttpResponse(HttpStatus.SC_INTERNAL_SERVER_ERROR, "plain_text_response.json")));
 
         // when
         final Future<TargetingResult> result = target.getTargeting(
@@ -162,17 +169,16 @@ public class APIClientTest extends BaseOptableTest {
         // then
         final ArgumentCaptor<MultiMap> headersCaptor = ArgumentCaptor.forClass(MultiMap.class);
         verify(httpClient).get(any(), headersCaptor.capture(), anyLong());
-        assertThat(headersCaptor.getValue().get(ACCEPT_HEADER)).isEqualTo("application/json");
-        assertThat(headersCaptor.getValue().get(AUTHORIZATION_HEADER)).isNull();
+        assertThat(headersCaptor.getValue().get(HttpUtil.ACCEPT_HEADER)).isEqualTo("application/json");
+        assertThat(headersCaptor.getValue().get(HttpUtil.AUTHORIZATION_HEADER)).isNull();
         assertThat(result.result()).isNull();
     }
 
     @Test
     public void shouldPassThroughIpAddresses() {
         //  given
-        when(httpClient.get(any(), any(), anyLong()))
-                .thenReturn(Future.succeededFuture(givenFailHttpResponse(HttpStatus.SC_INTERNAL_SERVER_ERROR,
-                        "plain_text_response.json")));
+        when(httpClient.get(any(), any(), anyLong())).thenReturn(Future.succeededFuture(
+                givenFailHttpResponse(HttpStatus.SC_INTERNAL_SERVER_ERROR, "plain_text_response.json")));
 
         // when
         final Future<TargetingResult> result = target.getTargeting(
@@ -184,25 +190,28 @@ public class APIClientTest extends BaseOptableTest {
         // then
         final ArgumentCaptor<MultiMap> headersCaptor = ArgumentCaptor.forClass(MultiMap.class);
         verify(httpClient).get(any(), headersCaptor.capture(), anyLong());
-        assertThat(headersCaptor.getValue().getAll(X_FORWARDED_FOR_HEADER)).contains("8.8.8.8", "2001:4860:4860::8888");
+        assertThat(headersCaptor.getValue().getAll(HttpUtil.X_FORWARDED_FOR_HEADER))
+                .contains("8.8.8.8", "2001:4860:4860::8888");
         assertThat(result.result()).isNull();
     }
 
     @Test
     public void shouldNotPassThroughIpAddressWhenNotSpecified() {
         //  given
-        when(httpClient.get(any(), any(), anyLong()))
-                .thenReturn(Future.succeededFuture(givenFailHttpResponse(HttpStatus.SC_INTERNAL_SERVER_ERROR,
-                        "plain_text_response.json")));
+        when(httpClient.get(any(), any(), anyLong())).thenReturn(Future.succeededFuture(
+                givenFailHttpResponse(HttpStatus.SC_INTERNAL_SERVER_ERROR, "plain_text_response.json")));
 
         // when
-        final Future<TargetingResult> result = target.getTargeting(givenOptableTargetingProperties(false),
-                givenQuery(), null, timeout);
+        final Future<TargetingResult> result = target.getTargeting(
+                givenOptableTargetingProperties(false),
+                givenQuery(),
+                null,
+                timeout);
 
         // then
         final ArgumentCaptor<MultiMap> headersCaptor = ArgumentCaptor.forClass(MultiMap.class);
         verify(httpClient).get(any(), headersCaptor.capture(), anyLong());
-        assertThat(headersCaptor.getValue().get(X_FORWARDED_FOR_HEADER)).isNull();
+        assertThat(headersCaptor.getValue().get(HttpUtil.X_FORWARDED_FOR_HEADER)).isNull();
         assertThat(result.result()).isNull();
     }
 }

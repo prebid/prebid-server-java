@@ -1,6 +1,5 @@
 package org.prebid.server.hooks.modules.optable.targeting.v1.core;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.hooks.modules.optable.targeting.model.Id;
 import org.prebid.server.hooks.modules.optable.targeting.model.OptableAttributes;
@@ -12,15 +11,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class QueryBuilderTest {
 
-    private OptableAttributes optableAttributes;
+    private final OptableAttributes optableAttributes = givenOptableAttributes();
 
-    private String idPrefixOrder;
-
-    @BeforeEach
-    public void setUp() {
-        optableAttributes = givenOptableAttributes();
-        idPrefixOrder = "c,c1";
-    }
+    private final String idPrefixOrder = "c,c1";
 
     @Test
     public void shouldSeparateAttributesFromIds() {
@@ -75,7 +68,10 @@ public class QueryBuilderTest {
     @Test
     public void shouldBuildQueryStringWithRightOrder() {
         // given
-        final List<Id> ids = List.of(Id.of(Id.ID5, "ID5"), Id.of(Id.EMAIL, "email"), Id.of("c1", "123"),
+        final List<Id> ids = List.of(
+                Id.of(Id.ID5, "ID5"),
+                Id.of(Id.EMAIL, "email"),
+                Id.of("c1", "123"),
                 Id.of("c", "234"));
 
         // when
@@ -106,8 +102,7 @@ public class QueryBuilderTest {
     public void shouldNotBuildQueryStringWhenIdsListIsEmptyAndIpIsAbsent() {
         // given
         final List<Id> ids = List.of();
-        final OptableAttributes attributes = OptableAttributes.builder()
-                .build();
+        final OptableAttributes attributes = OptableAttributes.builder().build();
 
         // when
         final Query query = QueryBuilder.build(ids, attributes, idPrefixOrder);

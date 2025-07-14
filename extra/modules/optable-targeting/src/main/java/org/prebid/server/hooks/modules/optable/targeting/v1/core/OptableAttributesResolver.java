@@ -47,7 +47,7 @@ public class OptableAttributesResolver {
         deviceOpt.map(Device::getIpv6).ifPresent(result::add);
 
         if (result.isEmpty()) {
-            Optional.ofNullable(auctionContext.getPrivacyContext().getTcfContext().getIpAddress())
+            Optional.ofNullable(auctionContext.getPrivacyContext().getIpAddress())
                     .ifPresent(result::add);
         }
 

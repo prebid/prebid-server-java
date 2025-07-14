@@ -27,42 +27,36 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 public class OptableTargetingTest extends BaseOptableTest {
 
+    @Mock
+    private IdsMapper idsMapper;
+
     @Mock(strictness = Mock.Strictness.LENIENT)
     private Cache cache;
 
     @Mock
-    private IdsMapper idsMapper;
-
-    @Mock
     private APIClientImpl apiClient;
+
+    private OptableTargeting target;
 
     @Mock
     private Timeout timeout;
 
-    private CachedAPIClient cachingAPIClient;
-
-    private OptableTargeting target;
-
-    private OptableAttributes optableAttributes;
-
-    private OptableTargetingProperties properties;
-
     @BeforeEach
     public void setUp() {
-        optableAttributes = givenOptableAttributes();
-        properties = givenOptableTargetingProperties(true);
-        cachingAPIClient = new CachedAPIClient(apiClient, cache, false);
+        final CachedAPIClient cachingAPIClient = new CachedAPIClient(apiClient, cache, false);
         target = new OptableTargeting(idsMapper, cachingAPIClient);
     }
 
     @Test
     public void shouldCallNonCachedAPIClient() {
         // given
-        final BidRequest bidRequest = givenBidRequest();
-        properties = givenOptableTargetingProperties(false);
         when(idsMapper.toIds(any(), any())).thenReturn(List.of(Id.of(Id.ID5, "id")));
         when(apiClient.getTargeting(any(), any(), any(), any()))
                 .thenReturn(Future.succeededFuture(givenTargetingResult()));
+
+        final BidRequest bidRequest = givenBidRequest();
+        final OptableTargetingProperties properties = givenOptableTargetingProperties(false);
+        final OptableAttributes optableAttributes = givenOptableAttributes();
 
         // when
         final Future<TargetingResult> targetingResult = target.getTargeting(
@@ -76,16 +70,17 @@ public class OptableTargetingTest extends BaseOptableTest {
     @Test
     public void shouldUseCachedAPIClient() {
         // given
-        final BidRequest bidRequest = givenBidRequest();
-        properties = givenOptableTargetingProperties(true);
         when(idsMapper.toIds(any(), any())).thenReturn(List.of(Id.of(Id.ID5, "id")));
         when(cache.get(any())).thenReturn(Future.failedFuture(new NullPointerException()));
         when(apiClient.getTargeting(any(), any(), any(), any()))
                 .thenReturn(Future.succeededFuture(givenTargetingResult()));
 
+        final BidRequest bidRequest = givenBidRequest();
+        final OptableTargetingProperties properties = givenOptableTargetingProperties(true);
+        final OptableAttributes optableAttributes = givenOptableAttributes();
+
         // when
-        final Future<TargetingResult> targetingResult = target.getTargeting(
-                properties, bidRequest, optableAttributes, timeout);
+        target.getTargeting(properties, bidRequest, optableAttributes, timeout);
 
         // then
         verify(cache).get(any());

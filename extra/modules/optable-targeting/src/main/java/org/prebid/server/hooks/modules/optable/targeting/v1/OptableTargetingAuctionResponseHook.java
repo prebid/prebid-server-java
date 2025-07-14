@@ -31,7 +31,6 @@ public class OptableTargetingAuctionResponseHook implements AuctionResponseHook 
 
     private final ConfigResolver configResolver;
     private final ObjectMapper objectMapper;
-
     private final JsonMerger jsonMerger;
 
     public OptableTargetingAuctionResponseHook(ConfigResolver configResolver,

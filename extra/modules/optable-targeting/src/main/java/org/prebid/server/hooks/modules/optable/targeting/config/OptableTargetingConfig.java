@@ -60,7 +60,7 @@ public class OptableTargetingConfig {
     CachedAPIClient cachedApiClient(APIClientImpl apiClient,
                                     Cache cache,
                                     @Value("${http-client.circuit-breaker.enabled:false}")
-                                    Boolean isCircuitBreakerEnabled) {
+                                    boolean isCircuitBreakerEnabled) {
 
         return new CachedAPIClient(apiClient, cache, isCircuitBreakerEnabled);
     }

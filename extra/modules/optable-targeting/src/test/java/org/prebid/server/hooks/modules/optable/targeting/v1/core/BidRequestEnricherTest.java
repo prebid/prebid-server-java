@@ -72,14 +72,13 @@ public class BidRequestEnricherTest extends BaseOptableTest {
     @Test
     public void shouldNotAddEidWhenSourceAlreadyPresent() {
         // given
+        final TargetingResult targetingResult = givenTargetingResultWithEids(List.of(
+                givenEid("source", List.of(givenUid("id2", 3, null)), null)));
+
         final BidRequest bidRequest = givenBidRequestWithUserEids(List.of(
                 givenEid("source", List.of(givenUid("id", null, null)), null),
-                givenEid("source1", List.of(givenUid("id", null, null)), null)
-        ));
+                givenEid("source1", List.of(givenUid("id", null, null)), null)));
         final AuctionRequestPayload auctionRequestPayload = AuctionRequestPayloadImpl.of(bidRequest);
-        final TargetingResult targetingResult = givenTargetingResultWithEids(List.of(
-                givenEid("source", List.of(givenUid("id2", 3, null)), null)
-        ));
 
         // when
         final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult)
@@ -95,14 +94,13 @@ public class BidRequestEnricherTest extends BaseOptableTest {
     @Test
     public void shouldAddEidWhenSourceIsNotAlreadyPresent() {
         // given
+        final TargetingResult targetingResult = givenTargetingResultWithEids(List.of(
+                givenEid("source3", List.of(givenUid("id2", 3, null)), null)));
+
         final BidRequest bidRequest = givenBidRequestWithUserEids(List.of(
                 givenEid("source1", List.of(givenUid("id", null, null)), null),
-                givenEid("source2", List.of(givenUid("id", null, null)), null)
-        ));
+                givenEid("source2", List.of(givenUid("id", null, null)), null)));
         final AuctionRequestPayload auctionRequestPayload = AuctionRequestPayloadImpl.of(bidRequest);
-        final TargetingResult targetingResult = givenTargetingResultWithEids(List.of(
-                givenEid("source3", List.of(givenUid("id2", 3, null)), null)
-        ));
 
         // when
         final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult)
@@ -118,14 +116,13 @@ public class BidRequestEnricherTest extends BaseOptableTest {
     @Test
     public void shouldNotMergeOriginEidsWithTheSameSource() {
         // given
+        final TargetingResult targetingResult = givenTargetingResultWithEids(List.of(
+                givenEid("source3", List.of(givenUid("id2", 3, null)), null)));
+
         final BidRequest bidRequest = givenBidRequestWithUserEids(List.of(
                 givenEid("source", List.of(givenUid("id", null, null)), null),
-                givenEid("source", List.of(givenUid("id", null, null)), null)
-        ));
+                givenEid("source", List.of(givenUid("id", null, null)), null)));
         final AuctionRequestPayload auctionRequestPayload = AuctionRequestPayloadImpl.of(bidRequest);
-        final TargetingResult targetingResult = givenTargetingResultWithEids(List.of(
-                givenEid("source3", List.of(givenUid("id2", 3, null)), null)
-        ));
 
         // when
         final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult)
@@ -141,11 +138,11 @@ public class BidRequestEnricherTest extends BaseOptableTest {
     @Test
     public void shouldApplyOriginEidsWhenTargetingIsEmpty() {
         // given
+        final TargetingResult targetingResult = givenTargetingResultWithEids(List.of(
+                givenEid("source3", List.of(givenUid("id2", 3, null)), null)));
+
         final BidRequest bidRequest = givenBidRequestWithUserEids(Collections.emptyList());
         final AuctionRequestPayload auctionRequestPayload = AuctionRequestPayloadImpl.of(bidRequest);
-        final TargetingResult targetingResult = givenTargetingResultWithEids(List.of(
-                givenEid("source3", List.of(givenUid("id2", 3, null)), null)
-        ));
 
         // when
         final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult)
@@ -161,12 +158,12 @@ public class BidRequestEnricherTest extends BaseOptableTest {
     @Test
     public void shouldApplyTargetingEidsWhenOriginListIsEmpty() {
         // given
+        final TargetingResult targetingResult = givenTargetingResultWithEids(Collections.emptyList());
+
         final BidRequest bidRequest = givenBidRequestWithUserEids(List.of(
                 givenEid("source", List.of(givenUid("id", null, null)), null),
-                givenEid("source1", List.of(givenUid("id", null, null)), null)
-        ));
+                givenEid("source1", List.of(givenUid("id", null, null)), null)));
         final AuctionRequestPayload auctionRequestPayload = AuctionRequestPayloadImpl.of(bidRequest);
-        final TargetingResult targetingResult = givenTargetingResultWithEids(Collections.emptyList());
 
         // when
         final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult)

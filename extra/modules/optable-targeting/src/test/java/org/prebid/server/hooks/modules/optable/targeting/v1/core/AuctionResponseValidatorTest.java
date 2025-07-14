@@ -68,8 +68,7 @@ public class AuctionResponseValidatorTest {
                 .returns(Reason.NONE, EnrichmentStatus::getReason);
     }
 
-    protected List<Audience> givenTargeting() {
-        return List.of(new Audience("provider", List.of(new AudienceId("id")),
-                "keyspace", 1));
+    private static List<Audience> givenTargeting() {
+        return List.of(new Audience("provider", List.of(new AudienceId("id")), "keyspace", 1));
     }
 }

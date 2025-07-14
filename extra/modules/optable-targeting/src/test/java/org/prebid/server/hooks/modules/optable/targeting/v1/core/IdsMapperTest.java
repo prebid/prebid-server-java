@@ -12,6 +12,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.hooks.modules.optable.targeting.model.Id;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.ExtUserOptable;
+import org.prebid.server.json.ObjectMapperProvider;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 
 import java.util.List;
@@ -21,12 +22,13 @@ import java.util.function.UnaryOperator;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class IdMapperTest {
+public class IdsMapperTest {
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = ObjectMapperProvider.mapper();
+
     private IdsMapper target;
 
-    private Map<String, String> ppidMapping = Map.of("test.com", "c");
+    private final Map<String, String> ppidMapping = Map.of("test.com", "c");
 
     @BeforeEach
     public void setUp() {
@@ -36,25 +38,8 @@ public class IdMapperTest {
     @Test
     public void shouldMapBidRequestToAllPossibleIds() {
         //given
-        final BidRequest bidRequest = givenBidRequest(builder -> {
-            final Map<String, String> eids = Map.of("id5-sync.com", "id5_id",
-                    "test.com", "test_id", "utiq.com", "utiq_id");
-
-            final JsonNode extUserOptable = objectMapper.convertValue(givenOptable(), JsonNode.class);
-
-            builder.device(givenDevice())
-                    .user(givenUser(userBuilder -> {
-                        final ExtUser extUser = ExtUser.builder().build();
-                        extUser.addProperty("optable", extUserOptable);
-                        userBuilder.eids(toEids(eids))
-                                .ext(extUser)
-                                .build();
-
-                        return userBuilder;
-                    }));
-
-            return builder;
-        });
+        final BidRequest bidRequest = givenBidRequestWithEids(Map.of("id5-sync.com", "id5_id",
+                "test.com", "test_id", "utiq.com", "utiq_id"));
 
         // when
         final List<Id> ids = target.toIds(bidRequest, ppidMapping);
@@ -72,20 +57,6 @@ public class IdMapperTest {
                 .contains(Id.of("c", "test_id"));
     }
 
-    private User givenUser(UnaryOperator<User.UserBuilder> userCustomizer) {
-        return userCustomizer.apply(User.builder()).build();
-    }
-
-    private Device givenDevice() {
-        return Device.builder()
-                .ip("127.0.0.1")
-                .ipv6("0:0:0:0:0:0:0:1")
-                .lmt(0)
-                .os("android")
-                .ifa("ifa")
-                .build();
-    }
-
     @Test
     public void shouldMapNothing() {
         //given
@@ -96,6 +67,25 @@ public class IdMapperTest {
 
         // then
         assertThat(ids).isNotNull();
+    }
+
+    private BidRequest givenBidRequestWithEids(Map<String, String> eids) {
+        return givenBidRequest(builder -> {
+            final JsonNode extUserOptable = objectMapper.convertValue(givenOptable(), JsonNode.class);
+
+            builder.device(givenDevice())
+                    .user(givenUser(userBuilder -> {
+                        final ExtUser extUser = ExtUser.builder().build();
+                        extUser.addProperty("optable", extUserOptable);
+                        userBuilder.eids(toEids(eids))
+                                .ext(extUser)
+                                .build();
+
+                        return userBuilder;
+                    }));
+
+            return builder;
+        });
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer) {
@@ -116,13 +106,26 @@ public class IdMapperTest {
                 .build();
     }
 
+    private Device givenDevice() {
+        return Device.builder()
+                .ip("127.0.0.1")
+                .ipv6("0:0:0:0:0:0:0:1")
+                .lmt(0)
+                .os("android")
+                .ifa("ifa")
+                .build();
+    }
+
+    private User givenUser(UnaryOperator<User.UserBuilder> userCustomizer) {
+        return userCustomizer.apply(User.builder()).build();
+    }
+
     private List<Eid> toEids(Map<String, String> eids) {
-        return eids.entrySet().stream()
+        return eids.entrySet()
+                .stream()
                 .map(it -> Eid.builder()
                         .source(it.getKey())
-                        .uids(List.of(Uid.builder()
-                                        .id(it.getValue())
-                                .build()))
+                        .uids(List.of(Uid.builder().id(it.getValue()).build()))
                         .build())
                 .toList();
     }

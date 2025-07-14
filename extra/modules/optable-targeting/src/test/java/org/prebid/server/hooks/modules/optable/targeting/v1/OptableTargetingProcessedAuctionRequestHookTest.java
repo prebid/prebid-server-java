@@ -1,6 +1,5 @@
 package org.prebid.server.hooks.modules.optable.targeting.v1;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Future;
@@ -22,8 +21,6 @@ import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
-import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.json.JsonMerger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -34,36 +31,43 @@ import static org.mockito.Mockito.when;
 @MockitoSettings(strictness = Strictness.LENIENT)
 public class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
 
-    @Mock
-    OptableTargeting optableTargeting;
-    @Mock
-    AuctionRequestPayload auctionRequestPayload;
-    @Mock
-    AuctionInvocationContext invocationContext;
-    @Mock
-    Timeout timeout;
-    @Mock
-    UserFpdActivityMask userFpdActivityMask;
-    @Mock
-    ActivityInfrastructure activityInfrastructure;
     private ConfigResolver configResolver;
-    private JsonMerger jsonMerger = new JsonMerger(new JacksonMapper(new ObjectMapper()));
+
+    @Mock
+    private OptableTargeting optableTargeting;
+
+    @Mock
+    private UserFpdActivityMask userFpdActivityMask;
+
     private OptableTargetingProcessedAuctionRequestHook target;
+
+    @Mock
+    private AuctionRequestPayload auctionRequestPayload;
+
+    @Mock
+    private AuctionInvocationContext invocationContext;
+
+    @Mock
+    private ActivityInfrastructure activityInfrastructure;
+
+    @Mock
+    private Timeout timeout;
 
     @BeforeEach
     public void setUp() {
-        when(activityInfrastructure.isAllowed(any(), any())).thenReturn(true);
         when(userFpdActivityMask.maskDevice(any(), anyBoolean(), anyBoolean()))
                 .thenAnswer(answer -> answer.getArgument(0));
-        when(timeout.remaining()).thenReturn(1000L);
-        when(invocationContext.accountConfig()).thenReturn(givenAccountConfig(true));
-        when(invocationContext.auctionContext()).thenReturn(givenAuctionContext(activityInfrastructure, timeout));
-        when(invocationContext.timeout()).thenReturn(timeout);
         configResolver = new ConfigResolver(mapper, jsonMerger, givenOptableTargetingProperties(false));
         target = new OptableTargetingProcessedAuctionRequestHook(
                 configResolver,
                 optableTargeting,
                 userFpdActivityMask);
+
+        when(invocationContext.accountConfig()).thenReturn(givenAccountConfig(true));
+        when(invocationContext.auctionContext()).thenReturn(givenAuctionContext(activityInfrastructure, timeout));
+        when(invocationContext.timeout()).thenReturn(timeout);
+        when(activityInfrastructure.isAllowed(any(), any())).thenReturn(true);
+        when(timeout.remaining()).thenReturn(1000L);
     }
 
     @Test

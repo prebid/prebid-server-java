@@ -39,13 +39,12 @@ public class CachedAPIClient implements APIClient {
         final String origin = properties.getOrigin();
 
         return cache.get(createCachingKey(tenant, origin, ips, query, true))
-               .recover(ignore ->
-                        apiClient.getTargeting(properties, query, ips, timeout)
+                .recover(ignore -> apiClient.getTargeting(properties, query, ips, timeout)
                         .recover(throwable -> isCircuitBreakerEnabled
                                 ? Future.succeededFuture(new TargetingResult(null, null))
                                 : Future.failedFuture(throwable))
                         .compose(result -> cache.put(
-                                createCachingKey(tenant, origin, ips, query, false),
+                                        createCachingKey(tenant, origin, ips, query, false),
                                         result,
                                         cacheProperties.getTtlseconds())
                                 .otherwiseEmpty()

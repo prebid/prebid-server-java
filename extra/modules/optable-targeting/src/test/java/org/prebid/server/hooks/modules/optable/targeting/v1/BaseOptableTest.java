@@ -88,7 +88,7 @@ public abstract class BaseOptableTest {
     }
 
     protected BidRequest givenBidRequest() {
-        return givenBidRequestWithUserEids((List<Eid>) null);
+        return givenBidRequestWithUserEids(null);
     }
 
     protected static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer) {
@@ -122,9 +122,7 @@ public abstract class BaseOptableTest {
 
         return BidResponse.builder()
                 .seatbid(List.of(SeatBid.builder()
-                                .bid(List.of(Bid.builder()
-                                                .ext(bidExtNode)
-                                        .build()))
+                        .bid(List.of(Bid.builder().ext(bidExtNode).build()))
                         .build()))
                 .build();
     }
@@ -138,17 +136,14 @@ public abstract class BaseOptableTest {
     }
 
     protected TargetingResult givenTargetingResult() {
-        return givenTargetingResult(List.of(Eid.builder()
+        return givenTargetingResult(
+                List.of(Eid.builder()
                         .source("source")
-                        .uids(List.of(Uid.builder()
-                                .id("id")
-                                .build()))
+                        .uids(List.of(Uid.builder().id("id").build()))
                         .build()),
                 List.of(Data.builder()
                         .id("id")
-                        .segment(List.of(Segment.builder()
-                                .id("id")
-                                .build()))
+                        .segment(List.of(Segment.builder().id("id").build()))
                         .build()));
     }
 
@@ -158,12 +153,8 @@ public abstract class BaseOptableTest {
                         "provider",
                         List.of(new AudienceId("id")),
                         "keyspace",
-                        1
-                )),
-                new Ortb2(
-                        new org.prebid.server.hooks.modules.optable.targeting.model.openrtb.User(eids, data)
-                )
-        );
+                        1)),
+                new Ortb2(new org.prebid.server.hooks.modules.optable.targeting.model.openrtb.User(eids, data)));
     }
 
     protected TargetingResult givenEmptyTargetingResult() {
