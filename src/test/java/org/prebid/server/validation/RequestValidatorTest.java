@@ -45,6 +45,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.validation.model.ValidationResult;
 
 import java.math.BigDecimal;
@@ -61,11 +62,13 @@ import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -560,6 +563,72 @@ public class RequestValidatorTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly("request.imp[0].id and request.imp[1].id are both \"11\". Imp IDs must be unique.");
+    }
+
+    @Test
+    public void validateShouldDropImpressionsOverAccountLimitAndReturnWarning() throws ValidationException {
+        // given
+        final Imp imp1 = Imp.builder().id("1").build();
+        final Imp imp2 = Imp.builder().id("2").build();
+        final BidRequest bidRequest = validBidRequestBuilder().imp(asList(imp1, imp2)).build();
+
+        final Account givenAccount = Account.builder()
+                .id(ACCOUNT_ID)
+                .auction(AccountAuctionConfig.builder().impressionLimit(1).build())
+                .build();
+
+        // when
+        final ValidationResult result = target.validate(givenAccount, bidRequest, null, null);
+
+        // then
+        assertThat(result.getWarnings()).hasSize(1)
+                .containsOnly("Only first 1 impressions were kept due to the limit, "
+                        + "all the subsequent impressions have been dropped for the auction");
+        assertThat(result.getErrors()).isEmpty();
+
+        verify(metrics).updateImpsDroppedMetric(1);
+        verify(impValidator).validateImps(eq(singletonList(imp1)), any(), any());
+    }
+
+    @Test
+    public void validateShouldNotDropImpressionsReturnWarningWhenAccountLimitIsSetToZero() throws ValidationException {
+        // given
+        final Imp imp1 = Imp.builder().id("1").build();
+        final Imp imp2 = Imp.builder().id("2").build();
+        final BidRequest bidRequest = validBidRequestBuilder().imp(asList(imp1, imp2)).build();
+
+        final Account givenAccount = Account.builder()
+                .id(ACCOUNT_ID)
+                .auction(AccountAuctionConfig.builder().impressionLimit(0).build())
+                .build();
+
+        // when
+        final ValidationResult result = target.validate(givenAccount, bidRequest, null, null);
+
+        // then
+        assertThat(result.getWarnings()).isEmpty();
+        assertThat(result.getErrors()).isEmpty();
+
+        verify(metrics, never()).updateImpsDroppedMetric(anyInt());
+        verify(impValidator).validateImps(eq(bidRequest.getImp()), any(), any());
+    }
+
+    @Test
+    public void validateShouldNotDropImpressionsReturnWarningWhenAccountLimitIsNotSet() throws ValidationException {
+        // given
+        final Imp imp1 = Imp.builder().id("1").build();
+        final Imp imp2 = Imp.builder().id("2").build();
+        final BidRequest bidRequest = validBidRequestBuilder().imp(asList(imp1, imp2)).build();
+
+        // when
+        final ValidationResult result = target.validate(Account.empty(ACCOUNT_ID), bidRequest, null, null);
+
+        // then
+        assertThat(result.getWarnings()).isEmpty();
+        assertThat(result.getErrors()).isEmpty();
+
+        verify(metrics, never()).updateImpsDroppedMetric(anyInt());
+        verify(impValidator).validateImps(eq(bidRequest.getImp()), any(), any());
     }
 
     @Test

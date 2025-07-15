@@ -182,6 +182,10 @@ public class Metrics extends UpdatableMetrics {
         incCounter(MetricName.imps_requested, numImps);
     }
 
+    public void updateImpsDroppedMetric(int numImps) {
+        incCounter(MetricName.imps_dropped, numImps);
+    }
+
     public void updateImpTypesMetrics(List<Imp> imps) {
 
         final Map<String, Long> mediaTypeToCount = imps.stream()
