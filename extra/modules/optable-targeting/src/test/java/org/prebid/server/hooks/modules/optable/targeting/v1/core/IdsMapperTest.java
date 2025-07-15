@@ -38,8 +38,10 @@ public class IdsMapperTest {
     @Test
     public void shouldMapBidRequestToAllPossibleIds() {
         //given
-        final BidRequest bidRequest = givenBidRequestWithEids(Map.of("id5-sync.com", "id5_id",
-                "test.com", "test_id", "utiq.com", "utiq_id"));
+        final BidRequest bidRequest = givenBidRequestWithEids(Map.of(
+                "id5-sync.com", "id5_id",
+                "test.com", "test_id",
+                "utiq.com", "utiq_id"));
 
         // when
         final List<Id> ids = target.toIds(bidRequest, ppidMapping);
@@ -70,22 +72,12 @@ public class IdsMapperTest {
     }
 
     private BidRequest givenBidRequestWithEids(Map<String, String> eids) {
-        return givenBidRequest(builder -> {
-            final JsonNode extUserOptable = objectMapper.convertValue(givenOptable(), JsonNode.class);
+        final JsonNode extUserOptable = objectMapper.convertValue(givenOptable(), JsonNode.class);
+        final ExtUser extUser = ExtUser.builder().build();
+        extUser.addProperty("optable", extUserOptable);
 
-            builder.device(givenDevice())
-                    .user(givenUser(userBuilder -> {
-                        final ExtUser extUser = ExtUser.builder().build();
-                        extUser.addProperty("optable", extUserOptable);
-                        userBuilder.eids(toEids(eids))
-                                .ext(extUser)
-                                .build();
-
-                        return userBuilder;
-                    }));
-
-            return builder;
-        });
+        final User user = givenUser(userBuilder -> userBuilder.eids(toEids(eids)).ext(extUser));
+        return givenBidRequest(builder -> builder.device(givenDevice()).user(user));
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer) {

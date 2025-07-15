@@ -93,7 +93,6 @@ public class QueryBuilderTest {
         final Query query = QueryBuilder.build(ids, attributes, idPrefixOrder);
 
         // then
-
         assertThat(query).isNotNull();
         assertThat(query.toQueryString()).isEqualTo("gdpr=0");
     }
@@ -108,7 +107,6 @@ public class QueryBuilderTest {
         final Query query = QueryBuilder.build(ids, attributes, idPrefixOrder);
 
         // then
-
         assertThat(query).isNull();
     }
 
