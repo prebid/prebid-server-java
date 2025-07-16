@@ -5,7 +5,8 @@ import io.vertx.core.Future;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
-import org.prebid.server.hooks.modules.rule.engine.core.cache.RuleRegistry;
+import org.prebid.server.hooks.modules.rule.engine.core.config.cache.RuleParser;
+import org.prebid.server.hooks.modules.rule.engine.core.request.Granularity;
 import org.prebid.server.hooks.modules.rule.engine.core.request.context.RequestResultContext;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.PerStageRule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.Rule;
@@ -24,10 +25,10 @@ public class RuleEngineProcessedAuctionRequestHook implements ProcessedAuctionRe
 
     private static final String CODE = "rule-engine-processed-auction-request";
 
-    private final RuleRegistry ruleRegistry;
+    private final RuleParser ruleParser;
 
-    public RuleEngineProcessedAuctionRequestHook(RuleRegistry ruleRegistry) {
-        this.ruleRegistry = Objects.requireNonNull(ruleRegistry);
+    public RuleEngineProcessedAuctionRequestHook(RuleParser ruleParser) {
+        this.ruleParser = Objects.requireNonNull(ruleParser);
     }
 
     @Override
@@ -36,7 +37,7 @@ public class RuleEngineProcessedAuctionRequestHook implements ProcessedAuctionRe
 
         final AuctionContext context = invocationContext.auctionContext();
         final String accountId = invocationContext.auctionContext().getAccount().getId();
-        return ruleRegistry.forAccount(accountId, invocationContext.accountConfig())
+        return ruleParser.parseForAccount(accountId, invocationContext.accountConfig())
                 .map(PerStageRule::processedAuctionRequestRule)
                 .map(rule -> executeSafely(rule, auctionRequestPayload.bidRequest(), context))
                 .map(RuleEngineProcessedAuctionRequestHook::succeeded)
@@ -48,7 +49,7 @@ public class RuleEngineProcessedAuctionRequestHook implements ProcessedAuctionRe
                                                         AuctionContext context) {
 
         return rule != null
-                ? rule.process(bidRequest, RequestResultContext.of(context, "*"))
+                ? rule.process(bidRequest, RequestResultContext.of(context, Granularity.Request.instance()))
                 : RuleResult.unaltered(bidRequest);
     }
 

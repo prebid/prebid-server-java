@@ -1,0 +1,140 @@
+package org.prebid.server.hooks.modules.rule.engine.core.config.cache;
+
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import io.vertx.core.Future;
+import io.vertx.core.Vertx;
+import lombok.experimental.Accessors;
+import org.prebid.server.exception.PreBidException;
+import org.prebid.server.execution.retry.RetryPolicy;
+import org.prebid.server.execution.retry.Retryable;
+import org.prebid.server.hooks.modules.rule.engine.core.config.AccountConfigParser;
+import org.prebid.server.hooks.modules.rule.engine.core.rules.PerStageRule;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
+
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+
+public class RuleParser {
+
+    private static final Logger logger = LoggerFactory.getLogger(RuleParser.class);
+
+    private final AccountConfigParser parser;
+    private final Vertx vertx;
+    private final Clock clock;
+
+    private final RetryPolicy retryPolicy;
+
+    private final Map<String, ParsingAttempt> accountIdToParsingAttempt;
+    private final Map<String, PerStageRule> accountIdToRules;
+
+
+    public RuleParser(long cacheExpireAfterMinutes,
+                      long cacheMaxSize,
+                      RetryPolicy retryPolicy,
+                      AccountConfigParser parser,
+                      Vertx vertx,
+                      Clock clock) {
+
+        this.parser = Objects.requireNonNull(parser);
+        this.vertx = Objects.requireNonNull(vertx);
+        this.clock = Objects.requireNonNull(clock);
+        this.retryPolicy = Objects.requireNonNull(retryPolicy);
+
+        // TODO: Tune exposed properties for cache control, switch hashmap to caffeine
+        this.accountIdToParsingAttempt = new ConcurrentHashMap<>();
+        this.accountIdToRules = Caffeine.newBuilder()
+                .expireAfterAccess(cacheExpireAfterMinutes, TimeUnit.MINUTES)
+                .maximumSize(cacheMaxSize)
+                .<String, PerStageRule>build()
+                .asMap();
+    }
+
+    public Future<PerStageRule> parseForAccount(String accountId, ObjectNode config) {
+        final PerStageRule cachedRule = accountIdToRules.get(accountId);
+
+        if (cachedRule != null && cachedRule.version() >= getConfigVersion(config)) {
+            return Future.succeededFuture(cachedRule);
+        }
+
+        parseConfig(accountId, config);
+        return cachedRule == null
+                ? Future.failedFuture(new PreBidException("Rule for account " + accountId + " is not ready"))
+                : Future.succeededFuture(cachedRule);
+    }
+
+    private long getConfigVersion(ObjectNode config) {
+        return config.path("timestamp").asLong();
+    }
+
+    private void parseConfig(String accountId, ObjectNode config) {
+        final Instant now = clock.instant();
+        final ParsingAttempt attempt = accountIdToParsingAttempt.compute(
+                accountId, (ignored, previousAttempt) -> tryRegisteringNewAttempt(previousAttempt, now));
+
+        // reference equality used on purpose - if references are equal - then we should parse
+        if (attempt.timestamp() == now) {
+            logger.info("Parsing rule for account {}", accountId);
+            vertx.executeBlocking(() -> parser.parse(config))
+                    .onSuccess(result -> succeedParsingAttempt(accountId, result))
+                    .onFailure(error -> failParsingAttempt(accountId, attempt, error));
+        }
+    }
+
+    private ParsingAttempt tryRegisteringNewAttempt(ParsingAttempt previousAttempt, Instant currentAttemptStart) {
+        if (previousAttempt == null) {
+            return new ParsingAttempt.InProgress(currentAttemptStart, retryPolicy);
+        }
+
+        if (previousAttempt instanceof ParsingAttempt.InProgress) {
+            return previousAttempt;
+        }
+
+        if (previousAttempt.retryPolicy() instanceof Retryable previousAttemptRetryPolicy) {
+            final Instant previouslyDecidedToRetryAfter = previousAttempt.timestamp().plus(
+                    Duration.ofMillis(previousAttemptRetryPolicy.delay()));
+
+            return previouslyDecidedToRetryAfter.isBefore(currentAttemptStart)
+                    ? new ParsingAttempt.InProgress(currentAttemptStart, previousAttemptRetryPolicy.next())
+                    : previousAttempt;
+        }
+
+        return previousAttempt;
+    }
+
+    private void succeedParsingAttempt(String accountId, PerStageRule result) {
+        accountIdToRules.put(accountId, result);
+        accountIdToParsingAttempt.remove(accountId);
+    }
+
+    private void failParsingAttempt(String accountId, ParsingAttempt attempt, Throwable cause) {
+        accountIdToParsingAttempt.put(accountId, ((ParsingAttempt.InProgress) attempt).failed());
+
+        logger.error("Failed to parse rules config for account %s: %s".formatted(accountId, cause.getMessage()), cause);
+    }
+
+    private sealed interface ParsingAttempt {
+
+        Instant timestamp();
+
+        RetryPolicy retryPolicy();
+
+        @Accessors(fluent = true)
+        record Failed(Instant timestamp, RetryPolicy retryPolicy) implements ParsingAttempt {
+        }
+
+        @Accessors(fluent = true)
+        record InProgress(Instant timestamp, RetryPolicy retryPolicy) implements ParsingAttempt {
+
+            public Failed failed() {
+                return new Failed(timestamp, retryPolicy);
+            }
+        }
+    }
+}

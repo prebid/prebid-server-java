@@ -11,6 +11,8 @@ import org.prebid.server.hooks.modules.rule.engine.core.request.context.RequestR
 @Value(staticConstructor = "of")
 public class PerStageRule {
 
+    long version;
+
     Rule<BidRequest, RequestResultContext> processedAuctionRequestRule;
 }
 

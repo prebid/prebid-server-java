@@ -56,6 +56,8 @@ public enum BidRejectionReason {
      */
     REQUEST_BLOCKED_UNSUPPORTED_MEDIA_TYPE(202),
 
+    REQUEST_BLOCKED_OPTIMIZED(203),
+
     /**
      * If the bidder was not called due to GDPR purpose 2
      */
