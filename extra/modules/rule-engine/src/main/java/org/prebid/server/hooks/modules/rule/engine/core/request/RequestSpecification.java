@@ -5,6 +5,7 @@ import com.iab.openrtb.request.BidRequest;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.hooks.modules.rule.engine.core.request.context.RequestResultContext;
 import org.prebid.server.hooks.modules.rule.engine.core.request.context.RequestSchemaContext;
+import org.prebid.server.hooks.modules.rule.engine.core.request.result.functions.log.LogATagFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.request.result.functions.filter.ExcludeBiddersFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.request.result.functions.filter.IncludeBiddersFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.AdUnitCodeFunction;
@@ -74,7 +75,8 @@ public class RequestSpecification implements
 
         resultFunctions = Map.of(
                 ExcludeBiddersFunction.NAME, new ExcludeBiddersFunction(mapper, bidderCatalog),
-                IncludeBiddersFunction.NAME, new IncludeBiddersFunction(mapper, bidderCatalog));
+                IncludeBiddersFunction.NAME, new IncludeBiddersFunction(mapper, bidderCatalog),
+                LogATagFunction.NAME, new LogATagFunction(mapper));
     }
 
     public SchemaFunction<RequestSchemaContext> schemaFunctionByName(String name) {

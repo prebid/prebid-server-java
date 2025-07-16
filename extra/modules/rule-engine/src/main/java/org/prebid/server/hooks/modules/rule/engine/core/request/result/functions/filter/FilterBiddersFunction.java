@@ -73,7 +73,7 @@ public abstract class FilterBiddersFunction implements ResultFunction<BidRequest
                 : UpdateResult.unaltered(bidRequest);
 
         final Tags tags = AnalyticsMapper.toTags(
-                mapper, name(), granularity, seatNonBid, infrastructureArguments, config);
+                mapper, name(), seatNonBid, infrastructureArguments, config.getAnalyticsValue());
 
         return RuleResult.of(updateResult, tags, seatNonBid);
     }
