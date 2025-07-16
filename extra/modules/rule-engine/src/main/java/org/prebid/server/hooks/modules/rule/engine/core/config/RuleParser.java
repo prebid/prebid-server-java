@@ -20,7 +20,6 @@ import java.time.format.DateTimeParseException;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 public class RuleParser {
@@ -36,7 +35,6 @@ public class RuleParser {
     private final Map<String, ParsingAttempt> accountIdToParsingAttempt;
     private final Map<String, PerStageRule> accountIdToRules;
 
-
     public RuleParser(long cacheExpireAfterMinutes,
                       long cacheMaxSize,
                       RetryPolicy retryPolicy,
@@ -49,8 +47,12 @@ public class RuleParser {
         this.clock = Objects.requireNonNull(clock);
         this.retryPolicy = Objects.requireNonNull(retryPolicy);
 
-        // TODO: Tune exposed properties for cache control, switch hashmap to caffeine
-        this.accountIdToParsingAttempt = new ConcurrentHashMap<>();
+        this.accountIdToParsingAttempt = Caffeine.newBuilder()
+                .expireAfterAccess(cacheExpireAfterMinutes, TimeUnit.MINUTES)
+                .maximumSize(cacheMaxSize)
+                .<String, ParsingAttempt>build()
+                .asMap();
+
         this.accountIdToRules = Caffeine.newBuilder()
                 .expireAfterAccess(cacheExpireAfterMinutes, TimeUnit.MINUTES)
                 .maximumSize(cacheMaxSize)
