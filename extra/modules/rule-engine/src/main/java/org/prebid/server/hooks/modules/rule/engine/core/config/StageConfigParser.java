@@ -52,11 +52,14 @@ public class StageConfigParser<SCHEMA_PAYLOAD, RULE_PAYLOAD, CONTEXT> {
     public Rule<RULE_PAYLOAD, CONTEXT> parse(AccountConfig config) {
         final List<Rule<RULE_PAYLOAD, CONTEXT>> stageSubrules = config.getRuleSets().stream()
                 .filter(ruleSet -> stage.equals(ruleSet.getStage()))
+                .filter(RuleSetConfig::isEnabled)
                 .map(RuleSetConfig::getModelGroups)
                 .map(this::parseModelGroupConfigs)
                 .toList();
 
-        return CompositeRule.of(stageSubrules);
+        return stageSubrules.isEmpty()
+                ? NoOpRule.create()
+                : CompositeRule.of(stageSubrules);
     }
 
     private Rule<RULE_PAYLOAD, CONTEXT> parseModelGroupConfigs(List<ModelGroupConfig> modelGroupConfigs) {
@@ -162,9 +165,9 @@ public class StageConfigParser<SCHEMA_PAYLOAD, RULE_PAYLOAD, CONTEXT> {
             Rule<RULE_PAYLOAD, CONTEXT> left, Rule<RULE_PAYLOAD, CONTEXT> right) {
 
         if (left == null && right == null) {
-            return new NoOpRule<>();
+            return NoOpRule.create();
         } else if (left != null && right != null) {
-            return new AlternativeActionRule<>(left, right);
+            return AlternativeActionRule.of(left, right);
         } else if (left != null) {
             return left;
         }

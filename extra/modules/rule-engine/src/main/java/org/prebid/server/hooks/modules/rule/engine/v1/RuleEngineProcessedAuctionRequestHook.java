@@ -1,15 +1,16 @@
 package org.prebid.server.hooks.modules.rule.engine.v1;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Future;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
-import org.prebid.server.hooks.modules.rule.engine.core.config.cache.RuleParser;
+import org.prebid.server.hooks.modules.rule.engine.core.config.RuleParser;
 import org.prebid.server.hooks.modules.rule.engine.core.request.Granularity;
 import org.prebid.server.hooks.modules.rule.engine.core.request.context.RequestResultContext;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.PerStageRule;
-import org.prebid.server.hooks.modules.rule.engine.core.rules.Rule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleResult;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
@@ -36,32 +37,34 @@ public class RuleEngineProcessedAuctionRequestHook implements ProcessedAuctionRe
                                                                 AuctionInvocationContext invocationContext) {
 
         final AuctionContext context = invocationContext.auctionContext();
-        final String accountId = invocationContext.auctionContext().getAccount().getId();
-        return ruleParser.parseForAccount(accountId, invocationContext.accountConfig())
+        final String accountId = StringUtils.defaultString(invocationContext.auctionContext().getAccount().getId());
+        final ObjectNode accountConfig = invocationContext.accountConfig();
+        final BidRequest bidRequest = auctionRequestPayload.bidRequest();
+
+        if (accountConfig == null) {
+            return succeeded(RuleResult.unaltered(bidRequest));
+        }
+
+        return ruleParser.parseForAccount(accountId, accountConfig)
                 .map(PerStageRule::processedAuctionRequestRule)
-                .map(rule -> executeSafely(rule, auctionRequestPayload.bidRequest(), context))
-                .map(RuleEngineProcessedAuctionRequestHook::succeeded)
+                .map(rule -> rule.process(
+                        bidRequest, RequestResultContext.of(context, Granularity.Request.instance())))
+                .flatMap(RuleEngineProcessedAuctionRequestHook::succeeded)
                 .recover(RuleEngineProcessedAuctionRequestHook::failure);
     }
 
-    private static RuleResult<BidRequest> executeSafely(Rule<BidRequest, RequestResultContext> rule,
-                                                        BidRequest bidRequest,
-                                                        AuctionContext context) {
-
-        return rule != null
-                ? rule.process(bidRequest, RequestResultContext.of(context, Granularity.Request.instance()))
-                : RuleResult.unaltered(bidRequest);
-    }
-
-    private static InvocationResult<AuctionRequestPayload> succeeded(RuleResult<BidRequest> result) {
+    private static Future<InvocationResult<AuctionRequestPayload>> succeeded(RuleResult<BidRequest> result) {
         final UpdateResult<BidRequest> updateResult = result.getUpdateResult();
 
-        return InvocationResultImpl.<AuctionRequestPayload>builder()
-                .status(InvocationStatus.success)
-                .action(updateResult.isUpdated() ? InvocationAction.update : InvocationAction.no_action)
-                .payloadUpdate(initialPayload -> AuctionRequestPayloadImpl.of(updateResult.getValue()))
-                .analyticsTags(result.getAnalyticsTags())
-                .build();
+        final InvocationResult<AuctionRequestPayload> invocationResult =
+                InvocationResultImpl.<AuctionRequestPayload>builder()
+                        .status(InvocationStatus.success)
+                        .action(updateResult.isUpdated() ? InvocationAction.update : InvocationAction.no_action)
+                        .payloadUpdate(initialPayload -> AuctionRequestPayloadImpl.of(updateResult.getValue()))
+                        .analyticsTags(result.getAnalyticsTags())
+                        .build();
+
+        return Future.succeededFuture(invocationResult);
     }
 
     private static Future<InvocationResult<AuctionRequestPayload>> failure(Throwable error) {

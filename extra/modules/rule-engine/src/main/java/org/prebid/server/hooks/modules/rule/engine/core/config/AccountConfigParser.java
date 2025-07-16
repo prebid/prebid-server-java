@@ -8,6 +8,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.hooks.modules.rule.engine.core.config.model.AccountConfig;
 import org.prebid.server.hooks.modules.rule.engine.core.request.context.RequestResultContext;
 import org.prebid.server.hooks.modules.rule.engine.core.request.context.RequestSchemaContext;
+import org.prebid.server.hooks.modules.rule.engine.core.rules.NoOpRule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.PerStageRule;
 
 import java.util.Objects;
@@ -35,8 +36,15 @@ public class AccountConfigParser {
             throw new PreBidException(e.getMessage());
         }
 
+        if (!parsedConfig.isEnabled()) {
+            return PerStageRule.builder()
+                    .timestamp(parsedConfig.getTimestamp())
+                    .processedAuctionRequestRule(NoOpRule.create())
+                    .build();
+        }
+
         return PerStageRule.builder()
-                .version(parsedConfig.getTimestamp())
+                .timestamp(parsedConfig.getTimestamp())
                 .processedAuctionRequestRule(processedAuctionRequestStageParser.parse(parsedConfig))
                 .build();
     }

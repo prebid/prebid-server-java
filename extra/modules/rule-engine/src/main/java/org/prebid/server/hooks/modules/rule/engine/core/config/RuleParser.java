@@ -1,5 +1,6 @@
-package org.prebid.server.hooks.modules.rule.engine.core.config.cache;
+package org.prebid.server.hooks.modules.rule.engine.core.config;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.vertx.core.Future;
@@ -8,7 +9,6 @@ import lombok.experimental.Accessors;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.retry.RetryPolicy;
 import org.prebid.server.execution.retry.Retryable;
-import org.prebid.server.hooks.modules.rule.engine.core.config.AccountConfigParser;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.PerStageRule;
 import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
@@ -16,8 +16,10 @@ import org.prebid.server.log.LoggerFactory;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
@@ -59,7 +61,7 @@ public class RuleParser {
     public Future<PerStageRule> parseForAccount(String accountId, ObjectNode config) {
         final PerStageRule cachedRule = accountIdToRules.get(accountId);
 
-        if (cachedRule != null && cachedRule.version() >= getConfigVersion(config)) {
+        if (cachedRule != null && cachedRule.timestamp().compareTo(getConfigTimestamp(config)) >= 0) {
             return Future.succeededFuture(cachedRule);
         }
 
@@ -69,8 +71,17 @@ public class RuleParser {
                 : Future.succeededFuture(cachedRule);
     }
 
-    private long getConfigVersion(ObjectNode config) {
-        return config.path("timestamp").asLong();
+    private Instant getConfigTimestamp(ObjectNode config) {
+        try {
+            return Optional.of(config)
+                    .map(node -> node.get("timestamp"))
+                    .filter(JsonNode::isTextual)
+                    .map(JsonNode::asText)
+                    .map(Instant::parse)
+                    .orElse(Instant.EPOCH);
+        } catch (DateTimeParseException exception) {
+            return Instant.EPOCH;
+        }
     }
 
     private void parseConfig(String accountId, ObjectNode config) {
@@ -116,7 +127,9 @@ public class RuleParser {
     private void failParsingAttempt(String accountId, ParsingAttempt attempt, Throwable cause) {
         accountIdToParsingAttempt.put(accountId, ((ParsingAttempt.InProgress) attempt).failed());
 
-        logger.error("Failed to parse rules config for account %s: %s".formatted(accountId, cause.getMessage()), cause);
+        logger.error(
+                "Failed to parse rule-engine config for account %s: %s".formatted(accountId, cause.getMessage()),
+                cause);
     }
 
     private sealed interface ParsingAttempt {
