@@ -217,7 +217,7 @@ class BidderInsensitiveCaseSpec extends BaseSpec {
 
         then: "Bidder request should contain buyeruid from the user.ext.prebid.buyeruids"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest?.user?.buyeruid == buyeruid
+        assert bidderRequest?.user?.buyerUid == buyeruid
     }
 
     def "PBS should be able to match requested bidder with original bidder name in ext.prebid.aliase"() {

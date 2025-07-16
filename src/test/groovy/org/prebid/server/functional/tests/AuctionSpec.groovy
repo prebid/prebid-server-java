@@ -164,7 +164,7 @@ class AuctionSpec extends BaseSpec {
 
         then: "Bidder request should contain buyeruid from the user.ext.prebid.buyeruids"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest?.user?.buyeruid == buyeruid
+        assert bidderRequest?.user?.buyerUid == buyeruid
     }
 
     def "PBS shouldn't populate bidder request buyeruid from buyeruids when buyeruids without appropriate bidder present in request"() {
@@ -204,7 +204,7 @@ class AuctionSpec extends BaseSpec {
 
         then: "Bidder request should contain buyeruid from the uids cookie"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest?.user?.buyeruid == uidsCookie.tempUIDs[GENERIC].uid
+        assert bidderRequest?.user?.buyerUid == uidsCookie.tempUIDs[GENERIC].uid
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsConfig)
@@ -230,7 +230,7 @@ class AuctionSpec extends BaseSpec {
 
         then: "Bidder request shouldn't contain buyeruid from the uids cookie"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert !bidderRequest.user.buyeruid
+        assert !bidderRequest.user.buyerUid
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsConfig)
@@ -252,7 +252,7 @@ class AuctionSpec extends BaseSpec {
 
         then: "Bidder request should contain buyeruid from the buyeruids"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest?.user?.buyeruid == buyeruid
+        assert bidderRequest?.user?.buyerUid == buyeruid
     }
 
     def "PBS should populate buyeruid from host cookie name config when host cookie family matched with requested bidder"() {
@@ -275,7 +275,7 @@ class AuctionSpec extends BaseSpec {
 
         then: "Bidder request should contain buyeruid from cookieName"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest?.user?.buyeruid == hostCookieUid
+        assert bidderRequest?.user?.buyerUid == hostCookieUid
     }
 
     def "PBS shouldn't populate buyeruid from cookie name config when host cookie family not matched with requested cookie-family-name"() {
@@ -417,7 +417,7 @@ class AuctionSpec extends BaseSpec {
 
         then: "Bidder request should contain buyeruid from the user.ext.prebid.buyeruids"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest?.user?.buyeruid == buyeruid
+        assert bidderRequest?.user?.buyerUid == buyeruid
 
         where:
         bidderName << [GENERIC, GENERIC_CAMEL_CASE]
@@ -448,7 +448,7 @@ class AuctionSpec extends BaseSpec {
 
         then: "Bidder request should contain buyeruid from the user.ext.prebid.buyeruids"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest?.user?.buyeruid == buyeruid
+        assert bidderRequest?.user?.buyerUid == buyeruid
 
         where:
         bidderName << [GENERIC, GENERIC_CAMEL_CASE]

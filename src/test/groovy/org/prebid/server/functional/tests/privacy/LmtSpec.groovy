@@ -377,7 +377,7 @@ class LmtSpec extends PrivacyBaseSpec {
         and: "Bidder request should mask user personal data"
         verifyAll(bidderRequest.user) {
             !id
-            !buyeruid
+            !buyerUid
             !yob
             !gender
             !eids
@@ -447,7 +447,7 @@ class LmtSpec extends PrivacyBaseSpec {
         and: "Bidder request should mask user personal data"
         verifyAll(bidderRequest.user) {
             !id
-            !buyeruid
+            !buyerUid
             !yob
             !gender
             !eids
@@ -510,7 +510,7 @@ class LmtSpec extends PrivacyBaseSpec {
             bidderRequest.device.geo.ext == bidRequest.device.geo.ext
 
             bidderRequest.user.id == bidRequest.user.id
-            bidderRequest.user.buyeruid == bidRequest.user.buyeruid
+            bidderRequest.user.buyerUid == bidRequest.user.buyerUid
             bidderRequest.user.yob == bidRequest.user.yob
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.eids[0].source == bidRequest.user.eids[0].source
@@ -583,7 +583,7 @@ class LmtSpec extends PrivacyBaseSpec {
         and: "Bidder request should mask user personal data"
         verifyAll(bidderRequest.user) {
             !id
-            !buyeruid
+            !buyerUid
             !yob
             !gender
             !eids
@@ -649,7 +649,7 @@ class LmtSpec extends PrivacyBaseSpec {
             bidderRequest.device.geo.ext == ampStoredRequest.device.geo.ext
 
             bidderRequest.user.id == ampStoredRequest.user.id
-            bidderRequest.user.buyeruid == ampStoredRequest.user.buyeruid
+            bidderRequest.user.buyerUid == ampStoredRequest.user.buyerUid
             bidderRequest.user.yob == ampStoredRequest.user.yob
             bidderRequest.user.gender == ampStoredRequest.user.gender
             bidderRequest.user.eids[0].source == ampStoredRequest.user.eids[0].source

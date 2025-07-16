@@ -611,7 +611,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         and: "Bidder request should mask user personal data"
         verifyAll(bidderRequest.user) {
             !id
-            !buyeruid
+            !buyerUid
             !yob
             !gender
             !eids
@@ -689,7 +689,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         and: "Bidder request should mask user personal data"
         verifyAll(bidderRequest.user) {
             !id
-            !buyeruid
+            !buyerUid
             !yob
             !gender
             !eids
@@ -765,7 +765,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
             bidderRequest.device.geo.ext == bidRequest.device.geo.ext
 
             bidderRequest.user.id == bidRequest.user.id
-            bidderRequest.user.buyeruid == bidRequest.user.buyeruid
+            bidderRequest.user.buyerUid == bidRequest.user.buyerUid
             bidderRequest.user.yob == bidRequest.user.yob
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.eids[0].source == bidRequest.user.eids[0].source
@@ -969,7 +969,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         given: "Default bid requests with personal data"
         def bidRequest = bidRequestWithPersonalData.tap {
             regs.gdpr = 1
-            user.buyeruid = null
+            user.buyerUid = null
             user.ext.consent = new TcfConsent.Builder().build()
             ext.prebid.trace = VERBOSE
         }
@@ -992,7 +992,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         verifyAll(bidderRequest.user) {
             !id
-            !buyeruid
+            !buyerUid
             !yob
             !gender
             !eids
@@ -1038,7 +1038,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         verifyAll(bidderRequest.user) {
             !id
-            !buyeruid
+            !buyerUid
             !yob
             !gender
             !eids
@@ -1083,7 +1083,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         verifyAll(bidderRequest.user) {
             !id
-            !buyeruid
+            !buyerUid
             !yob
             !gender
             !eids

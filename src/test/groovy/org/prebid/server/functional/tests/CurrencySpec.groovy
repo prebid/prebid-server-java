@@ -27,7 +27,7 @@ class CurrencySpec extends BaseSpec {
     }
 
     def cleanupSpec() {
-        pbsServiceFactory.removeContainer(externalCurrencyConverterConfig)
+        pbsServiceFactory.removeContainer(PbsConfig.currencyConverterConfig)
     }
 
     def "PBS should return currency rates"() {

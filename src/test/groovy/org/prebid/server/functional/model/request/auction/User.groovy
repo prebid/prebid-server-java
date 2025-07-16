@@ -9,7 +9,7 @@ import org.prebid.server.functional.util.PBSUtils
 class User {
 
     String id
-    String buyeruid
+    String buyerUid
     Integer yob
     String gender
     String keywords

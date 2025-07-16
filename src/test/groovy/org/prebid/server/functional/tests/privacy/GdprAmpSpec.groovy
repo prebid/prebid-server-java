@@ -565,7 +565,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         and: "Bidder request should mask user personal data"
         verifyAll(bidderRequest.user) {
             !id
-            !buyeruid
+            !buyerUid
             !yob
             !gender
             !eids
@@ -640,7 +640,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
             bidderRequest.device.geo.ext == ampStoredRequest.device.geo.ext
 
             bidderRequest.user.id == ampStoredRequest.user.id
-            bidderRequest.user.buyeruid == ampStoredRequest.user.buyeruid
+            bidderRequest.user.buyerUid == ampStoredRequest.user.buyerUid
             bidderRequest.user.yob == ampStoredRequest.user.yob
             bidderRequest.user.gender == ampStoredRequest.user.gender
             bidderRequest.user.eids[0].source == ampStoredRequest.user.eids[0].source
