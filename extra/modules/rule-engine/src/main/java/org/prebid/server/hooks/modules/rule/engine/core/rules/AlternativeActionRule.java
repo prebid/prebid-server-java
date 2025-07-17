@@ -1,16 +1,13 @@
 package org.prebid.server.hooks.modules.rule.engine.core.rules;
 
+import lombok.Value;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.exception.NoMatchingRuleException;
 
+@Value(staticConstructor = "of")
 public class AlternativeActionRule<T, C> implements Rule<T, C> {
 
-    private final Rule<T, C> delegate;
-    private final Rule<T, C> alternative;
-
-    public AlternativeActionRule(Rule<T, C> delegate, Rule<T, C> alternative) {
-        this.delegate = delegate;
-        this.alternative = alternative;
-    }
+    Rule<T, C> delegate;
+    Rule<T, C> alternative;
 
     public RuleResult<T> process(T value, C context) {
         try {

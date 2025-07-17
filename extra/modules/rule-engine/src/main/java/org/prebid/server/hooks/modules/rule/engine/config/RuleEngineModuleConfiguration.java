@@ -6,8 +6,8 @@ import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.execution.retry.ExponentialBackoffRetryPolicy;
 import org.prebid.server.hooks.execution.model.Stage;
 import org.prebid.server.hooks.modules.rule.engine.core.config.AccountConfigParser;
+import org.prebid.server.hooks.modules.rule.engine.core.config.RuleParser;
 import org.prebid.server.hooks.modules.rule.engine.core.config.StageConfigParser;
-import org.prebid.server.hooks.modules.rule.engine.core.config.cache.RuleParser;
 import org.prebid.server.hooks.modules.rule.engine.core.request.RequestMatchingRule;
 import org.prebid.server.hooks.modules.rule.engine.core.request.RequestSpecification;
 import org.prebid.server.hooks.modules.rule.engine.core.request.context.RequestResultContext;
@@ -21,6 +21,7 @@ import org.springframework.context.annotation.Configuration;
 
 import java.time.Clock;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.random.RandomGenerator;
 
 @Configuration
 @ConditionalOnProperty(prefix = "hooks." + RuleEngineModule.CODE, name = "enabled", havingValue = "true")
@@ -36,10 +37,12 @@ public class RuleEngineModuleConfiguration {
             BidderCatalog bidderCatalog,
             @Value("${datacenter-region:#{null}}") String datacenterRegion) {
 
+        final RandomGenerator randomGenerator = () -> ThreadLocalRandom.current().nextLong();
+
         return new StageConfigParser<>(
-                () -> ThreadLocalRandom.current().nextLong(),
+                randomGenerator,
                 Stage.processed_auction_request,
-                new RequestSpecification(ObjectMapperProvider.mapper(), bidderCatalog),
+                new RequestSpecification(ObjectMapperProvider.mapper(), bidderCatalog, randomGenerator),
                 (schema, ruleTree, modelVersion, analyticsKey) ->
                         new RequestMatchingRule(schema, ruleTree, modelVersion, analyticsKey, datacenterRegion));
     }

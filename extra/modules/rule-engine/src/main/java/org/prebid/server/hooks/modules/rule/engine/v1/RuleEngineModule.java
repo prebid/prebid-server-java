@@ -1,6 +1,6 @@
 package org.prebid.server.hooks.modules.rule.engine.v1;
 
-import org.prebid.server.hooks.modules.rule.engine.core.config.cache.RuleParser;
+import org.prebid.server.hooks.modules.rule.engine.core.config.RuleParser;
 import org.prebid.server.hooks.v1.Hook;
 import org.prebid.server.hooks.v1.InvocationContext;
 import org.prebid.server.hooks.v1.Module;

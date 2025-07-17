@@ -1,12 +1,12 @@
 package org.prebid.server.hooks.modules.rule.engine.core.rules;
 
-import lombok.NoArgsConstructor;
+import lombok.Value;
 import org.prebid.server.hooks.execution.v1.analytics.TagsImpl;
 import org.prebid.server.model.UpdateResult;
 
 import java.util.Collections;
 
-@NoArgsConstructor
+@Value(staticConstructor = "create")
 public class NoOpRule<T, C> implements Rule<T, C> {
 
     @Override

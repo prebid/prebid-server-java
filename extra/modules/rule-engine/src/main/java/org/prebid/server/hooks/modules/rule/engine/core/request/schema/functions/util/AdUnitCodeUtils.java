@@ -1,4 +1,4 @@
-package org.prebid.server.hooks.modules.rule.engine.core.request.util;
+package org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.util;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.iab.openrtb.request.Imp;

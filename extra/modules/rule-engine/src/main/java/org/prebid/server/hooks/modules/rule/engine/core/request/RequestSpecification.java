@@ -7,6 +7,7 @@ import org.prebid.server.hooks.modules.rule.engine.core.request.context.RequestR
 import org.prebid.server.hooks.modules.rule.engine.core.request.context.RequestSchemaContext;
 import org.prebid.server.hooks.modules.rule.engine.core.request.result.functions.filter.ExcludeBiddersFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.request.result.functions.filter.IncludeBiddersFunction;
+import org.prebid.server.hooks.modules.rule.engine.core.request.result.functions.log.LogATagFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.AdUnitCodeFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.AdUnitCodeInFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.BundleFunction;
@@ -19,6 +20,7 @@ import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions
 import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.DeviceTypeFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.DeviceTypeInFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.DomainFunction;
+import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.DomainInFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.EidAvailableFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.EidInFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.FpdAvailableFunction;
@@ -29,13 +31,16 @@ import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions
 import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.TcfInScopeFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.UserFpdAvailableFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.StageSpecification;
+import org.prebid.server.hooks.modules.rule.engine.core.rules.exception.InvalidResultFunctionException;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.exception.InvalidSchemaFunctionException;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.result.ResultFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunction;
+import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.functions.PercentFunction;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.random.RandomGenerator;
 
 public class RequestSpecification implements
         StageSpecification<RequestSchemaContext, BidRequest, RequestResultContext> {
@@ -47,7 +52,8 @@ public class RequestSpecification implements
     private final Map<String, ResultFunction<BidRequest, RequestResultContext>> resultFunctions;
 
     public RequestSpecification(ObjectMapper mapper,
-                                BidderCatalog bidderCatalog) {
+                                BidderCatalog bidderCatalog,
+                                RandomGenerator random) {
 
         schemaFunctions = new HashMap<>();
         schemaFunctions.put(AdUnitCodeFunction.NAME, new AdUnitCodeFunction());
@@ -62,19 +68,22 @@ public class RequestSpecification implements
         schemaFunctions.put(DeviceTypeFunction.NAME, new DeviceTypeFunction());
         schemaFunctions.put(DeviceTypeInFunction.NAME, new DeviceTypeInFunction());
         schemaFunctions.put(DomainFunction.NAME, new DomainFunction());
+        schemaFunctions.put(DomainInFunction.NAME, new DomainInFunction());
         schemaFunctions.put(EidAvailableFunction.NAME, new EidAvailableFunction());
         schemaFunctions.put(EidInFunction.NAME, new EidInFunction());
         schemaFunctions.put(FpdAvailableFunction.NAME, new FpdAvailableFunction());
         schemaFunctions.put(GppSidAvailableFunction.NAME, new GppSidAvailableFunction());
         schemaFunctions.put(GppSidInFunction.NAME, new GppSidInFunction());
         schemaFunctions.put(MediaTypeInFunction.NAME, new MediaTypeInFunction());
+        schemaFunctions.put(PercentFunction.NAME, new PercentFunction<>(random));
         schemaFunctions.put(PrebidKeyFunction.NAME, new PrebidKeyFunction());
         schemaFunctions.put(TcfInScopeFunction.NAME, new TcfInScopeFunction());
         schemaFunctions.put(UserFpdAvailableFunction.NAME, new UserFpdAvailableFunction());
 
         resultFunctions = Map.of(
+                IncludeBiddersFunction.NAME, new IncludeBiddersFunction(mapper, bidderCatalog),
                 ExcludeBiddersFunction.NAME, new ExcludeBiddersFunction(mapper, bidderCatalog),
-                IncludeBiddersFunction.NAME, new IncludeBiddersFunction(mapper, bidderCatalog));
+                LogATagFunction.NAME, new LogATagFunction(mapper));
     }
 
     public SchemaFunction<RequestSchemaContext> schemaFunctionByName(String name) {
@@ -89,7 +98,7 @@ public class RequestSpecification implements
     public ResultFunction<BidRequest, RequestResultContext> resultFunctionByName(String name) {
         final ResultFunction<BidRequest, RequestResultContext> function = resultFunctions.get(name);
         if (function == null) {
-            throw new InvalidSchemaFunctionException(name);
+            throw new InvalidResultFunctionException(name);
         }
 
         return function;

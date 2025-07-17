@@ -6,7 +6,7 @@ import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.hooks.modules.rule.engine.core.request.Granularity;
 import org.prebid.server.hooks.modules.rule.engine.core.request.context.RequestSchemaContext;
-import org.prebid.server.hooks.modules.rule.engine.core.request.util.AdUnitCodeUtils;
+import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.util.AdUnitCodeUtils;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunctionArguments;
 import org.prebid.server.hooks.modules.rule.engine.core.util.ValidationUtils;

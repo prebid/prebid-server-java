@@ -193,4 +193,6 @@ public class ExtRequestPrebid {
 
     @JsonProperty("alternatebiddercodes")
     ExtRequestPrebidAlternateBidderCodes alternateBidderCodes;
+
+    ObjectNode kvps;
 }
