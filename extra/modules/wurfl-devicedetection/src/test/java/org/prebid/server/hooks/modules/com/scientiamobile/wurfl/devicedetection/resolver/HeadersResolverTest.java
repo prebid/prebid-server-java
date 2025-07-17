@@ -3,7 +3,6 @@ package org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection
 import com.iab.openrtb.request.BrandVersion;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.UserAgent;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -15,14 +14,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class HeadersResolverTest {
 
-    private HeadersResolver target;
-
     private static final String TEST_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36";
-
-    @BeforeEach
-    void setUp() {
-        target = new HeadersResolver();
-    }
 
     @Test
     void resolveWithNullDeviceShouldReturnOriginalHeaders() {
@@ -31,7 +23,7 @@ class HeadersResolverTest {
         headers.put("test", "value");
 
         // when
-        final Map<String, String> result = target.resolve(null, headers);
+        final Map<String, String> result = HeadersResolver.resolve(null, headers);
 
         // then
         assertThat(result).isEqualTo(headers);
@@ -45,7 +37,7 @@ class HeadersResolverTest {
                 .build();
 
         // when
-        final Map<String, String> result = target.resolve(device, new HashMap<>());
+        final Map<String, String> result = HeadersResolver.resolve(device, new HashMap<>());
 
         // then
         assertThat(result).containsEntry("User-Agent", TEST_USER_AGENT);
@@ -76,7 +68,7 @@ class HeadersResolverTest {
                 .build();
 
         // when
-        final Map<String, String> result = target.resolve(device, new HashMap<>());
+        final Map<String, String> result = HeadersResolver.resolve(device, new HashMap<>());
 
         // then
         assertThat(result)
@@ -124,7 +116,7 @@ class HeadersResolverTest {
         headers.put("Sec-CH-UA-Mobile", "Test-UA-Mobile");
         headers.put("User-Agent", "Mozilla/5.0 (Test OS; 10) like Gecko");
         // when
-        final Map<String, String> result = target.resolve(device, headers);
+        final Map<String, String> result = HeadersResolver.resolve(device, headers);
 
         // then
         assertThat(result)
@@ -160,7 +152,7 @@ class HeadersResolverTest {
                 .build();
 
         // when
-        final Map<String, String> result = target.resolve(device, new HashMap<>());
+        final Map<String, String> result = HeadersResolver.resolve(device, new HashMap<>());
 
         // then
         final String expectedFormat = "\"Chrome\";v=\"100.0\", \"Chromium\";v=\"100.0\", \"Not\\A;Brand\";v=\"99.0\"";
@@ -172,7 +164,7 @@ class HeadersResolverTest {
     @Test
     void resolveWithNullDeviceAndNullHeadersShouldReturnEmptyMap() {
         // when
-        final Map<String, String> result = target.resolve(null, null);
+        final Map<String, String> result = HeadersResolver.resolve(null, null);
 
         // then
         assertThat(result).isEmpty();

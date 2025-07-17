@@ -16,7 +16,10 @@ import java.util.stream.Collectors;
 
 public class HeadersResolver {
 
-    public Map<String, String> resolve(Device device, Map<String, String> headers) {
+    private HeadersResolver() {
+    }
+
+    public static Map<String, String> resolve(Device device, Map<String, String> headers) {
         if (device == null && headers == null) {
             return Collections.emptyMap();
         }
@@ -27,7 +30,7 @@ public class HeadersResolver {
                 : headers;
     }
 
-    private Map<String, String> resolveFromDevice(Device device) {
+    private static Map<String, String> resolveFromDevice(Device device) {
         if (device == null) {
             return Collections.emptyMap();
         }
@@ -41,7 +44,7 @@ public class HeadersResolver {
         return resolvedHeaders;
     }
 
-    private Map<String, String> resolveFromSua(UserAgent sua) {
+    private static Map<String, String> resolveFromSua(UserAgent sua) {
         if (sua == null) {
             return Collections.emptyMap();
         }
@@ -59,8 +62,7 @@ public class HeadersResolver {
         final BrandVersion platform = sua.getPlatform();
         if (platform != null) {
             headers.put(HttpUtil.SEC_CH_UA_PLATFORM.toString(), platform.getBrand());
-            headers.put(HttpUtil.SEC_CH_UA_PLATFORM_VERSION.toString(),
-                    versionFromTokens(platform.getVersion()));
+            headers.put(HttpUtil.SEC_CH_UA_PLATFORM_VERSION.toString(), versionFromTokens(platform.getVersion()));
         }
 
         final String model = sua.getModel();
@@ -81,7 +83,7 @@ public class HeadersResolver {
         return headers;
     }
 
-    private String brandListAsString(List<BrandVersion> versions) {
+    private static String brandListAsString(List<BrandVersion> versions) {
         return versions.stream()
                 .filter(brandVersion -> brandVersion.getBrand() != null)
                 .map(brandVersion -> "\"%s\";v=\"%s\"".formatted(

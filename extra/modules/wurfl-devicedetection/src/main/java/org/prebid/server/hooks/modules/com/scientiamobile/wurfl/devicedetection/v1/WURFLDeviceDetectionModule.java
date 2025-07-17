@@ -10,11 +10,11 @@ import java.util.List;
 public class WURFLDeviceDetectionModule implements Module {
 
     public static final String CODE = "wurfl-devicedetection";
+
     private final List<? extends Hook<?, ? extends InvocationContext>> hooks;
 
     public WURFLDeviceDetectionModule(List<? extends Hook<?, ? extends InvocationContext>> hooks) {
         this.hooks = hooks;
-
     }
 
     @Override

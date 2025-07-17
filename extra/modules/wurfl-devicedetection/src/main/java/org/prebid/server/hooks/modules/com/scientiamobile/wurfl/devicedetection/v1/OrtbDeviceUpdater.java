@@ -171,16 +171,9 @@ public class OrtbDeviceUpdater {
                 : wurflDevice.getCapability(capName);
 
         if (fromWurfl != null) {
-
-            BigDecimal pxRatio = null;
-            try {
-                pxRatio = new BigDecimal(fromWurfl);
-                return UpdateResult.updated(pxRatio);
-            } catch (NullPointerException e) {
-                LOG.warn("Cannot convert WURFL device pixel density {} to ortb device pxratio", pxRatio);
-            }
+            final BigDecimal pxRatio = new BigDecimal(fromWurfl);
+            return UpdateResult.updated(pxRatio);
         }
-
         return UpdateResult.unaltered(fromOrtbDevice);
     }
 
