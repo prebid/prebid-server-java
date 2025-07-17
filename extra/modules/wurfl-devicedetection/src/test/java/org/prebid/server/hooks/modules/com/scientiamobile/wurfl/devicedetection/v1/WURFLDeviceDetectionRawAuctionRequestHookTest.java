@@ -10,6 +10,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.json.ObjectMapperProvider;
 import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.config.WURFLDeviceDetectionConfigProperties;
 import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.mock.WURFLDeviceMock;
 import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.model.AuctionRequestHeadersContext;
@@ -48,6 +50,8 @@ class WURFLDeviceDetectionRawAuctionRequestHookTest {
     @Mock(strictness = Mock.Strictness.LENIENT)
     private Account account;
 
+    private JacksonMapper mapper = new JacksonMapper(ObjectMapperProvider.mapper());
+
     private WURFLDeviceDetectionRawAuctionRequestHook target;
 
     @BeforeEach
@@ -55,7 +59,7 @@ class WURFLDeviceDetectionRawAuctionRequestHookTest {
         auctionContext = AuctionContext.builder().account(account).build();
 
         final WURFLService wurflService = new WURFLService(wurflEngine, configProperties);
-        target = new WURFLDeviceDetectionRawAuctionRequestHook(wurflService, configProperties);
+        target = new WURFLDeviceDetectionRawAuctionRequestHook(wurflService, configProperties, mapper);
     }
 
     @Test
@@ -138,7 +142,7 @@ class WURFLDeviceDetectionRawAuctionRequestHookTest {
         when(wurflEngine.getDeviceForRequest(any(Map.class))).thenReturn(wurflDevice);
         when(configProperties.getAllowedPublisherIds()).thenReturn(Collections.emptySet());
         final WURFLService wurflService = new WURFLService(wurflEngine, configProperties);
-        target = new WURFLDeviceDetectionRawAuctionRequestHook(wurflService, configProperties);
+        target = new WURFLDeviceDetectionRawAuctionRequestHook(wurflService, configProperties, mapper);
 
         // when
         final InvocationResult<AuctionRequestPayload> result = target.call(payload, context).result();
@@ -170,7 +174,7 @@ class WURFLDeviceDetectionRawAuctionRequestHookTest {
                 "another-allowed-publisher"));
         when(context.auctionContext()).thenReturn(auctionContext);
         final WURFLService wurflService = new WURFLService(wurflEngine, configProperties);
-        target = new WURFLDeviceDetectionRawAuctionRequestHook(wurflService, configProperties);
+        target = new WURFLDeviceDetectionRawAuctionRequestHook(wurflService, configProperties, mapper);
 
         // when
         final InvocationResult<AuctionRequestPayload> result = target.call(payload, context).result();
@@ -187,7 +191,7 @@ class WURFLDeviceDetectionRawAuctionRequestHookTest {
         when(account.getId()).thenReturn("unknown-publisher");
         when(configProperties.getAllowedPublisherIds()).thenReturn(Set.of("allowed-publisher"));
         final WURFLService wurflService = new WURFLService(wurflEngine, configProperties);
-        target = new WURFLDeviceDetectionRawAuctionRequestHook(wurflService, configProperties);
+        target = new WURFLDeviceDetectionRawAuctionRequestHook(wurflService, configProperties, mapper);
 
         // when
         final InvocationResult<AuctionRequestPayload> result = target.call(payload, context).result();
@@ -204,7 +208,7 @@ class WURFLDeviceDetectionRawAuctionRequestHookTest {
         when(account.getId()).thenReturn("");
         when(configProperties.getAllowedPublisherIds()).thenReturn(Set.of("allowed-publisher"));
         final WURFLService wurflService = new WURFLService(wurflEngine, configProperties);
-        target = new WURFLDeviceDetectionRawAuctionRequestHook(wurflService, configProperties);
+        target = new WURFLDeviceDetectionRawAuctionRequestHook(wurflService, configProperties, mapper);
 
         // when
         final InvocationResult<AuctionRequestPayload> result = target.call(payload, context).result();
