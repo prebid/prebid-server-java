@@ -367,7 +367,7 @@
                     <version>${maven-surefire-plugin.version}</version>
                     <configuration>
                         <systemPropertyVariables>
-                            <launchContainers>false</launchContainers>
+                            <launchContainers>true</launchContainers>
                         </systemPropertyVariables>
                         <skipTests>${skipUnitTests}</skipTests>
                     </configuration>

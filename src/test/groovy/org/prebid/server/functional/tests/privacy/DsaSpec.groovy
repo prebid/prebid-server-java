@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests.privacy
 
+import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.config.AccountDsaConfig
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
@@ -13,6 +14,7 @@ import org.prebid.server.functional.model.response.auction.DsaResponse
 import org.prebid.server.functional.model.response.auction.DsaResponse as BidDsa
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.TcfConsent
+
 
 import static org.prebid.server.functional.model.request.auction.DsaPubRender.PUB_CANT_RENDER
 import static org.prebid.server.functional.model.request.auction.DsaPubRender.PUB_WILL_RENDER
@@ -315,7 +317,7 @@ class DsaSpec extends PrivacyBaseSpec {
         assert response.ext.seatnonbid.size() == 1
 
         def seatNonBid = response.ext.seatnonbid[0]
-        assert seatNonBid.seat == GENERIC.value
+        assert seatNonBid.seat == BidderName.GENERIC
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == RESPONSE_REJECTED_DUE_TO_DSA
 
@@ -495,7 +497,7 @@ class DsaSpec extends PrivacyBaseSpec {
         assert response.ext.seatnonbid.size() == 1
 
         def seatNonBid = response.ext.seatnonbid[0]
-        assert seatNonBid.seat == GENERIC.value
+        assert seatNonBid.seat == BidderName.GENERIC
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == RESPONSE_REJECTED_DUE_TO_DSA
 
@@ -535,7 +537,7 @@ class DsaSpec extends PrivacyBaseSpec {
         assert response.ext.seatnonbid.size() == 1
 
         def seatNonBid = response.ext.seatnonbid[0]
-        assert seatNonBid.seat == GENERIC.value
+        assert seatNonBid.seat == BidderName.GENERIC
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == RESPONSE_REJECTED_DUE_TO_DSA
 

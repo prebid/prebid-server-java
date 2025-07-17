@@ -12,7 +12,7 @@ class Device {
     UserAgent sua
     String ip
     String ipv6
-    Integer devicetype
+    DeviceType devicetype
     String make
     String model
     String os

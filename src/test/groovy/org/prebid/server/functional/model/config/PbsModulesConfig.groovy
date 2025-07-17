@@ -13,4 +13,5 @@ class PbsModulesConfig {
     Ortb2BlockingConfig ortb2Blocking
     PbResponseCorrection pbResponseCorrection
     PbRequestCorrectionConfig pbRequestCorrection
+    PbRulesEngine ruleEngine
 }
