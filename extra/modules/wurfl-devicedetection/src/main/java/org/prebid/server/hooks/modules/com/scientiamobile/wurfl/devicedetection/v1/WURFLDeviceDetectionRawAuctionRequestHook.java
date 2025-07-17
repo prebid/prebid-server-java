@@ -4,7 +4,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
-import org.apache.commons.collections4.MapUtils;
+import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.config.WURFLDeviceDetectionConfigProperties;
 import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.model.AuctionRequestHeadersContext;
@@ -22,9 +22,8 @@ import io.vertx.core.Future;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.Set;
 
 public class WURFLDeviceDetectionRawAuctionRequestHook implements RawAuctionRequestHook {
 
@@ -33,7 +32,7 @@ public class WURFLDeviceDetectionRawAuctionRequestHook implements RawAuctionRequ
 
     private final WURFLService wurflService;
     private final OrtbDeviceUpdater ortbDeviceUpdater;
-    private final Map<String, String> allowedPublisherIDs;
+    private final Set<String> allowedPublisherIDs;
     private final boolean addExtCaps;
 
     public WURFLDeviceDetectionRawAuctionRequestHook(WURFLService wurflService,
@@ -41,8 +40,7 @@ public class WURFLDeviceDetectionRawAuctionRequestHook implements RawAuctionRequ
         this.wurflService = wurflService;
         this.ortbDeviceUpdater = new OrtbDeviceUpdater();
         this.addExtCaps = configProperties.isExtCaps();
-        this.allowedPublisherIDs = configProperties.getAllowedPublisherIds().stream()
-                .collect(Collectors.toMap(item -> item, item -> item));
+        this.allowedPublisherIDs = configProperties.getAllowedPublisherIds();
     }
 
     @Override
@@ -115,7 +113,7 @@ public class WURFLDeviceDetectionRawAuctionRequestHook implements RawAuctionRequ
     }
 
     private boolean shouldEnrichDevice(AuctionInvocationContext invocationContext) {
-        if (MapUtils.isEmpty(allowedPublisherIDs)) {
+        if (CollectionUtils.isEmpty(allowedPublisherIDs)) {
             return true;
         }
         final AuctionContext auctionContext = invocationContext.auctionContext();
@@ -132,9 +130,8 @@ public class WURFLDeviceDetectionRawAuctionRequestHook implements RawAuctionRequ
                 .map(AuctionContext::getAccount)
                 .map(Account::getId)
                 .filter(StringUtils::isNotBlank)
-                .map(allowedPublisherIDs::get)
-                .filter(Objects::nonNull)
-                .isPresent();
+                .map(allowedPublisherIDs::contains)
+                .orElse(false);
     }
 
 }
