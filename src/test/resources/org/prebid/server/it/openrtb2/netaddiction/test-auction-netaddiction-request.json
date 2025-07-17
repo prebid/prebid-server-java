@@ -4,12 +4,13 @@
     {
       "id": "imp_id",
       "banner": {
-        "w": 300,
+        "w": 320,
         "h": 250
       },
       "ext": {
-        "colossusssp": {
-          "TagID": "tag_id"
+        "netaddiction": {
+          "host": "host",
+          "networkId": 4
         }
       }
     }
