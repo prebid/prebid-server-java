@@ -29,7 +29,6 @@ public class AdUnitCodeInFunction implements SchemaFunction<RequestSchemaContext
     public String extract(SchemaFunctionArguments<RequestSchemaContext> arguments) {
         final RequestSchemaContext context = arguments.getOperand();
         final String impId = ((Granularity.Imp) arguments.getOperand().getGranularity()).impId();
-        ;
         final BidRequest bidRequest = context.getBidRequest();
 
         final Imp adUnit = ListUtils.emptyIfNull(bidRequest.getImp()).stream()

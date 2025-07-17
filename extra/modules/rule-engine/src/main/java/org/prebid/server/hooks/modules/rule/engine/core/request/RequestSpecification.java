@@ -31,6 +31,7 @@ import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions
 import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.TcfInScopeFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.UserFpdAvailableFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.StageSpecification;
+import org.prebid.server.hooks.modules.rule.engine.core.rules.exception.InvalidResultFunctionException;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.exception.InvalidSchemaFunctionException;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.result.ResultFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunction;
@@ -97,7 +98,7 @@ public class RequestSpecification implements
     public ResultFunction<BidRequest, RequestResultContext> resultFunctionByName(String name) {
         final ResultFunction<BidRequest, RequestResultContext> function = resultFunctions.get(name);
         if (function == null) {
-            throw new InvalidSchemaFunctionException(name);
+            throw new InvalidResultFunctionException(name);
         }
 
         return function;
