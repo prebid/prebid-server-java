@@ -21,6 +21,7 @@ import org.springframework.context.annotation.Configuration;
 
 import java.time.Clock;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.random.RandomGenerator;
 
 @Configuration
 @ConditionalOnProperty(prefix = "hooks." + RuleEngineModule.CODE, name = "enabled", havingValue = "true")
@@ -36,10 +37,12 @@ public class RuleEngineModuleConfiguration {
             BidderCatalog bidderCatalog,
             @Value("${datacenter-region:#{null}}") String datacenterRegion) {
 
+        final RandomGenerator randomGenerator = () -> ThreadLocalRandom.current().nextLong();
+
         return new StageConfigParser<>(
-                () -> ThreadLocalRandom.current().nextLong(),
+                randomGenerator,
                 Stage.processed_auction_request,
-                new RequestSpecification(ObjectMapperProvider.mapper(), bidderCatalog),
+                new RequestSpecification(ObjectMapperProvider.mapper(), bidderCatalog, randomGenerator),
                 (schema, ruleTree, modelVersion, analyticsKey) ->
                         new RequestMatchingRule(schema, ruleTree, modelVersion, analyticsKey, datacenterRegion));
     }

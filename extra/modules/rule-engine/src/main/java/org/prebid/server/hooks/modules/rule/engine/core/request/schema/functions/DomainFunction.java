@@ -1,8 +1,8 @@
 package org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.iab.openrtb.request.BidRequest;
 import org.prebid.server.hooks.modules.rule.engine.core.request.context.RequestSchemaContext;
+import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.util.DomainUtils;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunctionArguments;
 import org.prebid.server.hooks.modules.rule.engine.core.util.ValidationUtils;
@@ -13,9 +13,8 @@ public class DomainFunction implements SchemaFunction<RequestSchemaContext> {
 
     @Override
     public String extract(SchemaFunctionArguments<RequestSchemaContext> arguments) {
-        final BidRequest bidRequest = arguments.getOperand().getBidRequest();
-
-        return UNDEFINED_RESULT;
+        return DomainUtils.extractDomain(arguments.getOperand().getBidRequest())
+                .orElse(UNDEFINED_RESULT);
     }
 
     @Override

@@ -9,7 +9,7 @@ import org.prebid.server.hooks.modules.rule.engine.core.util.ValidationUtils;
 import java.util.random.RandomGenerator;
 
 @RequiredArgsConstructor
-public class PercentFunction implements SchemaFunction {
+public class PercentFunction<T> implements SchemaFunction<T> {
 
     public static final String NAME = "percent";
 
@@ -18,7 +18,7 @@ public class PercentFunction implements SchemaFunction {
     private final RandomGenerator random;
 
     @Override
-    public String extract(SchemaFunctionArguments arguments) {
+    public String extract(SchemaFunctionArguments<T> arguments) {
         final int resolvedUpperBound = Math.min(Math.max(arguments.getConfig().get(PCT_FIELD).asInt(), 0), 100);
         return Boolean.toString(random.nextInt(100) < resolvedUpperBound);
     }
