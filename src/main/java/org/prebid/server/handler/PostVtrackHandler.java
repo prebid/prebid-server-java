@@ -39,9 +39,9 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class VtrackHandler implements ApplicationResource {
+public class PostVtrackHandler implements ApplicationResource {
 
-    private static final Logger logger = LoggerFactory.getLogger(VtrackHandler.class);
+    private static final Logger logger = LoggerFactory.getLogger(PostVtrackHandler.class);
 
     private static final String ACCOUNT_PARAMETER = "a";
     private static final String INTEGRATION_PARAMETER = "int";
@@ -56,14 +56,14 @@ public class VtrackHandler implements ApplicationResource {
     private final TimeoutFactory timeoutFactory;
     private final JacksonMapper mapper;
 
-    public VtrackHandler(long defaultTimeout,
-                         boolean allowUnknownBidder,
-                         boolean modifyVastForUnknownBidder,
-                         ApplicationSettings applicationSettings,
-                         BidderCatalog bidderCatalog,
-                         CoreCacheService coreCacheService,
-                         TimeoutFactory timeoutFactory,
-                         JacksonMapper mapper) {
+    public PostVtrackHandler(long defaultTimeout,
+                             boolean allowUnknownBidder,
+                             boolean modifyVastForUnknownBidder,
+                             ApplicationSettings applicationSettings,
+                             BidderCatalog bidderCatalog,
+                             CoreCacheService coreCacheService,
+                             TimeoutFactory timeoutFactory,
+                             JacksonMapper mapper) {
 
         this.defaultTimeout = defaultTimeout;
         this.allowUnknownBidder = allowUnknownBidder;

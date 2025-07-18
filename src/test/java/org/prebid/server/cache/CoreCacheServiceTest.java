@@ -27,6 +27,7 @@ import org.prebid.server.cache.model.CacheServiceResult;
 import org.prebid.server.cache.model.DebugHttpCall;
 import org.prebid.server.cache.proto.request.bid.BidCacheRequest;
 import org.prebid.server.cache.proto.request.bid.BidPutObject;
+import org.prebid.server.cache.proto.response.CacheErrorResponse;
 import org.prebid.server.cache.proto.response.bid.BidCacheResponse;
 import org.prebid.server.cache.proto.response.bid.CacheObject;
 import org.prebid.server.events.EventsContext;
@@ -1354,6 +1355,114 @@ public class CoreCacheServiceTest extends VertxTest {
 
         // then
         verify(metrics, never()).updateCacheCreativeTtl(any(), any(), any());
+    }
+
+    @Test
+    public void getCachedObjectShouldAddUuidAndChQueryParamsBeforeSendingWhenChIsPresent() {
+        // given
+        final HttpClientResponse response = HttpClientResponse.of(
+                200,
+                MultiMap.caseInsensitiveMultiMap().add("Header", "Value"),
+                "body");
+
+        given(httpClient.get(eq("http://cache-service/cache?uuid=key&ch=ch"), any(), anyLong()))
+                .willReturn(Future.succeededFuture(response));
+
+        // when
+        final Future<HttpClientResponse> result = target.getCachedObject("key", "ch", timeout);
+
+        // then
+        assertThat(result.result()).isEqualTo(response);
+    }
+
+    @Test
+    public void getCachedObjectShouldAddUuidQueryParamsBeforeSendingWhenChIsAbsent() {
+        // given
+        final HttpClientResponse response = HttpClientResponse.of(
+                200,
+                MultiMap.caseInsensitiveMultiMap().add("Header", "Value"),
+                "body");
+
+        given(httpClient.get(eq("http://cache-service/cache?uuid=key"), any(), anyLong()))
+                .willReturn(Future.succeededFuture(response));
+
+        // when
+        final Future<HttpClientResponse> result = target.getCachedObject("key", null, timeout);
+
+        // then
+        assertThat(result.result()).isEqualTo(response);
+    }
+
+    @Test
+    public void getCachedObjectShouldAddUuidQueryParamsToInternalBeforeSendingWhenChIsAbsent()
+            throws MalformedURLException {
+
+        // given
+        target = new CoreCacheService(
+                httpClient,
+                new URL("http://cache-service/cache"),
+                new URL("http://internal-cache-service/cache"),
+                "http://cache-service-host/cache?uuid=",
+                100L,
+                "ApiKey",
+                false,
+                true,
+                "apacific",
+                vastModifier,
+                eventsService,
+                metrics,
+                clock,
+                idGenerator,
+                jacksonMapper);
+
+        final HttpClientResponse response = HttpClientResponse.of(
+                200,
+                MultiMap.caseInsensitiveMultiMap().add("Header", "Value"),
+                "body");
+
+        given(httpClient.get(eq("http://internal-cache-service/cache?uuid=key"), any(), anyLong()))
+                .willReturn(Future.succeededFuture(response));
+
+        // when
+        final Future<HttpClientResponse> result = target.getCachedObject("key", null, timeout);
+
+        // then
+        assertThat(result.result()).isEqualTo(response);
+    }
+
+    @Test
+    public void getCachedObjectShouldHandleErrorResponse() {
+        // given
+        final HttpClientResponse response = HttpClientResponse.of(
+                404,
+                null,
+                jacksonMapper.encodeToString(CacheErrorResponse.builder().message("Resource not found").build()));
+
+        given(httpClient.get(eq("http://cache-service/cache?uuid=key&ch=ch"), any(), anyLong()))
+                .willReturn(Future.succeededFuture(response));
+
+        // when
+        final Future<HttpClientResponse> result = target.getCachedObject("key", "ch", timeout);
+
+        // then
+        assertThat(result.result()).isEqualTo(HttpClientResponse.of(404, null, "Resource not found"));
+    }
+
+    @Test
+    public void getCachedObjectShouldFailWhenErrorResponseCanNotBeParsed() {
+        // given
+        final HttpClientResponse response = HttpClientResponse.of(404, null, "Resource not found");
+
+        given(httpClient.get(eq("http://cache-service/cache?uuid=key&ch=ch"), any(), anyLong()))
+                .willReturn(Future.succeededFuture(response));
+
+        // when
+        final Future<HttpClientResponse> result = target.getCachedObject("key", "ch", timeout);
+
+        // then
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause()).hasMessage("Cannot parse response: Resource not found");
+        assertThat(result.cause()).isInstanceOf(PreBidException.class);
     }
 
     private AuctionContext givenAuctionContext(UnaryOperator<Account.AccountBuilder> accountCustomizer,
