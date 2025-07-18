@@ -333,6 +333,15 @@ public class MetricsTest {
     }
 
     @Test
+    public void updateImpsDroppedMetricShouldIncrementMetrics() {
+        // when
+        metrics.updateImpsDroppedMetric(2);
+
+        // then
+        assertThat(metricRegistry.counter("imps_dropped").getCount()).isEqualTo(2);
+    }
+
+    @Test
     public void updateDebugRequestsMetricsShouldIncrementMetrics() {
         // when
         metrics.updateDebugRequestMetrics(false);

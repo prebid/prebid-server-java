@@ -241,6 +241,7 @@ public class AuctionRequestFactory {
 
         return storedRequestProcessor.processAuctionRequest(account.getId(), auctionContext.getBidRequest())
                 .compose(auctionStoredResult -> updateBidRequest(auctionStoredResult, auctionContext))
+                .compose(bidRequest -> ortb2RequestFactory.limitImpressions(account, bidRequest, debugWarnings))
                 .compose(bidRequest -> ortb2RequestFactory.validateRequest(
                         account, bidRequest, httpRequest, auctionContext.getDebugContext(), debugWarnings))
                 .map(interstitialProcessor::process);

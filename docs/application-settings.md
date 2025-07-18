@@ -12,6 +12,7 @@ There are two ways to configure application settings: database and file. This do
 - `auction.truncate-target-attr` - Maximum targeting attributes size. Values between 1 and 255.
 - `auction.default-integration` - Default integration to assume.
 - `auction.debug-allow` - enables debug output in the auction response. Default `true`.
+- `auction.impression-limit` - a max number of impressions allowed for the auction, impressions that exceed this limit will be dropped, 0 means no limit.
 - `auction.bid-validations.banner-creative-max-size` - Overrides creative max size validation for banners. Valid values
   are:
     - "skip": don't do anything about creative max size for this publisher

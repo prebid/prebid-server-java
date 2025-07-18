@@ -7,6 +7,7 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Dooh;
 import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Geo;
+import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
@@ -83,6 +84,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
@@ -90,12 +92,14 @@ import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.prebid.server.assertion.FutureAssertion.assertThat;
@@ -1706,6 +1710,70 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         assertThat(warnings).containsExactlyInAnyOrder(
                 "removed EID source1 due to empty ID",
                 "removed EID source3 due to empty ID");
+    }
+
+    @Test
+    public void validateShouldDropImpressionsOverAccountLimitAndReturnWarning() {
+        // given
+        final Imp imp1 = Imp.builder().id("1").build();
+        final Imp imp2 = Imp.builder().id("2").build();
+        final BidRequest bidRequest = givenBidRequest(request -> request.imp(asList(imp1, imp2)));
+        final List<String> warning = new ArrayList<>();
+
+        final Account givenAccount = Account.builder()
+                .id(ACCOUNT_ID)
+                .auction(AccountAuctionConfig.builder().impressionLimit(1).build())
+                .build();
+
+        // when
+        final BidRequest result = target.limitImpressions(givenAccount, bidRequest, warning).result();
+
+        // then
+        assertThat(warning).hasSize(1)
+                .containsOnly("Only first 1 impressions were kept due to the limit, "
+                        + "all the subsequent impressions have been dropped for the auction");
+
+        verify(metrics).updateImpsDroppedMetric(1);
+        assertThat(result.getImp()).containsOnly(imp1);
+    }
+
+    @Test
+    public void validateShouldNotDropImpressionsReturnWarningWhenAccountLimitIsSetToZero() {
+        // given
+        final Imp imp1 = Imp.builder().id("1").build();
+        final Imp imp2 = Imp.builder().id("2").build();
+        final BidRequest bidRequest = givenBidRequest(request -> request.imp(asList(imp1, imp2)));
+        final List<String> warning = new ArrayList<>();
+
+        final Account givenAccount = Account.builder()
+                .id(ACCOUNT_ID)
+                .auction(AccountAuctionConfig.builder().impressionLimit(0).build())
+                .build();
+
+        // when
+        final BidRequest result = target.limitImpressions(givenAccount, bidRequest, warning).result();
+
+        // then
+        assertThat(warning).isEmpty();
+        assertThat(result).isEqualTo(bidRequest);
+        verify(metrics, never()).updateImpsDroppedMetric(anyInt());
+    }
+
+    @Test
+    public void validateShouldNotDropImpressionsReturnWarningWhenAccountLimitIsNotSet() {
+        // given
+        final Imp imp1 = Imp.builder().id("1").build();
+        final Imp imp2 = Imp.builder().id("2").build();
+        final BidRequest bidRequest = givenBidRequest(request -> request.imp(asList(imp1, imp2)));
+        final List<String> warning = new ArrayList<>();
+
+        // when
+        final BidRequest result = target.limitImpressions(Account.empty(ACCOUNT_ID), bidRequest, warning).result();
+
+        // then
+        assertThat(warning).isEmpty();
+        assertThat(result).isEqualTo(bidRequest);
+        verify(metrics, never()).updateImpsDroppedMetric(anyInt());
     }
 
     private void givenTarget(int timeoutAdjustmentFactor) {
