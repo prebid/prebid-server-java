@@ -56,6 +56,7 @@ class AuctionSpec extends BaseSpec {
 
     private static final String IMPS_REQUESTED_METRIC = 'imps_requested'
     private static final String IMPS_DROPPED_METRIC = 'imps_dropped'
+    private static final Integer IMP_LIMIT = 1
     private static final Map<String, String> PBS_CONFIG = ["auction.biddertmax.max"    : MAX_TIMEOUT as String,
                                                            "auction.default-timeout-ms": DEFAULT_TIMEOUT as String]
 
@@ -732,7 +733,7 @@ class AuctionSpec extends BaseSpec {
         }
 
         and: "Account in the DB with impression limit config"
-        def impressionLimit = 1
+
         def accountConfig = new AccountConfig(auction: accountAuctionConfig)
         def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
         accountDao.save(account)
@@ -749,7 +750,7 @@ class AuctionSpec extends BaseSpec {
         and: "PBS should emit an warning"
         assert response.ext?.warnings[PREBID]*.code == [999]
         assert response.ext?.warnings[PREBID]*.message ==
-                ["Only first $impressionLimit impressions were kept due to the limit, " +
+                ["Only first $IMP_LIMIT impressions were kept due to the limit, " +
                          "all the subsequent impressions have been dropped for the auction" as String]
 
         and: "PBS shouldn't emit an error"
@@ -757,16 +758,16 @@ class AuctionSpec extends BaseSpec {
 
         and: "Metrics for imps should be updated"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        assert metrics[IMPS_DROPPED_METRIC] == bidRequest.imp.size() - impressionLimit
-        assert metrics[IMPS_REQUESTED_METRIC] == impressionLimit
+        assert metrics[IMPS_DROPPED_METRIC] == bidRequest.imp.size() - IMP_LIMIT
+        assert metrics[IMPS_REQUESTED_METRIC] == IMP_LIMIT
 
         and: "Response should contain seat bid"
-        assert response.seatbid[0].bid.size() == impressionLimit
+        assert response.seatbid[0].bid.size() == IMP_LIMIT
 
         where:
         accountAuctionConfig << [
-                new AccountAuctionConfig(impressionLimit: impressionLimit),
-                new AccountAuctionConfig(impressionLimitSnakeCase: impressionLimit)
+                new AccountAuctionConfig(impressionLimit: IMP_LIMIT),
+                new AccountAuctionConfig(impressionLimitSnakeCase: IMP_LIMIT)
         ]
     }
 
@@ -796,8 +797,8 @@ class AuctionSpec extends BaseSpec {
 
         and: "Metrics for imps requested should be updated"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        assert metrics[IMPS_DROPPED_METRIC] == 0
         assert metrics[IMPS_REQUESTED_METRIC] == bidRequest.imp.size()
+        assert !metrics[IMPS_DROPPED_METRIC]
 
         and: "Response should contain seat bid"
         assert response.seatbid[0].bid.size() == bidRequest.imp.size()
@@ -830,8 +831,8 @@ class AuctionSpec extends BaseSpec {
 
         and: "Metrics for imps requested should be updated"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        assert metrics[IMPS_DROPPED_METRIC] == 0
         assert metrics[IMPS_REQUESTED_METRIC] == bidRequest.imp.size()
+        assert !metrics[IMPS_DROPPED_METRIC]
 
         and: "Response should contain seat bid"
         assert response.seatbid[0].bid.size() == bidRequest.imp.size()
@@ -863,8 +864,8 @@ class AuctionSpec extends BaseSpec {
 
         and: "Metrics for imps requested should be updated"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        assert metrics[IMPS_DROPPED_METRIC] == 0
         assert metrics[IMPS_REQUESTED_METRIC] == bidRequest.imp.size()
+        assert !metrics[IMPS_DROPPED_METRIC]
 
         and: "Response should contain seat bid"
         assert response.seatbid[0].bid.size() == bidRequest.imp.size()
