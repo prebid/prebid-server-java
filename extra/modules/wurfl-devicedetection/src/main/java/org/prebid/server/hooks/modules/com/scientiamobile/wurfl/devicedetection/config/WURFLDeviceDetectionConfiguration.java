@@ -13,6 +13,8 @@ import org.prebid.server.execution.file.syncer.FileSyncer;
 import org.prebid.server.spring.config.model.FileSyncerProperties;
 import org.prebid.server.spring.config.model.HttpClientProperties;
 import org.prebid.server.execution.file.FileUtil;
+import org.prebid.server.json.ObjectMapperProvider;
+import org.prebid.server.json.JacksonMapper;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.nio.file.Path;
@@ -32,19 +34,22 @@ public class WURFLDeviceDetectionConfiguration {
     }
 
     @Bean
-    public WURFLDeviceDetectionModule wurflDeviceDetectionModule(WURFLDeviceDetectionConfigProperties
-                                                                         configProperties, Vertx vertx) {
+    public WURFLDeviceDetectionModule wurflDeviceDetectionModule(WURFLDeviceDetectionConfigProperties configProperties,
+                                                                 Vertx vertx) {
         final WURFLService wurflService = new WURFLService(null, configProperties);
         final FileSyncer fileSyncer = createFileSyncer(configProperties, wurflService, vertx);
         fileSyncer.sync();
 
         return new WURFLDeviceDetectionModule(List.of(
                 new WURFLDeviceDetectionEntrypointHook(),
-                new WURFLDeviceDetectionRawAuctionRequestHook(wurflService, configProperties)));
+                new WURFLDeviceDetectionRawAuctionRequestHook(wurflService, configProperties,
+                        new JacksonMapper(ObjectMapperProvider.mapper()))));
     }
 
     private FileSyncer createFileSyncer(WURFLDeviceDetectionConfigProperties configProperties,
-                                        WURFLService wurflService, Vertx vertx) {
+                                        WURFLService wurflService,
+                                        Vertx vertx) {
+
         final FileSyncerProperties fileSyncerProperties = createFileSyncerProperties(configProperties);
         return FileUtil.fileSyncerFor(wurflService, fileSyncerProperties, vertx);
     }

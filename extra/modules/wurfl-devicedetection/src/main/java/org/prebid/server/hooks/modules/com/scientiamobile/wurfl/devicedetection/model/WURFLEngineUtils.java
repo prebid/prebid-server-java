@@ -33,6 +33,7 @@ public class WURFLEngineUtils {
 
     public static WURFLEngine initializeEngine(WURFLDeviceDetectionConfigProperties configProperties,
                                                String wurflInFilePath) {
+
         final String wurflFilePath = wurflInFilePath != null
                 ? wurflInFilePath
                 : wurflFilePathFromConfig(configProperties);

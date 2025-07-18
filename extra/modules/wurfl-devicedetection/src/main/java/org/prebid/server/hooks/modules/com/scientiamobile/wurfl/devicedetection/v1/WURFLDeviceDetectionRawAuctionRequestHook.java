@@ -1,11 +1,11 @@
 package org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.v1;
 
-import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.BidRequest;
 import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
-import org.apache.commons.collections4.MapUtils;
-import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
+import org.prebid.server.json.JacksonMapper;
+import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.config.WURFLDeviceDetectionConfigProperties;
 import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.model.AuctionRequestHeadersContext;
 import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.resolver.HeadersResolver;
@@ -24,89 +24,87 @@ import org.apache.commons.lang3.StringUtils;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.Set;
 
 public class WURFLDeviceDetectionRawAuctionRequestHook implements RawAuctionRequestHook {
 
-    private static final Logger LOG = LoggerFactory.getLogger(WURFLDeviceDetectionRawAuctionRequestHook.class);
+    private static final Logger logger = LoggerFactory.getLogger(WURFLDeviceDetectionRawAuctionRequestHook.class);
+
     public static final String CODE = "wurfl-devicedetection-raw-auction-request";
 
     private final WURFLService wurflService;
-    private final OrtbDeviceUpdater ortbDeviceUpdater;
-    private final Map<String, String> allowedPublisherIDs;
+    private final Set<String> allowedPublisherIDs;
     private final boolean addExtCaps;
+    private final JacksonMapper mapper;
 
     public WURFLDeviceDetectionRawAuctionRequestHook(WURFLService wurflService,
-                                                     WURFLDeviceDetectionConfigProperties configProperties) {
-        this.wurflService = wurflService;
-        this.ortbDeviceUpdater = new OrtbDeviceUpdater();
-        this.addExtCaps = configProperties.isExtCaps();
-        this.allowedPublisherIDs = configProperties.getAllowedPublisherIds().stream()
-                .collect(Collectors.toMap(item -> item, item -> item));
+                                                     WURFLDeviceDetectionConfigProperties configProperties,
+                                                     JacksonMapper mapper) {
+
+        this.wurflService = Objects.requireNonNull(wurflService);
+        this.addExtCaps = Objects.requireNonNull(configProperties).isExtCaps();
+        this.allowedPublisherIDs = Objects.requireNonNull(configProperties.getAllowedPublisherIds());
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
     public Future<InvocationResult<AuctionRequestPayload>> call(AuctionRequestPayload auctionRequestPayload,
                                                                 AuctionInvocationContext invocationContext) {
+
         if (!shouldEnrichDevice(invocationContext)) {
-            return noUpdateResultFuture();
+            return noActionResult();
         }
 
         final BidRequest bidRequest = auctionRequestPayload.bidRequest();
-        Device ortbDevice = null;
-        if (bidRequest == null) {
-            LOG.warn("BidRequest is null");
-            return noUpdateResultFuture();
-        } else {
-            ortbDevice = bidRequest.getDevice();
-            if (ortbDevice == null) {
-                LOG.warn("Device is null");
-                return noUpdateResultFuture();
-            }
+        if (bidRequest == null || bidRequest.getDevice() == null) {
+            logger.warn("BidRequest is null");
+            return noActionResult();
         }
 
-        final AuctionRequestHeadersContext headersContext;
-        Map<String, String> requestHeaders = null;
-        if (invocationContext.moduleContext() instanceof AuctionRequestHeadersContext) {
-            headersContext = (AuctionRequestHeadersContext) invocationContext.moduleContext();
-            if (headersContext != null) {
-                requestHeaders = headersContext.getHeaders();
-            }
-
-            try {
-
-                final Map<String, String> headers = new HeadersResolver().resolve(ortbDevice, requestHeaders);
-                final Optional<com.scientiamobile.wurfl.core.Device> wurflDevice = wurflService.lookupDevice(headers);
-                if (wurflDevice.isEmpty()) {
-                    LOG.info("No WURFL device found, returning original bid request");
-                    return noUpdateResultFuture();
-                }
-
-                final Device updatedDevice = ortbDeviceUpdater.update(ortbDevice, wurflDevice.get(),
-                        wurflService.getAllCapabilities(),
-                        wurflService.getAllVirtualCapabilities(),
-                        addExtCaps);
-
-                return Future.succeededFuture(
-                        InvocationResultImpl.<AuctionRequestPayload>builder()
-                                .status(InvocationStatus.success)
-                                .action(InvocationAction.update)
-                                .payloadUpdate(payload ->
-                                        AuctionRequestPayloadImpl.of(bidRequest.toBuilder()
-                                                .device(updatedDevice)
-                                                .build()))
-                                .build()
-                );
-            } catch (Exception e) {
-                LOG.error("Exception " + e.getMessage());
-                return noUpdateResultFuture();
-            }
+        final Device device = bidRequest.getDevice();
+        if (device == null) {
+            logger.warn("Device is null");
+            return noActionResult();
         }
 
-        return noUpdateResultFuture();
+        final Map<String, String> requestHeaders =
+                invocationContext.moduleContext() instanceof AuctionRequestHeadersContext moduleContext
+                        ? moduleContext.getHeaders()
+                        : null;
+
+        final Map<String, String> headers = HeadersResolver.resolve(device, requestHeaders);
+        final Optional<com.scientiamobile.wurfl.core.Device> wurflDevice = wurflService.lookupDevice(headers);
+        if (wurflDevice.isEmpty()) {
+            logger.info("No WURFL device found, returning original bid request");
+            return noActionResult();
+        }
+
+        return Future.succeededFuture(
+                InvocationResultImpl.<AuctionRequestPayload>builder()
+                        .status(InvocationStatus.success)
+                        .action(InvocationAction.update)
+                        .payloadUpdate(new OrtbDeviceUpdater(
+                                wurflDevice.get(),
+                                wurflService.getAllCapabilities(),
+                                wurflService.getAllVirtualCapabilities(),
+                                addExtCaps,
+                                mapper))
+                        .build());
     }
 
-    private static Future<InvocationResult<AuctionRequestPayload>> noUpdateResultFuture() {
+    private boolean shouldEnrichDevice(AuctionInvocationContext invocationContext) {
+        return CollectionUtils.isEmpty(allowedPublisherIDs) || isAccountValid(invocationContext.auctionContext());
+    }
+
+    private boolean isAccountValid(AuctionContext auctionContext) {
+        return Optional.ofNullable(auctionContext.getAccount())
+                .map(Account::getId)
+                .filter(StringUtils::isNotBlank)
+                .filter(allowedPublisherIDs::contains)
+                .isPresent();
+    }
+
+    private static Future<InvocationResult<AuctionRequestPayload>> noActionResult() {
         return Future.succeededFuture(
                 InvocationResultImpl.<AuctionRequestPayload>builder()
                         .status(InvocationStatus.success)
@@ -114,27 +112,8 @@ public class WURFLDeviceDetectionRawAuctionRequestHook implements RawAuctionRequ
                         .build());
     }
 
-    private boolean shouldEnrichDevice(AuctionInvocationContext invocationContext) {
-        if (MapUtils.isEmpty(allowedPublisherIDs)) {
-            return true;
-        }
-        final AuctionContext auctionContext = invocationContext.auctionContext();
-        return isAccountValid(auctionContext);
-    }
-
     @Override
     public String code() {
         return CODE;
     }
-
-    private boolean isAccountValid(AuctionContext auctionContext) {
-        return Optional.ofNullable(auctionContext)
-                .map(AuctionContext::getAccount)
-                .map(Account::getId)
-                .filter(StringUtils::isNotBlank)
-                .map(allowedPublisherIDs::get)
-                .filter(Objects::nonNull)
-                .isPresent();
-    }
-
 }

@@ -1,231 +1,124 @@
 package org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.v1;
 
+import com.iab.openrtb.request.BidRequest;
+import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import com.iab.openrtb.request.Device;
 import com.scientiamobile.wurfl.core.exc.CapabilityNotDefinedException;
 import com.scientiamobile.wurfl.core.exc.VirtualCapabilityNotDefinedException;
 import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
-import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.model.UpdateResult;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
+import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
+import org.prebid.server.hooks.v1.PayloadUpdate;
 
 import java.math.BigDecimal;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.Supplier;
 
-public class OrtbDeviceUpdater {
+public class OrtbDeviceUpdater implements PayloadUpdate<AuctionRequestPayload> {
 
-    private static final Logger LOG = LoggerFactory.getLogger(OrtbDeviceUpdater.class);
+    private static final Logger logger = LoggerFactory.getLogger(OrtbDeviceUpdater.class);
+
     private static final String WURFL_PROPERTY = "wurfl";
-    private static final Set<String> VIRTUAL_CAPABILITY_NAMES = Set.of(
-            "advertised_device_os",
-            "advertised_device_os_version",
-            "pixel_density");
 
-    public Device update(Device ortbDevice, com.scientiamobile.wurfl.core.Device wurflDevice,
-                         Set<String> staticCaps, Set<String> virtualCaps, boolean addExtCaps) {
-        final Device.DeviceBuilder deviceBuilder = ortbDevice.toBuilder();
+    private final com.scientiamobile.wurfl.core.Device wurflDevice;
+    private final Set<String> staticCaps;
+    private final Set<String> virtualCaps;
+    private final boolean addExtCaps;
+    private final JacksonMapper mapper;
 
-        // make
-        final UpdateResult<String> updatedMake = tryUpdateStringField(ortbDevice.getMake(), wurflDevice,
-                "brand_name");
-        if (updatedMake.isUpdated()) {
-            deviceBuilder.make(updatedMake.getValue());
-        }
+    public OrtbDeviceUpdater(com.scientiamobile.wurfl.core.Device wurflDevice,
+                             Set<String> staticCaps,
+                             Set<String> virtualCaps,
+                             boolean addExtCaps,
+                             JacksonMapper mapper) {
 
-        // model
-        final UpdateResult<String> updatedModel = tryUpdateStringField(ortbDevice.getModel(), wurflDevice,
-                "model_name");
-        if (updatedModel.isUpdated()) {
-            deviceBuilder.model(updatedModel.getValue());
-        }
+        this.wurflDevice = Objects.requireNonNull(wurflDevice);
+        this.staticCaps = Objects.requireNonNull(staticCaps);
+        this.virtualCaps = Objects.requireNonNull(virtualCaps);
+        this.addExtCaps = addExtCaps;
+        this.mapper = Objects.requireNonNull(mapper);
+    }
 
-        // deviceType
-        final UpdateResult<Integer> updatedDeviceType = tryUpdateDeviceTypeField(ortbDevice.getDevicetype(),
-                getOrtb2DeviceType(wurflDevice));
-        if (updatedDeviceType.isUpdated()) {
-            deviceBuilder.devicetype(updatedDeviceType.getValue());
-        }
+    @Override
+    public AuctionRequestPayload apply(AuctionRequestPayload auctionRequestPayload) {
+        final BidRequest bidRequest = auctionRequestPayload.bidRequest();
+        return AuctionRequestPayloadImpl.of(bidRequest.toBuilder()
+                .device(update(bidRequest.getDevice()))
+                .build());
+    }
 
-        // os
-        final UpdateResult<String> updatedOS = tryUpdateStringField(ortbDevice.getOs(), wurflDevice,
-                "advertised_device_os");
-        if (updatedOS.isUpdated()) {
-            deviceBuilder.os(updatedOS.getValue());
-        }
+    private Device update(Device ortbDevice) {
+        final String make = tryUpdateField(ortbDevice.getMake(), this::getWurflMake);
+        final String model = tryUpdateField(ortbDevice.getModel(), this::getWurflModel);
+        final Integer deviceType = tryUpdateField(
+                Optional.ofNullable(ortbDevice.getDevicetype())
+                        .filter(it -> it > 0)
+                        .orElse(null),
+                this::getWurflDeviceType);
+        final String os = tryUpdateField(ortbDevice.getOs(), this::getWurflOs);
+        final String osv = tryUpdateField(ortbDevice.getOsv(), this::getWurflOsv);
+        final Integer h = tryUpdateField(ortbDevice.getH(), this::getWurflH);
+        final Integer w = tryUpdateField(ortbDevice.getW(), this::getWurflW);
+        final Integer ppi = tryUpdateField(ortbDevice.getPpi(), this::getWurflPpi);
+        final BigDecimal pxratio = tryUpdateField(ortbDevice.getPxratio(), this::getWurflPxRatio);
+        final Integer js = tryUpdateField(ortbDevice.getJs(), this::getWurflJs);
 
-        // os version
-        final UpdateResult<String> updatedOsv = tryUpdateStringField(ortbDevice.getOsv(), wurflDevice,
-                "advertised_device_os_version");
-        if (updatedOS.isUpdated()) {
-            deviceBuilder.osv(updatedOsv.getValue());
-        }
-
-        // h (resolution height)
-        final UpdateResult<Integer> updatedH = tryUpdateIntegerField(ortbDevice.getH(), wurflDevice,
-                "resolution_height", false);
-        if (updatedH.isUpdated()) {
-            deviceBuilder.h(updatedH.getValue());
-        }
-
-        // w (resolution height)
-        final UpdateResult<Integer> updatedW = tryUpdateIntegerField(ortbDevice.getW(), wurflDevice,
-                "resolution_width", false);
-        if (updatedW.isUpdated()) {
-            deviceBuilder.w(updatedW.getValue());
-        }
-
-        // Pixels per inch
-        final UpdateResult<Integer> updatedPpi = tryUpdateIntegerField(ortbDevice.getPpi(), wurflDevice,
-                "pixel_density", false);
-        if (updatedPpi.isUpdated()) {
-            deviceBuilder.ppi(updatedPpi.getValue());
-        }
-
-        // Pixel ratio
-        final UpdateResult<BigDecimal> updatedPxRatio = tryUpdateBigDecimalField(ortbDevice.getPxratio(), wurflDevice,
-                "density_class");
-        if (updatedPxRatio.isUpdated()) {
-            deviceBuilder.pxratio(updatedPxRatio.getValue());
-        }
-
-        // Javascript support
-        final UpdateResult<Integer> updatedJs = tryUpdateIntegerField(ortbDevice.getJs(), wurflDevice,
-                "ajax_support_javascript", true);
-        if (updatedJs.isUpdated()) {
-            deviceBuilder.js(updatedJs.getValue());
-        }
-
-        // Ext
-        final ExtWURFLMapper extMapper = ExtWURFLMapper.builder()
-                .wurflDevice(wurflDevice)
-                .staticCaps(staticCaps)
-                .virtualCaps(virtualCaps)
-                .addExtCaps(addExtCaps)
+        return ortbDevice.toBuilder()
+                .make(make)
+                .model(model)
+                .devicetype(deviceType)
+                .os(os)
+                .osv(osv)
+                .h(h)
+                .w(w)
+                .ppi(ppi)
+                .pxratio(pxratio)
+                .js(js)
+                .ext(updateExt(ortbDevice.getExt()))
                 .build();
-        final ExtDevice updatedExt = ExtDevice.empty();
-        final ExtDevice ortbDeviceExt = ortbDevice.getExt();
-
-        if (ortbDeviceExt != null) {
-            updatedExt.addProperties(ortbDeviceExt.getProperties());
-            if (!ortbDeviceExt.containsProperty(WURFL_PROPERTY)) {
-                updatedExt.addProperty("wurfl", extMapper.mapExtProperties());
-            }
-        } else {
-            updatedExt.addProperty("wurfl", extMapper.mapExtProperties());
-        }
-        deviceBuilder.ext(updatedExt);
-        return deviceBuilder.build();
     }
 
-    private UpdateResult<String> tryUpdateStringField(String fromOrtbDevice,
-                                                      com.scientiamobile.wurfl.core.Device wurflDevice,
-                                                      String capName) {
-        if (StringUtils.isNotBlank(fromOrtbDevice)) {
-            return UpdateResult.unaltered(fromOrtbDevice);
-        }
-
-        final String fromWurfl = isVirtualCapability(capName)
-                ? wurflDevice.getVirtualCapability(capName)
-                : wurflDevice.getCapability(capName);
-
-        if (fromWurfl != null) {
-            return UpdateResult.updated(fromWurfl);
-        }
-
-        return UpdateResult.unaltered(fromOrtbDevice);
-    }
-
-    private UpdateResult<Integer> tryUpdateIntegerField(Integer fromOrtbDevice,
-                                                        com.scientiamobile.wurfl.core.Device wurflDevice,
-                                                        String capName, boolean convertFromBool) {
+    private static <T> T tryUpdateField(T fromOrtbDevice, Supplier<T> fromWurflDeviceSupplier) {
         if (fromOrtbDevice != null) {
-            return UpdateResult.unaltered(fromOrtbDevice);
+            return fromOrtbDevice;
         }
 
-        final String fromWurfl = isVirtualCapability(capName)
-                ? wurflDevice.getVirtualCapability(capName)
-                : wurflDevice.getCapability(capName);
-
-        if (StringUtils.isNotBlank(fromWurfl)) {
-
-            if (convertFromBool) {
-                return fromWurfl.equalsIgnoreCase("true")
-                        ? UpdateResult.updated(1)
-                        : UpdateResult.updated(0);
-            }
-
-            return UpdateResult.updated(Integer.parseInt(fromWurfl));
-        }
-        return UpdateResult.unaltered(fromOrtbDevice);
+        final T fromWurflDevice = fromWurflDeviceSupplier.get();
+        return fromWurflDevice != null
+                ? fromWurflDevice
+                : fromOrtbDevice;
     }
 
-    private UpdateResult<BigDecimal> tryUpdateBigDecimalField(BigDecimal fromOrtbDevice,
-                                                              com.scientiamobile.wurfl.core.Device wurflDevice,
-                                                              String capName) {
-        if (fromOrtbDevice != null) {
-            return UpdateResult.unaltered(fromOrtbDevice);
-        }
-
-        final String fromWurfl = isVirtualCapability(capName)
-                ? wurflDevice.getVirtualCapability(capName)
-                : wurflDevice.getCapability(capName);
-
-        if (fromWurfl != null) {
-
-            BigDecimal pxRatio = null;
-            try {
-                pxRatio = new BigDecimal(fromWurfl);
-                return UpdateResult.updated(pxRatio);
-            } catch (NullPointerException e) {
-                LOG.warn("Cannot convert WURFL device pixel density {} to ortb device pxratio", pxRatio);
-            }
-        }
-
-        return UpdateResult.unaltered(fromOrtbDevice);
+    private String getWurflMake() {
+        return wurflDevice.getCapability("brand_name");
     }
 
-    private boolean isVirtualCapability(String vcapName) {
-        return VIRTUAL_CAPABILITY_NAMES.contains(vcapName);
+    private String getWurflModel() {
+        return wurflDevice.getCapability("model_name");
     }
 
-    private UpdateResult<Integer> tryUpdateDeviceTypeField(Integer fromOrtbDevice, Integer fromWurfl) {
-        final boolean isNotNullAndPositive = fromOrtbDevice != null && fromOrtbDevice > 0;
-        if (isNotNullAndPositive) {
-            return UpdateResult.unaltered(fromOrtbDevice);
-        }
-
-        if (fromWurfl != null) {
-            return UpdateResult.updated(fromWurfl);
-        }
-
-        return UpdateResult.unaltered(fromOrtbDevice);
-    }
-
-    public static Integer getOrtb2DeviceType(final com.scientiamobile.wurfl.core.Device wurflDevice) {
-        final boolean isPhone;
-        final boolean isTablet;
-
+    private Integer getWurflDeviceType() {
         if (wurflDevice.getVirtualCapabilityAsBool("is_mobile")) {
-            // if at least one if these capabilities is not defined the mobile device type is undefined
+            // if at least one of these capabilities is not defined, the mobile device type is undefined
             try {
-                isPhone = wurflDevice.getVirtualCapabilityAsBool("is_phone");
-                isTablet = wurflDevice.getCapabilityAsBool("is_tablet");
+                final boolean isPhone = wurflDevice.getVirtualCapabilityAsBool("is_phone");
+                final boolean isTablet = wurflDevice.getCapabilityAsBool("is_tablet");
+                return isPhone || isTablet ? 1 : 6;
             } catch (CapabilityNotDefinedException | VirtualCapabilityNotDefinedException e) {
+                logger.warn("Failed to determine device type from WURFL device capabilities", e);
                 return null;
             }
-
-            if (isPhone || isTablet) {
-                return 1;
-            }
-            return 6;
         }
 
-        // desktop device
         if (wurflDevice.getVirtualCapabilityAsBool("is_full_desktop")) {
             return 2;
         }
 
-        // connected tv
         if (wurflDevice.getCapabilityAsBool("is_connected_tv")) {
             return 3;
         }
@@ -242,7 +135,101 @@ public class OrtbDeviceUpdater {
             return 7;
         }
 
-        return null; // Return null for an undefined device type
+        return null;
     }
 
+    private String getWurflOs() {
+        return wurflDevice.getVirtualCapability("advertised_device_os");
+    }
+
+    private String getWurflOsv() {
+        return wurflDevice.getVirtualCapability("advertised_device_os_version");
+    }
+
+    private Integer getWurflH() {
+        return wurflDevice.getCapabilityAsInt("resolution_height");
+    }
+
+    private Integer getWurflW() {
+        return wurflDevice.getCapabilityAsInt("resolution_width");
+    }
+
+    private Integer getWurflPpi() {
+        try {
+            return wurflDevice.getVirtualCapabilityAsInt("pixel_density");
+        } catch (VirtualCapabilityNotDefinedException e) {
+            logger.warn("Failed to get pixel density from WURFL device capabilities", e);
+            return null;
+        }
+    }
+
+    private BigDecimal getWurflPxRatio() {
+        try {
+            final String densityAsString = wurflDevice.getCapability("density_class");
+            return densityAsString != null
+                ? new BigDecimal(densityAsString)
+                : null;
+        } catch (CapabilityNotDefinedException e) {
+            logger.warn("Failed to get pixel ratio from WURFL device capabilities", e);
+            return null;
+        }
+    }
+
+    private int getWurflJs() {
+        return wurflDevice.getCapabilityAsBool("ajax_support_javascript") ? 1 : 0;
+    }
+
+    private ExtDevice updateExt(ExtDevice ortbExtDevice) {
+        if (ortbExtDevice != null && ortbExtDevice.containsProperty(WURFL_PROPERTY)) {
+            return ortbExtDevice;
+        }
+
+        final ExtDevice updatedExt = Optional.ofNullable(ortbExtDevice)
+                .map(this::copyExtDevice)
+                .orElse(ExtDevice.empty());
+
+        updatedExt.addProperty(WURFL_PROPERTY, createWurflObject());
+
+        return updatedExt;
+    }
+
+    private ExtDevice copyExtDevice(ExtDevice original) {
+        final ExtDevice copy = ExtDevice.of(original.getAtts(), original.getPrebid());
+        mapper.fillExtension(copy, original);
+        return copy;
+    }
+
+    private ObjectNode createWurflObject() {
+        final ObjectNode wurfl = mapper.mapper().createObjectNode();
+
+        wurfl.put("wurfl_id", wurflDevice.getId());
+
+        if (!addExtCaps) {
+            return wurfl;
+        }
+
+        for (String capability : staticCaps) {
+            try {
+                final String value = wurflDevice.getCapability(capability);
+                if (value != null) {
+                    wurfl.put(capability, value);
+                }
+            } catch (Exception e) {
+                logger.warn("Error getting capability for {}: {}", capability, e.getMessage());
+            }
+        }
+
+        for (String virtualCapability : virtualCaps) {
+            try {
+                final String value = wurflDevice.getVirtualCapability(virtualCapability);
+                if (value != null) {
+                    wurfl.put(virtualCapability, value);
+                }
+            } catch (Exception e) {
+                logger.warn("Could not fetch virtual capability {}", virtualCapability);
+            }
+        }
+
+        return wurfl;
+    }
 }

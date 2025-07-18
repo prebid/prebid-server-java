@@ -15,10 +15,12 @@ public class WURFLDeviceDetectionEntrypointHook implements EntrypointHook {
     private static final String CODE = "wurfl-devicedetection-entrypoint-hook";
 
     @Override
-    public Future<InvocationResult<EntrypointPayload>> call(
-            EntrypointPayload entrypointPayload, InvocationContext invocationContext) {
+    public Future<InvocationResult<EntrypointPayload>> call(EntrypointPayload entrypointPayload,
+                                                            InvocationContext invocationContext) {
+
         final AuctionRequestHeadersContext bidRequestHeadersContext = AuctionRequestHeadersContext.from(
                 entrypointPayload.headers());
+
         return Future.succeededFuture(
                 InvocationResultImpl.<EntrypointPayload>builder()
                         .status(InvocationStatus.success)
