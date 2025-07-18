@@ -2,7 +2,7 @@ package org.prebid.server.hooks.modules.ortb2.blocking.v1;
 
 import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Future;
-import org.prebid.server.auction.BidderAliases;
+import org.prebid.server.auction.aliases.BidderAliases;
 import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;

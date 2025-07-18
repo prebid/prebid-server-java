@@ -19,13 +19,13 @@ class PriceFloorData implements ResponseModel {
     Integer useFetchDataRate
     String floorsSchemaVersion
     Integer modelTimestamp
-    List<ModelGroup> modelGroups
+    List<FloorModelGroup> modelGroups
     List<BidderName> noFloorSignalBidders
 
     static PriceFloorData getPriceFloorData() {
         new PriceFloorData(floorProvider: PBSUtils.randomString,
                 currency: USD,
                 floorsSchemaVersion: 2,
-                modelGroups: [ModelGroup.modelGroup])
+                modelGroups: [FloorModelGroup.modelGroup])
     }
 }

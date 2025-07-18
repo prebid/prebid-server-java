@@ -554,6 +554,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
                 .type(bidType)
                 .bidCurrency(currency)
                 .dealPriority(getDealPriority(pubmaticBidExt))
+                .seat(pubmaticBidExt == null ? null : pubmaticBidExt.getMarketplace())
                 .build();
     }
 
@@ -595,7 +596,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         }
 
         final JsonNode nativeNode = admNode.get("native");
-        if (!nativeNode.isMissingNode()) {
+        if (nativeNode != null && !nativeNode.isMissingNode()) {
             return nativeNode.toString();
         }
 

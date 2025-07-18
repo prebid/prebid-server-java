@@ -36,7 +36,6 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.http.HttpMethod;
-import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.assertj.core.groups.Tuple;
 import org.junit.jupiter.api.BeforeEach;
@@ -600,7 +599,7 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldAddMaxbidsAttributeAsOneIfExtPrebidMultibidMaxBidsIsNotPresent() {
+    public void makeHttpRequestsShouldAddMaxbidsAttributeAsNullIfExtPrebidMultibidMaxBidsIsNotPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
@@ -621,7 +620,7 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(Imp::getExt).doesNotContainNull()
                 .extracting(ext -> mapper.treeToValue(ext, RubiconImpExt.class))
                 .extracting(RubiconImpExt::getMaxbids)
-                .containsExactly(1);
+                .containsOnlyNulls();
     }
 
     @Test
@@ -660,7 +659,6 @@ public class RubiconBidderTest extends VertxTest {
                                 null,
                                 "uuid_bid_id"))
                         .skadn(givenSkadn)
-                        .maxbids(1)
                         .build());
     }
 
@@ -1168,7 +1166,8 @@ public class RubiconBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
 
-        final BidRequest capturedBidRequest = mapper.readValue(result.getValue().get(0).getBody(), BidRequest.class);
+        final BidRequest capturedBidRequest = mapper.readValue(
+                result.getValue().getFirst().getBody(), BidRequest.class);
         final JsonNode targetNode = capturedBidRequest.getSite().getExt().getProperty("rp").get("target");
 
         assertThat(targetNode.elements()).toIterable().hasSize(3);
@@ -1255,7 +1254,8 @@ public class RubiconBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
 
-        final BidRequest capturedBidRequest = mapper.readValue(result.getValue().get(0).getBody(), BidRequest.class);
+        final BidRequest capturedBidRequest = mapper.readValue(
+                result.getValue().getFirst().getBody(), BidRequest.class);
         final JsonNode targetNode = capturedBidRequest.getUser().getExt().getProperty("rp").get("target");
 
         assertThat(targetNode.elements()).toIterable().hasSize(6);
@@ -2444,7 +2444,6 @@ public class RubiconBidderTest extends VertxTest {
                         .video(Video.builder().build())
                         .ext(mapper.valueToTree(RubiconImpExt.builder()
                                 .rp(expectedImpExtRp)
-                                .maxbids(1)
                                 .build()))
                         .build()))
                 .build();
@@ -2455,7 +2454,6 @@ public class RubiconBidderTest extends VertxTest {
                         .ext(mapper.valueToTree(
                                 RubiconImpExt.builder()
                                         .rp(expectedImpExtRp)
-                                        .maxbids(1)
                                         .build()))
                         .build()))
                 .build();
@@ -3430,6 +3428,62 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldSetBidExtRpAdvidToMetaAdvertiserId() throws JsonProcessingException {
+        // given
+        final ObjectNode givenBidExt = mapper.createObjectNode()
+                .set("rp", mapper.createObjectNode().put("advid", "1"));
+
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(identity()),
+                mapper.writeValueAsString(RubiconBidResponse.builder()
+                        .cur("USD")
+                        .seatbid(singletonList(RubiconSeatBid.builder()
+                                .bid(singletonList(givenRubiconBid(bid -> bid.ext(givenBidExt))))
+                                .build()))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, givenBidRequest(identity()));
+
+        // then
+        final ObjectNode expectedBidExt = givenBidExt.deepCopy()
+                .set("prebid", mapper.createObjectNode()
+                        .set("meta", mapper.createObjectNode().put("advertiserId", 1)));
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getExt)
+                .containsExactly(expectedBidExt);
+    }
+
+    @Test
+    public void makeBidsShouldSetBidAdomainToMetaAdvertiserDomains() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(identity()),
+                mapper.writeValueAsString(RubiconBidResponse.builder()
+                        .cur("USD")
+                        .seatbid(singletonList(RubiconSeatBid.builder()
+                                .bid(singletonList(givenRubiconBid(bid -> bid.adomain(List.of("A", "B")))))
+                                .build()))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, givenBidRequest(identity()));
+
+        // then
+        final ObjectNode expectedBidExt = mapper.valueToTree(
+                ExtPrebid.of(ExtBidPrebid.builder()
+                        .meta(ExtBidPrebidMeta.builder().advertiserDomains(List.of("A", "B")).build())
+                        .build(), null));
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getExt)
+                .containsExactly(expectedBidExt);
+    }
+
+    @Test
     public void makeBidsShouldSetSeatBuyerToMetaNetworkId() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
@@ -4044,8 +4098,7 @@ public class RubiconBidderTest extends VertxTest {
                 .put("pbs_url", EXTERNAL_URL);
     }
 
-    @AllArgsConstructor(staticName = "of")
-    @Value
+    @Value(staticConstructor = "of")
     private static class Inventory {
 
         List<String> rating;
@@ -4053,8 +4106,7 @@ public class RubiconBidderTest extends VertxTest {
         List<String> prodtype;
     }
 
-    @AllArgsConstructor(staticName = "of")
-    @Value
+    @Value(staticConstructor = "of")
     private static class Visitor {
 
         List<String> ucat;

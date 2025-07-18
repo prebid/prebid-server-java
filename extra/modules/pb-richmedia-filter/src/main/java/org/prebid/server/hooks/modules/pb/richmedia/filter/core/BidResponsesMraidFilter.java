@@ -27,8 +27,8 @@ public class BidResponsesMraidFilter {
                                              List<BidderResponse> responses,
                                              Map<String, BidRejectionTracker> bidRejectionTrackers) {
 
-        List<BidderResponse> filteredResponses = new ArrayList<>();
-        List<AnalyticsResult> analyticsResults = new ArrayList<>();
+        final List<BidderResponse> filteredResponses = new ArrayList<>();
+        final List<AnalyticsResult> analyticsResults = new ArrayList<>();
 
         for (BidderResponse bidderResponse : responses) {
             final BidderSeatBid seatBid = bidderResponse.getSeatBid();

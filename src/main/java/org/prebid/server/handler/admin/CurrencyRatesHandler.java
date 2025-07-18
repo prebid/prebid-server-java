@@ -5,7 +5,6 @@ import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
-import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.json.JacksonMapper;
@@ -77,8 +76,7 @@ public class CurrencyRatesHandler implements Handler<RoutingContext> {
                         .end(body));
     }
 
-    @AllArgsConstructor(staticName = "of")
-    @Value
+    @Value(staticConstructor = "of")
     private static class Response {
 
         boolean active;

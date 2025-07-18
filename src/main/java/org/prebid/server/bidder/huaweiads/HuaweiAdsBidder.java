@@ -175,9 +175,9 @@ public class HuaweiAdsBidder implements Bidder<HuaweiAdsRequest> {
                 .orElseGet(() -> Regs.of(null));
     }
 
-    private Geo makeGeo(com.iab.openrtb.request.Device device) {
+    private Geo makeGeo(Device device) {
         return Optional.ofNullable(device)
-                .map(com.iab.openrtb.request.Device::getGeo)
+                .map(Device::getGeo)
                 .map(geo -> Geo.of(geo.getLon(), geo.getLat(), geo.getAccuracy(), geo.getLastfix()))
                 .orElse(null);
     }

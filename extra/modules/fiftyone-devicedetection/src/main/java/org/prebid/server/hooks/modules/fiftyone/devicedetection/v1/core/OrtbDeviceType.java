@@ -5,6 +5,7 @@ import java.util.Optional;
 
 // https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/main/AdCOM%20v1.0%20FINAL.md#list--device-types-
 public enum OrtbDeviceType {
+
     UNKNOWN,
     MOBILE_TABLET,
     PERSONAL_COMPUTER,
@@ -26,7 +27,7 @@ public enum OrtbDeviceType {
             Map.entry("Mobile", OrtbDeviceType.MOBILE_TABLET),
             Map.entry("Router", OrtbDeviceType.CONNECTED_DEVICE),
             Map.entry("SmallScreen", OrtbDeviceType.CONNECTED_DEVICE),
-            Map.entry("SmartPhone", OrtbDeviceType.MOBILE_TABLET),
+            Map.entry("SmartPhone", OrtbDeviceType.PHONE),
             Map.entry("SmartSpeaker", OrtbDeviceType.CONNECTED_DEVICE),
             Map.entry("SmartWatch", OrtbDeviceType.CONNECTED_DEVICE),
             Map.entry("Tablet", OrtbDeviceType.TABLET),

@@ -8,4 +8,10 @@ public class ExtImpFreewheelSSP {
 
     @JsonProperty("zoneId")
     String zoneId;
+
+    String customSiteSectionId;
+
+    String networkId;
+
+    String profileId;
 }

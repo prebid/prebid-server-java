@@ -3,6 +3,7 @@ package org.prebid.server.auction;
 import com.iab.openrtb.response.Bid;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
+import org.prebid.server.settings.model.Account;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -152,7 +153,8 @@ public class TargetingKeywordsCreator {
                                 String cacheId,
                                 String format,
                                 String vastCacheId,
-                                String categoryDuration) {
+                                String categoryDuration,
+                                Account account) {
 
         final Map<String, String> keywords = makeFor(
                 bidder,
@@ -164,7 +166,8 @@ public class TargetingKeywordsCreator {
                 vastCacheId,
                 categoryDuration,
                 format,
-                bid.getDealid());
+                bid.getDealid(),
+                account);
 
         if (resolver == null) {
             return truncateKeys(keywords);
@@ -188,7 +191,8 @@ public class TargetingKeywordsCreator {
                                         String vastCacheId,
                                         String categoryDuration,
                                         String format,
-                                        String dealId) {
+                                        String dealId,
+                                        Account account) {
 
         final boolean includeDealBid = alwaysIncludeDeals && StringUtils.isNotEmpty(dealId);
         final KeywordMap keywordMap = new KeywordMap(
@@ -198,7 +202,10 @@ public class TargetingKeywordsCreator {
                 includeBidderKeys || includeDealBid,
                 Collections.emptySet());
 
-        final String roundedCpm = isPriceGranularityValid() ? CpmRange.fromCpm(price, priceGranularity) : DEFAULT_CPM;
+        final String roundedCpm = isPriceGranularityValid()
+                ? CpmRange.fromCpm(price, priceGranularity, account)
+                : DEFAULT_CPM;
+
         keywordMap.put(this.keyPrefix + PB_KEY, roundedCpm);
 
         keywordMap.put(this.keyPrefix + BIDDER_KEY, bidder);
@@ -271,7 +278,7 @@ public class TargetingKeywordsCreator {
     /**
      * Helper for targeting keywords.
      * <p>
-     * Brings a convenient way for creating keywords regarding to bidder and winning bid flag.
+     * Brings a convenient way for creating keywords regarding bidder and winning bid flag.
      */
     private static class KeywordMap {
 

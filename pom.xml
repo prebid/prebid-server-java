@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.prebid</groupId>
         <artifactId>prebid-server-aggregator</artifactId>
-        <version>3.23.0-SNAPSHOT</version>
+        <version>3.29.0-SNAPSHOT</version>
         <relativePath>extra/pom.xml</relativePath>
     </parent>
 
@@ -22,12 +22,10 @@
         <dockerfileName>Dockerfile</dockerfileName>
 
         <!-- plugin versions -->
-        <checkstyle-plugin.version>3.4.0</checkstyle-plugin.version>
-        <checkstyle.version>10.17.0</checkstyle.version>
-        <download-plugin.version>1.9.0</download-plugin.version>
-        <git-commmit-plugin.version>4.9.10</git-commmit-plugin.version>
+        <download-plugin.version>2.0.0</download-plugin.version>
+        <git-commit-id-plugin.version>9.0.1</git-commit-id-plugin.version>
 
-        <gmavenplus-plugin.version>3.0.2</gmavenplus-plugin.version>
+        <gmavenplus-plugin.version>4.1.1</gmavenplus-plugin.version>
         <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
         <build-helper-maven-plugin.version>3.6.0</build-helper-maven-plugin.version>
         <protobuf-maven-plugin.version>0.6.1</protobuf-maven-plugin.version>
@@ -165,10 +163,12 @@
         <dependency>
             <groupId>com.mysql</groupId>
             <artifactId>mysql-connector-j</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
@@ -399,28 +399,6 @@
                     </executions>
                 </plugin>
                 <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-checkstyle-plugin</artifactId>
-                    <version>${checkstyle-plugin.version}</version>
-                    <configuration>
-                        <!-- Project rooted path to CheckStyle configuration file. -->
-                        <configLocation>checkstyle.xml</configLocation>
-                        <encoding>UTF-8</encoding>
-                        <consoleOutput>true</consoleOutput>
-                        <!-- true if project build should fails on any style violation. -->
-                        <failsOnError>true</failsOnError>
-                        <linkXRef>false</linkXRef>
-                        <includeTestSourceDirectory>true</includeTestSourceDirectory>
-                    </configuration>
-                    <dependencies>
-                        <dependency>
-                            <groupId>com.puppycrawl.tools</groupId>
-                            <artifactId>checkstyle</artifactId>
-                            <version>${checkstyle.version}</version>
-                        </dependency>
-                    </dependencies>
-                </plugin>
-                <plugin>
                     <groupId>org.codehaus.gmavenplus</groupId>
                     <artifactId>gmavenplus-plugin</artifactId>
                     <version>${gmavenplus-plugin.version}</version>
@@ -456,18 +434,6 @@
                 </executions>
             </plugin>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-checkstyle-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>checkstyle</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
                 <groupId>org.xolstice.maven.plugins</groupId>
                 <artifactId>protobuf-maven-plugin</artifactId>
                 <version>${protobuf-maven-plugin.version}</version>
@@ -492,7 +458,7 @@
                 </configuration>
             </plugin>
             <plugin>
-                <groupId>com.googlecode.maven-download-plugin</groupId>
+                <groupId>io.github.download-maven-plugin</groupId>
                 <artifactId>download-maven-plugin</artifactId>
                 <version>${download-plugin.version}</version>
                 <executions>
@@ -555,9 +521,9 @@
                 </configuration>
             </plugin>
             <plugin>
-                <groupId>pl.project13.maven</groupId>
-                <artifactId>git-commit-id-plugin</artifactId>
-                <version>${git-commmit-plugin.version}</version>
+                <groupId>io.github.git-commit-id</groupId>
+                <artifactId>git-commit-id-maven-plugin</artifactId>
+                <version>${git-commit-id-plugin.version}</version>
                 <executions>
                     <execution>
                         <id>get-the-git-infos</id>
@@ -689,22 +655,6 @@
             </plugin>
         </plugins>
     </build>
-
-    <reporting>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-checkstyle-plugin</artifactId>
-                <reportSets>
-                    <reportSet>
-                        <reports>
-                            <report>checkstyle</report>
-                        </reports>
-                    </reportSet>
-                </reportSets>
-            </plugin>
-        </plugins>
-    </reporting>
 
     <profiles>
         <profile>

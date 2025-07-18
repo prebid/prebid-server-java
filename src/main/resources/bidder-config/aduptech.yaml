@@ -1,0 +1,25 @@
+adapters:
+  aduptech:
+    endpoint: https://rtb.d.adup-tech.com/rtb/bid
+    ortb-version: "2.6"
+    meta-info:
+      maintainer-email: support@adup-tech.com
+      app-media-types:
+        - banner
+        - native
+      site-media-types:
+        - banner
+        - native
+      supported-vendors:
+      vendor-id: 647
+    usersync:
+      cookie-family-name: aduptech
+      iframe:
+        url: https://rtb.d.adup-tech.com/service/sync?iframe=1&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+        support-cors: false
+        uid-macro: '[UID]'
+      redirect:
+        url: https://rtb.d.adup-tech.com/service/sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+        support-cors: false
+        uid-macro: '[UID]'
+    target-currency: "EUR"
