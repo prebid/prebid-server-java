@@ -46,7 +46,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.settings.model.Account;
-import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -154,25 +153,28 @@ public class RequestValidator {
                 validateSchains(extRequestPrebid.getSchains());
             }
 
-            final List<Imp> imps = bidRequest.getImp();
-            if (CollectionUtils.isEmpty(imps)) {
+            if (CollectionUtils.isEmpty(bidRequest.getImp())) {
                 throw new ValidationException("request.imp must contain at least one element");
             }
 
-            BidRequest requestWithImpsDropped = bidRequest;
-            final int impsLimit = Optional.ofNullable(account)
-                    .map(Account::getAuction)
-                    .map(AccountAuctionConfig::getImpressionLimit)
-                    .orElse(0);
-            if (impsLimit > 0 && imps.size() > impsLimit) {
-                metrics.updateImpsDroppedMetric(imps.size() - impsLimit);
-                warnings.add(("Only first %d impressions were kept due to the limit, "
-                        + "all the subsequent impressions have been dropped for the auction").formatted(impsLimit));
-                requestWithImpsDropped = bidRequest.toBuilder().imp(imps.stream().limit(impsLimit).toList()).build();
+            final List<Imp> imps = bidRequest.getImp();
+            final List<String> errors = new ArrayList<>();
+            final Map<String, Integer> uniqueImps = new HashMap<>();
+            for (int i = 0; i < imps.size(); i++) {
+                final String impId = imps.get(i).getId();
+                if (uniqueImps.get(impId) != null) {
+                    errors.add("request.imp[%d].id and request.imp[%d].id are both \"%s\". Imp IDs must be unique."
+                            .formatted(uniqueImps.get(impId), i, impId));
+                }
+
+                uniqueImps.put(impId, i);
             }
 
-            validateUniqueImps(requestWithImpsDropped.getImp());
-            impValidator.validateImps(requestWithImpsDropped.getImp(), aliases, warnings);
+            if (CollectionUtils.isNotEmpty(errors)) {
+                throw new ValidationException(String.join(System.lineSeparator(), errors));
+            }
+
+            impValidator.validateImps(bidRequest.getImp(), aliases, warnings);
 
             final List<String> channels = new ArrayList<>();
             Optional.ofNullable(bidRequest.getApp()).ifPresent(ignored -> channels.add("request.app"));
@@ -356,24 +358,6 @@ public class RequestValidator {
 
                 schainBidders.add(bidder);
             }
-        }
-    }
-
-    private static void validateUniqueImps(List<Imp> imps) throws ValidationException {
-        final List<String> errors = new ArrayList<>();
-        final Map<String, Integer> uniqueImps = new HashMap<>();
-        for (int i = 0; i < imps.size(); i++) {
-            final String impId = imps.get(i).getId();
-            if (uniqueImps.get(impId) != null) {
-                errors.add("request.imp[%d].id and request.imp[%d].id are both \"%s\". Imp IDs must be unique."
-                        .formatted(uniqueImps.get(impId), i, impId));
-            }
-
-            uniqueImps.put(impId, i);
-        }
-
-        if (CollectionUtils.isNotEmpty(errors)) {
-            throw new ValidationException(String.join(System.lineSeparator(), errors));
         }
     }
 
