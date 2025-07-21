@@ -56,7 +56,7 @@ public class WURFLDeviceDetectionRawAuctionRequestHook implements RawAuctionRequ
         }
 
         final BidRequest bidRequest = auctionRequestPayload.bidRequest();
-        if (bidRequest == null || bidRequest.getDevice() == null) {
+        if (bidRequest.getDevice() == null) {
             logger.warn("BidRequest is null");
             return noActionResult();
         }
