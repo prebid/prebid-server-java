@@ -15,7 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-class WURFLDeviceDetectionEntrypointHookTest {
+public class WURFLDeviceDetectionEntrypointHookTest {
 
     private EntrypointPayload payload;
     private InvocationContext context;
@@ -27,7 +27,7 @@ class WURFLDeviceDetectionEntrypointHookTest {
     }
 
     @Test
-    void codeShouldReturnCorrectHookCode() {
+    public void codeShouldReturnCorrectHookCode() {
 
         // given
         final WURFLDeviceDetectionEntrypointHook target = new WURFLDeviceDetectionEntrypointHook();
@@ -40,7 +40,7 @@ class WURFLDeviceDetectionEntrypointHookTest {
     }
 
     @Test
-    void callShouldReturnSuccessWithNoAction() {
+    public void callShouldReturnSuccessWithNoAction() {
         // given
         final WURFLDeviceDetectionEntrypointHook target = new WURFLDeviceDetectionEntrypointHook();
         final CaseInsensitiveMultiMap headers = CaseInsensitiveMultiMap.builder()
@@ -61,7 +61,7 @@ class WURFLDeviceDetectionEntrypointHookTest {
     }
 
     @Test
-    void callShouldHandleNullHeaders() {
+    public void callShouldHandleNullHeaders() {
         // given
         final WURFLDeviceDetectionEntrypointHook target = new WURFLDeviceDetectionEntrypointHook();
 

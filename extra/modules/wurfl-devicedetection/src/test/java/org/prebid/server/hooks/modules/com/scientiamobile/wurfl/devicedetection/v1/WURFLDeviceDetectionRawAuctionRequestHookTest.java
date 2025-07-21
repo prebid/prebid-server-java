@@ -31,7 +31,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class WURFLDeviceDetectionRawAuctionRequestHookTest {
+public class WURFLDeviceDetectionRawAuctionRequestHookTest {
 
     @Mock
     private WURFLEngine wurflEngine;
@@ -55,7 +55,7 @@ class WURFLDeviceDetectionRawAuctionRequestHookTest {
     private WURFLDeviceDetectionRawAuctionRequestHook target;
 
     @BeforeEach
-    void setUp() {
+    public void setUp() {
         auctionContext = AuctionContext.builder().account(account).build();
 
         final WURFLService wurflService = new WURFLService(wurflEngine, configProperties);
@@ -63,7 +63,7 @@ class WURFLDeviceDetectionRawAuctionRequestHookTest {
     }
 
     @Test
-    void codeShouldReturnCorrectHookCode() {
+    public void codeShouldReturnCorrectHookCode() {
         // when
         final String result = target.code();
 
@@ -72,7 +72,7 @@ class WURFLDeviceDetectionRawAuctionRequestHookTest {
     }
 
     @Test
-    void callShouldReturnNoActionWhenDeviceIsNull() {
+    public void callShouldReturnNoActionWhenDeviceIsNull() {
         // given
         final BidRequest bidRequest = BidRequest.builder().build();
         when(payload.bidRequest()).thenReturn(bidRequest);
@@ -86,7 +86,7 @@ class WURFLDeviceDetectionRawAuctionRequestHookTest {
     }
 
     @Test
-    void callShouldUpdateDeviceWhenWurflDeviceIsDetected() {
+    public void callShouldUpdateDeviceWhenWurflDeviceIsDetected() {
         // given
         final String ua = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_7_2) Version/17.4.1 Mobile/15E148 Safari/604.1";
         final Device device = Device.builder().ua(ua).build();
@@ -111,7 +111,7 @@ class WURFLDeviceDetectionRawAuctionRequestHookTest {
     }
 
     @Test
-    void shouldEnrichDeviceWhenAllowedPublisherIdsIsEmpty() {
+    public void shouldEnrichDeviceWhenAllowedPublisherIdsIsEmpty() {
         // given
         final String ua = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_7_2) Version/17.4.1 Mobile/15E148 Safari/604.1";
         final Device device = Device.builder().ua(ua).build();
@@ -140,7 +140,7 @@ class WURFLDeviceDetectionRawAuctionRequestHookTest {
     }
 
     @Test
-    void shouldEnrichDeviceWhenAccountIsAllowed() {
+    public void shouldEnrichDeviceWhenAccountIsAllowed() {
         // given
         final String ua = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_7_2) Version/17.4.1 Mobile/15E148 Safari/604.1";
         final Device device = Device.builder().ua(ua).build();
@@ -172,7 +172,7 @@ class WURFLDeviceDetectionRawAuctionRequestHookTest {
     }
 
     @Test
-    void shouldNotEnrichDeviceWhenPublisherIdIsNotAllowed() {
+    public void shouldNotEnrichDeviceWhenPublisherIdIsNotAllowed() {
         // given
         when(context.auctionContext()).thenReturn(auctionContext);
         when(account.getId()).thenReturn("unknown-publisher");
@@ -189,7 +189,7 @@ class WURFLDeviceDetectionRawAuctionRequestHookTest {
     }
 
     @Test
-    void shouldNotEnrichDeviceWhenPublisherIdIsEmpty() {
+    public void shouldNotEnrichDeviceWhenPublisherIdIsEmpty() {
         // given
         when(context.auctionContext()).thenReturn(auctionContext);
         when(account.getId()).thenReturn("");

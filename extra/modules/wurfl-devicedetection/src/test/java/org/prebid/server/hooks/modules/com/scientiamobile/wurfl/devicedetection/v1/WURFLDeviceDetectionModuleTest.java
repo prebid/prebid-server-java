@@ -13,7 +13,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class WURFLDeviceDetectionModuleTest {
 
     @Test
-    void codeShouldReturnCorrectModuleCode() {
+    public void codeShouldReturnCorrectModuleCode() {
         // given
         final List<Hook<?, ? extends InvocationContext>> hooks = new ArrayList<>();
         final WURFLDeviceDetectionModule target = new WURFLDeviceDetectionModule(hooks);
@@ -26,7 +26,7 @@ class WURFLDeviceDetectionModuleTest {
     }
 
     @Test
-    void hooksShouldReturnProvidedHooks() {
+    public void hooksShouldReturnProvidedHooks() {
         // given
         final List<Hook<?, ? extends InvocationContext>> hooks = new ArrayList<>();
         final WURFLDeviceDetectionModule target = new WURFLDeviceDetectionModule(hooks);

@@ -29,7 +29,7 @@ import static org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedet
 import static org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.mock.WURFLDeviceMock.WURFLDeviceMockFactory.mockUnknownDevice;
 
 @ExtendWith(MockitoExtension.class)
-class OrtbDeviceUpdaterTest {
+public class OrtbDeviceUpdaterTest {
 
     private Set<String> staticCaps;
     private Set<String> virtualCaps;
@@ -47,7 +47,7 @@ class OrtbDeviceUpdaterTest {
     }
 
     @Test
-    void updateShouldUpdateDeviceMakeWhenOriginalIsEmpty() {
+    public void updateShouldUpdateDeviceMakeWhenOriginalIsEmpty() {
         // given
         final var wurflDevice = mockIPhone();
         final OrtbDeviceUpdater target = new OrtbDeviceUpdater(wurflDevice, staticCaps, virtualCaps, true, mapper);
@@ -65,7 +65,7 @@ class OrtbDeviceUpdaterTest {
     }
 
     @Test
-    void updateShouldNotUpdateDeviceMakeWhenOriginalExists() {
+    public void updateShouldNotUpdateDeviceMakeWhenOriginalExists() {
         // given
         final Device device = Device.builder().make("Samsung").build();
         final BidRequest bidRequest = BidRequest.builder().device(device).build();
@@ -82,7 +82,7 @@ class OrtbDeviceUpdaterTest {
     }
 
     @Test
-    void updateShouldNotUpdateDeviceMakeWhenOriginalBigIntegerExists() {
+    public void updateShouldNotUpdateDeviceMakeWhenOriginalBigIntegerExists() {
         // given
         final Device device = Device.builder().make("Apple").pxratio(new BigDecimal("1.0")).build();
         final BidRequest bidRequest = BidRequest.builder().device(device).build();
@@ -100,7 +100,7 @@ class OrtbDeviceUpdaterTest {
     }
 
     @Test
-    void updateShouldUpdateDeviceModelWhenOriginalIsEmpty() {
+    public void updateShouldUpdateDeviceModelWhenOriginalIsEmpty() {
         // given
         final Device device = Device.builder().build();
         final BidRequest bidRequest = BidRequest.builder().device(device).build();
@@ -117,7 +117,7 @@ class OrtbDeviceUpdaterTest {
     }
 
     @Test
-    void updateShouldUpdateDeviceOsWhenOriginalIsEmpty() {
+    public void updateShouldUpdateDeviceOsWhenOriginalIsEmpty() {
         // given
         final Device device = Device.builder().build();
         final BidRequest bidRequest = BidRequest.builder().device(device).build();
@@ -134,7 +134,7 @@ class OrtbDeviceUpdaterTest {
     }
 
     @Test
-    void updateShouldUpdateResolutionWhenOriginalIsEmpty() {
+    public void updateShouldUpdateResolutionWhenOriginalIsEmpty() {
         // given
         final Device device = Device.builder().build();
         final BidRequest bidRequest = BidRequest.builder().device(device).build();
@@ -152,7 +152,7 @@ class OrtbDeviceUpdaterTest {
     }
 
     @Test
-    void updateShouldHandleJavascriptSupport() {
+    public void updateShouldHandleJavascriptSupport() {
         // given
         final Device device = Device.builder().build();
         final BidRequest bidRequest = BidRequest.builder().device(device).build();
@@ -169,7 +169,7 @@ class OrtbDeviceUpdaterTest {
     }
 
     @Test
-    void updateShouldHandleOttDeviceType() {
+    public void updateShouldHandleOttDeviceType() {
         // given
         final Device device = Device.builder().build();
         final BidRequest bidRequest = BidRequest.builder().device(device).build();
@@ -185,7 +185,7 @@ class OrtbDeviceUpdaterTest {
     }
 
     @Test
-    void updateShouldReturnDeviceOtherMobileWhenMobileIsNotPhoneOrTablet() {
+    public void updateShouldReturnDeviceOtherMobileWhenMobileIsNotPhoneOrTablet() {
         // given
         final Device device = Device.builder().build();
         final BidRequest bidRequest = BidRequest.builder().device(device).build();
@@ -200,7 +200,7 @@ class OrtbDeviceUpdaterTest {
     }
 
     @Test
-    void updateShouldReturnNullWhenMobileTypeIsUnknown() {
+    public void updateShouldReturnNullWhenMobileTypeIsUnknown() {
         // given
         final Device device = Device.builder().build();
         final BidRequest bidRequest = BidRequest.builder().device(device).build();
@@ -215,7 +215,7 @@ class OrtbDeviceUpdaterTest {
     }
 
     @Test
-    void updateShouldHandlePersonalComputerDeviceType() {
+    public void updateShouldHandlePersonalComputerDeviceType() {
         // given
         final Device device = Device.builder().build();
         final BidRequest bidRequest = BidRequest.builder().device(device).build();
@@ -231,7 +231,7 @@ class OrtbDeviceUpdaterTest {
     }
 
     @Test
-    void updateShouldHandleConnectedTvDeviceType() {
+    public void updateShouldHandleConnectedTvDeviceType() {
         // given
         final Device device = Device.builder().build();
         final BidRequest bidRequest = BidRequest.builder().device(device).build();
@@ -246,7 +246,7 @@ class OrtbDeviceUpdaterTest {
     }
 
     @Test
-    void updateShouldNotUpdateDeviceTypeWhenSet() {
+    public void updateShouldNotUpdateDeviceTypeWhenSet() {
         // given
         final Device device = Device.builder()
                 .devicetype(3)
@@ -263,7 +263,7 @@ class OrtbDeviceUpdaterTest {
     }
 
     @Test
-    void updateShouldHandleTabletDeviceType() {
+    public void updateShouldHandleTabletDeviceType() {
         // given
         final Device device = Device.builder().build();
         final BidRequest bidRequest = BidRequest.builder().device(device).build();
@@ -279,7 +279,7 @@ class OrtbDeviceUpdaterTest {
     }
 
     @Test
-    void updateShouldAddWurflPropertyToExtIfMissingAndPreserveExistingProperties() {
+    public void updateShouldAddWurflPropertyToExtIfMissingAndPreserveExistingProperties() {
         // given
         final ExtDevice existingExt = ExtDevice.empty();
         existingExt.addProperty("someProperty", TextNode.valueOf("value"));

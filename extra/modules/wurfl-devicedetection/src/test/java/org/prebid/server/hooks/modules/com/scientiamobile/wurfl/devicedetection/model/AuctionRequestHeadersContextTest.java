@@ -5,10 +5,10 @@ import org.prebid.server.model.CaseInsensitiveMultiMap;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class AuctionRequestHeadersContextTest {
+public class AuctionRequestHeadersContextTest {
 
     @Test
-    void fromShouldHandleNullHeaders() {
+    public void fromShouldHandleNullHeaders() {
         // when
         final AuctionRequestHeadersContext result = AuctionRequestHeadersContext.from(null);
 
@@ -17,7 +17,7 @@ class AuctionRequestHeadersContextTest {
     }
 
     @Test
-    void fromShouldConvertCaseInsensitiveMultiMapToHeaders() {
+    public void fromShouldConvertCaseInsensitiveMultiMapToHeaders() {
         // given
         final CaseInsensitiveMultiMap multiMap = CaseInsensitiveMultiMap.builder()
                 .add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Test")
@@ -35,7 +35,7 @@ class AuctionRequestHeadersContextTest {
     }
 
     @Test
-    void fromShouldTakeFirstValueForDuplicateHeaders() {
+    public void fromShouldTakeFirstValueForDuplicateHeaders() {
         // given
         final CaseInsensitiveMultiMap multiMap = CaseInsensitiveMultiMap.builder()
                 .add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Test")
@@ -52,7 +52,7 @@ class AuctionRequestHeadersContextTest {
     }
 
     @Test
-    void fromShouldHandleEmptyMultiMap() {
+    public void fromShouldHandleEmptyMultiMap() {
         // given
         final CaseInsensitiveMultiMap emptyMultiMap = CaseInsensitiveMultiMap.empty();
 

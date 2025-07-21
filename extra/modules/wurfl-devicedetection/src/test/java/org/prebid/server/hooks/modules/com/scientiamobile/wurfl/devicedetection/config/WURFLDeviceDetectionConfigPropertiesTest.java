@@ -6,10 +6,10 @@ import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class WURFLDeviceDetectionConfigPropertiesTest {
+public class WURFLDeviceDetectionConfigPropertiesTest {
 
     @Test
-    void shouldInitializeWithEmptyValues() {
+    public void shouldInitializeWithEmptyValues() {
         // given
         final WURFLDeviceDetectionConfigProperties properties = new WURFLDeviceDetectionConfigProperties();
 
@@ -25,7 +25,7 @@ class WURFLDeviceDetectionConfigPropertiesTest {
     }
 
     @Test
-    void shouldSetAndGetProperties() {
+    public void shouldSetAndGetProperties() {
         // given
         final WURFLDeviceDetectionConfigProperties properties = new WURFLDeviceDetectionConfigProperties();
 
