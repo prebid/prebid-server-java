@@ -57,6 +57,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeoutException;
 import java.util.function.UnaryOperator;
 
 import static java.util.Arrays.asList;
@@ -234,7 +235,7 @@ public class CoreCacheServiceTest extends VertxTest {
                 eventsContext);
 
         // then
-        verify(metrics).updateCacheRequestFailedTime(eq("accountId"), anyLong());
+        verify(metrics).updateAuctionCacheRequestTime(eq("accountId"), anyLong(), eq(MetricName.err));
         verify(httpClient).post(eq("http://cache-service/cache"), any(), any(), anyLong());
 
         final CacheServiceResult result = future.result();
@@ -287,7 +288,7 @@ public class CoreCacheServiceTest extends VertxTest {
                 eventsContext);
 
         // then
-        verify(metrics).updateCacheRequestFailedTime(eq("accountId"), anyLong());
+        verify(metrics).updateAuctionCacheRequestTime(eq("accountId"), anyLong(), eq(MetricName.err));
         verify(httpClient).post(eq("http://cache-service-internal/cache"), any(), any(), anyLong());
 
         final CacheServiceResult result = future.result();
@@ -508,6 +509,10 @@ public class CoreCacheServiceTest extends VertxTest {
                 .auctionTimestamp(1000L)
                 .build();
 
+        given(httpClient.post(anyString(), any(), any(), anyLong())).willReturn(Future.succeededFuture(
+                HttpClientResponse.of(200, null, mapper.writeValueAsString(BidCacheResponse.of(
+                        List.of(CacheObject.of("uuid1"), CacheObject.of("uuid2"), CacheObject.of("uuid3")))))));
+
         // when
         target.cacheBidsOpenrtb(
                 asList(bidInfo1, bidInfo2),
@@ -526,6 +531,8 @@ public class CoreCacheServiceTest extends VertxTest {
 
         verify(metrics).updateCacheCreativeTtl(eq("accountId"), eq(1), eq(MetricName.json));
         verify(metrics).updateCacheCreativeTtl(eq("accountId"), eq(2), eq(MetricName.json));
+
+        verify(metrics).updateAuctionCacheRequestTime(eq("accountId"), anyLong(), eq(MetricName.ok));
 
         final Bid bid1 = bidInfo1.getBid();
         final Bid bid2 = bidInfo2.getBid();
@@ -798,7 +805,7 @@ public class CoreCacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void cachePutObjectsShould() throws IOException {
+    public void cachePutObjectsShouldCacheObjects() throws IOException {
         // given
         final BidPutObject firstBidPutObject = BidPutObject.builder()
                 .type("json")
@@ -830,6 +837,10 @@ public class CoreCacheServiceTest extends VertxTest {
                 .willReturn(new TextNode("VAST"))
                 .willReturn(new TextNode("updatedVast"));
 
+        given(httpClient.post(anyString(), any(), any(), anyLong())).willReturn(Future.succeededFuture(
+                HttpClientResponse.of(200, null, mapper.writeValueAsString(BidCacheResponse.of(
+                        List.of(CacheObject.of("uuid1"), CacheObject.of("uuid2"), CacheObject.of("uuid3")))))));
+
         // when
         target.cachePutObjects(
                 asList(firstBidPutObject, secondBidPutObject, thirdBidPutObject),
@@ -849,6 +860,8 @@ public class CoreCacheServiceTest extends VertxTest {
         verify(metrics).updateCacheCreativeTtl(eq("account"), eq(1), eq(MetricName.json));
         verify(metrics).updateCacheCreativeTtl(eq("account"), eq(2), eq(MetricName.xml));
         verify(metrics).updateCacheCreativeTtl(eq("account"), eq(3), eq(MetricName.unknown));
+
+        verify(metrics).updateVtrackCacheWriteRequestTime(eq("account"), anyLong(), eq(MetricName.ok));
 
         verify(vastModifier).modifyVastXml(true, singleton("bidder1"), firstBidPutObject, "account", "pbjs");
         verify(vastModifier).modifyVastXml(true, singleton("bidder1"), secondBidPutObject, "account", "pbjs");
@@ -873,6 +886,78 @@ public class CoreCacheServiceTest extends VertxTest {
 
         assertThat(captureBidCacheRequest().getPuts())
                 .containsExactly(modifiedFirstBidPutObject, modifiedSecondBidPutObject, modifiedThirdBidPutObject);
+    }
+
+    @Test
+    public void cachePutObjectsShouldLogErrorMetricsWhenStatusCodeIsNotOk() {
+        // given
+        final BidPutObject bidObject = BidPutObject.builder()
+                .type("json")
+                .bidid("bidId1")
+                .bidder("bidder1")
+                .timestamp(1L)
+                .value(new TextNode("vast"))
+                .ttlseconds(1)
+                .build();
+
+        given(vastModifier.modifyVastXml(any(), any(), any(), any(), anyString()))
+                .willReturn(new TextNode("modifiedVast"))
+                .willReturn(new TextNode("VAST"))
+                .willReturn(new TextNode("updatedVast"));
+
+        given(httpClient.post(eq("http://cache-service/cache"), any(), any(), anyLong()))
+                .willReturn(Future.succeededFuture(HttpClientResponse.of(404, null, null)));
+
+        // when
+        target.cachePutObjects(
+                singletonList(bidObject),
+                true,
+                singleton("bidder1"),
+                "account",
+                "pbjs",
+                timeout);
+
+        // then
+        verify(metrics).updateCacheCreativeSize(eq("account"), eq(12), eq(MetricName.json));
+        verify(metrics).updateCacheCreativeTtl(eq("account"), eq(1), eq(MetricName.json));
+        verify(metrics).updateVtrackCacheWriteRequestTime(eq("account"), anyLong(), eq(MetricName.err));
+        verify(vastModifier).modifyVastXml(true, singleton("bidder1"), bidObject, "account", "pbjs");
+    }
+
+    @Test
+    public void cachePutObjectsShouldNotLogErrorMetricsWhenCacheServiceIsNotConnected() {
+        // given
+        final BidPutObject bidObject = BidPutObject.builder()
+                .type("json")
+                .bidid("bidId1")
+                .bidder("bidder1")
+                .timestamp(1L)
+                .value(new TextNode("vast"))
+                .ttlseconds(1)
+                .build();
+
+        given(vastModifier.modifyVastXml(any(), any(), any(), any(), anyString()))
+                .willReturn(new TextNode("modifiedVast"))
+                .willReturn(new TextNode("VAST"))
+                .willReturn(new TextNode("updatedVast"));
+
+        given(httpClient.post(eq("http://cache-service/cache"), any(), any(), anyLong()))
+                .willReturn(Future.failedFuture(new TimeoutException("Timeout")));
+
+        // when
+        target.cachePutObjects(
+                singletonList(bidObject),
+                true,
+                singleton("bidder1"),
+                "account",
+                "pbjs",
+                timeout);
+
+        // then
+        verify(metrics, never()).updateVtrackCacheWriteRequestTime(eq("account"), anyLong(), any());
+        verify(metrics).updateCacheCreativeSize(eq("account"), eq(12), eq(MetricName.json));
+        verify(metrics).updateCacheCreativeTtl(eq("account"), eq(1), eq(MetricName.json));
+        verify(vastModifier).modifyVastXml(true, singleton("bidder1"), bidObject, "account", "pbjs");
     }
 
     @Test
@@ -1373,6 +1458,7 @@ public class CoreCacheServiceTest extends VertxTest {
 
         // then
         assertThat(result.result()).isEqualTo(response);
+        verify(metrics).updateVtrackCacheReadRequestTime(anyLong(), eq(MetricName.ok));
     }
 
     @Test
@@ -1391,6 +1477,7 @@ public class CoreCacheServiceTest extends VertxTest {
 
         // then
         assertThat(result.result()).isEqualTo(response);
+        verify(metrics).updateVtrackCacheReadRequestTime(anyLong(), eq(MetricName.ok));
     }
 
     @Test
@@ -1431,6 +1518,25 @@ public class CoreCacheServiceTest extends VertxTest {
     }
 
     @Test
+    public void getCachedObjectShouldNotLogErrorMetricsWhenCacheIsNotReached() {
+        // given
+        final HttpClientResponse response = HttpClientResponse.of(
+                200,
+                MultiMap.caseInsensitiveMultiMap().add("Header", "Value"),
+                "body");
+
+        given(httpClient.get(eq("http://cache-service/cache?uuid=key&ch=ch"), any(), anyLong()))
+                .willReturn(Future.failedFuture(new TimeoutException("Timeout")));
+
+        // when
+        final Future<HttpClientResponse> result = target.getCachedObject("key", "ch", timeout);
+
+        // then
+        assertThat(result.failed()).isTrue();
+        verify(metrics, never()).updateVtrackCacheReadRequestTime(anyLong(), any());
+    }
+
+    @Test
     public void getCachedObjectShouldHandleErrorResponse() {
         // given
         final HttpClientResponse response = HttpClientResponse.of(
@@ -1446,6 +1552,7 @@ public class CoreCacheServiceTest extends VertxTest {
 
         // then
         assertThat(result.result()).isEqualTo(HttpClientResponse.of(404, null, "Resource not found"));
+        verify(metrics).updateVtrackCacheReadRequestTime(anyLong(), eq(MetricName.err));
     }
 
     @Test
@@ -1463,6 +1570,8 @@ public class CoreCacheServiceTest extends VertxTest {
         assertThat(result.failed()).isTrue();
         assertThat(result.cause()).hasMessage("Cannot parse response: Resource not found");
         assertThat(result.cause()).isInstanceOf(PreBidException.class);
+
+        verify(metrics).updateVtrackCacheReadRequestTime(anyLong(), eq(MetricName.err));
     }
 
     private AuctionContext givenAuctionContext(UnaryOperator<Account.AccountBuilder> accountCustomizer,

@@ -606,14 +606,18 @@ public class Metrics extends UpdatableMetrics {
         }
     }
 
-    public void updateCacheRequestSuccessTime(String accountId, long timeElapsed) {
-        cache().requests().updateTimer(MetricName.ok, timeElapsed);
-        forAccount(accountId).cache().requests().updateTimer(MetricName.ok, timeElapsed);
+    public void updateVtrackCacheReadRequestTime(long timeElapsed, MetricName metricName) {
+        cache().vtrack().read().updateTimer(metricName, timeElapsed);
     }
 
-    public void updateCacheRequestFailedTime(String accountId, long timeElapsed) {
-        cache().requests().updateTimer(MetricName.err, timeElapsed);
-        forAccount(accountId).cache().requests().updateTimer(MetricName.err, timeElapsed);
+    public void updateVtrackCacheWriteRequestTime(String accountId, long timeElapsed, MetricName metricName) {
+        cache().vtrack().write().updateTimer(metricName, timeElapsed);
+        forAccount(accountId).cache().vtrack().write().updateTimer(metricName, timeElapsed);
+    }
+
+    public void updateAuctionCacheRequestTime(String accountId, long timeElapsed, MetricName metricName) {
+        cache().requests().updateTimer(metricName, timeElapsed);
+        forAccount(accountId).cache().requests().updateTimer(metricName, timeElapsed);
     }
 
     public void updateCacheCreativeSize(String accountId, int creativeSize, MetricName creativeType) {

@@ -1218,23 +1218,42 @@ public class MetricsTest {
     }
 
     @Test
-    public void shouldIncrementPrebidCacheRequestSuccessTimer() {
+    public void shouldIncrementAuctionPrebidCacheRequestTimer() {
         // when
-        metrics.updateCacheRequestSuccessTime("accountId", 1424L);
+        metrics.updateAuctionCacheRequestTime("accountId", 1424L, MetricName.ok);
+        metrics.updateAuctionCacheRequestTime("accountId", 1424L, MetricName.err);
 
         // then
         assertThat(metricRegistry.timer("prebid_cache.requests.ok").getCount()).isEqualTo(1);
         assertThat(metricRegistry.timer("account.accountId.prebid_cache.requests.ok").getCount()).isOne();
+
+        assertThat(metricRegistry.timer("prebid_cache.requests.err").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.timer("account.accountId.prebid_cache.requests.err").getCount()).isOne();
     }
 
     @Test
-    public void shouldIncrementPrebidCacheRequestFailedTimer() {
+    public void shouldIncrementVtrackReadPrebidCacheRequestTimer() {
         // when
-        metrics.updateCacheRequestFailedTime("accountId", 1424L);
+        metrics.updateVtrackCacheReadRequestTime(1424L, MetricName.ok);
+        metrics.updateVtrackCacheReadRequestTime(1424L, MetricName.err);
 
         // then
-        assertThat(metricRegistry.timer("prebid_cache.requests.err").getCount()).isEqualTo(1);
-        assertThat(metricRegistry.timer("account.accountId.prebid_cache.requests.err").getCount()).isOne();
+        assertThat(metricRegistry.timer("prebid_cache.vtrack.read.ok").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.timer("prebid_cache.vtrack.read.err").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementVtrackWritePrebidCacheRequestTimer() {
+        // when
+        metrics.updateVtrackCacheWriteRequestTime("accountId", 1424L, MetricName.ok);
+        metrics.updateVtrackCacheWriteRequestTime("accountId", 1424L, MetricName.err);
+
+        // then
+        assertThat(metricRegistry.timer("prebid_cache.vtrack.write.ok").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.timer("account.accountId.prebid_cache.vtrack.write.ok").getCount()).isOne();
+
+        assertThat(metricRegistry.timer("prebid_cache.vtrack.write.err").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.timer("account.accountId.prebid_cache.vtrack.write.err").getCount()).isOne();
     }
 
     @Test
