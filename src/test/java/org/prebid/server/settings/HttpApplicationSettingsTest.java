@@ -283,14 +283,14 @@ public class HttpApplicationSettingsTest extends VertxTest {
         // given
         givenHttpClientReturnsResponse(200, null);
         httpApplicationSettings = new HttpApplicationSettings(httpClient, jacksonMapper,
-                "http://some-domain?param1=value1", AMP_ENDPOINT, VIDEO_ENDPOINT, CATEGORY_ENDPOINT, false);
+                "http://some-domain.com?param1=value1", AMP_ENDPOINT, VIDEO_ENDPOINT, CATEGORY_ENDPOINT, false);
 
         // when
         httpApplicationSettings.getStoredData(null, singleton("id1"), singleton("id2"), timeout);
 
         // then
         verify(httpClient).get(
-                eq("http://some-domain?param1=value1&request-ids=%5B%22id1%22%5D&imp-ids=%5B%22id2%22%5D"),
+                eq("http://some-domain.com?param1=value1&request-ids=%5B%22id1%22%5D&imp-ids=%5B%22id2%22%5D"),
                 any(),
                 anyLong());
     }
