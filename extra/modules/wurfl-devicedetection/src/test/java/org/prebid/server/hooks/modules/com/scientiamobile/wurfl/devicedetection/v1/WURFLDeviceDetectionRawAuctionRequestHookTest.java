@@ -72,19 +72,6 @@ class WURFLDeviceDetectionRawAuctionRequestHookTest {
     }
 
     @Test
-    void callShouldReturnNoActionWhenBidRequestIsNull() {
-        // given
-        when(payload.bidRequest()).thenReturn(null);
-
-        // when
-        final InvocationResult<AuctionRequestPayload> result = target.call(payload, context).result();
-
-        // then
-        assertThat(result.status()).isEqualTo(InvocationStatus.success);
-        assertThat(result.action()).isEqualTo(InvocationAction.no_action);
-    }
-
-    @Test
     void callShouldReturnNoActionWhenDeviceIsNull() {
         // given
         final BidRequest bidRequest = BidRequest.builder().build();

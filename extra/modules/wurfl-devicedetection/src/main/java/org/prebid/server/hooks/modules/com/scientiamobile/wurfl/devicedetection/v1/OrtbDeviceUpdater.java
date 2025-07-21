@@ -103,55 +103,74 @@ public class OrtbDeviceUpdater implements PayloadUpdate<AuctionRequestPayload> {
     }
 
     private Integer getWurflDeviceType() {
-        if (wurflDevice.getVirtualCapabilityAsBool("is_mobile")) {
-            // if at least one of these capabilities is not defined, the mobile device type is undefined
-            try {
+
+        try {
+            if (wurflDevice.getVirtualCapabilityAsBool("is_mobile")) {
+                // if at least one of these capabilities is not defined, the mobile device type is undefined
                 final boolean isPhone = wurflDevice.getVirtualCapabilityAsBool("is_phone");
                 final boolean isTablet = wurflDevice.getCapabilityAsBool("is_tablet");
                 return isPhone || isTablet ? 1 : 6;
-            } catch (CapabilityNotDefinedException | VirtualCapabilityNotDefinedException e) {
-                logger.warn("Failed to determine device type from WURFL device capabilities", e);
-                return null;
             }
-        }
 
-        if (wurflDevice.getVirtualCapabilityAsBool("is_full_desktop")) {
-            return 2;
-        }
+            if (wurflDevice.getVirtualCapabilityAsBool("is_full_desktop")) {
+                return 2;
+            }
 
-        if (wurflDevice.getCapabilityAsBool("is_connected_tv")) {
-            return 3;
-        }
+            if (wurflDevice.getCapabilityAsBool("is_connected_tv")) {
+                return 3;
+            }
 
-        if (wurflDevice.getCapabilityAsBool("is_phone")) {
-            return 4;
-        }
+            if (wurflDevice.getCapabilityAsBool("is_phone")) {
+                return 4;
+            }
 
-        if (wurflDevice.getCapabilityAsBool("is_tablet")) {
-            return 5;
-        }
+            if (wurflDevice.getCapabilityAsBool("is_tablet")) {
+                return 5;
+            }
 
-        if (wurflDevice.getCapabilityAsBool("is_ott")) {
-            return 7;
+            if (wurflDevice.getCapabilityAsBool("is_ott")) {
+                return 7;
+            }
+        } catch (CapabilityNotDefinedException | VirtualCapabilityNotDefinedException | NumberFormatException e) {
+            logger.warn("Failed to determine device type from WURFL device capabilities", e);
         }
-
         return null;
     }
 
     private String getWurflOs() {
-        return wurflDevice.getVirtualCapability("advertised_device_os");
+        try {
+            return wurflDevice.getVirtualCapability("advertised_device_os");
+        } catch (VirtualCapabilityNotDefinedException e) {
+            logger.warn("Failed to evaluate advertised device OS", e);
+            return null;
+        }
     }
 
     private String getWurflOsv() {
-        return wurflDevice.getVirtualCapability("advertised_device_os_version");
+        try {
+            return wurflDevice.getVirtualCapability("advertised_device_os_version");
+        } catch (VirtualCapabilityNotDefinedException e) {
+            logger.warn("Failed to evaluate advertised device OS version", e);
+        }
+        return null;
     }
 
     private Integer getWurflH() {
-        return wurflDevice.getCapabilityAsInt("resolution_height");
+        try {
+            return wurflDevice.getCapabilityAsInt("resolution_height");
+        } catch (NumberFormatException e) {
+            logger.warn("Failed to get resolution height from WURFL device capabilities", e);
+            return null;
+        }
     }
 
     private Integer getWurflW() {
-        return wurflDevice.getCapabilityAsInt("resolution_width");
+        try {
+            return wurflDevice.getCapabilityAsInt("resolution_width");
+        } catch (NumberFormatException e) {
+            logger.warn("Failed to get resolution width from WURFL device capabilities", e);
+            return null;
+        }
     }
 
     private Integer getWurflPpi() {
@@ -167,16 +186,21 @@ public class OrtbDeviceUpdater implements PayloadUpdate<AuctionRequestPayload> {
         try {
             final String densityAsString = wurflDevice.getCapability("density_class");
             return densityAsString != null
-                ? new BigDecimal(densityAsString)
-                : null;
-        } catch (CapabilityNotDefinedException e) {
+                    ? new BigDecimal(densityAsString)
+                    : null;
+        } catch (CapabilityNotDefinedException | NumberFormatException e) {
             logger.warn("Failed to get pixel ratio from WURFL device capabilities", e);
             return null;
         }
     }
 
-    private int getWurflJs() {
-        return wurflDevice.getCapabilityAsBool("ajax_support_javascript") ? 1 : 0;
+    private Integer getWurflJs() {
+        try {
+            return wurflDevice.getCapabilityAsBool("ajax_support_javascript") ? 1 : 0;
+        } catch (CapabilityNotDefinedException | NumberFormatException e) {
+            logger.warn("Failed to get JS support from WURFL device capabilities", e);
+            return null;
+        }
     }
 
     private ExtDevice updateExt(ExtDevice ortbExtDevice) {

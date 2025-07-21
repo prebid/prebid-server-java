@@ -13,7 +13,6 @@ import org.prebid.server.execution.file.syncer.FileSyncer;
 import org.prebid.server.spring.config.model.FileSyncerProperties;
 import org.prebid.server.spring.config.model.HttpClientProperties;
 import org.prebid.server.execution.file.FileUtil;
-import org.prebid.server.json.ObjectMapperProvider;
 import org.prebid.server.json.JacksonMapper;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
@@ -35,15 +34,16 @@ public class WURFLDeviceDetectionConfiguration {
 
     @Bean
     public WURFLDeviceDetectionModule wurflDeviceDetectionModule(WURFLDeviceDetectionConfigProperties configProperties,
+                                                                 JacksonMapper mapper,
                                                                  Vertx vertx) {
+
         final WURFLService wurflService = new WURFLService(null, configProperties);
         final FileSyncer fileSyncer = createFileSyncer(configProperties, wurflService, vertx);
         fileSyncer.sync();
 
         return new WURFLDeviceDetectionModule(List.of(
                 new WURFLDeviceDetectionEntrypointHook(),
-                new WURFLDeviceDetectionRawAuctionRequestHook(wurflService, configProperties,
-                        new JacksonMapper(ObjectMapperProvider.mapper()))));
+                new WURFLDeviceDetectionRawAuctionRequestHook(wurflService, configProperties, mapper)));
     }
 
     private FileSyncer createFileSyncer(WURFLDeviceDetectionConfigProperties configProperties,
