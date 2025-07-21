@@ -15,21 +15,21 @@ class ModuleValue {
 
    ModuleName module
    String richmediaFormat
-    @JsonProperty("analytics_key")
+   @JsonProperty("analytics_key")
    String analyticsKey
-    @JsonProperty("analytics_value")
+   @JsonProperty("analytics_value")
    String analyticsValue
-    @JsonProperty("model_version")
+   @JsonProperty("model_version")
    String modelVersion
-    @JsonProperty("condition_fired")
+   @JsonProperty("condition_fired")
    List<String> conditionFired
-    @JsonProperty("rule_fired")
-    String rule_fired
-    @JsonProperty("result_functions")
-   List<ResultFunction> resultFunctions
-    @JsonProperty("bidders_removed")
+   @JsonProperty("rule_fired")
+   String rule_fired
+   @JsonProperty("result_function")
+   String resultFunctions
+   @JsonProperty("bidders_removed")
    List<BidderName> biddersRemoved
-   @JsonProperty("seatnonbid")
+   @JsonProperty("seat_non_bid")
    String seatNonBid
    String message
 }
