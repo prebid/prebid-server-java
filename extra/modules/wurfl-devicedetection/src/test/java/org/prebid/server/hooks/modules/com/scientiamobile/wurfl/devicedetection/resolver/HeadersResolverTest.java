@@ -12,12 +12,12 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class HeadersResolverTest {
+public class HeadersResolverTest {
 
     private static final String TEST_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36";
 
     @Test
-    void resolveWithNullDeviceShouldReturnOriginalHeaders() {
+    public void resolveWithNullDeviceShouldReturnOriginalHeaders() {
         // given
         final Map<String, String> headers = new HashMap<>();
         headers.put("test", "value");
@@ -30,7 +30,7 @@ class HeadersResolverTest {
     }
 
     @Test
-    void resolveWithDeviceUaShouldReturnUserAgentHeader() {
+    public void resolveWithDeviceUaShouldReturnUserAgentHeader() {
         // given
         final Device device = Device.builder()
                 .ua("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
@@ -44,7 +44,7 @@ class HeadersResolverTest {
     }
 
     @Test
-    void resolveWithFullSuaShouldReturnAllHeaders() {
+    public void resolveWithFullSuaShouldReturnAllHeaders() {
         // given
         final BrandVersion brandVersion = new BrandVersion(
                 "Chrome",
@@ -82,7 +82,7 @@ class HeadersResolverTest {
     }
 
     @Test
-    void resolveWithFullDeviceAndHeadersShouldPrioritizeDevice() {
+    public void resolveWithFullDeviceAndHeadersShouldPrioritizeDevice() {
         // given
         final BrandVersion brandVersion = new BrandVersion(
                 "Chrome",
@@ -130,7 +130,7 @@ class HeadersResolverTest {
     }
 
     @Test
-    void resolveWithMultipleBrandVersionsShouldFormatCorrectly() {
+    public void resolveWithMultipleBrandVersionsShouldFormatCorrectly() {
         // given
         final BrandVersion chrome = new BrandVersion("Chrome",
                 Arrays.asList("100", "0"),
@@ -162,7 +162,7 @@ class HeadersResolverTest {
     }
 
     @Test
-    void resolveWithNullDeviceAndNullHeadersShouldReturnEmptyMap() {
+    public void resolveWithNullDeviceAndNullHeadersShouldReturnEmptyMap() {
         // when
         final Map<String, String> result = HeadersResolver.resolve(null, null);
 

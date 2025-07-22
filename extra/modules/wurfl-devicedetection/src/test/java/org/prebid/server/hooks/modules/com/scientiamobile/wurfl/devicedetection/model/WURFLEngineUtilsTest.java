@@ -11,13 +11,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @ExtendWith(MockitoExtension.class)
-class WURFLEngineUtilsTest {
+public class WURFLEngineUtilsTest {
 
     @Mock(strictness = LENIENT)
     private WURFLDeviceDetectionConfigProperties configProperties;
 
     @Test
-    void extractWURFLFileNameShouldReturnCorrectFileName() {
+    public void extractWURFLFileNameShouldReturnCorrectFileName() {
         // given
         final String url = "https://data.examplehost.com/snapshot/wurfl-latest.zip";
 
@@ -29,7 +29,7 @@ class WURFLEngineUtilsTest {
     }
 
     @Test
-    void extractWURFLFileNameShouldHandleSimpleFileName() {
+    public void extractWURFLFileNameShouldHandleSimpleFileName() {
         // given
         final String url = "http://example.com/wurfl.zip";
 
@@ -41,7 +41,7 @@ class WURFLEngineUtilsTest {
     }
 
     @Test
-    void extractWURFLFileNameShouldHandleComplexPath() {
+    public void extractWURFLFileNameShouldHandleComplexPath() {
         // given
         final String url = "https://examplehost.com/path/to/files/wurfl-snapshot.zip";
 
@@ -53,7 +53,7 @@ class WURFLEngineUtilsTest {
     }
 
     @Test
-    void extractWURFLFileNameShouldHandleUrlWithQueryParams() {
+    public void extractWURFLFileNameShouldHandleUrlWithQueryParams() {
         // given
         final String url = "https://example.com/wurfl.zip?version=latest&format=zip";
 
@@ -65,7 +65,7 @@ class WURFLEngineUtilsTest {
     }
 
     @Test
-    void extractWURFLFileNameShouldThrowExceptionForNullUrl() {
+    public void extractWURFLFileNameShouldThrowExceptionForNullUrl() {
         // when & then
         assertThatThrownBy(() -> WURFLEngineUtils.extractWURFLFileName(null))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -73,7 +73,7 @@ class WURFLEngineUtilsTest {
     }
 
     @Test
-    void initializeEngineShouldThrowExceptionForNullDataFilePath() {
+    public void initializeEngineShouldThrowExceptionForNullDataFilePath() {
         // when & then
         assertThatThrownBy(() -> WURFLEngineUtils.initializeEngine(configProperties, null))
                 .isInstanceOf(IllegalArgumentException.class)
