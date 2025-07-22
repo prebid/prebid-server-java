@@ -10,6 +10,7 @@ import org.prebid.server.exception.InvalidProfileException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.execution.timeout.TimeoutFactory;
+import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.metric.Metrics;
@@ -19,7 +20,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.Profile;
-import org.prebid.server.settings.model.StoredProfileResult;
+import org.prebid.server.settings.model.StoredDataResult;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -74,8 +75,8 @@ public class ProfilesProcessor {
 
         return fetchProfiles(account.getId(), profilesIds, timeoutMillis(bidRequest))
                 .map(profiles -> mergeResults(
-                        applyRequestProfiles(profilesIds.request(), profiles.getIdToRequestProfile(), bidRequest),
-                        applyImpsProfiles(profilesIds.imps(), profiles.getIdToImpProfile(), imps)))
+                        applyRequestProfiles(profilesIds.request(), profiles.getStoredIdToRequest(), bidRequest),
+                        applyImpsProfiles(profilesIds.imps(), profiles.getStoredIdToImp(), imps)))
                 .recover(e -> Future.failedFuture(
                         new InvalidRequestException("Error during processing profiles: " + e.getMessage())));
     }
@@ -119,9 +120,9 @@ public class ProfilesProcessor {
         return tmax != null && tmax > 0 ? tmax : defaultTimeoutMillis;
     }
 
-    private Future<StoredProfileResult> fetchProfiles(String accountId,
-                                                      AllProfilesIds allProfilesIds,
-                                                      long timeoutMillis) {
+    private Future<StoredDataResult<Profile>> fetchProfiles(String accountId,
+                                                            AllProfilesIds allProfilesIds,
+                                                            long timeoutMillis) {
 
         final Set<String> requestProfilesIds = new HashSet<>(allProfilesIds.request());
         final Set<String> impProfilesIds = allProfilesIds.imps().stream()
@@ -168,9 +169,17 @@ public class ProfilesProcessor {
 
     private ObjectNode mergeProfile(ObjectNode original, Profile profile, String profileId) {
         return switch (profile.getMergePrecedence()) {
-            case REQUEST -> merge(original, profile.getBody(), profileId);
-            case PROFILE -> merge(profile.getBody(), original, profileId);
+            case REQUEST -> merge(original, parse(profile.getBody()), profileId);
+            case PROFILE -> merge(parse(profile.getBody()), original, profileId);
         };
+    }
+
+    private ObjectNode parse(String body) {
+        try {
+            return mapper.decodeValue(body, ObjectNode.class);
+        } catch (DecodeException e) {
+            throw new InvalidProfileException("Can't parse profile: " + e.getMessage());
+        }
     }
 
     private ObjectNode merge(ObjectNode takePrecedence, ObjectNode other, String profileId) {

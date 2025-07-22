@@ -104,7 +104,7 @@ public class StoredRequestProcessor {
             return Future.succeededFuture(AuctionStoredResult.of(false, bidRequest));
         }
 
-        final Future<StoredDataResult> storedDataFuture =
+        final Future<StoredDataResult<String>> storedDataFuture =
                 applicationSettings.getStoredData(accountId, requestIds, impIds, timeout(bidRequest))
                         .onSuccess(storedDataResult -> updateStoredResultMetrics(storedDataResult, requestIds, impIds));
 
@@ -121,7 +121,7 @@ public class StoredRequestProcessor {
     }
 
     private Future<BidRequest> processAmpStoredRequest(String accountId, String ampRequestId, BidRequest bidRequest) {
-        final Future<StoredDataResult> ampStoredDataFuture = applicationSettings.getAmpStoredData(
+        final Future<StoredDataResult<String>> ampStoredDataFuture = applicationSettings.getAmpStoredData(
                         accountId, Collections.singleton(ampRequestId), Collections.emptySet(), timeout(bidRequest))
                 .onSuccess(storedDataResult -> updateStoredResultMetrics(
                         storedDataResult, Collections.singleton(ampRequestId), Collections.emptySet()));
@@ -172,7 +172,7 @@ public class StoredRequestProcessor {
                 "Stored request processing failed: " + cause.getMessage()));
     }
 
-    private void updateStoredResultMetrics(StoredDataResult storedDataResult,
+    private void updateStoredResultMetrics(StoredDataResult<String> storedDataResult,
                                            Set<String> requestIds,
                                            Set<String> impIds) {
 
@@ -192,7 +192,7 @@ public class StoredRequestProcessor {
                 : null;
     }
 
-    private VideoStoredDataResult makeVideoStoredDataResult(StoredDataResult storedDataResult,
+    private VideoStoredDataResult makeVideoStoredDataResult(StoredDataResult<String> storedDataResult,
                                                             Map<String, String> storedIdToImpId,
                                                             List<String> errors) {
 
@@ -232,7 +232,7 @@ public class StoredRequestProcessor {
         return null;
     }
 
-    private Future<BidRequest> storedRequestsToBidRequest(Future<StoredDataResult> storedDataFuture,
+    private Future<BidRequest> storedRequestsToBidRequest(Future<StoredDataResult<String>> storedDataFuture,
                                                           BidRequest bidRequest,
                                                           String storedBidRequestId,
                                                           Map<Imp, String> impsToStoredRequestId) {
@@ -253,7 +253,7 @@ public class StoredRequestProcessor {
     private BidRequest mergeBidRequestAndImps(BidRequest bidRequest,
                                               String storedRequestId,
                                               Map<Imp, String> impToStoredId,
-                                              StoredDataResult storedDataResult) {
+                                              StoredDataResult<String> storedDataResult) {
 
         final BidRequest mergedWithStoredRequest = mergeBidRequest(bidRequest, storedRequestId, storedDataResult);
 
@@ -272,7 +272,7 @@ public class StoredRequestProcessor {
      */
     private BidRequest mergeBidRequest(BidRequest originalRequest,
                                        String storedRequestId,
-                                       StoredDataResult storedDataResult) {
+                                       StoredDataResult<String> storedDataResult) {
 
         final String storedRequest = storedDataResult.getStoredIdToRequest().get(storedRequestId);
         return StringUtils.isNotBlank(storedRequestId)
@@ -286,7 +286,7 @@ public class StoredRequestProcessor {
      */
     private BidRequest mergeImps(BidRequest bidRequest,
                                  Map<Imp, String> impToStoredId,
-                                 StoredDataResult storedDataResult) {
+                                 StoredDataResult<String> storedDataResult) {
 
         if (impToStoredId.isEmpty()) {
             return bidRequest;

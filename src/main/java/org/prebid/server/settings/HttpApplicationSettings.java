@@ -16,9 +16,9 @@ import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.Category;
+import org.prebid.server.settings.model.Profile;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredDataType;
-import org.prebid.server.settings.model.StoredProfileResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 import org.prebid.server.settings.proto.response.HttpAccountsResponse;
 import org.prebid.server.settings.proto.response.HttpFetcherResponse;
@@ -147,36 +147,36 @@ public class HttpApplicationSettings implements ApplicationSettings {
     }
 
     @Override
-    public Future<StoredDataResult> getStoredData(String accountId,
-                                                  Set<String> requestIds,
-                                                  Set<String> impIds,
-                                                  Timeout timeout) {
+    public Future<StoredDataResult<String>> getStoredData(String accountId,
+                                                          Set<String> requestIds,
+                                                          Set<String> impIds,
+                                                          Timeout timeout) {
 
         return fetchStoredData(endpoint, requestIds, impIds, timeout);
     }
 
     @Override
-    public Future<StoredDataResult> getAmpStoredData(String accountId,
-                                                     Set<String> requestIds,
-                                                     Set<String> impIds,
-                                                     Timeout timeout) {
+    public Future<StoredDataResult<String>> getAmpStoredData(String accountId,
+                                                             Set<String> requestIds,
+                                                             Set<String> impIds,
+                                                             Timeout timeout) {
 
         return fetchStoredData(ampEndpoint, requestIds, impIds, timeout);
     }
 
     @Override
-    public Future<StoredDataResult> getVideoStoredData(String accountId,
-                                                       Set<String> requestIds,
-                                                       Set<String> impIds,
-                                                       Timeout timeout) {
+    public Future<StoredDataResult<String>> getVideoStoredData(String accountId,
+                                                               Set<String> requestIds,
+                                                               Set<String> impIds,
+                                                               Timeout timeout) {
 
         return fetchStoredData(videoEndpoint, requestIds, impIds, timeout);
     }
 
-    private Future<StoredDataResult> fetchStoredData(String endpoint,
-                                                     Set<String> requestIds,
-                                                     Set<String> impIds,
-                                                     Timeout timeout) {
+    private Future<StoredDataResult<String>> fetchStoredData(String endpoint,
+                                                             Set<String> requestIds,
+                                                             Set<String> impIds,
+                                                             Timeout timeout) {
 
         if (CollectionUtils.isEmpty(requestIds) && CollectionUtils.isEmpty(impIds)) {
             return Future.succeededFuture(
@@ -193,17 +193,17 @@ public class HttpApplicationSettings implements ApplicationSettings {
                 .recover(exception -> failStoredDataResponse(exception, requestIds, impIds));
     }
 
-    private static Future<StoredDataResult> failStoredDataResponse(Throwable throwable,
-                                                                   Set<String> requestIds,
-                                                                   Set<String> impIds) {
+    private static Future<StoredDataResult<String>> failStoredDataResponse(Throwable throwable,
+                                                                           Set<String> requestIds,
+                                                                           Set<String> impIds) {
 
         return Future.succeededFuture(toFailedStoredDataResult(requestIds, impIds, throwable.getMessage()));
     }
 
-    private static StoredDataResult toFailedStoredDataResult(Set<String> requestIds,
-                                                             Set<String> impIds,
-                                                             String errorMessageFormat,
-                                                             Object... args) {
+    private static StoredDataResult<String> toFailedStoredDataResult(Set<String> requestIds,
+                                                                     Set<String> impIds,
+                                                                     String errorMessageFormat,
+                                                                     Object... args) {
 
         final String errorRequests = requestIds.isEmpty() ? "" : "stored requests for ids " + requestIds;
         final String separator = requestIds.isEmpty() || impIds.isEmpty() ? "" : " and ";
@@ -234,9 +234,9 @@ public class HttpApplicationSettings implements ApplicationSettings {
         return url.toString();
     }
 
-    private StoredDataResult processStoredDataResponse(HttpClientResponse httpClientResponse,
-                                                       Set<String> requestIds,
-                                                       Set<String> impIds) {
+    private StoredDataResult<String> processStoredDataResponse(HttpClientResponse httpClientResponse,
+                                                               Set<String> requestIds,
+                                                               Set<String> impIds) {
 
         final int statusCode = httpClientResponse.getStatusCode();
         if (statusCode != HttpResponseStatus.OK.code()) {
@@ -255,7 +255,7 @@ public class HttpApplicationSettings implements ApplicationSettings {
         return parseResponse(requestIds, impIds, response);
     }
 
-    private StoredDataResult parseResponse(Set<String> requestIds, Set<String> impIds, HttpFetcherResponse response) {
+    private StoredDataResult<String> parseResponse(Set<String> requestIds, Set<String> impIds, HttpFetcherResponse response) {
         final List<String> errors = new ArrayList<>();
 
         final Map<String, String> storedIdToRequest =
@@ -301,18 +301,19 @@ public class HttpApplicationSettings implements ApplicationSettings {
     }
 
     @Override
-    public Future<StoredProfileResult> getProfiles(String accountId,
-                                                   Set<String> requestIds,
-                                                   Set<String> impIds,
-                                                   Timeout timeout) {
+    public Future<StoredDataResult<Profile>> getProfiles(String accountId,
+                                                         Set<String> requestIds,
+                                                         Set<String> impIds,
+                                                         Timeout timeout) {
 
-        // TODO: change to success
-        return Future.failedFuture("Not supported");
+        return Future.succeededFuture(StoredDataResult.of(
+                Collections.emptyMap(),
+                Collections.emptyMap(),
+                Collections.emptyList()));
     }
 
     @Override
     public Future<StoredResponseDataResult> getStoredResponses(Set<String> responseIds, Timeout timeout) {
-        // TODO: ???
         return Future.failedFuture(new PreBidException("Not supported"));
     }
 
@@ -362,7 +363,6 @@ public class HttpApplicationSettings implements ApplicationSettings {
     }
 
     private static String joinIds(Set<String> ids) {
-        // TODO: Add url encode
         return String.join("\",\"", ids);
     }
 }

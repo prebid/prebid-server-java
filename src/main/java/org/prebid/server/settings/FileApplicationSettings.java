@@ -14,10 +14,10 @@ import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.Category;
+import org.prebid.server.settings.model.Profile;
 import org.prebid.server.settings.model.SettingsFile;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredDataType;
-import org.prebid.server.settings.model.StoredProfileResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 
 import java.io.File;
@@ -129,10 +129,10 @@ public class FileApplicationSettings implements ApplicationSettings {
     }
 
     @Override
-    public Future<StoredDataResult> getStoredData(String accountId,
-                                                  Set<String> requestIds,
-                                                  Set<String> impIds,
-                                                  Timeout timeout) {
+    public Future<StoredDataResult<String>> getStoredData(String accountId,
+                                                          Set<String> requestIds,
+                                                          Set<String> impIds,
+                                                          Timeout timeout) {
 
         return CollectionUtils.isEmpty(requestIds) && CollectionUtils.isEmpty(impIds)
 
@@ -152,28 +152,28 @@ public class FileApplicationSettings implements ApplicationSettings {
     }
 
     @Override
-    public Future<StoredDataResult> getAmpStoredData(String accountId,
-                                                     Set<String> requestIds,
-                                                     Set<String> impIds,
-                                                     Timeout timeout) {
+    public Future<StoredDataResult<String>> getAmpStoredData(String accountId,
+                                                             Set<String> requestIds,
+                                                             Set<String> impIds,
+                                                             Timeout timeout) {
 
         return getStoredData(accountId, requestIds, impIds, timeout);
     }
 
     @Override
-    public Future<StoredDataResult> getVideoStoredData(String accountId,
-                                                       Set<String> requestIds,
-                                                       Set<String> impIds,
-                                                       Timeout timeout) {
+    public Future<StoredDataResult<String>> getVideoStoredData(String accountId,
+                                                               Set<String> requestIds,
+                                                               Set<String> impIds,
+                                                               Timeout timeout) {
 
         return getStoredData(accountId, requestIds, impIds, timeout);
     }
 
     @Override
-    public Future<StoredProfileResult> getProfiles(String accountId,
-                                                   Set<String> requestIds,
-                                                   Set<String> impIds,
-                                                   Timeout timeout) {
+    public Future<StoredDataResult<Profile>> getProfiles(String accountId,
+                                                         Set<String> requestIds,
+                                                         Set<String> impIds,
+                                                         Timeout timeout) {
 
         // TODO: implement
         return Future.failedFuture("Not implemented");

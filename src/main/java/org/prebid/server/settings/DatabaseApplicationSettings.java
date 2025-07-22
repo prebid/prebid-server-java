@@ -10,12 +10,13 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.settings.helper.DatabaseProfilesResultMapper;
 import org.prebid.server.settings.helper.DatabaseStoredDataResultMapper;
 import org.prebid.server.settings.helper.DatabaseStoredResponseResultMapper;
 import org.prebid.server.settings.helper.ParametrizedQueryHelper;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.Profile;
 import org.prebid.server.settings.model.StoredDataResult;
-import org.prebid.server.settings.model.StoredProfileResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 import org.prebid.server.vertx.database.CircuitBreakerSecuredDatabaseClient;
 import org.prebid.server.vertx.database.DatabaseClient;
@@ -65,6 +66,16 @@ public class DatabaseApplicationSettings implements ApplicationSettings {
     private final String selectAmpStoredRequestsQuery;
 
     /**
+     * Query to select profiles by ids, for example:
+     * <pre>
+     * SELECT accountId, profileId, profile, mergePrecedence, type
+     *   FROM profiles
+     *   WHERE profileId in (%REQUEST_ID_LIST%, %IMP_ID_LIST%)
+     * </pre>
+     */
+    private final String selectProfilesQuery;
+
+    /**
      * Query to select stored responses by ids, for example:
      * <pre>
      * SELECT respid, responseData
@@ -80,6 +91,7 @@ public class DatabaseApplicationSettings implements ApplicationSettings {
                                        String selectAccountQuery,
                                        String selectStoredRequestsQuery,
                                        String selectAmpStoredRequestsQuery,
+                                       String selectProfilesQuery,
                                        String selectStoredResponsesQuery) {
 
         this.databaseClient = Objects.requireNonNull(databaseClient);
@@ -89,6 +101,7 @@ public class DatabaseApplicationSettings implements ApplicationSettings {
                 Objects.requireNonNull(selectAccountQuery));
         this.selectStoredRequestsQuery = Objects.requireNonNull(selectStoredRequestsQuery);
         this.selectAmpStoredRequestsQuery = Objects.requireNonNull(selectAmpStoredRequestsQuery);
+        this.selectProfilesQuery = Objects.requireNonNull(selectProfilesQuery);
         this.selectStoredResponsesQuery = Objects.requireNonNull(selectStoredResponsesQuery);
     }
 
@@ -125,37 +138,66 @@ public class DatabaseApplicationSettings implements ApplicationSettings {
     }
 
     @Override
-    public Future<StoredDataResult> getStoredData(String accountId,
-                                                  Set<String> requestIds,
-                                                  Set<String> impIds,
-                                                  Timeout timeout) {
+    public Future<StoredDataResult<String>> getStoredData(String accountId,
+                                                          Set<String> requestIds,
+                                                          Set<String> impIds,
+                                                          Timeout timeout) {
 
-        return fetchStoredData(selectStoredRequestsQuery, accountId, requestIds, impIds, timeout);
+        return fetchStoredData(
+                selectStoredRequestsQuery,
+                requestIds,
+                impIds,
+                result -> DatabaseStoredDataResultMapper.map(result, accountId, requestIds, impIds),
+                timeout);
     }
 
     @Override
-    public Future<StoredDataResult> getAmpStoredData(String accountId,
-                                                     Set<String> requestIds,
-                                                     Set<String> impIds,
-                                                     Timeout timeout) {
+    public Future<StoredDataResult<String>> getAmpStoredData(String accountId,
+                                                             Set<String> requestIds,
+                                                             Set<String> impIds,
+                                                             Timeout timeout) {
 
-        return fetchStoredData(selectAmpStoredRequestsQuery, accountId, requestIds, Collections.emptySet(), timeout);
+        return fetchStoredData(
+                selectAmpStoredRequestsQuery,
+                requestIds,
+                impIds,
+                result -> DatabaseStoredDataResultMapper.map(result, accountId, requestIds, impIds),
+                timeout);
     }
 
     @Override
-    public Future<StoredDataResult> getVideoStoredData(String accountId,
-                                                       Set<String> requestIds,
-                                                       Set<String> impIds,
-                                                       Timeout timeout) {
+    public Future<StoredDataResult<String>> getVideoStoredData(String accountId,
+                                                               Set<String> requestIds,
+                                                               Set<String> impIds,
+                                                               Timeout timeout) {
 
-        return fetchStoredData(selectStoredRequestsQuery, accountId, requestIds, impIds, timeout);
+        return fetchStoredData(
+                selectStoredRequestsQuery,
+                requestIds,
+                impIds,
+                result -> DatabaseStoredDataResultMapper.map(result, accountId, requestIds, impIds),
+                timeout);
     }
 
-    private Future<StoredDataResult> fetchStoredData(String query,
-                                                     String accountId,
-                                                     Set<String> requestIds,
-                                                     Set<String> impIds,
-                                                     Timeout timeout) {
+    @Override
+    public Future<StoredDataResult<Profile>> getProfiles(String accountId,
+                                                         Set<String> requestIds,
+                                                         Set<String> impIds,
+                                                         Timeout timeout) {
+
+        return fetchStoredData(
+                selectProfilesQuery,
+                requestIds,
+                impIds,
+                result -> DatabaseProfilesResultMapper.map(result, accountId, requestIds, impIds),
+                timeout);
+    }
+
+    private <T> Future<StoredDataResult<T>> fetchStoredData(String query,
+                                                            Set<String> requestIds,
+                                                            Set<String> impIds,
+                                                            Function<RowSet<Row>, StoredDataResult<T>> mapper,
+                                                            Timeout timeout) {
 
         if (CollectionUtils.isEmpty(requestIds) && CollectionUtils.isEmpty(impIds)) {
             return Future.succeededFuture(StoredDataResult.of(
@@ -173,21 +215,7 @@ public class DatabaseApplicationSettings implements ApplicationSettings {
         final String parametrizedQuery = parametrizedQueryHelper
                 .replaceRequestAndImpIdPlaceholders(query, requestIds.size(), impIds.size());
 
-        return databaseClient.executeQuery(
-                parametrizedQuery,
-                idsQueryParameters,
-                result -> DatabaseStoredDataResultMapper.map(result, accountId, requestIds, impIds),
-                timeout);
-    }
-
-    @Override
-    public Future<StoredProfileResult> getProfiles(String accountId,
-                                                   Set<String> requestIds,
-                                                   Set<String> impIds,
-                                                   Timeout timeout) {
-
-        // TODO: query?
-        return Future.failedFuture("Not implemented");
+        return databaseClient.executeQuery(parametrizedQuery, idsQueryParameters, mapper, timeout);
     }
 
     @Override

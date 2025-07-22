@@ -11,9 +11,9 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.helper.StoredDataFetcher;
 import org.prebid.server.settings.helper.StoredItemResolver;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.Profile;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredItem;
-import org.prebid.server.settings.model.StoredProfileResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 
 import java.util.Collections;
@@ -35,15 +35,17 @@ public class CachingApplicationSettings implements ApplicationSettings {
     private final Map<String, String> accountToErrorCache;
     private final Map<String, String> adServerPublisherToErrorCache;
     private final Map<String, Map<String, String>> categoryConfigCache;
-    private final SettingsCache cache;
-    private final SettingsCache ampCache;
-    private final SettingsCache videoCache;
+    private final SettingsCache<String> cache;
+    private final SettingsCache<String> ampCache;
+    private final SettingsCache<String> videoCache;
+    private final SettingsCache<Profile> profileCache;
     private final Metrics metrics;
 
     public CachingApplicationSettings(ApplicationSettings delegate,
-                                      SettingsCache cache,
-                                      SettingsCache ampCache,
-                                      SettingsCache videoCache,
+                                      SettingsCache<String> cache,
+                                      SettingsCache<String> ampCache,
+                                      SettingsCache<String> videoCache,
+                                      SettingsCache<Profile> profileCache,
                                       Metrics metrics,
                                       int ttl,
                                       int size,
@@ -64,6 +66,7 @@ public class CachingApplicationSettings implements ApplicationSettings {
         this.cache = Objects.requireNonNull(cache);
         this.ampCache = Objects.requireNonNull(ampCache);
         this.videoCache = Objects.requireNonNull(videoCache);
+        this.profileCache = Objects.requireNonNull(profileCache);
         this.metrics = Objects.requireNonNull(metrics);
     }
 
@@ -119,53 +122,63 @@ public class CachingApplicationSettings implements ApplicationSettings {
     }
 
     @Override
-    public Future<StoredDataResult> getStoredData(String accountId,
-                                                  Set<String> requestIds,
-                                                  Set<String> impIds,
-                                                  Timeout timeout) {
+    public Future<StoredDataResult<String>> getStoredData(String accountId,
+                                                          Set<String> requestIds,
+                                                          Set<String> impIds,
+                                                          Timeout timeout) {
 
         return getStoredDataFromCacheOrDelegate(cache, accountId, requestIds, impIds, timeout, delegate::getStoredData);
     }
 
     @Override
-    public Future<StoredDataResult> getAmpStoredData(String accountId,
-                                                     Set<String> requestIds,
-                                                     Set<String> impIds,
-                                                     Timeout timeout) {
+    public Future<StoredDataResult<String>> getAmpStoredData(String accountId,
+                                                             Set<String> requestIds,
+                                                             Set<String> impIds,
+                                                             Timeout timeout) {
 
         return getStoredDataFromCacheOrDelegate(
                 ampCache, accountId, requestIds, impIds, timeout, delegate::getAmpStoredData);
     }
 
     @Override
-    public Future<StoredDataResult> getVideoStoredData(String accountId,
-                                                       Set<String> requestIds,
-                                                       Set<String> impIds,
-                                                       Timeout timeout) {
+    public Future<StoredDataResult<String>> getVideoStoredData(String accountId,
+                                                               Set<String> requestIds,
+                                                               Set<String> impIds,
+                                                               Timeout timeout) {
 
         return getStoredDataFromCacheOrDelegate(
                 videoCache, accountId, requestIds, impIds, timeout, delegate::getVideoStoredData);
     }
 
-    private static Future<StoredDataResult> getStoredDataFromCacheOrDelegate(SettingsCache cache,
-                                                                             String accountId,
-                                                                             Set<String> requestIds,
-                                                                             Set<String> impIds,
-                                                                             Timeout timeout,
-                                                                             StoredDataFetcher retriever) {
+    @Override
+    public Future<StoredDataResult<Profile>> getProfiles(String accountId,
+                                                         Set<String> requestIds,
+                                                         Set<String> impIds,
+                                                         Timeout timeout) {
+
+        return getStoredDataFromCacheOrDelegate(
+                profileCache, accountId, requestIds, impIds, timeout, delegate::getProfiles);
+    }
+
+    private static <T> Future<StoredDataResult<T>> getStoredDataFromCacheOrDelegate(SettingsCache<T> cache,
+                                                                                    String accountId,
+                                                                                    Set<String> requestIds,
+                                                                                    Set<String> impIds,
+                                                                                    Timeout timeout,
+                                                                                    StoredDataFetcher<T> retriever) {
 
         // empty string account ID doesn't make sense
         final String normalizedAccountId = StringUtils.stripToNull(accountId);
 
-        final Map<String, Set<StoredItem>> requestCache = cache.getRequestCache();
-        final Map<String, Set<StoredItem>> impCache = cache.getImpCache();
+        final Map<String, Set<StoredItem<T>>> requestCache = cache.getRequestCache();
+        final Map<String, Set<StoredItem<T>>> impCache = cache.getImpCache();
 
         final Set<String> missedRequestIds = new HashSet<>();
-        final Map<String, String> storedIdToRequest = getStoredDataFromCacheOrAddMissedIds(
+        final Map<String, T> storedIdToRequest = getStoredDataFromCacheOrAddMissedIds(
                 normalizedAccountId, requestIds, requestCache, missedRequestIds);
 
         final Set<String> missedImpIds = new HashSet<>();
-        final Map<String, String> storedIdToImp = getStoredDataFromCacheOrAddMissedIds(
+        final Map<String, T> storedIdToImp = getStoredDataFromCacheOrAddMissedIds(
                 normalizedAccountId, impIds, impCache, missedImpIds);
 
         if (missedRequestIds.isEmpty() && missedImpIds.isEmpty()) {
@@ -177,15 +190,15 @@ public class CachingApplicationSettings implements ApplicationSettings {
         }
 
         return retriever.apply(normalizedAccountId, missedRequestIds, missedImpIds, timeout).map(result -> {
-            final Map<String, String> storedIdToRequestFromDelegate = result.getStoredIdToRequest();
+            final Map<String, T> storedIdToRequestFromDelegate = result.getStoredIdToRequest();
             storedIdToRequest.putAll(storedIdToRequestFromDelegate);
-            for (Map.Entry<String, String> entry : storedIdToRequestFromDelegate.entrySet()) {
+            for (Map.Entry<String, T> entry : storedIdToRequestFromDelegate.entrySet()) {
                 cache.saveRequestCache(normalizedAccountId, entry.getKey(), entry.getValue());
             }
 
-            final Map<String, String> storedIdToImpFromDelegate = result.getStoredIdToImp();
+            final Map<String, T> storedIdToImpFromDelegate = result.getStoredIdToImp();
             storedIdToImp.putAll(storedIdToImpFromDelegate);
-            for (Map.Entry<String, String> entry : storedIdToImpFromDelegate.entrySet()) {
+            for (Map.Entry<String, T> entry : storedIdToImpFromDelegate.entrySet()) {
                 cache.saveImpCache(normalizedAccountId, entry.getKey(), entry.getValue());
             }
 
@@ -196,16 +209,16 @@ public class CachingApplicationSettings implements ApplicationSettings {
         });
     }
 
-    private static Map<String, String> getStoredDataFromCacheOrAddMissedIds(String accountId,
-                                                                            Set<String> ids,
-                                                                            Map<String, Set<StoredItem>> cache,
-                                                                            Set<String> missedIds) {
+    private static <T> Map<String, T> getStoredDataFromCacheOrAddMissedIds(String accountId,
+                                                                           Set<String> ids,
+                                                                           Map<String, Set<StoredItem<T>>> cache,
+                                                                           Set<String> missedIds) {
 
-        final Map<String, String> idToStoredItem = new HashMap<>(ids.size());
+        final Map<String, T> idToStoredItem = new HashMap<>(ids.size());
 
         for (String id : ids) {
             try {
-                final StoredItem resolvedStoredItem = StoredItemResolver.resolve(null, accountId, id, cache.get(id));
+                final StoredItem<T> resolvedStoredItem = StoredItemResolver.resolve(null, accountId, id, cache.get(id));
                 idToStoredItem.put(id, resolvedStoredItem.getData());
             } catch (PreBidException e) {
                 missedIds.add(id);
@@ -216,22 +229,11 @@ public class CachingApplicationSettings implements ApplicationSettings {
     }
 
     @Override
-    public Future<StoredProfileResult> getProfiles(String accountId,
-                                                   Set<String> requestIds,
-                                                   Set<String> impIds,
-                                                   Timeout timeout) {
-
-        // TODO: add cache
-        return delegate.getProfiles(accountId, requestIds, impIds, timeout);
-    }
-
-    @Override
     public Future<StoredResponseDataResult> getStoredResponses(Set<String> responseIds, Timeout timeout) {
         return delegate.getStoredResponses(responseIds, timeout);
     }
 
     @Override
-    // TODO: ???
     public Future<Map<String, String>> getCategories(String primaryAdServer, String publisher, Timeout timeout) {
         final String compoundKey = StringUtils.isNotBlank(publisher)
                 ? "%s_%s".formatted(primaryAdServer, publisher)

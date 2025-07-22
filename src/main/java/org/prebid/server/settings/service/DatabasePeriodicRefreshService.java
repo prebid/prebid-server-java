@@ -69,7 +69,7 @@ public class DatabasePeriodicRefreshService implements Initializable {
     private final long refreshPeriod;
     private final long timeout;
     private final MetricName cacheType;
-    private final CacheNotificationListener cacheNotificationListener;
+    private final CacheNotificationListener<String> cacheNotificationListener;
     private final Vertx vertx;
     private final DatabaseClient databaseClient;
     private final TimeoutFactory timeoutFactory;
@@ -83,7 +83,7 @@ public class DatabasePeriodicRefreshService implements Initializable {
                                           long refreshPeriod,
                                           long timeout,
                                           MetricName cacheType,
-                                          CacheNotificationListener cacheNotificationListener,
+                                          CacheNotificationListener<String> cacheNotificationListener,
                                           Vertx vertx,
                                           DatabaseClient databaseClient,
                                           TimeoutFactory timeoutFactory,
@@ -125,7 +125,7 @@ public class DatabasePeriodicRefreshService implements Initializable {
                 .recover(exception -> handleFailure(exception, startTime, MetricName.initialize));
     }
 
-    private Void handleResult(StoredDataResult storedDataResult,
+    private Void handleResult(StoredDataResult<String> storedDataResult,
                               Instant updateTime,
                               long startTime,
                               MetricName refreshType) {
@@ -161,7 +161,7 @@ public class DatabasePeriodicRefreshService implements Initializable {
                 .recover(exception -> handleFailure(exception, startTime, MetricName.update));
     }
 
-    private StoredDataResult invalidate(StoredDataResult storedDataResult) {
+    private StoredDataResult<String> invalidate(StoredDataResult<String> storedDataResult) {
         final List<String> invalidatedRequests = getInvalidatedKeys(storedDataResult.getStoredIdToRequest());
         final List<String> invalidatedImps = getInvalidatedKeys(storedDataResult.getStoredIdToImp());
 

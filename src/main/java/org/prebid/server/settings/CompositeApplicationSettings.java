@@ -6,7 +6,6 @@ import org.prebid.server.settings.helper.StoredDataFetcher;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.Profile;
 import org.prebid.server.settings.model.StoredDataResult;
-import org.prebid.server.settings.model.StoredProfileResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 
 import java.util.HashMap;
@@ -45,37 +44,37 @@ public class CompositeApplicationSettings implements ApplicationSettings {
     }
 
     @Override
-    public Future<StoredDataResult> getStoredData(String accountId,
-                                                  Set<String> requestIds,
-                                                  Set<String> impIds,
-                                                  Timeout timeout) {
+    public Future<StoredDataResult<String>> getStoredData(String accountId,
+                                                          Set<String> requestIds,
+                                                          Set<String> impIds,
+                                                          Timeout timeout) {
 
         return proxy.getStoredData(accountId, requestIds, impIds, timeout);
     }
 
     @Override
-    public Future<StoredDataResult> getAmpStoredData(String accountId,
-                                                     Set<String> requestIds,
-                                                     Set<String> impIds,
-                                                     Timeout timeout) {
+    public Future<StoredDataResult<String>> getAmpStoredData(String accountId,
+                                                             Set<String> requestIds,
+                                                             Set<String> impIds,
+                                                             Timeout timeout) {
 
         return proxy.getAmpStoredData(accountId, requestIds, impIds, timeout);
     }
 
     @Override
-    public Future<StoredDataResult> getVideoStoredData(String accountId,
-                                                       Set<String> requestIds,
-                                                       Set<String> impIds,
-                                                       Timeout timeout) {
+    public Future<StoredDataResult<String>> getVideoStoredData(String accountId,
+                                                               Set<String> requestIds,
+                                                               Set<String> impIds,
+                                                               Timeout timeout) {
 
         return proxy.getVideoStoredData(accountId, requestIds, impIds, timeout);
     }
 
     @Override
-    public Future<StoredProfileResult> getProfiles(String accountId,
-                                                   Set<String> requestIds,
-                                                   Set<String> impIds,
-                                                   Timeout timeout) {
+    public Future<StoredDataResult<Profile>> getProfiles(String accountId,
+                                                         Set<String> requestIds,
+                                                         Set<String> impIds,
+                                                         Timeout timeout) {
 
         return proxy.getProfiles(accountId, requestIds, impIds, timeout);
     }
@@ -109,10 +108,10 @@ public class CompositeApplicationSettings implements ApplicationSettings {
         }
 
         @Override
-        public Future<StoredDataResult> getStoredData(String accountId,
-                                                      Set<String> requestIds,
-                                                      Set<String> impIds,
-                                                      Timeout timeout) {
+        public Future<StoredDataResult<String>> getStoredData(String accountId,
+                                                              Set<String> requestIds,
+                                                              Set<String> impIds,
+                                                              Timeout timeout) {
 
             return getStoredDataOrDelegate(
                     accountId,
@@ -124,10 +123,10 @@ public class CompositeApplicationSettings implements ApplicationSettings {
         }
 
         @Override
-        public Future<StoredDataResult> getAmpStoredData(String accountId,
-                                                         Set<String> requestIds,
-                                                         Set<String> impIds,
-                                                         Timeout timeout) {
+        public Future<StoredDataResult<String>> getAmpStoredData(String accountId,
+                                                                 Set<String> requestIds,
+                                                                 Set<String> impIds,
+                                                                 Timeout timeout) {
 
             return getStoredDataOrDelegate(
                     accountId,
@@ -139,10 +138,10 @@ public class CompositeApplicationSettings implements ApplicationSettings {
         }
 
         @Override
-        public Future<StoredDataResult> getVideoStoredData(String accountId,
-                                                           Set<String> requestIds,
-                                                           Set<String> impIds,
-                                                           Timeout timeout) {
+        public Future<StoredDataResult<String>> getVideoStoredData(String accountId,
+                                                                   Set<String> requestIds,
+                                                                   Set<String> impIds,
+                                                                   Timeout timeout) {
 
             return getStoredDataOrDelegate(
                     accountId,
@@ -153,12 +152,27 @@ public class CompositeApplicationSettings implements ApplicationSettings {
                     next != null ? next::getVideoStoredData : null);
         }
 
-        private static Future<StoredDataResult> getStoredDataOrDelegate(String accountId,
-                                                                        Set<String> requestIds,
-                                                                        Set<String> impIds,
-                                                                        Timeout timeout,
-                                                                        StoredDataFetcher retriever,
-                                                                        StoredDataFetcher nextRetriever) {
+        @Override
+        public Future<StoredDataResult<Profile>> getProfiles(String accountId,
+                                                             Set<String> requestIds,
+                                                             Set<String> impIds,
+                                                             Timeout timeout) {
+
+            return getStoredDataOrDelegate(
+                    accountId,
+                    requestIds,
+                    impIds,
+                    timeout,
+                    applicationSettings::getProfiles,
+                    next != null ? next::getProfiles : null);
+        }
+
+        private static <T> Future<StoredDataResult<T>> getStoredDataOrDelegate(String accountId,
+                                                                               Set<String> requestIds,
+                                                                               Set<String> impIds,
+                                                                               Timeout timeout,
+                                                                               StoredDataFetcher<T> retriever,
+                                                                               StoredDataFetcher<T> nextRetriever) {
 
             return retriever.apply(accountId, requestIds, impIds, timeout)
                     .compose(retrieverResult -> nextRetriever == null || retrieverResult.getErrors().isEmpty()
@@ -173,13 +187,13 @@ public class CompositeApplicationSettings implements ApplicationSettings {
                             nextRetriever));
         }
 
-        private static Future<StoredDataResult> getRemainingStoredData(String accountId,
-                                                                       Set<String> requestIds,
-                                                                       Set<String> impIds,
-                                                                       Timeout timeout,
-                                                                       Map<String, String> storedIdToRequest,
-                                                                       Map<String, String> storedIdToImp,
-                                                                       StoredDataFetcher retriever) {
+        private static <T> Future<StoredDataResult<T>> getRemainingStoredData(String accountId,
+                                                                              Set<String> requestIds,
+                                                                              Set<String> impIds,
+                                                                              Timeout timeout,
+                                                                              Map<String, T> storedIdToRequest,
+                                                                              Map<String, T> storedIdToImp,
+                                                                              StoredDataFetcher<T> retriever) {
 
             return retriever.apply(
                             accountId,
@@ -192,42 +206,6 @@ public class CompositeApplicationSettings implements ApplicationSettings {
                             result.getErrors()));
         }
 
-        @Override
-        public Future<StoredProfileResult> getProfiles(String accountId,
-                                                       Set<String> requestIds,
-                                                       Set<String> impIds,
-                                                       Timeout timeout) {
-
-            return applicationSettings.getProfiles(accountId, requestIds, impIds, timeout)
-                    .compose(result -> next == null || result.getErrors().isEmpty()
-                            ? Future.succeededFuture(result)
-                            : getRemainingProfiles(
-                            accountId,
-                            requestIds,
-                            impIds,
-                            timeout,
-                            result.getIdToRequestProfile(),
-                            result.getIdToImpProfile()));
-        }
-
-        private Future<StoredProfileResult> getRemainingProfiles(
-                String accountId,
-                Set<String> requestIds,
-                Set<String> impIds,
-                Timeout timeout,
-                Map<String, Profile> idToRequestProfile,
-                Map<String, Profile> idToImpProfile) {
-
-            return next.getProfiles(
-                            accountId,
-                            subtractSets(requestIds, idToRequestProfile.keySet()),
-                            subtractSets(impIds, idToImpProfile.keySet()),
-                            timeout)
-                    .map(result -> StoredProfileResult.of(
-                            combineMaps(idToRequestProfile, result.getIdToRequestProfile()),
-                            combineMaps(idToImpProfile, result.getIdToImpProfile()),
-                            result.getErrors()));
-        }
 
         @Override
         public Future<StoredResponseDataResult> getStoredResponses(Set<String> responseIds, Timeout timeout) {

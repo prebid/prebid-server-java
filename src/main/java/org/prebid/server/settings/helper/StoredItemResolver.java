@@ -3,7 +3,6 @@ package org.prebid.server.settings.helper;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.settings.model.StoredDataType;
 import org.prebid.server.settings.model.StoredItem;
 
 import java.util.Objects;
@@ -32,7 +31,11 @@ public class StoredItemResolver {
      * <p>
      * - Otherwise, reject stored item as if there hadn't been match.
      */
-    public static StoredItem resolve(StoredDataType type, String accountId, String id, Set<StoredItem> storedItems) {
+    public static <T> StoredItem<T> resolve(String type,
+                                            String accountId,
+                                            String id,
+                                            Set<StoredItem<T>> storedItems) {
+
         if (CollectionUtils.isEmpty(storedItems)) {
             throw new PreBidException("No stored %s found for id: %s".formatted(type, id));
         }
@@ -53,7 +56,7 @@ public class StoredItemResolver {
         }
 
         // only one stored item found
-        final StoredItem storedItem = storedItems.iterator().next();
+        final StoredItem<T> storedItem = storedItems.iterator().next();
         if (StringUtils.isBlank(accountId)
                 || storedItem.getAccountId() == null
                 || Objects.equals(accountId, storedItem.getAccountId())) {
