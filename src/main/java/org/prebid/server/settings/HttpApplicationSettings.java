@@ -94,16 +94,15 @@ public class HttpApplicationSettings implements ApplicationSettings {
 
         this.httpClient = Objects.requireNonNull(httpClient);
         this.mapper = Objects.requireNonNull(mapper);
-        this.endpoint = HttpUtil.validateUrl(Objects.requireNonNull(endpoint));
-        this.ampEndpoint = HttpUtil.validateUrl(Objects.requireNonNull(ampEndpoint));
-        this.videoEndpoint = HttpUtil.validateUrl(Objects.requireNonNull(videoEndpoint));
-        this.categoryEndpoint = HttpUtil.validateUrl(Objects.requireNonNull(categoryEndpoint));
+        this.endpoint = HttpUtil.validateUrlSyntax(Objects.requireNonNull(endpoint));
+        this.ampEndpoint = HttpUtil.validateUrlSyntax(Objects.requireNonNull(ampEndpoint));
+        this.videoEndpoint = HttpUtil.validateUrlSyntax(Objects.requireNonNull(videoEndpoint));
+        this.categoryEndpoint = HttpUtil.validateUrlSyntax(Objects.requireNonNull(categoryEndpoint));
         this.isRfc3986Compatible = isRfc3986Compatible;
     }
 
     @Override
     public Future<Account> getAccountById(String accountId, Timeout timeout) {
-
         return fetchAccountsByIds(Collections.singleton(accountId), timeout)
                 .map(accounts -> accounts.stream()
                         .findFirst()
