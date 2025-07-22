@@ -52,8 +52,6 @@ public class WURFLServiceTest {
         given(configProperties.getFileDirPath()).willReturn(wurflFileDirPath);
 
         final WURFLService spyWurflService = spy(wurflService);
-
-        // Mock the createEngine method to return our mock engine
         doReturn(wurflEngine).when(spyWurflService).createEngine(dataFilePath);
 
         // when
