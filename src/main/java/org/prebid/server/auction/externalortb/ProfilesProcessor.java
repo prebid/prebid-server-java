@@ -19,6 +19,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAuctionConfig;
+import org.prebid.server.settings.model.AccountProfilesConfig;
 import org.prebid.server.settings.model.Profile;
 import org.prebid.server.settings.model.StoredDataResult;
 
@@ -63,11 +65,16 @@ public class ProfilesProcessor {
     public Future<BidRequest> process(Account account, BidRequest bidRequest) {
         final List<Imp> imps = bidRequest.getImp();
 
-        final AllProfilesIds profilesIds = truncate(new AllProfilesIds(
-                requestProfilesIds(bidRequest),
-                imps.stream()
-                        .map(this::impProfilesIds)
-                        .toList()));
+        final AllProfilesIds profilesIds = truncate(
+                new AllProfilesIds(
+                        requestProfilesIds(bidRequest),
+                        imps.stream()
+                                .map(this::impProfilesIds)
+                                .toList()),
+                Optional.ofNullable(account.getAuction())
+                        .map(AccountAuctionConfig::getProfiles)
+                        .map(AccountProfilesConfig::getLimit)
+                        .orElse(maxProfiles));
 
         if (profilesIds.isEmpty()) {
             return Future.succeededFuture(bidRequest);
@@ -105,14 +112,21 @@ public class ProfilesProcessor {
         }
     }
 
-    private AllProfilesIds truncate(AllProfilesIds profilesIds) {
-        // TODO:
-        // 1. How to limit for multiple imps (each contains profiles)?
-        // 2. Which of these approaches is correct?
-        //      - limit -> fetch
-        //      - fetch -> limit (don't count invalid profiles)
-        //      - fetch -> limit (count invalid profiles)
-        return profilesIds;
+    private static AllProfilesIds truncate(AllProfilesIds profilesIds, int maxProfiles) {
+        final List<String> requestProfiles = profilesIds.request();
+        final int impProfilesLimit = maxProfiles - requestProfiles.size();
+
+        return impProfilesLimit > 0
+                ? new AllProfilesIds(
+                requestProfiles,
+                profilesIds.imps().stream()
+                        .map(impProfiles -> truncate(impProfiles, impProfilesLimit))
+                        .toList())
+                : new AllProfilesIds(truncate(requestProfiles, maxProfiles), Collections.emptyList());
+    }
+
+    private static <T> List<T> truncate(List<T> list, int maxSize) {
+        return list.size() > maxSize ? list.subList(0, maxSize) : list;
     }
 
     private long timeoutMillis(BidRequest bidRequest) {
@@ -168,13 +182,14 @@ public class ProfilesProcessor {
     }
 
     private ObjectNode mergeProfile(ObjectNode original, Profile profile, String profileId) {
+        final ObjectNode profileBody = parseProfile(profile.getBody());
         return switch (profile.getMergePrecedence()) {
-            case REQUEST -> merge(original, parse(profile.getBody()), profileId);
-            case PROFILE -> merge(parse(profile.getBody()), original, profileId);
+            case REQUEST -> merge(original, profileBody, profileId);
+            case PROFILE -> merge(profileBody, original, profileId);
         };
     }
 
-    private ObjectNode parse(String body) {
+    private ObjectNode parseProfile(String body) {
         try {
             return mapper.decodeValue(body, ObjectNode.class);
         } catch (DecodeException e) {
