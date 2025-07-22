@@ -39,8 +39,6 @@
     "tid": "tid"
   },
   "regs": {
-    "ext": {
-      "gdpr": 0
-    }
+    "gdpr": 0
   }
 }
