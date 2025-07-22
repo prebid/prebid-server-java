@@ -8,11 +8,6 @@ public class AccountProfilesConfig {
 
     Integer limit;
 
-    // TODO: need confirmation to move property
-    // TODO: Decide
-    //      - skip all profiles on any invalid
-    //      - skip only invalid
-    // TODO: metrics
     @JsonAlias("fail-on-unknown")
     Boolean failOnUnknown;
 }

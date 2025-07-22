@@ -127,7 +127,7 @@ public class CachingApplicationSettings implements ApplicationSettings {
                                                           Set<String> impIds,
                                                           Timeout timeout) {
 
-        return getStoredDataFromCacheOrDelegate(cache, accountId, requestIds, impIds, timeout, delegate::getStoredData);
+        return getFromCacheOrDelegate(cache, accountId, requestIds, impIds, timeout, delegate::getStoredData);
     }
 
     @Override
@@ -136,8 +136,7 @@ public class CachingApplicationSettings implements ApplicationSettings {
                                                              Set<String> impIds,
                                                              Timeout timeout) {
 
-        return getStoredDataFromCacheOrDelegate(
-                ampCache, accountId, requestIds, impIds, timeout, delegate::getAmpStoredData);
+        return getFromCacheOrDelegate(ampCache, accountId, requestIds, impIds, timeout, delegate::getAmpStoredData);
     }
 
     @Override
@@ -146,8 +145,7 @@ public class CachingApplicationSettings implements ApplicationSettings {
                                                                Set<String> impIds,
                                                                Timeout timeout) {
 
-        return getStoredDataFromCacheOrDelegate(
-                videoCache, accountId, requestIds, impIds, timeout, delegate::getVideoStoredData);
+        return getFromCacheOrDelegate(videoCache, accountId, requestIds, impIds, timeout, delegate::getVideoStoredData);
     }
 
     @Override
@@ -156,16 +154,15 @@ public class CachingApplicationSettings implements ApplicationSettings {
                                                          Set<String> impIds,
                                                          Timeout timeout) {
 
-        return getStoredDataFromCacheOrDelegate(
-                profileCache, accountId, requestIds, impIds, timeout, delegate::getProfiles);
+        return getFromCacheOrDelegate(profileCache, accountId, requestIds, impIds, timeout, delegate::getProfiles);
     }
 
-    private static <T> Future<StoredDataResult<T>> getStoredDataFromCacheOrDelegate(SettingsCache<T> cache,
-                                                                                    String accountId,
-                                                                                    Set<String> requestIds,
-                                                                                    Set<String> impIds,
-                                                                                    Timeout timeout,
-                                                                                    StoredDataFetcher<T> retriever) {
+    private static <T> Future<StoredDataResult<T>> getFromCacheOrDelegate(SettingsCache<T> cache,
+                                                                          String accountId,
+                                                                          Set<String> requestIds,
+                                                                          Set<String> impIds,
+                                                                          Timeout timeout,
+                                                                          StoredDataFetcher<T> retriever) {
 
         // empty string account ID doesn't make sense
         final String normalizedAccountId = StringUtils.stripToNull(accountId);
@@ -174,11 +171,11 @@ public class CachingApplicationSettings implements ApplicationSettings {
         final Map<String, Set<StoredItem<T>>> impCache = cache.getImpCache();
 
         final Set<String> missedRequestIds = new HashSet<>();
-        final Map<String, T> storedIdToRequest = getStoredDataFromCacheOrAddMissedIds(
+        final Map<String, T> storedIdToRequest = getFromCacheOrAddMissedIds(
                 normalizedAccountId, requestIds, requestCache, missedRequestIds);
 
         final Set<String> missedImpIds = new HashSet<>();
-        final Map<String, T> storedIdToImp = getStoredDataFromCacheOrAddMissedIds(
+        final Map<String, T> storedIdToImp = getFromCacheOrAddMissedIds(
                 normalizedAccountId, impIds, impCache, missedImpIds);
 
         if (missedRequestIds.isEmpty() && missedImpIds.isEmpty()) {
@@ -209,10 +206,10 @@ public class CachingApplicationSettings implements ApplicationSettings {
         });
     }
 
-    private static <T> Map<String, T> getStoredDataFromCacheOrAddMissedIds(String accountId,
-                                                                           Set<String> ids,
-                                                                           Map<String, Set<StoredItem<T>>> cache,
-                                                                           Set<String> missedIds) {
+    private static <T> Map<String, T> getFromCacheOrAddMissedIds(String accountId,
+                                                                 Set<String> ids,
+                                                                 Map<String, Set<StoredItem<T>>> cache,
+                                                                 Set<String> missedIds) {
 
         final Map<String, T> idToStoredItem = new HashMap<>(ids.size());
 

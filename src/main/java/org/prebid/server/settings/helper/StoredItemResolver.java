@@ -31,11 +31,7 @@ public class StoredItemResolver {
      * <p>
      * - Otherwise, reject stored item as if there hadn't been match.
      */
-    public static <T> StoredItem<T> resolve(String type,
-                                            String accountId,
-                                            String id,
-                                            Set<StoredItem<T>> storedItems) {
-
+    public static <T> StoredItem<T> resolve(String type, String accountId, String id, Set<StoredItem<T>> storedItems) {
         if (CollectionUtils.isEmpty(storedItems)) {
             throw new PreBidException("No stored %s found for id: %s".formatted(type, id));
         }
