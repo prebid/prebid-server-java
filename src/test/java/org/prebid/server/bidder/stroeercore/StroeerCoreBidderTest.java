@@ -2,19 +2,15 @@ package org.prebid.server.bidder.stroeercore;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Imp.ImpBuilder;
 import com.iab.openrtb.request.Regs;
-import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.http.HttpMethod;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -25,8 +21,6 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.stroeercore.model.StroeerCoreBid;
 import org.prebid.server.bidder.stroeercore.model.StroeerCoreBidResponse;
-import org.prebid.server.currency.CurrencyConversionService;
-import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.DsaTransparency;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
@@ -46,25 +40,13 @@ import static java.util.Collections.emptyList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class StroeerCoreBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
 
-    @Mock
-    private CurrencyConversionService currencyConversionService;
-
-    private StroeerCoreBidder target;
-
-    @BeforeEach
-    public void setUp() {
-        target = new StroeerCoreBidder(ENDPOINT_URL, jacksonMapper, currencyConversionService);
-    }
+    private final StroeerCoreBidder target = new StroeerCoreBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void makeHttpRequestsShouldReturnExpectedMethod() {
@@ -171,146 +153,28 @@ public class StroeerCoreBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorWhenImpHasNoBannerOrVideo() {
+    public void makeBidsShouldReturnExpectedBannerBid() throws JsonProcessingException {
         // given
-        final BidRequest invalidBidRequest = createBidRequest(createAudioImp("123", imp -> imp.id("2")));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(invalidBidRequest);
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors())
-                .containsExactly(BidderError.badInput("Expected banner or video impression. Ignore imp id = 2."));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnErrorIfSlotIdIsEmpty() {
-        // given
-        final BidRequest invalidBidRequest = createBidRequest(createBannerImp(" ", imp -> imp.id("1")));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(invalidBidRequest);
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors())
-                .containsExactly(BidderError.badInput("Custom param slot id (sid) is empty. Ignore imp id = 1."));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldIgnoreInvalidImpressions() {
-        // given
-        final List<Imp> imps = List.of(
-                createImpWithNonParsableImpExt("2"),
-                createBannerImp("   "),
-                createBannerImp("a"),
-                createBannerImp("b", imp -> imp.banner(null)),
-                createAudioImp("not-supported", identity()),
-                createVideoImp("c"),
-                createBannerImp("d"),
-                createBannerImp("e", imp -> imp.bidfloor(BigDecimal.ONE).bidfloorcur("GPB")));
-
-        when(currencyConversionService.convertCurrency(any(), any(), any(), any()))
-                .thenThrow(new PreBidException("no"));
-
-        final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(5);
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getTagid)
-                .containsExactly("a", "c", "d");
-    }
-
-    @Test
-    public void makeHttpRequestsShouldConvertCurrencyToEuro() {
-        // given
-        final BigDecimal usdBidFloor = BigDecimal.valueOf(0.5);
-        final Imp usdImp = createBannerImp("200", imp -> imp.bidfloorcur("USD").bidfloor(usdBidFloor));
-        final BidRequest bidRequest = createBidRequest(usdImp);
-
-        final BigDecimal eurBidFloor = BigDecimal.valueOf(1.82);
-        when(currencyConversionService.convertCurrency(any(), any(), any(), any())).thenReturn(eurBidFloor);
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        verify(currencyConversionService).convertCurrency(usdBidFloor, bidRequest, "USD", "EUR");
-        verifyNoMoreInteractions(currencyConversionService);
-
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getBidfloor, Imp::getBidfloorcur)
-                .containsOnly(tuple(eurBidFloor, "EUR"));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldIgnoreBidIfCurrencyServiceThrowsException() {
-        // given
-        final BigDecimal usdBidFloor = BigDecimal.valueOf(0.5);
-        final Imp usdImp = createBannerImp("10", imp -> imp.id("1282").bidfloorcur("USD").bidfloor(usdBidFloor));
-        final BidRequest bidRequest = createBidRequest(usdImp);
-
-        when(currencyConversionService.convertCurrency(any(), any(), any(), any()))
-                .thenThrow(new PreBidException("no"));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        verify(currencyConversionService).convertCurrency(usdBidFloor, bidRequest, "USD", "EUR");
-        verifyNoMoreInteractions(currencyConversionService);
-
-        assertThat(result.getErrors()).allSatisfy(error -> {
-            assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
-            assertThat(error.getMessage()).startsWith("no. Ignore imp id = 1282.");
-        });
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnExpectedBidderBids() throws JsonProcessingException {
-        // given
-        final Imp bannerImp = createBannerImp("banner-slot-id", impBuilder -> impBuilder.id("banner-imp-id"));
-        final Imp videoImp = createVideoImp("video-slot-id", impBuilder -> impBuilder.id("video-imp-id"));
-        final BidRequest bidRequest = createBidRequest(bannerImp, videoImp);
-
         final ObjectNode dsaResponse = createDsaResponse();
 
         final StroeerCoreBid bannerBid = StroeerCoreBid.builder()
                 .id("1")
-                .impId("banner-imp-id")
+                .bidId("banner-imp-id")
                 .adMarkup("<div></div>")
                 .cpm(BigDecimal.valueOf(0.3))
                 .creativeId("foo")
                 .width(300)
                 .height(600)
+                .mtype("banner")
                 .dsa(dsaResponse.deepCopy())
+                .adomain(List.of("domain1.com", "domain2.com"))
                 .build();
 
-        final StroeerCoreBid videoBid = StroeerCoreBid.builder()
-                .id("27")
-                .impId("video-imp-id")
-                .adMarkup("<vast><span></span></vast>")
-                .cpm(BigDecimal.valueOf(1.58))
-                .creativeId("vid")
-                .dsa(null)
-                .build();
-
-        final StroeerCoreBidResponse response = StroeerCoreBidResponse.of(List.of(bannerBid, videoBid));
-        final BidderCall<BidRequest> httpCall = createHttpCall(bidRequest, response);
+        final StroeerCoreBidResponse response = StroeerCoreBidResponse.of(List.of(bannerBid));
+        final BidderCall<BidRequest> httpCall = createHttpCall(response);
 
         // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         final Bid expectedBannerBid = Bid.builder()
@@ -321,21 +185,68 @@ public class StroeerCoreBidderTest extends VertxTest {
                 .crid("foo")
                 .w(300)
                 .h(600)
+                .adomain(List.of("domain1.com", "domain2.com"))
+                .mtype(1)
                 .ext(mapper.createObjectNode().set("dsa", dsaResponse))
                 .build();
 
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsOnly(BidderBid.of(expectedBannerBid, BidType.banner, "EUR"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnExpectedBidderBids() throws JsonProcessingException {
+        // given
+        final StroeerCoreBid videoBid = StroeerCoreBid.builder()
+                .id("27")
+                .bidId("video-imp-id")
+                .adMarkup("<vast><span></span></vast>")
+                .cpm(BigDecimal.valueOf(1.58))
+                .creativeId("vid")
+                .mtype("video")
+                .dsa(null)
+                .build();
+
+        final StroeerCoreBidResponse response = StroeerCoreBidResponse.of(List.of(videoBid));
+        final BidderCall<BidRequest> httpCall = createHttpCall(response);
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
         final Bid expectedVideoBid = Bid.builder()
                 .id("27")
                 .impid("video-imp-id")
                 .adm("<vast><span></span></vast>")
                 .price(BigDecimal.valueOf(1.58))
                 .crid("vid")
+                .mtype(2)
                 .ext(null)
                 .build();
 
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsOnly(BidderBid.of(expectedBannerBid, BidType.banner, "EUR"),
-                BidderBid.of(expectedVideoBid, BidType.video, "EUR"));
+        assertThat(result.getValue()).containsOnly(BidderBid.of(expectedVideoBid, BidType.video, "EUR"));
+    }
+
+    @Test
+    public void makeBidsShouldFailWhenBidTypeIsNotSupported() throws JsonProcessingException {
+        // given
+        final StroeerCoreBid audioBid = StroeerCoreBid.builder()
+                .id("27")
+                .bidId("audio-imp-id")
+                .mtype("audio")
+                .build();
+
+        final StroeerCoreBidResponse response = StroeerCoreBidResponse.of(List.of(audioBid));
+        final BidderCall<BidRequest> httpCall = createHttpCall(response);
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).containsOnly(BidderError.badServerResponse(
+                "Bid media type error: unable to determine media type for bid with id \"audio-imp-id\""));
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
@@ -357,8 +268,7 @@ public class StroeerCoreBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfZeroBids() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = createHttpCall(BidRequest.builder().build(),
-                StroeerCoreBidResponse.of(emptyList()));
+        final BidderCall<BidRequest> httpCall = createHttpCall(StroeerCoreBidResponse.of(emptyList()));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -369,9 +279,7 @@ public class StroeerCoreBidderTest extends VertxTest {
     }
 
     private BidRequest createBidRequest(Imp... imps) {
-        return BidRequest.builder()
-                .imp(List.of(imps))
-                .build();
+        return BidRequest.builder().imp(List.of(imps)).build();
     }
 
     private Imp createImpWithNonParsableImpExt(String impId) {
@@ -388,20 +296,6 @@ public class StroeerCoreBidderTest extends VertxTest {
         return createBannerImp(slotId, identity());
     }
 
-    private Imp createVideoImp(String slotId, UnaryOperator<Imp.ImpBuilder> impCustomizer) {
-        final UnaryOperator<ImpBuilder> addVideo = imp -> imp.video(Video.builder().build());
-        return createImp(slotId, addVideo.andThen(impCustomizer));
-    }
-
-    private Imp createVideoImp(String slotId) {
-        return createVideoImp(slotId, identity());
-    }
-
-    private Imp createAudioImp(String slotId, UnaryOperator<Imp.ImpBuilder> impCustomizer) {
-        final UnaryOperator<ImpBuilder> addAudio = imp -> imp.audio(Audio.builder().build());
-        return createImp(slotId, addAudio.andThen(impCustomizer));
-    }
-
     private Imp createImp(String slotId, Function<ImpBuilder, ImpBuilder> impCustomizer) {
         final ObjectNode impExtNode = mapper.valueToTree(ExtPrebid.of(null, ExtImpStroeerCore.of(slotId)));
 
@@ -411,9 +305,8 @@ public class StroeerCoreBidderTest extends VertxTest {
         return addImpExt.andThen(impCustomizer).apply(impBuilder).build();
     }
 
-    private BidderCall<BidRequest> createHttpCall(BidRequest request, StroeerCoreBidResponse response)
-            throws JsonProcessingException {
-        return createHttpCall(HttpRequest.<BidRequest>builder().payload(request).build(),
+    private BidderCall<BidRequest> createHttpCall(StroeerCoreBidResponse response) throws JsonProcessingException {
+        return createHttpCall(HttpRequest.<BidRequest>builder().build(),
                 HttpResponse.of(200, null, mapper.writeValueAsString(response)));
     }
 

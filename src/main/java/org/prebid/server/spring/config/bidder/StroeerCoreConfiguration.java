@@ -2,7 +2,6 @@ package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.stroeercore.StroeerCoreBidder;
-import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -31,13 +30,12 @@ public class StroeerCoreConfiguration {
     @Bean
     BidderDeps stroeercoreBidderDeps(BidderConfigurationProperties stroeercoreConfigurationProperties,
                                      @NotBlank @Value("${external-url}") String externalUrl,
-                                     CurrencyConversionService currencyConversionService,
                                      JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(stroeercoreConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new StroeerCoreBidder(config.getEndpoint(), mapper, currencyConversionService))
+                .bidderCreator(config -> new StroeerCoreBidder(config.getEndpoint(), mapper))
                 .assemble();
     }
 }

@@ -6,17 +6,15 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
-import org.prebid.server.bidder.model.Price;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.stroeercore.model.StroeerCoreBid;
 import org.prebid.server.bidder.stroeercore.model.StroeerCoreBidResponse;
-import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
@@ -26,7 +24,6 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -41,14 +38,10 @@ public class StroeerCoreBidder implements Bidder<BidRequest> {
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
-    private final CurrencyConversionService currencyConversionService;
 
-    public StroeerCoreBidder(String endpointUrl,
-                             JacksonMapper mapper,
-                             CurrencyConversionService currencyConversionService) {
+    public StroeerCoreBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
-        this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
     }
 
     @Override
@@ -57,22 +50,12 @@ public class StroeerCoreBidder implements Bidder<BidRequest> {
         final List<BidderError> errors = new ArrayList<>();
 
         for (Imp imp : bidRequest.getImp()) {
-            final ExtImpStroeerCore impExt;
-            final Price price;
-
             try {
-                validateImp(imp);
-
-                impExt = parseImpExt(imp);
-                validateImpExt(impExt);
-
-                price = convertBidFloor(bidRequest, imp);
+                final ExtImpStroeerCore impExt = parseImpExt(imp);
+                modifiedImps.add(imp.toBuilder().tagid(impExt.getSlotId()).build());
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput("%s. Ignore imp id = %s.".formatted(e.getMessage(), imp.getId())));
-                continue;
             }
-
-            modifiedImps.add(modifyImp(imp, impExt, price));
         }
 
         if (modifiedImps.isEmpty()) {
@@ -80,14 +63,7 @@ public class StroeerCoreBidder implements Bidder<BidRequest> {
         }
 
         final BidRequest outgoingRequest = bidRequest.toBuilder().imp(modifiedImps).build();
-
-        return createHttpRequests(errors, outgoingRequest);
-    }
-
-    private static void validateImp(Imp imp) {
-        if (imp.getBanner() == null && imp.getVideo() == null) {
-            throw new PreBidException("Expected banner or video impression");
-        }
+        return Result.withValue(BidderUtil.defaultRequest(outgoingRequest, endpointUrl, mapper));
     }
 
     private ExtImpStroeerCore parseImpExt(Imp imp) {
@@ -98,65 +74,47 @@ public class StroeerCoreBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static void validateImpExt(ExtImpStroeerCore impExt) {
-        if (StringUtils.isBlank(impExt.getSlotId())) {
-            throw new PreBidException("Custom param slot id (sid) is empty");
-        }
-    }
-
-    private Price convertBidFloor(BidRequest bidRequest, Imp imp) {
-        final BigDecimal bidFloor = imp.getBidfloor();
-        final String bidFloorCurrency = imp.getBidfloorcur();
-
-        if (!shouldConvertBidFloor(bidFloor, bidFloorCurrency)) {
-            return Price.of(bidFloorCurrency, bidFloor);
-        }
-
-        final BigDecimal convertedBidFloor = currencyConversionService.convertCurrency(
-                bidFloor, bidRequest, bidFloorCurrency, BIDDER_CURRENCY);
-
-        return Price.of(BIDDER_CURRENCY, convertedBidFloor);
-    }
-
-    private Result<List<HttpRequest<BidRequest>>> createHttpRequests(List<BidderError> errors, BidRequest bidRequest) {
-        return Result.of(Collections.singletonList(BidderUtil.defaultRequest(bidRequest, endpointUrl, mapper)), errors);
-    }
-
-    private static boolean shouldConvertBidFloor(BigDecimal bidFloor, String bidFloorCurrency) {
-        return BidderUtil.isValidPrice(bidFloor) && !StringUtils.equalsIgnoreCase(bidFloorCurrency, BIDDER_CURRENCY);
-    }
-
-    private static Imp modifyImp(Imp imp, ExtImpStroeerCore impExt, Price price) {
-        return imp.toBuilder()
-                .bidfloorcur(price.getCurrency())
-                .bidfloor(price.getValue())
-                .tagid(impExt.getSlotId())
-                .build();
-    }
-
     @Override
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final String body = httpCall.getResponse().getBody();
+            final List<BidderError> errors = new ArrayList<>();
             final StroeerCoreBidResponse bidResponse = mapper.decodeValue(body, StroeerCoreBidResponse.class);
-            return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
+            return Result.of(extractBids(bidResponse, errors), errors);
         } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private List<BidderBid> extractBids(BidRequest bidRequest, StroeerCoreBidResponse bidResponse) {
+    private static Pair<BidType, Integer> getBidType(String mtype) {
+        return switch (mtype) {
+            case "banner" -> Pair.of(BidType.banner, 1);
+            case "video" -> Pair.of(BidType.video, 2);
+            default -> null;
+        };
+    }
+
+    private List<BidderBid> extractBids(StroeerCoreBidResponse bidResponse, List<BidderError> errors) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getBids())) {
             return Collections.emptyList();
         }
 
         return bidResponse.getBids().stream()
                 .filter(Objects::nonNull)
-                .map(stroeerCoreBid -> toBidderBid(bidRequest, stroeerCoreBid))
+                .map(stroeerCoreBid -> toBidderBid(stroeerCoreBid, errors))
+                .filter(Objects::nonNull)
                 .toList();
     }
 
-    private BidderBid toBidderBid(BidRequest bidRequest, StroeerCoreBid stroeercoreBid) {
+    private BidderBid toBidderBid(StroeerCoreBid stroeercoreBid, List<BidderError> errors) {
+        final Pair<BidType, Integer> bidType = getBidType(stroeercoreBid.getMtype());
+        if (bidType == null) {
+            errors.add(BidderError.badServerResponse(
+                    "Bid media type error: unable to determine media type for bid with id \"%s\""
+                            .formatted(stroeercoreBid.getBidId())));
+            return null;
+        }
+
         final ObjectNode bidExt = stroeercoreBid.getDsa() != null
                 ? mapper.mapper().createObjectNode().set("dsa", stroeercoreBid.getDsa())
                 : null;
@@ -164,29 +122,17 @@ public class StroeerCoreBidder implements Bidder<BidRequest> {
         return BidderBid.of(
                 Bid.builder()
                         .id(stroeercoreBid.getId())
-                        .impid(stroeercoreBid.getImpId())
+                        .impid(stroeercoreBid.getBidId())
                         .w(stroeercoreBid.getWidth())
                         .h(stroeercoreBid.getHeight())
                         .price(stroeercoreBid.getCpm())
                         .adm(stroeercoreBid.getAdMarkup())
                         .crid(stroeercoreBid.getCreativeId())
+                        .adomain(stroeercoreBid.getAdomain())
+                        .mtype(bidType.getRight())
                         .ext(bidExt)
                         .build(),
-                getBidType(stroeercoreBid.getImpId(), bidRequest.getImp()),
+                bidType.getLeft(),
                 BIDDER_CURRENCY);
-    }
-
-    private static BidType getBidType(String impId, List<Imp> imps) {
-        for (Imp imp : imps) {
-            if (imp.getId().equals(impId)) {
-                if (imp.getBanner() != null) {
-                    return BidType.banner;
-                } else if (imp.getVideo() != null) {
-                    return BidType.video;
-                }
-            }
-        }
-
-        return BidType.banner;
     }
 }
