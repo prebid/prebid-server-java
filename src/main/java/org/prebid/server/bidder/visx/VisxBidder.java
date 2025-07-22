@@ -1,11 +1,14 @@
 package org.prebid.server.bidder.visx;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
+import io.vertx.core.MultiMap;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -18,7 +21,10 @@ import org.prebid.server.bidder.visx.model.VisxSeatBid;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidMeta;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
@@ -26,12 +32,16 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 public class VisxBidder implements Bidder<BidRequest> {
 
     private static final String DEFAULT_REQUEST_CURRENCY = "USD";
     private static final Set<String> SUPPORTED_BID_TYPES_TEXTUAL = Set.of("banner", "video");
+
+    private static final TypeReference<ExtPrebid<ExtBidPrebid, ?>> BID_EXT_TYPE_REFERENCE = new TypeReference<>() {
+    };
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -43,18 +53,26 @@ public class VisxBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        return Result.withValue(makeRequest(request));
+        final BidRequest outgoingRequest = modifyRequest(request);
+        return Result.withValue(
+                BidderUtil.defaultRequest(outgoingRequest, makeHeaders(request.getDevice()), endpointUrl, mapper));
     }
 
-    private HttpRequest<BidRequest> makeRequest(BidRequest bidRequest) {
-        final BidRequest outgoingRequest = modifyRequest(bidRequest);
-        return BidderUtil.defaultRequest(outgoingRequest, endpointUrl, mapper);
-    }
-
-    private BidRequest modifyRequest(BidRequest bidRequest) {
+    private static BidRequest modifyRequest(BidRequest bidRequest) {
         return CollectionUtils.isEmpty(bidRequest.getCur())
                 ? bidRequest.toBuilder().cur(Collections.singletonList(DEFAULT_REQUEST_CURRENCY)).build()
                 : bidRequest;
+    }
+
+    private static MultiMap makeHeaders(Device device) {
+        final MultiMap headers = HttpUtil.headers();
+
+        if (device != null) {
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIpv6());
+        }
+
+        return headers;
     }
 
     @Override
@@ -80,14 +98,14 @@ public class VisxBidder implements Bidder<BidRequest> {
                 .map(VisxSeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(visxBid -> toBidderBid(bidRequest, visxBid))
+                .map(visxBid -> toBidderBid(bidRequest, visxBid, visxResponse.getCur()))
                 .toList();
     }
 
-    private BidderBid toBidderBid(BidRequest bidRequest, VisxBid visxBid) {
+    private BidderBid toBidderBid(BidRequest bidRequest, VisxBid visxBid, String currency) {
         final Bid bid = toBid(visxBid, bidRequest.getId());
         final BidType bidType = getBidType(bid.getExt(), bid.getImpid(), bidRequest.getImp());
-        return BidderBid.of(bid, bidType, null);
+        return BidderBid.of(bid, bidType, StringUtils.defaultIfBlank(currency, null));
     }
 
     private static Bid toBid(VisxBid visxBid, String id) {
@@ -105,20 +123,24 @@ public class VisxBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private static BidType getBidType(ObjectNode bidExt, String impId, List<Imp> imps) {
+    private BidType getBidType(ObjectNode bidExt, String impId, List<Imp> imps) {
         final BidType extBidType = getBidTypeFromExt(bidExt);
         return extBidType != null ? extBidType : getBidTypeFromImp(impId, imps);
     }
 
-    private static BidType getBidTypeFromExt(ObjectNode bidExt) {
-        final JsonNode mediaTypeNode = bidExt != null ? bidExt.at("/prebid/meta/mediaType") : null;
-        final String bidTypeTextual = mediaTypeNode != null && mediaTypeNode.isTextual()
-                ? mediaTypeNode.asText()
-                : null;
-
-        return bidTypeTextual != null && SUPPORTED_BID_TYPES_TEXTUAL.contains(bidTypeTextual)
-                ? BidType.valueOf(bidTypeTextual)
-                : null;
+    private BidType getBidTypeFromExt(ObjectNode bidExt) {
+        try {
+            return Optional.ofNullable(bidExt)
+                    .map(ext -> mapper.mapper().convertValue(bidExt, BID_EXT_TYPE_REFERENCE))
+                    .map(ExtPrebid::getPrebid)
+                    .map(ExtBidPrebid::getMeta)
+                    .map(ExtBidPrebidMeta::getMediaType)
+                    .filter(SUPPORTED_BID_TYPES_TEXTUAL::contains)
+                    .map(BidType::valueOf)
+                    .orElse(null);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
     private static BidType getBidTypeFromImp(String impId, List<Imp> imps) {
