@@ -1,5 +1,6 @@
 package org.prebid.server.hooks.modules.rule.engine.core.request.result.functions.log;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.hooks.execution.v1.analytics.ActivityImpl;
@@ -52,8 +53,10 @@ public class AnalyticsMapper {
     }
 
 
-    private record AnalyticsData(String analyticsKey, String analyticsValue, String modelVersion, String ruleFired,
-                                 String resultFunction) {
-
+    private record AnalyticsData(@JsonProperty("analyticsKey") String analyticsKey,
+                                 @JsonProperty("analyticsValue") String analyticsValue,
+                                 @JsonProperty("modelVersion") String modelVersion,
+                                 @JsonProperty("conditionFired") String conditionFired,
+                                 @JsonProperty("resultFunction") String resultFunction) {
     }
 }

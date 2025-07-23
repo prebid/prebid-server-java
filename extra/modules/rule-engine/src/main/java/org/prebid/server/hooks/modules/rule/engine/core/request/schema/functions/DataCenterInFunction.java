@@ -11,7 +11,7 @@ import org.prebid.server.util.StreamUtil;
 
 public class DataCenterInFunction implements SchemaFunction<RequestSchemaContext> {
 
-    public static final String NAME = "datacenterIn";
+    public static final String NAME = "dataCenterIn";
 
     private static final String DATACENTERS_FIELD = "datacenters";
 

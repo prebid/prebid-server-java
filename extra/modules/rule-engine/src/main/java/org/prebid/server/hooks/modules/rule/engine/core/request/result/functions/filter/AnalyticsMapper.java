@@ -1,5 +1,6 @@
 package org.prebid.server.hooks.modules.rule.engine.core.request.result.functions.filter;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.BidRejectionReason;
@@ -78,8 +79,12 @@ public class AnalyticsMapper {
     }
 
 
-    private record AnalyticsData(String analyticsKey, String analyticsValue, String modelVersion, String ruleFired,
-                                 String resultFunction, List<String> biddersRemoved, BidRejectionReason seatNonBid) {
-
+    private record AnalyticsData(@JsonProperty("analyticsKey") String analyticsKey,
+                                 @JsonProperty("analyticsValue") String analyticsValue,
+                                 @JsonProperty("modelVersion") String modelVersion,
+                                 @JsonProperty("conditionFired") String conditionFired,
+                                 @JsonProperty("resultFunction") String resultFunction,
+                                 @JsonProperty("biddersRemoved") List<String> biddersRemoved,
+                                 @JsonProperty("seatNonBid") BidRejectionReason seatNonBid) {
     }
 }

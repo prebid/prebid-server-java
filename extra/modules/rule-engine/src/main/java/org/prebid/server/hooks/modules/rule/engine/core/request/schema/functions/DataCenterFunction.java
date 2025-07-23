@@ -9,7 +9,7 @@ import org.prebid.server.hooks.modules.rule.engine.core.util.ValidationUtils;
 
 public class DataCenterFunction implements SchemaFunction<RequestSchemaContext> {
 
-    public static final String NAME = "datacenter";
+    public static final String NAME = "dataCenter";
 
     @Override
     public String extract(SchemaFunctionArguments<RequestSchemaContext> arguments) {
