@@ -18,9 +18,11 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.mobkoi.ExtImpMobkoi;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.bidder.mobkoi.proto.MobkoiBidRequestExt;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
@@ -39,6 +41,9 @@ public class MobkoiBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
+    /**
+     * The integration endpoint that will be used to send the bid requests to. Managed by the adapter configuration.
+     */
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
@@ -60,7 +65,7 @@ public class MobkoiBidder implements Bidder<BidRequest> {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
-        final String selectedEndpointUrl = resolveEndpoint(extImpMobkoi.getAdServerBaseUrl());
+        final String selectedEndpointUrl = resolveEndpoint(extImpMobkoi.getIntegrationEndpoint());
 
         return Result.withValue(BidderUtil.defaultRequest(
                 modifyBidRequest(bidRequest, modifiedFirstImp),
@@ -104,10 +109,16 @@ public class MobkoiBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static BidRequest modifyBidRequest(BidRequest bidRequest, Imp modifiedFirstImp) {
+    private BidRequest modifyBidRequest(BidRequest bidRequest, Imp modifiedFirstImp) {
         final User user = modifyUser(bidRequest.getUser());
         final List<Imp> imps = updateFirstImpWith(bidRequest.getImp(), modifiedFirstImp);
-        return bidRequest.toBuilder().user(user).imp(imps).build();
+        final ExtRequest requestExt = modifyReqExt(bidRequest.getExt());
+        return bidRequest.toBuilder().user(user).imp(imps).ext(requestExt).build();
+    }
+
+    private ExtRequest modifyReqExt(ExtRequest existingRequestExt) {
+        final ExtRequest target = existingRequestExt != null ? existingRequestExt : ExtRequest.empty();
+        return mapper.fillExtension(target, MobkoiBidRequestExt.of());
     }
 
     private static User modifyUser(User user) {

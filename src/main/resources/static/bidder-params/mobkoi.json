@@ -10,8 +10,8 @@
     },
     "adServerBaseUrl": {
       "type": "string",
-      "description": "Mobkoi's ad server url",
-      "pattern": "^https?://[^.]+\\.mobkoi\\.com$"
+      "description": "Mobkoi's integration endpoint that will be used to send the bid requests to. For example, https://test.mobkoi.com/bid.",
+      "pattern": "^https?://[^.]+\\.mobkoi\\.com(/.*)?$"
     }
   }
 }

@@ -161,6 +161,24 @@ public class MobkoiBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldHasMobkoiExtSet() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(request -> request.getExt())
+                .extracting(ext -> ext.getProperty("mobkoi"))
+                .extracting(mobkoi -> mobkoi.get("integration_type").asText())
+                .hasSize(1).element(0)
+                .isEqualTo("pbs");
+    }
+
+    @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(null));
@@ -238,8 +256,13 @@ public class MobkoiBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder().id("imp_id").ext(impExt("placementIdValue", null))).build();
     }
 
-    private static ObjectNode impExt(String placementId, String adServerBaseUrl) {
-        return mapper.valueToTree(ExtPrebid.of(null, ExtImpMobkoi.of(placementId, adServerBaseUrl)));
+    /**
+     * @param placementId The placement id provided by Mobkoi.
+     * @param integrationEndpoint The integration endpoint that will be used to send the bid requests to.
+     * @return The imp ext.
+     */
+    private static ObjectNode impExt(String placementId, String integrationEndpoint) {
+        return mapper.valueToTree(ExtPrebid.of(null, ExtImpMobkoi.of(placementId, integrationEndpoint)));
     }
 
     private static BidResponse givenBidResponse(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
