@@ -20,7 +20,6 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.doReturn;
@@ -87,7 +86,7 @@ public class WURFLServiceTest {
         headers.put("User-Agent", "test-user-agent");
 
         final Device expectedDevice = mock(Device.class);
-        when(wurflEngine.getDeviceForRequest(headers)).thenReturn(expectedDevice);
+        given(wurflEngine.getDeviceForRequest(headers)).willReturn(expectedDevice);
 
         // when
         final Optional<Device> result = wurflService.lookupDevice(headers);
@@ -115,7 +114,7 @@ public class WURFLServiceTest {
     public void getAllCapabilitiesShouldReturnCapabilitiesWhenEngineIsNotNull() {
         // given
         final Set<String> expectedCapabilities = Set.of("capability1", "capability2");
-        when(wurflEngine.getAllCapabilities()).thenReturn(expectedCapabilities);
+        given(wurflEngine.getAllCapabilities()).willReturn(expectedCapabilities);
 
         // when
         final Set<String> result = wurflService.getAllCapabilities();
@@ -141,7 +140,7 @@ public class WURFLServiceTest {
     public void getAllVirtualCapabilitiesShouldReturnCapabilitiesWhenEngineIsNotNull() {
         // given
         final Set<String> expectedCapabilities = Set.of("virtualCapability1", "virtualCapability2");
-        when(wurflEngine.getAllVirtualCapabilities()).thenReturn(expectedCapabilities);
+        given(wurflEngine.getAllVirtualCapabilities()).willReturn(expectedCapabilities);
 
         // when
         final Set<String> result = wurflService.getAllVirtualCapabilities();

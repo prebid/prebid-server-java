@@ -19,7 +19,6 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mock.Strictness.LENIENT;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class OrtbDeviceUpdaterTest {
@@ -251,7 +250,7 @@ public class OrtbDeviceUpdaterTest {
         final BidRequest bidRequest = BidRequest.builder().device(device).build();
         final OrtbDeviceUpdater target = new OrtbDeviceUpdater(wurflDevice, staticCaps, virtualCaps, true, mapper);
         // when
-        when(payload.bidRequest()).thenReturn(bidRequest);
+        given(payload.bidRequest()).willReturn(bidRequest);
         final AuctionRequestPayload result = target.apply(payload);
         // then
         final Device resultDevice = result.bidRequest().getDevice();
@@ -272,7 +271,7 @@ public class OrtbDeviceUpdaterTest {
         given(wurflDevice.getVirtualCapability("form_factor")).willReturn("Desktop");
         final OrtbDeviceUpdater target = new OrtbDeviceUpdater(wurflDevice, staticCaps, virtualCaps, true, mapper);
         // when
-        when(payload.bidRequest()).thenReturn(bidRequest);
+        given(payload.bidRequest()).willReturn(bidRequest);
         final AuctionRequestPayload result = target.apply(payload);
 
         // then

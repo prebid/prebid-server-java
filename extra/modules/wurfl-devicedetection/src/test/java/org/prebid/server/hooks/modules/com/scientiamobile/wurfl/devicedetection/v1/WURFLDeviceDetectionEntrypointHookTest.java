@@ -14,7 +14,7 @@ import org.prebid.server.hooks.v1.entrypoint.EntrypointPayload;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.BDDMockito.given;
 
 @ExtendWith(MockitoExtension.class)
 public class WURFLDeviceDetectionEntrypointHookTest {
@@ -45,7 +45,7 @@ public class WURFLDeviceDetectionEntrypointHookTest {
         final CaseInsensitiveMultiMap headers = CaseInsensitiveMultiMap.builder()
                 .add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Test")
                 .build();
-        when(payload.headers()).thenReturn(headers);
+        given(payload.headers()).willReturn(headers);
 
         // when
         final Future<InvocationResult<EntrypointPayload>> result = target.call(payload, context);
@@ -65,7 +65,7 @@ public class WURFLDeviceDetectionEntrypointHookTest {
         final WURFLDeviceDetectionEntrypointHook target = new WURFLDeviceDetectionEntrypointHook();
 
         // when
-        when(payload.headers()).thenReturn(null);
+        given(payload.headers()).willReturn(null);
         final Future<InvocationResult<EntrypointPayload>> result = target.call(payload, context);
 
         // then
