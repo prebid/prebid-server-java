@@ -43,7 +43,7 @@ public class RuleEngineModuleConfiguration {
                 randomGenerator,
                 Stage.processed_auction_request,
                 new RequestSpecification(ObjectMapperProvider.mapper(), bidderCatalog, randomGenerator),
-                (schema, ruleTree, modelVersion, analyticsKey) ->
+                (schema, ruleTree, analyticsKey, modelVersion) ->
                         new RequestMatchingRule(schema, ruleTree, modelVersion, analyticsKey, datacenterRegion));
     }
 
