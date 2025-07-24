@@ -1,10 +1,9 @@
-package core.rules.tree;
+package org.prebid.server.hooks.modules.rule.engine.core.rules.tree;
 
 import org.junit.jupiter.api.Test;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.exception.NoMatchingRuleException;
-import org.prebid.server.hooks.modules.rule.engine.core.rules.tree.RuleNode;
-import org.prebid.server.hooks.modules.rule.engine.core.rules.tree.RuleTree;
 
+import java.util.List;
 import java.util.Map;
 
 import static java.util.Arrays.asList;
@@ -28,11 +27,11 @@ public class RuleTreeTest {
         final RuleTree<String> tree = new RuleTree<>(new RuleNode.IntermediateNode<>(subnodes), 2);
 
         // when and then
-        assertThat(tree.getValue(asList("A", "B"))).isEqualTo("AB");
-        assertThat(tree.getValue(asList("A", "C"))).isEqualTo("AC");
-        assertThat(tree.getValue(asList("B", "B"))).isEqualTo("BB");
-        assertThat(tree.getValue(asList("B", "C"))).isEqualTo("BC");
-        assertThatExceptionOfType(NoMatchingRuleException.class).isThrownBy(() -> tree.getValue(asList("C", "B")));
-        assertThatExceptionOfType(NoMatchingRuleException.class).isThrownBy(() -> tree.getValue(singletonList("C")));
+        assertThat(tree.lookup(asList("A", "B"))).isEqualTo(LookupResult.of("AB", List.of("A", "B")));
+        assertThat(tree.lookup(asList("A", "C"))).isEqualTo(LookupResult.of("AC", List.of("A", "*")));
+        assertThat(tree.lookup(asList("B", "B"))).isEqualTo(LookupResult.of("BB", List.of("B", "B")));
+        assertThat(tree.lookup(asList("B", "C"))).isEqualTo(LookupResult.of("BC", List.of("B", "C")));
+        assertThatExceptionOfType(NoMatchingRuleException.class).isThrownBy(() -> tree.lookup(asList("C", "B")));
+        assertThatExceptionOfType(NoMatchingRuleException.class).isThrownBy(() -> tree.lookup(singletonList("C")));
     }
 }

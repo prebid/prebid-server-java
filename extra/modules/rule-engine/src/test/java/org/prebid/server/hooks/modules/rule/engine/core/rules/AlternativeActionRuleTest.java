@@ -1,4 +1,4 @@
-package core.rules;
+package org.prebid.server.hooks.modules.rule.engine.core.rules;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,26 +23,26 @@ public class AlternativeActionRuleTest {
     private static final RuleResult<Object> ALTERNATIVE_RESULT = RuleResult.unaltered(new Object());
 
     @Mock(strictness = LENIENT)
-    private Rule<Object> delegate;
+    private Rule<Object, Object> delegate;
 
     @Mock(strictness = LENIENT)
-    private Rule<Object> alternative;
+    private Rule<Object, Object> alternative;
 
-    private AlternativeActionRule<Object> target;
+    private AlternativeActionRule<Object, Object> target;
 
     @BeforeEach
     public void setUp() {
-        target = new AlternativeActionRule<>(delegate, alternative);
+        target = AlternativeActionRule.of(delegate, alternative);
     }
 
     @Test
     public void processShouldReturnDelegateResult() {
         // given
-        given(delegate.process(any())).willReturn(DELEGATE_RESULT);
-        given(alternative.process(any())).willReturn(ALTERNATIVE_RESULT);
+        given(delegate.process(any(), any())).willReturn(DELEGATE_RESULT);
+        given(alternative.process(any(), any())).willReturn(ALTERNATIVE_RESULT);
 
         // when
-        final RuleResult<Object> result = target.process(new Object());
+        final RuleResult<Object> result = target.process(new Object(), new Object());
 
         // then
         assertThat(result).isEqualTo(DELEGATE_RESULT);
@@ -52,11 +52,11 @@ public class AlternativeActionRuleTest {
     @Test
     public void processShouldReturnAlternativeResultWhenNoMatchingRuleException() {
         // given
-        given(delegate.process(any())).willThrow(new NoMatchingRuleException());
-        given(alternative.process(any())).willReturn(ALTERNATIVE_RESULT);
+        given(delegate.process(any(), any())).willThrow(new NoMatchingRuleException());
+        given(alternative.process(any(), any())).willReturn(ALTERNATIVE_RESULT);
 
         // when
-        final RuleResult<Object> result = target.process(new Object());
+        final RuleResult<Object> result = target.process(new Object(), new Object());
 
         // then
         assertThat(result).isEqualTo(ALTERNATIVE_RESULT);

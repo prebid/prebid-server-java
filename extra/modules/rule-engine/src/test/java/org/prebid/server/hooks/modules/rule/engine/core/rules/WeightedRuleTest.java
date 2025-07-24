@@ -1,15 +1,12 @@
-package core.rules;
+package org.prebid.server.hooks.modules.rule.engine.core.rules;
 
 import org.junit.jupiter.api.Test;
-import org.prebid.server.hooks.modules.rule.engine.core.rules.Rule;
-import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleResult;
-import org.prebid.server.hooks.modules.rule.engine.core.rules.WeightedRule;
 import org.prebid.server.hooks.modules.rule.engine.core.util.WeightedList;
 
 import java.util.random.RandomGenerator;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyDouble;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 
@@ -18,17 +15,18 @@ public class WeightedRuleTest {
     @Test
     public void processShouldUtilizeRuleFromWeightedList() {
         // given
-        final WeightedList<Rule<Object>> ruleList = (WeightedList<Rule<Object>>) mock(WeightedList.class);
+        final WeightedList<Rule<Object, Object>> ruleList =
+                (WeightedList<Rule<Object, Object>>) mock(WeightedList.class);
         final RuleResult<Object> stub = RuleResult.unaltered(new Object());
-        given(ruleList.getForSeed(anyDouble())).willReturn(value -> stub);
+        given(ruleList.getForSeed(anyInt())).willReturn((left, right) -> stub);
 
         final RandomGenerator randomGenerator = mock(RandomGenerator.class);
         given(randomGenerator.nextDouble()).willReturn(0.5);
 
-        final WeightedRule<Object> rule = new WeightedRule<>(randomGenerator, ruleList);
+        final RandomWeightedRule<Object, Object> rule = new RandomWeightedRule<>(randomGenerator, ruleList);
 
         // when
-        final RuleResult<Object> result = rule.process(rule);
+        final RuleResult<Object> result = rule.process(new Object(), new Object());
 
         // then
         assertThat(result).isEqualTo(stub);
