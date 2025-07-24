@@ -132,7 +132,6 @@ public class OrtbDeviceUpdater implements PayloadUpdate<AuctionRequestPayload> {
             }
         } catch (CapabilityNotDefinedException | VirtualCapabilityNotDefinedException | NumberFormatException e) {
             logger.warn("Failed to determine device type from WURFL device capabilities", e);
-            return null;
         }
         return null;
     }
