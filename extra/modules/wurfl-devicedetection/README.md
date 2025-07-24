@@ -135,8 +135,7 @@ After configuring the module and successfully building the Prebid Server bundle,
 java -jar target/prebid-server-bundle.jar --spring.config.additional-location=sample/configs/prebid-config-with-wurfl.yaml
 ```
 
-This sample configuration contains the module hook basic configuration. All the other module configuration options
-are located in the `wurfl-devicedetection.yaml` inside the module. 
+This sample configuration contains the module hook basic configuration. 
 
 When the server starts, it downloads the WURFL file from the `wurfl-snapshot-url` and loads it into the module.
 
