@@ -10,8 +10,6 @@ import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.http.HttpMethod;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -41,7 +39,6 @@ import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 
-@ExtendWith(MockitoExtension.class)
 public class StroeerCoreBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com";

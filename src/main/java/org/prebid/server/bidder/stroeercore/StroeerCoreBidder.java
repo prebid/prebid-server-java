@@ -6,7 +6,6 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -86,14 +85,6 @@ public class StroeerCoreBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static Pair<BidType, Integer> getBidType(String mtype) {
-        return switch (mtype) {
-            case "banner" -> Pair.of(BidType.banner, 1);
-            case "video" -> Pair.of(BidType.video, 2);
-            default -> null;
-        };
-    }
-
     private List<BidderBid> extractBids(StroeerCoreBidResponse bidResponse, List<BidderError> errors) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getBids())) {
             return Collections.emptyList();
@@ -107,7 +98,7 @@ public class StroeerCoreBidder implements Bidder<BidRequest> {
     }
 
     private BidderBid toBidderBid(StroeerCoreBid stroeercoreBid, List<BidderError> errors) {
-        final Pair<BidType, Integer> bidType = getBidType(stroeercoreBid.getMtype());
+        final BidType bidType = getBidType(stroeercoreBid.getMtype());
         if (bidType == null) {
             errors.add(BidderError.badServerResponse(
                     "Bid media type error: unable to determine media type for bid with id \"%s\""
@@ -129,10 +120,18 @@ public class StroeerCoreBidder implements Bidder<BidRequest> {
                         .adm(stroeercoreBid.getAdMarkup())
                         .crid(stroeercoreBid.getCreativeId())
                         .adomain(stroeercoreBid.getAdomain())
-                        .mtype(bidType.getRight())
+                        .mtype(bidType.ordinal() + 1)
                         .ext(bidExt)
                         .build(),
-                bidType.getLeft(),
+                bidType,
                 BIDDER_CURRENCY);
+    }
+
+    private static BidType getBidType(String mtype) {
+        return switch (mtype) {
+            case "banner" -> BidType.banner;
+            case "video" -> BidType.video;
+            default -> null;
+        };
     }
 }
