@@ -73,7 +73,7 @@ public class VisxBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldNotAddIpv6IfIpIsPresent() {
+    public void makeHttpRequestsShouldAddIp() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
