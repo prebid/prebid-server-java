@@ -4,9 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
-import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
@@ -23,8 +21,6 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
-import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.missena.ExtImpMissena;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
@@ -38,7 +34,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 public class MissenaBidder implements Bidder<MissenaAdRequest> {
 
@@ -186,22 +181,6 @@ public class MissenaBidder implements Bidder<MissenaAdRequest> {
 
     private String resolveEndpointUrl(String apiKey) {
         return endpointUrl.replace(PUBLISHER_ID_MACRO, HttpUtil.encodeUrl(apiKey));
-    }
-
-    private static boolean isGdpr(Regs regs) {
-        return Optional.ofNullable(regs)
-                .map(Regs::getExt)
-                .map(ExtRegs::getGdpr)
-                .map(gdpr -> gdpr == 1)
-                .orElse(false);
-    }
-
-    private static String getUserConsent(User user) {
-        return Optional.ofNullable(user)
-                .map(User::getExt)
-                .map(ExtUser::getConsent)
-                .filter(StringUtils::isNotBlank)
-                .orElse(null);
     }
 
     @Override
