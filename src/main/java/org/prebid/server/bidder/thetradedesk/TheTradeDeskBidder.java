@@ -11,8 +11,8 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.MultiMap;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -42,11 +42,6 @@ public class TheTradeDeskBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private static final String PREBID_INTEGRATION_TYPE_HEADER = "x-integration-type";
-    private static final String PREBID_INTEGRATION_TYPE = "1";
-    private static final MultiMap HEADERS = HttpUtil.headers()
-            .add(PREBID_INTEGRATION_TYPE_HEADER, PREBID_INTEGRATION_TYPE);
-
     private static final String SUPPLY_ID_MACRO = "{{SupplyId}}";
     private static final Pattern SUPPLY_ID_PATTERN = Pattern.compile("([a-z]+)$");
 
@@ -73,6 +68,7 @@ public class TheTradeDeskBidder implements Bidder<BidRequest> {
         final List<Imp> modifiedImps = new ArrayList<>();
 
         String publisherId = null;
+        String sourceSupplyId = null;
         for (Imp imp : request.getImp()) {
             try {
                 final ExtImpTheTradeDesk extImp = parseImpExt(imp);
@@ -82,17 +78,26 @@ public class TheTradeDeskBidder implements Bidder<BidRequest> {
                         ? extImpPublisherId
                         : publisherId;
 
+                final String extImpSourceSupplyId = extImp.getSupplySourceId();
+                sourceSupplyId = sourceSupplyId == null && StringUtils.isNotBlank(extImpSourceSupplyId)
+                        ? extImpSourceSupplyId
+                        : sourceSupplyId;
+
                 modifiedImps.add(modifyImp(imp));
             } catch (PreBidException e) {
                 return Result.withError(BidderError.badInput(e.getMessage()));
             }
         }
 
+        if (StringUtils.isBlank(sourceSupplyId) && StringUtils.isBlank(supplyId)) {
+            return Result.withError(
+                BidderError.badInput("Either supplySourceId or a default endpoint must be provided"));
+        }
+
         final BidRequest outgoingRequest = modifyRequest(request, modifiedImps, publisherId);
         final HttpRequest<BidRequest> httpRequest = BidderUtil.defaultRequest(
                 outgoingRequest,
-                HEADERS,
-                resolveEndpoint(),
+                resolveEndpoint(sourceSupplyId),
                 mapper);
 
         return Result.withValue(httpRequest);
@@ -165,8 +170,10 @@ public class TheTradeDeskBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private String resolveEndpoint() {
-        return endpointUrl.replace(SUPPLY_ID_MACRO, HttpUtil.encodeUrl(StringUtils.defaultString(supplyId)));
+    private String resolveEndpoint(String sourceSupplyId) {
+        return endpointUrl.replace(
+                SUPPLY_ID_MACRO,
+                HttpUtil.encodeUrl(StringUtils.defaultString(ObjectUtils.defaultIfNull(sourceSupplyId, supplyId))));
     }
 
     @Override

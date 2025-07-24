@@ -43,21 +43,21 @@ public class BidsAdjuster {
                                                             AuctionContext auctionContext,
                                                             BidderAliases aliases) {
 
+        final BidRequest bidRequest = auctionContext.getBidRequest();
         return auctionParticipations.stream()
                 .map(auctionParticipation -> validBidderResponse(auctionParticipation, auctionContext, aliases))
                 .map(auctionParticipation -> bidAdjustmentsProcessor.enrichWithAdjustedBids(
                         auctionParticipation,
-                        auctionContext.getBidRequest(),
-                        auctionContext.getBidAdjustments()))
+                        bidRequest))
 
                 .map(auctionParticipation -> priceFloorEnforcer.enforce(
-                        auctionContext.getBidRequest(),
+                        bidRequest,
                         auctionParticipation,
                         auctionContext.getAccount(),
                         auctionContext.getBidRejectionTrackers().get(auctionParticipation.getBidder())))
 
                 .map(auctionParticipation -> dsaEnforcer.enforce(
-                        auctionContext.getBidRequest(),
+                        bidRequest,
                         auctionParticipation,
                         auctionContext.getBidRejectionTrackers().get(auctionParticipation.getBidder())))
                 .toList();

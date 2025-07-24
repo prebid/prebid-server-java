@@ -15,4 +15,5 @@ class Prebid {
     Meta meta
     Map passThrough
     Video storedRequestAttributes
+    Integer rank
 }

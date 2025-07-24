@@ -1,16 +1,15 @@
 package org.prebid.server.functional.tests.pricefloors
 
-import org.prebid.server.functional.model.Currency
 import org.prebid.server.functional.model.config.AccountPriceFloorsConfig
 import org.prebid.server.functional.model.config.PriceFloorsFetch
-import org.prebid.server.functional.model.mock.services.currencyconversion.CurrencyConversionRatesResponse
 import org.prebid.server.functional.model.pricefloors.PriceFloorData
 import org.prebid.server.functional.model.request.auction.ImpExtPrebidFloors
 import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.service.PrebidServerService
-import org.prebid.server.functional.testcontainers.scaffolding.CurrencyConversion
+import org.prebid.server.functional.testcontainers.PbsConfig
+import org.prebid.server.functional.util.CurrencyUtil
 import org.prebid.server.functional.util.PBSUtils
 
 import static org.prebid.server.functional.model.Currency.BOGUS
@@ -22,26 +21,20 @@ import static org.prebid.server.functional.model.request.auction.FetchStatus.NON
 import static org.prebid.server.functional.model.request.auction.FetchStatus.SUCCESS
 import static org.prebid.server.functional.model.request.auction.Location.FETCH
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
-import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 
 class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
 
-    private static final Map<Currency, Map<Currency, BigDecimal>> DEFAULT_CURRENCY_RATES = [(USD): [(EUR): 0.9124920156948626,
-                                                                                                    (GBP): 0.793776804452961],
-                                                                                            (GBP): [(USD): 1.2597999770088517,
-                                                                                                    (EUR): 1.1495574203931487],
-                                                                                            (EUR): [(USD): 1.3429368029739777]]
-    private static final CurrencyConversion currencyConversion = new CurrencyConversion(networkServiceContainer).tap {
-        setCurrencyConversionRatesResponse(CurrencyConversionRatesResponse.getDefaultCurrencyConversionRatesResponse(DEFAULT_CURRENCY_RATES))
-    }
     private static final String GENERAL_ERROR_METRIC = "price-floors.general.err"
-    private static final Map<String, String> CURRENCY_CONVERTER_CONFIG = ["auction.ad-server-currency"                          : "USD",
-                                                                          "currency-converter.external-rates.enabled"           : "true",
-                                                                          "currency-converter.external-rates.url"               : "$networkServiceContainer.rootUri/currency".toString(),
-                                                                          "currency-converter.external-rates.default-timeout-ms": "4000",
-                                                                          "currency-converter.external-rates.refresh-period-ms" : "900000"]
-    private final PrebidServerService currencyFloorsPbsService = pbsServiceFactory.getService(FLOORS_CONFIG +
-            CURRENCY_CONVERTER_CONFIG)
+
+    private static PrebidServerService currencyFloorsPbsService
+
+    def setupSpec() {
+        currencyFloorsPbsService = pbsServiceFactory.getService(FLOORS_CONFIG + PbsConfig.currencyConverterConfig)
+    }
+
+    def cleanupSpec() {
+        pbsServiceFactory.removeContainer(FLOORS_CONFIG + PbsConfig.currencyConverterConfig)
+    }
 
     def "PBS should update bidFloor, bidFloorCur for signalling when request.cur is specified"() {
         given: "Default BidRequest with cur"
@@ -52,6 +45,10 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         and: "Account with enabled fetch, fetch.url in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
         accountDao.save(account)
+
+        and: "Default bid response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Set Floors Provider response"
         def floorValue = PBSUtils.randomFloorValue
@@ -100,7 +97,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         def currencyRatesResponse = currencyFloorsPbsService.sendCurrencyRatesRequest()
 
         and: "Bid response with 2 bids: price < floorMin, price = floorMin"
-        def convertedMinFloorValue = getPriceAfterCurrencyConversion(floorValue,
+        def convertedMinFloorValue = CurrencyUtil.getPriceAfterCurrencyConversion(floorValue,
                 floorsResponse.modelGroups[0].currency, bidRequest.cur[0], currencyRatesResponse)
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
             cur = EUR
@@ -137,9 +134,13 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         and: "Get currency rates"
         def currencyRatesResponse = currencyFloorsPbsService.sendCurrencyRatesRequest()
 
+        and: "Default bid response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
+
         and: "Set Floors Provider response with a currency different from the floorMinCur, floorValur lower then floorMin"
         def floorProviderCur = EUR
-        def convertedMinFloorValue = getPriceAfterCurrencyConversion(floorMin,
+        def convertedMinFloorValue = CurrencyUtil.getPriceAfterCurrencyConversion(floorMin,
                 bidRequest.ext.prebid.floors.floorMinCur, floorProviderCur, currencyRatesResponse)
 
         def floorsResponse = PriceFloorData.priceFloorData.tap {
@@ -183,6 +184,10 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         and: "Account with enabled fetch, fetch.url in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
         accountDao.save(account)
+
+        and: "Default bid response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Set Floors Provider response with a currency different from the floorMinCur"
         def floorsProviderCur = EUR
@@ -247,6 +252,10 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         }
         accountDao.save(account)
 
+        and: "Default bid response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
+
         when: "PBS processes auction request"
         currencyFloorsPbsService.sendAuctionRequest(bidRequest)
 
@@ -282,6 +291,10 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
             config.auction.priceFloors.fetch.enabled = false
         }
         accountDao.save(account)
+
+        and: "Default bid response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
         currencyFloorsPbsService.sendAuctionRequest(bidRequest)
@@ -323,7 +336,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
 
         and: "Bid response with 2 bids: price < floorMin, price = floorMin"
         def bidResponseCur = GBP
-        def convertedMinFloorValueGbp = getPriceAfterCurrencyConversion(floorValue,
+        def convertedMinFloorValueGbp = CurrencyUtil.getPriceAfterCurrencyConversion(floorValue,
                 floorCur, bidResponseCur, currencyRatesResponse)
         def winBidPrice = convertedMinFloorValueGbp + 0.1
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
@@ -345,7 +358,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         }
 
         and: "PBS should suppress bids lower than floorRuleValue"
-        def convertedFloorValueEur = getPriceAfterCurrencyConversion(winBidPrice,
+        def convertedFloorValueEur = CurrencyUtil.getPriceAfterCurrencyConversion(winBidPrice,
                 bidResponseCur, requestCur, currencyRatesResponse)
         assert response.seatbid?.first()?.bid?.collect { it.price } == [convertedFloorValueEur]
         assert response.cur == bidRequest.cur[0]
@@ -366,6 +379,10 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         and: "Account with enabled fetch, fetch.url in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
         accountDao.save(account)
+
+        and: "Default bid response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Set Floors Provider response with a currency different from the floorMinCur"
         def floorsProviderCur = BOGUS
@@ -412,6 +429,10 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         and: "Account with enabled fetch, fetch.url in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
         accountDao.save(account)
+
+        and: "Default bid response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
         currencyFloorsPbsService.sendAuctionRequest(bidRequest)
@@ -470,6 +491,10 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
         accountDao.save(account)
 
+        and: "Default bid response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
+
         when: "PBS processes auction request"
         currencyFloorsPbsService.sendAuctionRequest(bidRequest)
 
@@ -495,6 +520,10 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         and: "Account with enabled fetch, fetch.url in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
         accountDao.save(account)
+
+        and: "Default bid response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
         currencyFloorsPbsService.sendAuctionRequest(bidRequest)

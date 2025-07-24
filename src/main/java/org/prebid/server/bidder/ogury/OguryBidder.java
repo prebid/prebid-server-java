@@ -70,10 +70,17 @@ public class OguryBidder implements Bidder<BidRequest> {
             }
         }
 
-        if (!isValidRequestKeys(bidRequest, impsWithOguryParams)) {
-            errors.add(BidderError.badInput(
-                    "Invalid request. assetKey/adUnitId or request.site.publisher.id required"));
-            return Result.withErrors(errors);
+        if (CollectionUtils.isEmpty(impsWithOguryParams)) {
+            if (bidRequest.getApp() != null) {
+                errors.add(BidderError.badInput("Invalid request. assetKey/adUnitId required"));
+                return Result.withErrors(errors);
+            }
+            // for "site" request we can serve ads with just publisher.id
+            if (!hasPublisherId(bidRequest)) {
+                errors.add(BidderError.badInput(
+                        "Invalid request. assetKey/adUnitId or request.site.publisher.id required"));
+                return Result.withErrors(errors);
+            }
         }
 
         final BidRequest modifiedBidRequest = bidRequest.toBuilder()
@@ -137,8 +144,8 @@ public class OguryBidder implements Bidder<BidRequest> {
                 && impExtBidderHoist.has(PREBID_FIELD_ADUNIT_ID);
     }
 
-    private boolean isValidRequestKeys(BidRequest request, List<Imp> impsWithOguryParams) {
-        return !CollectionUtils.isEmpty(impsWithOguryParams) || Optional.ofNullable(request.getSite())
+    private boolean hasPublisherId(BidRequest request) {
+        return Optional.ofNullable(request.getSite())
                 .map(Site::getPublisher)
                 .map(Publisher::getId)
                 .isPresent();

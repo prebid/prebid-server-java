@@ -2,7 +2,7 @@ package org.prebid.server.functional.tests.pricefloors
 
 import org.prebid.server.functional.model.config.PriceFloorsFetch
 import org.prebid.server.functional.model.db.StoredRequest
-import org.prebid.server.functional.model.pricefloors.ModelGroup
+import org.prebid.server.functional.model.pricefloors.FloorModelGroup
 import org.prebid.server.functional.model.pricefloors.PriceFloorData
 import org.prebid.server.functional.model.pricefloors.Rule
 import org.prebid.server.functional.model.request.amp.AmpRequest
@@ -23,6 +23,7 @@ import static org.prebid.server.functional.model.pricefloors.MediaType.BANNER
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 import static org.prebid.server.functional.model.request.auction.FetchStatus.ERROR
+import static org.prebid.server.functional.model.request.auction.FetchStatus.INPROGRESS
 import static org.prebid.server.functional.model.request.auction.FetchStatus.NONE
 import static org.prebid.server.functional.model.request.auction.FetchStatus.SUCCESS
 import static org.prebid.server.functional.model.request.auction.Location.FETCH
@@ -45,22 +46,13 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
     private static final int FLOOR_MIN = 0
 
     private static final String FETCH_FAILURE_METRIC = "price-floors.fetch.failure"
-    private static final String FETCHING_DISABLED_ERROR = 'Fetching is disabled'
     private static final String PRICE_FLOOR_VALUES_MISSING = 'Price floor rules values can\'t be null or empty, but were null'
     private static final String MODEL_WEIGHT_INVALID = "Price floor modelGroup modelWeight must be in range(1-100), but was %s"
     private static final String SKIP_RATE_INVALID = "Price floor modelGroup skipRate must be in range(0-100), but was %s"
+    private static Instant startTime
 
-    private static final Closure<String> INVALID_CONFIG_METRIC = { account -> "alerts.account_config.${account}.price-floors" }
-    private static final Closure<String> URL_EMPTY_ERROR = { url -> "Failed to fetch price floor from provider for fetch.url '${url}'" }
-    private static final Closure<String> URL_EMPTY_WARNING_MESSAGE = { url, message ->
-        "${URL_EMPTY_ERROR(url)}, with a reason: $message"
-    }
-    private static final Closure<String> URL_EMPTY_ERROR_LOG = { bidRequest, message ->
-        "No price floor data for account ${bidRequest.accountId} and " +
-                "request ${bidRequest.id}, reason: ${URL_EMPTY_WARNING_MESSAGE("$BASIC_FETCH_URL$bidRequest.accountId", message)}"
-    }
-    private static final Closure<String> WARNING_MESSAGE = { message ->
-        "$FETCHING_DISABLED_ERROR. Following parsing of request price floors is failed: $message"
+    def setupSpec() {
+        startTime = Instant.now()
     }
 
     def "PBS should activate floors feature when price-floors.enabled = true in PBS config"() {
@@ -138,8 +130,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def logs = floorsPbsService.getLogsByTime(startTime)
         def floorsLogs = getLogsByText(logs, bidRequest.accountId)
         assert floorsLogs.size() == 1
-        assert floorsLogs.first().contains("No price floor data for account $bidRequest.accountId and request $bidRequest.id, " +
-                "reason: Malformed fetch.url 'null' passed")
+        assert floorsLogs.first().contains("alformed fetch.url: 'null' passed for account $bidRequest.accountId")
 
         and: "PBS floors validation failure should not reject the entire auction"
         assert !response.seatbid.isEmpty()
@@ -543,7 +534,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def startTime = Instant.now()
 
         and: "Default BidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = BidRequest.getDefaultBidRequest()
 
         and: "Account with enabled fetch and fetch.url in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.accountId).tap {
@@ -575,12 +566,16 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         and: "PBS should fetch data"
         assert floorsProvider.getRequestCount(bidRequest.accountId) == 1
 
+        and: "PBS should not add warning or errors"
+        assert !response.ext.warnings
+        assert !response.ext.errors
+
         and: "PBS log should contain error"
         def logs = floorsPbsService.getLogsByTime(startTime)
         def message = "Price floor data useFetchDataRate must be in range(0-100), but was $accounntUseFetchDataRate"
         def floorsLogs = getLogsByText(logs, "$BASIC_FETCH_URL$bidRequest.accountId")
         assert floorsLogs.size() == 1
-        assert floorsLogs[0].contains(URL_EMPTY_ERROR_LOG(bidRequest, message))
+        assert floorsLogs[0].contains(FETCHING_FLOORS_ERROR_LOG(bidRequest, message))
 
         and: "Floors validation failure cannot reject the entire auction"
         assert !response.seatbid?.isEmpty()
@@ -606,6 +601,90 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         accounntUseFetchDataRate << [PBSUtils.getRandomNegativeNumber(-USE_FETCH_DATA_RATE_MAX, USE_FETCH_DATA_RATE_MIN),
                                      PBSUtils.getRandomNumber(USE_FETCH_DATA_RATE_MAX + 1)
         ]
+    }
+
+    def "PBS should log merged error and increase metrics when useFetchDataRate have invalid value from provider and request"() {
+        given: "BidRequest with invalid floors"
+        def requestUseFetchDataRate = PBSUtils.getRandomNegativeNumber()
+        def bidRequest = getBidRequestWithFloors().tap {
+            it.ext.prebid.floors.data.useFetchDataRate = requestUseFetchDataRate
+        }
+
+        and: "Account with enabled fetch and fetch.url in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.accountId).tap {
+            config.auction.priceFloors.useDynamicData = true
+        }
+        accountDao.save(account)
+
+        and: "Flush metrics"
+        flushMetrics(floorsPbsService)
+
+        and: "Set Floors Provider response"
+        def providerUseFetchDataRate = PBSUtils.getRandomNegativeNumber()
+        def floorValue = PBSUtils.randomFloorValue
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].values = [(rule): floorValue]
+            useFetchDataRate = providerUseFetchDataRate
+        }
+        floorsProvider.setResponse(bidRequest.accountId, floorsResponse)
+
+        and: "Default bid response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        and: "PBS fetch rules from floors provider"
+        cacheFloorsProviderRules(bidRequest, floorsPbsService, GENERIC, ERROR)
+
+        and: "Test start time"
+        def startTime = Instant.now()
+
+        when: "PBS processes auction request"
+        def response = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "metric should be updated"
+        def metrics = floorsPbsService.sendCollectedMetricsRequest()
+        assert metrics[FETCH_FAILURE_METRIC] == 1
+
+        and: "PBS should add single warning"
+        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.message ==
+                [WARNING_MESSAGE("Price floor data useFetchDataRate must be in range(0-100), but was $requestUseFetchDataRate")]
+
+        and: "PBS should not add error to request"
+        assert !response.ext.errors
+
+        and: "PBS should fetch data"
+        assert floorsProvider.getRequestCount(bidRequest.accountId) == 1
+
+        and: "PBS log should contain combined error log"
+        def logs = floorsPbsService.getLogsByTime(startTime)
+        def fetchingErrorLogs = getLogsByText(logs, "Price Floors can't be resolved for account $bidRequest.accountId " +
+                "and request $bidRequest.id, reason: Price floors processing failed: Failed to fetch price floor from provider " +
+                "for fetch.url '$BASIC_FETCH_URL${bidRequest.accountId}', with a reason: " +
+                "Price floor data useFetchDataRate must be in range(0-100), but was $providerUseFetchDataRate. " +
+                "Following parsing of request price floors is failed: " +
+                "Price floor data useFetchDataRate must be in range(0-100), but was $requestUseFetchDataRate")
+        assert fetchingErrorLogs.size() == 1
+
+        and: "Floors validation failure cannot reject the entire auction"
+        assert !response.seatbid?.isEmpty()
+
+        and: "Bidder request should contain floors data from floors provider"
+        def bidderRequest = bidder.getBidderRequests(bidRequest.id).last
+        verifyAll(bidderRequest) {
+            imp.bidFloor == bidRequest.imp.bidFloor
+            imp.bidFloorCur == bidRequest.imp.bidFloorCur
+
+            !imp[0].ext?.prebid?.floors?.floorRule
+            !imp[0].ext?.prebid?.floors?.floorRuleValue
+            !imp[0].ext?.prebid?.floors?.floorValue
+
+            !ext?.prebid?.floors?.floorProvider
+            !ext?.prebid?.floors?.skipRate
+            !ext?.prebid?.floors?.data
+            ext?.prebid?.floors?.location == NO_DATA
+            ext?.prebid?.floors?.fetchStatus == ERROR
+        }
     }
 
     def "PBS should process floors from request when use-dynamic-data = false"() {
@@ -680,7 +759,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def logs = floorsPbsService.getLogsByTime(startTime)
         def floorsLogs = getLogsByText(logs, "$BASIC_FETCH_URL$bidRequest.accountId")
         assert floorsLogs.size() == 1
-        assert floorsLogs[0].contains(URL_EMPTY_ERROR_LOG(bidRequest, message))
+        assert floorsLogs[0].contains(FETCHING_FLOORS_ERROR_LOG(bidRequest, message))
 
         and: "Floors validation failure cannot reject the entire auction"
         assert !response.seatbid?.isEmpty()
@@ -722,7 +801,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def logs = floorsPbsService.getLogsByTime(startTime)
         def floorsLogs = getLogsByText(logs, "$BASIC_FETCH_URL$bidRequest.accountId")
         assert floorsLogs.size() == 1
-        assert floorsLogs[0].contains(URL_EMPTY_ERROR_LOG(bidRequest, message))
+        assert floorsLogs[0].contains(FETCHING_FLOORS_ERROR_LOG(bidRequest, message))
 
         and: "Floors validation failure cannot reject the entire auction"
         assert !response.seatbid?.isEmpty()
@@ -763,7 +842,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def logs = floorsPbsService.getLogsByTime(startTime)
         def floorsLogs = getLogsByText(logs, "$BASIC_FETCH_URL$bidRequest.accountId")
         assert floorsLogs.size() == 1
-        assert floorsLogs[0].contains(URL_EMPTY_ERROR_LOG(bidRequest, message))
+        assert floorsLogs[0].contains(FETCHING_FLOORS_ERROR_LOG(bidRequest, message))
 
         and: "Floors validation failure cannot reject the entire auction"
         assert !response.seatbid?.isEmpty()
@@ -807,7 +886,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def logs = floorsPbsService.getLogsByTime(startTime)
         def floorsLogs = getLogsByText(logs, "$BASIC_FETCH_URL$bidRequest.accountId")
         assert floorsLogs.size() == 1
-        assert floorsLogs[0].contains(URL_EMPTY_ERROR_LOG(bidRequest, message))
+        assert floorsLogs[0].contains(FETCHING_FLOORS_ERROR_LOG(bidRequest, message))
 
         and: "Floors validation failure cannot reject the entire auction"
         assert !response.seatbid?.isEmpty()
@@ -850,7 +929,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def logs = floorsPbsService.getLogsByTime(startTime)
         def floorsLogs = getLogsByText(logs, "$BASIC_FETCH_URL$bidRequest.accountId")
         assert floorsLogs.size() == 1
-        assert floorsLogs[0].contains(URL_EMPTY_ERROR_LOG(bidRequest, PRICE_FLOOR_VALUES_MISSING))
+        assert floorsLogs[0].contains(FETCHING_FLOORS_ERROR_LOG(bidRequest, PRICE_FLOOR_VALUES_MISSING))
 
         and: "Floors validation failure cannot reject the entire auction"
         assert !response.seatbid?.isEmpty()
@@ -897,7 +976,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def logs = floorsPbsService.getLogsByTime(startTime)
         def floorsLogs = getLogsByText(logs, "$BASIC_FETCH_URL$bidRequest.accountId")
         assert floorsLogs.size() == 1
-        assert floorsLogs[0].contains(URL_EMPTY_ERROR_LOG(bidRequest, message))
+        assert floorsLogs[0].contains(FETCHING_FLOORS_ERROR_LOG(bidRequest, message))
 
         and: "Floors validation failure cannot reject the entire auction"
         assert !response.seatbid?.isEmpty()
@@ -942,10 +1021,9 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "PBS log should contain error"
         def logs = pbsService.getLogsByTime(startTime)
-        def floorsLogs = getLogsByText(logs, BASIC_FETCH_URL)
+        def floorsLogs = getLogsByText(logs, "Price floor fetching failed for account $bidRequest.accountId: " +
+                "Fetch price floor request timeout for fetch.url '$BASIC_FETCH_URL$accountId' exceeded")
         assert floorsLogs.size() == 1
-        assert floorsLogs[0].contains("No price floor data for account $bidRequest.accountId and request $bidRequest.id, " +
-                "reason: Fetch price floor request timeout for fetch.url '$BASIC_FETCH_URL$accountId' exceeded")
 
         and: "Floors validation failure cannot reject the entire auction"
         assert !response.seatbid?.isEmpty()
@@ -991,7 +1069,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def logs = floorsPbsService.getLogsByTime(startTime)
         def floorsLogs = getLogsByText(logs, "$BASIC_FETCH_URL$bidRequest.accountId")
         assert floorsLogs.size() == 1
-        assert floorsLogs[0].contains(URL_EMPTY_ERROR_LOG(bidRequest, message))
+        assert floorsLogs[0].contains(FETCHING_FLOORS_ERROR_LOG(bidRequest, message))
 
         and: "Floors validation failure cannot reject the entire auction"
         assert !response.seatbid?.isEmpty()
@@ -1309,6 +1387,10 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         }
         accountDao.save(account)
 
+        and: "Default bid response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
+
         when: "PBS processes auction request"
         def response = floorsPbsService.sendAuctionRequest(bidRequest)
 
@@ -1335,6 +1417,10 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
             config.auction.priceFloors.fetch.enabled = false
         }
         accountDao.save(account)
+
+        and: "Default bid response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
         def response = floorsPbsService.sendAuctionRequest(bidRequest)
@@ -1363,6 +1449,10 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         }
         accountDao.save(account)
 
+        and: "Default bid response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
+
         when: "PBS processes auction request"
         def response = floorsPbsService.sendAuctionRequest(bidRequest)
 
@@ -1380,7 +1470,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def floorValue = PBSUtils.randomFloorValue
         def bidRequest = bidRequestWithFloors.tap {
             imp[0].bidFloor = floorValue
-            ext.prebid.floors.data.modelGroups << ModelGroup.modelGroup
+            ext.prebid.floors.data.modelGroups << FloorModelGroup.modelGroup
             ext.prebid.floors.data.modelGroups.first().values = [(rule): floorValue + 0.1]
             ext.prebid.floors.data.modelGroups.first().modelWeight = invalidModelWeight
             ext.prebid.floors.data.modelGroups.last().values = [(rule): floorValue + 0.2]
@@ -1392,6 +1482,10 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
             config.auction.priceFloors.fetch.enabled = false
         }
         accountDao.save(account)
+
+        and: "Default bid response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
         def response = floorsPbsService.sendAuctionRequest(bidRequest)
@@ -1416,7 +1510,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def floorValue = PBSUtils.randomFloorValue
         def ampStoredRequest = storedRequestWithFloors.tap {
             imp[0].bidFloor = floorValue
-            ext.prebid.floors.data.modelGroups << ModelGroup.modelGroup
+            ext.prebid.floors.data.modelGroups << FloorModelGroup.modelGroup
             ext.prebid.floors.data.modelGroups.first().values = [(rule): floorValue + 0.1]
             ext.prebid.floors.data.modelGroups.first().modelWeight = invalidModelWeight
             ext.prebid.floors.data.modelGroups.last().values = [(rule): floorValue + 0.2]
@@ -1430,6 +1524,10 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
             config.auction.priceFloors.fetch.enabled = false
         }
         accountDao.save(account)
+
+        and: "Default bid response"
+        def bidResponse = BidResponse.getDefaultBidResponse(ampStoredRequest)
+        bidder.setResponse(ampStoredRequest.id, bidResponse)
 
         when: "PBS processes auction request"
         def response = floorsPbsService.sendAmpRequest(ampRequest)
@@ -1451,7 +1549,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def floorValue = PBSUtils.randomFloorValue
         def bidRequest = bidRequestWithFloors.tap {
             imp[0].bidFloor = floorValue
-            ext.prebid.floors.data.modelGroups << ModelGroup.modelGroup
+            ext.prebid.floors.data.modelGroups << FloorModelGroup.modelGroup
             ext.prebid.floors.data.modelGroups.first().values = [(rule): floorValue + 0.1]
             ext.prebid.floors.data.modelGroups[0].skipRate = 0
             ext.prebid.floors.data.skipRate = 0
@@ -1468,6 +1566,10 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "PBS fetch rules from floors provider"
         cacheFloorsProviderRules(bidRequest)
+
+        and: "Default bid response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
         def response = floorsPbsService.sendAuctionRequest(bidRequest)
@@ -1490,7 +1592,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def floorValue = PBSUtils.randomFloorValue
         def bidRequest = bidRequestWithFloors.tap {
             imp[0].bidFloor = floorValue
-            ext.prebid.floors.data.modelGroups << ModelGroup.modelGroup
+            ext.prebid.floors.data.modelGroups << FloorModelGroup.modelGroup
             ext.prebid.floors.data.modelGroups.first().values = [(rule): floorValue + 0.1]
             ext.prebid.floors.data.modelGroups[0].skipRate = 0
             ext.prebid.floors.data.skipRate = invalidSkipRate
@@ -1507,6 +1609,10 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "PBS fetch rules from floors provider"
         cacheFloorsProviderRules(bidRequest)
+
+        and: "Default bid response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
         def response = floorsPbsService.sendAuctionRequest(bidRequest)
@@ -1529,7 +1635,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def floorValue = PBSUtils.randomFloorValue
         def bidRequest = bidRequestWithFloors.tap {
             imp[0].bidFloor = floorValue
-            ext.prebid.floors.data.modelGroups << ModelGroup.modelGroup
+            ext.prebid.floors.data.modelGroups << FloorModelGroup.modelGroup
             ext.prebid.floors.data.modelGroups.first().values = [(rule): floorValue + 0.1]
             ext.prebid.floors.data.modelGroups[0].skipRate = invalidSkipRate
             ext.prebid.floors.data.skipRate = 0
@@ -1546,6 +1652,10 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "PBS fetch rules from floors provider"
         cacheFloorsProviderRules(bidRequest)
+
+        and: "Default bid response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
         def response = floorsPbsService.sendAuctionRequest(bidRequest)
@@ -1568,7 +1678,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def invalidDefaultFloorValue = DEFAULT_FLOOR_VALUE_MIN - 1
         def bidRequest = bidRequestWithFloors.tap {
             imp[0].bidFloor = floorValue
-            ext.prebid.floors.data.modelGroups << ModelGroup.modelGroup
+            ext.prebid.floors.data.modelGroups << FloorModelGroup.modelGroup
             ext.prebid.floors.data.modelGroups.first().values = [(rule): floorValue + 0.1]
             ext.prebid.floors.data.modelGroups[0].defaultFloor = invalidDefaultFloorValue
             ext.prebid.floors.data.modelGroups.last().values = [(rule): floorValue + 0.2]
@@ -1581,6 +1691,10 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         }
         accountDao.save(account)
 
+        and: "Default bid response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
+
         when: "PBS processes auction request"
         def response = floorsPbsService.sendAuctionRequest(bidRequest)
 
@@ -1592,6 +1706,226 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def message = "Price floor modelGroup default must be positive float, but was $invalidDefaultFloorValue"
         assert response.ext?.warnings[PREBID]*.code == [999]
         assert response.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE(message)]
+    }
+
+    def "PBS shouldn't emit error in log and response when floors is not in request and floors fetching disabled for account"() {
+        given: "Account with disabled fetching"
+        def account = getAccountWithEnabledFetch(bidRequest.accountId).tap {
+            config.auction.priceFloors.fetch.enabled = false
+            config.auction.priceFloors.fetch.url = null
+        }
+        accountDao.save(account)
+
+        and: "Default bid response"
+        def response = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, response)
+
+        and: "Flush metrics"
+        flushMetrics(floorsPbsService)
+
+        when: "PBS processes auction request"
+        def bidResponse = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS shouldn't log warning or errors"
+        assert !bidResponse.ext?.warnings
+        assert !bidResponse.ext?.errors
+
+        and: "PBS shouldn't log a errors"
+        def message = "Price floor rules data must be present"
+        def logs = floorsPbsService.getLogsByTime(startTime)
+        def floorsLogs = getLogsByText(logs, PRICE_FLOORS_ERROR_LOG(bidRequest, FETCHING_DISABLED_ERROR, message))
+        assert !floorsLogs.size()
+
+        and: "PBS request on response object status should be in progress"
+        assert getRequests(bidResponse)[GENERIC.value]?.first?.ext?.prebid?.floors?.fetchStatus == NONE
+
+        and: "PBS bidderRequest status should be in progress"
+        def bidderRequest = bidder.getBidderRequests(bidRequest.id)
+        assert bidderRequest.ext.prebid.floors.fetchStatus == [NONE]
+
+        and: "Alerts.general metrics shouldn't be populated"
+        def metrics = floorsPbsService.sendCollectedMetricsRequest()
+        assert !metrics[ALERT_GENERAL]
+
+        where:
+        bidRequest << [BidRequest.getDefaultBidRequest(), getBidRequestWithFloors().tap { it.ext.prebid.floors = null }]
+    }
+
+    def "PBS should emit error in log and response when floor data is empty and floors fetching disabled for account and #requestFloorEnabled for request"() {
+        given: "Default BidRequest with empty floors.data"
+        def bidRequest = bidRequestWithFloors.tap {
+            it.ext.prebid.floors.enabled = requestFloorEnabled
+            it.ext.prebid.floors.data = null
+        }
+
+        and: "Account with disabled fetching"
+        def account = getAccountWithEnabledFetch(bidRequest.accountId).tap {
+            it.config.auction.priceFloors.fetch.enabled = false
+        }
+        accountDao.save(account)
+
+        and: "Default bid response"
+        def response = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, response)
+
+        and: "Flush metrics"
+        flushMetrics(floorsPbsService)
+
+        when: "PBS processes auction request"
+        def bidResponse = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS should log a warning"
+        def message = "Price floor rules data must be present"
+        assert bidResponse.ext?.warnings[PREBID]*.code == [999]
+        assert bidResponse.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE(message)]
+
+        and: "PBS should not add errors"
+        assert !bidResponse.ext.errors
+
+        and: "PBS should log a errors"
+        def logs = floorsPbsService.getLogsByTime(startTime)
+        def floorsLogs = getLogsByText(logs, PRICE_FLOORS_ERROR_LOG(bidRequest, FETCHING_DISABLED_ERROR, message))
+        assert floorsLogs.size() == 1
+
+        and: "PBS request on response object status should be not in progress"
+        assert getRequests(bidResponse)[GENERIC.value]?.first?.ext?.prebid?.floors?.fetchStatus == NONE
+
+        and: "PBS request status shouldn't be in progress"
+        def bidderRequest = bidder.getBidderRequests(bidRequest.id)
+        assert bidderRequest.ext.prebid.floors.fetchStatus == [NONE]
+
+        and: "Alerts.general metrics should be populated"
+        def metrics = floorsPbsService.sendCollectedMetricsRequest()
+        assert metrics[ALERT_GENERAL] == 1
+
+        where:
+        requestFloorEnabled << [null, true]
+    }
+
+    def "PBS shouldn't emit error in log and response when floor data is empty and floors fetching disabled for account and floors disabled for request"() {
+        given: "Default BidRequest with empty floors.data"
+        def bidRequest = bidRequestWithFloors.tap {
+            it.ext.prebid.floors.enabled = false
+            it.ext.prebid.floors.data = null
+        }
+
+        and: "Account with disabled fetching"
+        def account = getAccountWithEnabledFetch(bidRequest.accountId).tap {
+            it.config.auction.priceFloors.fetch.enabled = false
+        }
+        accountDao.save(account)
+
+        and: "Default bid response"
+        def response = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, response)
+
+        and: "Flush metrics"
+        flushMetrics(floorsPbsService)
+
+        when: "PBS processes auction request"
+        def bidResponse = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS shouldn't log warning or errors"
+        assert !bidResponse.ext?.warnings
+        assert !bidResponse.ext?.errors
+
+        and: "PBS shouldn't log a errors"
+        def message = "Price floor rules data must be present"
+        def logs = floorsPbsService.getLogsByTime(startTime)
+        def floorsLogs = getLogsByText(logs, PRICE_FLOORS_ERROR_LOG(bidRequest, FETCHING_DISABLED_ERROR, message))
+        assert !floorsLogs.size()
+
+        and: "Alerts.general metrics shouldn't be populated"
+        def metrics = floorsPbsService.sendCollectedMetricsRequest()
+        assert !metrics[ALERT_GENERAL]
+    }
+
+    def "PBS shouldn't emit error in log and response when data is invalid and floors fetching enabled for account"() {
+        given: "Default BidRequest with empty floors.data"
+        def bidRequest = bidRequestWithFloors.tap {
+            ext.prebid.floors.enabled = requestEnabledFloors
+            ext.prebid.floors.data = null
+        }
+
+        and: "Account with enabled fetching"
+        def account = getAccountWithEnabledFetch(bidRequest.accountId)
+        accountDao.save(account)
+
+        and: "Default bid response"
+        def response = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, response)
+
+        and: "Flush metrics"
+        flushMetrics(floorsPbsService)
+
+        when: "PBS processes auction request"
+        def bidResponse = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS shouldn't log warning or errors"
+        assert !bidResponse.ext?.warnings
+        assert !bidResponse.ext?.errors
+
+        and: "PBS shouldn't log a errors"
+        def message = "Price floor rules data must be present"
+        def logs = floorsPbsService.getLogsByTime(startTime)
+        def floorsLogs = getLogsByText(logs, PRICE_FLOORS_ERROR_LOG(bidRequest, FETCHING_DISABLED_ERROR, message))
+        assert !floorsLogs.size()
+
+        and: "PBS request on response object status should be in progress"
+        assert getRequests(bidResponse)[GENERIC.value]?.first?.ext?.prebid?.floors?.fetchStatus == INPROGRESS
+
+        and: "PBS bidderRequest status should be in progress"
+        def bidderRequest = bidder.getBidderRequests(bidRequest.id)
+        assert bidderRequest.ext.prebid.floors.fetchStatus == [INPROGRESS]
+
+        and: "Alerts.general metrics shouldn't be populated"
+        def metrics = floorsPbsService.sendCollectedMetricsRequest()
+        assert !metrics[ALERT_GENERAL]
+
+        where:
+        requestEnabledFloors << [null, true]
+    }
+
+    def "PBS shouldn't emit error in log and response when data is invalid and floors disabled for account"() {
+        given: "Default BidRequest with empty floors.data"
+        def bidRequest = bidRequestWithFloors.tap {
+            ext.prebid.floors.data = null
+        }
+
+        and: "Account with disabled fetching"
+        def account = getAccountWithEnabledFetch(bidRequest.accountId).tap {
+            config.auction.priceFloors.enabled = false
+            config.auction.priceFloors.fetch.enabled = false
+        }
+        accountDao.save(account)
+
+        and: "PBS fetch rules from floors provider"
+        cacheFloorsProviderRules(bidRequest, floorsPbsService)
+
+        and: "Default bid response"
+        def response = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, response)
+
+        and: "Flush metrics"
+        flushMetrics(floorsPbsService)
+
+        when: "PBS processes auction request"
+        def bidResponse = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS should not add warning or errors"
+        assert !bidResponse.ext.warnings
+        assert !bidResponse.ext.errors
+
+        and: "PBS request on response object status should be empty"
+        assert getRequests(bidResponse)[GENERIC.value]?.first?.ext?.prebid?.floors?.fetchStatus == null
+
+        and: "PBS request status should be empty"
+        def bidderRequest = bidder.getBidderRequests(bidRequest.id)
+        assert bidderRequest.ext.prebid.floors.fetchStatus.every { it == null }
+
+        and: "Alerts.general metrics shouldn't be populated"
+        def metrics = floorsPbsService.sendCollectedMetricsRequest()
+        assert !metrics[ALERT_GENERAL]
     }
 
     def "PBS should not invalidate previously good fetched data when floors provider return invalid data"() {
@@ -1662,7 +1996,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         and: "Set Floors Provider response"
         def floorValue = PBSUtils.randomFloorValue
         def floorsResponse = PriceFloorData.priceFloorData.tap {
-            modelGroups << ModelGroup.modelGroup
+            modelGroups << FloorModelGroup.modelGroup
             modelGroups.first().values = [(rule): floorValue + 0.1]
             modelGroups.first().modelWeight = invalidModelWeight
             modelGroups.last().values = [(rule): floorValue]
@@ -1691,7 +2025,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def logs = floorsPbsService.getLogsByTime(startTime)
         def floorsLogs = getLogsByText(logs, "$BASIC_FETCH_URL$bidRequest.accountId")
         assert floorsLogs.size() == 1
-        assert floorsLogs[0].contains(URL_EMPTY_ERROR_LOG(bidRequest, MODEL_WEIGHT_INVALID.formatted(invalidModelWeight)))
+        assert floorsLogs[0].contains(FETCHING_FLOORS_ERROR_LOG(bidRequest, MODEL_WEIGHT_INVALID.formatted(invalidModelWeight)))
 
         and: "Floors validation failure cannot reject the entire auction"
         assert !response.seatbid?.isEmpty()
@@ -1718,7 +2052,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         and: "Set Floors Provider response"
         def floorValue = PBSUtils.randomFloorValue
         def floorsResponse = PriceFloorData.priceFloorData.tap {
-            modelGroups << ModelGroup.modelGroup
+            modelGroups << FloorModelGroup.modelGroup
             modelGroups.first().values = [(rule): floorValue + 0.1]
             modelGroups[0].skipRate = 0
             skipRate = invalidSkipRate
@@ -1749,7 +2083,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def logs = floorsPbsService.getLogsByTime(startTime)
         def floorsLogs = getLogsByText(logs, "$BASIC_FETCH_URL$bidRequest.accountId")
         assert floorsLogs.size() == 1
-        assert floorsLogs[0].contains(URL_EMPTY_ERROR_LOG(bidRequest, message))
+        assert floorsLogs[0].contains(FETCHING_FLOORS_ERROR_LOG(bidRequest, message))
 
         and: "Floors validation failure cannot reject the entire auction"
         assert !response.seatbid?.isEmpty()
@@ -1776,7 +2110,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         and: "Set Floors Provider response"
         def floorValue = PBSUtils.randomFloorValue
         def floorsResponse = PriceFloorData.priceFloorData.tap {
-            modelGroups << ModelGroup.modelGroup
+            modelGroups << FloorModelGroup.modelGroup
             modelGroups.first().values = [(rule): floorValue + 0.1]
             modelGroups[0].skipRate = invalidSkipRate
             skipRate = 0
@@ -1806,7 +2140,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def logs = floorsPbsService.getLogsByTime(startTime)
         def floorsLogs = getLogsByText(logs, "$BASIC_FETCH_URL$bidRequest.accountId")
         assert floorsLogs.size() == 1
-        assert floorsLogs[0].contains(URL_EMPTY_ERROR_LOG(bidRequest, SKIP_RATE_INVALID.formatted(invalidSkipRate)))
+        assert floorsLogs[0].contains(FETCHING_FLOORS_ERROR_LOG(bidRequest, SKIP_RATE_INVALID.formatted(invalidSkipRate)))
 
         and: "Floors validation failure cannot reject the entire auction"
         assert !response.seatbid?.isEmpty()
@@ -1834,7 +2168,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def floorValue = PBSUtils.randomFloorValue
         def invalidDefaultFloor = DEFAULT_FLOOR_VALUE_MIN - 1
         def floorsResponse = PriceFloorData.priceFloorData.tap {
-            modelGroups << ModelGroup.modelGroup
+            modelGroups << FloorModelGroup.modelGroup
             modelGroups.first().values = [(rule): floorValue + 0.1]
             modelGroups[0].defaultFloor = invalidDefaultFloor
             modelGroups.last().values = [(rule): floorValue]
@@ -1864,7 +2198,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def logs = floorsPbsService.getLogsByTime(startTime)
         def floorsLogs = getLogsByText(logs, "$BASIC_FETCH_URL$bidRequest.accountId")
         assert floorsLogs.size() == 1
-        assert floorsLogs[0].contains(URL_EMPTY_ERROR_LOG(bidRequest, message))
+        assert floorsLogs[0].contains(FETCHING_FLOORS_ERROR_LOG(bidRequest, message))
 
         and: "Floors validation failure cannot reject the entire auction"
         assert !response.seatbid?.isEmpty()
