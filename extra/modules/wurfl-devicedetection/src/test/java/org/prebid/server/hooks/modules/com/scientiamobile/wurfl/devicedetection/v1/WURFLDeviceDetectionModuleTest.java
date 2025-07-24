@@ -10,7 +10,7 @@ import java.util.Collection;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class WURFLDeviceDetectionModuleTest {
+public class WURFLDeviceDetectionModuleTest {
 
     @Test
     public void codeShouldReturnCorrectModuleCode() {

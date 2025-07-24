@@ -103,7 +103,6 @@ public class OrtbDeviceUpdater implements PayloadUpdate<AuctionRequestPayload> {
     }
 
     private Integer getWurflDeviceType() {
-
         try {
             if (wurflDevice.getVirtualCapabilityAsBool("is_mobile")) {
                 // if at least one of these capabilities is not defined, the mobile device type is undefined
@@ -133,6 +132,7 @@ public class OrtbDeviceUpdater implements PayloadUpdate<AuctionRequestPayload> {
             }
         } catch (CapabilityNotDefinedException | VirtualCapabilityNotDefinedException | NumberFormatException e) {
             logger.warn("Failed to determine device type from WURFL device capabilities", e);
+            return null;
         }
         return null;
     }
