@@ -130,6 +130,11 @@ public class OrtbDeviceUpdater implements PayloadUpdate<AuctionRequestPayload> {
             if (wurflDevice.getCapabilityAsBool("is_ott")) {
                 return 7;
             }
+
+            final String physicalFormFactor = wurflDevice.getCapability("physical_form_factor");
+            if (physicalFormFactor != null && physicalFormFactor.equals("out_of_home_device")) {
+                return 8;
+            }
         } catch (CapabilityNotDefinedException | VirtualCapabilityNotDefinedException | NumberFormatException e) {
             logger.warn("Failed to determine device type from WURFL device capabilities", e);
         }
