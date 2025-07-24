@@ -89,6 +89,11 @@ public class TheTradeDeskBidder implements Bidder<BidRequest> {
             }
         }
 
+        if (StringUtils.isBlank(sourceSupplyId) && StringUtils.isBlank(supplyId)) {
+            return Result.withError(
+                BidderError.badInput("Either supplySourceId or a default endpoint must be provided"));
+        }
+
         final BidRequest outgoingRequest = modifyRequest(request, modifiedImps, publisherId);
         final HttpRequest<BidRequest> httpRequest = BidderUtil.defaultRequest(
                 outgoingRequest,
