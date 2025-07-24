@@ -22,13 +22,13 @@ import org.prebid.server.model.UpdateResult;
 
 import java.util.Objects;
 
-public class RuleEngineProcessedAuctionRequestHook implements ProcessedAuctionRequestHook {
+public class PbRuleEngineProcessedAuctionRequestHook implements ProcessedAuctionRequestHook {
 
-    private static final String CODE = "rule-engine-processed-auction-request";
+    private static final String CODE = "pb-rule-engine-processed-auction-request";
 
     private final RuleParser ruleParser;
 
-    public RuleEngineProcessedAuctionRequestHook(RuleParser ruleParser) {
+    public PbRuleEngineProcessedAuctionRequestHook(RuleParser ruleParser) {
         this.ruleParser = Objects.requireNonNull(ruleParser);
     }
 
@@ -49,8 +49,8 @@ public class RuleEngineProcessedAuctionRequestHook implements ProcessedAuctionRe
                 .map(PerStageRule::processedAuctionRequestRule)
                 .map(rule -> rule.process(
                         bidRequest, RequestResultContext.of(context, Granularity.Request.instance())))
-                .flatMap(RuleEngineProcessedAuctionRequestHook::succeeded)
-                .recover(RuleEngineProcessedAuctionRequestHook::failure);
+                .flatMap(PbRuleEngineProcessedAuctionRequestHook::succeeded)
+                .recover(PbRuleEngineProcessedAuctionRequestHook::failure);
     }
 
     private static Future<InvocationResult<AuctionRequestPayload>> succeeded(RuleResult<BidRequest> result) {

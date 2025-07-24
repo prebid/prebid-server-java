@@ -24,7 +24,7 @@
         <module>pb-response-correction</module>
         <module>greenbids-real-time-data</module>
         <module>pb-request-correction</module>
-        <module>rule-engine</module>
+        <module>pb-rule-engine</module>
     </modules>
 
     <dependencyManagement>

@@ -12,7 +12,7 @@ import org.prebid.server.hooks.modules.rule.engine.core.request.RequestMatchingR
 import org.prebid.server.hooks.modules.rule.engine.core.request.RequestSpecification;
 import org.prebid.server.hooks.modules.rule.engine.core.request.context.RequestResultContext;
 import org.prebid.server.hooks.modules.rule.engine.core.request.context.RequestSchemaContext;
-import org.prebid.server.hooks.modules.rule.engine.v1.RuleEngineModule;
+import org.prebid.server.hooks.modules.rule.engine.v1.PbRuleEngineModule;
 import org.prebid.server.json.ObjectMapperProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -24,12 +24,12 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.random.RandomGenerator;
 
 @Configuration
-@ConditionalOnProperty(prefix = "hooks." + RuleEngineModule.CODE, name = "enabled", havingValue = "true")
-public class RuleEngineModuleConfiguration {
+@ConditionalOnProperty(prefix = "hooks." + PbRuleEngineModule.CODE, name = "enabled", havingValue = "true")
+public class PbRuleEngineModuleConfiguration {
 
     @Bean
-    RuleEngineModule ruleEngineModule(RuleParser ruleParser) {
-        return new RuleEngineModule(ruleParser);
+    PbRuleEngineModule ruleEngineModule(RuleParser ruleParser) {
+        return new PbRuleEngineModule(ruleParser);
     }
 
     @Bean
@@ -57,12 +57,12 @@ public class RuleEngineModuleConfiguration {
 
     @Bean
     RuleParser ruleParser(
-            @Value("${hooks.rule-engine.rule-cache.expire-after-minutes}") long cacheExpireAfterMinutes,
-            @Value("${hooks.rule-engine.rule-cache.max-size}") long cacheMaxSize,
-            @Value("${hooks.rule-engine.rule-parsing.retry-initial-delay-millis}") long delay,
-            @Value("${hooks.rule-engine.rule-parsing.retry-max-delay-millis}") long maxDelay,
-            @Value("${hooks.rule-engine.rule-parsing.retry-exponential-factor}") double factor,
-            @Value("${hooks.rule-engine.rule-parsing.retry-exponential-jitter}") double jitter,
+            @Value("${hooks.pb-rule-engine.rule-cache.expire-after-minutes}") long cacheExpireAfterMinutes,
+            @Value("${hooks.pb-rule-engine.rule-cache.max-size}") long cacheMaxSize,
+            @Value("${hooks.pb-rule-engine.rule-parsing.retry-initial-delay-millis}") long delay,
+            @Value("${hooks.pb-rule-engine.rule-parsing.retry-max-delay-millis}") long maxDelay,
+            @Value("${hooks.pb-rule-engine.rule-parsing.retry-exponential-factor}") double factor,
+            @Value("${hooks.pb-rule-engine.rule-parsing.retry-exponential-jitter}") double jitter,
             AccountConfigParser accountConfigParser,
             Vertx vertx,
             Clock clock) {

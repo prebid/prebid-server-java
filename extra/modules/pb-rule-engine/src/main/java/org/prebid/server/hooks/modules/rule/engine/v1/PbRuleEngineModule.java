@@ -8,15 +8,15 @@ import org.prebid.server.hooks.v1.Module;
 import java.util.Collection;
 import java.util.Collections;
 
-public class RuleEngineModule implements Module {
+public class PbRuleEngineModule implements Module {
 
-    public static final String CODE = "rule-engine";
+    public static final String CODE = "pb-rule-engine";
 
     private final Collection<? extends Hook<?, ? extends InvocationContext>> hooks;
 
-    public RuleEngineModule(RuleParser ruleParser) {
+    public PbRuleEngineModule(RuleParser ruleParser) {
         this.hooks = Collections.singleton(
-                new RuleEngineProcessedAuctionRequestHook(ruleParser));
+                new PbRuleEngineProcessedAuctionRequestHook(ruleParser));
     }
 
     @Override

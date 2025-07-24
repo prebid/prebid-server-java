@@ -57,7 +57,7 @@
         </dependency>
         <dependency>
             <groupId>org.prebid.server.hooks.modules</groupId>
-            <artifactId>rule-engine</artifactId>
+            <artifactId>pb-rule-engine</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>
