@@ -105,8 +105,8 @@ hooks:
     }
   modules:
     wurfl-devicedetection:
-      wurfl-file-dir-path: </path/to/wurfl_snapshot_dir>
-      wurfl-snapshot-url: https://data.scientiamobile.com/<your_wurfl_snapshot_url>/wurfl.zip
+      file-dir-path: </path/to/wurfl_snapshot_dir>
+      file-snapshot-url: https://data.scientiamobile.com/<your_wurfl_snapshot_url>/wurfl.zip
       cache-size: 200000
       update-frequency-in-hours: 24
       allowed-publisher-ids: 1
@@ -117,8 +117,8 @@ hooks:
 
 | Parameter                       | Requirement | Description                                                                                       |
 |---------------------------------|-------------|---------------------------------------------------------------------------------------------------|
-| **`wurfl-file-dir-path`**       | Mandatory   | Path to the directory where the WURFL file is downloaded. Directory must exist and be writable.   |
-| **`wurfl-snapshot-url`**        | Mandatory   | URL of the licensed WURFL snapshot file to be downloaded when Prebid Server Java starts.          |
+| **`file-dir-path`**             | Mandatory   | Path to the directory where the WURFL file is downloaded. Directory must exist and be writable.   |
+| **`file-snapshot-url`**         | Mandatory   | URL of the licensed WURFL snapshot file to be downloaded when Prebid Server Java starts.          |
 | **`cache-size`**                | Optional    | Maximum number of devices stored in the WURFL cache. Defaults to the WURFL cache's standard size. |
 | **`ext-caps`**                  | Optional    | If `true`, the module adds all licensed capabilities to the `device.ext` object.                  |
 | **`update-frequency-in-hours`** | Optional    | Check interval (hours) for downloading updated wurfl file if modified. Defaults to 24 hours       |
