@@ -36,7 +36,8 @@ public class OrtbDeviceUpdaterTest {
     @BeforeEach
     void setUp() {
         staticCaps = Set.of("ajax_support_javascript", "brand_name", "density_class",
-                "is_connected_tv", "is_ott", "is_tablet", "model_name", "resolution_height", "resolution_width");
+                "is_connected_tv", "is_ott", "is_tablet", "model_name", "resolution_height", "resolution_width",
+                "physical_form_factor");
         virtualCaps = Set.of("advertised_device_os", "advertised_device_os_version",
                 "is_full_desktop", "pixel_density");
         mapper = new JacksonMapper(ObjectMapperProvider.mapper());
@@ -216,6 +217,24 @@ public class OrtbDeviceUpdaterTest {
         // then
         final Device resultDevice = result.bidRequest().getDevice();
         assertThat(resultDevice.getDevicetype()).isEqualTo(7);
+    }
+
+    @Test
+    public void updateShouldHandleOutOfHomeDeviceType() {
+        // given
+        final Device device = Device.builder().build();
+        final BidRequest bidRequest = BidRequest.builder().device(device).build();
+        given(wurflDevice.getCapability("physical_form_factor")).willReturn("out_of_home_device");
+        given(wurflDevice.getCapabilityAsBool("is_tablet")).willReturn(false);
+        given(wurflDevice.getCapabilityAsBool("is_wireless_device")).willReturn(false);
+        final OrtbDeviceUpdater target = new OrtbDeviceUpdater(wurflDevice, staticCaps, virtualCaps, true, mapper);
+        given(payload.bidRequest()).willReturn(bidRequest);
+        // when
+        final AuctionRequestPayload result = target.apply(payload);
+
+        // then
+        final Device resultDevice = result.bidRequest().getDevice();
+        assertThat(resultDevice.getDevicetype()).isEqualTo(8);
     }
 
     @Test
