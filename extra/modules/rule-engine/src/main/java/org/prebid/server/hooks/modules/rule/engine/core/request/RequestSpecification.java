@@ -46,7 +46,7 @@ public class RequestSpecification implements
         StageSpecification<RequestSchemaContext, BidRequest, RequestResultContext> {
 
     public static final Set<String> PER_IMP_SCHEMA_FUNCTIONS =
-            Set.of(AdUnitCodeFunction.NAME, MediaTypeInFunction.NAME);
+            Set.of(AdUnitCodeFunction.NAME, AdUnitCodeInFunction.NAME, MediaTypeInFunction.NAME);
 
     private final Map<String, SchemaFunction<RequestSchemaContext>> schemaFunctions;
     private final Map<String, ResultFunction<BidRequest, RequestResultContext>> resultFunctions;
