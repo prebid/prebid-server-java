@@ -40,4 +40,6 @@ public class ExtBidPrebid {
 
     @JsonProperty("passthrough")
     JsonNode passThrough;
+
+    Integer rank;
 }

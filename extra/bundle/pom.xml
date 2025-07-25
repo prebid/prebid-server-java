@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.prebid</groupId>
         <artifactId>prebid-server-aggregator</artifactId>
-        <version>3.25.0-SNAPSHOT</version>
+        <version>3.29.0-SNAPSHOT</version>
         <relativePath>../../extra/pom.xml</relativePath>
     </parent>
 
@@ -57,7 +57,7 @@
         </dependency>
         <dependency>
             <groupId>org.prebid.server.hooks.modules</groupId>
-            <artifactId>rule-engine</artifactId>
+            <artifactId>pb-rule-engine</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>

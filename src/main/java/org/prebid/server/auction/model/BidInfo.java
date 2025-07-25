@@ -37,6 +37,8 @@ public class BidInfo {
 
     Integer vastTtl;
 
+    Integer rank;
+
     public String getBidId() {
         final ObjectNode extNode = bid != null ? bid.getExt() : null;
         final JsonNode bidIdNode = extNode != null ? extNode.path("prebid").path("bidid") : null;
