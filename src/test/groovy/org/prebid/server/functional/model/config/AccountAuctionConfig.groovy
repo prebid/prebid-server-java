@@ -35,6 +35,7 @@ class AccountAuctionConfig {
     @JsonProperty("bidadjustments")
     BidAdjustment bidAdjustments
     BidRounding bidRounding
+    Integer impressionLimit
 
     @JsonProperty("price_granularity")
     PriceGranularityType priceGranularitySnakeCase
@@ -54,4 +55,7 @@ class AccountAuctionConfig {
     AccountPriceFloorsConfig priceFloorsSnakeCase
     @JsonProperty("bid_rounding")
     BidRounding bidRoundingSnakeCase
+    @JsonProperty("impression_limit")
+    Integer impressionLimitSnakeCase
+
 }
