@@ -8,7 +8,7 @@ class RuleEngineFunctionArgs {
     List<Object> datacenters
     List<Object> sources
     List<Object> sids
-    Object ptc
+    Object pct
     String key
     List<Object> domains
     List<Object> bundles
@@ -24,7 +24,7 @@ class RuleEngineFunctionArgs {
             datacenters = [PBSUtils.randomString]
             sources = [PBSUtils.randomString]
             sids = [PBSUtils.randomNumber]
-            ptc = PBSUtils.randomString
+            pct = PBSUtils.randomString
             key = PBSUtils.randomString
             domains = [PBSUtils.randomString]
             bundles = [PBSUtils.randomString]

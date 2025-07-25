@@ -31,7 +31,7 @@ public class MediaTypeInFunction implements SchemaFunction<RequestSchemaContext>
         final BidRequest bidRequest = context.getBidRequest();
 
         final Imp adUnit = ListUtils.emptyIfNull(bidRequest.getImp()).stream()
-                .filter(imp -> StringUtils.equals(impId, impId))
+                .filter(imp -> StringUtils.equals(imp.getId(), impId))
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException(
                         "Critical error in rules engine. Imp id of absent imp supplied"));
