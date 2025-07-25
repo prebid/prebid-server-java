@@ -518,23 +518,6 @@ public class PubmaticBidder implements Bidder<BidRequest> {
                 : bidsFromResponse(bidResponse, bidderErrors);
     }
 
-    private String resolveNativeAdm(String adm, List<BidderError> bidderErrors) {
-        final JsonNode admNode;
-        try {
-            admNode = mapper.mapper().readTree(adm);
-        } catch (JsonProcessingException e) {
-            bidderErrors.add(BidderError.badServerResponse("Unable to parse native adm: %s".formatted(adm)));
-            return null;
-        }
-
-        final JsonNode nativeNode = admNode.get("native");
-        if (nativeNode != null && !nativeNode.isMissingNode()) {
-            return nativeNode.toString();
-        }
-
-        return null;
-    }
-
     private List<BidderBid> bidsFromResponse(PubmaticBidResponse bidResponse, List<BidderError> bidderErrors) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
@@ -600,6 +583,23 @@ public class PubmaticBidder implements Bidder<BidRequest> {
                 yield null;
             }
         };
+    }
+
+    private String resolveNativeAdm(String adm, List<BidderError> bidderErrors) {
+        final JsonNode admNode;
+        try {
+            admNode = mapper.mapper().readTree(adm);
+        } catch (JsonProcessingException e) {
+            bidderErrors.add(BidderError.badServerResponse("Unable to parse native adm: %s".formatted(adm)));
+            return null;
+        }
+
+        final JsonNode nativeNode = admNode.get("native");
+        if (nativeNode != null && !nativeNode.isMissingNode()) {
+            return nativeNode.toString();
+        }
+
+        return null;
     }
 
     private ObjectNode updateBidExtWithExtPrebid(PubmaticBidExt pubmaticBidExt, BidType type, ObjectNode extBid) {
