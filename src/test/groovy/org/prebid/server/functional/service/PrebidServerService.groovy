@@ -30,6 +30,7 @@ import org.prebid.server.functional.model.response.setuid.SetuidResponse
 import org.prebid.server.functional.model.response.status.StatusResponse
 import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
 import org.prebid.server.functional.util.ObjectMapperWrapper
+import org.prebid.server.functional.util.PBSUtils
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -412,7 +413,12 @@ class PrebidServerService implements ObjectMapperWrapper {
     }
 
     Boolean isContainLogsByValue(String value) {
-        getPbsLogsByValue(value) != null
+        try {
+            PBSUtils.waitUntil({ getPbsLogsByValue(value) != null })
+            true
+        } catch (IllegalStateException ignored) {
+            false
+        }
     }
 
     private String getPbsLogsByValue(String value) {

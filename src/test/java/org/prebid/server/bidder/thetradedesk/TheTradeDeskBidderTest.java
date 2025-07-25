@@ -95,14 +95,12 @@ public class TheTradeDeskBidderTest extends VertxTest {
                 .satisfies(headers -> assertThat(headers.get(CONTENT_TYPE_HEADER))
                         .isEqualTo(APPLICATION_JSON_CONTENT_TYPE))
                 .satisfies(headers -> assertThat(headers.get(ACCEPT_HEADER))
-                        .isEqualTo(APPLICATION_JSON_VALUE))
-                .satisfies(headers -> assertThat(headers.get("x-integration-type"))
-                        .isEqualTo("1"));
+                        .isEqualTo(APPLICATION_JSON_VALUE));
         assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
-    public void makeHttpRequestsShouldUseCorrectUri() {
+    public void makeHttpRequestsShouldUseConfiguredSupplyIdWhenImpExtSupplyIdIsNotProvided() {
         // given
         final BidRequest bidRequest = givenBidRequest(identity(), identity());
 
@@ -114,6 +112,42 @@ public class TheTradeDeskBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
                 .containsExactly("https://test.endpoint.com/supplyid");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUseImpExtSupplyIdWhenProvided() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                imp -> imp.ext(impExt("publisher", "supplySourceId")));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://test.endpoint.com/supplySourceId");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUseFirstFoundSupplySourceId() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                imp -> imp.ext(impExt("publisher", null)),
+                imp -> imp.ext(impExt("publisher", "supplySourceId1")),
+                imp -> imp.ext(impExt("publisher", "supplySourceId2")));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://test.endpoint.com/supplySourceId1");
     }
 
     @Test
@@ -149,6 +183,21 @@ public class TheTradeDeskBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().getFirst().getMessage()).startsWith("Cannot deserialize value");
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorWhenBothSupplySourceIdAndSupplyIdAreNull() {
+        final TheTradeDeskBidder bidderWithNullSupplyId = new TheTradeDeskBidder(ENDPOINT_URL, jacksonMapper, null);
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                imp -> imp.ext(impExt("publisher", null)));
+
+        final Result<List<HttpRequest<BidRequest>>> result = bidderWithNullSupplyId.makeHttpRequests(bidRequest);
+
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors().getFirst().getMessage())
+                .isEqualTo("Either supplySourceId or a default endpoint must be provided");
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -259,7 +308,7 @@ public class TheTradeDeskBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnAppWithPublisherOfTheFirsrExtImp() {
+    public void makeHttpRequestsShouldReturnAppWithPublisherOfTheFirstExtImp() {
         final BidRequest bidRequest = givenBidRequest(
                 request -> request.app(App.builder().build()),
                 imp -> imp.ext(impExt("newPublisher")),
@@ -453,7 +502,11 @@ public class TheTradeDeskBidderTest extends VertxTest {
     }
 
     private static ObjectNode impExt(String publisherId) {
-        return mapper.valueToTree(ExtPrebid.of(null, ExtImpTheTradeDesk.of(publisherId)));
+        return impExt(publisherId, null);
+    }
+
+    private static ObjectNode impExt(String publisherId, String supplySourceId) {
+        return mapper.valueToTree(ExtPrebid.of(null, ExtImpTheTradeDesk.of(publisherId, supplySourceId)));
     }
 
 }

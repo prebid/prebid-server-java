@@ -14,9 +14,10 @@ import org.prebid.server.activity.infrastructure.privacy.PrivacySection;
 import org.prebid.server.activity.infrastructure.privacy.uscustomlogic.USCustomLogicDataSupplier;
 import org.prebid.server.activity.infrastructure.privacy.uscustomlogic.USCustomLogicModule;
 import org.prebid.server.auction.gpp.model.GppContext;
-import org.prebid.server.exception.InvalidAccountConfigException;
-import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JsonLogic;
+import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.SettingsCache;
@@ -34,6 +35,9 @@ import java.util.stream.Stream;
 
 public class USCustomLogicModuleCreator implements PrivacyModuleCreator {
 
+    private static final Logger logger = LoggerFactory.getLogger(USCustomLogicModuleCreator.class);
+    private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
+
     private static final Set<Integer> ALLOWED_SECTIONS_IDS =
             PrivacySection.US_PRIVACY_SECTIONS.stream()
                     .map(PrivacySection::sectionId)
@@ -43,16 +47,19 @@ public class USCustomLogicModuleCreator implements PrivacyModuleCreator {
     private final JsonLogic jsonLogic;
     private final Map<String, JsonLogicNode> jsonLogicNodesCache;
     private final Metrics metrics;
+    private final double samplingRate;
 
     public USCustomLogicModuleCreator(USCustomLogicGppReaderFactory gppReaderFactory,
                                       JsonLogic jsonLogic,
                                       Integer cacheTtl,
                                       Integer cacheSize,
-                                      Metrics metrics) {
+                                      Metrics metrics,
+                                      double samplingRate) {
 
         this.gppReaderFactory = Objects.requireNonNull(gppReaderFactory);
         this.jsonLogic = Objects.requireNonNull(jsonLogic);
         this.metrics = Objects.requireNonNull(metrics);
+        this.samplingRate = samplingRate;
 
         jsonLogicNodesCache = cacheTtl != null && cacheSize != null
                 ? SettingsCache.createCache(cacheTtl, cacheSize, 0)
@@ -76,6 +83,7 @@ public class USCustomLogicModuleCreator implements PrivacyModuleCreator {
                 ? SetUtils.emptyIfNull(scope.getSectionsIds()).stream()
                 .filter(sectionId -> shouldApplyPrivacy(sectionId, moduleConfig))
                 .map(sectionId -> forConfig(sectionId, normalizeSection, scope.getGppModel(), jsonLogicConfig))
+                .filter(Objects::nonNull)
                 .toList()
                 : Collections.emptyList();
 
@@ -123,25 +131,25 @@ public class USCustomLogicModuleCreator implements PrivacyModuleCreator {
                                     GppModel gppModel,
                                     ObjectNode jsonLogicConfig) {
 
-        return new USCustomLogicModule(
-                jsonLogic,
-                jsonLogicNode(jsonLogicConfig),
-                USCustomLogicDataSupplier.of(gppReaderFactory.forSection(sectionId, normalizeSection, gppModel)));
+        try {
+            return new USCustomLogicModule(
+                    jsonLogic,
+                    jsonLogicNode(jsonLogicConfig),
+                    USCustomLogicDataSupplier.of(gppReaderFactory.forSection(sectionId, normalizeSection, gppModel)));
+        } catch (Exception e) {
+            conditionalLogger.error(
+                    "USCustomLogic creation failed: %s. Config: %s".formatted(e.getMessage(), jsonLogicConfig),
+                    samplingRate);
+            metrics.updateAlertsMetrics(MetricName.general);
+
+            return null;
+        }
     }
 
     private JsonLogicNode jsonLogicNode(ObjectNode jsonLogicConfig) {
         final String jsonAsString = jsonLogicConfig.toString();
         return jsonLogicNodesCache != null
-                ? jsonLogicNodesCache.computeIfAbsent(jsonAsString, this::parseJsonLogicNode)
-                : parseJsonLogicNode(jsonAsString);
-    }
-
-    private JsonLogicNode parseJsonLogicNode(String jsonLogicConfig) {
-        try {
-            return jsonLogic.parse(jsonLogicConfig);
-        } catch (DecodeException e) {
-            metrics.updateAlertsMetrics(MetricName.general);
-            throw new InvalidAccountConfigException("JsonLogic exception: " + e.getMessage());
-        }
+                ? jsonLogicNodesCache.computeIfAbsent(jsonAsString, jsonLogic::parse)
+                : jsonLogic.parse(jsonAsString);
     }
 }

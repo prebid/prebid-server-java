@@ -15,6 +15,9 @@
           "w": 300,
           "h": 250,
           "ext": {
+            "rp": {
+              "advid": "1"
+            },
             "prebid": {
               "meta": {
                 "advertiserId": 1,
