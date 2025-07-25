@@ -79,6 +79,22 @@ public class Nexx360BidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsedInTheSecondImp() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                imp -> imp.id("imp1"),
+                imp -> imp.id("imp2").ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly(BidderError.badInput("imp.ext.prebid.bidder can't be parsed"));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
     public void makeHttpRequestsShouldCreateSingleRequest() {
         // given
         final BidRequest bidRequest = givenBidRequest(

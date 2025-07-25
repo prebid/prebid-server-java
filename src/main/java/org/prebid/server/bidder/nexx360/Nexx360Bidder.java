@@ -1,6 +1,8 @@
 package org.prebid.server.bidder.nexx360;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
@@ -32,6 +34,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class Nexx360Bidder implements Bidder<BidRequest> {
@@ -61,16 +64,12 @@ public class Nexx360Bidder implements Bidder<BidRequest> {
             final List<Imp> imps = request.getImp();
             for (int i = 0; i < imps.size(); i++) {
                 final Imp imp = imps.get(i);
-                final ExtImpNexx360 extImp = parseBidderExt(imp);
-                final Imp modifiedImp = imp.toBuilder()
-                        .ext(mapper.mapper().createObjectNode().set(BIDDER_NAME, mapper.mapper().valueToTree(extImp)))
-                        .build();
-                modifiedImps.add(modifiedImp);
-
                 if (i == 0) {
+                    final ExtImpNexx360 extImp = parseImpExt(imp);
                     tagId = extImp.getTagId();
                     placement = extImp.getPlacement();
                 }
+                modifiedImps.add(modifyImp(imp));
             }
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
@@ -81,12 +80,21 @@ public class Nexx360Bidder implements Bidder<BidRequest> {
         return Result.withValue(BidderUtil.defaultRequest(modifiedRequest, url, mapper));
     }
 
-    private ExtImpNexx360 parseBidderExt(Imp imp) {
+    private ExtImpNexx360 parseImpExt(Imp imp) {
         try {
             return mapper.mapper().convertValue(imp.getExt(), TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage());
         }
+    }
+
+    private Imp modifyImp(Imp imp) {
+        return Optional.ofNullable(imp.getExt())
+                .map(prebid -> prebid.get("bidder"))
+                .filter(JsonNode::isObject)
+                .map(bidder -> (ObjectNode) mapper.mapper().createObjectNode().set(BIDDER_NAME, bidder))
+                .map(ext -> imp.toBuilder().ext(ext).build())
+                .orElseThrow(() -> new PreBidException("imp.ext.prebid.bidder can't be parsed"));
     }
 
     private BidRequest makeRequest(BidRequest request, List<Imp> imps) {
