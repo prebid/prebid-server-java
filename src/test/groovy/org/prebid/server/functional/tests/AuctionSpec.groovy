@@ -733,7 +733,6 @@ class AuctionSpec extends BaseSpec {
         }
 
         and: "Account in the DB with impression limit config"
-
         def accountConfig = new AccountConfig(auction: accountAuctionConfig)
         def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
         accountDao.save(account)
@@ -763,6 +762,9 @@ class AuctionSpec extends BaseSpec {
 
         and: "Response should contain seat bid"
         assert response.seatbid[0].bid.size() == IMP_LIMIT
+
+        and: "Bidder request should contain imps according to limit"
+        assert bidder.getBidderRequest(bidRequest.id).imp.size() == IMP_LIMIT
 
         where:
         accountAuctionConfig << [
@@ -802,6 +804,9 @@ class AuctionSpec extends BaseSpec {
 
         and: "Response should contain seat bid"
         assert response.seatbid[0].bid.size() == bidRequest.imp.size()
+
+        and: "Bidder request should contain originals imps"
+        assert bidder.getBidderRequest(bidRequest.id).imp.size() == bidRequest.imp.size()
     }
 
     def "PBS shouldn't drop extra impressions when number of impressions less than or equal to impression-limit"() {
@@ -836,6 +841,9 @@ class AuctionSpec extends BaseSpec {
 
         and: "Response should contain seat bid"
         assert response.seatbid[0].bid.size() == bidRequest.imp.size()
+
+        and: "Bidder request should contain originals imps"
+        assert bidder.getBidderRequest(bidRequest.id).imp.size() == bidRequest.imp.size()
     }
 
     def "PBS shouldn't drop extra impressions when impression-limit set to #impressionLimit"() {
@@ -870,7 +878,10 @@ class AuctionSpec extends BaseSpec {
         and: "Response should contain seat bid"
         assert response.seatbid[0].bid.size() == bidRequest.imp.size()
 
+        and: "Bidder request should contain originals imps"
+        assert bidder.getBidderRequest(bidRequest.id).imp.size() == bidRequest.imp.size()
+
         where:
-        impressionLimit << [null, 0]
+        impressionLimit << [null, PBSUtils.randomNegativeNumber, 0]
     }
 }
