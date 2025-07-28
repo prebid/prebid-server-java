@@ -1,8 +1,6 @@
 package org.prebid.server.bidder.nexx360;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
@@ -34,7 +32,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class Nexx360Bidder implements Bidder<BidRequest> {
@@ -55,28 +52,22 @@ public class Nexx360Bidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
+        final List<Imp> imps = request.getImp();
         final List<Imp> modifiedImps = new ArrayList<>();
 
-        String tagId = null;
-        String placement = null;
-
+        final ExtImpNexx360 firstExtImp;
         try {
-            final List<Imp> imps = request.getImp();
-            for (int i = 0; i < imps.size(); i++) {
-                final Imp imp = imps.get(i);
-                if (i == 0) {
-                    final ExtImpNexx360 extImp = parseImpExt(imp);
-                    tagId = extImp.getTagId();
-                    placement = extImp.getPlacement();
-                }
-                modifiedImps.add(modifyImp(imp));
-            }
+            firstExtImp = parseImpExt(imps.getFirst());
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
+        for (final Imp imp : imps) {
+            modifiedImps.add(modifyImp(imp));
+        }
+
         final BidRequest modifiedRequest = makeRequest(request, modifiedImps);
-        final String url = makeUrl(tagId, placement);
+        final String url = makeUrl(firstExtImp.getTagId(), firstExtImp.getPlacement());
         return Result.withValue(BidderUtil.defaultRequest(modifiedRequest, url, mapper));
     }
 
@@ -89,12 +80,9 @@ public class Nexx360Bidder implements Bidder<BidRequest> {
     }
 
     private Imp modifyImp(Imp imp) {
-        return Optional.ofNullable(imp.getExt())
-                .map(prebid -> prebid.get("bidder"))
-                .filter(JsonNode::isObject)
-                .map(bidder -> (ObjectNode) mapper.mapper().createObjectNode().set(BIDDER_NAME, bidder))
-                .map(ext -> imp.toBuilder().ext(ext).build())
-                .orElseThrow(() -> new PreBidException("imp.ext.prebid.bidder can't be parsed"));
+        return imp.toBuilder()
+                .ext(mapper.mapper().createObjectNode().set(BIDDER_NAME, imp.getExt().get("bidder")))
+                .build();
     }
 
     private BidRequest makeRequest(BidRequest request, List<Imp> imps) {
