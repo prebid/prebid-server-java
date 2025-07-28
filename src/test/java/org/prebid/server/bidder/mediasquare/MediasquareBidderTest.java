@@ -14,8 +14,6 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.mediasquare.request.MediasquareBanner;
 import org.prebid.server.bidder.mediasquare.request.MediasquareCode;
@@ -57,7 +55,6 @@ import static org.prebid.server.util.HttpUtil.APPLICATION_JSON_CONTENT_TYPE;
 import static org.prebid.server.util.HttpUtil.CONTENT_TYPE_HEADER;
 import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
 
-@ExtendWith(MockitoExtension.class)
 public class MediasquareBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
@@ -221,12 +218,10 @@ public class MediasquareBidderTest extends VertxTest {
 
         final MediasquareRequest expectedRequest = MediasquareRequest.builder()
                 .codes(List.of(expectedCode1, expectedCode2, expectedCode3))
-                .dsa(mapper.valueToTree(givenDsa))
+                .dsa(givenDsa)
                 .gdpr(MediasquareGdpr.of(true, "consent_str"))
                 .type("pbs")
-                .support(MediasquareSupport.of(
-                        mapper.valueToTree(givenDevice),
-                        mapper.valueToTree(givenApp)))
+                .support(MediasquareSupport.of(givenDevice, givenApp))
                 .test(true)
                 .build();
 

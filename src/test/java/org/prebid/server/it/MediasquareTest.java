@@ -25,8 +25,7 @@ public class MediasquareTest extends IntegrationTest {
         // when
         final Response response = responseFor(
                 "openrtb2/mediasquare/test-auction-mediasquare-request.json",
-                Endpoint.openrtb2_auction
-        );
+                Endpoint.openrtb2_auction);
 
         // then
         assertJsonEquals(

@@ -2,10 +2,8 @@ package org.prebid.server.bidder.mediasquare;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
@@ -37,6 +35,7 @@ import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsa;
 import org.prebid.server.proto.openrtb.ext.request.mediasquare.ExtImpMediasquare;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
@@ -112,7 +111,9 @@ public class MediasquareBidder implements Bidder<MediasquareRequest> {
 
     private static MediasquareCode makeCode(BidRequest bidRequest, Imp imp, ExtImpMediasquare extImp) {
         final MediasquareMediaTypes mediaTypes = makeMediaTypes(imp);
-        final Map<String, MediasquareFloor> floors = makeFloors(imp);
+        final Map<String, MediasquareFloor> floors = mediaTypes == null
+                ? null
+                : makeFloors(MediasquareFloor.of(imp.getBidfloor(), imp.getBidfloorcur()), mediaTypes);
 
         return MediasquareCode.builder()
                 .adUnit(imp.getTagid())
@@ -149,24 +150,21 @@ public class MediasquareBidder implements Bidder<MediasquareRequest> {
         final List<List<Integer>> sizes = new ArrayList<>();
         if (CollectionUtils.isNotEmpty(banner.getFormat())) {
             for (Format format : banner.getFormat()) {
-                if (format != null) {
-                    sizes.add(List.of(format.getW(), format.getH()));
-                }
+                sizes.add(List.of(format.getW(), format.getH()));
             }
-        } else if (banner.getW() != null && banner.getH() != null) {
+        } else {
             sizes.add(List.of(banner.getW(), banner.getH()));
         }
 
-        return sizes.isEmpty() ? null : MediasquareBanner.of(sizes);
+        return MediasquareBanner.of(sizes);
     }
 
-    private static Map<String, MediasquareFloor> makeFloors(Imp imp) {
+    private static Map<String, MediasquareFloor> makeFloors(MediasquareFloor floor, MediasquareMediaTypes mediaTypes) {
         final Map<String, MediasquareFloor> floors = new HashMap<>();
-        final MediasquareFloor floor = MediasquareFloor.of(imp.getBidfloor(), imp.getBidfloorcur());
 
-        final Video video = imp.getVideo();
-        final Banner banner = imp.getBanner();
-        final Native xNative = imp.getXNative();
+        final Video video = mediaTypes.getVideo();
+        final MediasquareBanner banner = mediaTypes.getBanner();
+        final String xNative = mediaTypes.getNativeRequest();
 
         if (video != null) {
             if (video.getW() != null && video.getH() != null) {
@@ -177,14 +175,8 @@ public class MediasquareBidder implements Bidder<MediasquareRequest> {
         }
 
         if (banner != null) {
-            if (CollectionUtils.isNotEmpty(banner.getFormat())) {
-                for (Format format : banner.getFormat()) {
-                    if (format != null) {
-                        floors.put(SIZE_FORMAT.formatted(format.getW(), format.getH()), floor);
-                    }
-                }
-            } else if (banner.getW() != null && banner.getH() != null) {
-                floors.put(SIZE_FORMAT.formatted(banner.getW(), banner.getH()), floor);
+            for (List<Integer> format: banner.getSizes()) {
+                floors.put(SIZE_FORMAT.formatted(format.get(0), format.get(1)), floor);
             }
         }
 
@@ -201,26 +193,25 @@ public class MediasquareBidder implements Bidder<MediasquareRequest> {
                 mediaTypes.getBanner(), mediaTypes.getVideo(), mediaTypes.getNativeRequest());
     }
 
+    private static ExtRegsDsa getDsa(Regs regs) {
+        return Optional.ofNullable(regs)
+                .map(Regs::getExt)
+                .map(ExtRegs::getDsa)
+                .orElse(null);
+    }
+
     private MediasquareRequest makeRequest(BidRequest bidRequest, List<MediasquareCode> codes) {
         final User user = bidRequest.getUser();
         final Regs regs = bidRequest.getRegs();
 
         return MediasquareRequest.builder()
                 .codes(codes)
-                .dsa(makeDsa(regs))
+                .dsa(getDsa(regs))
                 .gdpr(makeGdpr(user, regs))
                 .type("pbs")
-                .support(makeSupport(bidRequest))
+                .support(MediasquareSupport.of(bidRequest.getDevice(), bidRequest.getApp()))
                 .test(Objects.equals(bidRequest.getTest(), 1))
                 .build();
-    }
-
-    private ObjectNode makeDsa(Regs regs) {
-        return Optional.ofNullable(regs)
-                .map(Regs::getExt)
-                .map(ExtRegs::getDsa)
-                .map(dsa -> (ObjectNode) mapper.mapper().valueToTree(dsa))
-                .orElse(null);
     }
 
     private static MediasquareGdpr makeGdpr(User user, Regs regs) {
@@ -230,14 +221,6 @@ public class MediasquareBidder implements Bidder<MediasquareRequest> {
                 .orElse(false);
         final String consent = user != null ? user.getConsent() : null;
         return MediasquareGdpr.of(gdprApplies, consent);
-    }
-
-    private MediasquareSupport makeSupport(BidRequest bidRequest) {
-        final Device device = bidRequest.getDevice();
-        final App app = bidRequest.getApp();
-        return MediasquareSupport.of(
-                device != null ? mapper.mapper().valueToTree(device) : null,
-                app != null ? mapper.mapper().valueToTree(app) : null);
     }
 
     @Override
@@ -259,11 +242,16 @@ public class MediasquareBidder implements Bidder<MediasquareRequest> {
 
         return response.getResponses().stream()
                 .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(makeBid(bid), getBidType(bid), bid.getCurrency()))
+                .map(this::makeBidderBid)
                 .collect(Collectors.toList());
     }
 
-    private Bid makeBid(MediasquareBid bid) {
+    private BidderBid makeBidderBid(MediasquareBid bid) {
+        final BidType bidType = getBidType(bid);
+        return BidderBid.of(makeBid(bid, bidType), bidType, bid.getCurrency());
+    }
+
+    private Bid makeBid(MediasquareBid bid, BidType bidType) {
         return Bid.builder()
                 .id(bid.getId())
                 .impid(bid.getBidId())
@@ -273,20 +261,10 @@ public class MediasquareBidder implements Bidder<MediasquareRequest> {
                 .w(bid.getWidth())
                 .h(bid.getHeight())
                 .crid(bid.getCreativeId())
-                .mtype(getMtype(bid))
+                .mtype(bidType.ordinal() + 1)
                 .burl(bid.getBurl())
                 .ext(getBidExt(bid))
                 .build();
-    }
-
-    private static Integer getMtype(MediasquareBid bid) {
-        if (bid.getVideo() != null) {
-            return 2;
-        }
-        if (bid.getNativeResponse() != null) {
-            return 4;
-        }
-        return 1;
     }
 
     private ObjectNode getBidExt(MediasquareBid bid) {

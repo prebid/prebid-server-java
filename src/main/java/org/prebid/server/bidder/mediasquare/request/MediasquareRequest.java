@@ -1,9 +1,9 @@
 package org.prebid.server.bidder.mediasquare.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
 import lombok.Value;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsa;
 
 import java.util.List;
 
@@ -17,7 +17,7 @@ public class MediasquareRequest {
 
     String type;
 
-    ObjectNode dsa;
+    ExtRegsDsa dsa;
 
     @JsonProperty("tech")
     MediasquareSupport support;
