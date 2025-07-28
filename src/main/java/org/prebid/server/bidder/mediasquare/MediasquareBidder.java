@@ -193,13 +193,6 @@ public class MediasquareBidder implements Bidder<MediasquareRequest> {
                 mediaTypes.getBanner(), mediaTypes.getVideo(), mediaTypes.getNativeRequest());
     }
 
-    private static ExtRegsDsa getDsa(Regs regs) {
-        return Optional.ofNullable(regs)
-                .map(Regs::getExt)
-                .map(ExtRegs::getDsa)
-                .orElse(null);
-    }
-
     private MediasquareRequest makeRequest(BidRequest bidRequest, List<MediasquareCode> codes) {
         final User user = bidRequest.getUser();
         final Regs regs = bidRequest.getRegs();
@@ -212,6 +205,13 @@ public class MediasquareBidder implements Bidder<MediasquareRequest> {
                 .support(MediasquareSupport.of(bidRequest.getDevice(), bidRequest.getApp()))
                 .test(Objects.equals(bidRequest.getTest(), 1))
                 .build();
+    }
+
+    private static ExtRegsDsa getDsa(Regs regs) {
+        return Optional.ofNullable(regs)
+                .map(Regs::getExt)
+                .map(ExtRegs::getDsa)
+                .orElse(null);
     }
 
     private static MediasquareGdpr makeGdpr(User user, Regs regs) {
@@ -251,6 +251,16 @@ public class MediasquareBidder implements Bidder<MediasquareRequest> {
         return BidderBid.of(makeBid(bid, bidType), bidType, bid.getCurrency());
     }
 
+    private static BidType getBidType(MediasquareBid bid) {
+        if (bid.getVideo() != null) {
+            return BidType.video;
+        }
+        if (bid.getNativeResponse() != null) {
+            return BidType.xNative;
+        }
+        return BidType.banner;
+    }
+
     private Bid makeBid(MediasquareBid bid, BidType bidType) {
         return Bid.builder()
                 .id(bid.getId())
@@ -263,14 +273,14 @@ public class MediasquareBidder implements Bidder<MediasquareRequest> {
                 .crid(bid.getCreativeId())
                 .mtype(bidType.ordinal() + 1)
                 .burl(bid.getBurl())
-                .ext(getBidExt(bid))
+                .ext(getBidExt(bid, bidType))
                 .build();
     }
 
-    private ObjectNode getBidExt(MediasquareBid bid) {
+    private ObjectNode getBidExt(MediasquareBid bid, BidType bidType) {
         final ExtBidPrebidMeta meta = ExtBidPrebidMeta.builder()
                 .advertiserDomains(bid.getAdomain() != null ? bid.getAdomain() : null)
-                .mediaType(getBidType(bid).getName())
+                .mediaType(bidType.getName())
                 .build();
 
         final ExtBidPrebid prebid = ExtBidPrebid.builder().meta(meta).build();
@@ -282,15 +292,5 @@ public class MediasquareBidder implements Bidder<MediasquareRequest> {
         bidExt.set("prebid", mapper.mapper().valueToTree(prebid));
 
         return bidExt;
-    }
-
-    private static BidType getBidType(MediasquareBid bid) {
-        if (bid.getVideo() != null) {
-            return BidType.video;
-        }
-        if (bid.getNativeResponse() != null) {
-            return BidType.xNative;
-        }
-        return BidType.banner;
     }
 }
