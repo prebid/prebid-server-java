@@ -163,6 +163,7 @@ public class BidderMediaTypeProcessorTest extends VertxTest {
                 true,
                 OrtbVersion.ORTB_2_6,
                 false,
+                false,
                 "endpoint",
                 null,
                 "maintainerEmail",

@@ -1549,7 +1549,6 @@ public class BidResponseCreator {
         final TargetingInfo targetingInfo = bidInfo.getTargetingInfo();
         final BidType bidType = bidInfo.getBidType();
         final Bid bid = bidInfo.getBid();
-
         final CacheInfo cacheInfo = bidInfo.getCacheInfo();
         final String cacheId = cacheInfo != null ? cacheInfo.getCacheId() : null;
         final String videoCacheId = cacheInfo != null ? cacheInfo.getVideoCacheId() : null;
@@ -1562,9 +1561,10 @@ public class BidResponseCreator {
             final boolean isWinningBid = targetingInfo.isWinningBid();
             final String seat = targetingInfo.getSeat();
             final String categoryDuration = bidInfo.getCategory();
+            final Integer bidDuration = prepareBidDuration(bid, targeting);
             targetingKeywords = keywordsCreator != null
-                    ? keywordsCreator.makeFor(
-                    bid, seat, isWinningBid, cacheId, bidType.getName(), videoCacheId, categoryDuration, account)
+                    ? keywordsCreator.makeFor(bid, seat, isWinningBid, cacheId,
+                    bidType.getName(), videoCacheId, categoryDuration, account, bidDuration)
                     : null;
         } else {
             targetingKeywords = null;
@@ -1573,10 +1573,8 @@ public class BidResponseCreator {
         final CacheAsset bids = cacheId != null ? toCacheAsset(cacheId) : null;
         final CacheAsset vastXml = videoCacheId != null ? toCacheAsset(videoCacheId) : null;
         final ExtResponseCache cache = bids != null || vastXml != null ? ExtResponseCache.of(bids, vastXml) : null;
-
         final ObjectNode originalBidExt = bid.getExt();
         final Boolean dealsTierSatisfied = bidInfo.getSatisfiedPriority();
-
         final boolean bidRankingEnabled = isBidRankingEnabled(account);
 
         final ExtBidPrebid updatedExtBidPrebid =
@@ -1623,6 +1621,30 @@ public class BidResponseCreator {
                 .map(AccountAuctionConfig::getRanking)
                 .map(AccountBidRankingConfig::getEnabled)
                 .orElse(false);
+    }
+
+    private Integer prepareBidDuration(Bid bid, ExtRequestTargeting targeting) {
+        final List<Integer> durationRangePerSec = targeting.getDurationrangesec();
+        if (CollectionUtils.isEmpty(durationRangePerSec)) {
+            return null;
+        }
+
+        final Integer duration = ObjectUtils.firstNonNull(bid.getDur(), getBidMetaDuration(bid));
+        return durationRangePerSec.stream()
+                .sorted()
+                .filter(bucket -> bucket >= duration)
+                .findFirst()
+                // should never occur. See ResponseBidValidator
+                .orElseThrow();
+    }
+
+    private Integer getBidMetaDuration(Bid bid) {
+        return Optional.ofNullable(bid.getExt())
+                .filter(ext -> ext.hasNonNull("prebid"))
+                .map(ext -> convertValue(ext, "prebid", ExtBidPrebid.class))
+                .map(ExtBidPrebid::getMeta)
+                .map(ExtBidPrebidMeta::getDur)
+                .orElse(null);
     }
 
     private String createNativeMarkup(String bidAdm, Imp correspondingImp) {
@@ -1717,9 +1739,7 @@ public class BidResponseCreator {
                 .map(AccountAnalyticsConfig::getAuctionEvents)
                 .map(AccountAuctionEventConfig::getEvents)
                 .orElseGet(AccountAnalyticsConfig::fallbackAuctionEvents);
-
         final String channelFromRequest = channelFromRequest(auctionContext.getBidRequest());
-
         return channelConfig.entrySet().stream()
                 .filter(entry -> StringUtils.equalsIgnoreCase(channelFromRequest, entry.getKey()))
                 .findFirst()
@@ -1731,7 +1751,6 @@ public class BidResponseCreator {
         final ExtRequest ext = bidRequest.getExt();
         final ExtRequestPrebid prebid = ext != null ? ext.getPrebid() : null;
         final ExtRequestPrebidChannel channel = prebid != null ? prebid.getChannel() : null;
-
         return channel != null ? recogniseChannelName(channel.getName()) : null;
     }
 

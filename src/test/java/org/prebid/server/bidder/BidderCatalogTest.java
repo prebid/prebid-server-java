@@ -86,6 +86,7 @@ public class BidderCatalogTest {
         final BidderInfo bidderInfo = BidderInfo.create(
                 true,
                 null,
+                false,
                 true,
                 null,
                 null,
@@ -120,6 +121,7 @@ public class BidderCatalogTest {
         final BidderInfo bidderInfo = BidderInfo.create(
                 true,
                 null,
+                false,
                 true,
                 null,
                 null,
@@ -145,6 +147,7 @@ public class BidderCatalogTest {
         final BidderInfo aliasInfo = BidderInfo.create(
                 true,
                 null,
+                false,
                 true,
                 null,
                 "BIDder",
@@ -183,6 +186,7 @@ public class BidderCatalogTest {
                 .bidderInfo(BidderInfo.create(
                         true,
                         null,
+                        false,
                         true,
                         null,
                         "bidder",
@@ -251,6 +255,7 @@ public class BidderCatalogTest {
         final BidderInfo infoOfBidderWithUsersyncConfig = BidderInfo.create(
                 true,
                 null,
+                false,
                 true,
                 null,
                 "bidder-with-usersync",
@@ -270,6 +275,7 @@ public class BidderCatalogTest {
         final BidderInfo infoOfBidderWithoutUsersyncConfig = BidderInfo.create(
                 true,
                 null,
+                false,
                 true,
                 null,
                 "bidder-without-usersync",
@@ -289,6 +295,7 @@ public class BidderCatalogTest {
         final BidderInfo infoOfDisabledBidderWithUsersyncConfig = BidderInfo.create(
                 false,
                 null,
+                false,
                 true,
                 null,
                 "bidder-with-usersync",
@@ -359,6 +366,7 @@ public class BidderCatalogTest {
         final BidderInfo bidderInfo = BidderInfo.create(
                 true,
                 null,
+                false,
                 true,
                 null,
                 null,

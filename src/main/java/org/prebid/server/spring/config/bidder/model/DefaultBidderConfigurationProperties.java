@@ -20,6 +20,9 @@ public class DefaultBidderConfigurationProperties {
     private OrtbVersion ortbVersion;
 
     @NotNull
+    private Boolean adpodSupported;
+
+    @NotNull
     private Boolean pbsEnforcesCcpa;
 
     @NotNull

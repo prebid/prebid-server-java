@@ -60,4 +60,8 @@ public class AccountAuctionConfig {
     AccountCacheConfig cache;
 
     AccountBidRankingConfig ranking;
+
+    @JsonAlias("ad-podding")
+    @JsonProperty("adpodding")
+    AccountAdPoddingConfig adPodding;
 }

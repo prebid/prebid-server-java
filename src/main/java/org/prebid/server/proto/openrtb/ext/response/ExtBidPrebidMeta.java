@@ -69,4 +69,5 @@ public class ExtBidPrebidMeta {
 
     String seat;
 
+    Integer dur;
 }

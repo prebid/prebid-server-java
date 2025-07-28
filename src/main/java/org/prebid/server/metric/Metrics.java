@@ -382,6 +382,11 @@ public class Metrics extends UpdatableMetrics {
         forAccount(accountId).response().validation().secure().incCounter(type);
     }
 
+    public void updateAdPoddingValidationMetrics(String bidder, String accountId, MetricName type) {
+        forAdapter(bidder).response().validation().pod().incCounter(type);
+        forAccount(accountId).response().validation().pod().incCounter(type);
+    }
+
     public void updateSeatValidationMetrics(String bidder) {
         forAdapter(bidder).response().validation().incCounter(MetricName.seat);
     }
