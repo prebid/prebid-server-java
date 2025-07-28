@@ -1,6 +1,7 @@
 adapters:
   rediads:
-    endpoint: https://bidding.rediads.com/openrtb2/auction
+    endpoint: https://{{SUBDOMAIN}}.rediads.com/openrtb2/auction
+    default-subdomain: bidding
     ortb-version: "2.6"
     modifying-vast-xml-allowed: true
     meta-info:

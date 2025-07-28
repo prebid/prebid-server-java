@@ -27,8 +27,6 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -40,13 +38,16 @@ public class RediadsBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpRediads>> TYPE_REFERENCE = new TypeReference<>() {
     };
+    private static final String SUBDOMAIN_MACRO = "{{SUBDOMAIN}}";
 
     private final String endpointUrl;
+    private final String defaultSubdomain;
     private final JacksonMapper mapper;
 
-    public RediadsBidder(String endpointUrl, JacksonMapper mapper) {
+    public RediadsBidder(String endpointUrl, JacksonMapper mapper, String defaultSubdomain) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
+        this.defaultSubdomain = Objects.requireNonNull(defaultSubdomain);
     }
 
     @Override
@@ -123,21 +124,8 @@ public class RediadsBidder implements Bidder<BidRequest> {
         return app.toBuilder().publisher(newPublisher).build();
     }
 
-    private String resolveEndpointUrl(String endpoint) {
-        if (StringUtils.isBlank(endpoint)) {
-            return endpointUrl;
-        }
-
-        try {
-            final URL originalUrl = new URL(endpointUrl);
-            final String originalHost = originalUrl.getHost();
-            final String[] hostParts = originalHost.split("\\.");
-            hostParts[0] = endpoint;
-            final String newHost = String.join(".", hostParts);
-            return endpointUrl.replace(originalHost, newHost);
-        } catch (MalformedURLException e) {
-            throw new PreBidException("Failed to parse endpoint URL: " + endpointUrl);
-        }
+    private String resolveEndpointUrl(String subdomain) {
+        return endpointUrl.replace(SUBDOMAIN_MACRO, StringUtils.defaultIfBlank(subdomain, defaultSubdomain));
     }
 
     @Override

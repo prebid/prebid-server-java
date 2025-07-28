@@ -35,13 +35,14 @@ import static org.prebid.server.bidder.model.BidderError.badServerResponse;
 
 public class RediadsBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "http://sub.domain.com/path";
+    private static final String ENDPOINT_URL = "http://{{SUBDOMAIN}}.domain.com/path";
 
-    private final RediadsBidder target = new RediadsBidder(ENDPOINT_URL, jacksonMapper);
+    private final RediadsBidder target = new RediadsBidder(ENDPOINT_URL, jacksonMapper, "subdomain");
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new RediadsBidder("invalid_url", jacksonMapper));
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> new RediadsBidder("invalid_url", jacksonMapper, "subdomain"));
     }
 
     @Test
@@ -150,7 +151,7 @@ public class RediadsBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsExactly(ENDPOINT_URL);
+                .containsExactly("http://subdomain.domain.com/path");
     }
 
     @Test

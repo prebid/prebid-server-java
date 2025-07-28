@@ -1,5 +1,8 @@
 package org.prebid.server.spring.config.bidder;
 
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.rediads.RediadsBidder;
 import org.prebid.server.json.JacksonMapper;
@@ -23,19 +26,31 @@ public class RediadsConfiguration {
 
     @Bean("rediadsConfigurationProperties")
     @ConfigurationProperties("adapters.rediads")
-    BidderConfigurationProperties configurationProperties() {
-        return new BidderConfigurationProperties();
+    RediadsConfigurationProperties configurationProperties() {
+        return new RediadsConfigurationProperties();
     }
 
     @Bean
-    BidderDeps rediadsBidderDeps(BidderConfigurationProperties rediadsConfigurationProperties,
+    BidderDeps rediadsBidderDeps(RediadsConfigurationProperties rediadsConfigurationProperties,
                                  @NotBlank @Value("${external-url}") String externalUrl,
                                  JacksonMapper mapper) {
 
-        return BidderDepsAssembler.forBidder(BIDDER_NAME)
+        return BidderDepsAssembler.<RediadsConfigurationProperties>forBidder(BIDDER_NAME)
                 .withConfig(rediadsConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new RediadsBidder(config.getEndpoint(), mapper))
+                .bidderCreator(config -> new RediadsBidder(
+                        config.getEndpoint(),
+                        mapper,
+                        config.getDefaultSubdomain()))
                 .assemble();
+    }
+
+    @Data
+    @EqualsAndHashCode(callSuper = true)
+    @NoArgsConstructor
+    private static class RediadsConfigurationProperties extends BidderConfigurationProperties {
+
+        @NotBlank
+        private String defaultSubdomain;
     }
 }
