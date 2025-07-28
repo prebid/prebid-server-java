@@ -173,6 +173,7 @@ public class AkceloBidder implements Bidder<BidRequest> {
     private BidType getExtBidPrebidType(Bid bid, List<BidderError> errors) {
         return Optional.ofNullable(bid.getExt())
                 .map(ext -> ext.get("prebid"))
+                .filter(JsonNode::isObject)
                 .map(ObjectNode.class::cast)
                 .map(this::parseExtBidPrebid)
                 .map(ExtBidPrebid::getType)
