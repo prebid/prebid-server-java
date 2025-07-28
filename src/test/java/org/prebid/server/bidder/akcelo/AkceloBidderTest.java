@@ -64,21 +64,6 @@ public class AkceloBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldNotReturnErrorWhenSiteIdBeParsedInTheSecondImp() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                imp -> imp.id("imp1"),
-                imp -> imp.id("imp2").ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getValue()).hasSize(1);
-    }
-
-    @Test
     public void makeHttpRequestsShouldCorrectlyModifyRequest() {
         // given
         final ObjectNode extImp1 = givenImpExt(1, "1", 1);

@@ -54,32 +54,22 @@ public class AkceloBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
+        final List<Imp> imps = request.getImp();
         final List<Imp> modifiedImps = new ArrayList<>();
-        final List<BidderError> errors = new ArrayList<>();
 
-        String siteId = null;
-
+        final ExtImpAkcelo firstExtImp;
         try {
-            final List<Imp> imps = request.getImp();
-            for (int i = 0; i < imps.size(); i++) {
-                final Imp imp = imps.get(i);
-                if (i == 0) {
-                    final ExtImpAkcelo extImp = parseImpExt(imp);
-                    siteId = extImp.getSiteId();
-                }
-                modifiedImps.add(modifyImp(imp));
-            }
+            firstExtImp = parseImpExt(imps.getFirst());
         } catch (PreBidException e) {
-            errors.add(BidderError.badInput(e.getMessage()));
+            return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
-        if (modifiedImps.isEmpty()) {
-            return Result.withErrors(errors);
+        for (final Imp imp : imps) {
+            modifiedImps.add(modifyImp(imp));
         }
 
-        final BidRequest outgoingRequest = modifyRequest(request, modifiedImps, siteId);
-        final HttpRequest<BidRequest> httpRequest = BidderUtil.defaultRequest(outgoingRequest, endpointUrl, mapper);
-        return Result.of(Collections.singletonList(httpRequest), errors);
+        final BidRequest outgoingRequest = modifyRequest(request, modifiedImps, firstExtImp.getSiteId());
+        return Result.withValue(BidderUtil.defaultRequest(outgoingRequest, endpointUrl, mapper));
     }
 
     private ExtImpAkcelo parseImpExt(Imp imp) {
@@ -91,12 +81,9 @@ public class AkceloBidder implements Bidder<BidRequest> {
     }
 
     private Imp modifyImp(Imp imp) {
-        return Optional.ofNullable(imp.getExt())
-                .map(prebid -> prebid.get("bidder"))
-                .filter(JsonNode::isObject)
-                .map(bidder -> (ObjectNode) mapper.mapper().createObjectNode().set(BIDDER_NAME, bidder))
-                .map(ext -> imp.toBuilder().ext(ext).build())
-                .orElseThrow(() -> new PreBidException("imp.ext.prebid.bidder can't be parsed"));
+        return imp.toBuilder()
+                .ext(mapper.mapper().createObjectNode().set(BIDDER_NAME, imp.getExt().get("bidder")))
+                .build();
     }
 
     private BidRequest modifyRequest(BidRequest request, List<Imp> imps, String siteId) {
