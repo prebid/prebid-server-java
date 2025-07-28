@@ -204,7 +204,7 @@ public class Ortb2RequestFactory {
             metrics.updateImpsDroppedMetric(imps.size() - impsLimit);
             warnings.add(("Only first %d impressions were kept due to the limit, "
                     + "all the subsequent impressions have been dropped for the auction").formatted(impsLimit));
-            return Future.succeededFuture(bidRequest.toBuilder().imp(imps.stream().limit(impsLimit).toList()).build());
+            return Future.succeededFuture(bidRequest.toBuilder().imp(imps.subList(0, impsLimit)).build());
         }
 
         return Future.succeededFuture(bidRequest);
