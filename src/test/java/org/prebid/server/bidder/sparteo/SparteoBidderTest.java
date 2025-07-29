@@ -63,7 +63,6 @@ public class SparteoBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> assertThat(error.getMessage())
                         .startsWith("ignoring imp id=impId, error processing ext: invalid imp.ext"));
-        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
@@ -76,7 +75,6 @@ public class SparteoBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = sparteoBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1);
     }
 
@@ -101,7 +99,7 @@ public class SparteoBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
                 .extracting((JsonNode ext) -> ext.at("/sparteo/params/key").asText())
-                .containsExactly("value");
+                .containsExactly("", "value");
     }
 
     @Test
@@ -169,32 +167,6 @@ public class SparteoBidderTest extends VertxTest {
                 .extracting(Publisher::getExt)
                 .extracting(ext -> ((ExtPublisher) ext).getProperties().get("params").get("networkId").asText())
                 .containsExactly("id1");
-    }
-
-    @Test
-    public void makeHttpRequestsShouldMergeBidderAndSparteoParams() {
-        // given
-        final ObjectNode impExt = mapper.createObjectNode();
-        impExt.set("bidder", mapper.createObjectNode().put("paramFromBidder", "value1"));
-        final ObjectNode sparteoNode = impExt.putObject("sparteo");
-        sparteoNode.putObject("params").put("paramFromSparteo", "value2");
-
-        final BidRequest bidRequest = givenBidRequest(givenImp(imp -> imp.ext(impExt)));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = sparteoBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getExt)
-                .extracting(ext -> ext.at("/sparteo/params"))
-                .allSatisfy(params -> {
-                    assertThat(params.at("/paramFromBidder").asText()).isEqualTo("value1");
-                    assertThat(params.at("/paramFromSparteo").asText()).isEqualTo("value2");
-                });
     }
 
     @Test

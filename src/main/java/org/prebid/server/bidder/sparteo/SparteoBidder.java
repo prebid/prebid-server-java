@@ -32,9 +32,7 @@ import org.prebid.server.util.HttpUtil;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -58,21 +56,18 @@ public class SparteoBidder implements Bidder<BidRequest> {
         String siteNetworkId = null;
 
         for (Imp imp : request.getImp()) {
-            try {
-                final ExtImpSparteo bidderParams = parseExtImp(imp);
-
-                if (siteNetworkId == null && bidderParams.getNetworkId() != null) {
-                    siteNetworkId = bidderParams.getNetworkId();
+            if (siteNetworkId == null) {
+                try {
+                    siteNetworkId = parseExtImp(imp).getNetworkId();
+                } catch (PreBidException e) {
+                    errors.add(BidderError.badInput(
+                            "ignoring imp id=%s, error processing ext: %s".formatted(
+                                    imp.getId(), e.getMessage())));
                 }
-
-                final ObjectNode modifiedExt = modifyImpExt(imp);
-
-                modifiedImps.add(imp.toBuilder().ext(modifiedExt).build());
-            } catch (PreBidException e) {
-                errors.add(BidderError.badInput(
-                        "ignoring imp id=%s, error processing ext: %s".formatted(
-                                imp.getId(), e.getMessage())));
             }
+
+            final ObjectNode modifiedExt = modifyImpExt(imp);
+            modifiedImps.add(imp.toBuilder().ext(modifiedExt).build());
         }
 
         if (modifiedImps.isEmpty()) {
@@ -99,24 +94,10 @@ public class SparteoBidder implements Bidder<BidRequest> {
 
     private static ObjectNode modifyImpExt(Imp imp) {
         final ObjectNode modifiedImpExt = imp.getExt().deepCopy();
-        final JsonNode sparteoJsonNode = modifiedImpExt.get("sparteo");
-        final ObjectNode sparteoNode = sparteoJsonNode == null || !sparteoJsonNode.isObject()
-                ? modifiedImpExt.putObject("sparteo")
-                : (ObjectNode) sparteoJsonNode;
-
-        final JsonNode paramsJsonNode = sparteoNode.get("params");
-        final ObjectNode paramsNode = paramsJsonNode == null || !paramsJsonNode.isObject()
-                ? sparteoNode.putObject("params")
-                : (ObjectNode) paramsJsonNode;
-
+        final ObjectNode sparteoNode = modifiedImpExt.putObject("sparteo");
         final JsonNode bidderJsonNode = modifiedImpExt.remove("bidder");
-        if (bidderJsonNode != null && bidderJsonNode.isObject()) {
-            final Iterator<Map.Entry<String, JsonNode>> fields = bidderJsonNode.fields();
-            while (fields.hasNext()) {
-                final Map.Entry<String, JsonNode> field = fields.next();
-                paramsNode.set(field.getKey(), field.getValue());
-            }
-        }
+        sparteoNode.set("params", bidderJsonNode);
+
         return modifiedImpExt;
     }
 
@@ -125,26 +106,31 @@ public class SparteoBidder implements Bidder<BidRequest> {
             return site;
         }
 
-        final Publisher publisher = site.getPublisher();
+        final Publisher originalPublisher = site.getPublisher();
+        final ExtPublisher originalExt = originalPublisher.getExt();
 
-        final ExtPublisher extPublisher = publisher.getExt() != null
-                ? publisher.getExt()
+        final ExtPublisher modifiedExt = originalExt != null
+                ? ExtPublisher.of(originalExt.getPrebid())
                 : ExtPublisher.empty();
 
-        final JsonNode paramsProperty = extPublisher.getProperty("params");
+        if (originalExt != null) {
+            mapper.fillExtension(modifiedExt, originalExt);
+        }
+
+        final JsonNode paramsProperty = modifiedExt.getProperty("params");
         final ObjectNode paramsNode;
 
         if (paramsProperty != null && paramsProperty.isObject()) {
             paramsNode = (ObjectNode) paramsProperty;
         } else {
             paramsNode = mapper.mapper().createObjectNode();
-            extPublisher.addProperty("params", paramsNode);
+            modifiedExt.addProperty("params", paramsNode);
         }
 
         paramsNode.put("networkId", siteNetworkId);
 
-        final Publisher modifiedPublisher = publisher.toBuilder()
-                .ext(extPublisher)
+        final Publisher modifiedPublisher = originalPublisher.toBuilder()
+                .ext(modifiedExt)
                 .build();
 
         return site.toBuilder()
@@ -179,6 +165,26 @@ public class SparteoBidder implements Bidder<BidRequest> {
                 .toList();
     }
 
+    private BidderBid toBidderBid(Bid bid, String currency, List<BidderError> errors) {
+        try {
+            final BidType bidType = getBidType(bid);
+
+            final Integer mtype = switch (bidType) {
+                case banner -> 1;
+                case video -> 2;
+                case xNative -> 4;
+                default -> null;
+            };
+
+            final Bid bidWithMtype = mtype != null ? bid.toBuilder().mtype(mtype).build() : bid;
+
+            return BidderBid.of(bidWithMtype, bidType, currency);
+        } catch (PreBidException e) {
+            errors.add(BidderError.badServerResponse(e.getMessage()));
+            return null;
+        }
+    }
+
     private BidType getBidType(Bid bid) throws PreBidException {
         final BidType bidType = Optional.ofNullable(bid.getExt())
                 .map(ext -> ext.get("prebid"))
@@ -200,26 +206,6 @@ public class SparteoBidder implements Bidder<BidRequest> {
         try {
             return mapper.mapper().treeToValue(prebidNode, ExtBidPrebid.class);
         } catch (JsonProcessingException e) {
-            return null;
-        }
-    }
-
-    private BidderBid toBidderBid(Bid bid, String currency, List<BidderError> errors) {
-        try {
-            final BidType bidType = getBidType(bid);
-
-            final Integer mtype = switch (bidType) {
-                case banner -> 1;
-                case video -> 2;
-                case xNative -> 4;
-                default -> null;
-            };
-
-            final Bid bidWithMtype = mtype != null ? bid.toBuilder().mtype(mtype).build() : bid;
-
-            return BidderBid.of(bidWithMtype, bidType, currency);
-        } catch (PreBidException e) {
-            errors.add(BidderError.badServerResponse(e.getMessage()));
             return null;
         }
     }
