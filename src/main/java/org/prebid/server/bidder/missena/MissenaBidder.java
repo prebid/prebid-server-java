@@ -4,10 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
-import com.iab.openrtb.request.Source;
-import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
@@ -24,8 +21,6 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
-import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.missena.ExtImpMissena;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
@@ -39,7 +34,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 public class MissenaBidder implements Bidder<MissenaAdRequest> {
 
@@ -91,10 +85,7 @@ public class MissenaBidder implements Bidder<MissenaAdRequest> {
 
     private HttpRequest<MissenaAdRequest> makeHttpRequest(BidRequest request, Imp imp, ExtImpMissena extImp) {
         final Site site = request.getSite();
-        final User user = request.getUser();
-        final Regs regs = request.getRegs();
         final Device device = request.getDevice();
-        final Source source = request.getSource();
 
         final String requestCurrency = resolveCurrency(request.getCur());
         final Price floorInfo = resolveBidFloor(imp, request, requestCurrency);
@@ -108,22 +99,15 @@ public class MissenaBidder implements Bidder<MissenaAdRequest> {
 
         final MissenaAdRequest missenaAdRequest = MissenaAdRequest.builder()
                 .adUnit(imp.getId())
-                .buyerUid(user != null ? user.getBuyeruid() : null)
-                .coppa(regs != null ? regs.getCoppa() : null)
                 .currency(requestCurrency)
-                .userEids(user != null ? user.getEids() : null)
                 .floor(floorInfo.getValue())
                 .floorCurrency(floorInfo.getCurrency())
-                .gdpr(isGdpr(regs))
-                .gdprConsent(getUserConsent(user))
                 .idempotencyKey(request.getId())
-                .referer(site != null ? site.getPage() : null)
-                .refererCanonical(site != null ? site.getDomain() : null)
                 .requestId(request.getId())
-                .schain(source != null ? source.getSchain() : null)
                 .timeout(request.getTmax())
                 .params(userParams)
                 .version(prebidVersionProvider.getNameVersionRecord())
+                .bidRequest(request)
                 .build();
 
         return HttpRequest.<MissenaAdRequest>builder()
@@ -197,22 +181,6 @@ public class MissenaBidder implements Bidder<MissenaAdRequest> {
 
     private String resolveEndpointUrl(String apiKey) {
         return endpointUrl.replace(PUBLISHER_ID_MACRO, HttpUtil.encodeUrl(apiKey));
-    }
-
-    private static boolean isGdpr(Regs regs) {
-        return Optional.ofNullable(regs)
-                .map(Regs::getExt)
-                .map(ExtRegs::getGdpr)
-                .map(gdpr -> gdpr == 1)
-                .orElse(false);
-    }
-
-    private static String getUserConsent(User user) {
-        return Optional.ofNullable(user)
-                .map(User::getExt)
-                .map(ExtUser::getConsent)
-                .filter(StringUtils::isNotBlank)
-                .orElse(null);
     }
 
     @Override
