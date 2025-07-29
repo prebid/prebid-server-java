@@ -5,7 +5,11 @@ import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
+import org.prebid.server.activity.Activity;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
+import org.prebid.server.hooks.execution.v1.analytics.ActivityImpl;
+import org.prebid.server.hooks.execution.v1.analytics.ResultImpl;
+import org.prebid.server.hooks.execution.v1.analytics.TagsImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.liveintent.omni.channel.identity.model.IdResResponse;
 import org.prebid.server.hooks.modules.liveintent.omni.channel.identity.model.config.ModuleConfig;
@@ -39,6 +43,8 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
     private final JacksonMapper mapper;
     private final HttpClient httpClient;
     private final RandomGenerator random;
+    private final ActivityImpl enriched = ActivityImpl.of("liveintent-enriched", "success", List.of());
+    private final ActivityImpl treatmentRate;
 
     public LiveIntentOmniChannelIdentityProcessedAuctionRequestHook(
             ModuleConfig config,
@@ -50,6 +56,11 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
         this.mapper = Objects.requireNonNull(mapper);
         this.httpClient = Objects.requireNonNull(httpClient);
         this.random = Objects.requireNonNull(random);
+        this.treatmentRate = ActivityImpl.of(
+                "liveintent-treatment-rate",
+                String.valueOf(config.getTreatmentRate()),
+                List.of()
+        );
     }
 
     @Override
@@ -63,6 +74,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
                                     .status(InvocationStatus.success)
                                     .action(InvocationAction.update)
                                     .payloadUpdate(requestPayload -> updatedPayload(requestPayload, resolutionResult))
+                                    .analyticsTags(TagsImpl.of(List.of(enriched, treatmentRate)))
                                     .build())
                     .onFailure(throwable -> logger.error("Failed enrichment:", throwable));
         }
@@ -70,6 +82,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
             InvocationResultImpl.<AuctionRequestPayload>builder()
                 .status(InvocationStatus.success)
                 .action(InvocationAction.no_action)
+                            .analyticsTags(TagsImpl.of(List.of(treatmentRate)))
                 .build());
 
     }

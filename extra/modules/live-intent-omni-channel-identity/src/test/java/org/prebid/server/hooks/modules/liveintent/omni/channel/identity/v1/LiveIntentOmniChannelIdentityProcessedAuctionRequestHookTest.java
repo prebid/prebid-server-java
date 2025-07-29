@@ -64,11 +64,9 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
         moduleConfig.setRequestTimeoutMs(5);
         moduleConfig.setIdentityResolutionEndpoint("https://test.com/idres");
         moduleConfig.setAuthToken("secret_auth_token");
-        moduleConfig.setTreatmentRate(0.9f);
 
         target = new LiveIntentOmniChannelIdentityProcessedAuctionRequestHook(
-                moduleConfig, jacksonMapper, httpClient, random);
-
+                moduleConfig, 0.9f, jacksonMapper, httpClient, random);
     }
 
     @Test
