@@ -48,6 +48,13 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
     @Mock
     private Random random;
 
+    private final ArgumentMatcher<MultiMap> bearerAuthHeaderMatcher = new ArgumentMatcher<>() {
+        @Override
+        public boolean matches(MultiMap entries) {
+            return entries.contains("Authorization", "Bearer " + moduleConfig.getAuthToken(), true);
+        }
+    };
+
     @BeforeEach
     public void setUp() {
         final ObjectMapper mapper = new ObjectMapper();
@@ -61,6 +68,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
 
         target = new LiveIntentOmniChannelIdentityProcessedAuctionRequestHook(
                 moduleConfig, jacksonMapper, httpClient, random);
+
     }
 
     @Test
@@ -95,12 +103,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
         when(
                 httpClient.post(
                         eq(moduleConfig.getIdentityResolutionEndpoint()),
-                        argThat(new ArgumentMatcher<MultiMap>() {
-                            @Override
-                            public boolean matches(MultiMap entries) {
-                                return entries.contains("Authorization", "Bearer " + moduleConfig.getAuthToken(), true);
-                            }
-                        }),
+                        argThat(bearerAuthHeaderMatcher),
                         eq(jacksonMapper.encodeToString(bidRequest)),
                         eq(moduleConfig.getRequestTimeoutMs())
                 )
@@ -111,9 +114,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
         final InvocationResult<AuctionRequestPayload> result = future.result();
 
         // then
-        assertThat(future).isNotNull();
         assertThat(future.succeeded()).isTrue();
-        assertThat(result).isNotNull();
         assertThat(result.status()).isEqualTo(InvocationStatus.success);
         assertThat(result.action()).isEqualTo(InvocationAction.update);
         assertThat(result.payloadUpdate().apply(AuctionRequestPayloadImpl.of(bidRequest))
@@ -141,9 +142,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
         final InvocationResult<AuctionRequestPayload> result = future.result();
 
         // then
-        assertThat(future).isNotNull();
         assertThat(future.succeeded()).isTrue();
-        assertThat(result).isNotNull();
         assertThat(result.status()).isEqualTo(InvocationStatus.success);
         assertThat(result.action()).isEqualTo(InvocationAction.no_action);
         assertThat(result.payloadUpdate()).isNull();
@@ -176,12 +175,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
         when(
                 httpClient.post(
                         eq(moduleConfig.getIdentityResolutionEndpoint()),
-                        argThat(new ArgumentMatcher<MultiMap>() {
-                            @Override
-                            public boolean matches(MultiMap entries) {
-                                return entries.contains("Authorization", "Bearer " + moduleConfig.getAuthToken(), true);
-                            }
-                        }),
+                        argThat(bearerAuthHeaderMatcher),
                         eq(jacksonMapper.encodeToString(bidRequest)),
                         eq(moduleConfig.getRequestTimeoutMs())
                 )
@@ -192,9 +186,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
         final InvocationResult<AuctionRequestPayload> result = future.result();
 
         // then
-        assertThat(future).isNotNull();
         assertThat(future.succeeded()).isTrue();
-        assertThat(result).isNotNull();
         assertThat(result.status()).isEqualTo(InvocationStatus.success);
         assertThat(result.action()).isEqualTo(InvocationAction.update);
         assertThat(result.payloadUpdate()

@@ -19,10 +19,10 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.ListUtil;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -49,31 +49,29 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
         this.config = Objects.requireNonNull(config);
         this.mapper = Objects.requireNonNull(mapper);
         this.httpClient = Objects.requireNonNull(httpClient);
-        this.random = random;
+        this.random = Objects.requireNonNull(random);
     }
 
     @Override
     public Future<InvocationResult<AuctionRequestPayload>> call(
             AuctionRequestPayload auctionRequestPayload,
-            AuctionInvocationContext invocationContext
-    ) {
+            AuctionInvocationContext invocationContext) {
         if (random.nextFloat() < config.getTreatmentRate()) {
-            final Future<InvocationResult<AuctionRequestPayload>> update = requestEnrichment(auctionRequestPayload)
-                    .map(resolutionResult ->
+            return requestEnrichment(auctionRequestPayload)
+                    .<InvocationResult<AuctionRequestPayload>>map(resolutionResult ->
                             InvocationResultImpl.<AuctionRequestPayload>builder()
                                     .status(InvocationStatus.success)
                                     .action(InvocationAction.update)
                                     .payloadUpdate(requestPayload -> updatedPayload(requestPayload, resolutionResult))
-                                    .build());
-
-            return update.onFailure(throwable -> logger.error("Failed enrichment:", throwable));
-        } else {
-            return Future.succeededFuture(
-                    InvocationResultImpl.<AuctionRequestPayload>builder()
-                            .status(InvocationStatus.success)
-                            .action(InvocationAction.no_action)
-                            .build());
+                                    .build())
+                    .onFailure(throwable -> logger.error("Failed enrichment:", throwable));
         }
+        return Future.succeededFuture(
+            InvocationResultImpl.<AuctionRequestPayload>builder()
+                .status(InvocationStatus.success)
+                .action(InvocationAction.no_action)
+                .build());
+
     }
 
     private Future<IdResResponse> requestEnrichment(AuctionRequestPayload auctionRequestPayload) {
@@ -96,13 +94,13 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
     }
 
     private AuctionRequestPayload updatedPayload(AuctionRequestPayload requestPayload, IdResResponse idResResponse) {
-        final BidRequest bidRequest = Optional.ofNullable(
-                requestPayload.bidRequest()).orElse(BidRequest.builder().build());
-        final User user = Optional.ofNullable(bidRequest.getUser()).orElse(User.builder().build());
+        final User user = Optional.ofNullable(
+                requestPayload.bidRequest())
+                .map(BidRequest::getUser)
+                .orElse(User.builder().build());
 
-        final List<Eid> allEids = new ArrayList<>();
-        allEids.addAll(Optional.ofNullable(user.getEids()).orElse(Collections.emptyList()));
-        allEids.addAll(idResResponse.getEids());
+        final List<Eid> allEids = ListUtil.union(
+                Optional.ofNullable(user.getEids()).orElse(Collections.emptyList()), idResResponse.getEids());
 
         final User updatedUser = user.toBuilder().eids(allEids).build();
         final BidRequest updatedBidRequest = requestPayload.bidRequest().toBuilder().user(updatedUser).build();

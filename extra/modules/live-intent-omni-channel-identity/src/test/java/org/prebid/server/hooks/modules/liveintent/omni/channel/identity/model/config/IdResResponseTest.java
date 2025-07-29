@@ -1,10 +1,14 @@
 package org.prebid.server.hooks.modules.liveintent.omni.channel.identity.model.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.iab.openrtb.request.Eid;
+import com.iab.openrtb.request.Uid;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.hooks.modules.liveintent.omni.channel.identity.model.IdResResponse;
 import org.prebid.server.json.JacksonMapper;
+
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -27,10 +31,10 @@ public class IdResResponseTest {
                 IdResResponse.class);
 
         // when and then
-        assertThat(result.getEids()).hasSize(1);
-        assertThat(result.getEids().getFirst().getSource()).isEqualTo("liveintent.com");
-        assertThat(result.getEids().getFirst().getUids()).hasSize(1);
-        assertThat(result.getEids().getFirst().getUids().getFirst().getAtype()).isEqualTo(3);
-        assertThat(result.getEids().getFirst().getUids().getFirst().getId()).isEqualTo("some_id");
+        assertThat(result.getEids()).isEqualTo(List.of(
+                Eid.builder()
+                    .source("liveintent.com")
+                    .uids(List.of(Uid.builder().atype(3).id("some_id").build()))
+                    .build()));
     }
 }

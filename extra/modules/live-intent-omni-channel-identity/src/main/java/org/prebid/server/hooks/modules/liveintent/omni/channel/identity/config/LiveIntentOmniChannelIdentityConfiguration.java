@@ -18,8 +18,9 @@ import java.util.concurrent.ThreadLocalRandom;
 
 @Configuration
 @ConditionalOnProperty(
-        prefix = "hooks." + LiveIntentOmniChannelIdentityModule.CODE, name = "enabled", havingValue = "true"
-)
+        prefix = "hooks." + LiveIntentOmniChannelIdentityModule.CODE,
+        name = "enabled",
+        havingValue = "true")
 public class LiveIntentOmniChannelIdentityConfiguration {
 
     @Bean
