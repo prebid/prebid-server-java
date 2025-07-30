@@ -28,7 +28,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Stream;
 
 public class LiveIntentAnalyticsReporter implements AnalyticsReporter {
 
@@ -69,21 +68,19 @@ public class LiveIntentAnalyticsReporter implements AnalyticsReporter {
     private Future<Void> processAuctionEvent(AuctionContext auctionContext) {
         try {
             final BidRequest bidRequest = Optional.ofNullable(auctionContext.getBidRequest())
-                    .orElseThrow(() -> new PreBidException("Bid response should not be empty"));
+                    .orElseThrow(() -> new PreBidException("Bid request should not be empty"));
             final BidResponse bidResponse = Optional.ofNullable(auctionContext.getBidResponse())
                     .orElseThrow(() -> new PreBidException("Bid response should not be empty"));
             final Optional<ExtRequestPrebid> requestPrebid = Optional.ofNullable(bidRequest.getExt())
                     .flatMap(ext -> Optional.of(ext.getPrebid()));
 
-            final Stream<Activity> activities = getActivities(auctionContext);
+            final List<Activity> activities = getActivities(auctionContext);
 
             final List<PbsjBid> pbsjBids = bidResponse.getSeatbid().stream()
                     .flatMap(seatBid -> seatBid.getBid().stream())
                     .flatMap(bid ->
                         bidRequest.getImp().stream()
                             .filter(impItem -> impItem.getId().equals(bid.getImpid()))
-                            .findFirst()
-                            .stream()
                             .map(imp ->
                                 PbsjBid.builder()
                                     .bidId(bid.getId())
@@ -109,7 +106,7 @@ public class LiveIntentAnalyticsReporter implements AnalyticsReporter {
         }
     }
 
-    private Stream<Activity> getActivities(AuctionContext auctionContext) {
+    private List<Activity> getActivities(AuctionContext auctionContext) {
         return Optional.ofNullable(auctionContext)
                 .map(AuctionContext::getHookExecutionContext)
                 .map(HookExecutionContext::getStageOutcomes)
@@ -126,11 +123,13 @@ public class LiveIntentAnalyticsReporter implements AnalyticsReporter {
                 )
                 .map(HookExecutionOutcome::getAnalyticsTags)
                 .map(Tags::activities)
-                .flatMap(Collection::stream);
+                .flatMap(Collection::stream)
+                .toList();
     }
 
-    private Float getTreatmentRate(Stream<Activity> activities) {
+    private Float getTreatmentRate(List<Activity> activities) {
         return activities
+                .stream()
                 .filter(activity -> "liveintent-treatment-rate".equals(activity.name()))
                 .findFirst()
                 .map(activity -> {
@@ -141,11 +140,11 @@ public class LiveIntentAnalyticsReporter implements AnalyticsReporter {
                         throw e;
                     }
                 })
-                .get();
+                .orElse(-1.0f);
     }
 
-    private boolean isEnriched(Stream<Activity> activities) {
-        return activities.anyMatch(activity -> "liveintent-enriched".equals(activity.name()));
+    private boolean isEnriched(List<Activity> activities) {
+        return activities.stream().anyMatch(activity -> "liveintent-enriched".equals(activity.name()));
     }
 
     @Override
