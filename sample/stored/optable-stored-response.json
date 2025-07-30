@@ -1,0 +1,166 @@
+[
+  {
+    "bid":
+    [
+      {
+        "adomain":
+        [
+          "domain.com"
+        ],
+        "cid": "EFwGoMegjvRgamXpkklIsu",
+        "crid": "EIDzGDmsQQ64qWxicOan",
+        "exp": 900,
+        "ext":
+        {
+          "prebid":
+          {
+            "bidid": "f1b11176-a8de-4842-b16c-edef4ad4b53a",
+            "events":
+            {},
+            "meta":
+            {
+              "adaptercode": "bidder"
+            },
+            "targeting":
+            {
+              "hb_bidder": "bidder",
+              "hb_cache_host": "example.com",
+              "hb_cache_id": "12323-0dd8-443e-997b-a03440261a86",
+              "hb_cache_path": "",
+              "hb_pb": "1.50",
+              "hb_size": "300x450"
+            },
+            "type": "banner"
+          }
+        },
+        "h": 450,
+        "id": "a961e06a-cee0-4160-9894-7a5ce7823c23",
+        "impid": "035917ec-b770-4ecf-b762-0b12c5443b68",
+        "iurl": "https://example.com/i/3dc5016d-c23a-4740-9f6a-4b00c87f47ac/RPjQMBzajgbIvlj.jpeg",
+        "price": 1.50,
+        "w": 300
+      },
+      {
+        "adomain":
+        [
+          "domain.com"
+        ],
+        "cid": "EFwGoMegjvRgamXpkklIsu",
+        "crid": "EIDzGDmsQQ64qWxicOan",
+        "exp": 900,
+        "ext":
+        {
+          "prebid":
+          {
+            "bidid": "f1b11176-a8de-4842-b16c-edef4ad4b53a",
+            "events":
+            {},
+            "meta":
+            {
+              "adaptercode": "bidder"
+            },
+            "targeting":
+            {
+              "hb_bidder": "bidder",
+              "hb_cache_host": "example.com",
+              "hb_cache_id": "50a4bd72-0dd8-443e-997b-a03440261a86",
+              "hb_cache_path": "",
+              "hb_pb": "1.00",
+              "hb_size": "300x250"
+            },
+            "type": "banner"
+          }
+        },
+        "h": 250,
+        "id": "7fec12e0-e1d2-428f-b43c-0c2283843586",
+        "impid": "035917ec-b770-4ecf-b762-0b12c5443b68",
+        "iurl": "https://example.com/i/3dc5016d-c23a-4740-9f6a-4b00c87f47ac/RPjQMBzajgbIvlj.jpeg",
+        "price": 1.00,
+        "w": 300
+      }
+    ],
+    "seat": "bidder1"
+  },
+  {
+    "bid":
+    [
+      {
+        "adomain":
+        [
+          "domain.com"
+        ],
+        "cid": "EFwGoMegjvRgamXpkklIsu",
+        "crid": "EIDzGDmsQQ64qWxicOan",
+        "exp": 900,
+        "ext":
+        {
+          "prebid":
+          {
+            "bidid": "f1b11176-a8de-4842-b16c-edef4ad4b53a",
+            "events":
+            {},
+            "meta":
+            {
+              "adaptercode": "bidder"
+            },
+            "targeting":
+            {
+              "hb_bidder": "bidder",
+              "hb_cache_host": "example.com",
+              "hb_cache_id": "12323-0dd8-443e-997b-a03440261a86",
+              "hb_cache_path": "",
+              "hb_pb": "1.50",
+              "hb_size": "300x450"
+            },
+            "type": "banner"
+          }
+        },
+        "h": 450,
+        "id": "ba65ff9c-25f5-41ff-8c1d-21443479d7b9",
+        "impid": "035917ec-b770-4ecf-b762-0b12c5443b68",
+        "iurl": "https://example.com/i/3dc5016d-c23a-4740-9f6a-4b00c87f47ac/RPjQMBzajgbIvlj.jpeg",
+        "price": 1.50,
+        "w": 300
+      },
+      {
+        "adomain":
+        [
+          "domain.com"
+        ],
+        "cid": "EFwGoMegjvRgamXpkklIsu",
+        "crid": "EIDzGDmsQQ64qWxicOan",
+        "exp": 900,
+        "ext":
+        {
+          "prebid":
+          {
+            "bidid": "f1b11176-a8de-4842-b16c-edef4ad4b53a",
+            "events":
+            {},
+            "meta":
+            {
+              "adaptercode": "bidder"
+            },
+            "targeting":
+            {
+              "hb_bidder": "bidder",
+              "hb_cache_host": "example.com",
+              "hb_cache_id": "50a4bd72-0dd8-443e-997b-a03440261a86",
+              "hb_cache_path": "",
+              "hb_pb": "1.00",
+              "hb_size": "300x250"
+            },
+            "type": "banner"
+          }
+        },
+        "h": 250,
+        "id": "374b5f85-e0b9-4f25-98ca-863c0698005a",
+        "impid": "035917ec-b770-4ecf-b762-0b12c5443b68",
+        "iurl": "https://example.com/i/3dc5016d-c23a-4740-9f6a-4b00c87f47ac/RPjQMBzajgbIvlj.jpeg",
+        "price": 1.00,
+        "w": 300
+      }
+    ],
+    "seat": "bidder2"
+  }
+]

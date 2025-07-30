@@ -127,7 +127,7 @@ public class CachingApplicationSettings implements ApplicationSettings {
                                                           Set<String> impIds,
                                                           Timeout timeout) {
 
-        return getFromCacheOrDelegate(cache, accountId, requestIds, impIds, timeout, delegate::getStoredData);
+        return getStoredDataFromCacheOrDelegate(cache, accountId, requestIds, impIds, timeout, delegate::getStoredData);
     }
 
     @Override
@@ -136,7 +136,8 @@ public class CachingApplicationSettings implements ApplicationSettings {
                                                              Set<String> impIds,
                                                              Timeout timeout) {
 
-        return getFromCacheOrDelegate(ampCache, accountId, requestIds, impIds, timeout, delegate::getAmpStoredData);
+        return getStoredDataFromCacheOrDelegate(
+                ampCache, accountId, requestIds, impIds, timeout, delegate::getAmpStoredData);
     }
 
     @Override
@@ -145,7 +146,8 @@ public class CachingApplicationSettings implements ApplicationSettings {
                                                                Set<String> impIds,
                                                                Timeout timeout) {
 
-        return getFromCacheOrDelegate(videoCache, accountId, requestIds, impIds, timeout, delegate::getVideoStoredData);
+        return getStoredDataFromCacheOrDelegate(
+                videoCache, accountId, requestIds, impIds, timeout, delegate::getVideoStoredData);
     }
 
     @Override
@@ -154,15 +156,16 @@ public class CachingApplicationSettings implements ApplicationSettings {
                                                          Set<String> impIds,
                                                          Timeout timeout) {
 
-        return getFromCacheOrDelegate(profileCache, accountId, requestIds, impIds, timeout, delegate::getProfiles);
+        return getStoredDataFromCacheOrDelegate(
+                profileCache, accountId, requestIds, impIds, timeout, delegate::getProfiles);
     }
 
-    private static <T> Future<StoredDataResult<T>> getFromCacheOrDelegate(SettingsCache<T> cache,
-                                                                          String accountId,
-                                                                          Set<String> requestIds,
-                                                                          Set<String> impIds,
-                                                                          Timeout timeout,
-                                                                          StoredDataFetcher<T> retriever) {
+    private static <T> Future<StoredDataResult<T>> getStoredDataFromCacheOrDelegate(SettingsCache<T> cache,
+                                                                                    String accountId,
+                                                                                    Set<String> requestIds,
+                                                                                    Set<String> impIds,
+                                                                                    Timeout timeout,
+                                                                                    StoredDataFetcher<T> retriever) {
 
         // empty string account ID doesn't make sense
         final String normalizedAccountId = StringUtils.stripToNull(accountId);

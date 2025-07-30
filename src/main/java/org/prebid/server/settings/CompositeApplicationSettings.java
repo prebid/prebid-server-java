@@ -206,7 +206,6 @@ public class CompositeApplicationSettings implements ApplicationSettings {
                             result.getErrors()));
         }
 
-
         @Override
         public Future<StoredResponseDataResult> getStoredResponses(Set<String> responseIds, Timeout timeout) {
             return applicationSettings.getStoredResponses(responseIds, timeout)

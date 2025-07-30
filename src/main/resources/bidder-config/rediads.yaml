@@ -1,0 +1,20 @@
+adapters:
+  rediads:
+    endpoint: https://{{SUBDOMAIN}}.rediads.com/openrtb2/auction
+    default-subdomain: bidding
+    ortb-version: "2.6"
+    modifying-vast-xml-allowed: true
+    meta-info:
+      maintainer-email: support@rediads.com
+      app-media-types:
+        - banner
+        - video
+        - audio
+        - native
+      site-media-types:
+        - banner
+        - video
+        - audio
+        - native
+      supported-vendors:
+      vendor-id: 0

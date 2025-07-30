@@ -10,11 +10,11 @@ adapters:
           enabled: false
           cookie-family-name: adport
           iframe:
-            url: https://adport.pbsadverxo.com/usync?type=iframe&gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+            url: https://cittamatra.com/usync?type=iframe&gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
             uid-macro: '$UID'
             support-cors: false
           redirect:
-            url: https://adport.pbsadverxo.com/usync?type=image&gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+            url: https://cittamatra.com/usync?type=image&gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
             uid-macro: '$UID'
             support-cors: false
       bidsmind:
@@ -24,11 +24,11 @@ adapters:
           enabled: false
           cookie-family-name: bidsmind
           iframe:
-            url: https://bidsmind.pbsadverxo.com/usync?type=iframe&gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+            url: https://taetee.com/usync?type=iframe&gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
             uid-macro: '$UID'
             support-cors: false
           redirect:
-            url: https://bidsmind.pbsadverxo.com/usync?type=image&gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+            url: https://taetee.com/usync?type=image&gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
             uid-macro: '$UID'
             support-cors: false
       mobupps:

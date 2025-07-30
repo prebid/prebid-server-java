@@ -61,5 +61,8 @@ public class AccountAuctionConfig {
 
     AccountBidRankingConfig ranking;
 
+    @JsonAlias("impression-limit")
+    Integer impressionLimit;
+
     AccountProfilesConfig profiles;
 }

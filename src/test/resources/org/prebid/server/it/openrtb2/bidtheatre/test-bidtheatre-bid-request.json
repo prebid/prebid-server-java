@@ -8,11 +8,10 @@
         "w": 300,
         "h": 250
       },
-      "tagid": "tag_id",
       "ext": {
         "tid": "${json-unit.any-string}",
-        "bidder": {
-          "TagID": "tag_id"
+        "bidder" : {
+          "publisherId" : "73b20b3a-12a0-4869-b54e-8d42b55786ee"
         }
       }
     }

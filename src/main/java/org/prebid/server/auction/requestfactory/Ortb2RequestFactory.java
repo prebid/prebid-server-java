@@ -6,6 +6,7 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Dooh;
 import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Geo;
+import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
@@ -190,6 +191,23 @@ public class Ortb2RequestFactory {
                 auctionContext.getAccount(),
                 auctionContext.getGppContext(),
                 auctionContext.getDebugContext().getTraceLevel()));
+    }
+
+    public Future<BidRequest> limitImpressions(Account account, BidRequest bidRequest, List<String> warnings) {
+        final List<Imp> imps = bidRequest.getImp();
+        final int impsLimit = Optional.ofNullable(account)
+                .map(Account::getAuction)
+                .map(AccountAuctionConfig::getImpressionLimit)
+                .orElse(0);
+
+        if (impsLimit > 0 && imps.size() > impsLimit) {
+            metrics.updateImpsDroppedMetric(imps.size() - impsLimit);
+            warnings.add(("Only first %d impressions were kept due to the limit, "
+                    + "all the subsequent impressions have been dropped for the auction").formatted(impsLimit));
+            return Future.succeededFuture(bidRequest.toBuilder().imp(imps.subList(0, impsLimit)).build());
+        }
+
+        return Future.succeededFuture(bidRequest);
     }
 
     public Future<BidRequest> validateRequest(Account account,

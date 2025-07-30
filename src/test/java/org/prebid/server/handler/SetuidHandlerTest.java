@@ -153,15 +153,15 @@ public class SetuidHandlerTest extends VertxTest {
         given(bidderCatalog.isAlias(any())).willReturn(false);
 
         given(bidderCatalog.usersyncerByName(eq(RUBICON))).willReturn(
-                Optional.of(Usersyncer.of(RUBICON, null, redirectMethod())));
+                Optional.of(Usersyncer.of(RUBICON, null, redirectMethod(), false, null)));
         given(bidderCatalog.cookieFamilyName(eq(RUBICON))).willReturn(Optional.of(RUBICON));
 
         given(bidderCatalog.usersyncerByName(eq(FACEBOOK))).willReturn(
-                Optional.of(Usersyncer.of(FACEBOOK, null, redirectMethod())));
+                Optional.of(Usersyncer.of(FACEBOOK, null, redirectMethod(), false, null)));
         given(bidderCatalog.cookieFamilyName(eq(FACEBOOK))).willReturn(Optional.of(FACEBOOK));
 
         given(bidderCatalog.usersyncerByName(eq(APPNEXUS))).willReturn(
-                Optional.of(Usersyncer.of(ADNXS, null, redirectMethod())));
+                Optional.of(Usersyncer.of(ADNXS, null, redirectMethod(), false, null)));
         given(bidderCatalog.cookieFamilyName(eq(APPNEXUS))).willReturn(Optional.of(ADNXS));
 
         given(activityInfrastructure.isAllowed(any(), any()))
@@ -532,7 +532,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(httpRequest.getParam("uid")).willReturn("J5VLCWQP-26-CWFT");
         given(bidderCatalog.usersyncReadyBidders()).willReturn(singleton(RUBICON));
         given(bidderCatalog.usersyncerByName(any()))
-                .willReturn(Optional.of(Usersyncer.of(RUBICON, null, redirectMethod())));
+                .willReturn(Optional.of(Usersyncer.of(RUBICON, null, redirectMethod(), false, null)));
 
         setuidHandler = new SetuidHandler(
                 2000,
@@ -569,7 +569,7 @@ public class SetuidHandlerTest extends VertxTest {
                 .willReturn(updated(uidsCookie));
 
         given(bidderCatalog.usersyncerByName(eq(RUBICON))).willReturn(
-                Optional.of(Usersyncer.of(RUBICON, iframeMethod(), null)));
+                Optional.of(Usersyncer.of(RUBICON, iframeMethod(), null, false, null)));
 
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
         given(httpRequest.getParam("uid")).willReturn("J5VLCWQP-26-CWFT");
@@ -611,7 +611,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(httpRequest.getParam("bidder")).willReturn(RUBICON);
         given(bidderCatalog.usersyncReadyBidders()).willReturn(singleton(RUBICON));
         given(bidderCatalog.usersyncerByName(any()))
-                .willReturn(Optional.of(Usersyncer.of(RUBICON, null, redirectMethod())));
+                .willReturn(Optional.of(Usersyncer.of(RUBICON, null, redirectMethod(), false, null)));
         given(httpRequest.getParam("uid")).willReturn("J5VLCWQP-26-CWFT");
 
         setuidHandler = new SetuidHandler(
@@ -844,11 +844,11 @@ public class SetuidHandlerTest extends VertxTest {
                 .willReturn(Set.of(RUBICON, FACEBOOK, firstDuplicateName, secondDuplicateName, thirdDuplicateName));
         given(bidderCatalog.isAlias(thirdDuplicateName)).willReturn(true);
         given(bidderCatalog.usersyncerByName(eq(firstDuplicateName))).willReturn(
-                Optional.of(Usersyncer.of(RUBICON, iframeMethod(), redirectMethod())));
+                Optional.of(Usersyncer.of(RUBICON, iframeMethod(), redirectMethod(), false, null)));
         given(bidderCatalog.usersyncerByName(eq(secondDuplicateName))).willReturn(
-                Optional.of(Usersyncer.of(FACEBOOK, iframeMethod(), redirectMethod())));
+                Optional.of(Usersyncer.of(FACEBOOK, iframeMethod(), redirectMethod(), false, null)));
         given(bidderCatalog.usersyncerByName(eq(thirdDuplicateName))).willReturn(
-                Optional.of(Usersyncer.of(FACEBOOK, iframeMethod(), redirectMethod())));
+                Optional.of(Usersyncer.of(FACEBOOK, iframeMethod(), redirectMethod(), false, null)));
 
         final Executable exceptionSource = () -> new SetuidHandler(
                 2000,
