@@ -7,7 +7,7 @@ enum RuleEngineFunction {
     DEVICE_COUNTRY("deviceCountry"),
     DEVICE_COUNTRY_IN("deviceCountryIn"),
     DATA_CENTER("dataCenter"),
-    DATA_CENTER_IN("datacenterIn"),
+    DATA_CENTER_IN("dataCenterIn"),
     CHANNEL("channel"),
     EID_AVAILABLE("eidAvailable"),
     EID_IN("eidIn"),

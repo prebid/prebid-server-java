@@ -11,7 +11,7 @@ import org.prebid.server.functional.tests.BaseSpec
 import static org.prebid.server.functional.model.ModuleName.ORTB2_BLOCKING
 import static org.prebid.server.functional.model.ModuleName.PB_RESPONSE_CORRECTION
 import static org.prebid.server.functional.model.ModuleName.PB_RICHMEDIA_FILTER
-import static org.prebid.server.functional.model.ModuleName.RULE_ENGINE
+import static org.prebid.server.functional.model.ModuleName.PB_RULE_ENGINE
 import static org.prebid.server.functional.model.config.Endpoint.OPENRTB2_AUCTION
 import static org.prebid.server.functional.model.config.Stage.ALL_PROCESSED_BID_RESPONSES
 import static org.prebid.server.functional.model.config.Stage.PROCESSED_AUCTION_REQUEST
@@ -60,14 +60,14 @@ class ModuleBaseSpec extends BaseSpec {
     }
 
     protected static Map<String, String> getRulesEngineSettings(Endpoint endpoint = OPENRTB2_AUCTION, Stage stage = PROCESSED_AUCTION_REQUEST) {
-        ["hooks.${RULE_ENGINE.code}.enabled"                        : "true",
-         "hooks.${RULE_ENGINE.code}.rule-cache.expire-after-minutes": "123123123123",
-         "hooks.${RULE_ENGINE.code}.rule-cache.max-size"            : "200",
-         "hooks.rule-engine.rule-parsing.retry-initial-delay-millis": "1",
-         "hooks.rule-engine.rule-parsing.retry-max-delay-millis"    : "1",
-         "hooks.rule-engine.rule-parsing.retry-exponential-factor"  : "1.2",
-         "hooks.rule-engine.rule-parsing.retry-exponential-jitter"  : "1.2",
-         "hooks.host-execution-plan"                                : encode(ExecutionPlan.getSingleEndpointExecutionPlan(endpoint, RULE_ENGINE, [stage]))]
+        ["hooks.${PB_RULE_ENGINE.code}.enabled"                        : "true",
+         "hooks.${PB_RULE_ENGINE.code}.rule-cache.expire-after-minutes": "123123123123",
+         "hooks.${PB_RULE_ENGINE.code}.rule-cache.max-size"            : "200",
+         "hooks.${PB_RULE_ENGINE.code}.rule-parsing.retry-initial-delay-millis"   : "1",
+         "hooks.${PB_RULE_ENGINE.code}.rule-parsing.retry-max-delay-millis"       : "1",
+         "hooks.${PB_RULE_ENGINE.code}.rule-parsing.retry-exponential-factor"     : "1.2",
+         "hooks.${PB_RULE_ENGINE.code}.rule-parsing.retry-exponential-jitter"     : "1.2",
+         "hooks.host-execution-plan"                                   : encode(ExecutionPlan.getSingleEndpointExecutionPlan(endpoint, PB_RULE_ENGINE, [stage]))]
     }
 
     protected static List<AnalyticResult> getAnalyticResults(BidResponse response) {

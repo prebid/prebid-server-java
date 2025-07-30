@@ -8,7 +8,7 @@ enum ResultFunction {
     EXCLUDE_BIDDER("excludeBidders"),
     LOG_A_TAG("logAtag")
 
-    private String value
+    String value
 
     ResultFunction(String value) {
         this.value = value
