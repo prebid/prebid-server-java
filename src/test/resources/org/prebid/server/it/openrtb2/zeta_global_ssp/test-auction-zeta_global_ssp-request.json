@@ -12,9 +12,7 @@
         ]
       },
       "ext": {
-        "zeta_global_ssp": {
-          "sid": 11
-        }
+        "zeta_global_ssp": {}
       }
     }
   ],
@@ -39,6 +37,8 @@
     "tid": "tid"
   },
   "regs": {
-    "gdpr": 0
+    "ext": {
+      "gdpr": 0
+    }
   }
 }
