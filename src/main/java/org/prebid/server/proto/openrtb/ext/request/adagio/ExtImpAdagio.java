@@ -11,6 +11,8 @@ public class ExtImpAdagio {
 
     String placement;
 
+    String site;
+
     String pagetype;
 
     String category;
