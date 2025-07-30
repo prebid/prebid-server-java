@@ -39,7 +39,6 @@ import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.List;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -121,7 +120,7 @@ public class LiveintentAnalyticsReporterTest extends VertxTest {
                         .adUnitId("ad-unit-id")
                         .enriched(true)
                         .currency("USD")
-                        .treatmentRate(Optional.of(0.5f))
+                        .treatmentRate(0.5f)
                         .timestamp(0L)
                         .partnerId("pbsj")
                         .build()
@@ -153,7 +152,7 @@ public class LiveintentAnalyticsReporterTest extends VertxTest {
                         .adUnitId("ad-unit-id")
                         .enriched(false)
                         .currency("USD")
-                        .treatmentRate(Optional.of(0.5f))
+                        .treatmentRate(0.5f)
                         .timestamp(0L)
                         .partnerId("pbsj")
                         .build()
@@ -185,8 +184,8 @@ public class LiveintentAnalyticsReporterTest extends VertxTest {
                         .adUnitId("ad-unit-id")
                         .enriched(false)
                         .currency("USD")
-                        .treatmentRate(Optional.empty())
                         .timestamp(0L)
+                        .treatmentRate(null)
                         .partnerId("pbsj")
                         .build()
         ));

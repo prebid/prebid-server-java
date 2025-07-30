@@ -5,7 +5,6 @@ import lombok.Data;
 import lombok.Value;
 
 import java.math.BigDecimal;
-import java.util.Optional;
 
 @Data
 @Builder(toBuilder = true)
@@ -17,7 +16,7 @@ public class PbsjBid {
     BigDecimal price;
     String adUnitId;
     String currency;
-    Optional<Float> treatmentRate;
+    Float treatmentRate;
     Long timestamp;
     String partnerId;
 }
