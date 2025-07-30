@@ -11,7 +11,11 @@
           }
         ]
       },
-      "secure": 1
+      "secure": 1,
+      "ext": {
+        "tid": "${json-unit.any-string}",
+        "bidder": {}
+      }
     }
   ],
   "site": {
@@ -43,7 +47,9 @@
     "tid": "tid"
   },
   "regs": {
-    "gdpr": 0
+    "ext": {
+      "gdpr": 0
+    }
   },
   "ext": {
     "prebid": {

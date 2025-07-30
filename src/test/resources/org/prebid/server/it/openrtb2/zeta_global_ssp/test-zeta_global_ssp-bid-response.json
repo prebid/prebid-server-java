@@ -12,15 +12,9 @@
           "cid": "cid001",
           "adm": "adm001",
           "h": 250,
-          "w": 300,
-          "ext": {
-            "prebid": {
-              "type": "banner"
-            }
-          }
+          "w": 300
         }
-      ],
-      "seat": "zeta_global_ssp"
+      ]
     }
   ]
 }
