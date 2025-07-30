@@ -127,7 +127,7 @@ public class LiveIntentAnalyticsReporter implements AnalyticsReporter {
                 .toList();
     }
 
-    private Float getTreatmentRate(List<Activity> activities) {
+    private Optional<Float> getTreatmentRate(List<Activity> activities) {
         return activities
                 .stream()
                 .filter(activity -> "liveintent-treatment-rate".equals(activity.name()))
@@ -139,8 +139,7 @@ public class LiveIntentAnalyticsReporter implements AnalyticsReporter {
                         logger.warn("Invalid treatment rate value: {}", activity.status());
                         throw e;
                     }
-                })
-                .orElse(-1.0f);
+                });
     }
 
     private boolean isEnriched(List<Activity> activities) {
