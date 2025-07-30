@@ -967,7 +967,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         assert seatNonBids.size() == 1
 
         def seatNonBid = seatNonBids[0]
-        assert seatNonBid.seat == GENERIC.value
+        assert seatNonBid.seat == GENERIC
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == RESPONSE_REJECTED_DUE_TO_PRICE_FLOOR
         assert seatNonBid.nonBid.size() == bidResponse.seatbid[0].bid.size()
@@ -1214,7 +1214,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         assert seatNonBids.size() == 1
 
         def seatNonBid = seatNonBids[0]
-        assert seatNonBid.seat == GENERIC.value
+        assert seatNonBid.seat == GENERIC
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == RESPONSE_REJECTED_DUE_TO_PRICE_FLOOR
         assert seatNonBid.nonBid.size() == bidResponse.seatbid[0].bid.size()
