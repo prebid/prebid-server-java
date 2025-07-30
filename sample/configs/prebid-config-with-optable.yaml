@@ -1,0 +1,53 @@
+status-response: "ok"
+adapters:
+  appnexus:
+    enabled: true
+  ix:
+    enabled: true
+  openx:
+    enabled: true
+  pubmatic:
+    enabled: true
+  rubicon:
+    enabled: true
+  improvedigital:
+    enabled: true
+  colossus:
+      enabled: true
+  triplelift:
+    enabled: true
+metrics:
+  prefix: prebid
+cache:
+  scheme: http
+  host: localhost
+  path: /cache
+  query: uuid=
+settings:
+  enforce-valid-account: false
+  generate-storedrequest-bidrequest-id: true
+  filesystem:
+    settings-filename: sample/configs/sample-app-settings-optable.yaml
+    stored-requests-dir: sample
+    stored-imps-dir: sample
+    stored-responses-dir: sample/stored
+    categories-dir:
+gdpr:
+  default-value: 1
+  vendorlist:
+    v2:
+      cache-dir: /var/tmp/vendor2
+    v3:
+      cache-dir: /var/tmp/vendor3
+admin-endpoints:
+  logging-changelevel:
+    enabled: true
+    path: /logging/changelevel
+    on-application-port: true
+    protected: false
+hooks:
+  optable-targeting:
+    enabled: true
+  modules:
+    optable-targeting:
+      api-endpoint: https://na.edge.optable.co/v2/targeting?t={TENANT}&o={ORIGIN}
