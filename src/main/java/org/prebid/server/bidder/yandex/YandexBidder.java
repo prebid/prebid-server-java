@@ -117,17 +117,30 @@ public class YandexBidder implements Bidder<BidRequest> {
                 .displaymanager(DISPLAY_MANAGER)
                 .displaymanagerver(DISPLAY_MANAGER_VERSION);
 
+        boolean hasValidFormat = false;
+
         if (imp.getBanner() != null) {
-            return impBuilder.banner(modifyBanner(imp.getBanner())).build();
+            impBuilder.banner(modifyBanner(imp.getBanner()));
+            hasValidFormat = true;
         }
+
         if (imp.getVideo() != null) {
-            return impBuilder.video(modifyVideo(imp.getVideo())).build();
+            impBuilder.video(modifyVideo(imp.getVideo()));
+            hasValidFormat = true;
         }
+
+        // Обрабатываем native формат
         if (imp.getXNative() != null) {
-            return impBuilder.build();
+            impBuilder.xNative(imp.getXNative());
+            hasValidFormat = true;
         }
-        throw new PreBidException("Yandex only supports banner, video, and native types. Ignoring imp id #%s"
-                .formatted(imp.getId()));
+
+        if (!hasValidFormat) {
+            throw new PreBidException("Imp #%s must contain at least one valid format (banner, video, or native)"
+                    .formatted(imp.getId()));
+        }
+
+        return impBuilder.build();
     }
 
     private static Banner modifyBanner(Banner banner) {
@@ -201,6 +214,10 @@ public class YandexBidder implements Bidder<BidRequest> {
 
     private static MultiMap headers(BidRequest bidRequest) {
         final MultiMap headers = HttpUtil.headers();
+
+        headers.add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
+        HttpUtil.addHeaderIfValueIsNotEmpty(headers, "Referer", getReferer(bidRequest));
+
         final Device device = bidRequest.getDevice();
         if (device != null) {
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ACCEPT_LANGUAGE_HEADER, device.getLanguage());
@@ -251,17 +268,14 @@ public class YandexBidder implements Bidder<BidRequest> {
     }
 
     private static BidType resolveImpType(Imp imp) {
-        if (imp.getBanner() != null) {
-            return BidType.banner;
-        }
         if (imp.getVideo() != null) {
             return BidType.video;
         }
         if (imp.getXNative() != null) {
             return BidType.xNative;
         }
-        if (imp.getAudio() != null) {
-            return BidType.audio;
+        if (imp.getBanner() != null) {
+            return BidType.banner;
         }
         throw new PreBidException("Processing an invalid impression; cannot resolve impression type for imp #%s"
                 .formatted(imp.getId()));
