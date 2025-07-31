@@ -7,6 +7,7 @@ adapters:
       app-media-types:
       site-media-types:
         - banner
+        - video
         - native
       vendor-id: 0
     usersync:
