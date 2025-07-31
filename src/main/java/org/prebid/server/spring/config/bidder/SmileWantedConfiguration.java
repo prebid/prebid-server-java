@@ -17,7 +17,7 @@ import jakarta.validation.constraints.NotBlank;
 
 @Configuration
 @PropertySource(value = "classpath:/bidder-config/smilewanted.yaml", factory = YamlPropertySourceFactory.class)
-public class SimpleWantedConfiguration {
+public class SmileWantedConfiguration {
 
     private static final String BIDDER_NAME = "smilewanted";
 
