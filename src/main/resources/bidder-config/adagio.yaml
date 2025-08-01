@@ -2,9 +2,9 @@ adapters:
   adagio:
     # Please deploy this config in each of your datacenters with the appropriate regional subdomain.
     # Replace the `REGION` by one of the value below:
-    # - For AMER: las => (https://mp-las.4dex.io/pbserver)
-    # - For EMEA: ams => (https://mp-ams.4dex.io/pbserver)
-    # - For APAC: tyo => (https://mp-tyo.4dex.io/pbserver)
+    # - For AMER: las => (https://mp-las.4dex.io/pbserver and https://u-las.4dex.io/pbserver/usync.html)
+    # - For EMEA: ams => (https://mp-ams.4dex.io/pbserver and https://u-amx.4dex.io/pbserver/usync.html)
+    # - For APAC: tyo => (https://mp-tyo.4dex.io/pbserver and https://u-tyo.4dex.io/pbserver/usync.html)
     endpoint: https://mp-REGION.4dex.io/pbserver
     ortb-version: "2.6"
     endpoint-compression: gzip
@@ -20,3 +20,9 @@ adapters:
         - native
       supported-vendors:
       vendor-id: 617
+    usersync:
+      cookie-family-name: adagio
+      iframe:
+        url: https://u-REGION.4dex.io/pbserver/usync.html?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&&gpp_sid={{gpp_sid}}&r={{redirect_url}}
+        support-cors: false
+        uid-macro: '{UID}'

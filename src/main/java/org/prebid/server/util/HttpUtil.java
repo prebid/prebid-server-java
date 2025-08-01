@@ -76,6 +76,12 @@ public final class HttpUtil {
     public static final CharSequence SEC_CH_UA = HttpHeaders.createOptimized("Sec-CH-UA");
     public static final CharSequence SEC_CH_UA_MOBILE = HttpHeaders.createOptimized("Sec-CH-UA-Mobile");
     public static final CharSequence SEC_CH_UA_PLATFORM = HttpHeaders.createOptimized("Sec-CH-UA-Platform");
+    public static final CharSequence SEC_CH_UA_PLATFORM_VERSION =
+            HttpHeaders.createOptimized("Sec-CH-UA-Platform-Version");
+    public static final CharSequence SEC_CH_UA_ARCH = HttpHeaders.createOptimized("Sec-CH-UA-Arch");
+    public static final CharSequence SEC_CH_UA_MODEL = HttpHeaders.createOptimized("Sec-CH-UA-Model");
+    public static final CharSequence SEC_CH_UA_FULL_VERSION_LIST =
+            HttpHeaders.createOptimized("Sec-CH-UA-Full-Version-List");
     public static final String MACROS_OPEN = "{{";
     public static final String MACROS_CLOSE = "}}";
 

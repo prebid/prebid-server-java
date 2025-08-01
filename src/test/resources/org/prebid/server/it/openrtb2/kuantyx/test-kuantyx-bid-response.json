@@ -1,0 +1,22 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "price": 4.7,
+          "adm": "adm6_${AUCTION_PRICE}",
+          "nurl": "nurl_${AUCTION_PRICE}",
+          "crid": "crid6",
+          "ext": {
+            "prebid": {
+              "type": "banner"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
