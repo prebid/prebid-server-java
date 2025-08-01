@@ -35,7 +35,7 @@ class CacheSpec extends BaseSpec {
     private static final String XML_CREATIVE_TTL_ACCOUNT_METRIC = "account.%s.prebid_cache.creative_ttl.xml"
     private static final String JSON_CREATIVE_TTL_ACCOUNT_METRIC = "account.%s.prebid_cache.creative_ttl.json"
     private static final String ACCOUNT_PREBID_CACHE_VTRACK_WRITE_OK_METRIC = "account.%s.prebid_cache.vtrack.write.ok"
-    private static final String PREBID_CACHE_REQUEST_OK_ACCOUNT_METRIC = "account.%s.prebid_cache.requests.ok"
+    private static final String ACCOUNT_PREBID_CACHE_REQUEST_OK_METRIC = "account.%s.prebid_cache.requests.ok"
 
     private static final String XML_CREATIVE_SIZE_GLOBAL_METRIC = "prebid_cache.creative_size.xml"
     private static final String JSON_CREATIVE_SIZE_GLOBAL_METRIC = "prebid_cache.creative_size.json"
@@ -107,7 +107,7 @@ class CacheSpec extends BaseSpec {
         assert metrics[JSON_CREATIVE_SIZE_GLOBAL_METRIC] == creativeSize
 
         and: "account.<account-id>.prebid_cache.creative_size.json should be update"
-        assert metrics[PREBID_CACHE_REQUEST_OK_ACCOUNT_METRIC.formatted(bidRequest.accountId)] == 1
+        assert metrics[ACCOUNT_PREBID_CACHE_REQUEST_OK_METRIC.formatted(bidRequest.accountId)] == 1
         assert metrics[JSON_CREATIVE_SIZE_ACCOUNT_METRIC.formatted(bidRequest.accountId)] == creativeSize
     }
 
@@ -210,7 +210,7 @@ class CacheSpec extends BaseSpec {
         and: "PBS should include metrics for request"
         def metrics = pbsService.sendCollectedMetricsRequest()
         assert metrics[JSON_CREATIVE_TTL_ACCOUNT_METRIC.formatted(bidRequest.accountId)] == bannerHostTtl
-        assert metrics[PREBID_CACHE_REQUEST_OK_ACCOUNT_METRIC.formatted(bidRequest.accountId)] == 1
+        assert metrics[ACCOUNT_PREBID_CACHE_REQUEST_OK_METRIC.formatted(bidRequest.accountId)] == 1
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsConfig)
@@ -253,7 +253,7 @@ class CacheSpec extends BaseSpec {
         def metrics = pbsService.sendCollectedMetricsRequest()
         assert metrics[JSON_CREATIVE_TTL_ACCOUNT_METRIC.formatted(bidRequest.accountId)] == videoHostTtl
         assert metrics[XML_CREATIVE_TTL_ACCOUNT_METRIC.formatted(bidRequest.accountId)] == videoHostTtl
-        assert metrics[PREBID_CACHE_REQUEST_OK_ACCOUNT_METRIC.formatted(bidRequest.accountId)] == 1
+        assert metrics[ACCOUNT_PREBID_CACHE_REQUEST_OK_METRIC.formatted(bidRequest.accountId)] == 1
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsConfig)
@@ -290,7 +290,7 @@ class CacheSpec extends BaseSpec {
         and: "PBS should include metrics for request"
         def metrics = pbsService.sendCollectedMetricsRequest()
         assert metrics[JSON_CREATIVE_TTL_ACCOUNT_METRIC.formatted(bidRequest.accountId)] == bannerHostTtl
-        assert metrics[PREBID_CACHE_REQUEST_OK_ACCOUNT_METRIC.formatted(bidRequest.accountId)] == 1
+        assert metrics[ACCOUNT_PREBID_CACHE_REQUEST_OK_METRIC.formatted(bidRequest.accountId)] == 1
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsConfig)
@@ -326,7 +326,7 @@ class CacheSpec extends BaseSpec {
         and: "PBS should include metrics for request"
         def metrics = pbsService.sendCollectedMetricsRequest()
         assert metrics[JSON_CREATIVE_TTL_ACCOUNT_METRIC.formatted(bidRequest.accountId)] == bannerHostTtl
-        assert metrics[PREBID_CACHE_REQUEST_OK_ACCOUNT_METRIC.formatted(bidRequest.accountId)] == 1
+        assert metrics[ACCOUNT_PREBID_CACHE_REQUEST_OK_METRIC.formatted(bidRequest.accountId)] == 1
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsConfig)
@@ -360,7 +360,7 @@ class CacheSpec extends BaseSpec {
         and: "PBS should include metrics for request"
         def metrics = pbsService.sendCollectedMetricsRequest()
         assert metrics[JSON_CREATIVE_TTL_ACCOUNT_METRIC.formatted(bidRequest.accountId)] == bannerHostTtl
-        assert metrics[PREBID_CACHE_REQUEST_OK_ACCOUNT_METRIC.formatted(bidRequest.accountId)] == 1
+        assert metrics[ACCOUNT_PREBID_CACHE_REQUEST_OK_METRIC.formatted(bidRequest.accountId)] == 1
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsConfig)
@@ -702,7 +702,7 @@ class CacheSpec extends BaseSpec {
         and: "Metrics should be updated"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
         assert metrics[PREBID_CACHE_REQUEST_OK_METRIC] == initialValue + 1
-        assert metrics[PREBID_CACHE_REQUEST_OK_ACCOUNT_METRIC.formatted(bidRequest.accountId)] == 1
+        assert metrics[ACCOUNT_PREBID_CACHE_REQUEST_OK_METRIC.formatted(bidRequest.accountId)] == 1
 
         where:
         accountAuctionConfig << [
