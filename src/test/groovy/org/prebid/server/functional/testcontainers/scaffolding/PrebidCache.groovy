@@ -13,6 +13,7 @@ import java.util.stream.Stream
 
 import static org.mockserver.model.HttpRequest.request
 import static org.mockserver.model.HttpResponse.response
+import static org.mockserver.model.HttpStatusCode.INTERNAL_SERVER_ERROR_500
 import static org.mockserver.model.HttpStatusCode.OK_200
 import static org.mockserver.model.JsonPathBody.jsonPath
 
@@ -59,7 +60,7 @@ class PrebidCache extends NetworkScaffolding {
     @Override
     HttpRequest getRequest() {
         request().withMethod("POST")
-                 .withPath(CACHE_ENDPOINT)
+                   .withPath(CACHE_ENDPOINT)
     }
 
     @Override
@@ -68,6 +69,25 @@ class PrebidCache extends NetworkScaffolding {
                         .respond{request -> request.withPath(endpoint)
                                 ? response().withStatusCode(OK_200.code()).withBody(getBodyByRequest(request))
                                 : HttpResponse.notFoundResponse()}
+    }
+
+    void setVtrackResponse(String uuid) {
+        mockServerClient.when(request()
+                .withMethod("GET")
+                .withPath(endpoint)
+                .withQueryStringParameter("uuid",uuid), Times.unlimited(), TimeToLive.unlimited(), -10)
+                .respond{request -> request.withPath(endpoint)
+                        ? response().withStatusCode(OK_200.code())
+                        : HttpResponse.notFoundResponse()}
+    }
+
+    void setInvalidVtrackResponse(String uuid) {
+        mockServerClient.when(request()
+                .withMethod("GET")
+                .withPath(endpoint)
+                .withQueryStringParameter("uuid",uuid), Times.unlimited(), TimeToLive.unlimited(), -10)
+                .respond{response().withStatusCode(INTERNAL_SERVER_ERROR_500.code())}
+
     }
 
     private static HttpRequest getXmlCacheRequest(String payload) {
