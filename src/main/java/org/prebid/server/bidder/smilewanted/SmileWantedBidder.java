@@ -1,5 +1,6 @@
 package org.prebid.server.bidder.smilewanted;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
@@ -13,8 +14,11 @@ import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.smilewanted.ExtImpSmilewanted;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
@@ -28,6 +32,10 @@ public class SmileWantedBidder implements Bidder<BidRequest> {
     private static final String X_OPENRTB_VERSION = "2.5";
     private static final int DEFAULT_AT = 1;
 
+    private static final TypeReference<ExtPrebid<?, ExtImpSmilewanted>> SMILEWANTED_EXT_TYPE_REFERENCE =
+            new TypeReference<>() {
+            };
+
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
@@ -38,15 +46,36 @@ public class SmileWantedBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
+        if (CollectionUtils.isEmpty(request.getImp())) {
+            return Result.withError(BidderError.badInput("No impressions in request"));
+        }
+
+        final ExtImpSmilewanted extImpSmilewanted;
+
+        try {
+            extImpSmilewanted = parseImpExt(request.getImp().getFirst());
+        } catch (PreBidException e) {
+            return Result.withError(BidderError.badInput(e.getMessage()));
+        }
+
         final BidRequest outgoingRequest = request.toBuilder().at(DEFAULT_AT).build();
+        final String url = endpointUrl + extImpSmilewanted.getZoneId();
 
         return Result.withValue(HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
-                .uri(endpointUrl)
+                .uri(url)
                 .headers(createHeaders())
                 .payload(outgoingRequest)
                 .body(mapper.encodeToBytes(outgoingRequest))
                 .build());
+    }
+
+    private ExtImpSmilewanted parseImpExt(Imp imp) {
+        try {
+            return mapper.mapper().convertValue(imp.getExt(), SMILEWANTED_EXT_TYPE_REFERENCE).getBidder();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException("Missing bidder ext in impression with id: " + imp.getId());
+        }
     }
 
     private static MultiMap createHeaders() {

@@ -17,6 +17,8 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.smilewanted.ExtImpSmilewanted;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.List;
@@ -32,7 +34,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
 public class SmileWantedBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://{{Host}}/test?param={{PublisherId}}";
+    private static final String ENDPOINT_URL = "https://prebid-server.smilewanted.com/java/";
 
     private final SmileWantedBidder target = new SmileWantedBidder(ENDPOINT_URL, jacksonMapper);
 
@@ -42,9 +44,25 @@ public class SmileWantedBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldCorrectlyAddHeaders() {
+    public void makeHttpRequestsShouldReturnErrorIfNoImpressions() {
         // given
         final BidRequest bidRequest = BidRequest.builder().build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("No impressions in request"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCorrectlyAddHeaders() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp("zone123")))
+                .build();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -65,7 +83,9 @@ public class SmileWantedBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldSetAtToOne() {
         // given
-        final BidRequest bidRequest = BidRequest.builder().build();
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp("zone123")))
+                .build();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -172,5 +192,12 @@ public class SmileWantedBidderTest extends VertxTest {
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);
+    }
+
+    private static Imp givenImp(String zoneId) {
+        return Imp.builder()
+                .id("123")
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSmilewanted.of(zoneId))))
+                .build();
     }
 }
