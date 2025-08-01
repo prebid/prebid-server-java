@@ -25,6 +25,7 @@
         <module>greenbids-real-time-data</module>
         <module>pb-request-correction</module>
         <module>optable-targeting</module>
+        <module>wurfl-devicedetection</module>
     </modules>
 
     <dependencyManagement>
