@@ -113,37 +113,25 @@ public class YandexBidder implements Bidder<BidRequest> {
     }
 
     private static Imp modifyImp(Imp imp) {
-        final Imp.ImpBuilder impBuilder = imp.toBuilder()
-                .displaymanager(DISPLAY_MANAGER)
-                .displaymanagerver(DISPLAY_MANAGER_VERSION);
-
-        boolean hasValidFormat = false;
-
-        if (imp.getBanner() != null) {
-            impBuilder.banner(modifyBanner(imp.getBanner()));
-            hasValidFormat = true;
-        }
-
-        if (imp.getVideo() != null) {
-            impBuilder.video(modifyVideo(imp.getVideo()));
-            hasValidFormat = true;
-        }
-
-        // Обрабатываем native формат
-        if (imp.getXNative() != null) {
-            impBuilder.xNative(imp.getXNative());
-            hasValidFormat = true;
-        }
-
-        if (!hasValidFormat) {
+        if (imp.getBanner() == null && imp.getVideo() == null && imp.getXNative() == null) {
             throw new PreBidException("Imp #%s must contain at least one valid format (banner, video, or native)"
                     .formatted(imp.getId()));
         }
-
-        return impBuilder.build();
+        
+        return imp.toBuilder()
+                .displaymanager(DISPLAY_MANAGER)
+                .displaymanagerver(DISPLAY_MANAGER_VERSION)
+                .banner(modifyBanner(imp.getBanner()))
+                .video(modifyVideo(imp.getVideo()))
+                .xNative(imp.getXNative())
+                .build();
     }
 
     private static Banner modifyBanner(Banner banner) {
+        if (banner == null) {
+            return null;
+        }
+        
         final Integer weight = banner.getW();
         final Integer height = banner.getH();
         final List<Format> format = banner.getFormat();
@@ -158,6 +146,10 @@ public class YandexBidder implements Bidder<BidRequest> {
     }
 
     private static Video modifyVideo(Video video) {
+        if (video == null) {
+            return null;
+        }
+        
         final Integer width = video.getW();
         final Integer height = video.getH();
         if (width == null || height == null || width == 0 || height == 0) {
