@@ -4,7 +4,7 @@
 
     <groupId>org.prebid</groupId>
     <artifactId>prebid-server-aggregator</artifactId>
-    <version>3.29.0-SNAPSHOT</version>
+    <version>3.30.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <scm>
@@ -39,6 +39,7 @@
         <commons.collections.version>4.4</commons.collections.version>
         <commons.compress.version>1.27.1</commons.compress.version>
         <commons-math3.version>3.6.1</commons-math3.version>
+        <commons-validator.version>1.10.0</commons-validator.version>
         <scram.version>2.1</scram.version>
         <httpclient.version>4.5.14</httpclient.version>
         <ipaddress.version>5.5.1</ipaddress.version>
@@ -134,6 +135,11 @@
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-math3</artifactId>
                 <version>${commons-math3.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>commons-validator</groupId>
+                <artifactId>commons-validator</artifactId>
+                <version>${commons-validator.version}</version>
             </dependency>
             <!-- TODO: refactor code to replace URIBuilder with something else so that this dep can be removed -->
             <dependency>

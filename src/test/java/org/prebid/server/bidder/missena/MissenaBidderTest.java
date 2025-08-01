@@ -129,22 +129,15 @@ class MissenaBidderTest extends VertxTest {
 
         final MissenaAdRequest expectedPayload = MissenaAdRequest.builder()
                 .adUnit("impId1")
-                .buyerUid("buyer1")
-                .coppa(null)
                 .currency("USD")
-                .userEids(null)
                 .floor(BigDecimal.valueOf(0.1))
                 .floorCurrency("USD")
-                .gdpr(true)
-                .gdprConsent("consentStr")
                 .idempotencyKey("requestId")
-                .referer("http://test.com/page")
-                .refererCanonical("test.com")
                 .requestId("requestId")
-                .schain(SupplyChain.of(1, null, null, null))
                 .timeout(500L)
                 .params(expectedUserParams)
                 .version(TEST_PBS_VERSION)
+                .bidRequest(bidRequest)
                 .build();
 
         assertThat(result.getErrors()).isEmpty();

@@ -8,6 +8,7 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.validator.routines.UrlValidator;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
@@ -84,12 +85,15 @@ public final class HttpUtil {
     public static final String MACROS_OPEN = "{{";
     public static final String MACROS_CLOSE = "}}";
 
+    private static final UrlValidator URL_VALIDAROR = UrlValidator.getInstance();
+
     private HttpUtil() {
     }
 
     /**
      * Checks the input string for using as URL.
      */
+    @Deprecated
     public static String validateUrl(String url) {
         if (containsMacrosses(url)) {
             return url;
@@ -100,6 +104,14 @@ public final class HttpUtil {
         } catch (MalformedURLException e) {
             throw new IllegalArgumentException("URL supplied is not valid: " + url, e);
         }
+    }
+
+    public static String validateUrlSyntax(String url) {
+        if (containsMacrosses(url) || URL_VALIDAROR.isValid(url)) {
+            return url;
+        }
+
+        throw new IllegalArgumentException("URL supplied is not valid: " + url);
     }
 
     // TODO: We need our own way to work with url macrosses
