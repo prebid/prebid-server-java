@@ -7,36 +7,29 @@
           "id": "bid_id",
           "impid": "imp_id",
           "exp": 300,
-          "price": 0.5,
-          "adm": "some-test-ad",
-          "adid": "adid",
-          "adomain": [
-            "advertsite.com"
-          ],
-          "cid": "cid",
-          "crid": "crid",
-          "w": 1024,
-          "h": 576,
+          "price": 4.7,
+          "adm": "adm6_4.7",
+          "nurl": "nurl_4.7",
+          "crid": "crid6",
           "ext": {
             "prebid": {
               "type": "banner",
               "meta": {
-                "adaptercode": "smartadserver"
+                "adaptercode": "kuantyx"
               }
             },
-            "origbidcpm": 0.5
-          },
-          "mtype": 1
+            "origbidcpm": 4.7
+          }
         }
       ],
-      "seat": "smartadserver",
+      "seat": "kuantyx",
       "group": 0
     }
   ],
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "smartadserver": "{{ smartadserver.response_time_ms }}"
+      "kuantyx": "{{ kuantyx.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 0

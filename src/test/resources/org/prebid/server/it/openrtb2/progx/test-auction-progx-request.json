@@ -3,17 +3,15 @@
   "imp": [
     {
       "id": "imp_id",
+      "secure": 1,
       "banner": {
-        "w": 300,
+        "w": 320,
         "h": 250
       },
       "ext": {
-        "tappx": {
-          "tappxkey": "pub-12345-android-9876",
-          "endpoint": "test",
-          "bidfloor": 1.5
-        },
-        "gpid": "/19968336/header-bid-tag-0"
+        "progx": {
+          "cId": "connectionId"
+        }
       }
     }
   ],

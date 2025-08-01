@@ -8,12 +8,9 @@
         "h": 250
       },
       "ext": {
-        "tappx": {
-          "tappxkey": "pub-12345-android-9876",
-          "endpoint": "test",
-          "bidfloor": 1.5
-        },
-        "gpid": "/19968336/header-bid-tag-0"
+        "kuantyx": {
+          "zone" : 1
+        }
       }
     }
   ],

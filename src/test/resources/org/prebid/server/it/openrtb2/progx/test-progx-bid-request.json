@@ -5,18 +5,14 @@
       "id": "imp_id",
       "secure": 1,
       "banner": {
-        "w": 300,
+        "w": 320,
         "h": 250
       },
-      "bidfloor": 1.5,
       "ext": {
         "tid": "${json-unit.any-string}",
         "bidder": {
-          "tappxkey": "pub-12345-android-9876",
-          "endpoint": "test",
-          "bidfloor": 1.5
-        },
-        "gpid": "/19968336/header-bid-tag-0"
+          "cId": "connectionId"
+        }
       }
     }
   ],
@@ -43,13 +39,16 @@
     "USD"
   ],
   "regs": {
-    "ext": {
       "gdpr": 0
-    }
   },
   "ext": {
-    "bidder": {
-      "tappxkey": "pub-12345-android-9876"
+    "prebid": {
+      "server": {
+        "externalurl": "http://localhost:8080",
+        "gvlid": 1,
+        "datacenter": "local",
+        "endpoint": "/openrtb2/auction"
+      }
     }
   }
 }
