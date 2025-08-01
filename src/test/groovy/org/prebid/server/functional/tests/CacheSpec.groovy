@@ -39,9 +39,9 @@ class CacheSpec extends BaseSpec {
 
     private static final String XML_CREATIVE_SIZE_GLOBAL_METRIC = "prebid_cache.creative_size.xml"
     private static final String JSON_CREATIVE_SIZE_GLOBAL_METRIC = "prebid_cache.creative_size.json"
-    private static final String PREBID_CACHE_OK_WRITE_OK_METRIC = "prebid_cache.vtrack.write.ok"
-    private static final String PREBID_CACHE_REQUEST_OK_METRIC = "prebid_cache.requests.ok"
+    private static final String PREBID_CACHE_VTRACK_WRITE_OK_METRIC = "prebid_cache.vtrack.write.ok"
     private static final String PREBID_CACHE_VTRACK_READ_OK_METRIC = "prebid_cache.vtrack.read.ok"
+    private static final String PREBID_CACHE_REQUEST_OK_METRIC = "prebid_cache.requests.ok"
 
     private static final String CACHE_PATH = "/${PBSUtils.randomString}".toString()
     private static final String CACHE_HOST = "${PBSUtils.randomString}:${PBSUtils.getRandomNumber(0, 65535)}".toString()
@@ -52,7 +52,7 @@ class CacheSpec extends BaseSpec {
 
     def "PBS should update prebid_cache.creative_size.xml metric when xml creative is received"() {
         given: "Current value of metric prebid_cache.requests.ok"
-        def initialValue = getCurrentMetricValue(defaultPbsService, PREBID_CACHE_OK_WRITE_OK_METRIC)
+        def initialValue = getCurrentMetricValue(defaultPbsService, PREBID_CACHE_VTRACK_WRITE_OK_METRIC)
 
         and: "Default VtrackRequest"
         def accountId = PBSUtils.randomNumber.toString()
@@ -68,7 +68,7 @@ class CacheSpec extends BaseSpec {
         then: "prebid_cache.creative_size.xml metric should be updated"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
         def creativeSize = creative.bytes.length
-        assert metrics[PREBID_CACHE_OK_WRITE_OK_METRIC] == initialValue + 1
+        assert metrics[PREBID_CACHE_VTRACK_WRITE_OK_METRIC] == initialValue + 1
         assert metrics[XML_CREATIVE_SIZE_GLOBAL_METRIC] == creativeSize
 
         and: "account.<account-id>.prebid_cache.creative_size.xml should be updated"
@@ -477,7 +477,7 @@ class CacheSpec extends BaseSpec {
 
     def "PBS should update prebid_cache.creative_size.xml metric and adding tracking xml when xml creative contain #wrapper and impression are valid xml value"() {
         given: "Current value of metric prebid_cache.requests.ok"
-        def initialValue = getCurrentMetricValue(defaultPbsService, PREBID_CACHE_OK_WRITE_OK_METRIC)
+        def initialValue = getCurrentMetricValue(defaultPbsService, PREBID_CACHE_VTRACK_WRITE_OK_METRIC)
 
         and: "Create and save enabled events config in account"
         def accountId = PBSUtils.randomNumber.toString()
@@ -509,7 +509,7 @@ class CacheSpec extends BaseSpec {
 
         and: "prebid_cache.creative_size.xml metric should be updated"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        assert metrics[PREBID_CACHE_OK_WRITE_OK_METRIC] == initialValue + 1
+        assert metrics[PREBID_CACHE_VTRACK_WRITE_OK_METRIC] == initialValue + 1
 
         and: "account.<account-id>.prebid_cache.creative_size.xml should be updated"
         assert metrics[ACCOUNT_PREBID_CACHE_VTRACK_WRITE_OK_METRIC.formatted(accountId) as String] == 1
@@ -715,7 +715,7 @@ class CacheSpec extends BaseSpec {
 
     def "PBS shouldn't cache bids and add targeting values when account cache config disabled"() {
         given: "Current value of metric prebid_cache.requests.ok"
-        def initialValue = getCurrentMetricValue(defaultPbsService, PREBID_CACHE_OK_WRITE_OK_METRIC)
+        def initialValue = getCurrentMetricValue(defaultPbsService, PREBID_CACHE_VTRACK_WRITE_OK_METRIC)
 
         and: "Default BidRequest with cache, targeting"
         def bidRequest = BidRequest.getDefaultVideoRequest().tap {
@@ -750,13 +750,13 @@ class CacheSpec extends BaseSpec {
 
         and: "Metrics shouldn't be updated"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        assert metrics[PREBID_CACHE_OK_WRITE_OK_METRIC] == initialValue
+        assert metrics[PREBID_CACHE_VTRACK_WRITE_OK_METRIC] == initialValue
         assert !metrics[ACCOUNT_PREBID_CACHE_VTRACK_WRITE_OK_METRIC.formatted(bidRequest.accountId)]
     }
 
     def "PBS should update prebid_cache.creative_size.xml metric when account cache config #enabledCacheConcfig"() {
         given: "Current value of metric prebid_cache.requests.ok"
-        def okInitialValue = getCurrentMetricValue(defaultPbsService, PREBID_CACHE_OK_WRITE_OK_METRIC)
+        def okInitialValue = getCurrentMetricValue(defaultPbsService, PREBID_CACHE_VTRACK_WRITE_OK_METRIC)
 
         and: "Default VtrackRequest"
         def accountId = PBSUtils.randomNumber.toString()
@@ -781,7 +781,7 @@ class CacheSpec extends BaseSpec {
         then: "prebid_cache.creative_size.xml metric should be updated"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
         def creativeSize = creative.bytes.length
-        assert metrics[PREBID_CACHE_OK_WRITE_OK_METRIC] == okInitialValue + 1
+        assert metrics[PREBID_CACHE_VTRACK_WRITE_OK_METRIC] == okInitialValue + 1
 
         and: "account.<account-id>.prebid_cache.creative_size.xml should be updated"
         assert metrics[ACCOUNT_PREBID_CACHE_VTRACK_WRITE_OK_METRIC.formatted(accountId)] == 1
