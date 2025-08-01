@@ -343,20 +343,16 @@ public class YandexBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnAllSupportedTypes() throws JsonProcessingException {
+    public void makeBidsShouldReturnVideoBid() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> bidderCall = givenBidderCall(
                 BidRequest.builder()
-                        .imp(asList(Imp.builder().id("blockA").video(Video.builder().build()).build(),
-                                Imp.builder().id("blockB").banner(Banner.builder().build()).build(),
-                                Imp.builder().id("blockC").xNative(Native.builder().build()).build()))
+                        .imp(singletonList(Imp.builder().id("blockA").video(Video.builder().build()).build()))
                         .build(),
                 mapper.writeValueAsString(BidResponse.builder()
                         .cur("USD")
                         .seatbid(singletonList(SeatBid.builder()
-                                .bid(asList(Bid.builder().impid("blockA").build(),
-                                        Bid.builder().impid("blockB").build(),
-                                        Bid.builder().impid("blockC").build()))
+                                .bid(singletonList(Bid.builder().impid("blockA").build()))
                                 .build()))
                         .build()));
 
@@ -366,9 +362,53 @@ public class YandexBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("blockA").build(), video, "USD"),
-                        BidderBid.of(Bid.builder().impid("blockB").build(), banner, "USD"),
-                        BidderBid.of(Bid.builder().impid("blockC").build(), xNative, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("blockA").build(), video, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnBannerBid() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> bidderCall = givenBidderCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("blockB").banner(Banner.builder().build()).build()))
+                        .build(),
+                mapper.writeValueAsString(BidResponse.builder()
+                        .cur("USD")
+                        .seatbid(singletonList(SeatBid.builder()
+                                .bid(singletonList(Bid.builder().impid("blockB").build()))
+                                .build()))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(bidderCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("blockB").build(), banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnNativeBid() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> bidderCall = givenBidderCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("blockC").xNative(Native.builder().build()).build()))
+                        .build(),
+                mapper.writeValueAsString(BidResponse.builder()
+                        .cur("USD")
+                        .seatbid(singletonList(SeatBid.builder()
+                                .bid(singletonList(Bid.builder().impid("blockC").build()))
+                                .build()))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(bidderCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("blockC").build(), xNative, "USD"));
     }
 
     @Test
@@ -396,10 +436,34 @@ public class YandexBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldReturnCorrectBidTypeForMultiFormatImpression() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(
+                        Imp.builder().id("multiFormatImp")
+                                .banner(Banner.builder().w(300).h(600).build())
+                                .video(Video.builder().w(300).h(600).build())
+                                .xNative(Native.builder().build())
+                                .build()))
+                .build();
+
+        final BidResponse bidResponse = givenBidResponse(bidBuilder -> bidBuilder.impid("multiFormatImp"));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(
+                givenBidderCall(bidRequest, mapper.writeValueAsString(bidResponse)), bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getValue().getFirst().getType()).isEqualTo(video); // Video has highest priority
+    }
+
+    @Test
     public void makeHttpRequestsShouldSetExpectedHeaders() {
         // given
         final BidRequest bidRequest = givenBidRequest(identity(),
-                requestBuilder -> requestBuilder.site(Site.builder().id("1").page("https://example.com").build())
+                requestBuilder -> requestBuilder.site(Site.builder().id("1").page("https://example.com/path?query=value").build())
                         .device(Device.builder().ua("UA").language("EN").ip("127.0.0.1").build()));
 
         // when
@@ -416,7 +480,7 @@ public class YandexBidderTest extends VertxTest {
                         tuple("Content-Type", "application/json;charset=utf-8"),
                         tuple("Accept", "application/json"),
                         tuple("x-openrtb-version", "2.5"),
-                        tuple("Referer", "https://example.com"));
+                        tuple("Referer", "https://example.com/path?query=value"));
     }
 
     @Test
@@ -424,7 +488,7 @@ public class YandexBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(givenImp(impBuilder -> impBuilder.id("blockA").ext(givenImpExt(1)))))
-                .site(Site.builder().id("1").page("https://domain.com/").build())
+                .site(Site.builder().id("1").page("https://example.com/path?query=value").build())
                 .cur(asList("EUR", "USD"))
                 .build();
         // when
@@ -434,43 +498,7 @@ public class YandexBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).extracting(HttpRequest::getUri)
                 .containsExactly("https://test.endpoint.com/?"
-                        + "target-ref=https%3A%2F%2Fdomain.com%2F&ssp-cur=EUR");
-    }
-
-    private static BidRequest givenBidRequest(
-            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
-            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> requestCustomizer) {
-        return requestCustomizer.apply(BidRequest.builder()
-                        .site(Site.builder().id("1").build())
-                        .imp(singletonList(givenImp(impCustomizer))))
-                .build();
-    }
-
-    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
-        return impCustomizer.apply(Imp.builder()
-                        .banner(Banner.builder().w(300).h(600).build())
-                        .ext(givenImpExt(1)))
-                .build();
-    }
-
-    private static ObjectNode givenImpExt(int impId) {
-        return mapper.valueToTree(ExtPrebid.of(null, ExtImpYandex.of(134001, impId)));
-    }
-
-    private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
-        return BidResponse.builder()
-                .cur("USD")
-                .seatbid(singletonList(SeatBid.builder()
-                        .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
-                        .build()))
-                .build();
-    }
-
-    private static BidderCall<BidRequest> givenBidderCall(BidRequest bidRequest, String body) {
-        return BidderCall.succeededHttp(
-                HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
-                HttpResponse.of(200, null, body),
-                null);
+                        + "target-ref=https%3A%2F%2Fexample.com%2Fpath%3Fquery%3Dvalue&ssp-cur=EUR");
     }
 
     @Test
@@ -548,30 +576,6 @@ public class YandexBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnCorrectBidTypeForMultiFormatImpression() throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(
-                        Imp.builder().id("multiFormatImp")
-                                .banner(Banner.builder().w(300).h(600).build())
-                                .video(Video.builder().w(300).h(600).build())
-                                .xNative(Native.builder().build())
-                                .build()))
-                .build();
-
-        final BidResponse bidResponse = givenBidResponse(bidBuilder -> bidBuilder.impid("multiFormatImp"));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(
-                givenBidderCall(bidRequest, mapper.writeValueAsString(bidResponse)), bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().getFirst().getType()).isEqualTo(video); // Video has highest priority
-    }
-
-    @Test
     public void makeHttpRequestsShouldSetDisplayManagerAndVersionForAllImpTypes() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
@@ -604,5 +608,41 @@ public class YandexBidderTest extends VertxTest {
                         tuple("prebid.java", "1.1"),
                         tuple("prebid.java", "1.1"),
                         tuple("prebid.java", "1.1"));
+    }
+
+    private static BidRequest givenBidRequest(
+            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
+            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> requestCustomizer) {
+        return requestCustomizer.apply(BidRequest.builder()
+                        .site(Site.builder().id("1").build())
+                        .imp(singletonList(givenImp(impCustomizer))))
+                .build();
+    }
+
+    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+        return impCustomizer.apply(Imp.builder()
+                        .banner(Banner.builder().w(300).h(600).build())
+                        .ext(givenImpExt(1)))
+                .build();
+    }
+
+    private static ObjectNode givenImpExt(int impId) {
+        return mapper.valueToTree(ExtPrebid.of(null, ExtImpYandex.of(134001, impId)));
+    }
+
+    private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
+        return BidResponse.builder()
+                .cur("USD")
+                .seatbid(singletonList(SeatBid.builder()
+                        .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
+                        .build()))
+                .build();
+    }
+
+    private static BidderCall<BidRequest> givenBidderCall(BidRequest bidRequest, String body) {
+        return BidderCall.succeededHttp(
+                HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
+                HttpResponse.of(200, null, body),
+                null);
     }
 }
