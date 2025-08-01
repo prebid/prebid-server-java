@@ -15,6 +15,7 @@ import org.prebid.server.functional.model.request.vtrack.xml.Vast
 import org.prebid.server.functional.model.response.auction.Adm
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.IgnoreRest
 
 import static org.prebid.server.functional.model.response.auction.ErrorType.CACHE
 import static org.prebid.server.functional.model.AccountStatus.ACTIVE
@@ -41,6 +42,7 @@ class CacheSpec extends BaseSpec {
     private static final String JSON_CREATIVE_SIZE_GLOBAL_METRIC = "prebid_cache.creative_size.json"
     private static final String PREBID_CACHE_VTRACK_WRITE_OK_METRIC = "prebid_cache.vtrack.write.ok"
     private static final String PREBID_CACHE_VTRACK_READ_OK_METRIC = "prebid_cache.vtrack.read.ok"
+    private static final String PREBID_CACHE_VTRACK_READ_ERROR_METRIC = "prebid_cache.vtrack.read.err"
     private static final String PREBID_CACHE_REQUEST_OK_METRIC = "prebid_cache.requests.ok"
 
     private static final String CACHE_PATH = "/${PBSUtils.randomString}".toString()
@@ -812,10 +814,10 @@ class CacheSpec extends BaseSpec {
         when: "PBS processes get vtrack request"
         def response = defaultPbsService.sendGetVtrackRequest(uuid)
 
-        then: "Response body should contain error status code"
+        then: "Response body should contain 200 status code"
         assert response == HttpStatusCode.OK_200.code()
 
-        and: "Metrics should contain"
+        and: "Metrics should contain ok metric"
         def metricsRequest = defaultPbsService.sendCollectedMetricsRequest()
         assert metricsRequest[PREBID_CACHE_VTRACK_READ_OK_METRIC] == 1
 
@@ -836,16 +838,16 @@ class CacheSpec extends BaseSpec {
         then: "Response body should contain error status code"
         assert response == HttpStatusCode.INTERNAL_SERVER_ERROR_500.code()
 
-        and: "Metrics should contain"
+        and: "Metrics should contain error metric"
         def metricsRequest = defaultPbsService.sendCollectedMetricsRequest()
-        assert metricsRequest["prebid_cache.vtrack.read.err"] == 1
+        assert metricsRequest[PREBID_CACHE_VTRACK_READ_ERROR_METRIC] == 1
 
         cleanup: "Clean cache mock response"
         prebidCache.reset(CACHE_ENDPOINT)
     }
 
-    def "PBS should return 500 status code when get vtrack request with uuid and response from pbc invalid"() {
-        given: "Current value of metric prebid_cache.requests.ok"
+    def "PBS should return 200 status code when get vtrack request with uuid and ch"() {
+        given: "Current value of metric prebid_cache.vtrack.read.ok"
         def initialValue = getCurrentMetricValue(defaultPbsService, PREBID_CACHE_VTRACK_READ_OK_METRIC)
 
         and: "Random uuid and cache host"
@@ -858,11 +860,14 @@ class CacheSpec extends BaseSpec {
         when: "PBS processes get vtrack request"
         def response = defaultPbsService.sendGetVtrackRequest(uuid, cacheHost)
 
-        then: "Response body should contain status code ok"
+        then: "Response body should contain 200 status code"
         assert response == HttpStatusCode.OK_200.code()
 
-        and: "Metrics should contain"
+        and: "Metrics should contain ok metrics"
         def metricsRequest = defaultPbsService.sendCollectedMetricsRequest()
         assert metricsRequest[PREBID_CACHE_VTRACK_READ_OK_METRIC] == initialValue + 1
+
+        cleanup: "Clean cache mock response"
+        prebidCache.reset(CACHE_ENDPOINT)
     }
 }
