@@ -27,8 +27,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
 import org.prebid.server.auction.IpAddressHelper;
-import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.TimeoutResolver;
+import org.prebid.server.auction.externalortb.StoredRequestProcessor;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionStoredResult;
 import org.prebid.server.auction.model.IpAddress;
@@ -1032,11 +1032,11 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         // when
         final Future<BidRequest> result = target.enrichBidRequestWithAccountAndPrivacyData(
-                        AuctionContext.builder()
-                                .bidRequest(bidRequest)
-                                .account(account)
-                                .privacyContext(privacyContext)
-                                .build());
+                AuctionContext.builder()
+                        .bidRequest(bidRequest)
+                        .account(account)
+                        .privacyContext(privacyContext)
+                        .build());
 
         // then
         assertThat(result).isSucceeded().unwrap()
@@ -1065,11 +1065,11 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         // when
         final Future<BidRequest> result = target.enrichBidRequestWithAccountAndPrivacyData(
-                        AuctionContext.builder()
-                                .bidRequest(bidRequest)
-                                .account(account)
-                                .privacyContext(privacyContext)
-                                .build());
+                AuctionContext.builder()
+                        .bidRequest(bidRequest)
+                        .account(account)
+                        .privacyContext(privacyContext)
+                        .build());
 
         // then
         assertThat(result).isSucceeded().unwrap()

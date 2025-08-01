@@ -43,7 +43,7 @@ public class S3PeriodicRefreshService implements Initializable {
     private final String storedRequestsDirectory;
     private final String storedImpressionsDirectory;
     private final long refreshPeriod;
-    private final CacheNotificationListener cacheNotificationListener;
+    private final CacheNotificationListener<String> cacheNotificationListener;
     private final MetricName cacheType;
     private final Clock clock;
     private final Metrics metrics;
@@ -54,7 +54,7 @@ public class S3PeriodicRefreshService implements Initializable {
                                     String storedRequestsDirectory,
                                     String storedImpressionsDirectory,
                                     long refreshPeriod,
-                                    CacheNotificationListener cacheNotificationListener,
+                                    CacheNotificationListener<String> cacheNotificationListener,
                                     MetricName cacheType,
                                     Clock clock,
                                     Metrics metrics,
@@ -84,7 +84,7 @@ public class S3PeriodicRefreshService implements Initializable {
         }
     }
 
-    private Future<StoredDataResult> fetchStoredDataResult(long startTime, MetricName metricName) {
+    private Future<StoredDataResult<String>> fetchStoredDataResult(long startTime, MetricName metricName) {
         return Future.all(
                         getFileContentsForDirectory(storedRequestsDirectory),
                         getFileContentsForDirectory(storedImpressionsDirectory))
@@ -132,7 +132,7 @@ public class S3PeriodicRefreshService implements Initializable {
                 .replace(JSON_SUFFIX, "");
     }
 
-    private void handleResult(StoredDataResult storedDataResult, long startTime, MetricName refreshType) {
+    private void handleResult(StoredDataResult<String> storedDataResult, long startTime, MetricName refreshType) {
         cacheNotificationListener.save(storedDataResult.getStoredIdToRequest(), storedDataResult.getStoredIdToImp());
         metrics.updateSettingsCacheRefreshTime(cacheType, refreshType, clock.millis() - startTime);
     }

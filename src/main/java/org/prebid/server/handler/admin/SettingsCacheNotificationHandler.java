@@ -19,15 +19,17 @@ import java.util.Objects;
  */
 public class SettingsCacheNotificationHandler implements Handler<RoutingContext> {
 
-    private final CacheNotificationListener cacheNotificationListener;
-    private final JacksonMapper mapper;
     private final String endpoint;
+    private final CacheNotificationListener<String> cacheNotificationListener;
+    private final JacksonMapper mapper;
 
-    public SettingsCacheNotificationHandler(CacheNotificationListener cacheNotificationListener, JacksonMapper mapper,
-                                            String endpoint) {
+    public SettingsCacheNotificationHandler(String endpoint,
+                                            CacheNotificationListener<String> cacheNotificationListener,
+                                            JacksonMapper mapper) {
+
+        this.endpoint = Objects.requireNonNull(endpoint);
         this.cacheNotificationListener = Objects.requireNonNull(cacheNotificationListener);
         this.mapper = Objects.requireNonNull(mapper);
-        this.endpoint = Objects.requireNonNull(endpoint);
     }
 
     @Override
@@ -94,14 +96,18 @@ public class SettingsCacheNotificationHandler implements Handler<RoutingContext>
     }
 
     private void respondWithBadRequest(RoutingContext routingContext, String body) {
-        HttpUtil.executeSafely(routingContext, endpoint,
+        HttpUtil.executeSafely(
+                routingContext,
+                endpoint,
                 response -> response
                         .setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
                         .end(body));
     }
 
     private void respondWith(RoutingContext routingContext, HttpResponseStatus status) {
-        HttpUtil.executeSafely(routingContext, endpoint,
+        HttpUtil.executeSafely(
+                routingContext,
+                endpoint,
                 response -> response
                         .setStatusCode(status.code())
                         .end());

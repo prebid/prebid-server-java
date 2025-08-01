@@ -6,11 +6,11 @@ import java.util.List;
 import java.util.Map;
 
 @Value(staticConstructor = "of")
-public class StoredDataResult {
+public class StoredDataResult<T> {
 
-    Map<String, String> storedIdToRequest;
+    Map<String, T> storedIdToRequest;
 
-    Map<String, String> storedIdToImp;
+    Map<String, T> storedIdToImp;
 
     List<String> errors;
 }
