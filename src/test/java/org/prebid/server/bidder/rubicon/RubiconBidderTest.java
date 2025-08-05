@@ -599,7 +599,7 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldAddMaxbidsAttributeAsOneIfExtPrebidMultibidMaxBidsIsNotPresent() {
+    public void makeHttpRequestsShouldAddMaxbidsAttributeAsNullIfExtPrebidMultibidMaxBidsIsNotPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
@@ -620,7 +620,7 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(Imp::getExt).doesNotContainNull()
                 .extracting(ext -> mapper.treeToValue(ext, RubiconImpExt.class))
                 .extracting(RubiconImpExt::getMaxbids)
-                .containsExactly(1);
+                .containsOnlyNulls();
     }
 
     @Test
@@ -659,7 +659,6 @@ public class RubiconBidderTest extends VertxTest {
                                 null,
                                 "uuid_bid_id"))
                         .skadn(givenSkadn)
-                        .maxbids(1)
                         .build());
     }
 
@@ -2445,7 +2444,6 @@ public class RubiconBidderTest extends VertxTest {
                         .video(Video.builder().build())
                         .ext(mapper.valueToTree(RubiconImpExt.builder()
                                 .rp(expectedImpExtRp)
-                                .maxbids(1)
                                 .build()))
                         .build()))
                 .build();
@@ -2456,7 +2454,6 @@ public class RubiconBidderTest extends VertxTest {
                         .ext(mapper.valueToTree(
                                 RubiconImpExt.builder()
                                         .rp(expectedImpExtRp)
-                                        .maxbids(1)
                                         .build()))
                         .build()))
                 .build();

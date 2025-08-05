@@ -21,6 +21,9 @@ adapters:
         enabled: false
         meta-info:
           maintainer-email: adops@yobee.it
+      netaddiction:
+        meta-info:
+          maintainer-email: publishers-support@netaddiction.it
     meta-info:
       maintainer-email: prebid@admatic.com.tr
       app-media-types:

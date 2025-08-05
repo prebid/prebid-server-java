@@ -1,0 +1,22 @@
+adapters:
+  optidigital:
+    enabled: false
+    endpoint: https://pbs.optidigital.com/bidder/openrtb2
+    endpoint-compression: gzip
+    ortb-version: "2.6"
+    meta-info:
+      maintainer-email: prebid@optidigital.com
+      app-media-types:
+        - banner
+      site-media-types:
+        - banner
+      dooh-media-types:
+        - banner
+      supported-vendors:
+      vendor-id: 915
+    usersync:
+      cookie-family-name: optidigital
+      iframe:
+        url: https://scripts.opti-digital.com/js/presyncs2s.html?endpoint=optidigital&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir={{redirect_url}}
+        support-cors: false
+        uid-macro: '$UID'
