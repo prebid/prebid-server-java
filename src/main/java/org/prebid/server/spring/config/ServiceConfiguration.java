@@ -997,6 +997,8 @@ public class ServiceConfiguration {
     @Bean
     ProfilesProcessor profilesProcessor(@Value("${auction.profiles.limit}") int maxProfiles,
                                         @Value("${auction.profiles.timeout-ms}") long defaultTimeoutMillis,
+                                        @Value("${auction.profiles.fail-on-unknown:true}") boolean failOnUnknown,
+                                        @Value("${logging.sampling-rate:0.01}") double logSamplingRate,
                                         ApplicationSettings applicationSettings,
                                         TimeoutFactory timeoutFactory,
                                         Metrics metrics,
@@ -1006,6 +1008,8 @@ public class ServiceConfiguration {
         return new ProfilesProcessor(
                 maxProfiles,
                 defaultTimeoutMillis,
+                failOnUnknown,
+                logSamplingRate,
                 applicationSettings,
                 timeoutFactory,
                 metrics,

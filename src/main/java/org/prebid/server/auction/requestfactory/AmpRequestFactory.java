@@ -405,13 +405,13 @@ public class AmpRequestFactory {
                     new InvalidRequestException("AMP requests require the stored request id in AMP tag_id"));
         }
 
-        final Account account = ObjectUtils.defaultIfNull(auctionContext.getAccount(), Account.empty(null));
-        final String accountId = account.getId();
+        final Account account = auctionContext.getAccount();
+        final String accountId = account != null ? account.getId() : null;
 
         final HttpRequestContext httpRequest = auctionContext.getHttpRequest();
 
         return storedRequestProcessor.processAmpRequest(accountId, storedRequestId, receivedBidRequest)
-                .compose(bidRequest -> profilesProcessor.process(account, bidRequest))
+                .compose(bidRequest -> profilesProcessor.process(auctionContext, bidRequest))
                 .map(ortbVersionConversionManager::convertToAuctionSupportedVersion)
                 .map(bidRequest -> gppService.updateBidRequest(bidRequest, auctionContext))
                 .map(bidRequest -> validateStoredBidRequest(storedRequestId, bidRequest))

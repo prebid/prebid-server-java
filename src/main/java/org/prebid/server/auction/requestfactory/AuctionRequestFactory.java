@@ -256,7 +256,7 @@ public class AuctionRequestFactory {
 
         final boolean hasStoredBidRequest = auctionStoredResult.hasStoredBidRequest();
 
-        return profilesProcessor.process(auctionContext.getAccount(), auctionStoredResult.bidRequest())
+        return profilesProcessor.process(auctionContext, auctionStoredResult.bidRequest())
                 .map(ortbVersionConversionManager::convertToAuctionSupportedVersion)
                 .map(bidRequest -> gppService.updateBidRequest(bidRequest, auctionContext))
                 .map(bidRequest -> paramsResolver.resolve(bidRequest, auctionContext, ENDPOINT, hasStoredBidRequest))

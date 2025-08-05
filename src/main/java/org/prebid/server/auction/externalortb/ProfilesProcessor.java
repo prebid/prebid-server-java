@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import io.vertx.core.Future;
+import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.exception.InvalidProfileException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.timeout.Timeout;
@@ -13,6 +14,9 @@ import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
+import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.log.LoggerFactory;
+import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
@@ -37,8 +41,13 @@ import java.util.stream.Collectors;
 
 public class ProfilesProcessor {
 
+    private static final ConditionalLogger conditionalLogger =
+            new ConditionalLogger(LoggerFactory.getLogger(ProfilesProcessor.class));
+
     private final int maxProfiles;
     private final long defaultTimeoutMillis;
+    private final boolean failOnUnknown;
+    private final double logSamplingRate;
     private final ApplicationSettings applicationSettings;
     private final TimeoutFactory timeoutFactory;
     private final Metrics metrics;
@@ -47,6 +56,8 @@ public class ProfilesProcessor {
 
     public ProfilesProcessor(int maxProfiles,
                              long defaultTimeoutMillis,
+                             boolean failOnUnknown,
+                             double logSamplingRate,
                              ApplicationSettings applicationSettings,
                              TimeoutFactory timeoutFactory,
                              Metrics metrics,
@@ -55,6 +66,8 @@ public class ProfilesProcessor {
 
         this.maxProfiles = maxProfiles;
         this.defaultTimeoutMillis = defaultTimeoutMillis;
+        this.failOnUnknown = failOnUnknown;
+        this.logSamplingRate = logSamplingRate;
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
         this.metrics = Objects.requireNonNull(metrics);
@@ -62,30 +75,44 @@ public class ProfilesProcessor {
         this.jsonMerger = Objects.requireNonNull(jsonMerger);
     }
 
-    public Future<BidRequest> process(Account account, BidRequest bidRequest) {
-        final List<Imp> imps = bidRequest.getImp();
-
-        final AllProfilesIds profilesIds = truncate(
-                new AllProfilesIds(
-                        requestProfilesIds(bidRequest),
-                        imps.stream()
-                                .map(this::impProfilesIds)
-                                .toList()),
-                Optional.ofNullable(account.getAuction())
-                        .map(AccountAuctionConfig::getProfiles)
-                        .map(AccountProfilesConfig::getLimit)
-                        .orElse(maxProfiles));
-
+    public Future<BidRequest> process(AuctionContext auctionContext, BidRequest bidRequest) {
+        final AllProfilesIds profilesIds = profilesIds(bidRequest, auctionContext);
         if (profilesIds.isEmpty()) {
             return Future.succeededFuture(bidRequest);
         }
 
-        return fetchProfiles(account.getId(), profilesIds, timeoutMillis(bidRequest))
+        final String accountId = Optional.ofNullable(auctionContext.getAccount())
+                .map(Account::getId)
+                .orElse(null);
+
+        return fetchProfiles(accountId, profilesIds, timeoutMillis(bidRequest))
+                .map(profiles -> emitMetrics(accountId, profiles, auctionContext))
                 .map(profiles -> mergeResults(
                         applyRequestProfiles(profilesIds.request(), profiles.getStoredIdToRequest(), bidRequest),
-                        applyImpsProfiles(profilesIds.imps(), profiles.getStoredIdToImp(), imps)))
+                        applyImpsProfiles(profilesIds.imps(), profiles.getStoredIdToImp(), bidRequest.getImp())))
                 .recover(e -> Future.failedFuture(
                         new InvalidRequestException("Error during processing profiles: " + e.getMessage())));
+    }
+
+    private AllProfilesIds profilesIds(BidRequest bidRequest, AuctionContext auctionContext) {
+        final AllProfilesIds initialProfilesIds = new AllProfilesIds(
+                requestProfilesIds(bidRequest),
+                bidRequest.getImp().stream().map(this::impProfilesIds).toList());
+
+        final AllProfilesIds profilesIds = truncate(
+                initialProfilesIds,
+                Optional.ofNullable(auctionContext.getAccount())
+                        .map(Account::getAuction)
+                        .map(AccountAuctionConfig::getProfiles)
+                        .map(AccountProfilesConfig::getLimit)
+                        .orElse(maxProfiles));
+
+        if (auctionContext.getDebugContext().isDebugEnabled() && !profilesIds.equals(initialProfilesIds)) {
+            auctionContext.getDebugWarnings().add("Profiles exceeded the limit.");
+            metrics.updateProfileMetric(MetricName.err); // TODO
+        }
+
+        return profilesIds;
     }
 
     private static List<String> requestProfilesIds(BidRequest bidRequest) {
@@ -108,7 +135,7 @@ public class ProfilesProcessor {
         try {
             return mapper.mapper().treeToValue(jsonNode, ExtImpPrebid.class);
         } catch (JsonProcessingException e) {
-            throw new InvalidProfileException(e.getMessage());
+            throw new InvalidRequestException(e.getMessage());
         }
     }
 
@@ -145,9 +172,25 @@ public class ProfilesProcessor {
         final Timeout timeout = timeoutFactory.create(timeoutMillis);
 
         return applicationSettings.getProfiles(accountId, requestProfilesIds, impProfilesIds, timeout)
-                .compose(profiles -> profiles.getErrors().isEmpty()
+                .compose(profiles -> profiles.getErrors().isEmpty() || !failOnUnknown
                         ? Future.succeededFuture(profiles)
                         : Future.failedFuture(new InvalidProfileException(profiles.getErrors())));
+    }
+
+    private StoredDataResult<Profile> emitMetrics(String accountId,
+                                                  StoredDataResult<Profile> fetchResult,
+                                                  AuctionContext auctionContext) {
+
+        if (!fetchResult.getErrors().isEmpty()) {
+            metrics.updateProfileMetric(MetricName.missing);
+
+            if (auctionContext.getDebugContext().isDebugEnabled()) {
+                metrics.updateAccountProfileMetric(accountId, MetricName.missing);
+                auctionContext.getDebugWarnings().addAll(fetchResult.getErrors());
+            }
+        }
+
+        return fetchResult;
     }
 
     private BidRequest applyRequestProfiles(List<String> profilesIds,
@@ -170,10 +213,19 @@ public class ProfilesProcessor {
 
         ObjectNode result = mapper.mapper().valueToTree(original);
         for (String profileId : profilesIds) {
-            final Profile profile = idToProfile.get(profileId);
-            result = profile != null
-                    ? mergeProfile(result, profile, profileId)
-                    : result;
+            try {
+                final Profile profile = idToProfile.get(profileId);
+                result = profile != null
+                        ? mergeProfile(result, profile, profileId)
+                        : result;
+            } catch (InvalidProfileException e) {
+                metrics.updateProfileMetric(MetricName.invalid);
+                conditionalLogger.error(e.getMessage(), logSamplingRate);
+
+                if (failOnUnknown) {
+                    throw new InvalidProfileException(e.getMessage());
+                }
+            }
         }
 
         try {

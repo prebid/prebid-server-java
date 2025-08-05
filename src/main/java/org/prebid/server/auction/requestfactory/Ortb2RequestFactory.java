@@ -186,7 +186,7 @@ public class Ortb2RequestFactory {
         final Timeout timeout = auctionContext.getTimeoutContext().getTimeout();
         final HttpRequestContext httpRequest = auctionContext.getHttpRequest();
 
-        return findAccountIdFrom(bidRequest, isLookupStoredRequest)
+        return findAccountIdFrom(auctionContext, bidRequest, isLookupStoredRequest)
                 .map(this::validateIfAccountBlocklisted)
                 .compose(accountId -> loadAccount(timeout, httpRequest, accountId));
     }
@@ -473,7 +473,10 @@ public class Ortb2RequestFactory {
         return timeoutFactory.create(startTime, timeout);
     }
 
-    private Future<String> findAccountIdFrom(BidRequest bidRequest, boolean isLookupStoredRequest) {
+    private Future<String> findAccountIdFrom(AuctionContext auctionContext,
+                                             BidRequest bidRequest,
+                                             boolean isLookupStoredRequest) {
+
         final String accountId = accountIdFrom(bidRequest);
         if (StringUtils.isNotBlank(accountId) || !isLookupStoredRequest) {
             return Future.succeededFuture(accountId);
@@ -481,7 +484,7 @@ public class Ortb2RequestFactory {
 
         return accountIdFromStored(bidRequest)
                 .compose(id -> StringUtils.isBlank(accountId)
-                        ? accountIdFromProfiles(bidRequest)
+                        ? accountIdFromProfiles(auctionContext, bidRequest)
                         : Future.succeededFuture(id));
     }
 
@@ -514,8 +517,8 @@ public class Ortb2RequestFactory {
                 .map(this::accountIdFrom);
     }
 
-    private Future<String> accountIdFromProfiles(BidRequest bidRequest) {
-        return profilesProcessor.process(Account.empty(null), bidRequest)
+    private Future<String> accountIdFromProfiles(AuctionContext auctionContext, BidRequest bidRequest) {
+        return profilesProcessor.process(auctionContext, bidRequest)
                 .map(this::accountIdFrom);
     }
 
