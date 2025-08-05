@@ -27,7 +27,7 @@ public class BundleFunctionTest {
     }
 
     @Test
-    public void extractShouldExtractBundle() {
+    public void extractShouldReturnBundle() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .app(App.builder().bundle("bundle").build())

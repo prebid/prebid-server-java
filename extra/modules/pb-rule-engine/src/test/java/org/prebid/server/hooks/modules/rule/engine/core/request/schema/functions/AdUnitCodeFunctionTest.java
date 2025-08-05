@@ -101,4 +101,17 @@ public class AdUnitCodeFunctionTest {
         // when and then
         assertThat(target.extract(arguments)).isEqualTo("srid");
     }
+
+    @Test
+    public void extractShouldFallbackToUndefinedWhenAllAdUnitCodeSourcesAreAbsent() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder().build();
+
+        final SchemaFunctionArguments<RequestSchemaContext> arguments = SchemaFunctionArguments.of(
+                RequestSchemaContext.of(bidRequest, new Granularity.Imp("impId"), "datacenter"),
+                null);
+
+        // when and then
+        assertThat(target.extract(arguments)).isEqualTo("undefined");
+    }
 }
