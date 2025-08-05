@@ -100,13 +100,11 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
                         + ", \"id\" : \""
                         + enrichedUid.getId() + "\" } ] } ] }");
 
-        when(
-                httpClient.post(
-                        eq(moduleConfig.getIdentityResolutionEndpoint()),
-                        argThat(bearerAuthHeaderMatcher),
-                        eq(jacksonMapper.encodeToString(bidRequest)),
-                        eq(moduleConfig.getRequestTimeoutMs())
-                )
+        when(httpClient.post(
+            eq(moduleConfig.getIdentityResolutionEndpoint()),
+            argThat(bearerAuthHeaderMatcher),
+            eq(jacksonMapper.encodeToString(bidRequest)),
+            eq(moduleConfig.getRequestTimeoutMs()))
         ).thenReturn(Future.succeededFuture(mockResponse));
 
         final Future<InvocationResult<AuctionRequestPayload>> future =
