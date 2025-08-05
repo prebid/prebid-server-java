@@ -2,6 +2,7 @@ package org.prebid.server.hooks.modules.rule.engine.core.request.schema.function
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import org.junit.jupiter.api.Test;
@@ -22,8 +23,11 @@ public class AdUnitCodeFunctionTest {
 
     @Test
     public void validateConfigShouldThrowErrorWhenArgumentsArePresent() {
+        // given
+        final ObjectNode config = mapper.createObjectNode().set("args", TextNode.valueOf("args"));
+
         // when and then
-        assertThatThrownBy(() -> target.validateConfig(mapper.createObjectNode()))
+        assertThatThrownBy(() -> target.validateConfig(config))
                 .isInstanceOf(ConfigurationValidationException.class)
                 .hasMessage("No arguments allowed");
     }

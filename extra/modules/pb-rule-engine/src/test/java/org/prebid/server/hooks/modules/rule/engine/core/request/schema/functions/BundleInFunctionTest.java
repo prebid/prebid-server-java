@@ -33,7 +33,7 @@ public class BundleInFunctionTest {
     }
 
     @Test
-    public void validateConfigShouldThrowErrorWhenCodesFieldIsAbsent() {
+    public void validateConfigShouldThrowErrorWhenBundlesFieldIsAbsent() {
         // when and then
         assertThatThrownBy(() -> target.validateConfig(mapper.createObjectNode()))
                 .isInstanceOf(ConfigurationValidationException.class)

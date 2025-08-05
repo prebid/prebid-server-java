@@ -3,7 +3,6 @@ package org.prebid.server.hooks.modules.rule.engine.core.request.schema.function
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
-import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.hooks.modules.rule.engine.core.request.Granularity;
@@ -14,11 +13,11 @@ import org.prebid.server.hooks.modules.rule.engine.core.util.ConfigurationValida
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-public class BundleFunctionTest {
+public class DataCenterFunctionTest {
 
     private static final ObjectMapper mapper = new ObjectMapper();
 
-    private final BundleFunction target = new BundleFunction();
+    private final DataCenterFunction target = new DataCenterFunction();
 
     @Test
     public void validateConfigShouldThrowErrorWhenArgumentsArePresent() {
@@ -32,27 +31,25 @@ public class BundleFunctionTest {
     }
 
     @Test
-    public void extractShouldReturnBundle() {
+    public void extractShouldReturnDataCenter() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .app(App.builder().bundle("bundle").build())
-                .build();
+        final BidRequest bidRequest = BidRequest.builder().build();
 
         final SchemaFunctionArguments<RequestSchemaContext> arguments = SchemaFunctionArguments.of(
                 RequestSchemaContext.of(bidRequest, Granularity.Request.instance(), "datacenter"),
                 null);
 
         // when and then
-        assertThat(target.extract(arguments)).isEqualTo("bundle");
+        assertThat(target.extract(arguments)).isEqualTo("datacenter");
     }
 
     @Test
-    public void extractShouldFallbackToUndefinedWhenBundleIsAbsent() {
+    public void extractShouldFallbackToUndefinedWhenDataCenterIsAbsent() {
         // given
         final BidRequest bidRequest = BidRequest.builder().build();
 
         final SchemaFunctionArguments<RequestSchemaContext> arguments = SchemaFunctionArguments.of(
-                RequestSchemaContext.of(bidRequest, Granularity.Request.instance(), "datacenter"),
+                RequestSchemaContext.of(bidRequest, Granularity.Request.instance(), null),
                 null);
 
         // when and then
