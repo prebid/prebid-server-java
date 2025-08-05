@@ -1,6 +1,8 @@
 package org.prebid.server.bidder.pubmatic;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
@@ -17,6 +19,7 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -38,6 +41,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtAppPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAlternateBidderCodes;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAlternateBidderCodesBidder;
 import org.prebid.server.proto.openrtb.ext.request.pubmatic.ExtImpPubmatic;
 import org.prebid.server.proto.openrtb.ext.request.pubmatic.ExtImpPubmaticKeyVal;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
@@ -50,6 +55,7 @@ import org.prebid.server.util.HttpUtil;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.UnaryOperator;
 
 import static java.util.Arrays.asList;
@@ -212,6 +218,175 @@ public class PubmaticBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getExt)
                 .containsExactly(expectedExtRequest);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnAllowedBidderCodeWithPubmaticAdded() {
+        // given
+        final ExtRequest bidRequestExt = ExtRequest.of(ExtRequestPrebid.builder()
+                .alternateBidderCodes(ExtRequestPrebidAlternateBidderCodes.of(true, Map.of("pubmatic",
+                        ExtRequestPrebidAlternateBidderCodesBidder.of(true, Set.of("bidder1", "bidder2")))))
+                .build());
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.ext(bidRequestExt), identity(), identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).first()
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getExt)
+                .extracting(ext -> ext.getProperty("marketplace"))
+                .extracting(marketplace -> (ArrayNode) marketplace.path("allowedbidders"))
+                .asInstanceOf(InstanceOfAssertFactories.iterable(JsonNode.class))
+                .extracting(JsonNode::asText)
+                .containsOnly("pubmatic", "bidder1", "bidder2");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnOnlyPubmaticWhenPubmaticCodesAreDisabled() {
+        // given
+        final ExtRequest bidRequestExt = ExtRequest.of(ExtRequestPrebid.builder()
+                .alternateBidderCodes(ExtRequestPrebidAlternateBidderCodes.of(true, Map.of("pubmatic",
+                        ExtRequestPrebidAlternateBidderCodesBidder.of(false, Set.of("bidder1", "bidder2")))))
+                .build());
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.ext(bidRequestExt), identity(), identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).first()
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getExt)
+                .extracting(ext -> ext.getProperty("marketplace"))
+                .extracting(marketplace -> (ArrayNode) marketplace.path("allowedbidders"))
+                .asInstanceOf(InstanceOfAssertFactories.iterable(JsonNode.class))
+                .extracting(JsonNode::asText)
+                .containsOnly("pubmatic");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnOnlyAllWhenPubmaticCodesAreAbsent() {
+        // given
+        final ExtRequest bidRequestExt = ExtRequest.of(ExtRequestPrebid.builder()
+                .alternateBidderCodes(ExtRequestPrebidAlternateBidderCodes.of(true, Map.of("pubmatic",
+                        ExtRequestPrebidAlternateBidderCodesBidder.of(true, null))))
+                .build());
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.ext(bidRequestExt), identity(), identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).first()
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getExt)
+                .extracting(ext -> ext.getProperty("marketplace"))
+                .extracting(marketplace -> (ArrayNode) marketplace.path("allowedbidders"))
+                .asInstanceOf(InstanceOfAssertFactories.iterable(JsonNode.class))
+                .extracting(JsonNode::asText)
+                .containsOnly("all");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnOnlyAllWhenPubmaticCodesHasWildcard() {
+        // given
+        final ExtRequest bidRequestExt = ExtRequest.of(ExtRequestPrebid.builder()
+                .alternateBidderCodes(ExtRequestPrebidAlternateBidderCodes.of(true, Map.of("pubmatic",
+                        ExtRequestPrebidAlternateBidderCodesBidder.of(true, Set.of("*")))))
+                .build());
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.ext(bidRequestExt), identity(), identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).first()
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getExt)
+                .extracting(ext -> ext.getProperty("marketplace"))
+                .extracting(marketplace -> (ArrayNode) marketplace.path("allowedbidders"))
+                .asInstanceOf(InstanceOfAssertFactories.iterable(JsonNode.class))
+                .extracting(JsonNode::asText)
+                .containsOnly("all");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnOnlyPubmaticWhenPubmaticCodesAreAbsent() {
+        // given
+        final ExtRequest bidRequestExt = ExtRequest.of(ExtRequestPrebid.builder()
+                .alternateBidderCodes(ExtRequestPrebidAlternateBidderCodes.of(true, Map.of()))
+                .build());
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.ext(bidRequestExt), identity(), identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).first()
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getExt)
+                .extracting(ext -> ext.getProperty("marketplace"))
+                .extracting(marketplace -> (ArrayNode) marketplace.path("allowedbidders"))
+                .asInstanceOf(InstanceOfAssertFactories.iterable(JsonNode.class))
+                .extracting(JsonNode::asText)
+                .containsOnly("pubmatic");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnOnlyPubmaticWhenAlternateBidderCodesAreDisabled() {
+        // given
+        final ExtRequest bidRequestExt = ExtRequest.of(ExtRequestPrebid.builder()
+                .alternateBidderCodes(ExtRequestPrebidAlternateBidderCodes.of(false, Map.of()))
+                .build());
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.ext(bidRequestExt), identity(), identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).first()
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getExt)
+                .extracting(ext -> ext.getProperty("marketplace"))
+                .extracting(marketplace -> (ArrayNode) marketplace.path("allowedbidders"))
+                .asInstanceOf(InstanceOfAssertFactories.iterable(JsonNode.class))
+                .extracting(JsonNode::asText)
+                .containsOnly("pubmatic");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnNothingWhenAlternateBidderCodeIsAbsent() {
+        // given
+        final ExtRequest bidRequestExt = ExtRequest.of(ExtRequestPrebid.builder()
+                .alternateBidderCodes(null)
+                .build());
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.ext(bidRequestExt), identity(), identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).first()
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getExt)
+                .extracting(ext -> ext.getProperty("marketplace"))
+                .isNull();
     }
 
     @Test
