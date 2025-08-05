@@ -160,7 +160,9 @@ public class S3ApplicationSettings implements ApplicationSettings {
         return Future.succeededFuture(StoredDataResult.of(
                 Collections.emptyMap(),
                 Collections.emptyMap(),
-                Collections.emptyList()));
+                Stream.concat(requestIds.stream(), impIds.stream())
+                        .map(id -> "Profile not found for id: " + id)
+                        .toList()));
     }
 
     @Override

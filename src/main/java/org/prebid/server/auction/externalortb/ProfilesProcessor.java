@@ -171,7 +171,9 @@ public class ProfilesProcessor {
         ObjectNode result = mapper.mapper().valueToTree(original);
         for (String profileId : profilesIds) {
             final Profile profile = idToProfile.get(profileId);
-            result = mergeProfile(result, profile, profileId);
+            result = profile != null
+                    ? mergeProfile(result, profile, profileId)
+                    : result;
         }
 
         try {
@@ -182,18 +184,18 @@ public class ProfilesProcessor {
     }
 
     private ObjectNode mergeProfile(ObjectNode original, Profile profile, String profileId) {
-        final ObjectNode profileBody = parseProfile(profile.getBody());
+        final ObjectNode profileBody = parseProfile(profile.getBody(), profileId);
         return switch (profile.getMergePrecedence()) {
             case REQUEST -> merge(original, profileBody, profileId);
             case PROFILE -> merge(profileBody, original, profileId);
         };
     }
 
-    private ObjectNode parseProfile(String body) {
+    private ObjectNode parseProfile(String body, String profileId) {
         try {
             return mapper.decodeValue(body, ObjectNode.class);
         } catch (DecodeException e) {
-            throw new InvalidProfileException("Can't parse profile: " + e.getMessage());
+            throw new InvalidProfileException("Can't parse profile %s: %s".formatted(profileId, e.getMessage()));
         }
     }
 

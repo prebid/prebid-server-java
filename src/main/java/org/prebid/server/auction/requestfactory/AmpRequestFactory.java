@@ -23,6 +23,7 @@ import org.prebid.server.auction.GeoLocationServiceWrapper;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.OrtbTypesResolver;
 import org.prebid.server.auction.PriceGranularity;
+import org.prebid.server.auction.externalortb.ProfilesProcessor;
 import org.prebid.server.auction.externalortb.StoredRequestProcessor;
 import org.prebid.server.auction.gpp.AmpGppService;
 import org.prebid.server.auction.model.AuctionContext;
@@ -90,6 +91,7 @@ public class AmpRequestFactory {
 
     private final Ortb2RequestFactory ortb2RequestFactory;
     private final StoredRequestProcessor storedRequestProcessor;
+    private final ProfilesProcessor profilesProcessor;
     private final BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
     private final AmpGppService gppService;
     private final OrtbTypesResolver ortbTypesResolver;
@@ -103,6 +105,7 @@ public class AmpRequestFactory {
 
     public AmpRequestFactory(Ortb2RequestFactory ortb2RequestFactory,
                              StoredRequestProcessor storedRequestProcessor,
+                             ProfilesProcessor profilesProcessor,
                              BidRequestOrtbVersionConversionManager ortbVersionConversionManager,
                              AmpGppService gppService,
                              OrtbTypesResolver ortbTypesResolver,
@@ -116,6 +119,7 @@ public class AmpRequestFactory {
 
         this.ortb2RequestFactory = Objects.requireNonNull(ortb2RequestFactory);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
+        this.profilesProcessor = Objects.requireNonNull(profilesProcessor);
         this.ortbVersionConversionManager = Objects.requireNonNull(ortbVersionConversionManager);
         this.gppService = Objects.requireNonNull(gppService);
         this.ortbTypesResolver = Objects.requireNonNull(ortbTypesResolver);
@@ -401,12 +405,13 @@ public class AmpRequestFactory {
                     new InvalidRequestException("AMP requests require the stored request id in AMP tag_id"));
         }
 
-        final Account account = auctionContext.getAccount();
-        final String accountId = account != null ? account.getId() : null;
+        final Account account = ObjectUtils.defaultIfNull(auctionContext.getAccount(), Account.empty(null));
+        final String accountId = account.getId();
 
         final HttpRequestContext httpRequest = auctionContext.getHttpRequest();
 
         return storedRequestProcessor.processAmpRequest(accountId, storedRequestId, receivedBidRequest)
+                .compose(bidRequest -> profilesProcessor.process(account, bidRequest))
                 .map(ortbVersionConversionManager::convertToAuctionSupportedVersion)
                 .map(bidRequest -> gppService.updateBidRequest(bidRequest, auctionContext))
                 .map(bidRequest -> validateStoredBidRequest(storedRequestId, bidRequest))

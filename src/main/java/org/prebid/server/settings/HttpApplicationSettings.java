@@ -38,6 +38,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Implementation of {@link ApplicationSettings}.
@@ -331,7 +332,9 @@ public class HttpApplicationSettings implements ApplicationSettings {
         return Future.succeededFuture(StoredDataResult.of(
                 Collections.emptyMap(),
                 Collections.emptyMap(),
-                Collections.emptyList()));
+                Stream.concat(requestIds.stream(), impIds.stream())
+                        .map(id -> "Profile not found for id: " + id)
+                        .toList()));
     }
 
     @Override
