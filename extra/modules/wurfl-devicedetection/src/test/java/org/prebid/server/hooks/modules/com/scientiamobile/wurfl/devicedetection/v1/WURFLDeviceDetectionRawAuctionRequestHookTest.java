@@ -8,6 +8,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.prebid.server.proto.openrtb.ext.request.ExtDevicePrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
+import org.prebid.server.proto.openrtb.ext.request.ExtDeviceInt;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.json.JacksonMapper;
@@ -20,6 +23,7 @@ import org.prebid.server.hooks.v1.InvocationStatus;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.util.Collections;
 import java.util.Map;
@@ -77,6 +81,27 @@ public class WURFLDeviceDetectionRawAuctionRequestHookTest {
     public void callShouldReturnNoActionWhenDeviceIsNull() {
         // given
         final BidRequest bidRequest = BidRequest.builder().build();
+        given(payload.bidRequest()).willReturn(bidRequest);
+
+        // when
+        final InvocationResult<AuctionRequestPayload> result = target.call(payload, context).result();
+
+        // then
+        assertThat(result.status()).isEqualTo(InvocationStatus.success);
+        assertThat(result.action()).isEqualTo(InvocationAction.no_action);
+    }
+
+    @Test
+    public void callShouldReturnNoActionWhenDeviceHasWurflProperty() {
+
+        // given
+        final ExtDevicePrebid extDevicePrebid = ExtDevicePrebid.of(ExtDeviceInt.of(80, 80));
+        final ExtDevice extDevice = ExtDevice.of(0, extDevicePrebid);
+        final ObjectNode wurfl = mapper.mapper().createObjectNode();
+        wurfl.put("wurfl_id", "test_phone_ver1");
+        extDevice.addProperty("wurfl", wurfl);
+        final Device device = Device.builder().ext(extDevice).build();
+        final BidRequest bidRequest = BidRequest.builder().device(device).build();
         given(payload.bidRequest()).willReturn(bidRequest);
 
         // when

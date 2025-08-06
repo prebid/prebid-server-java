@@ -1,6 +1,7 @@
 package org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.v1;
 
 import com.iab.openrtb.request.Device;
+import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import com.iab.openrtb.request.BidRequest;
 import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
@@ -31,6 +32,7 @@ public class WURFLDeviceDetectionRawAuctionRequestHook implements RawAuctionRequ
     private static final Logger logger = LoggerFactory.getLogger(WURFLDeviceDetectionRawAuctionRequestHook.class);
 
     public static final String CODE = "wurfl-devicedetection-raw-auction-request";
+    private static final String WURFL_PROPERTY = "wurfl";
 
     private final WURFLService wurflService;
     private final Set<String> allowedPublisherIDs;
@@ -62,6 +64,10 @@ public class WURFLDeviceDetectionRawAuctionRequestHook implements RawAuctionRequ
             return noActionResult();
         }
 
+        if (isDeviceAlreadyEnriched(device)) {
+            return noActionResult();
+        }
+
         final Map<String, String> requestHeaders =
                 invocationContext.moduleContext() instanceof AuctionRequestHeadersContext moduleContext
                         ? moduleContext.getHeaders()
@@ -85,6 +91,18 @@ public class WURFLDeviceDetectionRawAuctionRequestHook implements RawAuctionRequ
                                 addExtCaps,
                                 mapper))
                         .build());
+    }
+
+    private boolean isDeviceAlreadyEnriched(Device device) {
+        final ExtDevice extDevice = device.getExt();
+        if (extDevice != null && extDevice.containsProperty(WURFL_PROPERTY)) {
+            return true;
+        }
+
+        // Check if other some of the other Device data are already set
+        final Integer deviceType = device.getDevicetype();
+        final String hwv = device.getHwv();
+        return deviceType != null && StringUtils.isNotEmpty(hwv);
     }
 
     private boolean shouldEnrichDevice(AuctionInvocationContext invocationContext) {
