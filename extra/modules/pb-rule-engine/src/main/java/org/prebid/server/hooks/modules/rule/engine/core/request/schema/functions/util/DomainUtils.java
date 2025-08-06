@@ -19,14 +19,44 @@ public class DomainUtils {
     }
 
     private static Optional<String> extractPublisherDomain(BidRequest bidRequest) {
-        return Optional.ofNullable(bidRequest.getSite()).map(Site::getPublisher).map(Publisher::getDomain)
-                .or(() -> Optional.ofNullable(bidRequest.getApp()).map(App::getPublisher).map(Publisher::getDomain))
-                .or(() -> Optional.ofNullable(bidRequest.getDooh()).map(Dooh::getPublisher).map(Publisher::getDomain));
+        return extractSitePublisherDomain(bidRequest)
+                .or(() -> extractAppPublisherDomain(bidRequest))
+                .or(() -> extractDoohPublisherDomain(bidRequest));
+    }
+
+    public static Optional<String> extractSitePublisherDomain(BidRequest bidRequest) {
+        return Optional.ofNullable(bidRequest.getSite())
+                .map(Site::getPublisher)
+                .map(Publisher::getDomain);
+    }
+
+    public static Optional<String> extractAppPublisherDomain(BidRequest bidRequest) {
+        return Optional.ofNullable(bidRequest.getApp())
+                .map(App::getPublisher)
+                .map(Publisher::getDomain);
+    }
+
+    public static Optional<String> extractDoohPublisherDomain(BidRequest bidRequest) {
+        return Optional.ofNullable(bidRequest.getDooh())
+                .map(Dooh::getPublisher)
+                .map(Publisher::getDomain);
     }
 
     private static Optional<String> extractPlainDomain(BidRequest bidRequest) {
-        return Optional.ofNullable(bidRequest.getSite()).map(Site::getDomain)
-                .or(() -> Optional.ofNullable(bidRequest.getApp()).map(App::getDomain))
-                .or(() -> Optional.ofNullable(bidRequest.getDooh()).map(Dooh::getDomain));
+        return extractSiteDomain(bidRequest)
+                .or(() -> extractAppDomain(bidRequest))
+                .or(() -> extractDoohDomain(bidRequest));
+    }
+
+    public static Optional<String> extractSiteDomain(BidRequest bidRequest) {
+        return Optional.ofNullable(bidRequest.getSite()).map(Site::getDomain);
+    }
+
+    public static Optional<String> extractAppDomain(BidRequest bidRequest) {
+        return Optional.ofNullable(bidRequest.getApp()).map(App::getDomain);
+    }
+
+    public static Optional<String> extractDoohDomain(BidRequest bidRequest) {
+        return Optional.ofNullable(bidRequest.getDooh()).map(Dooh::getDomain);
     }
 }
