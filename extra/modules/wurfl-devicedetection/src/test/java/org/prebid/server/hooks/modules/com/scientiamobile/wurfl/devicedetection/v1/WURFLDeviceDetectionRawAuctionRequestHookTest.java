@@ -108,10 +108,6 @@ public class WURFLDeviceDetectionRawAuctionRequestHookTest {
         given(payload.bidRequest()).willReturn(bidRequest);
         given(configProperties.getAllowedPublisherIds()).willReturn(Collections.emptySet());
         final WURFLService wurflService = new WURFLService(wurflEngine, configProperties);
-        final CaseInsensitiveMultiMap headers = CaseInsensitiveMultiMap.builder()
-                .add("User-Agent", ua)
-                .build();
-
         target = new WURFLDeviceDetectionRawAuctionRequestHook(wurflService, configProperties, mapper);
 
         // when
