@@ -65,6 +65,7 @@ public class WURFLDeviceDetectionRawAuctionRequestHook implements RawAuctionRequ
         }
 
         if (isDeviceAlreadyEnriched(device)) {
+            logger.info("Device is already enriched, returning original bid request");
             return noActionResult();
         }
 
@@ -102,7 +103,7 @@ public class WURFLDeviceDetectionRawAuctionRequestHook implements RawAuctionRequ
         // Check if other some of the other Device data are already set
         final Integer deviceType = device.getDevicetype();
         final String hwv = device.getHwv();
-        return deviceType != null && StringUtils.isNotEmpty(hwv);
+        return deviceType != null && deviceType > 0 && StringUtils.isNotEmpty(hwv);
     }
 
     private boolean shouldEnrichDevice(AuctionInvocationContext invocationContext) {

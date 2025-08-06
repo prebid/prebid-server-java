@@ -93,16 +93,26 @@ public class WURFLDeviceDetectionRawAuctionRequestHookTest {
 
     @Test
     public void callShouldReturnNoActionWhenDeviceHasWurflProperty() {
-
         // given
+        final String ua = "Mozilla/5.0 (testPhone; CPU testPhone OS 1_0_2) Version/17.4.1 Mobile/12E GrandTest/604.1";
         final ExtDevicePrebid extDevicePrebid = ExtDevicePrebid.of(ExtDeviceInt.of(80, 80));
         final ExtDevice extDevice = ExtDevice.of(0, extDevicePrebid);
         final ObjectNode wurfl = mapper.mapper().createObjectNode();
         wurfl.put("wurfl_id", "test_phone_ver1");
         extDevice.addProperty("wurfl", wurfl);
-        final Device device = Device.builder().ext(extDevice).build();
+        final Device device = Device.builder()
+                .ua(ua)
+                .ext(extDevice)
+                .build();
         final BidRequest bidRequest = BidRequest.builder().device(device).build();
         given(payload.bidRequest()).willReturn(bidRequest);
+        given(configProperties.getAllowedPublisherIds()).willReturn(Collections.emptySet());
+        final WURFLService wurflService = new WURFLService(wurflEngine, configProperties);
+        final CaseInsensitiveMultiMap headers = CaseInsensitiveMultiMap.builder()
+                .add("User-Agent", ua)
+                .build();
+
+        target = new WURFLDeviceDetectionRawAuctionRequestHook(wurflService, configProperties, mapper);
 
         // when
         final InvocationResult<AuctionRequestPayload> result = target.call(payload, context).result();
@@ -110,6 +120,60 @@ public class WURFLDeviceDetectionRawAuctionRequestHookTest {
         // then
         assertThat(result.status()).isEqualTo(InvocationStatus.success);
         assertThat(result.action()).isEqualTo(InvocationAction.no_action);
+    }
+
+    @Test
+    public void callShouldReturnNoActionWhenDeviceHasDeviceTypeAndHwv() {
+        // given
+        final String ua = "Mozilla/5.0 (testPhone; CPU testPhone OS 1_0_2) Version/17.4.1 Mobile/12E GrandTest/604.1";
+        final Device device = Device.builder()
+                .ua(ua)
+                .hwv("test_phone_ver1")
+                .devicetype(1)
+                .build();
+        final BidRequest bidRequest = BidRequest.builder().device(device).build();
+        given(payload.bidRequest()).willReturn(bidRequest);
+        given(configProperties.getAllowedPublisherIds()).willReturn(Collections.emptySet());
+        final WURFLService wurflService = new WURFLService(wurflEngine, configProperties);
+        given(wurflDevice.getId()).willReturn("test_phone_ver1");
+        target = new WURFLDeviceDetectionRawAuctionRequestHook(wurflService, configProperties, mapper);
+
+        // when
+        final InvocationResult<AuctionRequestPayload> result = target.call(payload, context).result();
+
+        // then
+        assertThat(result.status()).isEqualTo(InvocationStatus.success);
+        assertThat(result.action()).isEqualTo(InvocationAction.no_action);
+    }
+
+    @Test
+    public void callShouldReturnActionUpdateWhenDeviceHasJustDeviceType() {
+        // given
+        final String ua = "Mozilla/5.0 (testPhone; CPU testPhone OS 1_0_2) Version/17.4.1 Mobile/12E GrandTest/604.1";
+        given(configProperties.getAllowedPublisherIds()).willReturn(Collections.emptySet());
+        final WURFLService wurflService = new WURFLService(wurflEngine, configProperties);
+        target = new WURFLDeviceDetectionRawAuctionRequestHook(wurflService, configProperties, mapper);
+        final Device device = Device.builder()
+                .ua(ua)
+                .devicetype(1)
+                .build();
+        final BidRequest bidRequest = BidRequest.builder().device(device).build();
+        given(payload.bidRequest()).willReturn(bidRequest);
+        final CaseInsensitiveMultiMap headers = CaseInsensitiveMultiMap.builder()
+                .add("User-Agent", ua)
+                .build();
+        final AuctionRequestHeadersContext headersContext = AuctionRequestHeadersContext.from(headers);
+
+        given(context.moduleContext()).willReturn(headersContext);
+        given(wurflEngine.getDeviceForRequest(any(Map.class))).willReturn(wurflDevice);
+        given(wurflDevice.getId()).willReturn("test_phone_ver1");
+
+        // when
+        final InvocationResult<AuctionRequestPayload> result = target.call(payload, context).result();
+
+        // then
+        assertThat(result.status()).isEqualTo(InvocationStatus.success);
+        assertThat(result.action()).isEqualTo(InvocationAction.update);
     }
 
     @Test
