@@ -245,6 +245,6 @@ public abstract class BaseOptableTest {
     }
 
     protected Query givenQuery() {
-        return Query.of("que", "ry");
+        return Query.of("?que", "ry");
     }
 }
