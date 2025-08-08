@@ -1,7 +1,7 @@
 adapters:
   ix:
     # Please contact the maintainer to obtain endpoint details
-    endpoint: https://
+    endpoint: https://localhost
     ortb-version: "2.6"
     meta-info:
       maintainer-email: pdu-supply-prebid@indexexchange.com
