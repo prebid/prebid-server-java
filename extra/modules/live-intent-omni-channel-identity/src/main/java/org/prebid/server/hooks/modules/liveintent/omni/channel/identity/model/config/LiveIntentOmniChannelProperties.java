@@ -3,7 +3,7 @@ package org.prebid.server.hooks.modules.liveintent.omni.channel.identity.model.c
 import lombok.Data;
 
 @Data
-public final class ModuleConfig {
+public final class LiveIntentOmniChannelProperties {
 
     long requestTimeoutMs;
 

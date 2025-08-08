@@ -1,10 +1,8 @@
 package org.prebid.server.hooks.modules.liveintent.omni.channel.identity.config;
 
-import org.prebid.server.hooks.modules.liveintent.omni.channel.identity.model.config.ModuleConfig;
+import org.prebid.server.hooks.modules.liveintent.omni.channel.identity.model.config.LiveIntentOmniChannelProperties;
 import org.prebid.server.hooks.modules.liveintent.omni.channel.identity.v1.LiveIntentOmniChannelIdentityModule;
 import org.prebid.server.hooks.modules.liveintent.omni.channel.identity.v1.hooks.LiveIntentOmniChannelIdentityProcessedAuctionRequestHook;
-import org.prebid.server.hooks.v1.Hook;
-import org.prebid.server.hooks.v1.InvocationContext;
 import org.prebid.server.hooks.v1.Module;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.vertx.httpclient.HttpClient;
@@ -13,7 +11,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.util.Set;
+import java.util.Collections;
 import java.util.concurrent.ThreadLocalRandom;
 
 @Configuration
@@ -25,15 +23,19 @@ public class LiveIntentOmniChannelIdentityConfiguration {
 
     @Bean
     @ConfigurationProperties(prefix = "hooks.modules." + LiveIntentOmniChannelIdentityModule.CODE)
-    ModuleConfig moduleConfig() {
-        return new ModuleConfig();
+    LiveIntentOmniChannelProperties properties() {
+        return new LiveIntentOmniChannelProperties();
     }
 
     @Bean
-    Module liveIntentOmniChannelIdentityModule(ModuleConfig config, JacksonMapper mapper, HttpClient httpClient) {
-        final Set<? extends Hook<?, ? extends InvocationContext>> hooks = Set.of(
+    Module liveIntentOmniChannelIdentityModule(LiveIntentOmniChannelProperties properties,
+                                               JacksonMapper mapper,
+                                               HttpClient httpClient) {
+
+        final LiveIntentOmniChannelIdentityProcessedAuctionRequestHook hook =
                 new LiveIntentOmniChannelIdentityProcessedAuctionRequestHook(
-                        config, mapper, httpClient, () -> ThreadLocalRandom.current().nextLong()));
-        return new LiveIntentOmniChannelIdentityModule(hooks);
+                        properties, mapper, httpClient, () -> ThreadLocalRandom.current().nextLong());
+
+        return new LiveIntentOmniChannelIdentityModule(Collections.singleton(hook));
     }
 }
