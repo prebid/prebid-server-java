@@ -12,6 +12,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.hooks.execution.v1.auction.AuctionInvocationContextImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
+import org.prebid.server.hooks.modules.liveintent.omni.channel.identity.model.IdResResponse;
 import org.prebid.server.hooks.modules.liveintent.omni.channel.identity.model.config.LiveIntentOmniChannelProperties;
 import org.prebid.server.hooks.modules.liveintent.omni.channel.identity.v1.hooks.LiveIntentOmniChannelIdentityProcessedAuctionRequestHook;
 import org.prebid.server.hooks.v1.InvocationAction;
@@ -81,19 +82,14 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
         final User givenUser = User.builder().eids(singletonList(givenEid)).build();
         final BidRequest givenBidRequest = BidRequest.builder().id("request").user(givenUser).build();
 
-        final String givenResponseBody = """
-                {
-                    "eids": [{
-                        "source": "liveintent.com",
-                        "uids": [{
-                            "atype": 3,
-                            "id": "id2"
-                        }]
-                    }]
-                }""";
+        final Eid expectedEid = Eid.builder()
+                .source("liveintent.com")
+                .uids(singletonList(Uid.builder().id("id2").atype(3).build()))
+                .build();
 
+        final String responseBody = MAPPER.encodeToString(IdResResponse.of(List.of(expectedEid)));
         given(httpClient.post(any(), any(), any(), anyLong()))
-                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, givenResponseBody)));
+                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, responseBody)));
 
         final AuctionInvocationContext auctionInvocationContext = AuctionInvocationContextImpl.of(
                 null, null, false, null, null);
@@ -103,11 +99,6 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
                 target.call(AuctionRequestPayloadImpl.of(givenBidRequest), auctionInvocationContext).result();
 
         // then
-        final Eid expectedEid = Eid.builder()
-                .source("liveintent.com")
-                .uids(singletonList(Uid.builder().id("id2").atype(3).build()))
-                .build();
-
         assertThat(result.status()).isEqualTo(InvocationStatus.success);
         assertThat(result.action()).isEqualTo(InvocationAction.update);
         assertThat(result.payloadUpdate().apply(AuctionRequestPayloadImpl.of(givenBidRequest)))
@@ -128,19 +119,14 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
         // given
         final BidRequest givenBidRequest = BidRequest.builder().id("request").user(null).build();
 
-        final String givenResponseBody = """
-                {
-                    "eids": [{
-                        "source": "liveintent.com",
-                        "uids": [{
-                            "atype": 3,
-                            "id": "id2"
-                        }]
-                    }]
-                }""";
+        final Eid expectedEid = Eid.builder()
+                .source("liveintent.com")
+                .uids(singletonList(Uid.builder().id("id2").atype(3).build()))
+                .build();
 
+        final String responseBody = MAPPER.encodeToString(IdResResponse.of(List.of(expectedEid)));
         given(httpClient.post(any(), any(), any(), anyLong()))
-                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, givenResponseBody)));
+                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, responseBody)));
 
         final AuctionInvocationContext auctionInvocationContext = AuctionInvocationContextImpl.of(
                 null, null, false, null, null);
@@ -150,11 +136,6 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
                 target.call(AuctionRequestPayloadImpl.of(givenBidRequest), auctionInvocationContext).result();
 
         // then
-        final Eid expectedEid = Eid.builder()
-                .source("liveintent.com")
-                .uids(singletonList(Uid.builder().id("id2").atype(3).build()))
-                .build();
-
         assertThat(result.status()).isEqualTo(InvocationStatus.success);
         assertThat(result.action()).isEqualTo(InvocationAction.update);
         assertThat(result.payloadUpdate().apply(AuctionRequestPayloadImpl.of(givenBidRequest)))

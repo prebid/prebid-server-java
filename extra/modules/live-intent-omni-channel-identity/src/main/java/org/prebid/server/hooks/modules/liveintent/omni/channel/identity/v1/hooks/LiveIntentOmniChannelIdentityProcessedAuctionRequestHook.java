@@ -5,6 +5,7 @@ import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
+import org.apache.commons.collections4.ListUtils;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.liveintent.omni.channel.identity.model.IdResResponse;
@@ -45,7 +46,6 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
                                                                     RandomGenerator random) {
 
         this.config = Objects.requireNonNull(config);
-        //todo: maybe it's redundant, what do you think?
         HttpUtil.validateUrlSyntax(config.getIdentityResolutionEndpoint());
         this.mapper = Objects.requireNonNull(mapper);
         this.httpClient = Objects.requireNonNull(httpClient);
@@ -60,7 +60,6 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
                 ? noAction()
                 : requestIdentities(auctionRequestPayload.bidRequest())
                 .<InvocationResult<AuctionRequestPayload>>map(this::update)
-                //todo: is it find to just fail instead of rejection or no_action?
                 .onFailure(throwable -> logger.error("Failed enrichment:", throwable));
 
     }
@@ -79,7 +78,6 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
                 .add(HttpUtil.AUTHORIZATION_HEADER, "Bearer " + config.getAuthToken());
     }
 
-    //todo: no status check and proper error code handling
     private IdResResponse processResponse(HttpClientResponse response) {
         return mapper.decodeValue(response.getBody(), IdResResponse.class);
     }
@@ -95,18 +93,16 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
         return InvocationResultImpl.<AuctionRequestPayload>builder()
                 .status(InvocationStatus.success)
                 .action(InvocationAction.update)
-                //todo: might eids be null? NPE is possible
                 .payloadUpdate(payload -> updatedPayload(payload, resolutionResult.getEids()))
                 .build();
     }
 
     private AuctionRequestPayload updatedPayload(AuctionRequestPayload requestPayload, List<Eid> resolvedEids) {
+        final List<Eid> eids = ListUtils.emptyIfNull(resolvedEids);
         final BidRequest bidRequest = requestPayload.bidRequest();
         final User updatedUser = Optional.ofNullable(bidRequest.getUser())
-                .map(user -> user.toBuilder().eids(user.getEids() == null
-                        ? resolvedEids
-                        : ListUtil.union(user.getEids(), resolvedEids)))
-                .orElseGet(() -> User.builder().eids(resolvedEids))
+                .map(user -> user.toBuilder().eids(ListUtil.union(ListUtils.emptyIfNull(user.getEids()), eids)))
+                .orElseGet(() -> User.builder().eids(eids))
                 .build();
 
         return AuctionRequestPayloadImpl.of(bidRequest.toBuilder().user(updatedUser).build());
