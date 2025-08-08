@@ -40,7 +40,7 @@ public class MediaTypeInFunctionTest {
     }
 
     @Test
-    public void validateConfigShouldThrowErrorWhenBundlesFieldIsAbsent() {
+    public void validateConfigShouldThrowErrorWhenTypesFieldIsAbsent() {
         // when and then
         assertThatThrownBy(() -> target.validateConfig(mapper.createObjectNode()))
                 .isInstanceOf(ConfigurationValidationException.class)
@@ -48,7 +48,7 @@ public class MediaTypeInFunctionTest {
     }
 
     @Test
-    public void validateConfigShouldThrowErrorWhenBundlesFieldIsNotAnArray() {
+    public void validateConfigShouldThrowErrorWhenTypesFieldIsNotAnArray() {
         // given
         final ObjectNode config = mapper.createObjectNode().set("types", TextNode.valueOf("test"));
 
@@ -59,7 +59,7 @@ public class MediaTypeInFunctionTest {
     }
 
     @Test
-    public void validateConfigShouldThrowErrorWhenBundlesFieldIsNotAnArrayOfStrings() {
+    public void validateConfigShouldThrowErrorWhenTypesFieldIsNotAnArrayOfStrings() {
         // given
         final ArrayNode typesNode = mapper.createArrayNode();
         typesNode.add(TextNode.valueOf("test"));
