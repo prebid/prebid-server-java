@@ -14,9 +14,9 @@ public class PbRuleEngineModule implements Module {
 
     private final Collection<? extends Hook<?, ? extends InvocationContext>> hooks;
 
-    public PbRuleEngineModule(RuleParser ruleParser) {
+    public PbRuleEngineModule(RuleParser ruleParser, String datacenter) {
         this.hooks = Collections.singleton(
-                new PbRuleEngineProcessedAuctionRequestHook(ruleParser));
+                new PbRuleEngineProcessedAuctionRequestHook(ruleParser, datacenter));
     }
 
     @Override

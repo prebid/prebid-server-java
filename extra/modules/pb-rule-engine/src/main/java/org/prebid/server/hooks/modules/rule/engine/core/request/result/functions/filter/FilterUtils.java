@@ -2,7 +2,6 @@ package org.prebid.server.hooks.modules.rule.engine.core.request.result.function
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.prebid.server.util.StreamUtil;
 
 import java.util.Optional;
 import java.util.stream.Stream;

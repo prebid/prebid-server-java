@@ -3,7 +3,7 @@ package org.prebid.server.hooks.modules.rule.engine.core.request.result.function
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
-import org.prebid.server.hooks.modules.rule.engine.core.request.context.RequestResultContext;
+import org.prebid.server.hooks.modules.rule.engine.core.request.RequestRuleContext;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleResult;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.result.ResultFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.result.ResultFunctionArguments;
@@ -14,7 +14,7 @@ import org.prebid.server.model.UpdateResult;
 import java.util.Collections;
 import java.util.Objects;
 
-public class LogATagFunction implements ResultFunction<BidRequest, RequestResultContext> {
+public class LogATagFunction implements ResultFunction<BidRequest, RequestRuleContext> {
 
     public static final String NAME = "logAtag";
 
@@ -27,7 +27,7 @@ public class LogATagFunction implements ResultFunction<BidRequest, RequestResult
     }
 
     @Override
-    public RuleResult<BidRequest> apply(ResultFunctionArguments<BidRequest, RequestResultContext> arguments) {
+    public RuleResult<BidRequest> apply(ResultFunctionArguments<BidRequest, RequestRuleContext> arguments) {
         final Tags tags = AnalyticsMapper.toTags(
                 mapper,
                 arguments.getInfrastructureArguments(),

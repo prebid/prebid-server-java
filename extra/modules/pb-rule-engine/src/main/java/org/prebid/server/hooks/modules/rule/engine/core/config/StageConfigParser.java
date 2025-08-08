@@ -31,17 +31,17 @@ import java.util.List;
 import java.util.Objects;
 import java.util.random.RandomGenerator;
 
-public class StageConfigParser<SCHEMA_PAYLOAD, RULE_PAYLOAD, CONTEXT> {
+public class StageConfigParser<T, C> {
 
     private final RandomGenerator randomGenerator;
-    private final StageSpecification<SCHEMA_PAYLOAD, RULE_PAYLOAD, CONTEXT> specification;
+    private final StageSpecification<T, C> specification;
     private final Stage stage;
-    private final MatchingRuleFactory<SCHEMA_PAYLOAD, RULE_PAYLOAD, CONTEXT> matchingRuleFactory;
+    private final MatchingRuleFactory<T, C> matchingRuleFactory;
 
     public StageConfigParser(RandomGenerator randomGenerator,
                              Stage stage,
-                             StageSpecification<SCHEMA_PAYLOAD, RULE_PAYLOAD, CONTEXT> specification,
-                             MatchingRuleFactory<SCHEMA_PAYLOAD, RULE_PAYLOAD, CONTEXT> matchingRuleFactory) {
+                             StageSpecification<T, C> specification,
+                             MatchingRuleFactory<T, C> matchingRuleFactory) {
 
         this.randomGenerator = Objects.requireNonNull(randomGenerator);
         this.stage = Objects.requireNonNull(stage);
@@ -49,8 +49,8 @@ public class StageConfigParser<SCHEMA_PAYLOAD, RULE_PAYLOAD, CONTEXT> {
         this.matchingRuleFactory = Objects.requireNonNull(matchingRuleFactory);
     }
 
-    public Rule<RULE_PAYLOAD, CONTEXT> parse(AccountConfig config) {
-        final List<Rule<RULE_PAYLOAD, CONTEXT>> stageSubrules = config.getRuleSets().stream()
+    public Rule<T, C> parse(AccountConfig config) {
+        final List<Rule<T, C>> stageSubrules = config.getRuleSets().stream()
                 .filter(ruleSet -> stage.equals(ruleSet.getStage()))
                 .filter(RuleSetConfig::isEnabled)
                 .map(RuleSetConfig::getModelGroups)
@@ -62,22 +62,22 @@ public class StageConfigParser<SCHEMA_PAYLOAD, RULE_PAYLOAD, CONTEXT> {
                 : CompositeRule.of(stageSubrules);
     }
 
-    private Rule<RULE_PAYLOAD, CONTEXT> parseModelGroupConfigs(List<ModelGroupConfig> modelGroupConfigs) {
-        final List<WeightedEntry<Rule<RULE_PAYLOAD, CONTEXT>>> weightedRules = modelGroupConfigs.stream()
+    private Rule<T, C> parseModelGroupConfigs(List<ModelGroupConfig> modelGroupConfigs) {
+        final List<WeightedEntry<Rule<T, C>>> weightedRules = modelGroupConfigs.stream()
                 .map(config -> WeightedEntry.of(config.getWeight(), parseModelGroupConfig(config)))
                 .toList();
 
         return new RandomWeightedRule<>(randomGenerator, new WeightedList<>(weightedRules));
     }
 
-    private Rule<RULE_PAYLOAD, CONTEXT> parseModelGroupConfig(ModelGroupConfig config) {
-        final Rule<RULE_PAYLOAD, CONTEXT> matchingRule = parseMatchingRule(config);
-        final Rule<RULE_PAYLOAD, CONTEXT> defaultRule = parseDefaultActionRule(config);
+    private Rule<T, C> parseModelGroupConfig(ModelGroupConfig config) {
+        final Rule<T, C> matchingRule = parseMatchingRule(config);
+        final Rule<T, C> defaultRule = parseDefaultActionRule(config);
 
         return combineRules(matchingRule, defaultRule);
     }
 
-    private Rule<RULE_PAYLOAD, CONTEXT> parseMatchingRule(ModelGroupConfig config) {
+    private Rule<T, C> parseMatchingRule(ModelGroupConfig config) {
         final List<SchemaFunctionConfig> schemaConfig = config.getSchema();
         final List<AccountRuleConfig> rulesConfig = config.getRules();
 
@@ -85,12 +85,12 @@ public class StageConfigParser<SCHEMA_PAYLOAD, RULE_PAYLOAD, CONTEXT> {
             return null;
         }
 
-        final Schema<SCHEMA_PAYLOAD> schema = parseSchema(schemaConfig);
+        final Schema<T, C> schema = parseSchema(schemaConfig);
 
-        final List<RuleConfig<RULE_PAYLOAD, CONTEXT>> rules = rulesConfig.stream()
+        final List<RuleConfig<T, C>> rules = rulesConfig.stream()
                 .map(this::parseRuleConfig)
                 .toList();
-        final RuleTree<RuleConfig<RULE_PAYLOAD, CONTEXT>> ruleTree = RuleTreeFactory.buildTree(rules);
+        final RuleTree<RuleConfig<T, C>> ruleTree = RuleTreeFactory.buildTree(rules);
 
         if (schemaConfig.size() != ruleTree.getDepth()) {
             throw new InvalidMatcherConfiguration("Schema functions count and rules matchers count mismatch");
@@ -99,8 +99,8 @@ public class StageConfigParser<SCHEMA_PAYLOAD, RULE_PAYLOAD, CONTEXT> {
         return matchingRuleFactory.create(schema, ruleTree, config.getAnalyticsKey(), config.getVersion());
     }
 
-    private Schema<SCHEMA_PAYLOAD> parseSchema(List<SchemaFunctionConfig> schema) {
-        final List<SchemaFunctionHolder<SCHEMA_PAYLOAD>> schemaFunctions = schema.stream()
+    private Schema<T, C> parseSchema(List<SchemaFunctionConfig> schema) {
+        final List<SchemaFunctionHolder<T, C>> schemaFunctions = schema.stream()
                 .map(config -> SchemaFunctionHolder.of(
                         config.getFunction(),
                         specification.schemaFunctionByName(config.getFunction()),
@@ -112,7 +112,7 @@ public class StageConfigParser<SCHEMA_PAYLOAD, RULE_PAYLOAD, CONTEXT> {
         return Schema.of(schemaFunctions);
     }
 
-    private void validateFunctionConfig(SchemaFunctionHolder<SCHEMA_PAYLOAD> holder) {
+    private void validateFunctionConfig(SchemaFunctionHolder<T, C> holder) {
         try {
             holder.getSchemaFunction().validateConfig(holder.getConfig());
         } catch (ConfigurationValidationException exception) {
@@ -121,14 +121,14 @@ public class StageConfigParser<SCHEMA_PAYLOAD, RULE_PAYLOAD, CONTEXT> {
         }
     }
 
-    private RuleConfig<RULE_PAYLOAD, CONTEXT> parseRuleConfig(AccountRuleConfig ruleConfig) {
+    private RuleConfig<T, C> parseRuleConfig(AccountRuleConfig ruleConfig) {
         final String ruleFired = String.join("|", ruleConfig.getConditions());
-        final List<RuleAction<RULE_PAYLOAD, CONTEXT>> actions = parseActions(ruleConfig.getResults());
+        final List<RuleAction<T, C>> actions = parseActions(ruleConfig.getResults());
 
         return RuleConfig.of(ruleFired, actions);
     }
 
-    private Rule<RULE_PAYLOAD, CONTEXT> parseDefaultActionRule(ModelGroupConfig config) {
+    private Rule<T, C> parseDefaultActionRule(ModelGroupConfig config) {
         final List<ResultFunctionConfig> defaultActionConfig = config.getDefaultAction();
 
         if (CollectionUtils.isEmpty(config.getDefaultAction())) {
@@ -139,8 +139,8 @@ public class StageConfigParser<SCHEMA_PAYLOAD, RULE_PAYLOAD, CONTEXT> {
                 parseActions(defaultActionConfig), config.getAnalyticsKey(), config.getVersion());
     }
 
-    private List<RuleAction<RULE_PAYLOAD, CONTEXT>> parseActions(List<ResultFunctionConfig> functionConfigs) {
-        final List<RuleAction<RULE_PAYLOAD, CONTEXT>> actions = functionConfigs.stream()
+    private List<RuleAction<T, C>> parseActions(List<ResultFunctionConfig> functionConfigs) {
+        final List<RuleAction<T, C>> actions = functionConfigs.stream()
                 .map(config -> RuleAction.of(
                         config.getFunction(),
                         specification.resultFunctionByName(config.getFunction()),
@@ -152,7 +152,7 @@ public class StageConfigParser<SCHEMA_PAYLOAD, RULE_PAYLOAD, CONTEXT> {
         return actions;
     }
 
-    private void validateActionConfig(RuleAction<RULE_PAYLOAD, CONTEXT> action) {
+    private void validateActionConfig(RuleAction<T, C> action) {
         try {
             action.getFunction().validateConfig(action.getConfig());
         } catch (ConfigurationValidationException exception) {
@@ -161,8 +161,8 @@ public class StageConfigParser<SCHEMA_PAYLOAD, RULE_PAYLOAD, CONTEXT> {
         }
     }
 
-    private Rule<RULE_PAYLOAD, CONTEXT> combineRules(
-            Rule<RULE_PAYLOAD, CONTEXT> left, Rule<RULE_PAYLOAD, CONTEXT> right) {
+    private Rule<T, C> combineRules(
+            Rule<T, C> left, Rule<T, C> right) {
 
         if (left == null && right == null) {
             return NoOpRule.create();
