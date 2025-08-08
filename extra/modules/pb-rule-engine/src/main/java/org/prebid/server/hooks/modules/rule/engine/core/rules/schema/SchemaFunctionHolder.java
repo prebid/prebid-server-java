@@ -4,11 +4,11 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Value;
 
 @Value(staticConstructor = "of")
-public class SchemaFunctionHolder<T> {
+public class SchemaFunctionHolder<T, C> {
 
     String name;
 
-    SchemaFunction<T> schemaFunction;
+    SchemaFunction<T, C> schemaFunction;
 
     ObjectNode config;
 }

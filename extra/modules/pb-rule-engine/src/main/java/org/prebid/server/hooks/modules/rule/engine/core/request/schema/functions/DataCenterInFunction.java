@@ -2,22 +2,23 @@ package org.prebid.server.hooks.modules.rule.engine.core.request.schema.function
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.BidRequest;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.hooks.modules.rule.engine.core.request.context.RequestSchemaContext;
+import org.prebid.server.hooks.modules.rule.engine.core.request.RequestRuleContext;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunctionArguments;
 import org.prebid.server.hooks.modules.rule.engine.core.util.ValidationUtils;
 import org.prebid.server.util.StreamUtil;
 
-public class DataCenterInFunction implements SchemaFunction<RequestSchemaContext> {
+public class DataCenterInFunction implements SchemaFunction<BidRequest, RequestRuleContext> {
 
     public static final String NAME = "dataCenterIn";
 
     private static final String DATACENTERS_FIELD = "datacenters";
 
     @Override
-    public String extract(SchemaFunctionArguments<RequestSchemaContext> arguments) {
-        final String datacenter = StringUtils.defaultIfEmpty(arguments.getOperand().getDatacenter(), UNDEFINED_RESULT);
+    public String extract(SchemaFunctionArguments<BidRequest, RequestRuleContext> arguments) {
+        final String datacenter = StringUtils.defaultIfEmpty(arguments.getContext().getDatacenter(), UNDEFINED_RESULT);
 
         final boolean matches = StreamUtil.asStream(arguments.getConfig().get(DATACENTERS_FIELD).elements())
                 .map(JsonNode::asText)

@@ -3,7 +3,6 @@ package org.prebid.server.hooks.modules.rule.engine.core.request.schema.function
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
-import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.auction.model.AuctionContext;
@@ -15,11 +14,11 @@ import org.prebid.server.hooks.modules.rule.engine.core.util.ConfigurationValida
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-public class BundleFunctionTest {
+public class DataCenterFunctionTest {
 
     private static final ObjectMapper mapper = new ObjectMapper();
 
-    private final BundleFunction target = new BundleFunction();
+    private final DataCenterFunction target = new DataCenterFunction();
 
     @Test
     public void validateConfigShouldThrowErrorWhenArgumentsArePresent() {
@@ -33,35 +32,36 @@ public class BundleFunctionTest {
     }
 
     @Test
-    public void extractShouldReturnBundle() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .app(App.builder().bundle("bundle").build())
-                .build();
-
-        final SchemaFunctionArguments<BidRequest, RequestRuleContext> arguments = givenFunctionArguments(bidRequest);
-
-        // when and then
-        assertThat(target.extract(arguments)).isEqualTo("bundle");
-    }
-
-    @Test
-    public void extractShouldFallbackToUndefinedWhenBundleIsAbsent() {
+    public void extractShouldReturnDataCenter() {
         // given
         final BidRequest bidRequest = BidRequest.builder().build();
 
-        final SchemaFunctionArguments<BidRequest, RequestRuleContext> arguments = givenFunctionArguments(bidRequest);
+        final SchemaFunctionArguments<BidRequest, RequestRuleContext> arguments =
+                givenFunctionArguments(bidRequest, "datacenter");
+
+        // when and then
+        assertThat(target.extract(arguments)).isEqualTo("datacenter");
+    }
+
+    @Test
+    public void extractShouldFallbackToUndefinedWhenDataCenterIsAbsent() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder().build();
+
+        final SchemaFunctionArguments<BidRequest, RequestRuleContext> arguments =
+                givenFunctionArguments(bidRequest, null);
 
         // when and then
         assertThat(target.extract(arguments)).isEqualTo("undefined");
     }
 
     private static SchemaFunctionArguments<BidRequest, RequestRuleContext> givenFunctionArguments(
-            BidRequest bidRequest) {
+            BidRequest bidRequest,
+            String dataCenter) {
 
         return SchemaFunctionArguments.of(
                 bidRequest,
                 null,
-                RequestRuleContext.of(AuctionContext.builder().build(), Granularity.Request.instance(), "datacenter"));
+                RequestRuleContext.of(AuctionContext.builder().build(), Granularity.Request.instance(), dataCenter));
     }
 }

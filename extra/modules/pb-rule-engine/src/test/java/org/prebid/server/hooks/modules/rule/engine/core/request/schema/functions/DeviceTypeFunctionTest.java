@@ -3,8 +3,8 @@ package org.prebid.server.hooks.modules.rule.engine.core.request.schema.function
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
-import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.hooks.modules.rule.engine.core.request.Granularity;
@@ -15,11 +15,11 @@ import org.prebid.server.hooks.modules.rule.engine.core.util.ConfigurationValida
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-public class BundleFunctionTest {
+public class DeviceTypeFunctionTest {
 
     private static final ObjectMapper mapper = new ObjectMapper();
 
-    private final BundleFunction target = new BundleFunction();
+    private final DeviceTypeFunction target = new DeviceTypeFunction();
 
     @Test
     public void validateConfigShouldThrowErrorWhenArgumentsArePresent() {
@@ -33,20 +33,20 @@ public class BundleFunctionTest {
     }
 
     @Test
-    public void extractShouldReturnBundle() {
+    public void extractShouldReturnDeviceType() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .app(App.builder().bundle("bundle").build())
+                .device(Device.builder().devicetype(12345).build())
                 .build();
 
         final SchemaFunctionArguments<BidRequest, RequestRuleContext> arguments = givenFunctionArguments(bidRequest);
 
         // when and then
-        assertThat(target.extract(arguments)).isEqualTo("bundle");
+        assertThat(target.extract(arguments)).isEqualTo("12345");
     }
 
     @Test
-    public void extractShouldFallbackToUndefinedWhenBundleIsAbsent() {
+    public void extractShouldFallbackToUndefinedWhenChannelIsAbsent() {
         // given
         final BidRequest bidRequest = BidRequest.builder().build();
 

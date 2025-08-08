@@ -3,8 +3,11 @@ package org.prebid.server.hooks.modules.rule.engine.core.request.schema.function
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Dooh;
+import com.iab.openrtb.request.Publisher;
+import com.iab.openrtb.request.Site;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.hooks.modules.rule.engine.core.request.Granularity;
@@ -12,15 +15,14 @@ import org.prebid.server.hooks.modules.rule.engine.core.request.RequestRuleConte
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunctionArguments;
 import org.prebid.server.hooks.modules.rule.engine.core.util.ConfigurationValidationException;
 
-import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-public class AdUnitCodeFunctionTest {
+public class DomainFunctionTest {
 
     private static final ObjectMapper mapper = new ObjectMapper();
 
-    private final AdUnitCodeFunction target = new AdUnitCodeFunction();
+    private final DomainFunction target = new DomainFunction();
 
     @Test
     public void validateConfigShouldThrowErrorWhenArgumentsArePresent() {
@@ -34,73 +36,85 @@ public class AdUnitCodeFunctionTest {
     }
 
     @Test
-    public void extractShouldReturnGpidWhenPresent() {
+    public void extractShouldReturnSitePublisherDomain() {
         // given
-        final Imp imp = Imp.builder()
-                .id("impId")
-                .ext(mapper.createObjectNode().put("gpid", "gpid"))
+        final BidRequest bidRequest = BidRequest.builder()
+                .site(Site.builder().publisher(Publisher.builder().domain("domain").build()).build())
                 .build();
 
-        final BidRequest bidRequest = BidRequest.builder().imp(singletonList(imp)).build();
-
         final SchemaFunctionArguments<BidRequest, RequestRuleContext> arguments = givenFunctionArguments(bidRequest);
 
         // when and then
-        assertThat(target.extract(arguments)).isEqualTo("gpid");
+        assertThat(target.extract(arguments)).isEqualTo("domain");
     }
 
     @Test
-    public void extractShouldReturnTagidWhenGpidAbsentAndTagidPresent() {
+    public void extractShouldReturnAppPublisherDomainWhenSiteHasNoDomain() {
         // given
-        final Imp imp = Imp.builder()
-                .id("impId")
-                .tagid("tagId")
+        final BidRequest bidRequest = BidRequest.builder()
+                .app(App.builder().publisher(Publisher.builder().domain("domain").build()).build())
                 .build();
 
-        final BidRequest bidRequest = BidRequest.builder().imp(singletonList(imp)).build();
-
         final SchemaFunctionArguments<BidRequest, RequestRuleContext> arguments = givenFunctionArguments(bidRequest);
 
         // when and then
-        assertThat(target.extract(arguments)).isEqualTo("tagId");
+        assertThat(target.extract(arguments)).isEqualTo("domain");
     }
 
     @Test
-    public void extractShouldReturnPbAdSlotWhenGpidAndTagidAreAbsent() {
+    public void extractShouldReturnDoohPublisherDomainWhenSiteAndAppHaveNoDomain() {
         // given
-        final ObjectNode ext = mapper.createObjectNode();
-        ext.set("data", mapper.createObjectNode().put("pbadslot", "pbadslot"));
-
-        final Imp imp = Imp.builder().id("impId").ext(ext).build();
-
-        final BidRequest bidRequest = BidRequest.builder().imp(singletonList(imp)).build();
+        final BidRequest bidRequest = BidRequest.builder()
+                .dooh(Dooh.builder().publisher(Publisher.builder().domain("domain").build()).build())
+                .build();
 
         final SchemaFunctionArguments<BidRequest, RequestRuleContext> arguments = givenFunctionArguments(bidRequest);
 
         // when and then
-        assertThat(target.extract(arguments)).isEqualTo("pbadslot");
+        assertThat(target.extract(arguments)).isEqualTo("domain");
     }
 
     @Test
-    public void extractShouldReturnStoredRequestIdWhenGpidAndTagidAndPbAdSlotAreAbsent() {
+    public void extractShouldReturnSiteDomainWhenPublisherHasNoDomain() {
         // given
-        final ObjectNode prebid = mapper.createObjectNode();
-        prebid.set("storedrequest", mapper.createObjectNode().put("id", "srid"));
-        final ObjectNode ext = mapper.createObjectNode();
-        ext.set("prebid", prebid);
-
-        final Imp imp = Imp.builder().id("impId").ext(ext).build();
-
-        final BidRequest bidRequest = BidRequest.builder().imp(singletonList(imp)).build();
+        final BidRequest bidRequest = BidRequest.builder()
+                .site(Site.builder().domain("domain").build())
+                .build();
 
         final SchemaFunctionArguments<BidRequest, RequestRuleContext> arguments = givenFunctionArguments(bidRequest);
 
         // when and then
-        assertThat(target.extract(arguments)).isEqualTo("srid");
+        assertThat(target.extract(arguments)).isEqualTo("domain");
     }
 
     @Test
-    public void extractShouldFallbackToUndefinedWhenAllAdUnitCodeSourcesAreAbsent() {
+    public void extractShouldReturnAppDomainWhenPublisherAndSiteHaveNoDomain() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .app(App.builder().domain("domain").build())
+                .build();
+
+        final SchemaFunctionArguments<BidRequest, RequestRuleContext> arguments = givenFunctionArguments(bidRequest);
+
+        // when and then
+        assertThat(target.extract(arguments)).isEqualTo("domain");
+    }
+
+    @Test
+    public void extractShouldReturnDoohDomainWhenPublisherAndSiteAndAppHaveNoDomain() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .dooh(Dooh.builder().domain("domain").build())
+                .build();
+
+        final SchemaFunctionArguments<BidRequest, RequestRuleContext> arguments = givenFunctionArguments(bidRequest);
+
+        // when and then
+        assertThat(target.extract(arguments)).isEqualTo("domain");
+    }
+
+    @Test
+    public void extractShouldFallbackToUndefinedWhenDomainIsAbsent() {
         // given
         final BidRequest bidRequest = BidRequest.builder().build();
 
@@ -116,6 +130,7 @@ public class AdUnitCodeFunctionTest {
         return SchemaFunctionArguments.of(
                 bidRequest,
                 null,
-                RequestRuleContext.of(AuctionContext.builder().build(), new Granularity.Imp("impId"), "datacenter"));
+                RequestRuleContext.of(AuctionContext.builder().build(), Granularity.Request.instance(), "datacenter"));
     }
+
 }

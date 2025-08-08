@@ -4,7 +4,7 @@ import com.iab.openrtb.request.BidRequest;
 import lombok.Builder;
 import lombok.Value;
 import lombok.experimental.Accessors;
-import org.prebid.server.hooks.modules.rule.engine.core.request.context.RequestResultContext;
+import org.prebid.server.hooks.modules.rule.engine.core.request.RequestRuleContext;
 
 import java.time.Instant;
 
@@ -15,6 +15,6 @@ public class PerStageRule {
 
     Instant timestamp;
 
-    Rule<BidRequest, RequestResultContext> processedAuctionRequestRule;
+    Rule<BidRequest, RequestRuleContext> processedAuctionRequestRule;
 }
 

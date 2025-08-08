@@ -9,7 +9,7 @@ import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.rule.engine.core.config.RuleParser;
 import org.prebid.server.hooks.modules.rule.engine.core.request.Granularity;
-import org.prebid.server.hooks.modules.rule.engine.core.request.context.RequestResultContext;
+import org.prebid.server.hooks.modules.rule.engine.core.request.RequestRuleContext;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.PerStageRule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleResult;
 import org.prebid.server.hooks.v1.InvocationAction;
@@ -27,9 +27,11 @@ public class PbRuleEngineProcessedAuctionRequestHook implements ProcessedAuction
     private static final String CODE = "pb-rule-engine-processed-auction-request";
 
     private final RuleParser ruleParser;
+    private final String datacenter;
 
-    public PbRuleEngineProcessedAuctionRequestHook(RuleParser ruleParser) {
+    public PbRuleEngineProcessedAuctionRequestHook(RuleParser ruleParser, String datacenter) {
         this.ruleParser = Objects.requireNonNull(ruleParser);
+        this.datacenter = Objects.requireNonNull(datacenter);
     }
 
     @Override
@@ -48,7 +50,7 @@ public class PbRuleEngineProcessedAuctionRequestHook implements ProcessedAuction
         return ruleParser.parseForAccount(accountId, accountConfig)
                 .map(PerStageRule::processedAuctionRequestRule)
                 .map(rule -> rule.process(
-                        bidRequest, RequestResultContext.of(context, Granularity.Request.instance())))
+                        bidRequest, RequestRuleContext.of(context, Granularity.Request.instance(), datacenter)))
                 .flatMap(PbRuleEngineProcessedAuctionRequestHook::succeeded)
                 .recover(PbRuleEngineProcessedAuctionRequestHook::failure);
     }

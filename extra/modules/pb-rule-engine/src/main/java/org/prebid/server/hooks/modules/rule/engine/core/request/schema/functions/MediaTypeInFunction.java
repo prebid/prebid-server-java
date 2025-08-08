@@ -7,7 +7,7 @@ import com.iab.openrtb.request.Imp;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.hooks.modules.rule.engine.core.request.Granularity;
-import org.prebid.server.hooks.modules.rule.engine.core.request.context.RequestSchemaContext;
+import org.prebid.server.hooks.modules.rule.engine.core.request.RequestRuleContext;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunctionArguments;
 import org.prebid.server.hooks.modules.rule.engine.core.util.ValidationUtils;
@@ -17,18 +17,17 @@ import org.prebid.server.util.StreamUtil;
 import java.util.HashSet;
 import java.util.Set;
 
-public class MediaTypeInFunction implements SchemaFunction<RequestSchemaContext> {
+public class MediaTypeInFunction implements SchemaFunction<BidRequest, RequestRuleContext> {
 
     public static final String NAME = "mediaTypeIn";
 
     private static final String TYPES_FIELD = "types";
 
     @Override
-    public String extract(SchemaFunctionArguments<RequestSchemaContext> arguments) {
-        final RequestSchemaContext context = arguments.getOperand();
-
-        final String impId = ((Granularity.Imp) arguments.getOperand().getGranularity()).impId();
-        final BidRequest bidRequest = context.getBidRequest();
+    public String extract(SchemaFunctionArguments<BidRequest, RequestRuleContext> arguments) {
+        final RequestRuleContext context = arguments.getContext();
+        final String impId = ((Granularity.Imp) context.getGranularity()).impId();
+        final BidRequest bidRequest = arguments.getOperand();
 
         final Imp adUnit = ListUtils.emptyIfNull(bidRequest.getImp()).stream()
                 .filter(imp -> StringUtils.equals(imp.getId(), impId))

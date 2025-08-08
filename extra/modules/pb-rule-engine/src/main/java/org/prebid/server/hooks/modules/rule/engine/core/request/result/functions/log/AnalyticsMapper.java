@@ -8,7 +8,7 @@ import org.prebid.server.hooks.execution.v1.analytics.AppliedToImpl;
 import org.prebid.server.hooks.execution.v1.analytics.ResultImpl;
 import org.prebid.server.hooks.execution.v1.analytics.TagsImpl;
 import org.prebid.server.hooks.modules.rule.engine.core.request.Granularity;
-import org.prebid.server.hooks.modules.rule.engine.core.request.context.RequestResultContext;
+import org.prebid.server.hooks.modules.rule.engine.core.request.RequestRuleContext;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.result.InfrastructureArguments;
 import org.prebid.server.hooks.v1.analytics.Result;
 import org.prebid.server.hooks.v1.analytics.Tags;
@@ -25,7 +25,7 @@ public class AnalyticsMapper {
     }
 
     public static Tags toTags(ObjectMapper mapper,
-                              InfrastructureArguments<RequestResultContext> infrastructureArguments,
+                              InfrastructureArguments<RequestRuleContext> infrastructureArguments,
                               String analyticsValue) {
 
         final String analyticsKey = infrastructureArguments.getAnalyticsKey();
