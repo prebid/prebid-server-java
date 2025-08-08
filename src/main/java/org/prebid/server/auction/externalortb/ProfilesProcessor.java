@@ -86,7 +86,7 @@ public class ProfilesProcessor {
                 .orElse(null);
 
         return fetchProfiles(accountId, profilesIds, timeoutMillis(bidRequest))
-                .map(profiles -> emitMetrics(accountId, profiles, auctionContext))
+                .compose(profiles -> emitMetrics(accountId, profiles, auctionContext))
                 .map(profiles -> mergeResults(
                         applyRequestProfiles(profilesIds.request(), profiles.getStoredIdToRequest(), bidRequest),
                         applyImpsProfiles(profilesIds.imps(), profiles.getStoredIdToImp(), bidRequest.getImp())))
@@ -109,7 +109,7 @@ public class ProfilesProcessor {
 
         if (auctionContext.getDebugContext().isDebugEnabled() && !profilesIds.equals(initialProfilesIds)) {
             auctionContext.getDebugWarnings().add("Profiles exceeded the limit.");
-            metrics.updateProfileMetric(MetricName.err); // TODO
+            metrics.updateProfileMetric(MetricName.limit_exceeded);
         }
 
         return profilesIds;
@@ -171,26 +171,28 @@ public class ProfilesProcessor {
                 .collect(Collectors.toSet());
         final Timeout timeout = timeoutFactory.create(timeoutMillis);
 
-        return applicationSettings.getProfiles(accountId, requestProfilesIds, impProfilesIds, timeout)
-                .compose(profiles -> profiles.getErrors().isEmpty() || !failOnUnknown
-                        ? Future.succeededFuture(profiles)
-                        : Future.failedFuture(new InvalidProfileException(profiles.getErrors())));
+        return applicationSettings.getProfiles(accountId, requestProfilesIds, impProfilesIds, timeout);
     }
 
-    private StoredDataResult<Profile> emitMetrics(String accountId,
-                                                  StoredDataResult<Profile> fetchResult,
-                                                  AuctionContext auctionContext) {
+    private Future<StoredDataResult<Profile>> emitMetrics(String accountId,
+                                                          StoredDataResult<Profile> fetchResult,
+                                                          AuctionContext auctionContext) {
 
-        if (!fetchResult.getErrors().isEmpty()) {
+        final List<String> errors = fetchResult.getErrors();
+        if (!errors.isEmpty()) {
             metrics.updateProfileMetric(MetricName.missing);
 
             if (auctionContext.getDebugContext().isDebugEnabled()) {
                 metrics.updateAccountProfileMetric(accountId, MetricName.missing);
-                auctionContext.getDebugWarnings().addAll(fetchResult.getErrors());
+                auctionContext.getDebugWarnings().addAll(errors);
+            }
+
+            if (failOnUnknown) {
+                return Future.failedFuture(new InvalidProfileException(errors));
             }
         }
 
-        return fetchResult;
+        return Future.succeededFuture(fetchResult);
     }
 
     private BidRequest applyRequestProfiles(List<String> profilesIds,
