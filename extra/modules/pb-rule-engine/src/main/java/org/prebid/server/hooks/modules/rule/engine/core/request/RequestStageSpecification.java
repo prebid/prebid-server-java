@@ -40,8 +40,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.random.RandomGenerator;
 
-public class RequestSpecification implements
-        StageSpecification<BidRequest, RequestRuleContext> {
+public class RequestStageSpecification implements StageSpecification<BidRequest, RequestRuleContext> {
 
     public static final Set<String> PER_IMP_SCHEMA_FUNCTIONS =
             Set.of(AdUnitCodeFunction.NAME, AdUnitCodeInFunction.NAME, MediaTypeInFunction.NAME);
@@ -49,9 +48,9 @@ public class RequestSpecification implements
     private final Map<String, SchemaFunction<BidRequest, RequestRuleContext>> schemaFunctions;
     private final Map<String, ResultFunction<BidRequest, RequestRuleContext>> resultFunctions;
 
-    public RequestSpecification(ObjectMapper mapper,
-                                BidderCatalog bidderCatalog,
-                                RandomGenerator random) {
+    public RequestStageSpecification(ObjectMapper mapper,
+                                     BidderCatalog bidderCatalog,
+                                     RandomGenerator random) {
 
         schemaFunctions = new HashMap<>();
         schemaFunctions.put(AdUnitCodeFunction.NAME, new AdUnitCodeFunction());

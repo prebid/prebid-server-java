@@ -23,7 +23,7 @@ public class RequestMatchingRuleFactory implements MatchingRuleFactory<BidReques
 
         return schema.getFunctions().stream()
                 .map(SchemaFunctionHolder::getName)
-                .anyMatch(RequestSpecification.PER_IMP_SCHEMA_FUNCTIONS::contains)
+                .anyMatch(RequestStageSpecification.PER_IMP_SCHEMA_FUNCTIONS::contains)
 
                 ? new PerImpMatchingRule(requestMatchingRule)
                 : requestMatchingRule;
