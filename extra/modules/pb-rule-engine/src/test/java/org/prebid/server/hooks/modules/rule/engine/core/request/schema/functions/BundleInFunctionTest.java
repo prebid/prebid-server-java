@@ -8,8 +8,9 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import org.junit.jupiter.api.Test;
+import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.hooks.modules.rule.engine.core.request.Granularity;
-import org.prebid.server.hooks.modules.rule.engine.core.request.context.RequestSchemaContext;
+import org.prebid.server.hooks.modules.rule.engine.core.request.RequestRuleContext;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunctionArguments;
 import org.prebid.server.hooks.modules.rule.engine.core.util.ConfigurationValidationException;
 
@@ -72,9 +73,8 @@ public class BundleInFunctionTest {
                 .app(App.builder().bundle("bundle").build())
                 .build();
 
-        final SchemaFunctionArguments<RequestSchemaContext> arguments = SchemaFunctionArguments.of(
-                RequestSchemaContext.of(bidRequest, Granularity.Request.instance(), "datacenter"),
-                givenConfigWithBundles("bundle"));
+        final SchemaFunctionArguments<BidRequest, RequestRuleContext> arguments =
+                givenFunctionArguments(bidRequest, "bundle");
 
         // when and then
         assertThat(target.extract(arguments)).isEqualTo("true");
@@ -87,12 +87,21 @@ public class BundleInFunctionTest {
                 .app(App.builder().bundle("bundle").build())
                 .build();
 
-        final SchemaFunctionArguments<RequestSchemaContext> arguments = SchemaFunctionArguments.of(
-                RequestSchemaContext.of(bidRequest, Granularity.Request.instance(), "datacenter"),
-                givenConfigWithBundles("expectedBundle"));
+        final SchemaFunctionArguments<BidRequest, RequestRuleContext> arguments =
+                givenFunctionArguments(bidRequest, "expectedBundle");
 
         // when and then
         assertThat(target.extract(arguments)).isEqualTo("false");
+    }
+
+    private SchemaFunctionArguments<BidRequest, RequestRuleContext> givenFunctionArguments(
+            BidRequest bidRequest,
+            String... bundles) {
+
+        return SchemaFunctionArguments.of(
+                bidRequest,
+                givenConfigWithBundles(bundles),
+                RequestRuleContext.of(AuctionContext.builder().build(), Granularity.Request.instance(), "datacenter"));
     }
 
     private ObjectNode givenConfigWithBundles(String... bundles) {

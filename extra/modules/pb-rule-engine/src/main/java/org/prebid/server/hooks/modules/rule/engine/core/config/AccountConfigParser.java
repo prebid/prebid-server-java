@@ -6,8 +6,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.hooks.modules.rule.engine.core.config.model.AccountConfig;
-import org.prebid.server.hooks.modules.rule.engine.core.request.context.RequestResultContext;
-import org.prebid.server.hooks.modules.rule.engine.core.request.context.RequestSchemaContext;
+import org.prebid.server.hooks.modules.rule.engine.core.request.RequestRuleContext;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.NoOpRule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.PerStageRule;
 
@@ -16,13 +15,11 @@ import java.util.Objects;
 public class AccountConfigParser {
 
     private final ObjectMapper mapper;
-    private final StageConfigParser<
-            RequestSchemaContext, BidRequest, RequestResultContext> processedAuctionRequestStageParser;
+    private final StageConfigParser<BidRequest, RequestRuleContext> processedAuctionRequestStageParser;
 
     public AccountConfigParser(
             ObjectMapper mapper,
-            StageConfigParser<
-                    RequestSchemaContext, BidRequest, RequestResultContext> processedAuctionRequestStageParser) {
+            StageConfigParser<BidRequest, RequestRuleContext> processedAuctionRequestStageParser) {
 
         this.mapper = Objects.requireNonNull(mapper);
         this.processedAuctionRequestStageParser = Objects.requireNonNull(processedAuctionRequestStageParser);

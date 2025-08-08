@@ -11,7 +11,7 @@ import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.hooks.modules.rule.engine.core.request.Granularity;
-import org.prebid.server.hooks.modules.rule.engine.core.request.context.RequestResultContext;
+import org.prebid.server.hooks.modules.rule.engine.core.request.RequestRuleContext;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleResult;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.result.InfrastructureArguments;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.result.ResultFunction;
@@ -29,7 +29,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
-public abstract class FilterBiddersFunction implements ResultFunction<BidRequest, RequestResultContext> {
+public abstract class FilterBiddersFunction implements ResultFunction<BidRequest, RequestRuleContext> {
 
     private final ObjectMapper mapper;
     protected final BidderCatalog bidderCatalog;
@@ -40,11 +40,11 @@ public abstract class FilterBiddersFunction implements ResultFunction<BidRequest
     }
 
     @Override
-    public RuleResult<BidRequest> apply(ResultFunctionArguments<BidRequest, RequestResultContext> arguments) {
+    public RuleResult<BidRequest> apply(ResultFunctionArguments<BidRequest, RequestRuleContext> arguments) {
         final FilterBiddersFunctionConfig config = parseConfig(arguments.getConfig());
 
         final BidRequest bidRequest = arguments.getOperand();
-        final InfrastructureArguments<RequestResultContext> infrastructureArguments =
+        final InfrastructureArguments<RequestRuleContext> infrastructureArguments =
                 arguments.getInfrastructureArguments();
 
         final UidsCookie uidsCookie = infrastructureArguments.getContext().getAuctionContext().getUidsCookie();

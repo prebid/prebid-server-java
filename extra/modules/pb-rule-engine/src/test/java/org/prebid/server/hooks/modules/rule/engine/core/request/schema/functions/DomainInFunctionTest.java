@@ -11,8 +11,9 @@ import com.iab.openrtb.request.Dooh;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import org.junit.jupiter.api.Test;
+import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.hooks.modules.rule.engine.core.request.Granularity;
-import org.prebid.server.hooks.modules.rule.engine.core.request.context.RequestSchemaContext;
+import org.prebid.server.hooks.modules.rule.engine.core.request.RequestRuleContext;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunctionArguments;
 import org.prebid.server.hooks.modules.rule.engine.core.util.ConfigurationValidationException;
 
@@ -75,9 +76,8 @@ public class DomainInFunctionTest {
                 .site(Site.builder().publisher(Publisher.builder().domain("sitePubDomain").build()).build())
                 .build();
 
-        final SchemaFunctionArguments<RequestSchemaContext> arguments = SchemaFunctionArguments.of(
-                RequestSchemaContext.of(bidRequest, Granularity.Request.instance(), "datacenter"),
-                givenConfigWithDomains("sitePubDomain"));
+        final SchemaFunctionArguments<BidRequest, RequestRuleContext> arguments =
+                givenFunctionArguments(bidRequest, "sitePubDomain");
 
         // when and then
         assertThat(target.extract(arguments)).isEqualTo("true");
@@ -91,9 +91,8 @@ public class DomainInFunctionTest {
                 .app(App.builder().publisher(Publisher.builder().domain("appPubDomain").build()).build())
                 .build();
 
-        final SchemaFunctionArguments<RequestSchemaContext> arguments = SchemaFunctionArguments.of(
-                RequestSchemaContext.of(bidRequest, Granularity.Request.instance(), "datacenter"),
-                givenConfigWithDomains("appPubDomain"));
+        final SchemaFunctionArguments<BidRequest, RequestRuleContext> arguments =
+                givenFunctionArguments(bidRequest, "appPubDomain");
 
         // when and then
         assertThat(target.extract(arguments)).isEqualTo("true");
@@ -108,9 +107,8 @@ public class DomainInFunctionTest {
                 .dooh(Dooh.builder().publisher(Publisher.builder().domain("doohPubDomain").build()).build())
                 .build();
 
-        final SchemaFunctionArguments<RequestSchemaContext> arguments = SchemaFunctionArguments.of(
-                RequestSchemaContext.of(bidRequest, Granularity.Request.instance(), "datacenter"),
-                givenConfigWithDomains("doohPubDomain"));
+        final SchemaFunctionArguments<BidRequest, RequestRuleContext> arguments =
+                givenFunctionArguments(bidRequest, "doohPubDomain");
 
         // when and then
         assertThat(target.extract(arguments)).isEqualTo("true");
@@ -130,9 +128,8 @@ public class DomainInFunctionTest {
                 .dooh(Dooh.builder().publisher(Publisher.builder().domain("doohPubDomain").build()).build())
                 .build();
 
-        final SchemaFunctionArguments<RequestSchemaContext> arguments = SchemaFunctionArguments.of(
-                RequestSchemaContext.of(bidRequest, Granularity.Request.instance(), "datacenter"),
-                givenConfigWithDomains("siteDomain"));
+        final SchemaFunctionArguments<BidRequest, RequestRuleContext> arguments =
+                givenFunctionArguments(bidRequest, "siteDomain");
 
         // when and then
         assertThat(target.extract(arguments)).isEqualTo("true");
@@ -157,9 +154,8 @@ public class DomainInFunctionTest {
                 .dooh(Dooh.builder().publisher(Publisher.builder().domain("doohPubDomain").build()).build())
                 .build();
 
-        final SchemaFunctionArguments<RequestSchemaContext> arguments = SchemaFunctionArguments.of(
-                RequestSchemaContext.of(bidRequest, Granularity.Request.instance(), "datacenter"),
-                givenConfigWithDomains("appDomain"));
+        final SchemaFunctionArguments<BidRequest, RequestRuleContext> arguments =
+                givenFunctionArguments(bidRequest, "appDomain");
 
         // when and then
         assertThat(target.extract(arguments)).isEqualTo("true");
@@ -189,9 +185,8 @@ public class DomainInFunctionTest {
                 .dooh(dooh)
                 .build();
 
-        final SchemaFunctionArguments<RequestSchemaContext> arguments = SchemaFunctionArguments.of(
-                RequestSchemaContext.of(bidRequest, Granularity.Request.instance(), "datacenter"),
-                givenConfigWithDomains("doohDomain"));
+        final SchemaFunctionArguments<BidRequest, RequestRuleContext> arguments =
+                givenFunctionArguments(bidRequest, "doohDomain");
 
         // when and then
         assertThat(target.extract(arguments)).isEqualTo("true");
@@ -221,12 +216,21 @@ public class DomainInFunctionTest {
                 .dooh(dooh)
                 .build();
 
-        final SchemaFunctionArguments<RequestSchemaContext> arguments = SchemaFunctionArguments.of(
-                RequestSchemaContext.of(bidRequest, Granularity.Request.instance(), "datacenter"),
-                givenConfigWithDomains("expectedDomain"));
+        final SchemaFunctionArguments<BidRequest, RequestRuleContext> arguments =
+                givenFunctionArguments(bidRequest, "expectedDomain");
 
         // when and then
         assertThat(target.extract(arguments)).isEqualTo("false");
+    }
+
+    private SchemaFunctionArguments<BidRequest, RequestRuleContext> givenFunctionArguments(
+            BidRequest bidRequest,
+            String... domains) {
+
+        return SchemaFunctionArguments.of(
+                bidRequest,
+                givenConfigWithDomains(domains),
+                RequestRuleContext.of(AuctionContext.builder().build(), Granularity.Request.instance(), "datacenter"));
     }
 
     private ObjectNode givenConfigWithDomains(String... domains) {

@@ -3,8 +3,6 @@ package org.prebid.server.hooks.modules.rule.engine.core.request;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iab.openrtb.request.BidRequest;
 import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.hooks.modules.rule.engine.core.request.context.RequestResultContext;
-import org.prebid.server.hooks.modules.rule.engine.core.request.context.RequestSchemaContext;
 import org.prebid.server.hooks.modules.rule.engine.core.request.result.functions.filter.ExcludeBiddersFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.request.result.functions.filter.IncludeBiddersFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.request.result.functions.log.LogATagFunction;
@@ -43,13 +41,13 @@ import java.util.Set;
 import java.util.random.RandomGenerator;
 
 public class RequestSpecification implements
-        StageSpecification<RequestSchemaContext, BidRequest, RequestResultContext> {
+        StageSpecification<BidRequest, RequestRuleContext> {
 
     public static final Set<String> PER_IMP_SCHEMA_FUNCTIONS =
             Set.of(AdUnitCodeFunction.NAME, AdUnitCodeInFunction.NAME, MediaTypeInFunction.NAME);
 
-    private final Map<String, SchemaFunction<RequestSchemaContext>> schemaFunctions;
-    private final Map<String, ResultFunction<BidRequest, RequestResultContext>> resultFunctions;
+    private final Map<String, SchemaFunction<BidRequest, RequestRuleContext>> schemaFunctions;
+    private final Map<String, ResultFunction<BidRequest, RequestRuleContext>> resultFunctions;
 
     public RequestSpecification(ObjectMapper mapper,
                                 BidderCatalog bidderCatalog,
@@ -86,8 +84,8 @@ public class RequestSpecification implements
                 LogATagFunction.NAME, new LogATagFunction(mapper));
     }
 
-    public SchemaFunction<RequestSchemaContext> schemaFunctionByName(String name) {
-        final SchemaFunction<RequestSchemaContext> function = schemaFunctions.get(name);
+    public SchemaFunction<BidRequest, RequestRuleContext> schemaFunctionByName(String name) {
+        final SchemaFunction<BidRequest, RequestRuleContext> function = schemaFunctions.get(name);
         if (function == null) {
             throw new InvalidSchemaFunctionException(name);
         }
@@ -95,8 +93,8 @@ public class RequestSpecification implements
         return function;
     }
 
-    public ResultFunction<BidRequest, RequestResultContext> resultFunctionByName(String name) {
-        final ResultFunction<BidRequest, RequestResultContext> function = resultFunctions.get(name);
+    public ResultFunction<BidRequest, RequestRuleContext> resultFunctionByName(String name) {
+        final ResultFunction<BidRequest, RequestRuleContext> function = resultFunctions.get(name);
         if (function == null) {
             throw new InvalidResultFunctionException(name);
         }

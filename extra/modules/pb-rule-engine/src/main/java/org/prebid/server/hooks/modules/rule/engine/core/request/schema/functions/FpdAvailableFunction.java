@@ -6,7 +6,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Content;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
-import org.prebid.server.hooks.modules.rule.engine.core.request.context.RequestSchemaContext;
+import org.prebid.server.hooks.modules.rule.engine.core.request.RequestRuleContext;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunctionArguments;
 import org.prebid.server.hooks.modules.rule.engine.core.util.ValidationUtils;
@@ -18,13 +18,13 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
 
-public class FpdAvailableFunction implements SchemaFunction<RequestSchemaContext> {
+public class FpdAvailableFunction implements SchemaFunction<BidRequest, RequestRuleContext> {
 
     public static final String NAME = "fpdAvailable";
 
     @Override
-    public String extract(SchemaFunctionArguments<RequestSchemaContext> arguments) {
-        final BidRequest bidRequest = arguments.getOperand().getBidRequest();
+    public String extract(SchemaFunctionArguments<BidRequest, RequestRuleContext> arguments) {
+        final BidRequest bidRequest = arguments.getOperand();
 
         final boolean available = isUserDataAvailable(bidRequest)
                 || isUserExtDataAvailable(bidRequest)

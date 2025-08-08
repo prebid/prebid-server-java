@@ -8,8 +8,9 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import org.junit.jupiter.api.Test;
+import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.hooks.modules.rule.engine.core.request.Granularity;
-import org.prebid.server.hooks.modules.rule.engine.core.request.context.RequestSchemaContext;
+import org.prebid.server.hooks.modules.rule.engine.core.request.RequestRuleContext;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunctionArguments;
 import org.prebid.server.hooks.modules.rule.engine.core.util.ConfigurationValidationException;
 
@@ -76,9 +77,8 @@ public class AdUnitCodeInFunctionTest {
 
         final BidRequest bidRequest = BidRequest.builder().imp(singletonList(imp)).build();
 
-        final SchemaFunctionArguments<RequestSchemaContext> arguments = SchemaFunctionArguments.of(
-                RequestSchemaContext.of(bidRequest, new Granularity.Imp("impId"), "datacenter"),
-                givenConfigWithCodes("gpid"));
+        final SchemaFunctionArguments<BidRequest, RequestRuleContext> arguments =
+                givenFunctionArguments(bidRequest, "gpid");
 
         // when and then
         assertThat(target.extract(arguments)).isEqualTo("true");
@@ -95,9 +95,8 @@ public class AdUnitCodeInFunctionTest {
 
         final BidRequest bidRequest = BidRequest.builder().imp(singletonList(imp)).build();
 
-        final SchemaFunctionArguments<RequestSchemaContext> arguments = SchemaFunctionArguments.of(
-                RequestSchemaContext.of(bidRequest, new Granularity.Imp("impId"), "datacenter"),
-                givenConfigWithCodes("tagId"));
+        final SchemaFunctionArguments<BidRequest, RequestRuleContext> arguments =
+                givenFunctionArguments(bidRequest, "tagId");
 
         // when and then
         assertThat(target.extract(arguments)).isEqualTo("true");
@@ -118,9 +117,8 @@ public class AdUnitCodeInFunctionTest {
 
         final BidRequest bidRequest = BidRequest.builder().imp(singletonList(imp)).build();
 
-        final SchemaFunctionArguments<RequestSchemaContext> arguments = SchemaFunctionArguments.of(
-                RequestSchemaContext.of(bidRequest, new Granularity.Imp("impId"), "datacenter"),
-                givenConfigWithCodes("pbadslot"));
+        final SchemaFunctionArguments<BidRequest, RequestRuleContext> arguments =
+                givenFunctionArguments(bidRequest, "pbadslot");
 
         // when and then
         assertThat(target.extract(arguments)).isEqualTo("true");
@@ -144,9 +142,8 @@ public class AdUnitCodeInFunctionTest {
 
         final BidRequest bidRequest = BidRequest.builder().imp(singletonList(imp)).build();
 
-        final SchemaFunctionArguments<RequestSchemaContext> arguments = SchemaFunctionArguments.of(
-                RequestSchemaContext.of(bidRequest, new Granularity.Imp("impId"), "datacenter"),
-                givenConfigWithCodes("srid"));
+        final SchemaFunctionArguments<BidRequest, RequestRuleContext> arguments =
+                givenFunctionArguments(bidRequest, "srid");
 
         // when and then
         assertThat(target.extract(arguments)).isEqualTo("true");
@@ -170,14 +167,23 @@ public class AdUnitCodeInFunctionTest {
 
         final BidRequest bidRequest = BidRequest.builder().imp(singletonList(imp)).build();
 
-        final SchemaFunctionArguments<RequestSchemaContext> arguments = SchemaFunctionArguments.of(
-                RequestSchemaContext.of(bidRequest, new Granularity.Imp("impId"), "datacenter"),
-                givenConfigWithCodes("adUnitCode"));
+        final SchemaFunctionArguments<BidRequest, RequestRuleContext> arguments =
+                givenFunctionArguments(bidRequest, "adUnitCode");
 
         // when and then
         assertThat(target.extract(arguments)).isEqualTo("false");
     }
 
+
+    private SchemaFunctionArguments<BidRequest, RequestRuleContext> givenFunctionArguments(
+            BidRequest bidRequest,
+            String... codes) {
+
+        return SchemaFunctionArguments.of(
+                bidRequest,
+                givenConfigWithCodes(codes),
+                RequestRuleContext.of(AuctionContext.builder().build(), new Granularity.Imp("impId"), "datacenter"));
+    }
 
     private ObjectNode givenConfigWithCodes(String... codes) {
         final ArrayNode codesNode = mapper.createArrayNode();

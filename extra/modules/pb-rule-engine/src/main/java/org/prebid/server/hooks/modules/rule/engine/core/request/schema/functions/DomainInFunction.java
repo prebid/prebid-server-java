@@ -3,7 +3,7 @@ package org.prebid.server.hooks.modules.rule.engine.core.request.schema.function
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
-import org.prebid.server.hooks.modules.rule.engine.core.request.context.RequestSchemaContext;
+import org.prebid.server.hooks.modules.rule.engine.core.request.RequestRuleContext;
 import org.prebid.server.hooks.modules.rule.engine.core.request.schema.functions.util.DomainUtils;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunctionArguments;
@@ -15,15 +15,15 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class DomainInFunction implements SchemaFunction<RequestSchemaContext> {
+public class DomainInFunction implements SchemaFunction<BidRequest, RequestRuleContext> {
 
     public static final String NAME = "domainIn";
 
     private static final String DOMAINS_FIELD = "domains";
 
     @Override
-    public String extract(SchemaFunctionArguments<RequestSchemaContext> arguments) {
-        final BidRequest bidRequest = arguments.getOperand().getBidRequest();
+    public String extract(SchemaFunctionArguments<BidRequest, RequestRuleContext> arguments) {
+        final BidRequest bidRequest = arguments.getOperand();
 
         final Set<String> suppliedDomains = Stream.of(
                         DomainUtils.extractSitePublisherDomain(bidRequest),

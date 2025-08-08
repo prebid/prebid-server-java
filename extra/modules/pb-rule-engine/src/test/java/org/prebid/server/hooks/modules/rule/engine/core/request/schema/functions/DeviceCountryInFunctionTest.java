@@ -9,8 +9,9 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Geo;
 import org.junit.jupiter.api.Test;
+import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.hooks.modules.rule.engine.core.request.Granularity;
-import org.prebid.server.hooks.modules.rule.engine.core.request.context.RequestSchemaContext;
+import org.prebid.server.hooks.modules.rule.engine.core.request.RequestRuleContext;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunctionArguments;
 import org.prebid.server.hooks.modules.rule.engine.core.util.ConfigurationValidationException;
 
@@ -73,9 +74,8 @@ public class DeviceCountryInFunctionTest {
                 .device(Device.builder().geo(Geo.builder().country("country").build()).build())
                 .build();
 
-        final SchemaFunctionArguments<RequestSchemaContext> arguments = SchemaFunctionArguments.of(
-                RequestSchemaContext.of(bidRequest, Granularity.Request.instance(), "datacenter"),
-                givenConfigWithCountries("country"));
+        final SchemaFunctionArguments<BidRequest, RequestRuleContext> arguments =
+                givenFunctionArguments(bidRequest, "country");
 
         // when and then
         assertThat(target.extract(arguments)).isEqualTo("true");
@@ -86,12 +86,21 @@ public class DeviceCountryInFunctionTest {
         // given
         final BidRequest bidRequest = BidRequest.builder().build();
 
-        final SchemaFunctionArguments<RequestSchemaContext> arguments = SchemaFunctionArguments.of(
-                RequestSchemaContext.of(bidRequest, Granularity.Request.instance(), "datacenter"),
-                givenConfigWithCountries("expectedCountry"));
+        final SchemaFunctionArguments<BidRequest, RequestRuleContext> arguments =
+                givenFunctionArguments(bidRequest, "expectedCountry");
 
         // when and then
         assertThat(target.extract(arguments)).isEqualTo("false");
+    }
+
+    private SchemaFunctionArguments<BidRequest, RequestRuleContext> givenFunctionArguments(
+            BidRequest bidRequest,
+            String... countries) {
+
+        return SchemaFunctionArguments.of(
+                bidRequest,
+                givenConfigWithCountries(countries),
+                RequestRuleContext.of(AuctionContext.builder().build(), Granularity.Request.instance(), "datacenter"));
     }
 
     private ObjectNode givenConfigWithCountries(String... countries) {

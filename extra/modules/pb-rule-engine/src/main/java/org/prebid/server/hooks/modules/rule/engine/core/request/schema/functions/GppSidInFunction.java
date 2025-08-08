@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Regs;
-import org.prebid.server.hooks.modules.rule.engine.core.request.context.RequestSchemaContext;
+import org.prebid.server.hooks.modules.rule.engine.core.request.RequestRuleContext;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunctionArguments;
 import org.prebid.server.hooks.modules.rule.engine.core.util.ValidationUtils;
@@ -15,15 +15,15 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class GppSidInFunction implements SchemaFunction<RequestSchemaContext> {
+public class GppSidInFunction implements SchemaFunction<BidRequest, RequestRuleContext> {
 
     public static final String NAME = "gppSidIn";
 
     private static final String SIDS_FIELD = "sids";
 
     @Override
-    public String extract(SchemaFunctionArguments<RequestSchemaContext> arguments) {
-        final Set<Integer> sids = Optional.of(arguments.getOperand().getBidRequest())
+    public String extract(SchemaFunctionArguments<BidRequest, RequestRuleContext> arguments) {
+        final Set<Integer> sids = Optional.of(arguments.getOperand())
                 .map(BidRequest::getRegs)
                 .map(Regs::getGppSid)
                 .stream()

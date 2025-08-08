@@ -8,10 +8,9 @@ import org.prebid.server.hooks.execution.model.Stage;
 import org.prebid.server.hooks.modules.rule.engine.core.config.AccountConfigParser;
 import org.prebid.server.hooks.modules.rule.engine.core.config.RuleParser;
 import org.prebid.server.hooks.modules.rule.engine.core.config.StageConfigParser;
-import org.prebid.server.hooks.modules.rule.engine.core.request.RequestMatchingRule;
+import org.prebid.server.hooks.modules.rule.engine.core.request.RequestMatchingRuleFactory;
+import org.prebid.server.hooks.modules.rule.engine.core.request.RequestRuleContext;
 import org.prebid.server.hooks.modules.rule.engine.core.request.RequestSpecification;
-import org.prebid.server.hooks.modules.rule.engine.core.request.context.RequestResultContext;
-import org.prebid.server.hooks.modules.rule.engine.core.request.context.RequestSchemaContext;
 import org.prebid.server.hooks.modules.rule.engine.v1.PbRuleEngineModule;
 import org.prebid.server.json.ObjectMapperProvider;
 import org.springframework.beans.factory.annotation.Value;
@@ -28,29 +27,27 @@ import java.util.random.RandomGenerator;
 public class PbRuleEngineModuleConfiguration {
 
     @Bean
-    PbRuleEngineModule ruleEngineModule(RuleParser ruleParser) {
-        return new PbRuleEngineModule(ruleParser);
+    PbRuleEngineModule ruleEngineModule(RuleParser ruleParser,
+                                        @Value("${datacenter-region:#{null}}") String datacenter) {
+
+        return new PbRuleEngineModule(ruleParser, datacenter);
     }
 
     @Bean
-    StageConfigParser<RequestSchemaContext, BidRequest, RequestResultContext> processedAuctionRequestStageParser(
-            BidderCatalog bidderCatalog,
-            @Value("${datacenter-region:#{null}}") String datacenterRegion) {
-
+    StageConfigParser<BidRequest, RequestRuleContext> processedAuctionRequestStageParser(
+            BidderCatalog bidderCatalog) {
         final RandomGenerator randomGenerator = () -> ThreadLocalRandom.current().nextLong();
 
         return new StageConfigParser<>(
                 randomGenerator,
                 Stage.processed_auction_request,
                 new RequestSpecification(ObjectMapperProvider.mapper(), bidderCatalog, randomGenerator),
-                (schema, ruleTree, analyticsKey, modelVersion) ->
-                        new RequestMatchingRule(schema, ruleTree, modelVersion, analyticsKey, datacenterRegion));
+                new RequestMatchingRuleFactory());
     }
 
     @Bean
     AccountConfigParser accountConfigParser(
-            StageConfigParser<
-                    RequestSchemaContext, BidRequest, RequestResultContext> processedAuctionRequestStageParser) {
+            StageConfigParser<BidRequest, RequestRuleContext> processedAuctionRequestStageParser) {
 
         return new AccountConfigParser(ObjectMapperProvider.mapper(), processedAuctionRequestStageParser);
     }

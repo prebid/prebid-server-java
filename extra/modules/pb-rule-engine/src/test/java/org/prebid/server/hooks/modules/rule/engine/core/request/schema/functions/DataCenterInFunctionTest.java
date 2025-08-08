@@ -7,8 +7,9 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.BidRequest;
 import org.junit.jupiter.api.Test;
+import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.hooks.modules.rule.engine.core.request.Granularity;
-import org.prebid.server.hooks.modules.rule.engine.core.request.context.RequestSchemaContext;
+import org.prebid.server.hooks.modules.rule.engine.core.request.RequestRuleContext;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunctionArguments;
 import org.prebid.server.hooks.modules.rule.engine.core.util.ConfigurationValidationException;
 
@@ -69,9 +70,8 @@ public class DataCenterInFunctionTest {
         // given
         final BidRequest bidRequest = BidRequest.builder().build();
 
-        final SchemaFunctionArguments<RequestSchemaContext> arguments = SchemaFunctionArguments.of(
-                RequestSchemaContext.of(bidRequest, Granularity.Request.instance(), "datacenter"),
-                givenConfigWithDataCenters("datacenter"));
+        final SchemaFunctionArguments<BidRequest, RequestRuleContext> arguments =
+                givenFunctionArguments(bidRequest, "datacenter", "datacenter");
 
         // when and then
         assertThat(target.extract(arguments)).isEqualTo("true");
@@ -82,14 +82,23 @@ public class DataCenterInFunctionTest {
         // given
         final BidRequest bidRequest = BidRequest.builder().build();
 
-        final SchemaFunctionArguments<RequestSchemaContext> arguments = SchemaFunctionArguments.of(
-                RequestSchemaContext.of(bidRequest, Granularity.Request.instance(), "datacenter"),
-                givenConfigWithDataCenters("expectedDatacenter"));
+        final SchemaFunctionArguments<BidRequest, RequestRuleContext> arguments =
+                givenFunctionArguments(bidRequest, "datacenter", "expectedDatacenter");
 
         // when and then
         assertThat(target.extract(arguments)).isEqualTo("false");
     }
 
+    private SchemaFunctionArguments<BidRequest, RequestRuleContext> givenFunctionArguments(
+            BidRequest bidRequest,
+            String datacenter,
+            String... expectedDatacenters) {
+
+        return SchemaFunctionArguments.of(
+                bidRequest,
+                givenConfigWithDataCenters(expectedDatacenters),
+                RequestRuleContext.of(AuctionContext.builder().build(), Granularity.Request.instance(), datacenter));
+    }
 
     private ObjectNode givenConfigWithDataCenters(String... dataCenters) {
         final ArrayNode dataCentersNode = mapper.createArrayNode();

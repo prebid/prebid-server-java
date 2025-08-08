@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Set;
 
 @Value(staticConstructor = "of")
-public class Schema<T> {
+public class Schema<T, C> {
 
-    List<SchemaFunctionHolder<T>> functions;
+    List<SchemaFunctionHolder<T, C>> functions;
 }
