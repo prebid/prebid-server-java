@@ -176,7 +176,7 @@ public class HttpApplicationSettings implements ApplicationSettings {
                                                              Set<String> impIds,
                                                              Timeout timeout) {
 
-        return fetchStoredData(ampEndpoint, requestIds, impIds, timeout);
+        return fetchStoredData(ampEndpoint, requestIds, Collections.emptySet(), timeout);
     }
 
     @Override

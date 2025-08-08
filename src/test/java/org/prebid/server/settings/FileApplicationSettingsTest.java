@@ -61,8 +61,15 @@ public class FileApplicationSettingsTest extends VertxTest {
 
         // when and then
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore",
-                        "ignore", jacksonMapper));
+                .isThrownBy(() -> new FileApplicationSettings(
+                        fileSystem,
+                        "ignore",
+                        "ignore",
+                        "ignore",
+                        "ignore",
+                        "ignore",
+                        "ignore",
+                        jacksonMapper));
     }
 
     @Test
@@ -70,9 +77,15 @@ public class FileApplicationSettingsTest extends VertxTest {
         // given
         given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("domains:"));
 
-        final FileApplicationSettings applicationSettings =
-                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore", "ignore",
-                        jacksonMapper);
+        final FileApplicationSettings applicationSettings = new FileApplicationSettings(
+                fileSystem,
+                "ignore",
+                "ignore",
+                "ignore",
+                "ignore",
+                "ignore",
+                "ignore",
+                jacksonMapper);
 
         // when
         final Future<Account> account = applicationSettings.getAccountById("123", null);
@@ -131,9 +144,15 @@ public class FileApplicationSettingsTest extends VertxTest {
                         + "}"
                         + "]"));
 
-        final FileApplicationSettings applicationSettings =
-                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore", "ignore",
-                        jacksonMapper);
+        final FileApplicationSettings applicationSettings = new FileApplicationSettings(
+                fileSystem,
+                "ignore",
+                "ignore",
+                "ignore",
+                "ignore",
+                "ignore",
+                "ignore",
+                jacksonMapper);
 
         // when
         final Future<Account> account = applicationSettings.getAccountById("123", null);
@@ -190,9 +209,15 @@ public class FileApplicationSettingsTest extends VertxTest {
         given(fileSystem.readFileBlocking(anyString()))
                 .willReturn(Buffer.buffer("accounts: [ {id: '123'}, {id: '456'} ]"));
 
-        final FileApplicationSettings applicationSettings =
-                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore",
-                        "ignore", jacksonMapper);
+        final FileApplicationSettings applicationSettings = new FileApplicationSettings(
+                fileSystem,
+                "ignore",
+                "ignore",
+                "ignore",
+                "ignore",
+                "ignore",
+                "ignore",
+                jacksonMapper);
 
         // when
         final Future<Account> account = applicationSettings.getAccountById("789", null);
@@ -207,17 +232,26 @@ public class FileApplicationSettingsTest extends VertxTest {
         given(fileSystem.readDirBlocking(anyString()))
                 .willReturn(singletonList("/home/user/requests/1.json"))
                 .willReturn(singletonList("/home/user/imps/2.json"))
+                .willReturn(singletonList("/home/user/profiles/3-3.json"))
                 .willReturn(singletonList("/home/user/categories/iab_1.json"));
         given(fileSystem.readFileBlocking(anyString()))
                 .willReturn(Buffer.buffer("accounts:")) // settings file
                 .willReturn(Buffer.buffer("value1")) // stored request
                 .willReturn(Buffer.buffer("value2")) // stored imp
+                .willReturn(Buffer.buffer("{}")) // profile
                 .willReturn(Buffer.buffer("value2")) // stored response
                 .willReturn(Buffer.buffer("{\"iab-1\": 1}")); // categories
 
         // when and then
-        assertThatThrownBy(() -> new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore",
-                "ignore", jacksonMapper))
+        assertThatThrownBy(() -> new FileApplicationSettings(
+                fileSystem,
+                "ignore",
+                "ignore",
+                "ignore",
+                "ignore",
+                "ignore",
+                "ignore",
+                jacksonMapper))
                 .isInstanceOf(PreBidException.class)
                 .hasMessage("Failed to decode categories for file /home/user/categories/iab_1.json");
     }
@@ -228,16 +262,25 @@ public class FileApplicationSettingsTest extends VertxTest {
         given(fileSystem.readDirBlocking(anyString()))
                 .willReturn(singletonList("/home/user/requests/1.json"))
                 .willReturn(singletonList("/home/user/imps/2.json"))
+                .willReturn(singletonList("/home/user/profiles/3-3.json"))
                 .willReturn(singletonList("/home/user/categories/iab_1.json"));
         given(fileSystem.readFileBlocking(anyString()))
                 .willReturn(Buffer.buffer("accounts:")) // settings file
                 .willReturn(Buffer.buffer("value1")) // stored request
                 .willReturn(Buffer.buffer("value2")) // stored imp
+                .willReturn(Buffer.buffer("{}")) // profile
                 .willReturn(Buffer.buffer("value2")) // stored response
                 .willReturn(Buffer.buffer("{\"iab-1\": {\"id\": \"id\"}}")); // categories
 
-        final ApplicationSettings applicationSettings = new FileApplicationSettings(fileSystem, "ignore", "ignore",
-                "ignore", "ignore", "ignore", jacksonMapper);
+        final ApplicationSettings applicationSettings = new FileApplicationSettings(
+                fileSystem,
+                "ignore",
+                "ignore",
+                "ignore",
+                "ignore",
+                "ignore",
+                "ignore",
+                jacksonMapper);
 
         // when
         final Future<Map<String, String>> result = applicationSettings.getCategories("iab", "1", null);
@@ -253,16 +296,25 @@ public class FileApplicationSettingsTest extends VertxTest {
         given(fileSystem.readDirBlocking(anyString()))
                 .willReturn(singletonList("/home/user/requests/1.json"))
                 .willReturn(singletonList("/home/user/imps/2.json"))
+                .willReturn(singletonList("/home/user/profiles/3-3.json"))
                 .willReturn(singletonList("/home/user/categories/iab.json"));
         given(fileSystem.readFileBlocking(anyString()))
                 .willReturn(Buffer.buffer("accounts:")) // settings file
                 .willReturn(Buffer.buffer("value1")) // stored request
                 .willReturn(Buffer.buffer("value2")) // stored imp
+                .willReturn(Buffer.buffer("{}")) // profile
                 .willReturn(Buffer.buffer("value2")) // stored response
                 .willReturn(Buffer.buffer("{\"iab-1\": {\"id\": \"id\"}}")); // categories
 
-        final ApplicationSettings applicationSettings = new FileApplicationSettings(fileSystem, "ignore", "ignore",
-                "ignore", "ignore", "ignore", jacksonMapper);
+        final ApplicationSettings applicationSettings = new FileApplicationSettings(
+                fileSystem,
+                "ignore",
+                "ignore",
+                "ignore",
+                "ignore",
+                "ignore",
+                "ignore",
+                jacksonMapper);
 
         // when
         final Future<Map<String, String>> result = applicationSettings.getCategories("iab", null, null);
@@ -278,16 +330,25 @@ public class FileApplicationSettingsTest extends VertxTest {
         given(fileSystem.readDirBlocking(anyString()))
                 .willReturn(singletonList("/home/user/requests/1.json"))
                 .willReturn(singletonList("/home/user/imps/2.json"))
+                .willReturn(singletonList("/home/user/profiles/3-3.json"))
                 .willReturn(singletonList("/home/user/categories/iab_1.json"));
         given(fileSystem.readFileBlocking(anyString()))
                 .willReturn(Buffer.buffer("accounts:")) // settings file
                 .willReturn(Buffer.buffer("value1")) // stored request
                 .willReturn(Buffer.buffer("value2")) // stored imp
+                .willReturn(Buffer.buffer("{}")) // profile
                 .willReturn(Buffer.buffer("value2")) // stored response
                 .willReturn(Buffer.buffer("{\"iab-1\": {\"id\": \"id\"}}")); // categories
 
-        final ApplicationSettings applicationSettings = new FileApplicationSettings(fileSystem, "ignore", "ignore",
-                "ignore", "ignore", "ignore", jacksonMapper);
+        final ApplicationSettings applicationSettings = new FileApplicationSettings(
+                fileSystem,
+                "ignore",
+                "ignore",
+                "ignore",
+                "ignore",
+                "ignore",
+                "ignore",
+                jacksonMapper);
 
         // when
         final Future<Map<String, String>> result = applicationSettings.getCategories("iab", "2", null);
@@ -304,19 +365,27 @@ public class FileApplicationSettingsTest extends VertxTest {
         given(fileSystem.readDirBlocking(anyString()))
                 .willReturn(singletonList("/home/user/requests/1.json"))
                 .willReturn(singletonList("/home/user/imps/2.json"))
+                .willReturn(singletonList("/home/user/profiles/3-3.json"))
                 .willReturn(singletonList("/home/user/categories/iab_1.json"));
         given(fileSystem.readFileBlocking(anyString()))
                 .willReturn(Buffer.buffer("accounts:")) // settings file
                 .willReturn(Buffer.buffer("value1")) // stored request
                 .willReturn(Buffer.buffer("value2")) // stored imp
+                .willReturn(Buffer.buffer("{}")) // profile
                 .willReturn(Buffer.buffer("{\"iab-1\": {\"id\": \"id\"}}")); // categories
 
-        final FileApplicationSettings applicationSettings =
-                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore", "ignore",
-                        jacksonMapper);
+        final FileApplicationSettings applicationSettings = new FileApplicationSettings(
+                fileSystem,
+                "ignore",
+                "ignore",
+                "ignore",
+                "ignore",
+                "ignore",
+                "ignore",
+                jacksonMapper);
 
         // when
-        final Future<StoredDataResult> storedRequestResult =
+        final Future<StoredDataResult<String>> storedRequestResult =
                 applicationSettings.getStoredData(null, singleton("2"), emptySet(), null);
 
         // then
@@ -332,21 +401,29 @@ public class FileApplicationSettingsTest extends VertxTest {
         given(fileSystem.readDirBlocking(anyString()))
                 .willReturn(singletonList("/home/user/requests/1.json"))
                 .willReturn(singletonList("/home/user/imps/1.json"))
+                .willReturn(singletonList("/home/user/profiles/3-3.json"))
                 .willReturn(singletonList("/home/user/responses/3.json"));
 
         given(fileSystem.readFileBlocking(anyString()))
                 .willReturn(Buffer.buffer("accounts:")) // settings file
                 .willReturn(Buffer.buffer("value1")) // stored request
                 .willReturn(Buffer.buffer("value2")) // stored imp
+                .willReturn(Buffer.buffer("{}")) // profile
                 .willReturn(Buffer.buffer("value3")) // stored response
                 .willReturn(Buffer.buffer("{\"iab-1\": {\"id\": \"id\"}}")); // categories
 
-        final FileApplicationSettings applicationSettings =
-                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore", "ignore",
-                        jacksonMapper);
+        final FileApplicationSettings applicationSettings = new FileApplicationSettings(
+                fileSystem,
+                "ignore",
+                "ignore",
+                "ignore",
+                "ignore",
+                "ignore",
+                "ignore",
+                jacksonMapper);
 
         // when
-        final Future<StoredDataResult> storedRequestResult =
+        final Future<StoredDataResult<String>> storedRequestResult =
                 applicationSettings.getStoredData(null, emptySet(), singleton("2"), null);
 
         // then
@@ -362,21 +439,29 @@ public class FileApplicationSettingsTest extends VertxTest {
         given(fileSystem.readDirBlocking(anyString()))
                 .willReturn(singletonList("/home/user/requests/1.json"))
                 .willReturn(singletonList("/home/user/imps/2.json"))
+                .willReturn(singletonList("/home/user/profiles/3-3.json"))
                 .willReturn(singletonList("/home/user/responses/3.json"));
 
         given(fileSystem.readFileBlocking(anyString()))
                 .willReturn(Buffer.buffer("accounts:")) // settings file
                 .willReturn(Buffer.buffer("value1")) // stored request
                 .willReturn(Buffer.buffer("value2")) // stored imp
+                .willReturn(Buffer.buffer("{}")) // profile
                 .willReturn(Buffer.buffer("value3")) // stored response
                 .willReturn(Buffer.buffer("{\"iab-1\": {\"id\": \"id\"}}")); // categories
 
-        final FileApplicationSettings applicationSettings =
-                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore", "ignore",
-                        jacksonMapper);
+        final FileApplicationSettings applicationSettings = new FileApplicationSettings(
+                fileSystem,
+                "ignore",
+                "ignore",
+                "ignore",
+                "ignore",
+                "ignore",
+                "ignore",
+                jacksonMapper);
 
         // when
-        final Future<StoredDataResult> storedRequestResult =
+        final Future<StoredDataResult<String>> storedRequestResult =
                 applicationSettings.getStoredData(null, singleton("1"), singleton("2"), null);
 
         // then
@@ -395,6 +480,7 @@ public class FileApplicationSettingsTest extends VertxTest {
         given(fileSystem.readDirBlocking(anyString()))
                 .willReturn(singletonList("/home/user/requests/3.json"))
                 .willReturn(singletonList("/home/user/imps/2.json"))
+                .willReturn(singletonList("/home/user/profiles/3-3.json"))
                 .willReturn(singletonList("/home/user/responses/1.json"))
                 .willReturn(singletonList("/home/user/categories"));
 
@@ -402,11 +488,18 @@ public class FileApplicationSettingsTest extends VertxTest {
                 .willReturn(Buffer.buffer("accounts:")) // settings file
                 .willReturn(Buffer.buffer("value3")) // requests
                 .willReturn(Buffer.buffer("value2")) // imps
+                .willReturn(Buffer.buffer("{}")) // profile
                 .willReturn(Buffer.buffer("value1")) // responses
                 .willReturn(Buffer.buffer("{\"iab-1\": {\"id\": \"id\"}}")); // categories
-        final FileApplicationSettings applicationSettings =
-                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore", "ignore",
-                        jacksonMapper);
+        final FileApplicationSettings applicationSettings = new FileApplicationSettings(
+                fileSystem,
+                "ignore",
+                "ignore",
+                "ignore",
+                "ignore",
+                "ignore",
+                "ignore",
+                jacksonMapper);
 
         // when
         final Future<StoredResponseDataResult> storedResponsesResult =
@@ -425,6 +518,7 @@ public class FileApplicationSettingsTest extends VertxTest {
         given(fileSystem.readDirBlocking(anyString()))
                 .willReturn(singletonList("/home/user/requests/3.json"))
                 .willReturn(singletonList("/home/user/imps/2.json"))
+                .willReturn(singletonList("/home/user/profiles/3-3.json"))
                 .willReturn(singletonList("/home/user/responses/1.json"))
                 .willReturn(singletonList("/home/user/categories/iab_1.json"));
 
@@ -432,12 +526,19 @@ public class FileApplicationSettingsTest extends VertxTest {
                 .willReturn(Buffer.buffer("accounts:")) // settings file
                 .willReturn(Buffer.buffer("value3")) // requests
                 .willReturn(Buffer.buffer("value2")) // imps
+                .willReturn(Buffer.buffer("{}")) // profile
                 .willReturn(Buffer.buffer("value1")) // responses
                 .willReturn(Buffer.buffer("{\"iab-1\": {\"id\": \"id\"}}")); // categories
 
-        final FileApplicationSettings applicationSettings =
-                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore", "ignore",
-                        jacksonMapper);
+        final FileApplicationSettings applicationSettings = new FileApplicationSettings(
+                fileSystem,
+                "ignore",
+                "ignore",
+                "ignore",
+                "ignore",
+                "ignore",
+                "ignore",
+                jacksonMapper);
 
         // when
         final Future<StoredResponseDataResult> storedResponsesResult =
@@ -458,6 +559,7 @@ public class FileApplicationSettingsTest extends VertxTest {
         given(fileSystem.readDirBlocking(anyString()))
                 .willReturn(singletonList("/home/user/requests/3.json"))
                 .willReturn(singletonList("/home/user/imps/2.json"))
+                .willReturn(singletonList("/home/user/profiles/3-3.json"))
                 .willReturn(singletonList("/home/user/responses/1.json"))
                 .willReturn(singletonList("/home/user/categories/iab_1.json"));
 
@@ -465,12 +567,19 @@ public class FileApplicationSettingsTest extends VertxTest {
                 .willReturn(Buffer.buffer("accounts:")) // settings file
                 .willReturn(Buffer.buffer("value3")) // requests
                 .willReturn(Buffer.buffer("value2")) // imps
+                .willReturn(Buffer.buffer("{}")) // profile
                 .willReturn(Buffer.buffer("value1")) // responses
                 .willReturn(Buffer.buffer("{\"iab-1\": {\"id\": \"id\"}}")); // categories
 
-        final FileApplicationSettings applicationSettings =
-                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore", "ignore",
-                        jacksonMapper);
+        final FileApplicationSettings applicationSettings = new FileApplicationSettings(
+                fileSystem,
+                "ignore",
+                "ignore",
+                "ignore",
+                "ignore",
+                "ignore",
+                "ignore",
+                jacksonMapper);
 
         // when
         final Future<StoredResponseDataResult> storedResponsesResult =
@@ -491,7 +600,14 @@ public class FileApplicationSettingsTest extends VertxTest {
         given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("accounts:")); // settings file
 
         // when
-        new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore", "ignore",
+        new FileApplicationSettings(
+                fileSystem,
+                "ignore",
+                "ignore",
+                "ignore",
+                "ignore",
+                "ignore",
+                "ignore",
                 jacksonMapper);
 
         // then

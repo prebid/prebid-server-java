@@ -30,6 +30,7 @@ import org.prebid.server.auction.GeoLocationServiceWrapper;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.InterstitialProcessor;
 import org.prebid.server.auction.OrtbTypesResolver;
+import org.prebid.server.auction.externalortb.ProfilesProcessor;
 import org.prebid.server.auction.externalortb.StoredRequestProcessor;
 import org.prebid.server.auction.gpp.AuctionGppService;
 import org.prebid.server.auction.model.AuctionContext;
@@ -89,6 +90,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Mock(strictness = LENIENT)
     private StoredRequestProcessor storedRequestProcessor;
     @Mock(strictness = LENIENT)
+    private ProfilesProcessor profilesProcessor;
+    @Mock(strictness = LENIENT)
     private BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
     @Mock(strictness = LENIENT)
     private AuctionGppService auctionGppService;
@@ -145,6 +148,9 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .privacyContext(defaultPrivacyContext)
                 .debugContext(DebugContext.of(true, true, null))
                 .build();
+
+        given(profilesProcessor.process(any(), any()))
+                .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(1)));
 
         given(ortbVersionConversionManager.convertToAuctionSupportedVersion(any()))
                 .willAnswer(invocation -> invocation.getArgument(0));
@@ -207,6 +213,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 Integer.MAX_VALUE,
                 ortb2RequestFactory,
                 storedRequestProcessor,
+                profilesProcessor,
                 ortbVersionConversionManager,
                 auctionGppService,
                 cookieDeprecationService,
@@ -243,6 +250,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 1,
                 ortb2RequestFactory,
                 storedRequestProcessor,
+                profilesProcessor,
                 ortbVersionConversionManager,
                 auctionGppService,
                 cookieDeprecationService,

@@ -160,7 +160,7 @@ public class DatabaseApplicationSettings implements ApplicationSettings {
         return fetchStoredData(
                 selectAmpStoredRequestsQuery,
                 requestIds,
-                impIds,
+                Collections.emptySet(),
                 result -> DatabaseStoredDataResultMapper.map(result, accountId, requestIds, impIds),
                 timeout);
     }

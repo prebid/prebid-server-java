@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import io.vertx.core.Future;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.exception.InvalidProfileException;
 import org.prebid.server.exception.InvalidRequestException;
@@ -83,7 +84,7 @@ public class ProfilesProcessor {
 
         final String accountId = Optional.ofNullable(auctionContext.getAccount())
                 .map(Account::getId)
-                .orElse(null);
+                .orElse(StringUtils.EMPTY);
 
         return fetchProfiles(accountId, profilesIds, timeoutMillis(bidRequest))
                 .compose(profiles -> emitMetrics(accountId, profiles, auctionContext))

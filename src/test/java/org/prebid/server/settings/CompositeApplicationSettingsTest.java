@@ -173,11 +173,13 @@ public class CompositeApplicationSettingsTest {
         // given
         given(delegate1.getStoredData(any(), anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
-                        StoredDataResult.of(singletonMap("key1", "value1"), singletonMap("key2", "value2"),
+                        StoredDataResult.of(
+                                singletonMap("key1", "value1"),
+                                singletonMap("key2", "value2"),
                                 emptyList())));
 
         // when
-        final Future<StoredDataResult> future =
+        final Future<StoredDataResult<String>> future =
                 compositeApplicationSettings.getStoredData(null, singleton("key1"), singleton("key2"), null);
 
         // then
@@ -200,11 +202,13 @@ public class CompositeApplicationSettingsTest {
 
         given(delegate2.getStoredData(any(), anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
-                        StoredDataResult.of(singletonMap("key1", "value1"), singletonMap("key2", "value2"),
+                        StoredDataResult.of(
+                                singletonMap("key1", "value1"),
+                                singletonMap("key2", "value2"),
                                 emptyList())));
 
         // when
-        final Future<StoredDataResult> future =
+        final Future<StoredDataResult<String>> future =
                 compositeApplicationSettings.getStoredData(null, singleton("key1"), singleton("key2"), null);
 
         // then
@@ -229,7 +233,7 @@ public class CompositeApplicationSettingsTest {
                         StoredDataResult.of(emptyMap(), emptyMap(), singletonList("error2"))));
 
         // when
-        final Future<StoredDataResult> future =
+        final Future<StoredDataResult<String>> future =
                 compositeApplicationSettings.getStoredData(null, singleton("key1"), emptySet(), null);
 
         // then
@@ -244,12 +248,17 @@ public class CompositeApplicationSettingsTest {
         // given
         given(delegate1.getStoredData(any(), anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
-                        StoredDataResult.of(singletonMap("key1", "value1"), singletonMap("key3", "value3"),
+                        StoredDataResult.of(
+                                singletonMap("key1", "value1"),
+                                singletonMap("key3", "value3"),
                                 singletonList("error1"))));
 
         // when
-        compositeApplicationSettings.getStoredData(null, new HashSet<>(asList("key1", "key2")),
-                new HashSet<>(asList("key3", "key4")), null);
+        compositeApplicationSettings.getStoredData(
+                null,
+                new HashSet<>(asList("key1", "key2")),
+                new HashSet<>(asList("key3", "key4")),
+                null);
 
         // then
         @SuppressWarnings("unchecked") final ArgumentCaptor<Set<String>> requestCaptor = ArgumentCaptor.forClass(
@@ -268,18 +277,25 @@ public class CompositeApplicationSettingsTest {
         // given
         given(delegate1.getStoredData(any(), anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
-                        StoredDataResult.of(singletonMap("key1", "value1"), singletonMap("key3", "value3"),
+                        StoredDataResult.of(
+                                singletonMap("key1", "value1"),
+                                singletonMap("key3", "value3"),
                                 asList("key2 not found", "key4 not found"))));
 
         given(delegate2.getStoredData(any(), anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
-                        StoredDataResult.of(singletonMap("key2", "value2"), singletonMap("key4", "value4"),
+                        StoredDataResult.of(
+                                singletonMap("key2", "value2"),
+                                singletonMap("key4", "value4"),
                                 emptyList())));
 
         // when
-        final Future<StoredDataResult> future =
-                compositeApplicationSettings.getStoredData(null, new HashSet<>(asList("key1", "key2")),
-                        new HashSet<>(asList("key3", "key4")), null);
+        final Future<StoredDataResult<String>> future =
+                compositeApplicationSettings.getStoredData(
+                        null,
+                        new HashSet<>(asList("key1", "key2")),
+                        new HashSet<>(asList("key3", "key4")),
+                        null);
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -302,7 +318,7 @@ public class CompositeApplicationSettingsTest {
                         StoredDataResult.of(singletonMap("key1", "value1"), emptyMap(), emptyList())));
 
         // when
-        final Future<StoredDataResult> future =
+        final Future<StoredDataResult<String>> future =
                 compositeApplicationSettings.getAmpStoredData(null, singleton("key1"), emptySet(), null);
 
         // then
@@ -326,7 +342,7 @@ public class CompositeApplicationSettingsTest {
                         StoredDataResult.of(singletonMap("key1", "value1"), emptyMap(), emptyList())));
 
         // when
-        final Future<StoredDataResult> future =
+        final Future<StoredDataResult<String>> future =
                 compositeApplicationSettings.getAmpStoredData(null, singleton("key1"), emptySet(), null);
 
         // then
@@ -349,7 +365,7 @@ public class CompositeApplicationSettingsTest {
                         StoredDataResult.of(emptyMap(), emptyMap(), singletonList("error2"))));
 
         // when
-        final Future<StoredDataResult> future =
+        final Future<StoredDataResult<String>> future =
                 compositeApplicationSettings.getAmpStoredData(null, singleton("key1"), emptySet(), null);
 
         // then
@@ -367,8 +383,8 @@ public class CompositeApplicationSettingsTest {
                         StoredDataResult.of(singletonMap("key1", "value1"), emptyMap(), singletonList("error1"))));
 
         // when
-        compositeApplicationSettings.getAmpStoredData(null, new HashSet<>(asList("key1", "key2")), emptySet(),
-                null);
+        compositeApplicationSettings.getAmpStoredData(
+                null, new HashSet<>(asList("key1", "key2")), emptySet(), null);
 
         // then
         @SuppressWarnings("unchecked") final ArgumentCaptor<Set<String>> requestCaptor = ArgumentCaptor.forClass(
@@ -384,7 +400,9 @@ public class CompositeApplicationSettingsTest {
         // given
         given(delegate1.getAmpStoredData(any(), anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(
-                        StoredDataResult.of(singletonMap("key1", "value1"), emptyMap(),
+                        StoredDataResult.of(
+                                singletonMap("key1", "value1"),
+                                emptyMap(),
                                 singletonList("key2 not found"))));
 
         given(delegate2.getAmpStoredData(any(), anySet(), anySet(), any()))
@@ -392,8 +410,8 @@ public class CompositeApplicationSettingsTest {
                         StoredDataResult.of(singletonMap("key2", "value2"), emptyMap(), emptyList())));
 
         // when
-        final Future<StoredDataResult> future = compositeApplicationSettings.getAmpStoredData(null,
-                new HashSet<>(asList("key1", "key2")), emptySet(), null);
+        final Future<StoredDataResult<String>> future = compositeApplicationSettings.getAmpStoredData(
+                null, new HashSet<>(asList("key1", "key2")), emptySet(), null);
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -479,8 +497,7 @@ public class CompositeApplicationSettingsTest {
         compositeApplicationSettings.getStoredResponses(new HashSet<>(asList("key1", "key2")), null);
 
         // then
-        @SuppressWarnings("unchecked") final ArgumentCaptor<Set<String>> responseCaptor = ArgumentCaptor.forClass(
-                Set.class);
+        final ArgumentCaptor<Set<String>> responseCaptor = ArgumentCaptor.forClass(Set.class);
         verify(delegate2).getStoredResponses(responseCaptor.capture(), any());
 
         assertThat(responseCaptor.getValue()).hasSize(1).containsOnly("key2");

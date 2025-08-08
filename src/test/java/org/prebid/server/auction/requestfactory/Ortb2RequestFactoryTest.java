@@ -28,6 +28,7 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.TimeoutResolver;
+import org.prebid.server.auction.externalortb.ProfilesProcessor;
 import org.prebid.server.auction.externalortb.StoredRequestProcessor;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionStoredResult;
@@ -123,6 +124,8 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     @Mock
     private StoredRequestProcessor storedRequestProcessor;
     @Mock(strictness = LENIENT)
+    private ProfilesProcessor profilesProcessor;
+    @Mock(strictness = LENIENT)
     private ApplicationSettings applicationSettings;
     @Mock
     private IpAddressHelper ipAddressHelper;
@@ -149,6 +152,9 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
 
         given(timeoutResolver.limitToMax(any())).willReturn(2000L);
+
+        given(profilesProcessor.process(any(), any()))
+                .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(1)));
 
         given(hookStageExecutor.executeEntrypointStage(any(), any(), any(), any()))
                 .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
@@ -1787,6 +1793,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 timeoutResolver,
                 timeoutFactory,
                 storedRequestProcessor,
+                profilesProcessor,
                 applicationSettings,
                 ipAddressHelper,
                 hookStageExecutor,
