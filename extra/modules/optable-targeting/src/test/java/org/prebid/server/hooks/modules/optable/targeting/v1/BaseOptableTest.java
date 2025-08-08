@@ -224,17 +224,24 @@ public abstract class BaseOptableTest {
     }
 
     protected OptableTargetingProperties givenOptableTargetingProperties(boolean enableCache) {
-        return givenOptableTargetingProperties("key", enableCache);
+        return givenOptableTargetingProperties("key", "accountId", "origin", enableCache);
     }
 
     protected OptableTargetingProperties givenOptableTargetingProperties(String key, boolean enableCache) {
+        return givenOptableTargetingProperties(key, "accountId", "origin", enableCache);
+    }
+
+    protected OptableTargetingProperties givenOptableTargetingProperties(String key,
+                                                                         String tenant,
+                                                                         String origin,
+                                                                         boolean enableCache) {
         final CacheProperties cacheProperties = new CacheProperties();
         cacheProperties.setEnabled(enableCache);
 
         final OptableTargetingProperties optableTargetingProperties = new OptableTargetingProperties();
         optableTargetingProperties.setApiEndpoint("endpoint");
-        optableTargetingProperties.setTenant("accountId");
-        optableTargetingProperties.setOrigin("origin");
+        optableTargetingProperties.setTenant(tenant);
+        optableTargetingProperties.setOrigin(origin);
         optableTargetingProperties.setApiKey(key);
         optableTargetingProperties.setPpidMapping(Map.of("c", "id"));
         optableTargetingProperties.setAdserverTargeting(true);
