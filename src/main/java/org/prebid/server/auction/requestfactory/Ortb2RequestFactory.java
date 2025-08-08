@@ -477,7 +477,7 @@ public class Ortb2RequestFactory {
                                              BidRequest bidRequest,
                                              boolean isLookupStoredRequest) {
 
-        final String accountId = accountIdFrom(bidRequest);
+        final String accountId = accountIdFromBidRequest(bidRequest);
         if (StringUtils.isNotBlank(accountId) || !isLookupStoredRequest) {
             return Future.succeededFuture(accountId);
         }
@@ -488,7 +488,7 @@ public class Ortb2RequestFactory {
                         : Future.succeededFuture(id));
     }
 
-    private String accountIdFrom(BidRequest bidRequest) {
+    private String accountIdFromBidRequest(BidRequest bidRequest) {
         final App app = bidRequest.getApp();
         final Publisher appPublisher = app != null ? app.getPublisher() : null;
         final Site site = bidRequest.getSite();
@@ -514,12 +514,12 @@ public class Ortb2RequestFactory {
     private Future<String> accountIdFromStored(BidRequest bidRequest) {
         return storedRequestProcessor.processAuctionRequest(null, bidRequest)
                 .map(AuctionStoredResult::bidRequest)
-                .map(this::accountIdFrom);
+                .map(this::accountIdFromBidRequest);
     }
 
     private Future<String> accountIdFromProfiles(AuctionContext auctionContext, BidRequest bidRequest) {
         return profilesProcessor.process(auctionContext, bidRequest)
-                .map(this::accountIdFrom);
+                .map(this::accountIdFromBidRequest);
     }
 
     private String validateIfAccountBlocklisted(String accountId) {
