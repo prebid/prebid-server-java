@@ -1,9 +1,12 @@
 package org.prebid.server.settings.helper;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowIterator;
 import io.vertx.sqlclient.RowSet;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.ObjectMapperProvider;
 import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.settings.model.Profile;
@@ -70,16 +73,18 @@ public class DatabaseProfilesResultMapper {
 
             final String fetchedAccountId = Objects.toString(row.getValue(0), null);
             final String id = Objects.toString(row.getValue(1), null);
-            final String profileBody = Objects.toString(row.getValue(2), null);
+            final String profileBodyAsString = Objects.toString(row.getValue(2), null);
             final String mergePrecedenceAsString = Objects.toString(row.getValue(3), null);
             final String typeAsString = Objects.toString(row.getValue(4), null);
 
-            final Profile.Type type;
+            final JsonNode profileBody;
             final Profile.MergePrecedence mergePrecedence;
+            final Profile.Type type;
             try {
-                type = Profile.Type.valueOf(typeAsString);
+                profileBody = ObjectMapperProvider.mapper().readTree(profileBodyAsString);
                 mergePrecedence = Profile.MergePrecedence.valueOf(mergePrecedenceAsString);
-            } catch (IllegalArgumentException e) {
+                type = Profile.Type.valueOf(typeAsString);
+            } catch (IllegalArgumentException | JsonProcessingException e) {
                 logger.error("Profile with id={} has invalid value: ''{}'' and will be ignored.",
                         e, id, typeAsString);
                 continue;

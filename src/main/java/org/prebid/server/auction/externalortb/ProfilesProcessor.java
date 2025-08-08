@@ -12,7 +12,6 @@ import org.prebid.server.exception.InvalidProfileException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.execution.timeout.TimeoutFactory;
-import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.log.ConditionalLogger;
@@ -239,22 +238,13 @@ public class ProfilesProcessor {
     }
 
     private ObjectNode mergeProfile(ObjectNode original, Profile profile, String profileId) {
-        final ObjectNode profileBody = parseProfile(profile.getBody(), profileId);
         return switch (profile.getMergePrecedence()) {
-            case REQUEST -> merge(original, profileBody, profileId);
-            case PROFILE -> merge(profileBody, original, profileId);
+            case REQUEST -> merge(original, profile.getBody(), profileId);
+            case PROFILE -> merge(profile.getBody(), original, profileId);
         };
     }
 
-    private ObjectNode parseProfile(String body, String profileId) {
-        try {
-            return mapper.decodeValue(body, ObjectNode.class);
-        } catch (DecodeException e) {
-            throw new InvalidProfileException("Can't parse profile %s: %s".formatted(profileId, e.getMessage()));
-        }
-    }
-
-    private ObjectNode merge(ObjectNode takePrecedence, ObjectNode other, String profileId) {
+    private ObjectNode merge(JsonNode takePrecedence, JsonNode other, String profileId) {
         try {
             return (ObjectNode) jsonMerger.merge(takePrecedence, other);
         } catch (InvalidRequestException e) {
