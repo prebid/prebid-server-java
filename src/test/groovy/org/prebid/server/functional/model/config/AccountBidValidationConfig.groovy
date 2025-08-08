@@ -10,4 +10,9 @@ class AccountBidValidationConfig {
     BidValidationEnforcement bannerMaxSizeEnforcement
     @JsonProperty("banner_creative_max_size")
     BidValidationEnforcement bannerMaxSizeEnforcementSnakeCase
+
+    @JsonProperty("ad-podding")
+    BidValidationEnforcement adPoddingEnforcement
+    @JsonProperty("ad_podding")
+    BidValidationEnforcement adPoddingEnforcementSnakeCase
 }
