@@ -1,6 +1,7 @@
 package org.prebid.server.hooks.modules.rule.engine.core.request;
 
 import com.iab.openrtb.request.BidRequest;
+import org.prebid.server.hooks.modules.rule.engine.core.rules.ConditionMatchingRule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.MatchingRuleFactory;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.Rule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleConfig;
@@ -17,7 +18,7 @@ public class RequestMatchingRuleFactory implements MatchingRuleFactory<BidReques
             String analyticsKey,
             String modelVersion) {
 
-        final RequestMatchingRule requestMatchingRule = new RequestMatchingRule(
+        final ConditionMatchingRule<BidRequest, RequestRuleContext> requestMatchingRule = new ConditionMatchingRule<>(
                 schema, ruleTree, analyticsKey, modelVersion);
 
         return schema.getFunctions().stream()
