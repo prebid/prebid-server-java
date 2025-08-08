@@ -60,7 +60,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
                 ? noAction()
                 : requestIdentities(auctionRequestPayload.bidRequest())
                 .<InvocationResult<AuctionRequestPayload>>map(this::update)
-                 //todo: is it find to just fail instead of rejection or no_action?
+                //todo: is it find to just fail instead of rejection or no_action?
                 .onFailure(throwable -> logger.error("Failed enrichment:", throwable));
 
     }

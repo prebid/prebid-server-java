@@ -116,7 +116,6 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
                 .extracting(User::getEids)
                 .isEqualTo(List.of(givenEid, expectedEid));
 
-
         verify(httpClient).post(
                 eq("https://test.com/idres"),
                 argThat(headers -> headers.contains("Authorization", "Bearer auth_token", true)),
