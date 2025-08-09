@@ -76,14 +76,14 @@ public class ProfilesProcessor {
     }
 
     public Future<BidRequest> process(AuctionContext auctionContext, BidRequest bidRequest) {
-        final AllProfilesIds profilesIds = profilesIds(bidRequest, auctionContext);
-        if (profilesIds.isEmpty()) {
-            return Future.succeededFuture(bidRequest);
-        }
-
         final String accountId = Optional.ofNullable(auctionContext.getAccount())
                 .map(Account::getId)
                 .orElse(StringUtils.EMPTY);
+
+        final AllProfilesIds profilesIds = profilesIds(bidRequest, auctionContext, accountId);
+        if (profilesIds.isEmpty()) {
+            return Future.succeededFuture(bidRequest);
+        }
 
         return fetchProfiles(accountId, profilesIds, timeoutMillis(bidRequest))
                 .compose(profiles -> emitMetrics(accountId, profiles, auctionContext))
@@ -94,7 +94,7 @@ public class ProfilesProcessor {
                         new InvalidRequestException("Error during processing profiles: " + e.getMessage())));
     }
 
-    private AllProfilesIds profilesIds(BidRequest bidRequest, AuctionContext auctionContext) {
+    private AllProfilesIds profilesIds(BidRequest bidRequest, AuctionContext auctionContext, String accountId) {
         final AllProfilesIds initialProfilesIds = new AllProfilesIds(
                 requestProfilesIds(bidRequest),
                 bidRequest.getImp().stream().map(this::impProfilesIds).toList());
@@ -109,7 +109,7 @@ public class ProfilesProcessor {
 
         if (auctionContext.getDebugContext().isDebugEnabled() && !profilesIds.equals(initialProfilesIds)) {
             auctionContext.getDebugWarnings().add("Profiles exceeded the limit.");
-            metrics.updateProfileMetric(MetricName.limit_exceeded);
+            metrics.updateAccountProfileMetric(accountId, MetricName.limit_exceeded);
         }
 
         return profilesIds;
@@ -217,15 +217,14 @@ public class ProfilesProcessor {
         for (String profileId : profilesIds) {
             try {
                 final Profile profile = idToProfile.get(profileId);
-                result = profile != null
-                        ? mergeProfile(result, profile, profileId)
-                        : result;
-            } catch (InvalidProfileException e) {
-                metrics.updateProfileMetric(MetricName.invalid);
-                conditionalLogger.error(e.getMessage(), logSamplingRate);
+                result = profile != null ? mergeProfile(result, profile) : result;
+            } catch (InvalidRequestException e) {
+                final String message = "Can't merge with profile %s: %s".formatted(profileId, e.getMessage());
 
+                metrics.updateProfileMetric(MetricName.invalid);
+                conditionalLogger.error(message, logSamplingRate);
                 if (failOnUnknown) {
-                    throw new InvalidProfileException(e.getMessage());
+                    throw new InvalidProfileException(message);
                 }
             }
         }
@@ -237,19 +236,15 @@ public class ProfilesProcessor {
         }
     }
 
-    private ObjectNode mergeProfile(ObjectNode original, Profile profile, String profileId) {
+    private ObjectNode mergeProfile(ObjectNode original, Profile profile) {
         return switch (profile.getMergePrecedence()) {
-            case REQUEST -> merge(original, profile.getBody(), profileId);
-            case PROFILE -> merge(profile.getBody(), original, profileId);
+            case REQUEST -> merge(original, profile.getBody());
+            case PROFILE -> merge(profile.getBody(), original);
         };
     }
 
-    private ObjectNode merge(JsonNode takePrecedence, JsonNode other, String profileId) {
-        try {
-            return (ObjectNode) jsonMerger.merge(takePrecedence, other);
-        } catch (InvalidRequestException e) {
-            throw new InvalidProfileException("Can't merge with profile %s: %s".formatted(profileId, e.getMessage()));
-        }
+    private ObjectNode merge(JsonNode takePrecedence, JsonNode other) {
+        return (ObjectNode) jsonMerger.merge(takePrecedence, other);
     }
 
     private List<Imp> applyImpsProfiles(List<List<String>> profilesIds,
