@@ -101,13 +101,11 @@ public class DatabaseProfilesResultMapper {
 
         return StoredDataResult.of(
                 storedItemsOrAddError(
-                        Profile.Type.REQUEST,
                         accountId,
                         requestIds,
                         requestIdToProfiles,
                         errors),
                 storedItemsOrAddError(
-                        Profile.Type.IMP,
                         accountId,
                         impIds,
                         impIdToProfiles,
@@ -138,7 +136,6 @@ public class DatabaseProfilesResultMapper {
     }
 
     private static Map<String, Profile> storedItemsOrAddError(
-            Profile.Type type,
             String accountId,
             Set<String> searchIds,
             Map<String, Set<StoredItem<Profile>>> foundIdToStoredItems,
@@ -159,7 +156,7 @@ public class DatabaseProfilesResultMapper {
         for (String id : searchIds) {
             try {
                 final StoredItem<Profile> resolvedStoredItem = StoredItemResolver
-                        .resolve(type.toString(), accountId, id, foundIdToStoredItems.get(id));
+                        .resolve("profile", accountId, id, foundIdToStoredItems.get(id));
 
                 result.put(id, resolvedStoredItem.getData());
             } catch (PreBidException e) {

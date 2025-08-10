@@ -812,6 +812,27 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .isEqualTo(10000L);
     }
 
+    @Test
+    public void shouldUseProfilesResult() {
+        // given
+        givenValidBidRequest();
+
+        given(profilesProcessor.process(any(), any())).willAnswer(
+                invocation -> Future.succeededFuture(((BidRequest) invocation.getArgument(1)).toBuilder()
+                        .source(Source.builder().tid("uniqTid").build())
+                        .build()));
+
+        // when
+        target.enrichAuctionContext(defaultActionContext);
+
+        // then
+        verify(paramsResolver).resolve(
+                argThat(bidRequest -> bidRequest.getSource().equals(Source.builder().tid("uniqTid").build())),
+                any(),
+                any(),
+                anyBoolean());
+    }
+
     private void givenBidRequest(BidRequest bidRequest) {
         try {
             given(requestBody.asString()).willReturn(mapper.writeValueAsString(bidRequest));

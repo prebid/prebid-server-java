@@ -1,5 +1,7 @@
 package org.prebid.server.settings;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.TextNode;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.FileSystem;
@@ -23,6 +25,7 @@ import org.prebid.server.settings.model.AccountStatus;
 import org.prebid.server.settings.model.BidValidationEnforcement;
 import org.prebid.server.settings.model.EnabledForRequestType;
 import org.prebid.server.settings.model.EnforcePurpose;
+import org.prebid.server.settings.model.Profile;
 import org.prebid.server.settings.model.Purpose;
 import org.prebid.server.settings.model.PurposeOneTreatmentInterpretation;
 import org.prebid.server.settings.model.Purposes;
@@ -35,6 +38,7 @@ import java.util.HashSet;
 import java.util.Map;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
@@ -98,51 +102,76 @@ public class FileApplicationSettingsTest extends VertxTest {
     public void getAccountByIdShouldReturnPresentAccount() {
         // given
         given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer(
-                "accounts: ["
-                        + "{"
-                        + "id: 123,"
-                        + "status: active,"
-                        + "auction: {"
-                        + "price-granularity: low,"
-                        + "banner-cache-ttl: 100,"
-                        + "video-cache-ttl : 100,"
-                        + "truncate-target-attr: 20,"
-                        + "default-integration: web,"
-                        + "bid-validations: {"
-                        + "banner-creative-max-size: enforce"
-                        + "},"
-                        + "events: {"
-                        + "enabled: true"
-                        + "}"
-                        + "},"
-                        + "privacy: {"
-                        + "gdpr: {"
-                        + "enabled: true,"
-                        + "channel-enabled: {"
-                        + "amp: true,"
-                        + "web: true,"
-                        + "video: true,"
-                        + "app: true,"
-                        + "dooh: true"
-                        + "},"
-                        + "purposes: {"
-                        + "p1: {enforce-purpose: basic,enforce-vendors: false,vendor-exceptions: [rubicon, appnexus]},"
-                        + "p2: {enforce-purpose: full,enforce-vendors: true,vendor-exceptions: [openx]}"
-                        + "},"
-                        + "special-features: {"
-                        + "sf1: {enforce: true,vendor-exceptions: [rubicon, appnexus]},"
-                        + "sf2: {enforce: false,vendor-exceptions: [openx]}"
-                        + "},"
-                        + "purpose-one-treatment-interpretation: access-allowed"
-                        + "}"
-                        + "},"
-                        + "analytics: {"
-                        + "auction-events: {amp: true},"
-                        + "modules: {some-analytics: {supported-endpoints: [auction]}}"
-                        + "},"
-                        + "cookie-sync: {default-limit: 5,max-limit: 8, coop-sync: {default: true}}"
-                        + "}"
-                        + "]"));
+                """
+                        accounts: [{
+                            id: 123,
+                            status: active,
+                            auction: {
+                                price-granularity: low,
+                                banner-cache-ttl: 100,
+                                video-cache-ttl : 100,
+                                truncate-target-attr: 20,
+                                default-integration: web,
+                                bid-validations: {
+                                    banner-creative-max-size: enforce
+                                },
+                                events: {
+                                    enabled: true
+                                }
+                            },
+                            privacy: {
+                                gdpr: {
+                                    enabled: true,
+                                    channel-enabled: {
+                                        amp: true,
+                                        web: true,
+                                        video: true,
+                                        app: true,
+                                        dooh: true
+                                    },
+                                    purposes: {
+                                        p1: {
+                                            enforce-purpose: basic,
+                                            enforce-vendors: false,
+                                            vendor-exceptions: [rubicon, appnexus]
+                                        },
+                                        p2: {
+                                            enforce-purpose: full,
+                                            enforce-vendors: true,
+                                            vendor-exceptions: [openx]
+                                        }
+                                    },
+                                    special-features: {
+                                        sf1: {
+                                            enforce: true,
+                                            vendor-exceptions: [rubicon, appnexus]
+                                        },
+                                        sf2: {
+                                            enforce: false,
+                                            vendor-exceptions: [openx]
+                                        }
+                                    },
+                                    purpose-one-treatment-interpretation: access-allowed
+                                }
+                            },
+                            analytics: {
+                                auction-events: {
+                                    amp: true
+                                },
+                                modules: {
+                                    some-analytics: {
+                                        supported-endpoints: [auction]
+                                    }
+                                }
+                            },
+                            cookie-sync: {
+                                default-limit: 5,
+                                max-limit: 8,
+                                coop-sync: {
+                                    default: true
+                                }
+                            }
+                        }]"""));
 
         final FileApplicationSettings applicationSettings = new FileApplicationSettings(
                 fileSystem,
@@ -475,6 +504,109 @@ public class FileApplicationSettingsTest extends VertxTest {
     }
 
     @Test
+    public void getProfilesShouldReturnResultWithNotFoundErrorForNonExistingIds() throws JsonProcessingException {
+        // given
+        given(fileSystem.readDirBlocking(eq("ignore")))
+                .willReturn(emptyList());
+        given(fileSystem.readFileBlocking(eq("settings")))
+                .willReturn(Buffer.buffer("accounts:"));
+
+        given(fileSystem.readDirBlocking(eq("profiles")))
+                .willReturn(asList(
+                        "/home/user/profiles/1-1.json",
+                        "/home/user/profiles/1-2.json",
+                        "/home/user/profiles/2-1.json"));
+
+        given(fileSystem.readFileBlocking(eq("/home/user/profiles/1-1.json")))
+                .willReturn(Buffer.buffer(mapper.writeValueAsString(Profile.of(
+                        Profile.Type.REQUEST,
+                        Profile.MergePrecedence.PROFILE,
+                        TextNode.valueOf("value1")))));
+        given(fileSystem.readFileBlocking(eq("/home/user/profiles/1-2.json")))
+                .willReturn(Buffer.buffer(mapper.writeValueAsString(Profile.of(
+                        Profile.Type.IMP,
+                        Profile.MergePrecedence.PROFILE,
+                        TextNode.valueOf("value2")))));
+        given(fileSystem.readFileBlocking(eq("/home/user/profiles/2-1.json")))
+                .willReturn(Buffer.buffer(mapper.writeValueAsString(Profile.of(
+                        Profile.Type.REQUEST,
+                        Profile.MergePrecedence.PROFILE,
+                        TextNode.valueOf("value3")))));
+
+        final FileApplicationSettings applicationSettings = new FileApplicationSettings(
+                fileSystem,
+                "settings",
+                "ignore",
+                "ignore",
+                "profiles",
+                "ignore",
+                "ignore",
+                jacksonMapper);
+
+        // when
+        final Future<StoredDataResult<Profile>> storedRequestResult =
+                applicationSettings.getProfiles(null, singleton("1"), singleton("3"), null);
+
+        // then
+        assertThat(storedRequestResult.succeeded()).isTrue();
+        assertThat(storedRequestResult.result().getErrors())
+                .containsExactly(
+                        "Multiple profiles found for id: 1 but no account was specified",
+                        "No profile found for id: 3");
+    }
+
+    @Test
+    public void getProfilesShouldFilterForAccountAndType() throws JsonProcessingException {
+        // given
+        given(fileSystem.readDirBlocking(eq("ignore")))
+                .willReturn(emptyList());
+        given(fileSystem.readFileBlocking(eq("settings")))
+                .willReturn(Buffer.buffer("accounts:"));
+
+        given(fileSystem.readDirBlocking(eq("profiles")))
+                .willReturn(asList(
+                        "/home/user/profiles/1-1.json",
+                        "/home/user/profiles/1-2.json",
+                        "/home/user/profiles/2-1.json"));
+
+        given(fileSystem.readFileBlocking(eq("/home/user/profiles/1-1.json")))
+                .willReturn(Buffer.buffer(mapper.writeValueAsString(Profile.of(
+                        Profile.Type.REQUEST,
+                        Profile.MergePrecedence.PROFILE,
+                        TextNode.valueOf("value1")))));
+        given(fileSystem.readFileBlocking(eq("/home/user/profiles/1-2.json")))
+                .willReturn(Buffer.buffer(mapper.writeValueAsString(Profile.of(
+                        Profile.Type.IMP,
+                        Profile.MergePrecedence.PROFILE,
+                        TextNode.valueOf("value2")))));
+        given(fileSystem.readFileBlocking(eq("/home/user/profiles/2-1.json")))
+                .willReturn(Buffer.buffer(mapper.writeValueAsString(Profile.of(
+                        Profile.Type.REQUEST,
+                        Profile.MergePrecedence.PROFILE,
+                        TextNode.valueOf("value3")))));
+
+        final FileApplicationSettings applicationSettings = new FileApplicationSettings(
+                fileSystem,
+                "settings",
+                "ignore",
+                "ignore",
+                "profiles",
+                "ignore",
+                "ignore",
+                jacksonMapper);
+
+        // when
+        final Future<StoredDataResult<Profile>> storedRequestResult =
+                applicationSettings.getProfiles("1", singleton("1"), singleton("2"), null);
+
+        // then
+        assertThat(storedRequestResult.succeeded()).isTrue();
+        assertThat(storedRequestResult.result().getStoredIdToRequest()).containsOnlyKeys("1");
+        assertThat(storedRequestResult.result().getStoredIdToImp()).containsOnlyKeys("2");
+        assertThat(storedRequestResult.result().getErrors()).isEmpty();
+    }
+
+    @Test
     public void getStoredResponsesShouldReturnEmptyResultAndErrorsWhenResponseIdsAreEmpty() {
         // given
         given(fileSystem.readDirBlocking(anyString()))
@@ -597,6 +729,27 @@ public class FileApplicationSettingsTest extends VertxTest {
     public void storedDataInitializationShouldNotReadFromNonJsonFiles() {
         // given
         given(fileSystem.readDirBlocking(anyString())).willReturn(singletonList("/home/user/requests/1.txt"));
+        given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("accounts:")); // settings file
+
+        // when
+        new FileApplicationSettings(
+                fileSystem,
+                "ignore",
+                "ignore",
+                "ignore",
+                "ignore",
+                "ignore",
+                "ignore",
+                jacksonMapper);
+
+        // then
+        verify(fileSystem, never()).readFileBlocking(eq("1.txt"));
+    }
+
+    @Test
+    public void profilesInitializationShouldNotReadFromNonJsonFiles() {
+        // given
+        given(fileSystem.readDirBlocking(anyString())).willReturn(singletonList("/home/user/profiles/1.txt"));
         given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("accounts:")); // settings file
 
         // when

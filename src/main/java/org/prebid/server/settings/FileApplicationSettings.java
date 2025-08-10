@@ -221,7 +221,7 @@ public class FileApplicationSettings implements ApplicationSettings {
 
         final List<String> errors = new ArrayList<>();
         final Map<String, Profile> requestProfiles = getProfiles(accountId, requestIds, Profile.Type.REQUEST, errors);
-        final Map<String, Profile> impProfiles = getProfiles(accountId, requestIds, Profile.Type.IMP, errors);
+        final Map<String, Profile> impProfiles = getProfiles(accountId, impIds, Profile.Type.IMP, errors);
 
         return Future.succeededFuture(StoredDataResult.of(
                 requestProfiles,
@@ -237,14 +237,10 @@ public class FileApplicationSettings implements ApplicationSettings {
         final Map<String, Profile> result = new HashMap<>();
 
         for (String id : ids) {
-            final Set<StoredItem<Profile>> profiles = SetUtils.predicatedSet(
-                    profileIdToProfile.getOrDefault(id, Collections.emptySet()),
-                    storedItem -> storedItem.getData().getType() == type);
+            final Set<StoredItem<Profile>> profiles = profilesOfTypeWithId(type, id);
 
             try {
-                final StoredItem<Profile> profile = StoredItemResolver
-                        .resolve(type.toString(), accountId, id, profiles);
-
+                final StoredItem<Profile> profile = StoredItemResolver.resolve("profile", accountId, id, profiles);
                 result.put(id, profile.getData());
             } catch (PreBidException e) {
                 errors.add(e.getMessage());
@@ -252,6 +248,19 @@ public class FileApplicationSettings implements ApplicationSettings {
         }
 
         return Collections.unmodifiableMap(result);
+    }
+
+    private Set<StoredItem<Profile>> profilesOfTypeWithId(Profile.Type type, String id) {
+        final Set<StoredItem<Profile>> allProfiles = profileIdToProfile.get(id);
+        if (CollectionUtils.isEmpty(allProfiles)
+                || allProfiles.stream().allMatch(storedItem -> storedItem.getData().getType() == type)) {
+
+            return allProfiles;
+        }
+
+        return allProfiles.stream()
+                .filter(storedItem -> storedItem.getData().getType() == type)
+                .collect(Collectors.toSet());
     }
 
     @Override

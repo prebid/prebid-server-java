@@ -1743,6 +1743,27 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .isEqualTo(10000L);
     }
 
+    @Test
+    public void shouldUseProfilesResult() {
+        // given
+        givenBidRequest();
+
+        given(profilesProcessor.process(any(), any())).willAnswer(
+                invocation -> Future.succeededFuture(((BidRequest) invocation.getArgument(1)).toBuilder()
+                        .source(Source.builder().tid("uniqTid").build())
+                        .build()));
+
+        // when
+        final Future<AuctionContext> future = target.fromRequest(routingContext, 0L);
+
+        // then
+        assertThat(future).isSucceeded();
+        assertThat(future.result())
+                .extracting(AuctionContext::getBidRequest)
+                .extracting(BidRequest::getSource)
+                .isEqualTo(Source.builder().tid("uniqTid").build());
+    }
+
     private void givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> storedBidRequestBuilderCustomizer,
                                  Imp... imps) {
 

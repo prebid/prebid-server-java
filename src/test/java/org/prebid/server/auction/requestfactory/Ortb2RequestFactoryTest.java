@@ -547,29 +547,6 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldFetchAccountFromStoredAndReturnEmptyAccountIfStoredLookupIsFailed() {
-        // given
-        final BidRequest receivedBidRequest = givenBidRequest(identity());
-        given(storedRequestProcessor.processAuctionRequest(any(), any()))
-                .willReturn(Future.failedFuture(new RuntimeException("error")));
-
-        // when
-        final Future<Account> result = target.fetchAccount(
-                AuctionContext.builder()
-                        .httpRequest(httpRequest)
-                        .bidRequest(receivedBidRequest)
-                        .timeoutContext(TimeoutContext.of(0, null, 0))
-                        .build());
-
-        // then
-        verify(storedRequestProcessor).processAuctionRequest("", receivedBidRequest);
-        verifyNoInteractions(applicationSettings);
-
-        assertThat(result.failed()).isTrue();
-        assertThat(result.cause()).hasMessage("error");
-    }
-
-    @Test
     public void fetchAccountWithoutStoredRequestLookupShouldNeverCallStoredProcessor() {
         // when
         target.fetchAccountWithoutStoredRequestLookup(
@@ -581,6 +558,42 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         // then
         verifyNoInteractions(storedRequestProcessor);
+    }
+
+    @Test
+    public void shouldFetchAccountFromProfileIfStoredLookupIsTrueAndAccountIsNotFoundPreviously() {
+        // given
+        final BidRequest receivedBidRequest = givenBidRequest(identity());
+
+        final String accountId = "accountId";
+        final BidRequest mergedBidRequest = givenBidRequest(builder -> builder
+                .site(Site.builder()
+                        .publisher(Publisher.builder().id(accountId).build())
+                        .build()));
+
+        given(storedRequestProcessor.processAuctionRequest(any(), any()))
+                .willAnswer(invocation -> Future.succeededFuture(
+                        AuctionStoredResult.of(false, invocation.getArgument(1))));
+        given(profilesProcessor.process(any(), any()))
+                .willReturn(Future.succeededFuture(mergedBidRequest));
+
+        final Account fetchedAccount = Account.builder().id(accountId).status(AccountStatus.active).build();
+        given(applicationSettings.getAccountById(eq(accountId), any()))
+                .willReturn(Future.succeededFuture(fetchedAccount));
+
+        // when
+        final Future<Account> result = target.fetchAccount(
+                AuctionContext.builder()
+                        .httpRequest(httpRequest)
+                        .bidRequest(receivedBidRequest)
+                        .timeoutContext(TimeoutContext.of(0, null, 0))
+                        .build());
+
+        // then
+        verify(storedRequestProcessor).processAuctionRequest("", receivedBidRequest);
+        verify(applicationSettings).getAccountById(eq(accountId), any());
+
+        assertThat(result.result()).isEqualTo(fetchedAccount);
     }
 
     @Test

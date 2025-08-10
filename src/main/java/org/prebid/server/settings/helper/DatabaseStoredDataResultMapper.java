@@ -151,7 +151,7 @@ public class DatabaseStoredDataResultMapper {
         for (String id : searchIds) {
             try {
                 final StoredItem<String> resolvedStoredItem = StoredItemResolver
-                        .resolve(type.toString(), accountId, id, foundIdToStoredItems.get(id));
+                        .resolve("stored " + type.toString(), accountId, id, foundIdToStoredItems.get(id));
 
                 result.put(id, resolvedStoredItem.getData());
             } catch (PreBidException e) {
