@@ -6,10 +6,10 @@ import com.iab.openrtb.request.User;
 import org.prebid.server.hooks.modules.rule.engine.core.request.RequestRuleContext;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunctionArguments;
+import org.prebid.server.hooks.modules.rule.engine.core.util.ListUtil;
 import org.prebid.server.hooks.modules.rule.engine.core.util.ValidationUtils;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
 
@@ -23,7 +23,7 @@ public class UserFpdAvailableFunction implements SchemaFunction<BidRequest, Requ
                 .map(BidRequest::getUser);
 
         final boolean userDataAvailable = user.map(User::getData)
-                .filter(Predicate.not(List::isEmpty))
+                .filter(ListUtil::isNotEmpty)
                 .isPresent();
 
         final boolean userExtDataAvailable = user.map(User::getExt)

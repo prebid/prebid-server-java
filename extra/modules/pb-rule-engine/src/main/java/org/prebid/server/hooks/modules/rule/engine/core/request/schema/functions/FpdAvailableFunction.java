@@ -9,12 +9,12 @@ import com.iab.openrtb.request.User;
 import org.prebid.server.hooks.modules.rule.engine.core.request.RequestRuleContext;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunctionArguments;
+import org.prebid.server.hooks.modules.rule.engine.core.util.ListUtil;
 import org.prebid.server.hooks.modules.rule.engine.core.util.ValidationUtils;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
 
@@ -39,7 +39,7 @@ public class FpdAvailableFunction implements SchemaFunction<BidRequest, RequestR
     private static boolean isUserDataAvailable(BidRequest bidRequest) {
         return Optional.ofNullable(bidRequest.getUser())
                 .map(User::getData)
-                .filter(Predicate.not(List::isEmpty))
+                .filter(ListUtil::isNotEmpty)
                 .isPresent();
     }
 
@@ -55,7 +55,7 @@ public class FpdAvailableFunction implements SchemaFunction<BidRequest, RequestR
         return Optional.ofNullable(bidRequest.getSite())
                 .map(Site::getContent)
                 .map(Content::getData)
-                .filter(Predicate.not(List::isEmpty))
+                .filter(ListUtil::isNotEmpty)
                 .isPresent();
     }
 
@@ -71,7 +71,7 @@ public class FpdAvailableFunction implements SchemaFunction<BidRequest, RequestR
         return Optional.ofNullable(bidRequest.getApp())
                 .map(App::getContent)
                 .map(Content::getData)
-                .filter(Predicate.not(List::isEmpty))
+                .filter(ListUtil::isNotEmpty)
                 .isPresent();
     }
 

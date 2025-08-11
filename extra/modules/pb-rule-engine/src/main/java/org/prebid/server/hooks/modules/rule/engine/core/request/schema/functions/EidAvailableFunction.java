@@ -6,6 +6,7 @@ import com.iab.openrtb.request.User;
 import org.prebid.server.hooks.modules.rule.engine.core.request.RequestRuleContext;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunctionArguments;
+import org.prebid.server.hooks.modules.rule.engine.core.util.ListUtil;
 import org.prebid.server.hooks.modules.rule.engine.core.util.ValidationUtils;
 
 import java.util.List;
@@ -21,7 +22,7 @@ public class EidAvailableFunction implements SchemaFunction<BidRequest, RequestR
         final boolean available = Optional.of(arguments.getOperand())
                 .map(BidRequest::getUser)
                 .map(User::getEids)
-                .filter(Predicate.not(List::isEmpty))
+                .filter(ListUtil::isNotEmpty)
                 .isPresent();
 
         return Boolean.toString(available);
