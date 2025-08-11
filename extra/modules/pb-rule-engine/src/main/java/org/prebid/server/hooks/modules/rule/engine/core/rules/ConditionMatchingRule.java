@@ -28,14 +28,14 @@ public class ConditionMatchingRule<T, C> implements Rule<T, C> {
 
     public ConditionMatchingRule(Schema<T, C> schema,
                                  RuleTree<RuleConfig<T, C>> ruleTree,
-                                 String modelVersion,
-                                 String analyticsKey) {
+                                 String analyticsKey,
+                                 String modelVersion) {
 
         this.schema = Objects.requireNonNull(schema);
 
         this.ruleTree = Objects.requireNonNull(ruleTree);
-        this.modelVersion = StringUtils.defaultString(modelVersion);
         this.analyticsKey = StringUtils.defaultString(analyticsKey);
+        this.modelVersion = StringUtils.defaultString(modelVersion);
     }
 
     @Override
