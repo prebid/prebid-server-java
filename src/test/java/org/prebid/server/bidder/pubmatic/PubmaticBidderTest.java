@@ -544,6 +544,7 @@ public class PubmaticBidderTest extends VertxTest {
                                 ExtImpPubmatic.builder().build(),
                                 extData,
                                 null,
+                                null,
                                 null
                         )))
                         .build()))
@@ -576,6 +577,7 @@ public class PubmaticBidderTest extends VertxTest {
                         .ext(mapper.valueToTree(PubmaticBidderImpExt.of(
                                 ExtImpPubmatic.builder().build(),
                                 extData,
+                                null,
                                 null,
                                 null
                         )))
@@ -610,6 +612,7 @@ public class PubmaticBidderTest extends VertxTest {
                         .ext(mapper.valueToTree(PubmaticBidderImpExt.of(
                                 ExtImpPubmatic.builder().dctr("dctr").build(),
                                 extData,
+                                null,
                                 null,
                                 null
                         )))
@@ -648,6 +651,7 @@ public class PubmaticBidderTest extends VertxTest {
                                 ExtImpPubmatic.builder().dctr(null).build(),
                                 extData,
                                 null,
+                                null,
                                 null
                         )))
                         .build()))
@@ -675,7 +679,7 @@ public class PubmaticBidderTest extends VertxTest {
                         .id("123")
                         .banner(Banner.builder().build())
                         .ext(mapper.valueToTree(PubmaticBidderImpExt.of(
-                                ExtImpPubmatic.builder().build(), null, 1, null)))
+                                ExtImpPubmatic.builder().build(), null, 1, null, null)))
                         .build()))
                 .build();
 
@@ -700,7 +704,7 @@ public class PubmaticBidderTest extends VertxTest {
                         .id("123")
                         .banner(Banner.builder().build())
                         .ext(mapper.valueToTree(PubmaticBidderImpExt.of(
-                                ExtImpPubmatic.builder().build(), null, null, "gpId")))
+                                ExtImpPubmatic.builder().build(), null, null, "gpId", null)))
                         .build()))
                 .build();
 
@@ -709,6 +713,34 @@ public class PubmaticBidderTest extends VertxTest {
 
         // then
         final ObjectNode expectedImpExt = mapper.createObjectNode().put("gpid", "gpId");
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .containsExactly(expectedImpExt);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldAddImpExtAddSkadn() {
+        // given
+        final ObjectNode skadn = mapper.createObjectNode()
+                .put("field1", 1)
+                .put("field2", "value");
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .id("123")
+                        .banner(Banner.builder().build())
+                        .ext(mapper.valueToTree(PubmaticBidderImpExt.of(
+                                ExtImpPubmatic.builder().build(), null, null, null, skadn)))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        final ObjectNode expectedImpExt = mapper.createObjectNode().set("skadn", skadn);
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
