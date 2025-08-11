@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowIterator;
 import io.vertx.sqlclient.RowSet;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.ObjectMapperProvider;
 import org.prebid.server.log.Logger;
@@ -73,17 +74,17 @@ public class DatabaseProfilesResultMapper {
 
             final String fetchedAccountId = Objects.toString(row.getValue(0), null);
             final String id = Objects.toString(row.getValue(1), null);
-            final String profileBodyAsString = Objects.toString(row.getValue(2), null);
-            final String mergePrecedenceAsString = Objects.toString(row.getValue(3), null);
-            final String typeAsString = Objects.toString(row.getValue(4), null);
+            final String profileBodyAsString = Objects.toString(row.getValue(2), StringUtils.EMPTY);
+            final String mergePrecedenceAsString = Objects.toString(row.getValue(3), StringUtils.EMPTY);
+            final String typeAsString = Objects.toString(row.getValue(4), StringUtils.EMPTY);
 
             final JsonNode profileBody;
             final Profile.MergePrecedence mergePrecedence;
             final Profile.Type type;
             try {
                 profileBody = ObjectMapperProvider.mapper().readTree(profileBodyAsString);
-                mergePrecedence = Profile.MergePrecedence.valueOf(mergePrecedenceAsString);
-                type = Profile.Type.valueOf(typeAsString);
+                mergePrecedence = Profile.MergePrecedence.valueOf(mergePrecedenceAsString.toUpperCase());
+                type = Profile.Type.valueOf(typeAsString.toUpperCase());
             } catch (IllegalArgumentException | JsonProcessingException e) {
                 logger.error("Profile with id={} has invalid value: ''{}'' and will be ignored.",
                         e, id, typeAsString);
