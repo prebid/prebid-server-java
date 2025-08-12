@@ -64,14 +64,16 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
         given(properties.getTreatmentRate()).willReturn(0.9f);
         given(random.nextFloat()).willReturn(0.89f);
 
-        target = new LiveIntentOmniChannelIdentityProcessedAuctionRequestHook(properties, MAPPER, httpClient, random);
+        target = new LiveIntentOmniChannelIdentityProcessedAuctionRequestHook(
+                properties, MAPPER, httpClient, random, 0.01d);
     }
 
     @Test
     public void creationShouldFailOnInvalidIdentityUrl() {
         given(properties.getIdentityResolutionEndpoint()).willReturn("invalid_url");
         assertThatIllegalArgumentException().isThrownBy(() ->
-                new LiveIntentOmniChannelIdentityProcessedAuctionRequestHook(properties, MAPPER, httpClient, random));
+                new LiveIntentOmniChannelIdentityProcessedAuctionRequestHook(
+                        properties, MAPPER, httpClient, random, 0.01d));
     }
 
     @Test

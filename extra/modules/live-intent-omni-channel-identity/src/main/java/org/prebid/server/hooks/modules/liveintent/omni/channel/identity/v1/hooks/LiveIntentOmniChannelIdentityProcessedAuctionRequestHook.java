@@ -17,7 +17,7 @@ import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.ProcessedAuctionRequestHook;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.log.Logger;
+import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ListUtil;
@@ -31,25 +31,29 @@ import java.util.random.RandomGenerator;
 
 public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements ProcessedAuctionRequestHook {
 
-    private static final Logger logger = LoggerFactory.getLogger(
-            LiveIntentOmniChannelIdentityProcessedAuctionRequestHook.class);
+    private static final ConditionalLogger conditionalLogger = new ConditionalLogger(LoggerFactory.getLogger(
+            LiveIntentOmniChannelIdentityProcessedAuctionRequestHook.class));
+
     private static final String CODE = "liveintent-omni-channel-identity-enrichment-hook";
 
     private final LiveIntentOmniChannelProperties config;
     private final JacksonMapper mapper;
     private final HttpClient httpClient;
     private final RandomGenerator random;
+    private final double logSamplingRate;
 
     public LiveIntentOmniChannelIdentityProcessedAuctionRequestHook(LiveIntentOmniChannelProperties config,
                                                                     JacksonMapper mapper,
                                                                     HttpClient httpClient,
-                                                                    RandomGenerator random) {
+                                                                    RandomGenerator random,
+                                                                    double logSamplingRate) {
 
         this.config = Objects.requireNonNull(config);
         HttpUtil.validateUrlSyntax(config.getIdentityResolutionEndpoint());
         this.mapper = Objects.requireNonNull(mapper);
         this.httpClient = Objects.requireNonNull(httpClient);
         this.random = Objects.requireNonNull(random);
+        this.logSamplingRate = logSamplingRate;
     }
 
     @Override
@@ -60,8 +64,8 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
                 ? noAction()
                 : requestIdentities(auctionRequestPayload.bidRequest())
                 .<InvocationResult<AuctionRequestPayload>>map(this::update)
-                .onFailure(throwable -> logger.error("Failed enrichment:", throwable));
-
+                .onFailure(throwable -> conditionalLogger.error(
+                        "Failed enrichment: %s".formatted(throwable.getMessage()), logSamplingRate));
     }
 
     private Future<IdResResponse> requestIdentities(BidRequest bidRequest) {

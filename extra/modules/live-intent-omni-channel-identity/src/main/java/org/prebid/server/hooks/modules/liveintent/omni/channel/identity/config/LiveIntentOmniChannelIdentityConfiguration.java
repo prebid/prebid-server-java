@@ -6,6 +6,7 @@ import org.prebid.server.hooks.modules.liveintent.omni.channel.identity.v1.hooks
 import org.prebid.server.hooks.v1.Module;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.vertx.httpclient.HttpClient;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -30,11 +31,12 @@ public class LiveIntentOmniChannelIdentityConfiguration {
     @Bean
     Module liveIntentOmniChannelIdentityModule(LiveIntentOmniChannelProperties properties,
                                                JacksonMapper mapper,
-                                               HttpClient httpClient) {
+                                               HttpClient httpClient,
+                                               @Value("${logging.sampling-rate:0.01}") double logSamplingRate) {
 
         final LiveIntentOmniChannelIdentityProcessedAuctionRequestHook hook =
                 new LiveIntentOmniChannelIdentityProcessedAuctionRequestHook(
-                        properties, mapper, httpClient, () -> ThreadLocalRandom.current().nextLong());
+                        properties, mapper, httpClient, () -> ThreadLocalRandom.current().nextLong(), logSamplingRate);
 
         return new LiveIntentOmniChannelIdentityModule(Collections.singleton(hook));
     }
