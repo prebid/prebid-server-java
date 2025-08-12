@@ -85,11 +85,21 @@ public class ProfilesProcessor {
             return Future.succeededFuture(bidRequest);
         }
 
+        final boolean failOnUnknown = isFailOnUnknown(auctionContext.getAccount());
+
         return fetchProfiles(accountId, profilesIds, timeoutMillis(bidRequest))
-                .compose(profiles -> emitMetrics(accountId, profiles, auctionContext))
+                .compose(profiles -> emitMetrics(accountId, profiles, auctionContext, failOnUnknown))
                 .map(profiles -> mergeResults(
-                        applyRequestProfiles(profilesIds.request(), profiles.getStoredIdToRequest(), bidRequest),
-                        applyImpsProfiles(profilesIds.imps(), profiles.getStoredIdToImp(), bidRequest.getImp())))
+                        applyRequestProfiles(
+                                profilesIds.request(),
+                                profiles.getStoredIdToRequest(),
+                                bidRequest,
+                                failOnUnknown),
+                        applyImpsProfiles(
+                                profilesIds.imps(),
+                                profiles.getStoredIdToImp(),
+                                bidRequest.getImp(),
+                                failOnUnknown)))
                 .recover(e -> Future.failedFuture(
                         new InvalidRequestException("Error during processing profiles: " + e.getMessage())));
     }
@@ -161,6 +171,14 @@ public class ProfilesProcessor {
         return tmax != null && tmax > 0 ? tmax : defaultTimeoutMillis;
     }
 
+    private boolean isFailOnUnknown(Account account) {
+        return Optional.ofNullable(account)
+                .map(Account::getAuction)
+                .map(AccountAuctionConfig::getProfiles)
+                .map(AccountProfilesConfig::getFailOnUnknown)
+                .orElse(failOnUnknown);
+    }
+
     private Future<StoredDataResult<Profile>> fetchProfiles(String accountId,
                                                             AllProfilesIds allProfilesIds,
                                                             long timeoutMillis) {
@@ -176,7 +194,8 @@ public class ProfilesProcessor {
 
     private Future<StoredDataResult<Profile>> emitMetrics(String accountId,
                                                           StoredDataResult<Profile> fetchResult,
-                                                          AuctionContext auctionContext) {
+                                                          AuctionContext auctionContext,
+                                                          boolean failOnUnknown) {
 
         final List<String> errors = fetchResult.getErrors();
         if (!errors.isEmpty()) {
@@ -197,17 +216,19 @@ public class ProfilesProcessor {
 
     private BidRequest applyRequestProfiles(List<String> profilesIds,
                                             Map<String, Profile> idToRequestProfile,
-                                            BidRequest bidRequest) {
+                                            BidRequest bidRequest,
+                                            boolean failOnUnknown) {
 
         return !idToRequestProfile.isEmpty()
-                ? applyProfiles(profilesIds, idToRequestProfile, bidRequest, BidRequest.class)
+                ? applyProfiles(profilesIds, idToRequestProfile, bidRequest, BidRequest.class, failOnUnknown)
                 : bidRequest;
     }
 
     private <T> T applyProfiles(List<String> profilesIds,
                                 Map<String, Profile> idToProfile,
                                 T original,
-                                Class<T> tClass) {
+                                Class<T> tClass,
+                                boolean failOnUnknown) {
 
         if (profilesIds.isEmpty()) {
             return original;
@@ -244,12 +265,17 @@ public class ProfilesProcessor {
     }
 
     private ObjectNode merge(JsonNode takePrecedence, JsonNode other) {
+        if (!takePrecedence.isObject() || !other.isObject()) {
+            throw new InvalidRequestException("One of the merge arguments is not an object.");
+        }
+
         return (ObjectNode) jsonMerger.merge(takePrecedence, other);
     }
 
     private List<Imp> applyImpsProfiles(List<List<String>> profilesIds,
                                         Map<String, Profile> idToImpProfile,
-                                        List<Imp> imps) {
+                                        List<Imp> imps,
+                                        boolean failOnUnknown) {
 
         if (idToImpProfile.isEmpty()) {
             return imps;
@@ -257,7 +283,12 @@ public class ProfilesProcessor {
 
         final List<Imp> updatedImps = new ArrayList<>(imps);
         for (int i = 0; i < profilesIds.size(); i++) {
-            updatedImps.set(i, applyProfiles(profilesIds.get(i), idToImpProfile, imps.get(i), Imp.class));
+            updatedImps.set(i, applyProfiles(
+                    profilesIds.get(i),
+                    idToImpProfile,
+                    imps.get(i),
+                    Imp.class,
+                    failOnUnknown));
         }
 
         return Collections.unmodifiableList(updatedImps);
