@@ -480,7 +480,7 @@ public class YandexBidderTest extends VertxTest {
                         tuple("Content-Type", "application/json;charset=utf-8"),
                         tuple("Accept", "application/json"),
                         tuple("x-openrtb-version", "2.5"),
-                        tuple("Referer", "https://example.com/path?query=value"));
+                        tuple("Referer", "example.com"));
     }
 
     @Test
