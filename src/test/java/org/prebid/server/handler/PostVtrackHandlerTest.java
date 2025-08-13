@@ -27,6 +27,7 @@ import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountEventsConfig;
+import org.prebid.server.settings.model.AccountVtrackConfig;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
@@ -248,7 +249,7 @@ public class PostVtrackHandlerTest extends VertxTest {
                                 .events(AccountEventsConfig.of(true))
                                 .build())
                         .build()));
-        given(coreCacheService.cachePutObjects(any(), any(), any(), any(), any(), any()))
+        given(coreCacheService.cachePutObjects(any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.failedFuture("error"));
 
         // when
@@ -273,15 +274,15 @@ public class PostVtrackHandlerTest extends VertxTest {
 
         given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.failedFuture(new PreBidException("not found")));
-        given(coreCacheService.cachePutObjects(any(), any(), any(), any(), any(), any()))
+        given(coreCacheService.cachePutObjects(any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(BidCacheResponse.of(emptyList())));
 
         // when
         handler.handle(routingContext);
 
         // then
-        verify(coreCacheService).cachePutObjects(eq(bidPutObjects), any(), eq(singleton("bidder")), eq("accountId"),
-                eq("pbjs"), any());
+        verify(coreCacheService).cachePutObjects(
+                eq(bidPutObjects), any(), eq(singleton("bidder")), eq("accountId"), any(), eq("pbjs"), any());
     }
 
     @Test
@@ -299,15 +300,41 @@ public class PostVtrackHandlerTest extends VertxTest {
 
         given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.succeededFuture(Account.builder().build()));
-        given(coreCacheService.cachePutObjects(any(), any(), any(), any(), any(), any()))
+        given(coreCacheService.cachePutObjects(any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(BidCacheResponse.of(emptyList())));
 
         // when
         handler.handle(routingContext);
 
         // then
-        verify(coreCacheService).cachePutObjects(eq(bidPutObjects), isNull(), eq(singleton("bidder")), eq("accountId"),
-                eq("pbjs"), any());
+        verify(coreCacheService).cachePutObjects(
+                eq(bidPutObjects), isNull(), eq(singleton("bidder")), eq("accountId"), isNull(), eq("pbjs"), any());
+    }
+
+    @Test
+    public void shouldSendToCacheAccountTtlWhenAccountTtlIsPresent()
+            throws JsonProcessingException {
+        // given
+        final List<BidPutObject> bidPutObjects = singletonList(
+                BidPutObject.builder()
+                        .bidid("bidId")
+                        .bidder("bidder")
+                        .type("xml")
+                        .value(new TextNode("<vast")).build());
+        given(requestBody.buffer())
+                .willReturn(givenVtrackRequest(bidPutObjects));
+
+        given(applicationSettings.getAccountById(any(), any())).willReturn(Future.succeededFuture(
+                Account.builder().vtrack(AccountVtrackConfig.builder().ttl(100).build()).build()));
+        given(coreCacheService.cachePutObjects(any(), any(), any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(BidCacheResponse.of(emptyList())));
+
+        // when
+        handler.handle(routingContext);
+
+        // then
+        verify(coreCacheService).cachePutObjects(
+                eq(bidPutObjects), isNull(), eq(singleton("bidder")), eq("accountId"), eq(100), eq("pbjs"), any());
     }
 
     @Test
@@ -342,7 +369,7 @@ public class PostVtrackHandlerTest extends VertxTest {
                                 .events(AccountEventsConfig.of(true))
                                 .build())
                         .build()));
-        given(coreCacheService.cachePutObjects(any(), any(), any(), any(), any(), any()))
+        given(coreCacheService.cachePutObjects(any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(BidCacheResponse.of(
                         singletonList(CacheObject.of("uuid1")))));
 
@@ -351,7 +378,7 @@ public class PostVtrackHandlerTest extends VertxTest {
 
         // then
         verify(coreCacheService).cachePutObjects(
-                eq(bidPutObjects), any(), eq(singleton("updatable_bidder")), eq("accountId"), eq("pbjs"), any());
+                eq(bidPutObjects), any(), eq(singleton("updatable_bidder")), eq("accountId"), any(), eq("pbjs"), any());
 
         verify(httpResponse).end(eq("{\"responses\":[{\"uuid\":\"uuid1\"}]}"));
     }
@@ -385,7 +412,7 @@ public class PostVtrackHandlerTest extends VertxTest {
                                 .events(AccountEventsConfig.of(true))
                                 .build())
                         .build()));
-        given(coreCacheService.cachePutObjects(any(), any(), any(), any(), any(), any()))
+        given(coreCacheService.cachePutObjects(any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(BidCacheResponse.of(
                         asList(CacheObject.of("uuid1"), CacheObject.of("uuid2")))));
 
@@ -395,7 +422,7 @@ public class PostVtrackHandlerTest extends VertxTest {
         // then
         final HashSet<String> expectedBidders = new HashSet<>(asList("bidder", "updatable_bidder"));
         verify(coreCacheService).cachePutObjects(
-                eq(bidPutObjects), any(), eq(expectedBidders), eq("accountId"), eq("pbjs"), any());
+                eq(bidPutObjects), any(), eq(expectedBidders), eq("accountId"), isNull(), eq("pbjs"), any());
 
         verify(httpResponse).end(eq("{\"responses\":[{\"uuid\":\"uuid1\"},{\"uuid\":\"uuid2\"}]}"));
     }
@@ -428,7 +455,7 @@ public class PostVtrackHandlerTest extends VertxTest {
                                 .events(AccountEventsConfig.of(true))
                                 .build())
                         .build()));
-        given(coreCacheService.cachePutObjects(any(), any(), any(), any(), any(), any()))
+        given(coreCacheService.cachePutObjects(any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(BidCacheResponse.of(
                         asList(CacheObject.of("uuid1"), CacheObject.of("uuid2")))));
 
@@ -438,7 +465,7 @@ public class PostVtrackHandlerTest extends VertxTest {
         // then
         final HashSet<String> expectedBidders = new HashSet<>(asList("bidder", "updatable_bidder"));
         verify(coreCacheService).cachePutObjects(
-                eq(bidPutObjects), any(), eq(expectedBidders), eq("accountId"), eq("pbjs"), any());
+                eq(bidPutObjects), any(), eq(expectedBidders), eq("accountId"), isNull(), eq("pbjs"), any());
 
         verify(httpResponse).end(eq("{\"responses\":[{\"uuid\":\"uuid1\"},{\"uuid\":\"uuid2\"}]}"));
     }
@@ -471,7 +498,7 @@ public class PostVtrackHandlerTest extends VertxTest {
                 .willReturn(Future.succeededFuture(Account.builder().auction(AccountAuctionConfig.builder()
                                 .events(AccountEventsConfig.of(true)).build())
                         .build()));
-        given(coreCacheService.cachePutObjects(any(), any(), any(), any(), any(), any()))
+        given(coreCacheService.cachePutObjects(any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(BidCacheResponse.of(
                         asList(CacheObject.of("uuid1"), CacheObject.of("uuid2")))));
 
@@ -479,7 +506,7 @@ public class PostVtrackHandlerTest extends VertxTest {
         handler.handle(routingContext);
 
         // then
-        verify(coreCacheService).cachePutObjects(any(), any(), eq(emptySet()), any(), any(), any());
+        verify(coreCacheService).cachePutObjects(any(), any(), eq(emptySet()), any(), any(), any(), any());
     }
 
     @Test
@@ -510,7 +537,7 @@ public class PostVtrackHandlerTest extends VertxTest {
                 .willReturn(Future.succeededFuture(Account.builder().auction(AccountAuctionConfig.builder()
                                 .events(AccountEventsConfig.of(true)).build())
                         .build()));
-        given(coreCacheService.cachePutObjects(any(), any(), any(), any(), any(), any()))
+        given(coreCacheService.cachePutObjects(any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(BidCacheResponse.of(
                         asList(CacheObject.of("uuid1"), CacheObject.of("uuid2")))));
 
@@ -518,7 +545,7 @@ public class PostVtrackHandlerTest extends VertxTest {
         handler.handle(routingContext);
 
         // then
-        verify(coreCacheService).cachePutObjects(any(), any(), eq(emptySet()), any(), any(), any());
+        verify(coreCacheService).cachePutObjects(any(), any(), eq(emptySet()), any(), any(), any(), any());
     }
 
     @SafeVarargs
