@@ -1,6 +1,6 @@
 adapters:
   sspbc:
-    endpoint: https://ssp.wp.pl/v1/bidder/prebidserver
+    endpoint: https://ssp.wp.pl/v2/bidder/prebidserver
     meta-info:
       maintainer-email: prebid-dev@grupawp.pl
       app-media-types:
