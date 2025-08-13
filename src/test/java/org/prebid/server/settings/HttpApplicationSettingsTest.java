@@ -2,6 +2,8 @@ package org.prebid.server.settings;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.vertx.core.Future;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.utils.URIBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,12 +24,14 @@ import org.prebid.server.settings.proto.response.HttpFetcherResponse;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
+import java.net.URISyntaxException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeoutException;
 
 import static java.util.Arrays.asList;
@@ -49,10 +53,10 @@ import static org.mockito.Mockito.verifyNoInteractions;
 @ExtendWith(MockitoExtension.class)
 public class HttpApplicationSettingsTest extends VertxTest {
 
-    private static final String ENDPOINT = "http://stored-requests";
-    private static final String AMP_ENDPOINT = "http://amp-stored-requests";
-    private static final String VIDEO_ENDPOINT = "http://video-stored-requests";
-    private static final String CATEGORY_ENDPOINT = "http://category-requests";
+    private static final String ENDPOINT = "http://stored-requests.com/something?id=1";
+    private static final String AMP_ENDPOINT = "http://amp-stored-requests.com/something?id=2";
+    private static final String VIDEO_ENDPOINT = "http://video-stored-requests.com/something?id=3";
+    private static final String CATEGORY_ENDPOINT = "http://category-requests.com/something";
 
     @Mock(strictness = LENIENT)
     private HttpClient httpClient;
@@ -65,7 +69,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
     @BeforeEach
     public void setUp() {
         httpApplicationSettings = new HttpApplicationSettings(httpClient, jacksonMapper, ENDPOINT, AMP_ENDPOINT,
-                VIDEO_ENDPOINT, CATEGORY_ENDPOINT);
+                VIDEO_ENDPOINT, CATEGORY_ENDPOINT, false);
 
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
@@ -77,7 +81,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
     public void creationShouldFailsOnInvalidEndpoint() {
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> new HttpApplicationSettings(httpClient, jacksonMapper, "invalid_url", AMP_ENDPOINT,
-                        VIDEO_ENDPOINT, CATEGORY_ENDPOINT))
+                        VIDEO_ENDPOINT, CATEGORY_ENDPOINT, false))
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 
@@ -85,7 +89,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
     public void creationShouldFailsOnInvalidAmpEndpoint() {
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> new HttpApplicationSettings(httpClient, jacksonMapper, ENDPOINT, "invalid_url",
-                        VIDEO_ENDPOINT, CATEGORY_ENDPOINT))
+                        VIDEO_ENDPOINT, CATEGORY_ENDPOINT, false))
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 
@@ -93,7 +97,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
     public void creationShouldFailsOnInvalidVideoEndpoint() {
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> new HttpApplicationSettings(httpClient, jacksonMapper, ENDPOINT, AMP_ENDPOINT,
-                        "invalid_url", CATEGORY_ENDPOINT))
+                        "invalid_url", CATEGORY_ENDPOINT, false))
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 
@@ -118,7 +122,40 @@ public class HttpApplicationSettingsTest extends VertxTest {
         assertThat(future.result().getId()).isEqualTo("someId");
         assertThat(future.result().getAuction().getPriceGranularity()).isEqualTo("testPriceGranularity");
 
-        verify(httpClient).get(eq("http://stored-requests?account-ids=[\"someId\"]"), any(),
+        verify(httpClient).get(
+                eq("http://stored-requests.com/something?id=1&account-ids=%5B%22someId%22%5D"),
+                any(),
+                anyLong());
+    }
+
+    @Test
+    public void getAccountByIdShouldReturnFetchedAccountWithRfc3986CompatibleParams() throws JsonProcessingException {
+        // given
+        givenHttpClientReturnsResponse(200, null);
+        httpApplicationSettings = new HttpApplicationSettings(httpClient, jacksonMapper,
+                ENDPOINT, AMP_ENDPOINT, VIDEO_ENDPOINT, CATEGORY_ENDPOINT, true);
+
+        final Account account = Account.builder()
+                .id("someId")
+                .auction(AccountAuctionConfig.builder()
+                        .priceGranularity("testPriceGranularity")
+                        .build())
+                .privacy(AccountPrivacyConfig.builder().build())
+                .build();
+        final HttpAccountsResponse response = HttpAccountsResponse.of(Collections.singletonMap("someId", account));
+        givenHttpClientReturnsResponse(200, mapper.writeValueAsString(response));
+
+        // when
+        final Future<Account> future = httpApplicationSettings.getAccountById("someId", timeout);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+        assertThat(future.result().getId()).isEqualTo("someId");
+        assertThat(future.result().getAuction().getPriceGranularity()).isEqualTo("testPriceGranularity");
+
+        verify(httpClient).get(
+                eq("http://stored-requests.com/something?id=1&account-id=someId"),
+                any(),
                 anyLong());
     }
 
@@ -234,8 +271,11 @@ public class HttpApplicationSettingsTest extends VertxTest {
                 new HashSet<>(asList("id3", "id4")), timeout);
 
         // then
-        verify(httpClient).get(eq("http://stored-requests?request-ids=[\"id2\",\"id1\"]&imp-ids=[\"id4\",\"id3\"]"),
-                any(), anyLong());
+        verify(httpClient).get(
+                eq("http://stored-requests.com/something"
+                        + "?id=1&request-ids=%5B%22id2%22%2C%22id1%22%5D&imp-ids=%5B%22id4%22%2C%22id3%22%5D"),
+                any(),
+                anyLong());
     }
 
     @Test
@@ -243,14 +283,43 @@ public class HttpApplicationSettingsTest extends VertxTest {
         // given
         givenHttpClientReturnsResponse(200, null);
         httpApplicationSettings = new HttpApplicationSettings(httpClient, jacksonMapper,
-                "http://some-domain?param1=value1", AMP_ENDPOINT, VIDEO_ENDPOINT, CATEGORY_ENDPOINT);
+                "http://some-domain.com?param1=value1", AMP_ENDPOINT, VIDEO_ENDPOINT, CATEGORY_ENDPOINT, false);
 
         // when
         httpApplicationSettings.getStoredData(null, singleton("id1"), singleton("id2"), timeout);
 
         // then
-        verify(httpClient).get(eq("http://some-domain?param1=value1&request-ids=[\"id1\"]&imp-ids=[\"id2\"]"), any(),
+        verify(httpClient).get(
+                eq("http://some-domain.com?param1=value1&request-ids=%5B%22id1%22%5D&imp-ids=%5B%22id2%22%5D"),
+                any(),
                 anyLong());
+    }
+
+    @Test
+    public void getStoredDataShouldSendHttpRequestWithRfc3986CompatibleParams() throws URISyntaxException {
+        // given
+        givenHttpClientReturnsResponse(200, null);
+        httpApplicationSettings = new HttpApplicationSettings(httpClient, jacksonMapper,
+                ENDPOINT, AMP_ENDPOINT, VIDEO_ENDPOINT, CATEGORY_ENDPOINT, true);
+
+        // when
+        httpApplicationSettings.getStoredData(null, Set.of("id1", "id2"), Set.of("id1", "id2"), timeout);
+
+        // then
+        final ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+        verify(httpClient).get(captor.capture(), any(), anyLong());
+
+        final URIBuilder uriBuilder = new URIBuilder(captor.getValue());
+        assertThat(uriBuilder.getHost()).isEqualTo("stored-requests.com");
+        assertThat(uriBuilder.getPath()).isEqualTo("/something");
+        assertThat(uriBuilder.getQueryParams())
+                .extracting(NameValuePair::getName, NameValuePair::getValue)
+                .containsExactlyInAnyOrder(
+                        tuple("id", "1"),
+                        tuple("request-id", "id1"),
+                        tuple("request-id", "id2"),
+                        tuple("imp-id", "id1"),
+                        tuple("imp-id", "id2"));
     }
 
     @Test
@@ -416,7 +485,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
         // then
         final ArgumentCaptor<String> urlArgumentCaptor = ArgumentCaptor.forClass(String.class);
         verify(httpClient).get(urlArgumentCaptor.capture(), anyLong());
-        assertThat(urlArgumentCaptor.getValue()).isEqualTo("http://category-requests/primaryAdServer/publisher.json");
+        assertThat(urlArgumentCaptor.getValue()).isEqualTo("http://category-requests.com/something/primaryAdServer/publisher.json");
     }
 
     @Test
@@ -431,7 +500,8 @@ public class HttpApplicationSettingsTest extends VertxTest {
         // then
         final ArgumentCaptor<String> urlArgumentCaptor = ArgumentCaptor.forClass(String.class);
         verify(httpClient).get(urlArgumentCaptor.capture(), anyLong());
-        assertThat(urlArgumentCaptor.getValue()).isEqualTo("http://category-requests/primaryAdServer.json");
+        assertThat(urlArgumentCaptor.getValue())
+                .isEqualTo("http://category-requests.com/something/primaryAdServer.json");
     }
 
     @Test
@@ -447,7 +517,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
         // then
         assertThat(result.failed()).isTrue();
         assertThat(result.cause()).isInstanceOf(TimeoutException.class)
-                .hasMessage("Failed to fetch categories from url 'http://category-requests/primaryAdServer.json'."
+                .hasMessage("Failed to fetch categories from url 'http://category-requests.com/something/primaryAdServer.json'."
                         + " Reason: Timeout exceeded");
     }
 
@@ -464,7 +534,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
         // then
         assertThat(result.failed()).isTrue();
         assertThat(result.cause()).isInstanceOf(PreBidException.class)
-                .hasMessage("Failed to fetch categories from url 'http://category-requests/primaryAdServer.json'."
+                .hasMessage("Failed to fetch categories from url 'http://category-requests.com/something/primaryAdServer.json'."
                         + " Reason: Response status code is '400'");
     }
 
@@ -481,7 +551,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
         // then
         assertThat(result.failed()).isTrue();
         assertThat(result.cause()).isInstanceOf(PreBidException.class)
-                .hasMessage("Failed to fetch categories from url 'http://category-requests/primaryAdServer.json'."
+                .hasMessage("Failed to fetch categories from url 'http://category-requests.com/something/primaryAdServer.json'."
                         + " Reason: Response body is null or empty");
     }
 
@@ -499,7 +569,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
         assertThat(result.failed()).isTrue();
         assertThat(result.cause()).isInstanceOf(PreBidException.class)
                 .hasMessageStartingWith("Failed to fetch categories from url "
-                        + "'http://category-requests/primaryAdServer.json'. Reason: Failed to decode response body");
+                        + "'http://category-requests.com/something/primaryAdServer.json'. Reason: Failed to decode response body");
     }
 
     @Test

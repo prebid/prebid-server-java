@@ -8,6 +8,7 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.validator.routines.UrlValidator;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
@@ -75,8 +76,16 @@ public final class HttpUtil {
     public static final CharSequence SEC_CH_UA = HttpHeaders.createOptimized("Sec-CH-UA");
     public static final CharSequence SEC_CH_UA_MOBILE = HttpHeaders.createOptimized("Sec-CH-UA-Mobile");
     public static final CharSequence SEC_CH_UA_PLATFORM = HttpHeaders.createOptimized("Sec-CH-UA-Platform");
+    public static final CharSequence SEC_CH_UA_PLATFORM_VERSION =
+            HttpHeaders.createOptimized("Sec-CH-UA-Platform-Version");
+    public static final CharSequence SEC_CH_UA_ARCH = HttpHeaders.createOptimized("Sec-CH-UA-Arch");
+    public static final CharSequence SEC_CH_UA_MODEL = HttpHeaders.createOptimized("Sec-CH-UA-Model");
+    public static final CharSequence SEC_CH_UA_FULL_VERSION_LIST =
+            HttpHeaders.createOptimized("Sec-CH-UA-Full-Version-List");
     public static final String MACROS_OPEN = "{{";
     public static final String MACROS_CLOSE = "}}";
+
+    private static final UrlValidator URL_VALIDAROR = UrlValidator.getInstance();
 
     private HttpUtil() {
     }
@@ -84,6 +93,7 @@ public final class HttpUtil {
     /**
      * Checks the input string for using as URL.
      */
+    @Deprecated
     public static String validateUrl(String url) {
         if (containsMacrosses(url)) {
             return url;
@@ -94,6 +104,14 @@ public final class HttpUtil {
         } catch (MalformedURLException e) {
             throw new IllegalArgumentException("URL supplied is not valid: " + url, e);
         }
+    }
+
+    public static String validateUrlSyntax(String url) {
+        if (containsMacrosses(url) || URL_VALIDAROR.isValid(url)) {
+            return url;
+        }
+
+        throw new IllegalArgumentException("URL supplied is not valid: " + url);
     }
 
     // TODO: We need our own way to work with url macrosses
