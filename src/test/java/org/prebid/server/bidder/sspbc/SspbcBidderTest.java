@@ -111,7 +111,7 @@ public class SspbcBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors())
-                .containsExactly(BidderError.badServerResponse("Bid format is not supported"));
+                .containsExactly(BidderError.badServerResponse("Bid mtype is required"));
     }
 
     @Test

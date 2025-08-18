@@ -3,9 +3,9 @@ package org.prebid.server.bidder.sspbc;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
+import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -21,10 +21,10 @@ import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.net.URISyntaxException;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.UnaryOperator;
 
 public class SspbcBidder implements Bidder<SspbcRequest> {
 
@@ -40,44 +40,30 @@ public class SspbcBidder implements Bidder<SspbcRequest> {
 
     @Override
     public Result<List<HttpRequest<SspbcRequest>>> makeHttpRequests(BidRequest request) {
-        try {
-            final SspbcRequest outgoingRequest = SspbcRequest.of(request);
-            final String uri = updateUrl(getUri(endpointUrl));
-            final HttpRequest<SspbcRequest> httpRequest = createHttpRequest(outgoingRequest, uri, mapper);
-            return Result.withValue(httpRequest);
-        } catch (PreBidException e) {
-            return Result.withError(BidderError.badInput(e.getMessage()));
-        }
+        return Result.withValue(createHttpRequest(request));
     }
 
-    public HttpRequest<SspbcRequest> createHttpRequest(SspbcRequest sspbcRequest,
-                                                       String endpointUrl,
-                                                       JacksonMapper mapper) {
+    private HttpRequest<SspbcRequest> createHttpRequest(BidRequest request) {
+        final SspbcRequest outgoingRequest = SspbcRequest.of(request);
         return HttpRequest.<SspbcRequest>builder()
                 .method(HttpMethod.POST)
-                .uri(endpointUrl)
+                .uri(makeUrl(endpointUrl))
                 .headers(HttpUtil.headers())
-                .impIds(BidderUtil.impIds(sspbcRequest.getBidRequest()))
-                .body(mapper.encodeToBytes(sspbcRequest))
-                .payload(sspbcRequest)
+                .impIds(BidderUtil.impIds(outgoingRequest.getBidRequest()))
+                .body(mapper.encodeToBytes(outgoingRequest))
+                .payload(outgoingRequest)
                 .build();
-
     }
 
-    private static URIBuilder getUri(String endpointUrl) {
-        final URIBuilder uri;
+    private static String makeUrl(String endpointUrl) {
         try {
-            uri = new URIBuilder(endpointUrl);
+            return new URIBuilder(endpointUrl)
+                    .addParameter("bdver", ADAPTER_VERSION)
+                    .build()
+                    .toString();
         } catch (URISyntaxException e) {
             throw new PreBidException("Malformed URL: %s.".formatted(endpointUrl));
         }
-        return uri;
-    }
-
-    private String updateUrl(URIBuilder uriBuilder) {
-        return uriBuilder
-                .addParameter("bdver", ADAPTER_VERSION)
-                .toString();
     }
 
     @Override
@@ -97,32 +83,22 @@ public class SspbcBidder implements Bidder<SspbcRequest> {
 
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
-                .map(seatBid -> CollectionUtils.emptyIfNull(seatBid.getBid())
-                        .stream()
-                        .filter(Objects::nonNull)
-                        .map(bid -> toBidderBid(bid, bidResponse.getCur())
-                    ))
-                .flatMap(UnaryOperator.identity())
+                .map(SeatBid::getBid)
+                .filter(Objects::nonNull)
+                .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
+                .map(bid -> BidderBid.of(bid, getBidType(bid), bidResponse.getCur()))
                 .toList();
     }
 
-    private BidderBid toBidderBid(Bid bid, String currency) {
-        if (StringUtils.isEmpty(bid.getAdm())) {
-            throw new PreBidException("Bid format is not supported");
-        }
-
-        return BidderBid.of(bid, getBidType(bid), currency);
-    }
-
-    private BidType getBidType(Bid bid) {
+    private static BidType getBidType(Bid bid) {
         return switch (bid.getMtype()) {
-            case null -> throw new PreBidException("Bid mtype is required");
             case 1 -> BidType.banner;
             case 2 -> BidType.video;
             case 3 -> BidType.audio;
             case 4 -> BidType.xNative;
+            case null -> throw new PreBidException("Bid mtype is required");
             default -> throw new PreBidException("unsupported MType: %s.".formatted(bid.getMtype()));
         };
     }
-
 }
