@@ -81,19 +81,6 @@ public class YandexBidder implements Bidder<BidRequest> {
         return Result.of(bidRequests, errors);
     }
 
-    private static String getDomain(BidRequest request) {
-        return Optional.ofNullable(request.getSite())
-                .map(Site::getPage)
-                .map(pageUrl -> {
-                    try {
-                        return new URIBuilder(pageUrl).getHost();
-                    } catch (URISyntaxException e) {
-                        return null;
-                    }
-                })
-                .orElse(null);
-    }
-
     private static String getReferer(BidRequest request) {
         return Optional.ofNullable(request.getSite())
                 .map(Site::getPage)
@@ -130,7 +117,7 @@ public class YandexBidder implements Bidder<BidRequest> {
             throw new PreBidException("Imp #%s must contain at least one valid format (banner, video, or native)"
                     .formatted(imp.getId()));
         }
-
+        
         return imp.toBuilder()
                 .displaymanager(DISPLAY_MANAGER)
                 .displaymanagerver(DISPLAY_MANAGER_VERSION)
@@ -144,7 +131,7 @@ public class YandexBidder implements Bidder<BidRequest> {
         if (banner == null) {
             return null;
         }
-
+        
         final Integer weight = banner.getW();
         final Integer height = banner.getH();
         final List<Format> format = banner.getFormat();
@@ -162,7 +149,7 @@ public class YandexBidder implements Bidder<BidRequest> {
         if (video == null) {
             return null;
         }
-
+        
         final Integer width = video.getW();
         final Integer height = video.getH();
         if (width == null || height == null || width == 0 || height == 0) {
@@ -221,7 +208,7 @@ public class YandexBidder implements Bidder<BidRequest> {
         final MultiMap headers = HttpUtil.headers();
 
         headers.add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
-        HttpUtil.addHeaderIfValueIsNotEmpty(headers, "Referer", getDomain(bidRequest));
+        HttpUtil.addHeaderIfValueIsNotEmpty(headers, "Referer", getReferer(bidRequest));
 
         final Device device = bidRequest.getDevice();
         if (device != null) {
