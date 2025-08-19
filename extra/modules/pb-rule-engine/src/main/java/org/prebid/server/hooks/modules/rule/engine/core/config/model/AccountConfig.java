@@ -6,6 +6,7 @@ import lombok.Value;
 import lombok.extern.jackson.Jacksonized;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 
 @Builder
@@ -19,6 +20,7 @@ public class AccountConfig {
     @Builder.Default
     Instant timestamp = Instant.EPOCH;
 
+    @Builder.Default
     @JsonProperty("ruleSets")
-    List<RuleSetConfig> ruleSets;
+    List<RuleSetConfig> ruleSets = new ArrayList<>();
 }

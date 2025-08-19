@@ -1,10 +1,12 @@
 package org.prebid.server.hooks.modules.rule.engine.core.config.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Builder;
 import lombok.Value;
 
 import java.util.List;
 
+@Builder
 @Value(staticConstructor = "of")
 public class ModelGroupConfig {
 

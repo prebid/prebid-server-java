@@ -67,7 +67,7 @@ public class StageConfigParser<T, C> {
                 .map(config -> WeightedEntry.of(config.getWeight(), parseModelGroupConfig(config)))
                 .toList();
 
-        return new RandomWeightedRule<>(randomGenerator, new WeightedList<>(weightedRules));
+        return RandomWeightedRule.of(randomGenerator, new WeightedList<>(weightedRules));
     }
 
     private Rule<T, C> parseModelGroupConfig(ModelGroupConfig config) {

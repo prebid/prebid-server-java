@@ -1,5 +1,6 @@
 package org.prebid.server.hooks.modules.rule.engine.core.rules;
 
+import lombok.EqualsAndHashCode;
 import org.apache.commons.collections4.ListUtils;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.result.InfrastructureArguments;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.result.ResultFunctionArguments;
@@ -9,6 +10,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
+@EqualsAndHashCode
 public class DefaultActionRule<T, C> implements Rule<T, C> {
 
     private static final String RULE_NAME = "default";

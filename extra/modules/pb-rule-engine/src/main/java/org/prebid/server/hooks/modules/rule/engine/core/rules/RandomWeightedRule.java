@@ -1,19 +1,15 @@
 package org.prebid.server.hooks.modules.rule.engine.core.rules;
 
+import lombok.Value;
 import org.prebid.server.hooks.modules.rule.engine.core.util.WeightedList;
 
-import java.util.Objects;
 import java.util.random.RandomGenerator;
 
+@Value(staticConstructor = "of")
 public class RandomWeightedRule<T, C> implements Rule<T, C> {
 
-    private final RandomGenerator random;
-    private final WeightedList<Rule<T, C>> weightedList;
-
-    public RandomWeightedRule(RandomGenerator random, WeightedList<Rule<T, C>> weightedList) {
-        this.random = Objects.requireNonNull(random);
-        this.weightedList = Objects.requireNonNull(weightedList);
-    }
+    RandomGenerator random;
+    WeightedList<Rule<T, C>> weightedList;
 
     @Override
     public RuleResult<T> process(T value, C context) {

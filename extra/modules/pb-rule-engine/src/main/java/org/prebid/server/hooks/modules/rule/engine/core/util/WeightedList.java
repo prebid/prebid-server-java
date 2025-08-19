@@ -1,10 +1,12 @@
 package org.prebid.server.hooks.modules.rule.engine.core.util;
 
+import lombok.EqualsAndHashCode;
 import org.springframework.util.CollectionUtils;
 
 import java.util.ArrayList;
 import java.util.List;
 
+@EqualsAndHashCode
 public class WeightedList<T> {
 
     private final List<WeightedEntry<T>> entries;

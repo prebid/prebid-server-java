@@ -23,7 +23,7 @@ public class WeightedRuleTest {
         final RandomGenerator randomGenerator = mock(RandomGenerator.class);
         given(randomGenerator.nextDouble()).willReturn(0.5);
 
-        final RandomWeightedRule<Object, Object> rule = new RandomWeightedRule<>(randomGenerator, ruleList);
+        final RandomWeightedRule<Object, Object> rule = RandomWeightedRule.of(randomGenerator, ruleList);
 
         // when
         final RuleResult<Object> result = rule.process(new Object(), new Object());
