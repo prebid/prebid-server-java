@@ -50,18 +50,18 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mock.Strictness.LENIENT;
 
 @ExtendWith(MockitoExtension.class)
-class ExcludeBiddersFunctionTest {
+class IncludeBiddersFunctionTest {
 
     private static final ObjectMapper mapper = new ObjectMapper();
 
-    private ExcludeBiddersFunction target;
+    private IncludeBiddersFunction target;
 
     @Mock(strictness = LENIENT)
     private BidderCatalog bidderCatalog;
 
     @BeforeEach
     void setUp() {
-        target = new ExcludeBiddersFunction(mapper, bidderCatalog);
+        target = new IncludeBiddersFunction(mapper, bidderCatalog);
     }
 
     @Test
@@ -94,8 +94,8 @@ class ExcludeBiddersFunctionTest {
     }
 
     @Test
-    void applyShouldExcludeBiddersSpecifiedInConfigAndEmitSeatNonBidsWithATags() {
-        // given 
+    void applyShouldExcludeBiddersNotSpecifiedInConfigAndEmitSeatNonBidsWithATags() {
+        // given
         final BidRequest bidRequest = givenBidRequest(givenImp("impId", "bidder1", "bidder2"));
 
         final RequestRuleContext context = RequestRuleContext.of(
@@ -122,8 +122,8 @@ class ExcludeBiddersFunctionTest {
         expectedResultValue.set("analyticsValue", TextNode.valueOf("analyticsValue"));
         expectedResultValue.set("modelVersion", TextNode.valueOf("modelVersion"));
         expectedResultValue.set("conditionFired", TextNode.valueOf("ruleFired"));
-        expectedResultValue.set("resultFunction", TextNode.valueOf("excludeBidders"));
-        expectedResultValue.set("biddersRemoved", mapper.createArrayNode().add("bidder1"));
+        expectedResultValue.set("resultFunction", TextNode.valueOf("includeBidders"));
+        expectedResultValue.set("biddersRemoved", mapper.createArrayNode().add("bidder2"));
         expectedResultValue.set("seatNonBid", IntNode.valueOf(BidRejectionReason.REQUEST_BLOCKED_GENERAL.getValue()));
 
         final AppliedTo expectedAppliedTo = AppliedToImpl.builder().impIds(Collections.singletonList("impId")).build();
@@ -133,19 +133,19 @@ class ExcludeBiddersFunctionTest {
                 Collections.singletonList(ResultImpl.of("success", expectedResultValue, expectedAppliedTo)));
 
         final SeatNonBid expectedSeatNonBid = SeatNonBid.of(
-                "bidder1",
+                "bidder2",
                 Collections.singletonList(NonBid.of("impId", BidRejectionReason.REQUEST_BLOCKED_GENERAL)));
 
         assertThat(result).isEqualTo(
                 RuleResult.of(
-                        givenBidRequest(givenImp("impId", "bidder2")),
+                        givenBidRequest(givenImp("impId", "bidder1")),
                         RuleAction.UPDATE,
                         givenATags(expectedActivity),
                         Collections.singletonList(expectedSeatNonBid)));
     }
 
     @Test
-    void applyShouldExcludeBiddersSpecifiedInConfigOnlyForSpecifiedImpWhenGranularityIsImp() {
+    void applyShouldExcludeBiddersNotSpecifiedInConfigOnlyForSpecifiedImpWhenGranularityIsImp() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 givenImp("impId", "bidder1", "bidder2"),
@@ -175,8 +175,8 @@ class ExcludeBiddersFunctionTest {
         expectedResultValue.set("analyticsValue", TextNode.valueOf("analyticsValue"));
         expectedResultValue.set("modelVersion", TextNode.valueOf("modelVersion"));
         expectedResultValue.set("conditionFired", TextNode.valueOf("ruleFired"));
-        expectedResultValue.set("resultFunction", TextNode.valueOf("excludeBidders"));
-        expectedResultValue.set("biddersRemoved", mapper.createArrayNode().add("bidder3"));
+        expectedResultValue.set("resultFunction", TextNode.valueOf("includeBidders"));
+        expectedResultValue.set("biddersRemoved", mapper.createArrayNode().add("bidder4"));
         expectedResultValue.set("seatNonBid", IntNode.valueOf(BidRejectionReason.REQUEST_BLOCKED_GENERAL.getValue()));
 
         final AppliedTo expectedAppliedTo = AppliedToImpl.builder()
@@ -189,12 +189,12 @@ class ExcludeBiddersFunctionTest {
                 Collections.singletonList(ResultImpl.of("success", expectedResultValue, expectedAppliedTo)));
 
         final SeatNonBid expectedSeatNonBid = SeatNonBid.of(
-                "bidder3",
+                "bidder4",
                 Collections.singletonList(NonBid.of("impId2", BidRejectionReason.REQUEST_BLOCKED_GENERAL)));
 
         final BidRequest expectedBidRequest = givenBidRequest(
                 givenImp("impId", "bidder1", "bidder2"),
-                givenImp("impId2", "bidder4"));
+                givenImp("impId2", "bidder3"));
 
         assertThat(result).isEqualTo(
                 RuleResult.of(
@@ -204,14 +204,15 @@ class ExcludeBiddersFunctionTest {
                         Collections.singletonList(expectedSeatNonBid)));
     }
 
+
     @Test
-    void applyShouldExcludeBiddersWithoutLiveUidSpecifiedInConfigWhenIfSyncedIdSetToFalse() {
+    void applyShouldExcludeBiddersWithLiveUidOrNotSpecifiedInConfigWhenIfSyncedIdSetToFalse() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 givenImp("impId", "bidder1", "bidder2"));
 
         final RequestRuleContext context = RequestRuleContext.of(
-                givenAuctionContext("bidder1"), Granularity.Request.instance(), null);
+                givenAuctionContext(), Granularity.Request.instance(), null);
 
         final InfrastructureArguments<RequestRuleContext> infrastructureArguments =
                 givenInfrastructureArguments(context);
@@ -235,8 +236,8 @@ class ExcludeBiddersFunctionTest {
         expectedResultValue.set("analyticsValue", TextNode.valueOf("analyticsValue"));
         expectedResultValue.set("modelVersion", TextNode.valueOf("modelVersion"));
         expectedResultValue.set("conditionFired", TextNode.valueOf("ruleFired"));
-        expectedResultValue.set("resultFunction", TextNode.valueOf("excludeBidders"));
-        expectedResultValue.set("biddersRemoved", mapper.createArrayNode().add("bidder2"));
+        expectedResultValue.set("resultFunction", TextNode.valueOf("includeBidders"));
+        expectedResultValue.set("biddersRemoved", mapper.createArrayNode().add("bidder1"));
         expectedResultValue.set("seatNonBid", IntNode.valueOf(BidRejectionReason.REQUEST_BLOCKED_GENERAL.getValue()));
 
         final AppliedTo expectedAppliedTo = AppliedToImpl.builder()
@@ -249,31 +250,31 @@ class ExcludeBiddersFunctionTest {
                 Collections.singletonList(ResultImpl.of("success", expectedResultValue, expectedAppliedTo)));
 
         final SeatNonBid expectedSeatNonBid = SeatNonBid.of(
-                "bidder2",
+                "bidder1",
                 Collections.singletonList(NonBid.of("impId", BidRejectionReason.REQUEST_BLOCKED_GENERAL)));
 
         assertThat(result).isEqualTo(
                 RuleResult.of(
-                        givenBidRequest(givenImp("impId", "bidder1")),
+                        givenBidRequest(givenImp("impId", "bidder2")),
                         RuleAction.UPDATE,
                         givenATags(expectedActivity),
                         Collections.singletonList(expectedSeatNonBid)));
     }
 
     @Test
-    void applyShouldExcludeBiddersWitLiveUidSpecifiedInConfigWhenIfSyncedIdSetToTrue() {
+    void applyShouldExcludeBiddersWithoutLiveUidOrNotSpecifiedInConfigWhenIfSyncedIdSetToTrue() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 givenImp("impId", "bidder1", "bidder2"));
 
         final RequestRuleContext context = RequestRuleContext.of(
-                givenAuctionContext("bidder2"), Granularity.Request.instance(), null);
+                givenAuctionContext("bidder1"), Granularity.Request.instance(), null);
 
         final InfrastructureArguments<RequestRuleContext> infrastructureArguments =
                 givenInfrastructureArguments(context);
 
         final FilterBiddersFunctionConfig config = FilterBiddersFunctionConfig.builder()
-                .bidders(Collections.singleton("bidder2"))
+                .bidders(Collections.singleton("bidder1"))
                 .ifSyncedId(true)
                 .seatNonBid(BidRejectionReason.REQUEST_BLOCKED_GENERAL)
                 .analyticsValue("analyticsValue")
@@ -291,7 +292,7 @@ class ExcludeBiddersFunctionTest {
         expectedResultValue.set("analyticsValue", TextNode.valueOf("analyticsValue"));
         expectedResultValue.set("modelVersion", TextNode.valueOf("modelVersion"));
         expectedResultValue.set("conditionFired", TextNode.valueOf("ruleFired"));
-        expectedResultValue.set("resultFunction", TextNode.valueOf("excludeBidders"));
+        expectedResultValue.set("resultFunction", TextNode.valueOf("includeBidders"));
         expectedResultValue.set("biddersRemoved", mapper.createArrayNode().add("bidder2"));
         expectedResultValue.set("seatNonBid", IntNode.valueOf(BidRejectionReason.REQUEST_BLOCKED_GENERAL.getValue()));
 
@@ -330,7 +331,7 @@ class ExcludeBiddersFunctionTest {
                 givenInfrastructureArguments(context);
 
         final FilterBiddersFunctionConfig config = FilterBiddersFunctionConfig.builder()
-                .bidders(Set.of("bidder3", "bidder4"))
+                .bidders(Set.of("bidder1", "bidder2"))
                 .seatNonBid(BidRejectionReason.REQUEST_BLOCKED_GENERAL)
                 .analyticsValue("analyticsValue")
                 .build();
@@ -347,7 +348,7 @@ class ExcludeBiddersFunctionTest {
         expectedResultValue.set("analyticsValue", TextNode.valueOf("analyticsValue"));
         expectedResultValue.set("modelVersion", TextNode.valueOf("modelVersion"));
         expectedResultValue.set("conditionFired", TextNode.valueOf("ruleFired"));
-        expectedResultValue.set("resultFunction", TextNode.valueOf("excludeBidders"));
+        expectedResultValue.set("resultFunction", TextNode.valueOf("includeBidders"));
         expectedResultValue.set("biddersRemoved", mapper.createArrayNode().add("bidder3").add("bidder4"));
         expectedResultValue.set("seatNonBid", IntNode.valueOf(BidRejectionReason.REQUEST_BLOCKED_GENERAL.getValue()));
 
@@ -393,7 +394,7 @@ class ExcludeBiddersFunctionTest {
                 givenInfrastructureArguments(context);
 
         final FilterBiddersFunctionConfig config = FilterBiddersFunctionConfig.builder()
-                .bidders(Set.of("bidder"))
+                .bidders(Set.of("bidder1"))
                 .seatNonBid(BidRejectionReason.REQUEST_BLOCKED_GENERAL)
                 .analyticsValue("analyticsValue")
                 .build();
@@ -410,7 +411,7 @@ class ExcludeBiddersFunctionTest {
         expectedResultValue.set("analyticsValue", TextNode.valueOf("analyticsValue"));
         expectedResultValue.set("modelVersion", TextNode.valueOf("modelVersion"));
         expectedResultValue.set("conditionFired", TextNode.valueOf("ruleFired"));
-        expectedResultValue.set("resultFunction", TextNode.valueOf("excludeBidders"));
+        expectedResultValue.set("resultFunction", TextNode.valueOf("includeBidders"));
         expectedResultValue.set("biddersRemoved", mapper.createArrayNode().add("bidder"));
         expectedResultValue.set("seatNonBid", IntNode.valueOf(BidRejectionReason.REQUEST_BLOCKED_GENERAL.getValue()));
 
@@ -465,12 +466,12 @@ class ExcludeBiddersFunctionTest {
         // then
         final List<SeatNonBid> expectedSeatNonBid = List.of(
                 SeatNonBid.of(
-                        "bidder1",
+                        "bidder2",
                         Collections.singletonList(NonBid.of("impId", BidRejectionReason.REQUEST_BLOCKED_GENERAL))));
 
         assertThat(result).isEqualTo(
                 RuleResult.of(
-                        givenBidRequest(givenImp("impId", "bidder2")),
+                        givenBidRequest(givenImp("impId", "bidder1")),
                         RuleAction.UPDATE,
                         givenATags(),
                         expectedSeatNonBid));

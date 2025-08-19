@@ -8,7 +8,7 @@ import org.prebid.server.hooks.execution.model.Stage;
 import org.prebid.server.hooks.modules.rule.engine.core.config.AccountConfigParser;
 import org.prebid.server.hooks.modules.rule.engine.core.config.RuleParser;
 import org.prebid.server.hooks.modules.rule.engine.core.config.StageConfigParser;
-import org.prebid.server.hooks.modules.rule.engine.core.request.RequestMatchingRuleFactory;
+import org.prebid.server.hooks.modules.rule.engine.core.request.RequestConditionalRuleFactory;
 import org.prebid.server.hooks.modules.rule.engine.core.request.RequestRuleContext;
 import org.prebid.server.hooks.modules.rule.engine.core.request.RequestStageSpecification;
 import org.prebid.server.hooks.modules.rule.engine.v1.PbRuleEngineModule;
@@ -42,7 +42,7 @@ public class PbRuleEngineModuleConfiguration {
                 randomGenerator,
                 Stage.processed_auction_request,
                 new RequestStageSpecification(ObjectMapperProvider.mapper(), bidderCatalog, randomGenerator),
-                new RequestMatchingRuleFactory());
+                new RequestConditionalRuleFactory());
     }
 
     @Bean

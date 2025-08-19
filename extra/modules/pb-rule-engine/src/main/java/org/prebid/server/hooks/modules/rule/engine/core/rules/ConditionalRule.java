@@ -19,7 +19,7 @@ import java.util.stream.IntStream;
 
 import static org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunction.UNDEFINED_RESULT;
 
-public class ConditionMatchingRule<T, C> implements Rule<T, C> {
+public class ConditionalRule<T, C> implements Rule<T, C> {
 
     private final Schema<T, C> schema;
     private final RuleTree<RuleConfig<T, C>> ruleTree;
@@ -27,10 +27,10 @@ public class ConditionMatchingRule<T, C> implements Rule<T, C> {
     private final String modelVersion;
     private final String analyticsKey;
 
-    public ConditionMatchingRule(Schema<T, C> schema,
-                                 RuleTree<RuleConfig<T, C>> ruleTree,
-                                 String analyticsKey,
-                                 String modelVersion) {
+    public ConditionalRule(Schema<T, C> schema,
+                           RuleTree<RuleConfig<T, C>> ruleTree,
+                           String analyticsKey,
+                           String modelVersion) {
 
         this.schema = Objects.requireNonNull(schema);
 

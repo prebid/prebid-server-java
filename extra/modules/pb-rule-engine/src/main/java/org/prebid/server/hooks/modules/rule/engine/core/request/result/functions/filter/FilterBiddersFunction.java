@@ -101,7 +101,7 @@ public abstract class FilterBiddersFunction implements ResultFunction<BidRequest
                                               Boolean ifSyncedId,
                                               UidsCookie uidsCookie) {
 
-        final Set<String> biddersToRemove = biddersToRemove(imp, bidders, ifSyncedId, uidsCookie);
+        final Set<String> biddersToRemove = biddersToRemove(imp, ifSyncedId, bidders, uidsCookie);
         if (biddersToRemove.isEmpty()) {
             return FilterBiddersResult.NoAction.instance();
         }
@@ -116,8 +116,8 @@ public abstract class FilterBiddersFunction implements ResultFunction<BidRequest
     }
 
     protected abstract Set<String> biddersToRemove(Imp imp,
-                                                   Set<String> bidders,
                                                    Boolean ifSyncedId,
+                                                   Set<String> bidders,
                                                    UidsCookie uidsCookie);
 
     protected boolean isBidderIdSynced(String bidder, UidsCookie uidsCookie) {

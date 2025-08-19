@@ -15,7 +15,7 @@ import org.prebid.server.hooks.modules.rule.engine.core.config.model.SchemaFunct
 import org.prebid.server.hooks.modules.rule.engine.core.rules.AlternativeActionRule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.CompositeRule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.DefaultActionRule;
-import org.prebid.server.hooks.modules.rule.engine.core.rules.MatchingRuleFactory;
+import org.prebid.server.hooks.modules.rule.engine.core.rules.ConditionalRuleFactory;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.NoOpRule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.RandomWeightedRule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.Rule;
@@ -53,7 +53,7 @@ public class StageConfigParserTest {
     private StageSpecification<Object, Object> stageSpecification;
 
     @Mock(strictness = LENIENT)
-    private MatchingRuleFactory<Object, Object> matchingRuleFactory;
+    private ConditionalRuleFactory<Object, Object> conditionalRuleFactory;
 
     @Mock(strictness = LENIENT)
     private SchemaFunction<Object, Object> schemaFunction;
@@ -70,7 +70,7 @@ public class StageConfigParserTest {
     @BeforeEach
     public void setUp() {
         target = new StageConfigParser<>(
-                randomGenerator, Stage.processed_auction_request, stageSpecification, matchingRuleFactory);
+                randomGenerator, Stage.processed_auction_request, stageSpecification, conditionalRuleFactory);
     }
 
     @Test
@@ -119,7 +119,7 @@ public class StageConfigParserTest {
 
         given(stageSpecification.schemaFunctionByName("function1")).willReturn(schemaFunction);
         given(stageSpecification.resultFunctionByName("function2")).willReturn(resultFunction);
-        given(matchingRuleFactory.create(any(), any(), any(), any())).willReturn(matchingRule);
+        given(conditionalRuleFactory.create(any(), any(), any(), any())).willReturn(matchingRule);
 
         final AccountConfig accountConfig = givenAccountConfig(modelGroupConfigs);
 
@@ -152,7 +152,7 @@ public class StageConfigParserTest {
         final ResultFunction<Object, Object> secondResultFunction = mock(ResultFunction.class);
         given(stageSpecification.resultFunctionByName("function3")).willReturn(secondResultFunction);
 
-        given(matchingRuleFactory.create(any(), any(), any(), any())).willReturn(matchingRule);
+        given(conditionalRuleFactory.create(any(), any(), any(), any())).willReturn(matchingRule);
 
         final AccountConfig accountConfig = givenAccountConfig(modelGroupConfig);
 
@@ -190,7 +190,7 @@ public class StageConfigParserTest {
         final Schema<Object, Object> schema = Schema.of(
                 Collections.singletonList(SchemaFunctionHolder.of("function1", schemaFunction, null)));
 
-        given(matchingRuleFactory.create(eq(schema), any(), eq("analyticsKey"), eq("version")))
+        given(conditionalRuleFactory.create(eq(schema), any(), eq("analyticsKey"), eq("version")))
                 .willReturn(matchingRule);
 
         final AccountConfig accountConfig = givenAccountConfig(modelGroupConfig);

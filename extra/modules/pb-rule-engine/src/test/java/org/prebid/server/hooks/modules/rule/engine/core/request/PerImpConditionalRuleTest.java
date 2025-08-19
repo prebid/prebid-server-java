@@ -11,7 +11,7 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.hooks.execution.v1.analytics.ActivityImpl;
 import org.prebid.server.hooks.execution.v1.analytics.TagsImpl;
-import org.prebid.server.hooks.modules.rule.engine.core.rules.ConditionMatchingRule;
+import org.prebid.server.hooks.modules.rule.engine.core.rules.ConditionalRule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleAction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleResult;
 import org.prebid.server.hooks.v1.analytics.Activity;
@@ -28,16 +28,16 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mock.Strictness.LENIENT;
 
 @ExtendWith(MockitoExtension.class)
-public class PerImpMatchingRuleTest {
+public class PerImpConditionalRuleTest {
 
-    private PerImpMatchingRule target;
+    private PerImpConditionalRule target;
 
     @Mock(strictness = LENIENT)
-    private ConditionMatchingRule<BidRequest, RequestRuleContext> conditionMatchingRule;
+    private ConditionalRule<BidRequest, RequestRuleContext> conditionalRule;
 
     @BeforeEach
     public void setUp() {
-        target = new PerImpMatchingRule(conditionMatchingRule);
+        target = new PerImpConditionalRule(conditionalRule);
     }
 
     @Test
@@ -56,7 +56,7 @@ public class PerImpMatchingRuleTest {
         final List<Activity> firstActivities = singletonList(ActivityImpl.of("activity1", "success", emptyList()));
         final List<SeatNonBid> firstSeatNonBids = singletonList(
                 SeatNonBid.of("seat1", singletonList(NonBid.of("1", BidRejectionReason.NO_BID))));
-        given(conditionMatchingRule.process(bidRequest, firstImpContext)).willReturn(
+        given(conditionalRule.process(bidRequest, firstImpContext)).willReturn(
                 RuleResult.of(
                         updatedBidRequest,
                         RuleAction.UPDATE,
@@ -72,7 +72,7 @@ public class PerImpMatchingRuleTest {
         final List<Activity> secondActivities = singletonList(ActivityImpl.of("activity2", "success", emptyList()));
         final List<SeatNonBid> secondSeatNonBids = singletonList(
                 SeatNonBid.of("seat2", singletonList(NonBid.of("2", BidRejectionReason.NO_BID))));
-        given(conditionMatchingRule.process(updatedBidRequest, secondImpContext)).willReturn(
+        given(conditionalRule.process(updatedBidRequest, secondImpContext)).willReturn(
                 RuleResult.of(
                         resultBidRequest,
                         RuleAction.UPDATE,

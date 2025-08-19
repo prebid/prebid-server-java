@@ -35,14 +35,14 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mock.Strictness.LENIENT;
 
 @ExtendWith(MockitoExtension.class)
-public class ConditionMatchingRuleTest {
+public class ConditionalRuleTest {
 
     private final ObjectMapper mapper = new ObjectMapper();
 
     private static final String ANALYTICS_KEY = "analyticsKey";
     private static final String MODEL_VERSION = "modelVersion";
 
-    private ConditionMatchingRule<Object, Object> target;
+    private ConditionalRule<Object, Object> target;
 
     @Mock(strictness = LENIENT)
     private Schema<Object, Object> schema;
@@ -61,7 +61,7 @@ public class ConditionMatchingRuleTest {
 
     @BeforeEach
     public void setUp() {
-        target = new ConditionMatchingRule<>(schema, ruleTree, ANALYTICS_KEY, MODEL_VERSION);
+        target = new ConditionalRule<>(schema, ruleTree, ANALYTICS_KEY, MODEL_VERSION);
     }
 
     @Test

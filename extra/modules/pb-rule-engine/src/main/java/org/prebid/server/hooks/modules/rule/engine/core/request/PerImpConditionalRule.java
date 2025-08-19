@@ -2,17 +2,17 @@ package org.prebid.server.hooks.modules.rule.engine.core.request;
 
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
-import org.prebid.server.hooks.modules.rule.engine.core.rules.ConditionMatchingRule;
+import org.prebid.server.hooks.modules.rule.engine.core.rules.ConditionalRule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.Rule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleResult;
 
 import java.util.Objects;
 
-public class PerImpMatchingRule implements Rule<BidRequest, RequestRuleContext> {
+public class PerImpConditionalRule implements Rule<BidRequest, RequestRuleContext> {
 
-    private final ConditionMatchingRule<BidRequest, RequestRuleContext> delegate;
+    private final ConditionalRule<BidRequest, RequestRuleContext> delegate;
 
-    public PerImpMatchingRule(ConditionMatchingRule<BidRequest, RequestRuleContext> delegate) {
+    public PerImpConditionalRule(ConditionalRule<BidRequest, RequestRuleContext> delegate) {
         this.delegate = Objects.requireNonNull(delegate);
     }
 

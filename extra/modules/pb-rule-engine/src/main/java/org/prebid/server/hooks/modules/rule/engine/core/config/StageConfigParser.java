@@ -10,7 +10,7 @@ import org.prebid.server.hooks.modules.rule.engine.core.config.model.SchemaFunct
 import org.prebid.server.hooks.modules.rule.engine.core.rules.AlternativeActionRule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.CompositeRule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.DefaultActionRule;
-import org.prebid.server.hooks.modules.rule.engine.core.rules.MatchingRuleFactory;
+import org.prebid.server.hooks.modules.rule.engine.core.rules.ConditionalRuleFactory;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.NoOpRule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.RandomWeightedRule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.Rule;
@@ -36,17 +36,17 @@ public class StageConfigParser<T, C> {
     private final RandomGenerator randomGenerator;
     private final StageSpecification<T, C> specification;
     private final Stage stage;
-    private final MatchingRuleFactory<T, C> matchingRuleFactory;
+    private final ConditionalRuleFactory<T, C> conditionalRuleFactory;
 
     public StageConfigParser(RandomGenerator randomGenerator,
                              Stage stage,
                              StageSpecification<T, C> specification,
-                             MatchingRuleFactory<T, C> matchingRuleFactory) {
+                             ConditionalRuleFactory<T, C> conditionalRuleFactory) {
 
         this.randomGenerator = Objects.requireNonNull(randomGenerator);
         this.stage = Objects.requireNonNull(stage);
         this.specification = Objects.requireNonNull(specification);
-        this.matchingRuleFactory = Objects.requireNonNull(matchingRuleFactory);
+        this.conditionalRuleFactory = Objects.requireNonNull(conditionalRuleFactory);
     }
 
     public Rule<T, C> parse(AccountConfig config) {
@@ -96,7 +96,7 @@ public class StageConfigParser<T, C> {
             throw new InvalidMatcherConfiguration("Schema functions count and rules matchers count mismatch");
         }
 
-        return matchingRuleFactory.create(schema, ruleTree, config.getAnalyticsKey(), config.getVersion());
+        return conditionalRuleFactory.create(schema, ruleTree, config.getAnalyticsKey(), config.getVersion());
     }
 
     private Schema<T, C> parseSchema(List<SchemaFunctionConfig> schema) {
