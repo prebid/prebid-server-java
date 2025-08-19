@@ -18,7 +18,7 @@ public class PerImpConditionalRule implements Rule<BidRequest, RequestRuleContex
 
     @Override
     public RuleResult<BidRequest> process(BidRequest value, RequestRuleContext context) {
-        RuleResult<BidRequest> result = RuleResult.unaltered(value);
+        RuleResult<BidRequest> result = RuleResult.noAction(value);
         for (Imp imp : value.getImp()) {
             result = result.mergeWith(delegate.process(result.getValue(), contextForImp(context, imp)));
 

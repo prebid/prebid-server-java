@@ -11,7 +11,7 @@ public class CompositeRule<T, C> implements Rule<T, C> {
 
     @Override
     public RuleResult<T> process(T value, C context) {
-        RuleResult<T> result = RuleResult.unaltered(value);
+        RuleResult<T> result = RuleResult.noAction(value);
 
         for (Rule<T, C> subrule : subrules) {
             result = result.mergeWith(subrule.process(value, context));

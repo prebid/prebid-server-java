@@ -52,7 +52,7 @@ public class ConditionalRule<T, C> implements Rule<T, C> {
         try {
             lookupResult = ruleTree.lookup(matchers);
         } catch (NoMatchingRuleException e) {
-            return RuleResult.unaltered(value);
+            return RuleResult.noAction(value);
         }
 
         final RuleConfig<T, C> ruleConfig = lookupResult.getValue();
@@ -67,7 +67,7 @@ public class ConditionalRule<T, C> implements Rule<T, C> {
                         .modelVersion(modelVersion)
                         .build();
 
-        RuleResult<T> result = RuleResult.unaltered(value);
+        RuleResult<T> result = RuleResult.noAction(value);
         for (ResultFunctionHolder<T, C> action : ruleConfig.getActions()) {
             result = result.mergeWith(applyAction(action, result.getValue(), infrastructureArguments));
 

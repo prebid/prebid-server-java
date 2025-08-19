@@ -29,7 +29,7 @@ public class DefaultActionRule<T, C> implements Rule<T, C> {
 
     @Override
     public RuleResult<T> process(T value, C context) {
-        RuleResult<T> result = RuleResult.unaltered(value);
+        RuleResult<T> result = RuleResult.noAction(value);
 
         for (ResultFunctionHolder<T, C> action : actions) {
             result = result.mergeWith(applyAction(action, result.getValue(), context));

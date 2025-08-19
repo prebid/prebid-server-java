@@ -44,7 +44,7 @@ public class PbRuleEngineProcessedAuctionRequestHook implements ProcessedAuction
         final BidRequest bidRequest = auctionRequestPayload.bidRequest();
 
         if (accountConfig == null) {
-            return succeeded(RuleResult.unaltered(bidRequest));
+            return succeeded(RuleResult.noAction(bidRequest));
         }
 
         return ruleParser.parseForAccount(accountId, accountConfig)

@@ -5,9 +5,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.prebid.server.hooks.modules.rule.engine.core.rules.AlternativeActionRule;
-import org.prebid.server.hooks.modules.rule.engine.core.rules.Rule;
-import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleResult;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.exception.NoMatchingRuleException;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -19,8 +16,8 @@ import static org.mockito.Mockito.verifyNoInteractions;
 @ExtendWith(MockitoExtension.class)
 public class AlternativeActionRuleTest {
 
-    private static final RuleResult<Object> DELEGATE_RESULT = RuleResult.unaltered(new Object());
-    private static final RuleResult<Object> ALTERNATIVE_RESULT = RuleResult.unaltered(new Object());
+    private static final RuleResult<Object> DELEGATE_RESULT = RuleResult.noAction(new Object());
+    private static final RuleResult<Object> ALTERNATIVE_RESULT = RuleResult.noAction(new Object());
 
     @Mock(strictness = LENIENT)
     private Rule<Object, Object> delegate;

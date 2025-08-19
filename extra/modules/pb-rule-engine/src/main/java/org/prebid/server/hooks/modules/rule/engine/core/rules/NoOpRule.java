@@ -7,6 +7,6 @@ public class NoOpRule<T, C> implements Rule<T, C> {
 
     @Override
     public RuleResult<T> process(T value, C context) {
-        return RuleResult.unaltered(value);
+        return RuleResult.noAction(value);
     }
 }

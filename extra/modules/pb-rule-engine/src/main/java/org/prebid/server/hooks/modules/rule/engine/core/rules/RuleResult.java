@@ -47,7 +47,7 @@ public class RuleResult<T> {
         return action == RuleAction.UPDATE;
     }
 
-    public static <T> RuleResult<T> unaltered(T value) {
+    public static <T> RuleResult<T> noAction(T value) {
         return RuleResult.of(
                 value, RuleAction.NO_ACTION, TagsImpl.of(Collections.emptyList()), Collections.emptyList());
     }

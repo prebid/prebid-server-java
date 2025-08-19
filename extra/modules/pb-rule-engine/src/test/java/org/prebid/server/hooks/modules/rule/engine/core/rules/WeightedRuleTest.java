@@ -17,7 +17,7 @@ public class WeightedRuleTest {
         // given
         final WeightedList<Rule<Object, Object>> ruleList =
                 (WeightedList<Rule<Object, Object>>) mock(WeightedList.class);
-        final RuleResult<Object> stub = RuleResult.unaltered(new Object());
+        final RuleResult<Object> stub = RuleResult.noAction(new Object());
         given(ruleList.getForSeed(anyInt())).willReturn((left, right) -> stub);
 
         final RandomGenerator randomGenerator = mock(RandomGenerator.class);
