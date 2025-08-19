@@ -19,6 +19,7 @@ public class FilterBiddersFunctionConfig {
     @JsonProperty("seatnonbid")
     BidRejectionReason seatNonBid = BidRejectionReason.REQUEST_BLOCKED_OPTIMIZED;
 
+    @JsonProperty("ifSyncedId")
     Boolean ifSyncedId;
 
     @JsonProperty("analyticsValue")

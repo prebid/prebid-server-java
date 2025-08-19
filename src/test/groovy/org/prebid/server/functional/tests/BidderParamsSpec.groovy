@@ -1145,7 +1145,7 @@ class BidderParamsSpec extends BaseSpec {
                 ["No match between the configured currencies and bidRequest.cur"]
 
         def seatNonBid = response.ext.seatnonbid[0]
-        assert seatNonBid.seat == BidderName.GENERIC.value
+        assert seatNonBid.seat == BidderName.GENERIC
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == REQUEST_BLOCKED_UNACCEPTABLE_CURRENCY
 
@@ -1242,7 +1242,7 @@ class BidderParamsSpec extends BaseSpec {
         assert response.ext.seatnonbid.size() == 1
 
         def seatNonBid = response.ext.seatnonbid[0]
-        assert seatNonBid.seat == BidderName.ALIAS.value
+        assert seatNonBid.seat == BidderName.ALIAS
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == REQUEST_BLOCKED_UNACCEPTABLE_CURRENCY
 
