@@ -37,7 +37,7 @@ public class BlisBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpBlis>> BLIS_EXT_TYPE_REFERENCE = new TypeReference<>() {
     };
     private static final String AUCTION_PRICE_MACRO = "${AUCTION_PRICE}";
-    private static final String SUPPLY_ID_MACRO = "{{SupplyId}";
+    private static final String SUPPLY_ID_MACRO = "{{SupplyId}}";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;

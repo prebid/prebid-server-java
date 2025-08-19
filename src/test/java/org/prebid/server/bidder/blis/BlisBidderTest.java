@@ -38,7 +38,7 @@ import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
 @ExtendWith(MockitoExtension.class)
 public class BlisBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://endpoint.com/?spid={{SupplyId}";
+    private static final String ENDPOINT_URL = "https://endpoint.com/?spid={{SupplyId}}";
 
     private final BlisBidder target = new BlisBidder(ENDPOINT_URL, jacksonMapper);
 
