@@ -18,7 +18,7 @@ import java.util.List;
 
 public class AnalyticsMapper {
 
-    private static final String ACTIVITY_NAME = "rules-analytics-logger";
+    private static final String ACTIVITY_NAME = "pb-rule-engine";
     private static final String SUCCESS_STATUS = "success";
 
     private AnalyticsMapper() {
