@@ -11,13 +11,13 @@ import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.hooks.modules.rule.engine.core.request.Granularity;
 import org.prebid.server.hooks.modules.rule.engine.core.request.RequestRuleContext;
+import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleAction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleResult;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.result.InfrastructureArguments;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.result.ResultFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.result.ResultFunctionArguments;
 import org.prebid.server.hooks.modules.rule.engine.core.util.ConfigurationValidationException;
 import org.prebid.server.hooks.v1.analytics.Tags;
-import org.prebid.server.model.UpdateResult;
 import org.prebid.server.proto.openrtb.ext.response.seatnonbid.NonBid;
 import org.prebid.server.proto.openrtb.ext.response.seatnonbid.SeatNonBid;
 import org.springframework.util.CollectionUtils;
@@ -75,14 +75,19 @@ public abstract class FilterBiddersFunction implements ResultFunction<BidRequest
             }
         }
 
-        final UpdateResult<BidRequest> updateResult = !seatNonBid.isEmpty()
-                ? UpdateResult.updated(bidRequest.toBuilder().imp(updatedImps).build())
-                : UpdateResult.unaltered(bidRequest);
-
         final Tags tags = AnalyticsMapper.toTags(
                 mapper, name(), seatNonBid, infrastructureArguments, config.getAnalyticsValue());
 
-        return RuleResult.of(updateResult, tags, seatNonBid);
+        if (updatedImps.isEmpty()) {
+            return RuleResult.rejected(tags, seatNonBid);
+        }
+
+        final RuleAction action = !seatNonBid.isEmpty() ? RuleAction.UPDATE : RuleAction.NO_ACTION;
+        final BidRequest result = action == RuleAction.UPDATE
+                ? bidRequest.toBuilder().imp(updatedImps).build()
+                : bidRequest;
+        
+        return RuleResult.of(result, action, tags, seatNonBid);
     }
 
     private static List<SeatNonBid> toSeatNonBid(String impId, Set<String> bidders, BidRejectionReason reason) {

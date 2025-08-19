@@ -22,6 +22,7 @@ import org.prebid.server.hooks.execution.v1.analytics.ResultImpl;
 import org.prebid.server.hooks.execution.v1.analytics.TagsImpl;
 import org.prebid.server.hooks.modules.rule.engine.core.request.Granularity;
 import org.prebid.server.hooks.modules.rule.engine.core.request.RequestRuleContext;
+import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleAction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleResult;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.result.InfrastructureArguments;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.result.ResultFunctionArguments;
@@ -30,7 +31,6 @@ import org.prebid.server.hooks.v1.analytics.Activity;
 import org.prebid.server.hooks.v1.analytics.AppliedTo;
 import org.prebid.server.hooks.v1.analytics.Tags;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.model.UpdateResult;
 import org.prebid.server.proto.openrtb.ext.response.seatnonbid.NonBid;
 import org.prebid.server.proto.openrtb.ext.response.seatnonbid.SeatNonBid;
 
@@ -138,7 +138,8 @@ class ExcludeBiddersFunctionTest {
 
         assertThat(result).isEqualTo(
                 RuleResult.of(
-                        UpdateResult.updated(givenBidRequest(givenImp("impId", "bidder2"))),
+                        givenBidRequest(givenImp("impId", "bidder2")),
+                        RuleAction.UPDATE,
                         givenATags(expectedActivity),
                         Collections.singletonList(expectedSeatNonBid)));
     }
@@ -204,7 +205,75 @@ class ExcludeBiddersFunctionTest {
 
         assertThat(result).isEqualTo(
                 RuleResult.of(
-                        UpdateResult.updated(expectedBidRequest),
+                        expectedBidRequest,
+                        RuleAction.UPDATE,
+                        givenATags(expectedActivity),
+                        Collections.singletonList(expectedSeatNonBid)));
+    }
+
+    @Test
+    void applyShouldDiscardImpIfAfterUpdateThereAreNoBidders() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                givenImp("impId", "bidder1", "bidder2"),
+                givenImp("impId2", "bidder3", "bidder4"));
+
+        final RequestRuleContext context = RequestRuleContext.of(
+                givenAuctionContext(), new Granularity.Imp("impId2"), null);
+
+        final InfrastructureArguments<RequestRuleContext> infrastructureArguments =
+                InfrastructureArguments.<RequestRuleContext>builder()
+                        .context(context)
+                        .schemaFunctionResults(Collections.emptyMap())
+                        .schemaFunctionMatches(Collections.emptyMap())
+                        .ruleFired("ruleFired")
+                        .analyticsKey("analyticsKey")
+                        .modelVersion("modelVersion")
+                        .build();
+
+        final FilterBiddersFunctionConfig config = FilterBiddersFunctionConfig.builder()
+                .bidders(Collections.singleton("bidder3"))
+                .seatNonBid(BidRejectionReason.REQUEST_BLOCKED_GENERAL)
+                .analyticsValue("analyticsValue")
+                .build();
+
+        final ResultFunctionArguments<BidRequest, RequestRuleContext> arguments =
+                ResultFunctionArguments.of(bidRequest, mapper.valueToTree(config), infrastructureArguments);
+
+        // when
+        final RuleResult<BidRequest> result = target.apply(arguments);
+
+        // then
+        final ObjectNode expectedResultValue = mapper.createObjectNode();
+        expectedResultValue.set("analyticsKey", TextNode.valueOf("analyticsKey"));
+        expectedResultValue.set("analyticsValue", TextNode.valueOf("analyticsValue"));
+        expectedResultValue.set("modelVersion", TextNode.valueOf("modelVersion"));
+        expectedResultValue.set("conditionFired", TextNode.valueOf("ruleFired"));
+        expectedResultValue.set("resultFunction", TextNode.valueOf("excludeBidders"));
+        expectedResultValue.set("biddersRemoved", mapper.createArrayNode().add("bidder3"));
+        expectedResultValue.set("seatNonBid", IntNode.valueOf(BidRejectionReason.REQUEST_BLOCKED_GENERAL.getValue()));
+
+        final AppliedTo expectedAppliedTo = AppliedToImpl.builder()
+                .impIds(Collections.singletonList("impId2"))
+                .build();
+
+        final Activity expectedActivity = ActivityImpl.of(
+                "pb-rule-engine",
+                "success",
+                Collections.singletonList(ResultImpl.of("success", expectedResultValue, expectedAppliedTo)));
+
+        final SeatNonBid expectedSeatNonBid = SeatNonBid.of(
+                "bidder3",
+                Collections.singletonList(NonBid.of("impId2", BidRejectionReason.REQUEST_BLOCKED_GENERAL)));
+
+        final BidRequest expectedBidRequest = givenBidRequest(
+                givenImp("impId", "bidder1", "bidder2"),
+                givenImp("impId2", "bidder4"));
+
+        assertThat(result).isEqualTo(
+                RuleResult.of(
+                        expectedBidRequest,
+                        RuleAction.UPDATE,
                         givenATags(expectedActivity),
                         Collections.singletonList(expectedSeatNonBid)));
     }

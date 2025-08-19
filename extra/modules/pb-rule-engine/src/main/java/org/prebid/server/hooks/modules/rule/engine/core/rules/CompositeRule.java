@@ -11,9 +11,15 @@ public class CompositeRule<T, C> implements Rule<T, C> {
 
     @Override
     public RuleResult<T> process(T value, C context) {
-        return subrules.stream().reduce(
-                RuleResult.unaltered(value),
-                (result, rule) -> result.mergeWith(rule.process(result.getUpdateResult().getValue(), context)),
-                RuleResult::mergeWith);
+        RuleResult<T> result = RuleResult.unaltered(value);
+
+        for (Rule<T, C> subrule : subrules) {
+            result = result.mergeWith(subrule.process(value, context));
+
+            if (result.isReject())
+                return result;
+        }
+
+        return result;
     }
 }

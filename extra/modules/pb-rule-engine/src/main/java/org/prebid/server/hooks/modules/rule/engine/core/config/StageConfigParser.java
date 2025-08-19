@@ -17,7 +17,7 @@ import org.prebid.server.hooks.modules.rule.engine.core.rules.Rule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleConfig;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.StageSpecification;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.exception.InvalidMatcherConfiguration;
-import org.prebid.server.hooks.modules.rule.engine.core.rules.result.RuleAction;
+import org.prebid.server.hooks.modules.rule.engine.core.rules.result.ResultFunctionHolder;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.Schema;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunctionHolder;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.tree.RuleTree;
@@ -123,7 +123,7 @@ public class StageConfigParser<T, C> {
 
     private RuleConfig<T, C> parseRuleConfig(AccountRuleConfig ruleConfig) {
         final String ruleFired = String.join("|", ruleConfig.getConditions());
-        final List<RuleAction<T, C>> actions = parseActions(ruleConfig.getResults());
+        final List<ResultFunctionHolder<T, C>> actions = parseActions(ruleConfig.getResults());
 
         return RuleConfig.of(ruleFired, actions);
     }
@@ -139,9 +139,9 @@ public class StageConfigParser<T, C> {
                 parseActions(defaultActionConfig), config.getAnalyticsKey(), config.getVersion());
     }
 
-    private List<RuleAction<T, C>> parseActions(List<ResultFunctionConfig> functionConfigs) {
-        final List<RuleAction<T, C>> actions = functionConfigs.stream()
-                .map(config -> RuleAction.of(
+    private List<ResultFunctionHolder<T, C>> parseActions(List<ResultFunctionConfig> functionConfigs) {
+        final List<ResultFunctionHolder<T, C>> actions = functionConfigs.stream()
+                .map(config -> ResultFunctionHolder.of(
                         config.getFunction(),
                         specification.resultFunctionByName(config.getFunction()),
                         config.getArgs()))
@@ -152,7 +152,7 @@ public class StageConfigParser<T, C> {
         return actions;
     }
 
-    private void validateActionConfig(RuleAction<T, C> action) {
+    private void validateActionConfig(ResultFunctionHolder<T, C> action) {
         try {
             action.getFunction().validateConfig(action.getConfig());
         } catch (ConfigurationValidationException exception) {

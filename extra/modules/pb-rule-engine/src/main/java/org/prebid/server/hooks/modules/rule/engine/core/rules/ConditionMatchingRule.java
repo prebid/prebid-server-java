@@ -4,6 +4,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.exception.NoMatchingRuleException;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.result.InfrastructureArguments;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.result.ResultFunctionArguments;
+import org.prebid.server.hooks.modules.rule.engine.core.rules.result.ResultFunctionHolder;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.Schema;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunctionArguments;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunctionHolder;
@@ -66,15 +67,15 @@ public class ConditionMatchingRule<T, C> implements Rule<T, C> {
                         .modelVersion(modelVersion)
                         .build();
 
-        return ruleConfig.getActions().stream().reduce(
-                RuleResult.unaltered(value),
-                (result, action) -> result.mergeWith(
-                        action.getFunction().apply(
-                                ResultFunctionArguments.of(
-                                        result.getUpdateResult().getValue(),
-                                        action.getConfig(),
-                                        infrastructureArguments))),
-                RuleResult::mergeWith);
+        RuleResult<T> result = RuleResult.unaltered(value);
+        for (ResultFunctionHolder<T, C> action : ruleConfig.getActions()) {
+            result = result.mergeWith(applyAction(action, result.getValue(), infrastructureArguments));
+
+            if (result.isReject())
+                return result;
+        }
+
+        return result;
     }
 
     private Map<String, String> mergeWithSchema(Schema<T, C> schema, List<String> values) {
@@ -82,5 +83,15 @@ public class ConditionMatchingRule<T, C> implements Rule<T, C> {
                 .boxed()
                 .collect(Collectors.toMap(
                         idx -> schema.getFunctions().get(idx).getName(), values::get, (left, right) -> left));
+    }
+
+    private RuleResult<T> applyAction(ResultFunctionHolder<T, C> action,
+                                      T value,
+                                      InfrastructureArguments<C> infrastructureArguments) {
+
+        final ResultFunctionArguments<T, C> arguments = ResultFunctionArguments.of(
+                value, action.getConfig(), infrastructureArguments);
+
+        return action.getFunction().apply(arguments);
     }
 }

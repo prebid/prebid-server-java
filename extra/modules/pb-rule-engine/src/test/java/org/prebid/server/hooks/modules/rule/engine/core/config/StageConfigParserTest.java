@@ -21,7 +21,7 @@ import org.prebid.server.hooks.modules.rule.engine.core.rules.RandomWeightedRule
 import org.prebid.server.hooks.modules.rule.engine.core.rules.Rule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.StageSpecification;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.result.ResultFunction;
-import org.prebid.server.hooks.modules.rule.engine.core.rules.result.RuleAction;
+import org.prebid.server.hooks.modules.rule.engine.core.rules.result.ResultFunctionHolder;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.Schema;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunctionHolder;
@@ -158,7 +158,7 @@ public class StageConfigParserTest {
 
         // when and then
         final DefaultActionRule<Object, Object> defaultRule = new DefaultActionRule<>(
-                Collections.singletonList(RuleAction.of("function3", secondResultFunction, null)),
+                Collections.singletonList(ResultFunctionHolder.of("function3", secondResultFunction, null)),
                 "analyticsKey",
                 "version");
 

@@ -12,9 +12,9 @@ import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.hooks.execution.v1.analytics.ActivityImpl;
 import org.prebid.server.hooks.execution.v1.analytics.TagsImpl;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.ConditionMatchingRule;
+import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleAction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleResult;
 import org.prebid.server.hooks.v1.analytics.Activity;
-import org.prebid.server.model.UpdateResult;
 import org.prebid.server.proto.openrtb.ext.response.seatnonbid.NonBid;
 import org.prebid.server.proto.openrtb.ext.response.seatnonbid.SeatNonBid;
 import org.prebid.server.util.ListUtil;
@@ -58,7 +58,8 @@ public class PerImpMatchingRuleTest {
                 SeatNonBid.of("seat1", singletonList(NonBid.of("1", BidRejectionReason.NO_BID))));
         given(conditionMatchingRule.process(bidRequest, firstImpContext)).willReturn(
                 RuleResult.of(
-                        UpdateResult.updated(updatedBidRequest),
+                        updatedBidRequest,
+                        RuleAction.UPDATE,
                         TagsImpl.of(firstActivities),
                         firstSeatNonBids));
 
@@ -73,7 +74,8 @@ public class PerImpMatchingRuleTest {
                 SeatNonBid.of("seat2", singletonList(NonBid.of("2", BidRejectionReason.NO_BID))));
         given(conditionMatchingRule.process(updatedBidRequest, secondImpContext)).willReturn(
                 RuleResult.of(
-                        UpdateResult.updated(resultBidRequest),
+                        resultBidRequest,
+                        RuleAction.UPDATE,
                         TagsImpl.of(secondActivities),
                         secondSeatNonBids));
 
@@ -85,7 +87,8 @@ public class PerImpMatchingRuleTest {
         // when and then
         assertThat(target.process(bidRequest, requestContext)).isEqualTo(
                 RuleResult.of(
-                        UpdateResult.updated(resultBidRequest),
+                        resultBidRequest,
+                        RuleAction.UPDATE,
                         TagsImpl.of(ListUtil.union(firstActivities, secondActivities)),
                         ListUtil.union(firstSeatNonBids, secondSeatNonBids)));
     }

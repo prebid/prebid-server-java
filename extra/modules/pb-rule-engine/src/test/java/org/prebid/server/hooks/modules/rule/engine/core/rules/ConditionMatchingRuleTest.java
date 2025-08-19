@@ -13,7 +13,7 @@ import org.prebid.server.hooks.execution.v1.analytics.TagsImpl;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.result.InfrastructureArguments;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.result.ResultFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.result.ResultFunctionArguments;
-import org.prebid.server.hooks.modules.rule.engine.core.rules.result.RuleAction;
+import org.prebid.server.hooks.modules.rule.engine.core.rules.result.ResultFunctionHolder;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.Schema;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunctionArguments;
@@ -21,7 +21,6 @@ import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunct
 import org.prebid.server.hooks.modules.rule.engine.core.rules.tree.LookupResult;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.tree.RuleTree;
 import org.prebid.server.hooks.v1.analytics.Tags;
-import org.prebid.server.model.UpdateResult;
 import org.prebid.server.proto.openrtb.ext.response.seatnonbid.NonBid;
 import org.prebid.server.proto.openrtb.ext.response.seatnonbid.SeatNonBid;
 import org.prebid.server.util.ListUtil;
@@ -93,11 +92,11 @@ public class ConditionMatchingRuleTest {
         final String secondRuleActionName = "secondRuleAction";
         final ObjectNode firstResultFunctionConfig = mapper.createObjectNode();
         final ObjectNode secondResultFunctionConfig = mapper.createObjectNode();
-        final List<RuleAction<Object, Object>> ruleActions = List.of(
-                RuleAction.of(firstRuleActionName, firstResultFunction, firstResultFunctionConfig),
-                RuleAction.of(secondRuleActionName, secondResultFunction, secondResultFunctionConfig));
+        final List<ResultFunctionHolder<Object, Object>> resultFunctionHolders = List.of(
+                ResultFunctionHolder.of(firstRuleActionName, firstResultFunction, firstResultFunctionConfig),
+                ResultFunctionHolder.of(secondRuleActionName, secondResultFunction, secondResultFunctionConfig));
 
-        final RuleConfig<Object, Object> ruleConfig = RuleConfig.of("ruleCondition", ruleActions);
+        final RuleConfig<Object, Object> ruleConfig = RuleConfig.of("ruleCondition", resultFunctionHolders);
 
         // tree that matches values based on schema functions outputs
         final String firstDimensionMatch = "firstMatch";
@@ -130,7 +129,8 @@ public class ConditionMatchingRuleTest {
                         Collections.singletonList(NonBid.of("impIdA", BidRejectionReason.NO_BID))));
 
         final RuleResult<Object> firstResultFunctionOutput = RuleResult.of(
-                UpdateResult.updated(firstResultFunctionUpdatedValue),
+                firstResultFunctionUpdatedValue,
+                RuleAction.UPDATE,
                 firstTags,
                 firstSeatNonBids);
 
@@ -150,12 +150,13 @@ public class ConditionMatchingRuleTest {
                         Collections.singletonList(NonBid.of("impIdB", BidRejectionReason.NO_BID))));
 
         final RuleResult<Object> secondResultFunctionOutput = RuleResult.of(
-                UpdateResult.updated(secondResultFunctionUpdatedValue),
+                secondResultFunctionUpdatedValue,
+                RuleAction.UPDATE,
                 secondTags,
                 secondSeatNonBids);
 
         final ResultFunctionArguments<Object, Object> secondResultFunctionArgs = ResultFunctionArguments.of(
-                firstResultFunctionOutput.getUpdateResult().getValue(),
+                firstResultFunctionOutput.getValue(),
                 secondResultFunctionConfig,
                 infrastructureArguments);
 
@@ -167,7 +168,8 @@ public class ConditionMatchingRuleTest {
         // then
         assertThat(result).isEqualTo(
                 RuleResult.of(
-                        secondResultFunctionOutput.getUpdateResult(),
+                        secondResultFunctionOutput.getValue(),
+                        RuleAction.UPDATE,
                         TagsImpl.of(ListUtil.union(firstTags.activities(), secondTags.activities())),
                         ListUtil.union(firstSeatNonBids, secondSeatNonBids)));
     }

@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Value;
 
 @Value(staticConstructor = "of")
-public class RuleAction<T, C> {
+public class ResultFunctionHolder<T, C> {
 
     String name;
 

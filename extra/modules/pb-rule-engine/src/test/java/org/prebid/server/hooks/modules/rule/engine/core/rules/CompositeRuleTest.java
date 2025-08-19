@@ -5,7 +5,6 @@ import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.hooks.execution.v1.analytics.ActivityImpl;
 import org.prebid.server.hooks.execution.v1.analytics.TagsImpl;
 import org.prebid.server.hooks.v1.analytics.Tags;
-import org.prebid.server.model.UpdateResult;
 import org.prebid.server.proto.openrtb.ext.response.seatnonbid.NonBid;
 import org.prebid.server.proto.openrtb.ext.response.seatnonbid.SeatNonBid;
 
@@ -30,13 +29,15 @@ public class CompositeRuleTest {
         // given
         final Rule<Object, Object> firstRule = (Rule<Object, Object>) mock(Rule.class);
         given(firstRule.process(any(), any())).willAnswer(invocationOnMock -> RuleResult.of(
-                UpdateResult.updated(invocationOnMock.getArgument(0)),
+                invocationOnMock.getArgument(0),
+                RuleAction.UPDATE,
                 TagsImpl.of(singletonList(ActivityImpl.of("firstActivity", "success", emptyList()))),
                 singletonList(SeatNonBid.of("firstSeat", singletonList(NonBid.of("1", BidRejectionReason.NO_BID))))));
 
         final Rule<Object, Object> secondRule = (Rule<Object, Object>) mock(Rule.class);
         given(secondRule.process(any(), any())).willAnswer(invocationOnMock -> RuleResult.of(
-                UpdateResult.updated(invocationOnMock.getArgument(0)),
+                invocationOnMock.getArgument(0),
+                RuleAction.UPDATE,
                 TagsImpl.of(singletonList(ActivityImpl.of("secondActivity", "success", emptyList()))),
                 singletonList(SeatNonBid.of("secondSeat", singletonList(NonBid.of("2", BidRejectionReason.NO_BID))))));
 
@@ -54,7 +55,7 @@ public class CompositeRuleTest {
                 SeatNonBid.of("firstSeat", singletonList(NonBid.of("1", BidRejectionReason.NO_BID))),
                 SeatNonBid.of("secondSeat", singletonList(NonBid.of("2", BidRejectionReason.NO_BID))));
 
-        assertThat(result).isEqualTo(RuleResult.of(UpdateResult.updated(VALUE), expectedTags, expectedNonBids));
+        assertThat(result).isEqualTo(RuleResult.of(VALUE, RuleAction.UPDATE, expectedTags, expectedNonBids));
 
         verify(firstRule).process(eq(VALUE), any());
         verify(secondRule).process(eq(VALUE), any());
