@@ -22,8 +22,9 @@ public class PerImpConditionalRule implements Rule<BidRequest, RequestRuleContex
         for (Imp imp : value.getImp()) {
             result = result.mergeWith(delegate.process(result.getValue(), contextForImp(context, imp)));
 
-            if (result.isReject())
+            if (result.isReject()) {
                 return result;
+            }
         }
 
         return result;

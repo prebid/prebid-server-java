@@ -21,14 +21,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class BundleInFunctionTest {
 
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final BundleInFunction target = new BundleInFunction();
 
     @Test
     public void validateConfigShouldThrowErrorWhenConfigIsAbsent() {
         // when and then
-        assertThatThrownBy(() -> target.validateConfig(mapper.createObjectNode()))
+        assertThatThrownBy(() -> target.validateConfig(MAPPER.createObjectNode()))
                 .isInstanceOf(ConfigurationValidationException.class)
                 .hasMessage("Field 'bundles' is required and has to be an array of strings");
     }
@@ -36,7 +36,7 @@ public class BundleInFunctionTest {
     @Test
     public void validateConfigShouldThrowErrorWhenBundlesFieldIsAbsent() {
         // when and then
-        assertThatThrownBy(() -> target.validateConfig(mapper.createObjectNode()))
+        assertThatThrownBy(() -> target.validateConfig(MAPPER.createObjectNode()))
                 .isInstanceOf(ConfigurationValidationException.class)
                 .hasMessage("Field 'bundles' is required and has to be an array of strings");
     }
@@ -44,7 +44,7 @@ public class BundleInFunctionTest {
     @Test
     public void validateConfigShouldThrowErrorWhenBundlesFieldIsNotAnArray() {
         // given
-        final ObjectNode config = mapper.createObjectNode().set("bundles", TextNode.valueOf("test"));
+        final ObjectNode config = MAPPER.createObjectNode().set("bundles", TextNode.valueOf("test"));
 
         // when and then
         assertThatThrownBy(() -> target.validateConfig(config))
@@ -55,10 +55,10 @@ public class BundleInFunctionTest {
     @Test
     public void validateConfigShouldThrowErrorWhenBundlesFieldIsNotAnArrayOfStrings() {
         // given
-        final ArrayNode bundlesNode = mapper.createArrayNode();
+        final ArrayNode bundlesNode = MAPPER.createArrayNode();
         bundlesNode.add(TextNode.valueOf("test"));
         bundlesNode.add(IntNode.valueOf(1));
-        final ObjectNode config = mapper.createObjectNode().set("bundles", bundlesNode);
+        final ObjectNode config = MAPPER.createObjectNode().set("bundles", bundlesNode);
 
         // when and then
         assertThatThrownBy(() -> target.validateConfig(config))
@@ -105,8 +105,8 @@ public class BundleInFunctionTest {
     }
 
     private ObjectNode givenConfigWithBundles(String... bundles) {
-        final ArrayNode bundlesNode = mapper.createArrayNode();
+        final ArrayNode bundlesNode = MAPPER.createArrayNode();
         Arrays.stream(bundles).map(TextNode::valueOf).forEach(bundlesNode::add);
-        return mapper.createObjectNode().set("bundles", bundlesNode);
+        return MAPPER.createObjectNode().set("bundles", bundlesNode);
     }
 }

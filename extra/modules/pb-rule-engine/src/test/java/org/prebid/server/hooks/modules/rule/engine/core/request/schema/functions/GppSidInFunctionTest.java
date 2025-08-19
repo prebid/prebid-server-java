@@ -6,8 +6,6 @@ import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Regs;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.auction.model.AuctionContext;
@@ -24,14 +22,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class GppSidInFunctionTest {
 
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final GppSidInFunction target = new GppSidInFunction();
 
     @Test
     public void validateConfigShouldThrowErrorWhenConfigIsAbsent() {
         // when and then
-        assertThatThrownBy(() -> target.validateConfig(mapper.createObjectNode()))
+        assertThatThrownBy(() -> target.validateConfig(MAPPER.createObjectNode()))
                 .isInstanceOf(ConfigurationValidationException.class)
                 .hasMessage("Field 'sids' is required and has to be an array of integers");
     }
@@ -39,7 +37,7 @@ class GppSidInFunctionTest {
     @Test
     public void validateConfigShouldThrowErrorWhenSidsFieldIsAbsent() {
         // when and then
-        assertThatThrownBy(() -> target.validateConfig(mapper.createObjectNode()))
+        assertThatThrownBy(() -> target.validateConfig(MAPPER.createObjectNode()))
                 .isInstanceOf(ConfigurationValidationException.class)
                 .hasMessage("Field 'sids' is required and has to be an array of integers");
     }
@@ -47,7 +45,7 @@ class GppSidInFunctionTest {
     @Test
     public void validateConfigShouldThrowErrorWhenSidsFieldIsNotAnArray() {
         // given
-        final ObjectNode config = mapper.createObjectNode().set("sids", TextNode.valueOf("test"));
+        final ObjectNode config = MAPPER.createObjectNode().set("sids", TextNode.valueOf("test"));
 
         // when and then
         assertThatThrownBy(() -> target.validateConfig(config))
@@ -58,10 +56,10 @@ class GppSidInFunctionTest {
     @Test
     public void validateConfigShouldThrowErrorWhenSidsFieldIsNotAnArrayOfStrings() {
         // given
-        final ArrayNode sidsNode = mapper.createArrayNode();
+        final ArrayNode sidsNode = MAPPER.createArrayNode();
         sidsNode.add(TextNode.valueOf("test"));
         sidsNode.add(IntNode.valueOf(1));
-        final ObjectNode config = mapper.createObjectNode().set("sids", sidsNode);
+        final ObjectNode config = MAPPER.createObjectNode().set("sids", sidsNode);
 
         // when and then
         assertThatThrownBy(() -> target.validateConfig(config))
@@ -111,8 +109,8 @@ class GppSidInFunctionTest {
     }
 
     private ObjectNode givenConfigWithSids(int... sids) {
-        final ArrayNode sidsNode = mapper.createArrayNode();
+        final ArrayNode sidsNode = MAPPER.createArrayNode();
         Arrays.stream(sids).mapToObj(IntNode::valueOf).forEach(sidsNode::add);
-        return mapper.createObjectNode().set("sids", sidsNode);
+        return MAPPER.createObjectNode().set("sids", sidsNode);
     }
 }

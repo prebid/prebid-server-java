@@ -29,14 +29,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class LogATagFunctionTest {
 
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    private final LogATagFunction target = new LogATagFunction(mapper);
+    private final LogATagFunction target = new LogATagFunction(MAPPER);
 
     @Test
     public void validateConfigShouldThrowErrorWhenConfigIsAbsent() {
         // when and then
-        assertThatThrownBy(() -> target.validateConfig(mapper.createObjectNode()))
+        assertThatThrownBy(() -> target.validateConfig(MAPPER.createObjectNode()))
                 .isInstanceOf(ConfigurationValidationException.class)
                 .hasMessage("Field 'analyticsValue' is required and has to be a string");
     }
@@ -44,7 +44,7 @@ class LogATagFunctionTest {
     @Test
     public void validateConfigShouldThrowErrorWhenAnalyticsValueFieldIsAbsent() {
         // when and then
-        assertThatThrownBy(() -> target.validateConfig(mapper.createObjectNode()))
+        assertThatThrownBy(() -> target.validateConfig(MAPPER.createObjectNode()))
                 .isInstanceOf(ConfigurationValidationException.class)
                 .hasMessage("Field 'analyticsValue' is required and has to be a string");
     }
@@ -52,7 +52,7 @@ class LogATagFunctionTest {
     @Test
     public void validateConfigShouldThrowErrorWhenAnalyticsValueFieldIsNotAString() {
         // given
-        final ObjectNode config = mapper.createObjectNode().set("analyticsValue", mapper.createObjectNode());
+        final ObjectNode config = MAPPER.createObjectNode().set("analyticsValue", MAPPER.createObjectNode());
 
         // when and then
         assertThatThrownBy(() -> target.validateConfig(config))
@@ -76,7 +76,7 @@ class LogATagFunctionTest {
                         .modelVersion("modelVersion")
                         .build();
 
-        final ObjectNode config = mapper.createObjectNode()
+        final ObjectNode config = MAPPER.createObjectNode()
                 .set("analyticsValue", TextNode.valueOf("analyticsValue"));
 
         final ResultFunctionArguments<BidRequest, RequestRuleContext> resultFunctionArguments =
@@ -86,7 +86,7 @@ class LogATagFunctionTest {
         final RuleResult<BidRequest> result = target.apply(resultFunctionArguments);
 
         // then
-        final ObjectNode expectedValues = mapper.createObjectNode();
+        final ObjectNode expectedValues = MAPPER.createObjectNode();
         expectedValues.set("analyticsKey", TextNode.valueOf("analyticsKey"));
         expectedValues.set("analyticsValue", TextNode.valueOf("analyticsValue"));
         expectedValues.set("modelVersion", TextNode.valueOf("modelVersion"));
@@ -123,7 +123,7 @@ class LogATagFunctionTest {
                         .modelVersion("modelVersion")
                         .build();
 
-        final ObjectNode config = mapper.createObjectNode()
+        final ObjectNode config = MAPPER.createObjectNode()
                 .set("analyticsValue", TextNode.valueOf("analyticsValue"));
 
         final ResultFunctionArguments<BidRequest, RequestRuleContext> resultFunctionArguments =
@@ -133,7 +133,7 @@ class LogATagFunctionTest {
         final RuleResult<BidRequest> result = target.apply(resultFunctionArguments);
 
         // then
-        final ObjectNode expectedValues = mapper.createObjectNode();
+        final ObjectNode expectedValues = MAPPER.createObjectNode();
         expectedValues.set("analyticsKey", TextNode.valueOf("analyticsKey"));
         expectedValues.set("analyticsValue", TextNode.valueOf("analyticsValue"));
         expectedValues.set("modelVersion", TextNode.valueOf("modelVersion"));

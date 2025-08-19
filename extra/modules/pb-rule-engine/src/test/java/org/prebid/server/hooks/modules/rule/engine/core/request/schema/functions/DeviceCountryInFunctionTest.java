@@ -22,14 +22,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class DeviceCountryInFunctionTest {
 
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final DeviceCountryInFunction target = new DeviceCountryInFunction();
 
     @Test
     public void validateConfigShouldThrowErrorWhenConfigIsAbsent() {
         // when and then
-        assertThatThrownBy(() -> target.validateConfig(mapper.createObjectNode()))
+        assertThatThrownBy(() -> target.validateConfig(MAPPER.createObjectNode()))
                 .isInstanceOf(ConfigurationValidationException.class)
                 .hasMessage("Field 'countries' is required and has to be an array of strings");
     }
@@ -37,7 +37,7 @@ public class DeviceCountryInFunctionTest {
     @Test
     public void validateConfigShouldThrowErrorWhenDatacentersFieldIsAbsent() {
         // when and then
-        assertThatThrownBy(() -> target.validateConfig(mapper.createObjectNode()))
+        assertThatThrownBy(() -> target.validateConfig(MAPPER.createObjectNode()))
                 .isInstanceOf(ConfigurationValidationException.class)
                 .hasMessage("Field 'countries' is required and has to be an array of strings");
     }
@@ -45,7 +45,7 @@ public class DeviceCountryInFunctionTest {
     @Test
     public void validateConfigShouldThrowErrorWhenDatacentersFieldIsNotAnArray() {
         // given
-        final ObjectNode config = mapper.createObjectNode().set("countries", TextNode.valueOf("test"));
+        final ObjectNode config = MAPPER.createObjectNode().set("countries", TextNode.valueOf("test"));
 
         // when and then
         assertThatThrownBy(() -> target.validateConfig(config))
@@ -56,10 +56,10 @@ public class DeviceCountryInFunctionTest {
     @Test
     public void validateConfigShouldThrowErrorWhenDatacentersFieldIsNotAnArrayOfStrings() {
         // given
-        final ArrayNode countriesNode = mapper.createArrayNode();
+        final ArrayNode countriesNode = MAPPER.createArrayNode();
         countriesNode.add(TextNode.valueOf("test"));
         countriesNode.add(IntNode.valueOf(1));
-        final ObjectNode config = mapper.createObjectNode().set("countries", countriesNode);
+        final ObjectNode config = MAPPER.createObjectNode().set("countries", countriesNode);
 
         // when and then
         assertThatThrownBy(() -> target.validateConfig(config))
@@ -104,8 +104,8 @@ public class DeviceCountryInFunctionTest {
     }
 
     private ObjectNode givenConfigWithCountries(String... countries) {
-        final ArrayNode countriesNode = mapper.createArrayNode();
+        final ArrayNode countriesNode = MAPPER.createArrayNode();
         Arrays.stream(countries).map(TextNode::valueOf).forEach(countriesNode::add);
-        return mapper.createObjectNode().set("countries", countriesNode);
+        return MAPPER.createObjectNode().set("countries", countriesNode);
     }
 }

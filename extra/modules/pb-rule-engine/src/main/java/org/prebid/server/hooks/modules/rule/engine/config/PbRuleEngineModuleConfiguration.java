@@ -36,6 +36,7 @@ public class PbRuleEngineModuleConfiguration {
     @Bean
     StageConfigParser<BidRequest, RequestRuleContext> processedAuctionRequestStageParser(
             BidderCatalog bidderCatalog) {
+
         final RandomGenerator randomGenerator = () -> ThreadLocalRandom.current().nextLong();
 
         return new StageConfigParser<>(

@@ -21,14 +21,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class DeviceTypeInFunctionTest {
 
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final DeviceTypeInFunction target = new DeviceTypeInFunction();
 
     @Test
     public void validateConfigShouldThrowErrorWhenConfigIsAbsent() {
         // when and then
-        assertThatThrownBy(() -> target.validateConfig(mapper.createObjectNode()))
+        assertThatThrownBy(() -> target.validateConfig(MAPPER.createObjectNode()))
                 .isInstanceOf(ConfigurationValidationException.class)
                 .hasMessage("Field 'types' is required and has to be an array of integers");
     }
@@ -36,7 +36,7 @@ public class DeviceTypeInFunctionTest {
     @Test
     public void validateConfigShouldThrowErrorWhenTypesFieldIsAbsent() {
         // when and then
-        assertThatThrownBy(() -> target.validateConfig(mapper.createObjectNode()))
+        assertThatThrownBy(() -> target.validateConfig(MAPPER.createObjectNode()))
                 .isInstanceOf(ConfigurationValidationException.class)
                 .hasMessage("Field 'types' is required and has to be an array of integers");
     }
@@ -44,7 +44,7 @@ public class DeviceTypeInFunctionTest {
     @Test
     public void validateConfigShouldThrowErrorWhenTypesFieldIsNotAnArray() {
         // given
-        final ObjectNode config = mapper.createObjectNode().set("types", TextNode.valueOf("test"));
+        final ObjectNode config = MAPPER.createObjectNode().set("types", TextNode.valueOf("test"));
 
         // when and then
         assertThatThrownBy(() -> target.validateConfig(config))
@@ -55,10 +55,10 @@ public class DeviceTypeInFunctionTest {
     @Test
     public void validateConfigShouldThrowErrorWhenTypesFieldIsNotAnArrayOfIntegers() {
         // given
-        final ArrayNode typesNode = mapper.createArrayNode();
+        final ArrayNode typesNode = MAPPER.createArrayNode();
         typesNode.add(TextNode.valueOf("test"));
         typesNode.add(IntNode.valueOf(1));
-        final ObjectNode config = mapper.createObjectNode().set("types", typesNode);
+        final ObjectNode config = MAPPER.createObjectNode().set("types", typesNode);
 
         // when and then
         assertThatThrownBy(() -> target.validateConfig(config))
@@ -103,8 +103,8 @@ public class DeviceTypeInFunctionTest {
     }
 
     private ObjectNode givenConfigWithTypes(int... types) {
-        final ArrayNode typesNode = mapper.createArrayNode();
+        final ArrayNode typesNode = MAPPER.createArrayNode();
         Arrays.stream(types).mapToObj(IntNode::valueOf).forEach(typesNode::add);
-        return mapper.createObjectNode().set("types", typesNode);
+        return MAPPER.createObjectNode().set("types", typesNode);
     }
 }

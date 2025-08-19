@@ -35,7 +35,7 @@ import static org.mockito.Mock.Strictness.LENIENT;
 @ExtendWith(MockitoExtension.class)
 class PbRuleEngineProcessedAuctionRequestHookTest {
 
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private PbRuleEngineProcessedAuctionRequestHook target;
 
@@ -87,7 +87,7 @@ class PbRuleEngineProcessedAuctionRequestHookTest {
     @Test
     public void callShouldReturnNoActionWhenRuleActionIsNoAction() {
         // given
-        given(invocationContext.accountConfig()).willReturn(mapper.createObjectNode());
+        given(invocationContext.accountConfig()).willReturn(MAPPER.createObjectNode());
         given(processedAuctionRequestRule.process(
                 bidRequest,
                 RequestRuleContext.of(auctionContext, Granularity.Request.instance(), "datacenter")))
@@ -104,7 +104,7 @@ class PbRuleEngineProcessedAuctionRequestHookTest {
     @Test
     public void callShouldReturnPayloadUpdateWhenRuleActionIsUpdate() {
         // given
-        given(invocationContext.accountConfig()).willReturn(mapper.createObjectNode());
+        given(invocationContext.accountConfig()).willReturn(MAPPER.createObjectNode());
         given(processedAuctionRequestRule.process(
                 bidRequest,
                 RequestRuleContext.of(auctionContext, Granularity.Request.instance(), "datacenter")))
@@ -122,7 +122,7 @@ class PbRuleEngineProcessedAuctionRequestHookTest {
     @Test
     public void callShouldReturnRejectWhenRuleActionIsReject() {
         // given
-        given(invocationContext.accountConfig()).willReturn(mapper.createObjectNode());
+        given(invocationContext.accountConfig()).willReturn(MAPPER.createObjectNode());
         given(processedAuctionRequestRule.process(
                 bidRequest,
                 RequestRuleContext.of(auctionContext, Granularity.Request.instance(), "datacenter")))
@@ -140,7 +140,7 @@ class PbRuleEngineProcessedAuctionRequestHookTest {
     @Test
     public void callShouldReturnFailureOnFailure() {
         // given
-        given(invocationContext.accountConfig()).willReturn(mapper.createObjectNode());
+        given(invocationContext.accountConfig()).willReturn(MAPPER.createObjectNode());
         given(processedAuctionRequestRule.process(
                 bidRequest,
                 RequestRuleContext.of(auctionContext, Granularity.Request.instance(), "datacenter")))

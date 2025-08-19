@@ -51,7 +51,7 @@ public class CompositeRuleTest {
                 asList(ActivityImpl.of("firstActivity", "success", emptyList()),
                         ActivityImpl.of("secondActivity", "success", emptyList())));
 
-        List<SeatNonBid> expectedNonBids = List.of(
+        final List<SeatNonBid> expectedNonBids = List.of(
                 SeatNonBid.of("firstSeat", singletonList(NonBid.of("1", BidRejectionReason.NO_BID))),
                 SeatNonBid.of("secondSeat", singletonList(NonBid.of("2", BidRejectionReason.NO_BID))));
 

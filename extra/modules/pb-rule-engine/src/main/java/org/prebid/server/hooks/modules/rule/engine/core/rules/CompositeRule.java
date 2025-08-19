@@ -16,8 +16,9 @@ public class CompositeRule<T, C> implements Rule<T, C> {
         for (Rule<T, C> subrule : subrules) {
             result = result.mergeWith(subrule.process(value, context));
 
-            if (result.isReject())
+            if (result.isReject()) {
                 return result;
+            }
         }
 
         return result;

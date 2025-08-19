@@ -24,7 +24,7 @@ import static org.mockito.Mockito.mock;
 @ExtendWith(MockitoExtension.class)
 public class AccountConfigParserTest {
 
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private AccountConfigParser target;
 
@@ -33,13 +33,13 @@ public class AccountConfigParserTest {
 
     @BeforeEach
     public void setUp() {
-        target = new AccountConfigParser(mapper, processedAuctionRequestStageParser);
+        target = new AccountConfigParser(MAPPER, processedAuctionRequestStageParser);
     }
 
     @Test
     public void parseShouldReturnNoOpConfigWhenEnabledIsFalse() {
         // when and then
-        assertThat(target.parse(mapper.createObjectNode().set("enabled", BooleanNode.getFalse()))).isEqualTo(
+        assertThat(target.parse(MAPPER.createObjectNode().set("enabled", BooleanNode.getFalse()))).isEqualTo(
                 PerStageRule.builder()
                         .timestamp(Instant.EPOCH)
                         .processedAuctionRequestRule(NoOpRule.create())
@@ -53,7 +53,7 @@ public class AccountConfigParserTest {
         given(processedAuctionRequestStageParser.parse(any())).willReturn(rule);
 
         // when and then
-        assertThat(target.parse(mapper.createObjectNode())).isEqualTo(
+        assertThat(target.parse(MAPPER.createObjectNode())).isEqualTo(
                 PerStageRule.builder()
                         .timestamp(Instant.EPOCH)
                         .processedAuctionRequestRule(rule)

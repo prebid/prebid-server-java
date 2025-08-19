@@ -10,7 +10,7 @@ import java.util.Objects;
 
 public class RuleTree<T> {
 
-    public static String WILDCARD_MATCHER = "*";
+    public static final String WILDCARD_MATCHER = "*";
 
     private final RuleNode<T> root;
 

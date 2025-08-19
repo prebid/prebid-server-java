@@ -16,14 +16,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class DataCenterFunctionTest {
 
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final DataCenterFunction target = new DataCenterFunction();
 
     @Test
     public void validateConfigShouldThrowErrorWhenArgumentsArePresent() {
         // given
-        final ObjectNode config = mapper.createObjectNode().set("args", TextNode.valueOf("args"));
+        final ObjectNode config = MAPPER.createObjectNode().set("args", TextNode.valueOf("args"));
 
         // when and then
         assertThatThrownBy(() -> target.validateConfig(config))

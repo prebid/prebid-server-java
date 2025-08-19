@@ -6,6 +6,7 @@ import org.prebid.server.hooks.modules.rule.engine.core.rules.result.Infrastruct
 import org.prebid.server.hooks.modules.rule.engine.core.rules.result.ResultFunctionArguments;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.result.ResultFunctionHolder;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.Schema;
+import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunctionArguments;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunctionHolder;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.tree.LookupResult;
@@ -16,8 +17,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
-import static org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunction.UNDEFINED_RESULT;
 
 public class ConditionalRule<T, C> implements Rule<T, C> {
 
@@ -45,7 +44,7 @@ public class ConditionalRule<T, C> implements Rule<T, C> {
         final List<String> matchers = schemaFunctions.stream()
                 .map(holder -> holder.getSchemaFunction().extract(
                         SchemaFunctionArguments.of(value, holder.getConfig(), context)))
-                .map(matcher -> StringUtils.defaultIfEmpty(matcher, UNDEFINED_RESULT))
+                .map(matcher -> StringUtils.defaultIfEmpty(matcher, SchemaFunction.UNDEFINED_RESULT))
                 .toList();
 
         final LookupResult<RuleConfig<T, C>> lookupResult;
@@ -71,8 +70,9 @@ public class ConditionalRule<T, C> implements Rule<T, C> {
         for (ResultFunctionHolder<T, C> action : ruleConfig.getActions()) {
             result = result.mergeWith(applyAction(action, result.getValue(), infrastructureArguments));
 
-            if (result.isReject())
+            if (result.isReject()) {
                 return result;
+            }
         }
 
         return result;

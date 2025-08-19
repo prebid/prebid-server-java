@@ -52,7 +52,7 @@ import static org.mockito.Mock.Strictness.LENIENT;
 @ExtendWith(MockitoExtension.class)
 class IncludeBiddersFunctionTest {
 
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private IncludeBiddersFunction target;
 
@@ -61,7 +61,7 @@ class IncludeBiddersFunctionTest {
 
     @BeforeEach
     void setUp() {
-        target = new IncludeBiddersFunction(mapper, bidderCatalog);
+        target = new IncludeBiddersFunction(MAPPER, bidderCatalog);
     }
 
     @Test
@@ -75,7 +75,7 @@ class IncludeBiddersFunctionTest {
     @Test
     public void validateConfigShouldThrowErrorWhenConfigIsInvalid() {
         // given
-        final ObjectNode config = mapper.createObjectNode().set("bidders", TextNode.valueOf("test"));
+        final ObjectNode config = MAPPER.createObjectNode().set("bidders", TextNode.valueOf("test"));
 
         // when and then
         assertThatThrownBy(() -> target.validateConfig(config))
@@ -85,7 +85,7 @@ class IncludeBiddersFunctionTest {
     @Test
     public void validateConfigShouldThrowErrorWhenBiddersFieldIsEmpty() {
         // given
-        final ObjectNode config = mapper.createObjectNode();
+        final ObjectNode config = MAPPER.createObjectNode();
 
         // when and then
         assertThatThrownBy(() -> target.validateConfig(config))
@@ -111,19 +111,19 @@ class IncludeBiddersFunctionTest {
                 .build();
 
         final ResultFunctionArguments<BidRequest, RequestRuleContext> arguments =
-                ResultFunctionArguments.of(bidRequest, mapper.valueToTree(config), infrastructureArguments);
+                ResultFunctionArguments.of(bidRequest, MAPPER.valueToTree(config), infrastructureArguments);
 
         // when
         final RuleResult<BidRequest> result = target.apply(arguments);
 
         // then
-        final ObjectNode expectedResultValue = mapper.createObjectNode();
+        final ObjectNode expectedResultValue = MAPPER.createObjectNode();
         expectedResultValue.set("analyticsKey", TextNode.valueOf("analyticsKey"));
         expectedResultValue.set("analyticsValue", TextNode.valueOf("analyticsValue"));
         expectedResultValue.set("modelVersion", TextNode.valueOf("modelVersion"));
         expectedResultValue.set("conditionFired", TextNode.valueOf("ruleFired"));
         expectedResultValue.set("resultFunction", TextNode.valueOf("includeBidders"));
-        expectedResultValue.set("biddersRemoved", mapper.createArrayNode().add("bidder2"));
+        expectedResultValue.set("biddersRemoved", MAPPER.createArrayNode().add("bidder2"));
         expectedResultValue.set("seatNonBid", IntNode.valueOf(BidRejectionReason.REQUEST_BLOCKED_GENERAL.getValue()));
 
         final AppliedTo expectedAppliedTo = AppliedToImpl.builder().impIds(Collections.singletonList("impId")).build();
@@ -164,19 +164,19 @@ class IncludeBiddersFunctionTest {
                 .build();
 
         final ResultFunctionArguments<BidRequest, RequestRuleContext> arguments =
-                ResultFunctionArguments.of(bidRequest, mapper.valueToTree(config), infrastructureArguments);
+                ResultFunctionArguments.of(bidRequest, MAPPER.valueToTree(config), infrastructureArguments);
 
         // when
         final RuleResult<BidRequest> result = target.apply(arguments);
 
         // then
-        final ObjectNode expectedResultValue = mapper.createObjectNode();
+        final ObjectNode expectedResultValue = MAPPER.createObjectNode();
         expectedResultValue.set("analyticsKey", TextNode.valueOf("analyticsKey"));
         expectedResultValue.set("analyticsValue", TextNode.valueOf("analyticsValue"));
         expectedResultValue.set("modelVersion", TextNode.valueOf("modelVersion"));
         expectedResultValue.set("conditionFired", TextNode.valueOf("ruleFired"));
         expectedResultValue.set("resultFunction", TextNode.valueOf("includeBidders"));
-        expectedResultValue.set("biddersRemoved", mapper.createArrayNode().add("bidder4"));
+        expectedResultValue.set("biddersRemoved", MAPPER.createArrayNode().add("bidder4"));
         expectedResultValue.set("seatNonBid", IntNode.valueOf(BidRejectionReason.REQUEST_BLOCKED_GENERAL.getValue()));
 
         final AppliedTo expectedAppliedTo = AppliedToImpl.builder()
@@ -204,7 +204,6 @@ class IncludeBiddersFunctionTest {
                         Collections.singletonList(expectedSeatNonBid)));
     }
 
-
     @Test
     void applyShouldExcludeBiddersWithLiveUidOrNotSpecifiedInConfigWhenIfSyncedIdSetToFalse() {
         // given
@@ -225,19 +224,19 @@ class IncludeBiddersFunctionTest {
                 .build();
 
         final ResultFunctionArguments<BidRequest, RequestRuleContext> arguments =
-                ResultFunctionArguments.of(bidRequest, mapper.valueToTree(config), infrastructureArguments);
+                ResultFunctionArguments.of(bidRequest, MAPPER.valueToTree(config), infrastructureArguments);
 
         // when
         final RuleResult<BidRequest> result = target.apply(arguments);
 
         // then
-        final ObjectNode expectedResultValue = mapper.createObjectNode();
+        final ObjectNode expectedResultValue = MAPPER.createObjectNode();
         expectedResultValue.set("analyticsKey", TextNode.valueOf("analyticsKey"));
         expectedResultValue.set("analyticsValue", TextNode.valueOf("analyticsValue"));
         expectedResultValue.set("modelVersion", TextNode.valueOf("modelVersion"));
         expectedResultValue.set("conditionFired", TextNode.valueOf("ruleFired"));
         expectedResultValue.set("resultFunction", TextNode.valueOf("includeBidders"));
-        expectedResultValue.set("biddersRemoved", mapper.createArrayNode().add("bidder1"));
+        expectedResultValue.set("biddersRemoved", MAPPER.createArrayNode().add("bidder1"));
         expectedResultValue.set("seatNonBid", IntNode.valueOf(BidRejectionReason.REQUEST_BLOCKED_GENERAL.getValue()));
 
         final AppliedTo expectedAppliedTo = AppliedToImpl.builder()
@@ -281,19 +280,19 @@ class IncludeBiddersFunctionTest {
                 .build();
 
         final ResultFunctionArguments<BidRequest, RequestRuleContext> arguments =
-                ResultFunctionArguments.of(bidRequest, mapper.valueToTree(config), infrastructureArguments);
+                ResultFunctionArguments.of(bidRequest, MAPPER.valueToTree(config), infrastructureArguments);
 
         // when
         final RuleResult<BidRequest> result = target.apply(arguments);
 
         // then
-        final ObjectNode expectedResultValue = mapper.createObjectNode();
+        final ObjectNode expectedResultValue = MAPPER.createObjectNode();
         expectedResultValue.set("analyticsKey", TextNode.valueOf("analyticsKey"));
         expectedResultValue.set("analyticsValue", TextNode.valueOf("analyticsValue"));
         expectedResultValue.set("modelVersion", TextNode.valueOf("modelVersion"));
         expectedResultValue.set("conditionFired", TextNode.valueOf("ruleFired"));
         expectedResultValue.set("resultFunction", TextNode.valueOf("includeBidders"));
-        expectedResultValue.set("biddersRemoved", mapper.createArrayNode().add("bidder2"));
+        expectedResultValue.set("biddersRemoved", MAPPER.createArrayNode().add("bidder2"));
         expectedResultValue.set("seatNonBid", IntNode.valueOf(BidRejectionReason.REQUEST_BLOCKED_GENERAL.getValue()));
 
         final AppliedTo expectedAppliedTo = AppliedToImpl.builder()
@@ -337,19 +336,19 @@ class IncludeBiddersFunctionTest {
                 .build();
 
         final ResultFunctionArguments<BidRequest, RequestRuleContext> arguments =
-                ResultFunctionArguments.of(bidRequest, mapper.valueToTree(config), infrastructureArguments);
+                ResultFunctionArguments.of(bidRequest, MAPPER.valueToTree(config), infrastructureArguments);
 
         // when
         final RuleResult<BidRequest> result = target.apply(arguments);
 
         // then
-        final ObjectNode expectedResultValue = mapper.createObjectNode();
+        final ObjectNode expectedResultValue = MAPPER.createObjectNode();
         expectedResultValue.set("analyticsKey", TextNode.valueOf("analyticsKey"));
         expectedResultValue.set("analyticsValue", TextNode.valueOf("analyticsValue"));
         expectedResultValue.set("modelVersion", TextNode.valueOf("modelVersion"));
         expectedResultValue.set("conditionFired", TextNode.valueOf("ruleFired"));
         expectedResultValue.set("resultFunction", TextNode.valueOf("includeBidders"));
-        expectedResultValue.set("biddersRemoved", mapper.createArrayNode().add("bidder3").add("bidder4"));
+        expectedResultValue.set("biddersRemoved", MAPPER.createArrayNode().add("bidder3").add("bidder4"));
         expectedResultValue.set("seatNonBid", IntNode.valueOf(BidRejectionReason.REQUEST_BLOCKED_GENERAL.getValue()));
 
         final AppliedTo expectedAppliedTo = AppliedToImpl.builder()
@@ -360,7 +359,6 @@ class IncludeBiddersFunctionTest {
                 "pb-rule-engine",
                 "success",
                 Collections.singletonList(ResultImpl.of("success", expectedResultValue, expectedAppliedTo)));
-
 
         final List<SeatNonBid> expectedSeatNonBid = List.of(
                 SeatNonBid.of(
@@ -400,19 +398,19 @@ class IncludeBiddersFunctionTest {
                 .build();
 
         final ResultFunctionArguments<BidRequest, RequestRuleContext> arguments =
-                ResultFunctionArguments.of(bidRequest, mapper.valueToTree(config), infrastructureArguments);
+                ResultFunctionArguments.of(bidRequest, MAPPER.valueToTree(config), infrastructureArguments);
 
         // when
         final RuleResult<BidRequest> result = target.apply(arguments);
 
         // then
-        final ObjectNode expectedResultValue = mapper.createObjectNode();
+        final ObjectNode expectedResultValue = MAPPER.createObjectNode();
         expectedResultValue.set("analyticsKey", TextNode.valueOf("analyticsKey"));
         expectedResultValue.set("analyticsValue", TextNode.valueOf("analyticsValue"));
         expectedResultValue.set("modelVersion", TextNode.valueOf("modelVersion"));
         expectedResultValue.set("conditionFired", TextNode.valueOf("ruleFired"));
         expectedResultValue.set("resultFunction", TextNode.valueOf("includeBidders"));
-        expectedResultValue.set("biddersRemoved", mapper.createArrayNode().add("bidder"));
+        expectedResultValue.set("biddersRemoved", MAPPER.createArrayNode().add("bidder"));
         expectedResultValue.set("seatNonBid", IntNode.valueOf(BidRejectionReason.REQUEST_BLOCKED_GENERAL.getValue()));
 
         final AppliedTo expectedAppliedTo = AppliedToImpl.builder()
@@ -423,7 +421,6 @@ class IncludeBiddersFunctionTest {
                 "pb-rule-engine",
                 "success",
                 Collections.singletonList(ResultImpl.of("success", expectedResultValue, expectedAppliedTo)));
-
 
         final List<SeatNonBid> expectedSeatNonBid = List.of(
                 SeatNonBid.of(
@@ -458,7 +455,7 @@ class IncludeBiddersFunctionTest {
                 .build();
 
         final ResultFunctionArguments<BidRequest, RequestRuleContext> arguments =
-                ResultFunctionArguments.of(bidRequest, mapper.valueToTree(config), infrastructureArguments);
+                ResultFunctionArguments.of(bidRequest, MAPPER.valueToTree(config), infrastructureArguments);
 
         // when
         final RuleResult<BidRequest> result = target.apply(arguments);
@@ -499,7 +496,7 @@ class IncludeBiddersFunctionTest {
                 .collect(Collectors.toMap(Function.identity(), ignored -> UidWithExpiry.live("uid")));
 
         final UidsCookie uidsCookie = new UidsCookie(
-                Uids.builder().uids(uids).build(), new JacksonMapper(mapper));
+                Uids.builder().uids(uids).build(), new JacksonMapper(MAPPER));
 
         Arrays.stream(liveUidBidders).forEach(
                 bidder -> given(bidderCatalog.cookieFamilyName(bidder)).willReturn(Optional.of(bidder)));
@@ -518,11 +515,11 @@ class IncludeBiddersFunctionTest {
     }
 
     private static ObjectNode givenImpExt(String... bidders) {
-        final ObjectNode biddersNode = mapper.createObjectNode();
-        final ObjectNode dummyBidderConfigNode = mapper.createObjectNode().set("config", TextNode.valueOf("test"));
+        final ObjectNode biddersNode = MAPPER.createObjectNode();
+        final ObjectNode dummyBidderConfigNode = MAPPER.createObjectNode().set("config", TextNode.valueOf("test"));
         Arrays.stream(bidders).forEach(bidder -> biddersNode.set(bidder, dummyBidderConfigNode));
 
-        return mapper.createObjectNode()
-                .set("prebid", mapper.createObjectNode().set("bidder", biddersNode));
+        return MAPPER.createObjectNode()
+                .set("prebid", MAPPER.createObjectNode().set("bidder", biddersNode));
     }
 }

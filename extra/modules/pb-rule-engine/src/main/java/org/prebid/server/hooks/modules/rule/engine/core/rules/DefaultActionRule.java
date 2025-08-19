@@ -34,8 +34,9 @@ public class DefaultActionRule<T, C> implements Rule<T, C> {
         for (ResultFunctionHolder<T, C> action : actions) {
             result = result.mergeWith(applyAction(action, result.getValue(), context));
 
-            if (result.isReject())
+            if (result.isReject()) {
                 return result;
+            }
         }
 
         return result;

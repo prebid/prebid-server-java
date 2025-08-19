@@ -37,7 +37,7 @@ import static org.mockito.Mock.Strictness.LENIENT;
 @ExtendWith(MockitoExtension.class)
 public class ConditionalRuleTest {
 
-    private final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private static final String ANALYTICS_KEY = "analyticsKey";
     private static final String MODEL_VERSION = "modelVersion";
@@ -71,8 +71,8 @@ public class ConditionalRuleTest {
         final Object context = new Object();
 
         // two schema functions
-        final ObjectNode firstSchemaFunctionConfig = mapper.createObjectNode();
-        final ObjectNode secondSchemaFunctionConfig = mapper.createObjectNode();
+        final ObjectNode firstSchemaFunctionConfig = MAPPER.createObjectNode();
+        final ObjectNode secondSchemaFunctionConfig = MAPPER.createObjectNode();
         final String firstSchemaFunctionName = "firstFunction";
         final String secondSchemaFunctionName = "secondFunction";
         final String firstSchemaFunctionOutput = "firstSchemaOutput";
@@ -90,8 +90,8 @@ public class ConditionalRuleTest {
         // two result functions
         final String firstRuleActionName = "firstRuleAction";
         final String secondRuleActionName = "secondRuleAction";
-        final ObjectNode firstResultFunctionConfig = mapper.createObjectNode();
-        final ObjectNode secondResultFunctionConfig = mapper.createObjectNode();
+        final ObjectNode firstResultFunctionConfig = MAPPER.createObjectNode();
+        final ObjectNode secondResultFunctionConfig = MAPPER.createObjectNode();
         final List<ResultFunctionHolder<Object, Object>> resultFunctionHolders = List.of(
                 ResultFunctionHolder.of(firstRuleActionName, firstResultFunction, firstResultFunctionConfig),
                 ResultFunctionHolder.of(secondRuleActionName, secondResultFunction, secondResultFunctionConfig));

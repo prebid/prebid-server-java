@@ -17,14 +17,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class TcfInScopeFunctionTest {
 
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final TcfInScopeFunction target = new TcfInScopeFunction();
 
     @Test
     public void validateConfigShouldThrowErrorWhenArgumentsArePresent() {
         // given
-        final ObjectNode config = mapper.createObjectNode().set("args", TextNode.valueOf("args"));
+        final ObjectNode config = MAPPER.createObjectNode().set("args", TextNode.valueOf("args"));
 
         // when and then
         assertThatThrownBy(() -> target.validateConfig(config))

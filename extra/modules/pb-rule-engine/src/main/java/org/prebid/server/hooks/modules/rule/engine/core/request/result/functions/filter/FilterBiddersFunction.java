@@ -55,8 +55,8 @@ public abstract class FilterBiddersFunction implements ResultFunction<BidRequest
         final List<SeatNonBid> seatNonBid = new ArrayList<>();
 
         for (Imp imp : bidRequest.getImp()) {
-            if (granularity instanceof Granularity.Imp &&
-                    !StringUtils.equals(((Granularity.Imp) granularity).impId(), imp.getId())) {
+            if (granularity instanceof Granularity.Imp
+                    && !StringUtils.equals(((Granularity.Imp) granularity).impId(), imp.getId())) {
 
                 updatedImps.add(imp);
                 continue;
@@ -86,7 +86,7 @@ public abstract class FilterBiddersFunction implements ResultFunction<BidRequest
         final BidRequest result = action == RuleAction.UPDATE
                 ? bidRequest.toBuilder().imp(updatedImps).build()
                 : bidRequest;
-        
+
         return RuleResult.of(result, action, tags, seatNonBid);
     }
 

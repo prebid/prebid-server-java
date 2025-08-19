@@ -52,7 +52,6 @@ public class AnalyticsMapper {
                 ActivityImpl.of(ACTIVITY_NAME, SUCCESS_STATUS, Collections.singletonList(result))));
     }
 
-
     private record AnalyticsData(@JsonProperty("analyticsKey") String analyticsKey,
                                  @JsonProperty("analyticsValue") String analyticsValue,
                                  @JsonProperty("modelVersion") String modelVersion,

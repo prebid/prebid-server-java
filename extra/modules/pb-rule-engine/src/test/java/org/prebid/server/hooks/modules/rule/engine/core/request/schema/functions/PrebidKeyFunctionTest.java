@@ -19,14 +19,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class PrebidKeyFunctionTest {
 
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final PrebidKeyFunction target = new PrebidKeyFunction();
 
     @Test
     public void validateConfigShouldThrowErrorWhenConfigIsAbsent() {
         // when and then
-        assertThatThrownBy(() -> target.validateConfig(mapper.createObjectNode()))
+        assertThatThrownBy(() -> target.validateConfig(MAPPER.createObjectNode()))
                 .isInstanceOf(ConfigurationValidationException.class)
                 .hasMessage("Field 'key' is required and has to be a string");
     }
@@ -34,7 +34,7 @@ public class PrebidKeyFunctionTest {
     @Test
     public void validateConfigShouldThrowErrorWhenKeyFieldIsAbsent() {
         // when and then
-        assertThatThrownBy(() -> target.validateConfig(mapper.createObjectNode()))
+        assertThatThrownBy(() -> target.validateConfig(MAPPER.createObjectNode()))
                 .isInstanceOf(ConfigurationValidationException.class)
                 .hasMessage("Field 'key' is required and has to be a string");
     }
@@ -42,7 +42,7 @@ public class PrebidKeyFunctionTest {
     @Test
     public void validateConfigShouldThrowErrorWhenKeyFieldIsNotAString() {
         // given
-        final ObjectNode config = mapper.createObjectNode().set("key", IntNode.valueOf(1));
+        final ObjectNode config = MAPPER.createObjectNode().set("key", IntNode.valueOf(1));
 
         // when and then
         assertThatThrownBy(() -> target.validateConfig(config))
@@ -53,7 +53,7 @@ public class PrebidKeyFunctionTest {
     @Test
     public void extractShouldReturnExtPrebidKvpsValueBySpecifiedKey() {
         // given
-        final ObjectNode extPrebidKvpsNode = mapper.createObjectNode().set("key", TextNode.valueOf("value"));
+        final ObjectNode extPrebidKvpsNode = MAPPER.createObjectNode().set("key", TextNode.valueOf("value"));
         final BidRequest bidRequest = BidRequest.builder()
                 .ext(ExtRequest.of(ExtRequestPrebid.builder().kvps(extPrebidKvpsNode).build()))
                 .build();
@@ -88,6 +88,6 @@ public class PrebidKeyFunctionTest {
     }
 
     private ObjectNode givenConfigWithKey(String key) {
-        return mapper.createObjectNode().set("key", TextNode.valueOf(key));
+        return MAPPER.createObjectNode().set("key", TextNode.valueOf(key));
     }
 }

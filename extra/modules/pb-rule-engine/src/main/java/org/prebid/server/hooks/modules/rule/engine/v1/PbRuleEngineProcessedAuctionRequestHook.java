@@ -66,7 +66,7 @@ public class PbRuleEngineProcessedAuctionRequestHook implements ProcessedAuction
             resultBuilder.payloadUpdate(initialPayload -> AuctionRequestPayloadImpl.of(result.getValue()));
         }
 
-        return Future.succeededFuture(resultBuilder.build() );
+        return Future.succeededFuture(resultBuilder.build());
     }
 
     private static Future<InvocationResult<AuctionRequestPayload>> failure(Throwable error) {

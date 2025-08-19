@@ -5,7 +5,6 @@ import lombok.experimental.Accessors;
 
 import java.util.Set;
 
-
 public sealed interface FilterBiddersResult {
 
     @Accessors(fluent = true)

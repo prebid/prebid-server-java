@@ -26,15 +26,15 @@ import static org.mockito.Mockito.mock;
 
 public class DefaultActionRuleTest {
 
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Test
     public void processShouldAccumulateResultFromAllRuleActions() {
         // given
-        final Object VALUE = new Object();
-        final Object CONTEXT = new Object();
+        final Object value = new Object();
+        final Object context = new Object();
 
-        final ObjectNode firstConfig = mapper.createObjectNode().set("config", TextNode.valueOf("test"));
+        final ObjectNode firstConfig = MAPPER.createObjectNode().set("config", TextNode.valueOf("test"));
         final ResultFunction<Object, Object> firstFunction =
                 (ResultFunction<Object, Object>) mock(ResultFunction.class);
         given(firstFunction.apply(any())).willAnswer(invocationOnMock -> RuleResult.of(
@@ -43,7 +43,7 @@ public class DefaultActionRuleTest {
                 TagsImpl.of(singletonList(ActivityImpl.of("firstActivity", "success", emptyList()))),
                 singletonList(SeatNonBid.of("firstSeat", singletonList(NonBid.of("1", BidRejectionReason.NO_BID))))));
 
-        final ObjectNode secondConfig = mapper.createObjectNode().set("config", TextNode.valueOf("anotherTest"));
+        final ObjectNode secondConfig = MAPPER.createObjectNode().set("config", TextNode.valueOf("anotherTest"));
         final ResultFunction<Object, Object> secondFunction =
                 (ResultFunction<Object, Object>) mock(ResultFunction.class);
         given(secondFunction.apply(any())).willAnswer(invocationOnMock -> RuleResult.of(
@@ -60,17 +60,17 @@ public class DefaultActionRuleTest {
                 actions, "analyticsKey", "modelVersion");
 
         // when
-        final RuleResult<Object> result = target.process(VALUE, CONTEXT);
+        final RuleResult<Object> result = target.process(value, context);
 
         // then
         final Tags expectedTags = TagsImpl.of(
                 asList(ActivityImpl.of("firstActivity", "success", emptyList()),
                         ActivityImpl.of("secondActivity", "success", emptyList())));
 
-        List<SeatNonBid> expectedNonBids = List.of(
+        final List<SeatNonBid> expectedNonBids = List.of(
                 SeatNonBid.of("firstSeat", singletonList(NonBid.of("1", BidRejectionReason.NO_BID))),
                 SeatNonBid.of("secondSeat", singletonList(NonBid.of("2", BidRejectionReason.NO_BID))));
 
-        assertThat(result).isEqualTo(RuleResult.of(VALUE, RuleAction.UPDATE, expectedTags, expectedNonBids));
+        assertThat(result).isEqualTo(RuleResult.of(value, RuleAction.UPDATE, expectedTags, expectedNonBids));
     }
 }
