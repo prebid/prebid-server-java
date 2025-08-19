@@ -1,7 +1,6 @@
 package org.prebid.server.hooks.modules.rule.engine.core.request.result.functions.filter;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
@@ -63,9 +62,17 @@ public abstract class FilterBiddersFunction implements ResultFunction<BidRequest
                 continue;
             }
 
-            final FilterBiddersResult result = filterBidders(imp, config.getBidders(), ifSyncedId, uidsCookie);
-            updatedImps.add(result.getImp());
-            seatNonBid.addAll(toSeatNonBid(result, rejectionReason));
+            switch (filterBidders(imp, config.getBidders(), ifSyncedId, uidsCookie)) {
+                case FilterBiddersResult.NoAction noAction -> updatedImps.add(imp);
+
+                case FilterBiddersResult.Reject reject ->
+                        seatNonBid.addAll(toSeatNonBid(imp.getId(), reject.bidders(), rejectionReason));
+
+                case FilterBiddersResult.Update update -> {
+                    updatedImps.add(update.imp());
+                    seatNonBid.addAll(toSeatNonBid(imp.getId(), update.bidders(), rejectionReason));
+                }
+            }
         }
 
         final UpdateResult<BidRequest> updateResult = !seatNonBid.isEmpty()
@@ -78,9 +85,8 @@ public abstract class FilterBiddersFunction implements ResultFunction<BidRequest
         return RuleResult.of(updateResult, tags, seatNonBid);
     }
 
-    private static List<SeatNonBid> toSeatNonBid(FilterBiddersResult filterBiddersResult, BidRejectionReason reason) {
-        final String impId = filterBiddersResult.getImp().getId();
-        return filterBiddersResult.getBidders().stream()
+    private static List<SeatNonBid> toSeatNonBid(String impId, Set<String> bidders, BidRejectionReason reason) {
+        return bidders.stream()
                 .map(bidder -> SeatNonBid.of(bidder, Collections.singletonList(NonBid.of(impId, reason))))
                 .toList();
     }
@@ -90,19 +96,18 @@ public abstract class FilterBiddersFunction implements ResultFunction<BidRequest
                                               Boolean ifSyncedId,
                                               UidsCookie uidsCookie) {
 
-        final ObjectNode impExt = imp.getExt();
-        final Set<String> removedBidders = biddersToRemove(imp, bidders, ifSyncedId, uidsCookie);
-
-        if (removedBidders.isEmpty()) {
-            return FilterBiddersResult.of(imp, removedBidders);
+        final Set<String> biddersToRemove = biddersToRemove(imp, bidders, ifSyncedId, uidsCookie);
+        if (biddersToRemove.isEmpty()) {
+            return FilterBiddersResult.NoAction.instance();
         }
 
-        final ObjectNode updatedExt = impExt.deepCopy();
+        final ObjectNode updatedExt = imp.getExt().deepCopy();
         final ObjectNode updatedBiddersNode = FilterUtils.bidderNode(updatedExt);
-        removedBidders.forEach(updatedBiddersNode::remove);
+        biddersToRemove.forEach(updatedBiddersNode::remove);
 
-        final Imp updatedImp = removedBidders.isEmpty() ? imp : imp.toBuilder().ext(updatedExt).build();
-        return FilterBiddersResult.of(updatedImp, removedBidders);
+        return updatedBiddersNode.isEmpty()
+                ? new FilterBiddersResult.Reject(biddersToRemove)
+                : new FilterBiddersResult.Update(imp.toBuilder().ext(updatedExt).build(), biddersToRemove);
     }
 
     protected abstract Set<String> biddersToRemove(Imp imp,
@@ -128,7 +133,7 @@ public abstract class FilterBiddersFunction implements ResultFunction<BidRequest
         }
     }
 
-    private FilterBiddersFunctionConfig parseConfig(JsonNode config) {
+    private FilterBiddersFunctionConfig parseConfig(ObjectNode config) {
         try {
             return mapper.treeToValue(config, FilterBiddersFunctionConfig.class);
         } catch (JsonProcessingException e) {

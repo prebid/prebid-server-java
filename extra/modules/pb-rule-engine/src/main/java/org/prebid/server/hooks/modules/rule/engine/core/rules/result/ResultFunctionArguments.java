@@ -1,6 +1,6 @@
 package org.prebid.server.hooks.modules.rule.engine.core.rules.result;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Value;
 
 @Value(staticConstructor = "of")
@@ -8,7 +8,7 @@ public class ResultFunctionArguments<T, C> {
 
     T operand;
 
-    JsonNode config;
+    ObjectNode config;
 
     InfrastructureArguments<C> infrastructureArguments;
 }

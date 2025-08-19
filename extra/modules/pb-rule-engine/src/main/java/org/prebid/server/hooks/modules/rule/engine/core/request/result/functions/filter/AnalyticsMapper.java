@@ -8,7 +8,6 @@ import org.prebid.server.hooks.execution.v1.analytics.ActivityImpl;
 import org.prebid.server.hooks.execution.v1.analytics.AppliedToImpl;
 import org.prebid.server.hooks.execution.v1.analytics.ResultImpl;
 import org.prebid.server.hooks.execution.v1.analytics.TagsImpl;
-import org.prebid.server.hooks.modules.rule.engine.core.request.Granularity;
 import org.prebid.server.hooks.modules.rule.engine.core.request.RequestRuleContext;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.result.InfrastructureArguments;
 import org.prebid.server.hooks.v1.analytics.Result;
@@ -22,7 +21,7 @@ import java.util.List;
 
 public class AnalyticsMapper {
 
-    private static final String ACTIVITY_NAME = "rules-filter";
+    private static final String ACTIVITY_NAME = "pb-rule-engine";
     private static final String SUCCESS_STATUS = "success";
 
     private AnalyticsMapper() {
@@ -47,14 +46,11 @@ public class AnalyticsMapper {
             return TagsImpl.of(Collections.emptyList());
         }
 
-        final List<String> impIds =
-                infrastructureArguments.getContext().getGranularity() instanceof Granularity.Request
-                        ? Collections.singletonList("*")
-                        : seatNonBids.stream()
-                        .flatMap(seatNonBid -> seatNonBid.getNonBid().stream())
-                        .map(NonBid::getImpId)
-                        .distinct()
-                        .toList();
+        final List<String> impIds = seatNonBids.stream()
+                .flatMap(seatNonBid -> seatNonBid.getNonBid().stream())
+                .map(NonBid::getImpId)
+                .distinct()
+                .toList();
 
         final BidRejectionReason reason = seatNonBids.stream()
                 .flatMap(seatNonBid -> seatNonBid.getNonBid().stream())
