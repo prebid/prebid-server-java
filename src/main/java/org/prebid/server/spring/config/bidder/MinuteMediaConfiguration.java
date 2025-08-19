@@ -1,5 +1,8 @@
 package org.prebid.server.spring.config.bidder;
 
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.minutemedia.MinuteMediaBidder;
 import org.prebid.server.json.JacksonMapper;
@@ -23,19 +26,30 @@ public class MinuteMediaConfiguration {
 
     @Bean("minutemediaConfigurationProperties")
     @ConfigurationProperties("adapters.minutemedia")
-    BidderConfigurationProperties configurationProperties() {
-        return new BidderConfigurationProperties();
+    MinuteMediaConfigurationProperties configurationProperties() {
+        return new MinuteMediaConfigurationProperties();
     }
 
     @Bean
-    BidderDeps minutemediaBidderDeps(BidderConfigurationProperties minutemediaConfigurationProperties,
+    BidderDeps minutemediaBidderDeps(MinuteMediaConfigurationProperties minutemediaConfigurationProperties,
                                      @NotBlank @Value("${external-url}") String externalUrl,
                                      JacksonMapper mapper) {
 
-        return BidderDepsAssembler.forBidder(BIDDER_NAME)
+        return BidderDepsAssembler.<MinuteMediaConfigurationProperties>forBidder(BIDDER_NAME)
                 .withConfig(minutemediaConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new MinuteMediaBidder(config.getEndpoint(), mapper))
+                .bidderCreator(config -> new MinuteMediaBidder(
+                        config.getEndpoint(),
+                        config.getTestEndpoint(),
+                        mapper))
                 .assemble();
+    }
+
+    @Data
+    @EqualsAndHashCode(callSuper = true)
+    @NoArgsConstructor
+    private static class MinuteMediaConfigurationProperties extends BidderConfigurationProperties {
+
+        private String testEndpoint;
     }
 }

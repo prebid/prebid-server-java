@@ -37,10 +37,12 @@ public class MinuteMediaBidder implements Bidder<BidRequest> {
     public static final String PUBLISHER_ID_MACRO = "{{PublisherId}}";
 
     private final String endpointUrl;
+    private final String testEndpointUrl;
     private final JacksonMapper mapper;
 
-    public MinuteMediaBidder(String endpointUrl, JacksonMapper mapper) {
+    public MinuteMediaBidder(String endpointUrl, String testEndpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.testEndpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(testEndpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -49,15 +51,15 @@ public class MinuteMediaBidder implements Bidder<BidRequest> {
         final String orgId;
 
         try {
-            orgId = extractFirstImpOrdId(bidRequest.getImp());
+            orgId = extractFirstImpOrgId(bidRequest.getImp());
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
-        return Result.withValue(BidderUtil.defaultRequest(bidRequest, resolveEndpoint(endpointUrl, orgId), mapper));
+        return Result.withValue(BidderUtil.defaultRequest(bidRequest, makeUrl(orgId, bidRequest.getTest()), mapper));
     }
 
-    private String extractFirstImpOrdId(List<Imp> imps) {
+    private String extractFirstImpOrgId(List<Imp> imps) {
         return imps.stream()
                 .findFirst()
                 .map(this::parseImpExt)
@@ -76,8 +78,9 @@ public class MinuteMediaBidder implements Bidder<BidRequest> {
         }
     }
 
-    private String resolveEndpoint(String endpointUrl, String orgId) {
-        return endpointUrl.replace(PUBLISHER_ID_MACRO, HttpUtil.encodeUrl(orgId));
+    private String makeUrl(String orgId, Integer test) {
+        final String url = Objects.equals(test, 1) ? testEndpointUrl : endpointUrl;
+        return url.replace(PUBLISHER_ID_MACRO, HttpUtil.encodeUrl(orgId));
     }
 
     @Override
@@ -120,15 +123,11 @@ public class MinuteMediaBidder implements Bidder<BidRequest> {
 
     private static BidType getBidType(Bid bid) {
         final Integer markupType = bid.getMtype();
-        if (markupType == null) {
-            throw new PreBidException("Missing mediaType for bid: %s".formatted(bid.getId()));
-        }
-
         return switch (markupType) {
             case 1 -> BidType.banner;
             case 2 -> BidType.video;
-            default -> throw new PreBidException(
-                    "Unsupported bid mediaType: %s for impression: %s".formatted(bid.getMtype(), bid.getImpid()));
+            case null, default -> throw new PreBidException(
+                    "Unsupported bid mediaType: %s for impression: %s".formatted(markupType, bid.getImpid()));
         };
     }
 }

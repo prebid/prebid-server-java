@@ -346,6 +346,7 @@ For HTTP data source available next options:
 - `settings.http.amp-endpoint` - the url to fetch AMP stored requests.
 - `settings.http.video-endpoint` - the url to fetch video stored requests.
 - `settings.http.category-endpoint` - the url to fetch categories for long form video.
+- `settings.http.rfc3986-compatible` - if equals to `true` the url will be build according to RFC 3986, `false` by default
 
 For account processing rules available next options:
 - `settings.enforce-valid-account` - if equals to `true` then request without account id will be rejected with 401.
