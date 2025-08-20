@@ -1,7 +1,11 @@
-package org.prebid.server.bidder.zentotem;
+package org.prebid.server.bidder.exco;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Publisher;
+import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -15,6 +19,8 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.exco.ExtImpExco;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
@@ -24,35 +30,76 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
-public class ZentotemBidder implements Bidder<BidRequest> {
+public class ExcoBidder implements Bidder<BidRequest> {
+
+    private static final TypeReference<ExtPrebid<?, ExtImpExco>> EXCO_EXT_TYPE_REFERENCE = new TypeReference<>() {
+    };
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
-    public ZentotemBidder(String endpointUrl, JacksonMapper mapper) {
+    public ExcoBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
-        final List<BidderError> errors = new ArrayList<>();
+        final List<Imp> modifiedImps = new ArrayList<>();
+
+        String publisherId = null;
 
         for (Imp imp : request.getImp()) {
             try {
-                final BidRequest outgoingRequest = request.toBuilder()
-                        .imp(Collections.singletonList(imp))
-                        .build();
-                httpRequests.add(BidderUtil.defaultRequest(outgoingRequest, endpointUrl, mapper));
+                final ExtImpExco extImp = parseImpExt(imp);
+                modifiedImps.add(imp.toBuilder().tagid(extImp.getTagId()).build());
+                publisherId = extImp.getPublisherId();
             } catch (PreBidException e) {
-                errors.add(BidderError.badInput(e.getMessage()));
+                return Result.withError(BidderError.badInput(e.getMessage()));
             }
         }
 
-        return Result.of(httpRequests, errors);
+        final BidRequest outgoingRequest = modifyRequest(request, modifiedImps, publisherId);
+        return Result.withValue(BidderUtil.defaultRequest(outgoingRequest, endpointUrl, mapper));
+    }
+
+    private ExtImpExco parseImpExt(Imp imp) {
+        try {
+            return mapper.mapper().convertValue(imp.getExt(), EXCO_EXT_TYPE_REFERENCE).getBidder();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException("Invalid imp.ext for impression %s. Error Information: %s"
+                    .formatted(imp.getId(), e.getMessage()));
+        }
+    }
+
+    private BidRequest modifyRequest(BidRequest request, List<Imp> imps, String publisherId) {
+        final Site site = request.getSite();
+        final App app = request.getApp();
+
+        return request.toBuilder()
+                .imp(imps)
+                .site(site != null ? modifySite(site, publisherId) : null)
+                .app(app != null ? modifyApp(app, publisherId) : null)
+                .build();
+    }
+
+    private static Site modifySite(Site site, String publisherId) {
+        return site.toBuilder().publisher(modifyPublisher(site.getPublisher(), publisherId)).build();
+    }
+
+    private static App modifyApp(App app, String publisherId) {
+        return app.toBuilder().publisher(modifyPublisher(app.getPublisher(), publisherId)).build();
+    }
+
+    private static Publisher modifyPublisher(Publisher publisher, String publisherId) {
+        return Optional.ofNullable(publisher)
+                .map(Publisher::toBuilder)
+                .orElseGet(Publisher::builder)
+                .id(publisherId)
+                .build();
     }
 
     @Override
@@ -96,10 +143,9 @@ public class ZentotemBidder implements Bidder<BidRequest> {
         return switch (bid.getMtype()) {
             case 1 -> BidType.banner;
             case 2 -> BidType.video;
-            case 4 -> BidType.xNative;
             case null, default -> {
                 errors.add(BidderError.badServerResponse(
-                        "could not define media type for impression: " + bid.getImpid()));
+                        "unrecognized bid_ad_type in response from exco: " + bid.getMtype()));
                 yield null;
             }
         };
