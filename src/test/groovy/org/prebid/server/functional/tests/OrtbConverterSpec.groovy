@@ -553,7 +553,7 @@ class OrtbConverterSpec extends BaseSpec {
         given: "Default bid request with imp[0].video.*"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].video = Video.defaultVideo.tap {
-                rqddurs = [PBSUtils.randomNumber]
+                requireExactDuration = [PBSUtils.randomNumber]
                 maxseq = PBSUtils.randomNumber
                 poddur = PBSUtils.randomNumber
                 podid = PBSUtils.randomNumber
@@ -577,7 +577,7 @@ class OrtbConverterSpec extends BaseSpec {
         given: "Default bid request with imp[0].video.*"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].video = Video.defaultVideo.tap {
-                rqddurs = [PBSUtils.randomNumber]
+                requireExactDuration = [PBSUtils.randomNumber]
                 maxseq = PBSUtils.randomNumber
                 poddur = PBSUtils.randomNumber
                 podid = PBSUtils.randomNumber
@@ -601,7 +601,7 @@ class OrtbConverterSpec extends BaseSpec {
         given: "Default bid request with imp[0].audio.*"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].audio = Audio.defaultAudio.tap {
-                rqddurs = [PBSUtils.randomNumber]
+                requireExactDuration = [PBSUtils.randomNumber]
                 maxseq = PBSUtils.randomNumber
                 poddur = PBSUtils.randomNumber
                 podid = PBSUtils.randomNumber
@@ -623,7 +623,7 @@ class OrtbConverterSpec extends BaseSpec {
         given: "Default bid request with imp[0].audio.*"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].audio = Audio.defaultAudio.tap {
-                rqddurs = [PBSUtils.randomNumber]
+                requireExactDuration = [PBSUtils.randomNumber]
                 maxseq = PBSUtils.randomNumber
                 poddur = PBSUtils.randomNumber
                 podid = PBSUtils.randomNumber
@@ -924,7 +924,7 @@ class OrtbConverterSpec extends BaseSpec {
         def catRandomNumber = [PBSUtils.randomString]
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
             seatbid.first().bid.first().langb = langbRandomString
-            seatbid.first().bid.first().dur = durRandomNumber
+            seatbid.first().bid.first().duration = durRandomNumber
             seatbid.first().bid.first().apis = apisRandomNumbers
             seatbid.first().bid.first().slotinpod = slotinpodRandomNumber
             seatbid.first().bid.first().cattax = cattaxRandomNumber
@@ -940,7 +940,7 @@ class OrtbConverterSpec extends BaseSpec {
         then: "Bidder request should contain the lang, dur, apis, slotinpod, cattax,cat as on request"
         verifyAll(response) {
             seatbid.first().bid.first().langb == langbRandomString
-            seatbid.first().bid.first().dur == durRandomNumber
+            seatbid.first().bid.first().duration == durRandomNumber
             seatbid.first().bid.first().apis == apisRandomNumbers
             seatbid.first().bid.first().slotinpod == slotinpodRandomNumber
             seatbid.first().bid.first().cattax == cattaxRandomNumber
@@ -1220,7 +1220,7 @@ class OrtbConverterSpec extends BaseSpec {
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
             seatbid[0].bid[0].tap {
                 it.langb = langb
-                it.dur = dur
+                it.duration = dur
                 it.slotinpod = slotinpod
                 it.apis = apis
                 it.cat = cat
@@ -1237,7 +1237,7 @@ class OrtbConverterSpec extends BaseSpec {
         then: "Bidder request should contain seat[0].bid[0].{langb,dur,slotinpod,apis,cattax,cat} on request"
         verifyAll(response.seatbid[0].bid[0]) {
             it.langb == langb
-            it.dur == dur
+            it.duration == dur
             it.slotinpod == slotinpod
             it.apis == apis
             it.cattax == cattax
@@ -1266,7 +1266,7 @@ class OrtbConverterSpec extends BaseSpec {
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
             seatbid[0].bid[0].tap {
                 it.langb = langb
-                it.dur = dur
+                it.duration = dur
                 it.slotinpod = slotinpod
                 it.apis = apis
                 it.cattax = cattax
@@ -1283,7 +1283,7 @@ class OrtbConverterSpec extends BaseSpec {
         then: "Bidder request should contain seat[0].bid[0].{langb,dur,slotinpod,apis,cattax,cat} on request"
         verifyAll(response.seatbid[0].bid[0]) {
             it.langb == langb
-            it.dur == dur
+            it.duration == dur
             it.slotinpod == slotinpod
             it.apis == apis
             it.cattax == cattax

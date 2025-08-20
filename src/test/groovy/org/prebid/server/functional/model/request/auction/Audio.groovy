@@ -1,5 +1,6 @@
 package org.prebid.server.functional.model.request.auction
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 
@@ -13,7 +14,8 @@ class Audio {
     Integer poddur
     List<Integer> protocols
     Integer startdelay
-    List<Integer> rqddurs
+    @JsonProperty("rqddurs")
+    List<Integer> requireExactDuration
     Integer podid
     Integer podseq
     Integer sequence

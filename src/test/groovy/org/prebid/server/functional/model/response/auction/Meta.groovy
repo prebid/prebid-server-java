@@ -27,4 +27,6 @@ class Meta {
     String rendererUrl
     RendererData rendererData
     List<String> secondaryCategoryIdList
+    @JsonProperty("dur")
+    Integer duration
 }

@@ -21,7 +21,8 @@ class Video {
     Integer height
     Integer podid
     Integer podseq
-    List<Integer> rqddurs
+    @JsonProperty("rqddurs")
+    List<Integer> requireExactDuration
     VideoPlacementSubtypes placement
     VideoPlcmtSubtype plcmt
     Integer linearity
