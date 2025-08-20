@@ -108,12 +108,12 @@ public class SmartadserverBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldCreateRequestForEveryValidImp() {
+    public void makeHttpRequestsShouldCreateSingleRequest() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(Arrays.asList(givenImp(identity()),
-                        givenImp(impBuilder -> impBuilder.id("456"))
-                ))
+                .imp(Arrays.asList(
+                        givenImp(impBuilder -> impBuilder.id("123")),
+                        givenImp(impBuilder -> impBuilder.id("456"))))
                 .build();
 
         // when
@@ -121,23 +121,22 @@ public class SmartadserverBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
+        assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
-                .flatExtracting(Imp::getId)
+                .extracting(Imp::getId)
                 .containsExactly("123", "456");
     }
 
     @Test
-    public void makeHttpRequestsShouldCreateRequestForValidImpAndSaveErrorForInvalid() {
+    public void makeHttpRequestsShouldCreateSingleRequestWithValidImpsOnly() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(Arrays.asList(givenImp(impBuilder -> impBuilder.id("456")),
+                .imp(Arrays.asList(givenImp(impBuilder -> impBuilder.id("123")),
                         Imp.builder()
                                 .id("invalidImp")
                                 .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
-                                .build()
-                ))
+                                .build()))
                 .build();
 
         // when
@@ -146,11 +145,11 @@ public class SmartadserverBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors())
                 .containsExactly(BidderError.badInput("Error parsing smartadserverExt parameters"));
-        assertThat(result.getValue())
+        assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
-                .flatExtracting(Imp::getId)
-                .containsExactly("456");
+                .extracting(Imp::getId)
+                .containsExactly("123");
     }
 
     @Test
