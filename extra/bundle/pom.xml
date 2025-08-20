@@ -65,6 +65,11 @@
             <artifactId>wurfl-devicedetection</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.prebid.server.hooks.modules</groupId>
+            <artifactId>live-intent-omni-channel-identity</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 
     <build>
