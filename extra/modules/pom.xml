@@ -26,6 +26,7 @@
         <module>pb-request-correction</module>
         <module>optable-targeting</module>
         <module>wurfl-devicedetection</module>
+        <module>pb-rule-engine</module>
     </modules>
 
     <dependencyManagement>
