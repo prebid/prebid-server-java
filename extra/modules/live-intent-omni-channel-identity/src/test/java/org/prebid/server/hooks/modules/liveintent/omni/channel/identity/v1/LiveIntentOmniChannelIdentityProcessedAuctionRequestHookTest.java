@@ -26,7 +26,6 @@ import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.util.List;
-import java.util.Random;
 import java.util.concurrent.TimeoutException;
 
 import static java.util.Collections.singletonList;
@@ -49,9 +48,6 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
     private HttpClient httpClient;
 
     @Mock(strictness = LENIENT)
-    private Random random;
-
-    @Mock(strictness = LENIENT)
     private LiveIntentOmniChannelProperties properties;
 
     private LiveIntentOmniChannelIdentityProcessedAuctionRequestHook target;
@@ -61,11 +57,10 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
         given(properties.getRequestTimeoutMs()).willReturn(5L);
         given(properties.getIdentityResolutionEndpoint()).willReturn("https://test.com/idres");
         given(properties.getAuthToken()).willReturn("auth_token");
-        given(properties.getTreatmentRate()).willReturn(0.9f);
-        given(random.nextFloat()).willReturn(0.89f);
+        given(properties.getTreatmentRate()).willReturn(1.0f);
 
         target = new LiveIntentOmniChannelIdentityProcessedAuctionRequestHook(
-                properties, MAPPER, httpClient, random, 0.01d);
+                properties, MAPPER, httpClient, 0.01d);
     }
 
     @Test
@@ -73,7 +68,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
         given(properties.getIdentityResolutionEndpoint()).willReturn("invalid_url");
         assertThatIllegalArgumentException().isThrownBy(() ->
                 new LiveIntentOmniChannelIdentityProcessedAuctionRequestHook(
-                        properties, MAPPER, httpClient, random, 0.01d));
+                        properties, MAPPER, httpClient, 0.01d));
     }
 
     @Test
@@ -164,8 +159,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
         final AuctionInvocationContext auctionInvocationContext = AuctionInvocationContextImpl.of(
                 null, null, false, null, null);
 
-        given(properties.getTreatmentRate()).willReturn(0.9f);
-        given(random.nextFloat()).willReturn(0.91f);
+        given(properties.getTreatmentRate()).willReturn(0.0f);
 
         // when
         final InvocationResult<AuctionRequestPayload> result = target.call(

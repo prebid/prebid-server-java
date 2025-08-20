@@ -13,7 +13,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.util.Collections;
-import java.util.concurrent.ThreadLocalRandom;
 
 @Configuration
 @ConditionalOnProperty(
@@ -36,7 +35,7 @@ public class LiveIntentOmniChannelIdentityConfiguration {
 
         final LiveIntentOmniChannelIdentityProcessedAuctionRequestHook hook =
                 new LiveIntentOmniChannelIdentityProcessedAuctionRequestHook(
-                        properties, mapper, httpClient, () -> ThreadLocalRandom.current().nextLong(), logSamplingRate);
+                        properties, mapper, httpClient, logSamplingRate);
 
         return new LiveIntentOmniChannelIdentityModule(Collections.singleton(hook));
     }

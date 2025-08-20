@@ -27,7 +27,7 @@ import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.random.RandomGenerator;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements ProcessedAuctionRequestHook {
 
@@ -39,20 +39,17 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
     private final LiveIntentOmniChannelProperties config;
     private final JacksonMapper mapper;
     private final HttpClient httpClient;
-    private final RandomGenerator random;
     private final double logSamplingRate;
 
     public LiveIntentOmniChannelIdentityProcessedAuctionRequestHook(LiveIntentOmniChannelProperties config,
                                                                     JacksonMapper mapper,
                                                                     HttpClient httpClient,
-                                                                    RandomGenerator random,
                                                                     double logSamplingRate) {
 
         this.config = Objects.requireNonNull(config);
         HttpUtil.validateUrlSyntax(config.getIdentityResolutionEndpoint());
         this.mapper = Objects.requireNonNull(mapper);
         this.httpClient = Objects.requireNonNull(httpClient);
-        this.random = Objects.requireNonNull(random);
         this.logSamplingRate = logSamplingRate;
     }
 
@@ -60,12 +57,12 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
     public Future<InvocationResult<AuctionRequestPayload>> call(AuctionRequestPayload auctionRequestPayload,
                                                                 AuctionInvocationContext invocationContext) {
 
-        return config.getTreatmentRate() <= random.nextFloat()
-                ? noAction()
-                : requestIdentities(auctionRequestPayload.bidRequest())
+        return config.getTreatmentRate() > ThreadLocalRandom.current().nextFloat()
+                ? requestIdentities(auctionRequestPayload.bidRequest())
                 .<InvocationResult<AuctionRequestPayload>>map(this::update)
                 .onFailure(throwable -> conditionalLogger.error(
-                        "Failed enrichment: %s".formatted(throwable.getMessage()), logSamplingRate));
+                        "Failed enrichment: %s".formatted(throwable.getMessage()), logSamplingRate))
+                : noAction();
     }
 
     private Future<IdResResponse> requestIdentities(BidRequest bidRequest) {
