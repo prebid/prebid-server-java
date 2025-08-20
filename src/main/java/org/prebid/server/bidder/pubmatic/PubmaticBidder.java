@@ -75,6 +75,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
     private static final String BIDDER_NAME = "pubmatic";
     private static final String AE = "ae";
     private static final String GP_ID = "gpid";
+    private static final String SKADN = "skadn";
     private static final String IMP_EXT_PBADSLOT = "pbadslot";
     private static final String IMP_EXT_ADSERVER = "adserver";
     private static final List<String> IMP_EXT_DATA_RESERVED_FIELD = List.of(IMP_EXT_PBADSLOT, IMP_EXT_ADSERVER);
@@ -293,6 +294,9 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         }
         if (impExt.getGpId() != null) {
             keywordsNode.put(GP_ID, impExt.getGpId());
+        }
+        if (impExt.getSkadn() != null) {
+            keywordsNode.set(SKADN, impExt.getSkadn());
         }
 
         return keywordsNode;
