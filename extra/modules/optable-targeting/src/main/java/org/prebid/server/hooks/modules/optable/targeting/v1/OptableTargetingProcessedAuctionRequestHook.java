@@ -69,7 +69,7 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
         final ModuleContext moduleContext = new ModuleContext();
         final long callTargetingAPITimestamp = System.currentTimeMillis();
 
-        if (!validateTargetingProperties(properties)) {
+        if (!isTargetingPropertiesValid(properties)) {
             conditionalLogger.error(
                     "Account not properly configured: tenant and/or origin is missing.", logSamplingRate);
 
@@ -99,7 +99,7 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
                 });
     }
 
-    private boolean validateTargetingProperties(OptableTargetingProperties properties) {
+    private boolean isTargetingPropertiesValid(OptableTargetingProperties properties) {
         return !StringUtils.isEmpty(properties.getOrigin()) && !StringUtils.isEmpty(properties.getTenant());
     }
 
