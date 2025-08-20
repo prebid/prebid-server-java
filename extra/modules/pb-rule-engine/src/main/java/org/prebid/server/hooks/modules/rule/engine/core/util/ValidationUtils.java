@@ -10,6 +10,9 @@ import java.util.function.Predicate;
 
 public class ValidationUtils {
 
+    private ValidationUtils() {
+    }
+
     public static void assertArrayOfStrings(ObjectNode config, String fieldName) {
         assertArrayOf(
                 config,

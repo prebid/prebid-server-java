@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
-import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -27,14 +26,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class MediaTypeInFunctionTest {
 
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final MediaTypeInFunction target = new MediaTypeInFunction();
 
     @Test
     public void validateConfigShouldThrowErrorWhenConfigIsAbsent() {
         // when and then
-        assertThatThrownBy(() -> target.validateConfig(mapper.createObjectNode()))
+        assertThatThrownBy(() -> target.validateConfig(MAPPER.createObjectNode()))
                 .isInstanceOf(ConfigurationValidationException.class)
                 .hasMessage("Field 'types' is required and has to be an array of strings");
     }
@@ -42,7 +41,7 @@ public class MediaTypeInFunctionTest {
     @Test
     public void validateConfigShouldThrowErrorWhenTypesFieldIsAbsent() {
         // when and then
-        assertThatThrownBy(() -> target.validateConfig(mapper.createObjectNode()))
+        assertThatThrownBy(() -> target.validateConfig(MAPPER.createObjectNode()))
                 .isInstanceOf(ConfigurationValidationException.class)
                 .hasMessage("Field 'types' is required and has to be an array of strings");
     }
@@ -50,7 +49,7 @@ public class MediaTypeInFunctionTest {
     @Test
     public void validateConfigShouldThrowErrorWhenTypesFieldIsNotAnArray() {
         // given
-        final ObjectNode config = mapper.createObjectNode().set("types", TextNode.valueOf("test"));
+        final ObjectNode config = MAPPER.createObjectNode().set("types", TextNode.valueOf("test"));
 
         // when and then
         assertThatThrownBy(() -> target.validateConfig(config))
@@ -61,10 +60,10 @@ public class MediaTypeInFunctionTest {
     @Test
     public void validateConfigShouldThrowErrorWhenTypesFieldIsNotAnArrayOfStrings() {
         // given
-        final ArrayNode typesNode = mapper.createArrayNode();
+        final ArrayNode typesNode = MAPPER.createArrayNode();
         typesNode.add(TextNode.valueOf("test"));
         typesNode.add(IntNode.valueOf(1));
-        final ObjectNode config = mapper.createObjectNode().set("types", typesNode);
+        final ObjectNode config = MAPPER.createObjectNode().set("types", typesNode);
 
         // when and then
         assertThatThrownBy(() -> target.validateConfig(config))
@@ -179,8 +178,8 @@ public class MediaTypeInFunctionTest {
     }
 
     private ObjectNode givenConfigWithTypes(String... types) {
-        final ArrayNode typesNode = mapper.createArrayNode();
+        final ArrayNode typesNode = MAPPER.createArrayNode();
         Arrays.stream(types).map(TextNode::valueOf).forEach(typesNode::add);
-        return mapper.createObjectNode().set("types", typesNode);
+        return MAPPER.createObjectNode().set("types", typesNode);
     }
 }

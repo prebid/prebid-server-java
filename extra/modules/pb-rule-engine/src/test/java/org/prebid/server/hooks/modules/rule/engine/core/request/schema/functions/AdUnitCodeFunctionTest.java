@@ -18,14 +18,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class AdUnitCodeFunctionTest {
 
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final AdUnitCodeFunction target = new AdUnitCodeFunction();
 
     @Test
     public void validateConfigShouldThrowErrorWhenArgumentsArePresent() {
         // given
-        final ObjectNode config = mapper.createObjectNode().set("args", TextNode.valueOf("args"));
+        final ObjectNode config = MAPPER.createObjectNode().set("args", TextNode.valueOf("args"));
 
         // when and then
         assertThatThrownBy(() -> target.validateConfig(config))
@@ -38,7 +38,7 @@ public class AdUnitCodeFunctionTest {
         // given
         final Imp imp = Imp.builder()
                 .id("impId")
-                .ext(mapper.createObjectNode().put("gpid", "gpid"))
+                .ext(MAPPER.createObjectNode().put("gpid", "gpid"))
                 .build();
 
         final BidRequest bidRequest = BidRequest.builder().imp(singletonList(imp)).build();
@@ -68,8 +68,8 @@ public class AdUnitCodeFunctionTest {
     @Test
     public void extractShouldReturnPbAdSlotWhenGpidAndTagidAreAbsent() {
         // given
-        final ObjectNode ext = mapper.createObjectNode();
-        ext.set("data", mapper.createObjectNode().put("pbadslot", "pbadslot"));
+        final ObjectNode ext = MAPPER.createObjectNode();
+        ext.set("data", MAPPER.createObjectNode().put("pbadslot", "pbadslot"));
 
         final Imp imp = Imp.builder().id("impId").ext(ext).build();
 
@@ -84,9 +84,9 @@ public class AdUnitCodeFunctionTest {
     @Test
     public void extractShouldReturnStoredRequestIdWhenGpidAndTagidAndPbAdSlotAreAbsent() {
         // given
-        final ObjectNode prebid = mapper.createObjectNode();
-        prebid.set("storedrequest", mapper.createObjectNode().put("id", "srid"));
-        final ObjectNode ext = mapper.createObjectNode();
+        final ObjectNode prebid = MAPPER.createObjectNode();
+        prebid.set("storedrequest", MAPPER.createObjectNode().put("id", "srid"));
+        final ObjectNode ext = MAPPER.createObjectNode();
         ext.set("prebid", prebid);
 
         final Imp imp = Imp.builder().id("impId").ext(ext).build();

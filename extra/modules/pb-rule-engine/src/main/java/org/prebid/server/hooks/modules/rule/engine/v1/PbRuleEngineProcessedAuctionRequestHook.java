@@ -11,6 +11,7 @@ import org.prebid.server.hooks.modules.rule.engine.core.config.RuleParser;
 import org.prebid.server.hooks.modules.rule.engine.core.request.Granularity;
 import org.prebid.server.hooks.modules.rule.engine.core.request.RequestRuleContext;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.PerStageRule;
+import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleAction;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleResult;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
@@ -18,7 +19,6 @@ import org.prebid.server.hooks.v1.InvocationStatus;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.ProcessedAuctionRequestHook;
-import org.prebid.server.model.UpdateResult;
 
 import java.util.Objects;
 
@@ -44,7 +44,7 @@ public class PbRuleEngineProcessedAuctionRequestHook implements ProcessedAuction
         final BidRequest bidRequest = auctionRequestPayload.bidRequest();
 
         if (accountConfig == null) {
-            return succeeded(RuleResult.unaltered(bidRequest));
+            return succeeded(RuleResult.noAction(bidRequest));
         }
 
         return ruleParser.parseForAccount(accountId, accountConfig)
@@ -56,17 +56,17 @@ public class PbRuleEngineProcessedAuctionRequestHook implements ProcessedAuction
     }
 
     private static Future<InvocationResult<AuctionRequestPayload>> succeeded(RuleResult<BidRequest> result) {
-        final UpdateResult<BidRequest> updateResult = result.getUpdateResult();
-
-        final InvocationResult<AuctionRequestPayload> invocationResult =
+        final InvocationResultImpl.InvocationResultImplBuilder<AuctionRequestPayload> resultBuilder =
                 InvocationResultImpl.<AuctionRequestPayload>builder()
                         .status(InvocationStatus.success)
-                        .action(updateResult.isUpdated() ? InvocationAction.update : InvocationAction.no_action)
-                        .payloadUpdate(initialPayload -> AuctionRequestPayloadImpl.of(updateResult.getValue()))
-                        .analyticsTags(result.getAnalyticsTags())
-                        .build();
+                        .action(toInvocationAction(result.getAction()))
+                        .analyticsTags(result.getAnalyticsTags());
 
-        return Future.succeededFuture(invocationResult);
+        if (result.isUpdate()) {
+            resultBuilder.payloadUpdate(initialPayload -> AuctionRequestPayloadImpl.of(result.getValue()));
+        }
+
+        return Future.succeededFuture(resultBuilder.build());
     }
 
     private static Future<InvocationResult<AuctionRequestPayload>> failure(Throwable error) {
@@ -76,6 +76,14 @@ public class PbRuleEngineProcessedAuctionRequestHook implements ProcessedAuction
                         .action(InvocationAction.no_invocation)
                         .message(error.getMessage())
                         .build());
+    }
+
+    private static InvocationAction toInvocationAction(RuleAction ruleAction) {
+        return switch (ruleAction) {
+            case NO_ACTION -> InvocationAction.no_action;
+            case UPDATE -> InvocationAction.update;
+            case REJECT -> InvocationAction.reject;
+        };
     }
 
     @Override

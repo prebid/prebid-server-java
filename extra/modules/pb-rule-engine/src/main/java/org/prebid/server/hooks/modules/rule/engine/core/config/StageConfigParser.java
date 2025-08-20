@@ -10,14 +10,14 @@ import org.prebid.server.hooks.modules.rule.engine.core.config.model.SchemaFunct
 import org.prebid.server.hooks.modules.rule.engine.core.rules.AlternativeActionRule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.CompositeRule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.DefaultActionRule;
-import org.prebid.server.hooks.modules.rule.engine.core.rules.MatchingRuleFactory;
+import org.prebid.server.hooks.modules.rule.engine.core.rules.ConditionalRuleFactory;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.NoOpRule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.RandomWeightedRule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.Rule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.RuleConfig;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.StageSpecification;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.exception.InvalidMatcherConfiguration;
-import org.prebid.server.hooks.modules.rule.engine.core.rules.result.RuleAction;
+import org.prebid.server.hooks.modules.rule.engine.core.rules.result.ResultFunctionHolder;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.Schema;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunctionHolder;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.tree.RuleTree;
@@ -36,17 +36,17 @@ public class StageConfigParser<T, C> {
     private final RandomGenerator randomGenerator;
     private final StageSpecification<T, C> specification;
     private final Stage stage;
-    private final MatchingRuleFactory<T, C> matchingRuleFactory;
+    private final ConditionalRuleFactory<T, C> conditionalRuleFactory;
 
     public StageConfigParser(RandomGenerator randomGenerator,
                              Stage stage,
                              StageSpecification<T, C> specification,
-                             MatchingRuleFactory<T, C> matchingRuleFactory) {
+                             ConditionalRuleFactory<T, C> conditionalRuleFactory) {
 
         this.randomGenerator = Objects.requireNonNull(randomGenerator);
         this.stage = Objects.requireNonNull(stage);
         this.specification = Objects.requireNonNull(specification);
-        this.matchingRuleFactory = Objects.requireNonNull(matchingRuleFactory);
+        this.conditionalRuleFactory = Objects.requireNonNull(conditionalRuleFactory);
     }
 
     public Rule<T, C> parse(AccountConfig config) {
@@ -67,7 +67,7 @@ public class StageConfigParser<T, C> {
                 .map(config -> WeightedEntry.of(config.getWeight(), parseModelGroupConfig(config)))
                 .toList();
 
-        return new RandomWeightedRule<>(randomGenerator, new WeightedList<>(weightedRules));
+        return RandomWeightedRule.of(randomGenerator, new WeightedList<>(weightedRules));
     }
 
     private Rule<T, C> parseModelGroupConfig(ModelGroupConfig config) {
@@ -96,7 +96,7 @@ public class StageConfigParser<T, C> {
             throw new InvalidMatcherConfiguration("Schema functions count and rules matchers count mismatch");
         }
 
-        return matchingRuleFactory.create(schema, ruleTree, config.getAnalyticsKey(), config.getVersion());
+        return conditionalRuleFactory.create(schema, ruleTree, config.getAnalyticsKey(), config.getVersion());
     }
 
     private Schema<T, C> parseSchema(List<SchemaFunctionConfig> schema) {
@@ -123,7 +123,7 @@ public class StageConfigParser<T, C> {
 
     private RuleConfig<T, C> parseRuleConfig(AccountRuleConfig ruleConfig) {
         final String ruleFired = String.join("|", ruleConfig.getConditions());
-        final List<RuleAction<T, C>> actions = parseActions(ruleConfig.getResults());
+        final List<ResultFunctionHolder<T, C>> actions = parseActions(ruleConfig.getResults());
 
         return RuleConfig.of(ruleFired, actions);
     }
@@ -139,9 +139,9 @@ public class StageConfigParser<T, C> {
                 parseActions(defaultActionConfig), config.getAnalyticsKey(), config.getVersion());
     }
 
-    private List<RuleAction<T, C>> parseActions(List<ResultFunctionConfig> functionConfigs) {
-        final List<RuleAction<T, C>> actions = functionConfigs.stream()
-                .map(config -> RuleAction.of(
+    private List<ResultFunctionHolder<T, C>> parseActions(List<ResultFunctionConfig> functionConfigs) {
+        final List<ResultFunctionHolder<T, C>> actions = functionConfigs.stream()
+                .map(config -> ResultFunctionHolder.of(
                         config.getFunction(),
                         specification.resultFunctionByName(config.getFunction()),
                         config.getArgs()))
@@ -152,7 +152,7 @@ public class StageConfigParser<T, C> {
         return actions;
     }
 
-    private void validateActionConfig(RuleAction<T, C> action) {
+    private void validateActionConfig(ResultFunctionHolder<T, C> action) {
         try {
             action.getFunction().validateConfig(action.getConfig());
         } catch (ConfigurationValidationException exception) {

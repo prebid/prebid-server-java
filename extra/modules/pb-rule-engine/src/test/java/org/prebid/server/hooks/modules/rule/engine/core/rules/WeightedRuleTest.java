@@ -17,13 +17,13 @@ public class WeightedRuleTest {
         // given
         final WeightedList<Rule<Object, Object>> ruleList =
                 (WeightedList<Rule<Object, Object>>) mock(WeightedList.class);
-        final RuleResult<Object> stub = RuleResult.unaltered(new Object());
+        final RuleResult<Object> stub = RuleResult.noAction(new Object());
         given(ruleList.getForSeed(anyInt())).willReturn((left, right) -> stub);
 
         final RandomGenerator randomGenerator = mock(RandomGenerator.class);
         given(randomGenerator.nextDouble()).willReturn(0.5);
 
-        final RandomWeightedRule<Object, Object> rule = new RandomWeightedRule<>(randomGenerator, ruleList);
+        final RandomWeightedRule<Object, Object> rule = RandomWeightedRule.of(randomGenerator, ruleList);
 
         // when
         final RuleResult<Object> result = rule.process(new Object(), new Object());

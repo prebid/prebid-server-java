@@ -22,14 +22,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class AdUnitCodeInFunctionTest {
 
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final AdUnitCodeInFunction target = new AdUnitCodeInFunction();
 
     @Test
     public void validateConfigShouldThrowErrorWhenConfigIsAbsent() {
         // when and then
-        assertThatThrownBy(() -> target.validateConfig(mapper.createObjectNode()))
+        assertThatThrownBy(() -> target.validateConfig(MAPPER.createObjectNode()))
                 .isInstanceOf(ConfigurationValidationException.class)
                 .hasMessage("Field 'codes' is required and has to be an array of strings");
     }
@@ -37,7 +37,7 @@ public class AdUnitCodeInFunctionTest {
     @Test
     public void validateConfigShouldThrowErrorWhenCodesFieldIsAbsent() {
         // when and then
-        assertThatThrownBy(() -> target.validateConfig(mapper.createObjectNode()))
+        assertThatThrownBy(() -> target.validateConfig(MAPPER.createObjectNode()))
                 .isInstanceOf(ConfigurationValidationException.class)
                 .hasMessage("Field 'codes' is required and has to be an array of strings");
     }
@@ -45,7 +45,7 @@ public class AdUnitCodeInFunctionTest {
     @Test
     public void validateConfigShouldThrowErrorWhenCodesFieldIsNotAnArray() {
         // given
-        final ObjectNode config = mapper.createObjectNode().set("codes", TextNode.valueOf("test"));
+        final ObjectNode config = MAPPER.createObjectNode().set("codes", TextNode.valueOf("test"));
 
         // when and then
         assertThatThrownBy(() -> target.validateConfig(config))
@@ -56,10 +56,10 @@ public class AdUnitCodeInFunctionTest {
     @Test
     public void validateConfigShouldThrowErrorWhenCodesFieldIsNotAnArrayOfStrings() {
         // given
-        final ArrayNode codesNode = mapper.createArrayNode();
+        final ArrayNode codesNode = MAPPER.createArrayNode();
         codesNode.add(TextNode.valueOf("test"));
         codesNode.add(IntNode.valueOf(1));
-        final ObjectNode config = mapper.createObjectNode().set("codes", codesNode);
+        final ObjectNode config = MAPPER.createObjectNode().set("codes", codesNode);
 
         // when and then
         assertThatThrownBy(() -> target.validateConfig(config))
@@ -72,7 +72,7 @@ public class AdUnitCodeInFunctionTest {
         // given
         final Imp imp = Imp.builder()
                 .id("impId")
-                .ext(mapper.createObjectNode().put("gpid", "gpid"))
+                .ext(MAPPER.createObjectNode().put("gpid", "gpid"))
                 .build();
 
         final BidRequest bidRequest = BidRequest.builder().imp(singletonList(imp)).build();
@@ -90,7 +90,7 @@ public class AdUnitCodeInFunctionTest {
         final Imp imp = Imp.builder()
                 .id("impId")
                 .tagid("tagId")
-                .ext(mapper.createObjectNode().put("gpid", "gpid"))
+                .ext(MAPPER.createObjectNode().put("gpid", "gpid"))
                 .build();
 
         final BidRequest bidRequest = BidRequest.builder().imp(singletonList(imp)).build();
@@ -105,8 +105,8 @@ public class AdUnitCodeInFunctionTest {
     @Test
     public void extractShouldReturnTrueWhenPbAdSlotPresentAndGpidAndTagidAreAbsentInConfiguredCodes() {
         // given
-        final ObjectNode ext = mapper.createObjectNode();
-        ext.set("data", mapper.createObjectNode().put("pbadslot", "pbadslot"));
+        final ObjectNode ext = MAPPER.createObjectNode();
+        ext.set("data", MAPPER.createObjectNode().put("pbadslot", "pbadslot"));
         ext.set("gpid", TextNode.valueOf("gpid"));
 
         final Imp imp = Imp.builder()
@@ -127,11 +127,11 @@ public class AdUnitCodeInFunctionTest {
     @Test
     public void extractShouldReturnTrueWhenSridPresentAndGpidAndTagidAndPbAdSlotAreAbsentInConfiguredCodes() {
         // given
-        final ObjectNode prebid = mapper.createObjectNode();
-        prebid.set("storedrequest", mapper.createObjectNode().put("id", "srid"));
-        final ObjectNode ext = mapper.createObjectNode();
+        final ObjectNode prebid = MAPPER.createObjectNode();
+        prebid.set("storedrequest", MAPPER.createObjectNode().put("id", "srid"));
+        final ObjectNode ext = MAPPER.createObjectNode();
         ext.set("prebid", prebid);
-        ext.set("data", mapper.createObjectNode().put("pbadslot", "pbadslot"));
+        ext.set("data", MAPPER.createObjectNode().put("pbadslot", "pbadslot"));
         ext.set("gpid", TextNode.valueOf("gpid"));
 
         final Imp imp = Imp.builder()
@@ -152,11 +152,11 @@ public class AdUnitCodeInFunctionTest {
     @Test
     public void extractShouldReturnFalseWhenAdUnitCodesDoesNotMatchConfiguredCodes() {
         // given
-        final ObjectNode prebid = mapper.createObjectNode();
-        prebid.set("storedrequest", mapper.createObjectNode().put("id", "srid"));
-        final ObjectNode ext = mapper.createObjectNode();
+        final ObjectNode prebid = MAPPER.createObjectNode();
+        prebid.set("storedrequest", MAPPER.createObjectNode().put("id", "srid"));
+        final ObjectNode ext = MAPPER.createObjectNode();
         ext.set("prebid", prebid);
-        ext.set("data", mapper.createObjectNode().put("pbadslot", "pbadslot"));
+        ext.set("data", MAPPER.createObjectNode().put("pbadslot", "pbadslot"));
         ext.set("gpid", TextNode.valueOf("gpid"));
 
         final Imp imp = Imp.builder()
@@ -174,7 +174,6 @@ public class AdUnitCodeInFunctionTest {
         assertThat(target.extract(arguments)).isEqualTo("false");
     }
 
-
     private SchemaFunctionArguments<BidRequest, RequestRuleContext> givenFunctionArguments(
             BidRequest bidRequest,
             String... codes) {
@@ -186,8 +185,8 @@ public class AdUnitCodeInFunctionTest {
     }
 
     private ObjectNode givenConfigWithCodes(String... codes) {
-        final ArrayNode codesNode = mapper.createArrayNode();
+        final ArrayNode codesNode = MAPPER.createArrayNode();
         Arrays.stream(codes).map(TextNode::valueOf).forEach(codesNode::add);
-        return mapper.createObjectNode().set("codes", codesNode);
+        return MAPPER.createObjectNode().set("codes", codesNode);
     }
 }

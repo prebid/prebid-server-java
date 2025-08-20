@@ -10,6 +10,9 @@ import java.util.stream.Collectors;
 
 public class RuleTreeFactory {
 
+    private RuleTreeFactory() {
+    }
+
     public static <T, C> RuleTree<RuleConfig<T, C>> buildTree(List<RuleConfig<T, C>> rules) {
         final List<ParsingContext<RuleConfig<T, C>>> parsingContexts = toParsingContexts(rules);
         final int depth = getDepth(parsingContexts);

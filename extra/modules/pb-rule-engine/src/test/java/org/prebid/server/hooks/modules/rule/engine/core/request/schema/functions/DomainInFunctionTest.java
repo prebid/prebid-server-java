@@ -24,14 +24,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class DomainInFunctionTest {
 
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final DomainInFunction target = new DomainInFunction();
 
     @Test
     public void validateConfigShouldThrowErrorWhenConfigIsAbsent() {
         // when and then
-        assertThatThrownBy(() -> target.validateConfig(mapper.createObjectNode()))
+        assertThatThrownBy(() -> target.validateConfig(MAPPER.createObjectNode()))
                 .isInstanceOf(ConfigurationValidationException.class)
                 .hasMessage("Field 'domains' is required and has to be an array of strings");
     }
@@ -39,7 +39,7 @@ public class DomainInFunctionTest {
     @Test
     public void validateConfigShouldThrowErrorWhenDomainsFieldIsAbsent() {
         // when and then
-        assertThatThrownBy(() -> target.validateConfig(mapper.createObjectNode()))
+        assertThatThrownBy(() -> target.validateConfig(MAPPER.createObjectNode()))
                 .isInstanceOf(ConfigurationValidationException.class)
                 .hasMessage("Field 'domains' is required and has to be an array of strings");
     }
@@ -47,7 +47,7 @@ public class DomainInFunctionTest {
     @Test
     public void validateConfigShouldThrowErrorWhenDomainsFieldIsNotAnArray() {
         // given
-        final ObjectNode config = mapper.createObjectNode().set("domains", TextNode.valueOf("test"));
+        final ObjectNode config = MAPPER.createObjectNode().set("domains", TextNode.valueOf("test"));
 
         // when and then
         assertThatThrownBy(() -> target.validateConfig(config))
@@ -58,10 +58,10 @@ public class DomainInFunctionTest {
     @Test
     public void validateConfigShouldThrowErrorWhenDomainsFieldIsNotAnArrayOfStrings() {
         // given
-        final ArrayNode domainsNode = mapper.createArrayNode();
+        final ArrayNode domainsNode = MAPPER.createArrayNode();
         domainsNode.add(TextNode.valueOf("test"));
         domainsNode.add(IntNode.valueOf(1));
-        final ObjectNode config = mapper.createObjectNode().set("domains", domainsNode);
+        final ObjectNode config = MAPPER.createObjectNode().set("domains", domainsNode);
 
         // when and then
         assertThatThrownBy(() -> target.validateConfig(config))
@@ -234,8 +234,8 @@ public class DomainInFunctionTest {
     }
 
     private ObjectNode givenConfigWithDomains(String... domains) {
-        final ArrayNode domainsNode = mapper.createArrayNode();
+        final ArrayNode domainsNode = MAPPER.createArrayNode();
         Arrays.stream(domains).map(TextNode::valueOf).forEach(domainsNode::add);
-        return mapper.createObjectNode().set("domains", domainsNode);
+        return MAPPER.createObjectNode().set("domains", domainsNode);
     }
 }

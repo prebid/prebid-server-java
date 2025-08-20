@@ -11,7 +11,7 @@ public class FilterUtils {
     private static final String PREBID = "prebid";
     private static final String BIDDER = "bidder";
 
-    public FilterUtils() {
+    private FilterUtils() {
     }
 
     public static ObjectNode bidderNode(ObjectNode impExt) {

@@ -20,14 +20,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class DataCenterInFunctionTest {
 
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final DataCenterInFunction target = new DataCenterInFunction();
 
     @Test
     public void validateConfigShouldThrowErrorWhenConfigIsAbsent() {
         // when and then
-        assertThatThrownBy(() -> target.validateConfig(mapper.createObjectNode()))
+        assertThatThrownBy(() -> target.validateConfig(MAPPER.createObjectNode()))
                 .isInstanceOf(ConfigurationValidationException.class)
                 .hasMessage("Field 'datacenters' is required and has to be an array of strings");
     }
@@ -35,7 +35,7 @@ public class DataCenterInFunctionTest {
     @Test
     public void validateConfigShouldThrowErrorWhenDatacentersFieldIsAbsent() {
         // when and then
-        assertThatThrownBy(() -> target.validateConfig(mapper.createObjectNode()))
+        assertThatThrownBy(() -> target.validateConfig(MAPPER.createObjectNode()))
                 .isInstanceOf(ConfigurationValidationException.class)
                 .hasMessage("Field 'datacenters' is required and has to be an array of strings");
     }
@@ -43,7 +43,7 @@ public class DataCenterInFunctionTest {
     @Test
     public void validateConfigShouldThrowErrorWhenDatacentersFieldIsNotAnArray() {
         // given
-        final ObjectNode config = mapper.createObjectNode().set("datacenters", TextNode.valueOf("test"));
+        final ObjectNode config = MAPPER.createObjectNode().set("datacenters", TextNode.valueOf("test"));
 
         // when and then
         assertThatThrownBy(() -> target.validateConfig(config))
@@ -54,10 +54,10 @@ public class DataCenterInFunctionTest {
     @Test
     public void validateConfigShouldThrowErrorWhenDatacentersFieldIsNotAnArrayOfStrings() {
         // given
-        final ArrayNode datacentersNode = mapper.createArrayNode();
+        final ArrayNode datacentersNode = MAPPER.createArrayNode();
         datacentersNode.add(TextNode.valueOf("test"));
         datacentersNode.add(IntNode.valueOf(1));
-        final ObjectNode config = mapper.createObjectNode().set("datacenters", datacentersNode);
+        final ObjectNode config = MAPPER.createObjectNode().set("datacenters", datacentersNode);
 
         // when and then
         assertThatThrownBy(() -> target.validateConfig(config))
@@ -101,8 +101,8 @@ public class DataCenterInFunctionTest {
     }
 
     private ObjectNode givenConfigWithDataCenters(String... dataCenters) {
-        final ArrayNode dataCentersNode = mapper.createArrayNode();
+        final ArrayNode dataCentersNode = MAPPER.createArrayNode();
         Arrays.stream(dataCenters).map(TextNode::valueOf).forEach(dataCentersNode::add);
-        return mapper.createObjectNode().set("datacenters", dataCentersNode);
+        return MAPPER.createObjectNode().set("datacenters", dataCentersNode);
     }
 }

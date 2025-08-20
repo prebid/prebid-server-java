@@ -9,9 +9,7 @@ import org.prebid.server.hooks.modules.rule.engine.core.rules.schema.SchemaFunct
 import org.prebid.server.hooks.modules.rule.engine.core.util.ListUtil;
 import org.prebid.server.hooks.modules.rule.engine.core.util.ValidationUtils;
 
-import java.util.List;
 import java.util.Optional;
-import java.util.function.Predicate;
 
 public class EidAvailableFunction implements SchemaFunction<BidRequest, RequestRuleContext> {
 

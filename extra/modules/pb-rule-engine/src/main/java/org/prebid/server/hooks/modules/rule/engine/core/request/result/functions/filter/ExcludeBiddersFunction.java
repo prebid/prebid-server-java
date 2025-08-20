@@ -19,7 +19,7 @@ public class ExcludeBiddersFunction extends FilterBiddersFunction {
     }
 
     @Override
-    protected Set<String> biddersToRemove(Imp imp, Set<String> bidders, Boolean ifSyncedId, UidsCookie uidsCookie) {
+    protected Set<String> biddersToRemove(Imp imp, Boolean ifSyncedId, Set<String> bidders, UidsCookie uidsCookie) {
         final ObjectNode biddersNode = FilterUtils.bidderNode(imp.getExt());
 
         return StreamUtil.asStream(biddersNode.fieldNames())

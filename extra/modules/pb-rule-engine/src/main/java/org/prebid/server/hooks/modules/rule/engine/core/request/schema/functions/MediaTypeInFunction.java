@@ -37,7 +37,7 @@ public class MediaTypeInFunction implements SchemaFunction<BidRequest, RequestRu
 
         final Set<String> adUnitMediaTypes = adUnitMediaTypes(adUnit);
 
-        boolean intersects = StreamUtil.asStream(arguments.getConfig().get(TYPES_FIELD).elements())
+        final boolean intersects = StreamUtil.asStream(arguments.getConfig().get(TYPES_FIELD).elements())
                 .map(JsonNode::asText)
                 .anyMatch(adUnitMediaTypes::contains);
 

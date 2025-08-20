@@ -1,8 +1,8 @@
 package org.prebid.server.hooks.modules.rule.engine.core.util;
 
-import lombok.Getter;
+import lombok.Value;
 
-@Getter
+@Value
 public class WeightedEntry<T> {
 
     int weight;

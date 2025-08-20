@@ -13,6 +13,7 @@ import java.util.List;
 @Value(staticConstructor = "of")
 public class RuleSetConfig {
 
+    @Builder.Default
     boolean enabled = true;
 
     Stage stage;

@@ -1,7 +1,7 @@
 package org.prebid.server.hooks.modules.rule.engine.core.rules;
 
 import lombok.Value;
-import org.prebid.server.hooks.modules.rule.engine.core.rules.result.RuleAction;
+import org.prebid.server.hooks.modules.rule.engine.core.rules.result.ResultFunctionHolder;
 
 import java.util.List;
 
@@ -10,5 +10,5 @@ public class RuleConfig<T, C> {
 
     String condition;
 
-    List<RuleAction<T, C>> actions;
+    List<ResultFunctionHolder<T, C>> actions;
 }

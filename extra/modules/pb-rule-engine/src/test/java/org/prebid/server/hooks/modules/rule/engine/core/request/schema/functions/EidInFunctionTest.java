@@ -23,14 +23,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class EidInFunctionTest {
 
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final EidInFunction target = new EidInFunction();
 
     @Test
     public void validateConfigShouldThrowErrorWhenConfigIsAbsent() {
         // when and then
-        assertThatThrownBy(() -> target.validateConfig(mapper.createObjectNode()))
+        assertThatThrownBy(() -> target.validateConfig(MAPPER.createObjectNode()))
                 .isInstanceOf(ConfigurationValidationException.class)
                 .hasMessage("Field 'sources' is required and has to be an array of strings");
     }
@@ -38,7 +38,7 @@ public class EidInFunctionTest {
     @Test
     public void validateConfigShouldThrowErrorWhenDomainsFieldIsAbsent() {
         // when and then
-        assertThatThrownBy(() -> target.validateConfig(mapper.createObjectNode()))
+        assertThatThrownBy(() -> target.validateConfig(MAPPER.createObjectNode()))
                 .isInstanceOf(ConfigurationValidationException.class)
                 .hasMessage("Field 'sources' is required and has to be an array of strings");
     }
@@ -46,7 +46,7 @@ public class EidInFunctionTest {
     @Test
     public void validateConfigShouldThrowErrorWhenDomainsFieldIsNotAnArray() {
         // given
-        final ObjectNode config = mapper.createObjectNode().set("sources", TextNode.valueOf("test"));
+        final ObjectNode config = MAPPER.createObjectNode().set("sources", TextNode.valueOf("test"));
 
         // when and then
         assertThatThrownBy(() -> target.validateConfig(config))
@@ -57,10 +57,10 @@ public class EidInFunctionTest {
     @Test
     public void validateConfigShouldThrowErrorWhenDomainsFieldIsNotAnArrayOfStrings() {
         // given
-        final ArrayNode sourcesNode = mapper.createArrayNode();
+        final ArrayNode sourcesNode = MAPPER.createArrayNode();
         sourcesNode.add(TextNode.valueOf("test"));
         sourcesNode.add(IntNode.valueOf(1));
-        final ObjectNode config = mapper.createObjectNode().set("sources", sourcesNode);
+        final ObjectNode config = MAPPER.createObjectNode().set("sources", sourcesNode);
 
         // when and then
         assertThatThrownBy(() -> target.validateConfig(config))
@@ -107,8 +107,8 @@ public class EidInFunctionTest {
     }
 
     private ObjectNode givenConfigWithSources(String... sources) {
-        final ArrayNode sourcesNode = mapper.createArrayNode();
+        final ArrayNode sourcesNode = MAPPER.createArrayNode();
         Arrays.stream(sources).map(TextNode::valueOf).forEach(sourcesNode::add);
-        return mapper.createObjectNode().set("sources", sourcesNode);
+        return MAPPER.createObjectNode().set("sources", sourcesNode);
     }
 }

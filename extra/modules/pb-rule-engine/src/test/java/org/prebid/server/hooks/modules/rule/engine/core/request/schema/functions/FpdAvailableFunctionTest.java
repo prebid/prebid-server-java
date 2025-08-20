@@ -26,14 +26,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class FpdAvailableFunctionTest {
 
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final FpdAvailableFunction target = new FpdAvailableFunction();
 
     @Test
     public void validateConfigShouldThrowErrorWhenArgumentsArePresent() {
         // given
-        final ObjectNode config = mapper.createObjectNode().set("args", TextNode.valueOf("args"));
+        final ObjectNode config = MAPPER.createObjectNode().set("args", TextNode.valueOf("args"));
 
         // when and then
         assertThatThrownBy(() -> target.validateConfig(config))
@@ -57,7 +57,7 @@ public class FpdAvailableFunctionTest {
     @Test
     public void extractShouldReturnTrueWhenUserExtDataPresent() {
         // given
-        final ObjectNode extData = mapper.createObjectNode().set("someData", TextNode.valueOf("someData"));
+        final ObjectNode extData = MAPPER.createObjectNode().set("someData", TextNode.valueOf("someData"));
         final BidRequest bidRequest = BidRequest.builder()
                 .user(User.builder().ext(ExtUser.builder().data(extData).build()).build())
                 .build();
@@ -88,7 +88,7 @@ public class FpdAvailableFunctionTest {
     @Test
     public void extractShouldReturnTrueWhenSiteExtDataPresent() {
         // given
-        final ObjectNode extData = mapper.createObjectNode().set("someData", TextNode.valueOf("someData"));
+        final ObjectNode extData = MAPPER.createObjectNode().set("someData", TextNode.valueOf("someData"));
         final Site site = Site.builder()
                 .ext(ExtSite.of(null, extData))
                 .build();
@@ -123,7 +123,7 @@ public class FpdAvailableFunctionTest {
     @Test
     public void extractShouldReturnTrueWhenAppExtDataPresent() {
         // given
-        final ObjectNode extData = mapper.createObjectNode().set("someData", TextNode.valueOf("someData"));
+        final ObjectNode extData = MAPPER.createObjectNode().set("someData", TextNode.valueOf("someData"));
         final App app = App.builder()
                 .ext(ExtApp.of(null, extData))
                 .build();
