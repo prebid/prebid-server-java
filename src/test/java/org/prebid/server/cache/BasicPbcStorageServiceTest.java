@@ -15,26 +15,36 @@ import org.prebid.server.cache.proto.request.module.ModuleCacheRequest;
 import org.prebid.server.cache.proto.request.module.StorageDataType;
 import org.prebid.server.cache.proto.response.module.ModuleCacheResponse;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.metric.MetricName;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
 public class BasicPbcStorageServiceTest extends VertxTest {
 
     @Mock(strictness = LENIENT)
     private HttpClient httpClient;
+
+    @Mock(strictness = LENIENT)
+    private Metrics metrics;
 
     private BasicPbcStorageService target;
 
@@ -45,13 +55,38 @@ public class BasicPbcStorageServiceTest extends VertxTest {
                 new URL("http://cache-service/cache"),
                 "pbc-api-key",
                 10,
-                jacksonMapper);
+                jacksonMapper,
+                Clock.fixed(Instant.now(), ZoneId.systemDefault()),
+                metrics);
 
         given(httpClient.post(anyString(), any(), any(), anyLong())).willReturn(Future.succeededFuture(
-                HttpClientResponse.of(200, null, "someBody")));
+                HttpClientResponse.of(204, null, null)));
         given(httpClient.get(anyString(), any(), anyLong())).willReturn(Future.succeededFuture(
                 HttpClientResponse.of(200, null, mapper.writeValueAsString(
                         ModuleCacheResponse.of("some-key", StorageDataType.JSON, "some-value")))));
+    }
+
+    @Test
+    public void storeModuleEntryShouldReturnFailureResponse() {
+        //given
+        given(httpClient.post(anyString(), any(), any(), anyLong())).willReturn(Future.succeededFuture(
+                HttpClientResponse.of(500, null, null)));
+
+        // when
+        target.storeEntry("some-key",
+                "some-value",
+                StorageDataType.TEXT,
+                12,
+                "some-application",
+                "some-module-code");
+
+        // then
+        final ModuleCacheRequest result = captureModuleCacheRequest();
+        assertThat(result.getKey()).isEqualTo("module.some-module-code.some-key");
+
+        verify(metrics).updateModuleStorageCacheCreativeTtl(12, MetricName.text);
+        verify(metrics).updateModuleStorageCacheCreativeSize(16, MetricName.text);
+        verify(metrics).updateModuleStorageCacheWriteRequestTime(anyLong(), eq(MetricName.err));
     }
 
     @Test
@@ -67,6 +102,10 @@ public class BasicPbcStorageServiceTest extends VertxTest {
         // then
         final ModuleCacheRequest result = captureModuleCacheRequest();
         assertThat(result.getKey()).isEqualTo("module.some-module-code.some-key");
+
+        verify(metrics).updateModuleStorageCacheCreativeTtl(12, MetricName.text);
+        verify(metrics).updateModuleStorageCacheCreativeSize(16, MetricName.text);
+        verify(metrics).updateModuleStorageCacheWriteRequestTime(anyLong(), eq(MetricName.ok));
     }
 
     @Test
@@ -82,6 +121,10 @@ public class BasicPbcStorageServiceTest extends VertxTest {
         // then
         final ModuleCacheRequest result = captureModuleCacheRequest();
         assertThat(result.getValue()).isEqualTo("c29tZS12YWx1ZQ==");
+
+        verify(metrics).updateModuleStorageCacheCreativeTtl(12, MetricName.text);
+        verify(metrics).updateModuleStorageCacheCreativeSize(16, MetricName.text);
+        verify(metrics).updateModuleStorageCacheWriteRequestTime(anyLong(), eq(MetricName.ok));
     }
 
     @Test
@@ -97,10 +140,14 @@ public class BasicPbcStorageServiceTest extends VertxTest {
         // then
         final ModuleCacheRequest result = captureModuleCacheRequest();
         assertThat(result.getApplication()).isEqualTo("some-application");
+
+        verify(metrics).updateModuleStorageCacheCreativeTtl(12, MetricName.text);
+        verify(metrics).updateModuleStorageCacheCreativeSize(16, MetricName.text);
+        verify(metrics).updateModuleStorageCacheWriteRequestTime(anyLong(), eq(MetricName.ok));
     }
 
     @Test
-    public void storeModuleEntryShouldStoreExpectedMediaType() {
+    public void storeModuleEntryShouldStoreTextMediaType() {
         // when
         target.storeEntry("some-key",
                 "some-value",
@@ -112,6 +159,48 @@ public class BasicPbcStorageServiceTest extends VertxTest {
         // then
         final ModuleCacheRequest result = captureModuleCacheRequest();
         assertThat(result.getType()).isEqualTo(StorageDataType.TEXT);
+
+        verify(metrics).updateModuleStorageCacheCreativeTtl(12, MetricName.text);
+        verify(metrics).updateModuleStorageCacheCreativeSize(16, MetricName.text);
+        verify(metrics).updateModuleStorageCacheWriteRequestTime(anyLong(), eq(MetricName.ok));
+    }
+
+    @Test
+    public void storeModuleEntryShouldStoreXmlMediaType() {
+        // when
+        target.storeEntry("some-key",
+                "<some-value/>",
+                StorageDataType.XML,
+                12,
+                "some-application",
+                "some-module-code");
+
+        // then
+        final ModuleCacheRequest result = captureModuleCacheRequest();
+        assertThat(result.getType()).isEqualTo(StorageDataType.XML);
+
+        verify(metrics).updateModuleStorageCacheCreativeTtl(12, MetricName.xml);
+        verify(metrics).updateModuleStorageCacheCreativeSize(13, MetricName.xml);
+        verify(metrics).updateModuleStorageCacheWriteRequestTime(anyLong(), eq(MetricName.ok));
+    }
+
+    @Test
+    public void storeModuleEntryShouldStoreJsonMediaType() {
+        // when
+        target.storeEntry("some-key",
+                "{}",
+                StorageDataType.JSON,
+                12,
+                "some-application",
+                "some-module-code");
+
+        // then
+        final ModuleCacheRequest result = captureModuleCacheRequest();
+        assertThat(result.getType()).isEqualTo(StorageDataType.JSON);
+
+        verify(metrics).updateModuleStorageCacheCreativeTtl(12, MetricName.json);
+        verify(metrics).updateModuleStorageCacheCreativeSize(2, MetricName.json);
+        verify(metrics).updateModuleStorageCacheWriteRequestTime(anyLong(), eq(MetricName.ok));
     }
 
     @Test
@@ -127,6 +216,10 @@ public class BasicPbcStorageServiceTest extends VertxTest {
         // then
         final ModuleCacheRequest result = captureModuleCacheRequest();
         assertThat(result.getTtlseconds()).isEqualTo(12);
+
+        verify(metrics).updateModuleStorageCacheCreativeTtl(12, MetricName.text);
+        verify(metrics).updateModuleStorageCacheCreativeSize(16, MetricName.text);
+        verify(metrics).updateModuleStorageCacheWriteRequestTime(anyLong(), eq(MetricName.ok));
     }
 
     @Test
@@ -143,6 +236,8 @@ public class BasicPbcStorageServiceTest extends VertxTest {
         assertThat(result.failed()).isTrue();
         assertThat(result.cause()).isInstanceOf(PreBidException.class);
         assertThat(result.cause().getMessage()).isEqualTo("Module cache 'key' can not be blank");
+
+        verifyNoInteractions(metrics);
     }
 
     @Test
@@ -159,6 +254,8 @@ public class BasicPbcStorageServiceTest extends VertxTest {
         assertThat(result.failed()).isTrue();
         assertThat(result.cause()).isInstanceOf(PreBidException.class);
         assertThat(result.cause().getMessage()).isEqualTo("Module cache 'value' can not be blank");
+
+        verifyNoInteractions(metrics);
     }
 
     @Test
@@ -175,6 +272,8 @@ public class BasicPbcStorageServiceTest extends VertxTest {
         assertThat(result.failed()).isTrue();
         assertThat(result.cause()).isInstanceOf(PreBidException.class);
         assertThat(result.cause().getMessage()).isEqualTo("Module cache 'application' can not be blank");
+
+        verifyNoInteractions(metrics);
     }
 
     @Test
@@ -191,6 +290,8 @@ public class BasicPbcStorageServiceTest extends VertxTest {
         assertThat(result.failed()).isTrue();
         assertThat(result.cause()).isInstanceOf(PreBidException.class);
         assertThat(result.cause().getMessage()).isEqualTo("Module cache 'type' can not be empty");
+
+        verifyNoInteractions(metrics);
     }
 
     @Test
@@ -207,6 +308,8 @@ public class BasicPbcStorageServiceTest extends VertxTest {
         assertThat(result.failed()).isTrue();
         assertThat(result.cause()).isInstanceOf(PreBidException.class);
         assertThat(result.cause().getMessage()).isEqualTo("Module cache 'moduleCode' can not be blank");
+
+        verifyNoInteractions(metrics);
     }
 
     @Test
@@ -222,6 +325,10 @@ public class BasicPbcStorageServiceTest extends VertxTest {
         // then
         final MultiMap result = captureStoreRequestHeaders();
         assertThat(result.get(HttpUtil.X_PBC_API_KEY_HEADER)).isEqualTo("pbc-api-key");
+
+        verify(metrics).updateModuleStorageCacheCreativeTtl(12, MetricName.text);
+        verify(metrics).updateModuleStorageCacheCreativeSize(16, MetricName.text);
+        verify(metrics).updateModuleStorageCacheWriteRequestTime(anyLong(), eq(MetricName.ok));
     }
 
     @Test
@@ -234,6 +341,8 @@ public class BasicPbcStorageServiceTest extends VertxTest {
         assertThat(result.failed()).isTrue();
         assertThat(result.cause()).isInstanceOf(PreBidException.class);
         assertThat(result.cause().getMessage()).isEqualTo("Module cache 'key' can not be blank");
+
+        verifyNoInteractions(metrics);
     }
 
     @Test
@@ -246,6 +355,8 @@ public class BasicPbcStorageServiceTest extends VertxTest {
         assertThat(result.failed()).isTrue();
         assertThat(result.cause()).isInstanceOf(PreBidException.class);
         assertThat(result.cause().getMessage()).isEqualTo("Module cache 'application' can not be blank");
+
+        verifyNoInteractions(metrics);
     }
 
     @Test
@@ -258,6 +369,8 @@ public class BasicPbcStorageServiceTest extends VertxTest {
         assertThat(result.failed()).isTrue();
         assertThat(result.cause()).isInstanceOf(PreBidException.class);
         assertThat(result.cause().getMessage()).isEqualTo("Module cache 'moduleCode' can not be blank");
+
+        verifyNoInteractions(metrics);
     }
 
     @Test
@@ -268,6 +381,8 @@ public class BasicPbcStorageServiceTest extends VertxTest {
         // then
         final MultiMap result = captureRetrieveRequestHeaders();
         assertThat(result.get(HttpUtil.X_PBC_API_KEY_HEADER)).isEqualTo("pbc-api-key");
+
+        verify(metrics).updateModuleStorageCacheReadRequestTime(anyLong(), eq(MetricName.ok));
     }
 
     @Test
@@ -279,6 +394,8 @@ public class BasicPbcStorageServiceTest extends VertxTest {
         final String result = captureRetrieveUrl();
         assertThat(result)
                 .isEqualTo("http://cache-service/cache?k=module.some-module-code.some-key&a=some-app");
+
+        verify(metrics).updateModuleStorageCacheReadRequestTime(anyLong(), eq(MetricName.ok));
     }
 
     @Test
@@ -290,6 +407,24 @@ public class BasicPbcStorageServiceTest extends VertxTest {
         // then
         assertThat(result.result())
                 .isEqualTo(ModuleCacheResponse.of("some-key", StorageDataType.JSON, "some-value"));
+
+        verify(metrics).updateModuleStorageCacheReadRequestTime(anyLong(), eq(MetricName.ok));
+    }
+
+    @Test
+    public void retrieveEntryShouldReturnFailureResponse() {
+        //given
+        given(httpClient.get(anyString(), any(), anyLong())).willReturn(Future.succeededFuture(
+                HttpClientResponse.of(500, null, "error")));
+
+        // when
+        final Future<ModuleCacheResponse> result =
+                target.retrieveEntry("some-key", "some-module-code", "some-app");
+
+        // then
+        assertThat(result.succeeded()).isFalse();
+
+        verify(metrics).updateModuleStorageCacheReadRequestTime(anyLong(), eq(MetricName.err));
     }
 
     @SneakyThrows

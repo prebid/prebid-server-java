@@ -247,14 +247,18 @@ public class ServiceConfiguration {
             @Value("${storage.pbc.call-timeout-ms}") int callTimeoutMs,
             @Value("${pbc.api.key}") String apiKey,
             HttpClient httpClient,
-            JacksonMapper mapper) {
+            JacksonMapper mapper,
+            Clock clock,
+            Metrics metrics) {
 
         return new BasicPbcStorageService(
                 httpClient,
                 CacheServiceUtil.getCacheEndpointUrl(scheme, host, path),
                 apiKey,
                 callTimeoutMs,
-                mapper);
+                mapper,
+                clock,
+                metrics);
     }
 
     @Bean

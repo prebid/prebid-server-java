@@ -11,10 +11,13 @@ import org.prebid.server.cache.utils.CacheServiceUtil;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.metric.MetricName;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.httpclient.HttpClient;
 
 import java.net.URL;
+import java.time.Clock;
 import java.util.Objects;
 
 public class BasicPbcStorageService implements PbcStorageService {
@@ -27,18 +30,24 @@ public class BasicPbcStorageService implements PbcStorageService {
     private final String apiKey;
     private final int callTimeoutMs;
     private final JacksonMapper mapper;
+    private final Clock clock;
+    private final Metrics metrics;
 
     public BasicPbcStorageService(HttpClient httpClient,
                                   URL endpointUrl,
                                   String apiKey,
                                   int callTimeoutMs,
-                                  JacksonMapper mapper) {
+                                  JacksonMapper mapper,
+                                  Clock clock,
+                                  Metrics metrics) {
 
         this.httpClient = Objects.requireNonNull(httpClient);
         this.endpointUrl = Objects.requireNonNull(endpointUrl);
         this.apiKey = Objects.requireNonNull(apiKey);
         this.callTimeoutMs = callTimeoutMs;
         this.mapper = Objects.requireNonNull(mapper);
+        this.clock = Objects.requireNonNull(clock);
+        this.metrics = metrics;
     }
 
     @Override
@@ -55,20 +64,27 @@ public class BasicPbcStorageService implements PbcStorageService {
             return Future.failedFuture(e);
         }
 
+        final String valueToStore = prepareValueForStoring(value, type);
         final ModuleCacheRequest moduleCacheRequest =
                 ModuleCacheRequest.of(
                         constructEntryKey(key, appCode),
                         type,
-                        prepareValueForStoring(value, type),
+                        valueToStore,
                         application,
                         ttlseconds);
 
+        updateCreativeMetrics(valueToStore, type, ttlseconds);
+
+        final long startTime = clock.millis();
         return httpClient.post(
                         endpointUrl.toString(),
                         securedCallHeaders(),
                         mapper.encodeToString(moduleCacheRequest),
                         callTimeoutMs)
-                .compose(response -> processStoreResponse(response.getStatusCode(), response.getBody()));
+                .compose(response -> processStoreResponse(
+                        response.getStatusCode(),
+                        response.getBody(),
+                        startTime));
 
     }
 
@@ -99,6 +115,19 @@ public class BasicPbcStorageService implements PbcStorageService {
         }
     }
 
+    private void updateCreativeMetrics(String value, StorageDataType type, Integer ttlseconds) {
+        final MetricName metricName = switch (type) {
+            case XML -> MetricName.xml;
+            case JSON -> MetricName.json;
+            case TEXT -> MetricName.text;
+        };
+
+        metrics.updateModuleStorageCacheCreativeSize(value.length(), metricName);
+        if (ttlseconds != null) {
+            metrics.updateModuleStorageCacheCreativeTtl(ttlseconds, metricName);
+        }
+    }
+
     private static String prepareValueForStoring(String value, StorageDataType type) {
         return type == StorageDataType.TEXT
                 ? new String(Base64.encodeBase64(value.getBytes()))
@@ -114,12 +143,14 @@ public class BasicPbcStorageService implements PbcStorageService {
         return MODULE_KEY_PREFIX + MODULE_KEY_DELIMETER + moduleCode + MODULE_KEY_DELIMETER + key;
     }
 
-    private Future<Void> processStoreResponse(int statusCode, String responseBody) {
+    private Future<Void> processStoreResponse(int statusCode, String responseBody, long startTime) {
         if (statusCode != 204) {
+            metrics.updateModuleStorageCacheWriteRequestTime(clock.millis() - startTime, MetricName.err);
             throw new PreBidException("HTTP status code: '%s', body: '%s' "
                     .formatted(statusCode, responseBody));
         }
 
+        metrics.updateModuleStorageCacheWriteRequestTime(clock.millis() - startTime, MetricName.ok);
         return Future.succeededFuture();
     }
 
@@ -134,11 +165,12 @@ public class BasicPbcStorageService implements PbcStorageService {
             return Future.failedFuture(e);
         }
 
+        final long startTime = clock.millis();
         return httpClient.get(
                         getRetrieveEndpoint(key, appCode, application),
                         securedCallHeaders(),
                         callTimeoutMs)
-                .map(response -> toModuleCacheResponse(response.getStatusCode(), response.getBody()));
+                .map(response -> toModuleCacheResponse(response.getStatusCode(), response.getBody(), startTime));
 
     }
 
@@ -165,10 +197,13 @@ public class BasicPbcStorageService implements PbcStorageService {
                 + "&a=" + application;
     }
 
-    private ModuleCacheResponse toModuleCacheResponse(int statusCode, String responseBody) {
+    private ModuleCacheResponse toModuleCacheResponse(int statusCode, String responseBody, long startTime) {
         if (statusCode != 200) {
+            metrics.updateModuleStorageCacheReadRequestTime(clock.millis() - startTime, MetricName.err);
             throw new PreBidException("HTTP status code " + statusCode);
         }
+
+        metrics.updateModuleStorageCacheReadRequestTime(clock.millis() - startTime, MetricName.ok);
 
         final ModuleCacheResponse moduleCacheResponse;
         try {

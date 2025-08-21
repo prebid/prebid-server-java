@@ -14,6 +14,7 @@ class CacheMetrics extends UpdatableMetrics {
     private final CacheCreativeSizeMetrics cacheCreativeSizeMetrics;
     private final CacheCreativeTtlMetrics cacheCreativeTtlMetrics;
     private final CacheVtrackMetrics cacheVtrackMetrics;
+    private final CacheModuleStorageMetrics cacheModuleStorageMetrics;
 
     CacheMetrics(MetricRegistry metricRegistry, CounterType counterType) {
         super(
@@ -25,6 +26,7 @@ class CacheMetrics extends UpdatableMetrics {
         cacheCreativeSizeMetrics = new CacheCreativeSizeMetrics(metricRegistry, counterType, createPrefix());
         cacheCreativeTtlMetrics = new CacheCreativeTtlMetrics(metricRegistry, counterType, createPrefix());
         cacheVtrackMetrics = new CacheVtrackMetrics(metricRegistry, counterType, createPrefix());
+        cacheModuleStorageMetrics = new CacheModuleStorageMetrics(metricRegistry, counterType, createPrefix());
     }
 
     CacheMetrics(MetricRegistry metricRegistry, CounterType counterType, String prefix) {
@@ -37,6 +39,7 @@ class CacheMetrics extends UpdatableMetrics {
         cacheCreativeSizeMetrics = new CacheCreativeSizeMetrics(metricRegistry, counterType, createPrefix(prefix));
         cacheCreativeTtlMetrics = new CacheCreativeTtlMetrics(metricRegistry, counterType, createPrefix(prefix));
         cacheVtrackMetrics = new CacheVtrackMetrics(metricRegistry, counterType, createPrefix(prefix));
+        cacheModuleStorageMetrics = new CacheModuleStorageMetrics(metricRegistry, counterType, createPrefix(prefix));
     }
 
     private static String createPrefix(String prefix) {
@@ -65,5 +68,9 @@ class CacheMetrics extends UpdatableMetrics {
 
     CacheVtrackMetrics vtrack() {
         return cacheVtrackMetrics;
+    }
+
+    CacheModuleStorageMetrics moduleStorage() {
+        return cacheModuleStorageMetrics;
     }
 }
