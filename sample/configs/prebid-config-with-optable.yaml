@@ -50,4 +50,4 @@ hooks:
     enabled: true
   modules:
     optable-targeting:
-      api-endpoint: https://na.edge.optable.co/v2/targeting?t={TENANT}&o={ORIGIN}
+      api-endpoint: https://na.edge.optable.co/v2/targeting?t={{TENANT}}&o={{ORIGIN}}

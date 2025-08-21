@@ -4,6 +4,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
@@ -32,24 +33,32 @@ import org.prebid.server.hooks.v1.PayloadUpdate;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.ProcessedAuctionRequestHook;
+import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.log.LoggerFactory;
 
 import java.util.Objects;
 
 public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuctionRequestHook {
+
+    private static final ConditionalLogger conditionalLogger = new ConditionalLogger(
+            LoggerFactory.getLogger(OptableTargetingProcessedAuctionRequestHook.class));
 
     public static final String CODE = "optable-targeting-processed-auction-request-hook";
 
     private final ConfigResolver configResolver;
     private final OptableTargeting optableTargeting;
     private final UserFpdActivityMask userFpdActivityMask;
+    private final double logSamplingRate;
 
     public OptableTargetingProcessedAuctionRequestHook(ConfigResolver configResolver,
                                                        OptableTargeting optableTargeting,
-                                                       UserFpdActivityMask userFpdActivityMask) {
+                                                       UserFpdActivityMask userFpdActivityMask,
+                                                       double logSamplingRate) {
 
         this.configResolver = Objects.requireNonNull(configResolver);
         this.optableTargeting = Objects.requireNonNull(optableTargeting);
         this.userFpdActivityMask = Objects.requireNonNull(userFpdActivityMask);
+        this.logSamplingRate = logSamplingRate;
     }
 
     @Override
@@ -58,6 +67,16 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
 
         final OptableTargetingProperties properties = configResolver.resolve(invocationContext.accountConfig());
         final ModuleContext moduleContext = new ModuleContext();
+        final long callTargetingAPITimestamp = System.currentTimeMillis();
+
+        if (!isTargetingPropertiesValid(properties)) {
+            conditionalLogger.error(
+                    "Account not properly configured: tenant and/or origin is missing.", logSamplingRate);
+
+            moduleContext.setOptableTargetingExecutionTime(System.currentTimeMillis() - callTargetingAPITimestamp);
+            moduleContext.setEnrichRequestStatus(EnrichmentStatus.failure());
+            return update(BidRequestCleaner.instance(), moduleContext);
+        }
 
         final BidRequest bidRequest = applyActivityRestrictions(auctionRequestPayload.bidRequest(), invocationContext);
 
@@ -66,7 +85,6 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
                 invocationContext.auctionContext(),
                 properties.getTimeout());
 
-        final long callTargetingAPITimestamp = System.currentTimeMillis();
         return optableTargeting.getTargeting(properties, bidRequest, attributes, timeout)
                 .compose(targetingResult -> {
                     moduleContext.setOptableTargetingExecutionTime(
@@ -79,6 +97,10 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
                     moduleContext.setEnrichRequestStatus(EnrichmentStatus.failure());
                     return update(BidRequestCleaner.instance(), moduleContext);
                 });
+    }
+
+    private boolean isTargetingPropertiesValid(OptableTargetingProperties properties) {
+        return !StringUtils.isEmpty(properties.getOrigin()) && !StringUtils.isEmpty(properties.getTenant());
     }
 
     private BidRequest applyActivityRestrictions(BidRequest bidRequest,
