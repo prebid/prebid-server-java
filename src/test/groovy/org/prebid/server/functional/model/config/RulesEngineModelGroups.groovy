@@ -1,11 +1,9 @@
 package org.prebid.server.functional.model.config
 
 import com.fasterxml.jackson.annotation.JsonProperty
-import org.prebid.server.functional.model.pricefloors.Country
 import org.prebid.server.functional.util.PBSUtils
 
-import static org.prebid.server.functional.model.config.RuleEngineFunction.DEVICE_COUNTRY_IN
-import static org.prebid.server.functional.model.config.RuleEngineModelRule.*
+import static org.prebid.server.functional.model.config.RuleEngineModelRule.createRuleEngineModelRule
 import static org.prebid.server.functional.model.config.RuleEngineModelSchema.createDeviceCountryInSchema
 
 class RulesEngineModelGroups {
