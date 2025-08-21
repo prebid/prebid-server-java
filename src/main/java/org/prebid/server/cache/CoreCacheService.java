@@ -58,6 +58,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -217,7 +218,10 @@ public class CoreCacheService {
         final List<CachedCreative> cachedCreatives =
                 updatePutObjects(bidPutObjects, isEventsEnabled, biddersAllowingVastUpdate, accountId, integration);
 
-        updateCreativeMetrics(accountId, cachedCreatives);
+        updateCreativeMetrics(
+                cachedCreatives,
+                (ttl, type) -> metrics.updateVtrackCacheCreativeTtl(accountId, ttl, type),
+                (size, type) -> metrics.updateVtrackCacheCreativeSize(accountId, size, type));
 
         return makeRequest(toBidCacheRequest(cachedCreatives), cachedCreatives.size(), timeout, accountId);
     }
@@ -316,7 +320,10 @@ public class CoreCacheService {
 
         final BidCacheRequest bidCacheRequest = toBidCacheRequest(cachedCreatives);
 
-        updateCreativeMetrics(accountId, cachedCreatives);
+        updateCreativeMetrics(
+                cachedCreatives,
+                (ttl, type) -> metrics.updateCacheCreativeTtl(accountId, ttl, type),
+                (size, type) -> metrics.updateCacheCreativeSize(accountId, size, type));
 
         final String url = ObjectUtils.firstNonNull(internalEndpointUrl, externalEndpointUrl).toString();
         final String body = mapper.encodeToString(bidCacheRequest);
@@ -542,17 +549,20 @@ public class CoreCacheService {
         return hbCacheId != null && uuid.endsWith(hbCacheId) ? hbCacheId : uuid;
     }
 
-    private void updateCreativeMetrics(String accountId, List<CachedCreative> cachedCreatives) {
+    private void updateCreativeMetrics(List<CachedCreative> cachedCreatives,
+                                       BiConsumer<Integer, MetricName> updateCreativeTtlMetric,
+                                       BiConsumer<Integer, MetricName> updateCreativeSiseMetric) {
+
         for (CachedCreative cachedCreative : cachedCreatives) {
             final BidPutObject payload = cachedCreative.getPayload();
             final MetricName creativeType = resolveCreativeTypeName(payload);
             final Integer creativeTtl = ObjectUtils.defaultIfNull(payload.getTtlseconds(), payload.getExpiry());
 
             if (creativeTtl != null) {
-                metrics.updateCacheCreativeTtl(accountId, creativeTtl, creativeType);
+                updateCreativeTtlMetric.accept(creativeTtl, creativeType);
             }
 
-            metrics.updateCacheCreativeSize(accountId, cachedCreative.getSize(), creativeType);
+            updateCreativeSiseMetric.accept(cachedCreative.getSize(), creativeType);
         }
     }
 
