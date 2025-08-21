@@ -7,7 +7,7 @@ import org.prebid.server.settings.model.StoredDataResult;
 import java.util.Set;
 
 @FunctionalInterface
-public interface StoredDataFetcher {
+public interface StoredDataFetcher<T> {
 
-    Future<StoredDataResult> apply(String account, Set<String> reqIds, Set<String> impIds, Timeout timeout);
+    Future<StoredDataResult<T>> apply(String account, Set<String> reqIds, Set<String> impIds, Timeout timeout);
 }

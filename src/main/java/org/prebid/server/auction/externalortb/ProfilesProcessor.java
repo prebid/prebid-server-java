@@ -6,20 +6,27 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import io.vertx.core.Future;
+import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.exception.InvalidProfileException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
+import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.log.LoggerFactory;
+import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAuctionConfig;
+import org.prebid.server.settings.model.AccountProfilesConfig;
 import org.prebid.server.settings.model.Profile;
-import org.prebid.server.settings.model.StoredProfileResult;
+import org.prebid.server.settings.model.StoredDataResult;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -34,8 +41,13 @@ import java.util.stream.Collectors;
 
 public class ProfilesProcessor {
 
+    private static final ConditionalLogger conditionalLogger =
+            new ConditionalLogger(LoggerFactory.getLogger(ProfilesProcessor.class));
+
     private final int maxProfiles;
     private final long defaultTimeoutMillis;
+    private final boolean failOnUnknown;
+    private final double logSamplingRate;
     private final ApplicationSettings applicationSettings;
     private final TimeoutFactory timeoutFactory;
     private final Metrics metrics;
@@ -44,6 +56,8 @@ public class ProfilesProcessor {
 
     public ProfilesProcessor(int maxProfiles,
                              long defaultTimeoutMillis,
+                             boolean failOnUnknown,
+                             double logSamplingRate,
                              ApplicationSettings applicationSettings,
                              TimeoutFactory timeoutFactory,
                              Metrics metrics,
@@ -52,6 +66,8 @@ public class ProfilesProcessor {
 
         this.maxProfiles = maxProfiles;
         this.defaultTimeoutMillis = defaultTimeoutMillis;
+        this.failOnUnknown = failOnUnknown;
+        this.logSamplingRate = logSamplingRate;
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
         this.metrics = Objects.requireNonNull(metrics);
@@ -59,25 +75,54 @@ public class ProfilesProcessor {
         this.jsonMerger = Objects.requireNonNull(jsonMerger);
     }
 
-    public Future<BidRequest> process(Account account, BidRequest bidRequest) {
-        final List<Imp> imps = bidRequest.getImp();
+    public Future<BidRequest> process(AuctionContext auctionContext, BidRequest bidRequest) {
+        final String accountId = Optional.ofNullable(auctionContext.getAccount())
+                .map(Account::getId)
+                .orElse(StringUtils.EMPTY);
 
-        final AllProfilesIds profilesIds = truncate(new AllProfilesIds(
-                requestProfilesIds(bidRequest),
-                imps.stream()
-                        .map(this::impProfilesIds)
-                        .toList()));
-
+        final AllProfilesIds profilesIds = profilesIds(bidRequest, auctionContext, accountId);
         if (profilesIds.isEmpty()) {
             return Future.succeededFuture(bidRequest);
         }
 
-        return fetchProfiles(account.getId(), profilesIds, timeoutMillis(bidRequest))
+        final boolean failOnUnknown = isFailOnUnknown(auctionContext.getAccount());
+
+        return fetchProfiles(accountId, profilesIds, timeoutMillis(bidRequest))
+                .compose(profiles -> emitMetrics(accountId, profiles, auctionContext, failOnUnknown))
                 .map(profiles -> mergeResults(
-                        applyRequestProfiles(profilesIds.request(), profiles.getIdToRequestProfile(), bidRequest),
-                        applyImpsProfiles(profilesIds.imps(), profiles.getIdToImpProfile(), imps)))
+                        applyRequestProfiles(
+                                profilesIds.request(),
+                                profiles.getStoredIdToRequest(),
+                                bidRequest,
+                                failOnUnknown),
+                        applyImpsProfiles(
+                                profilesIds.imps(),
+                                profiles.getStoredIdToImp(),
+                                bidRequest.getImp(),
+                                failOnUnknown)))
                 .recover(e -> Future.failedFuture(
                         new InvalidRequestException("Error during processing profiles: " + e.getMessage())));
+    }
+
+    private AllProfilesIds profilesIds(BidRequest bidRequest, AuctionContext auctionContext, String accountId) {
+        final AllProfilesIds initialProfilesIds = new AllProfilesIds(
+                requestProfilesIds(bidRequest),
+                bidRequest.getImp().stream().map(this::impProfilesIds).toList());
+
+        final AllProfilesIds profilesIds = truncate(
+                initialProfilesIds,
+                Optional.ofNullable(auctionContext.getAccount())
+                        .map(Account::getAuction)
+                        .map(AccountAuctionConfig::getProfiles)
+                        .map(AccountProfilesConfig::getLimit)
+                        .orElse(maxProfiles));
+
+        if (auctionContext.getDebugContext().isDebugEnabled() && !profilesIds.equals(initialProfilesIds)) {
+            auctionContext.getDebugWarnings().add("Profiles exceeded the limit.");
+            metrics.updateAccountProfileMetric(accountId, MetricName.limit_exceeded);
+        }
+
+        return profilesIds;
     }
 
     private static List<String> requestProfilesIds(BidRequest bidRequest) {
@@ -100,18 +145,25 @@ public class ProfilesProcessor {
         try {
             return mapper.mapper().treeToValue(jsonNode, ExtImpPrebid.class);
         } catch (JsonProcessingException e) {
-            throw new InvalidProfileException(e.getMessage());
+            throw new InvalidRequestException(e.getMessage());
         }
     }
 
-    private AllProfilesIds truncate(AllProfilesIds profilesIds) {
-        // TODO:
-        // 1. How to limit for multiple imps (each contains profiles)?
-        // 2. Which of these approaches is correct?
-        //      - limit -> fetch
-        //      - fetch -> limit (don't count invalid profiles)
-        //      - fetch -> limit (count invalid profiles)
-        return profilesIds;
+    private static AllProfilesIds truncate(AllProfilesIds profilesIds, int maxProfiles) {
+        final List<String> requestProfiles = profilesIds.request();
+        final int impProfilesLimit = maxProfiles - requestProfiles.size();
+
+        return impProfilesLimit > 0
+                ? new AllProfilesIds(
+                requestProfiles,
+                profilesIds.imps().stream()
+                        .map(impProfiles -> truncate(impProfiles, impProfilesLimit))
+                        .toList())
+                : new AllProfilesIds(truncate(requestProfiles, maxProfiles), Collections.emptyList());
+    }
+
+    private static <T> List<T> truncate(List<T> list, int maxSize) {
+        return list.size() > maxSize ? list.subList(0, maxSize) : list;
     }
 
     private long timeoutMillis(BidRequest bidRequest) {
@@ -119,9 +171,17 @@ public class ProfilesProcessor {
         return tmax != null && tmax > 0 ? tmax : defaultTimeoutMillis;
     }
 
-    private Future<StoredProfileResult> fetchProfiles(String accountId,
-                                                      AllProfilesIds allProfilesIds,
-                                                      long timeoutMillis) {
+    private boolean isFailOnUnknown(Account account) {
+        return Optional.ofNullable(account)
+                .map(Account::getAuction)
+                .map(AccountAuctionConfig::getProfiles)
+                .map(AccountProfilesConfig::getFailOnUnknown)
+                .orElse(failOnUnknown);
+    }
+
+    private Future<StoredDataResult<Profile>> fetchProfiles(String accountId,
+                                                            AllProfilesIds allProfilesIds,
+                                                            long timeoutMillis) {
 
         final Set<String> requestProfilesIds = new HashSet<>(allProfilesIds.request());
         final Set<String> impProfilesIds = allProfilesIds.imps().stream()
@@ -129,25 +189,46 @@ public class ProfilesProcessor {
                 .collect(Collectors.toSet());
         final Timeout timeout = timeoutFactory.create(timeoutMillis);
 
-        return applicationSettings.getProfiles(accountId, requestProfilesIds, impProfilesIds, timeout)
-                .compose(profiles -> profiles.getErrors().isEmpty()
-                        ? Future.succeededFuture(profiles)
-                        : Future.failedFuture(new InvalidProfileException(profiles.getErrors())));
+        return applicationSettings.getProfiles(accountId, requestProfilesIds, impProfilesIds, timeout);
+    }
+
+    private Future<StoredDataResult<Profile>> emitMetrics(String accountId,
+                                                          StoredDataResult<Profile> fetchResult,
+                                                          AuctionContext auctionContext,
+                                                          boolean failOnUnknown) {
+
+        final List<String> errors = fetchResult.getErrors();
+        if (!errors.isEmpty()) {
+            metrics.updateProfileMetric(MetricName.missing);
+
+            if (auctionContext.getDebugContext().isDebugEnabled()) {
+                metrics.updateAccountProfileMetric(accountId, MetricName.missing);
+                auctionContext.getDebugWarnings().addAll(errors);
+            }
+
+            if (failOnUnknown) {
+                return Future.failedFuture(new InvalidProfileException(errors));
+            }
+        }
+
+        return Future.succeededFuture(fetchResult);
     }
 
     private BidRequest applyRequestProfiles(List<String> profilesIds,
                                             Map<String, Profile> idToRequestProfile,
-                                            BidRequest bidRequest) {
+                                            BidRequest bidRequest,
+                                            boolean failOnUnknown) {
 
         return !idToRequestProfile.isEmpty()
-                ? applyProfiles(profilesIds, idToRequestProfile, bidRequest, BidRequest.class)
+                ? applyProfiles(profilesIds, idToRequestProfile, bidRequest, BidRequest.class, failOnUnknown)
                 : bidRequest;
     }
 
     private <T> T applyProfiles(List<String> profilesIds,
                                 Map<String, Profile> idToProfile,
                                 T original,
-                                Class<T> tClass) {
+                                Class<T> tClass,
+                                boolean failOnUnknown) {
 
         if (profilesIds.isEmpty()) {
             return original;
@@ -155,8 +236,18 @@ public class ProfilesProcessor {
 
         ObjectNode result = mapper.mapper().valueToTree(original);
         for (String profileId : profilesIds) {
-            final Profile profile = idToProfile.get(profileId);
-            result = mergeProfile(result, profile, profileId);
+            try {
+                final Profile profile = idToProfile.get(profileId);
+                result = profile != null ? mergeProfile(result, profile) : result;
+            } catch (InvalidRequestException e) {
+                final String message = "Can't merge with profile %s: %s".formatted(profileId, e.getMessage());
+
+                metrics.updateProfileMetric(MetricName.invalid);
+                conditionalLogger.error(message, logSamplingRate);
+                if (failOnUnknown) {
+                    throw new InvalidProfileException(message);
+                }
+            }
         }
 
         try {
@@ -166,24 +257,25 @@ public class ProfilesProcessor {
         }
     }
 
-    private ObjectNode mergeProfile(ObjectNode original, Profile profile, String profileId) {
+    private ObjectNode mergeProfile(ObjectNode original, Profile profile) {
         return switch (profile.getMergePrecedence()) {
-            case REQUEST -> merge(original, profile.getBody(), profileId);
-            case PROFILE -> merge(profile.getBody(), original, profileId);
+            case REQUEST -> merge(original, profile.getBody());
+            case PROFILE -> merge(profile.getBody(), original);
         };
     }
 
-    private ObjectNode merge(ObjectNode takePrecedence, ObjectNode other, String profileId) {
-        try {
-            return (ObjectNode) jsonMerger.merge(takePrecedence, other);
-        } catch (InvalidRequestException e) {
-            throw new InvalidProfileException("Can't merge with profile %s: %s".formatted(profileId, e.getMessage()));
+    private ObjectNode merge(JsonNode takePrecedence, JsonNode other) {
+        if (!takePrecedence.isObject() || !other.isObject()) {
+            throw new InvalidRequestException("One of the merge arguments is not an object.");
         }
+
+        return (ObjectNode) jsonMerger.merge(takePrecedence, other);
     }
 
     private List<Imp> applyImpsProfiles(List<List<String>> profilesIds,
                                         Map<String, Profile> idToImpProfile,
-                                        List<Imp> imps) {
+                                        List<Imp> imps,
+                                        boolean failOnUnknown) {
 
         if (idToImpProfile.isEmpty()) {
             return imps;
@@ -191,7 +283,12 @@ public class ProfilesProcessor {
 
         final List<Imp> updatedImps = new ArrayList<>(imps);
         for (int i = 0; i < profilesIds.size(); i++) {
-            updatedImps.set(i, applyProfiles(profilesIds.get(i), idToImpProfile, imps.get(i), Imp.class));
+            updatedImps.set(i, applyProfiles(
+                    profilesIds.get(i),
+                    idToImpProfile,
+                    imps.get(i),
+                    Imp.class,
+                    failOnUnknown));
         }
 
         return Collections.unmodifiableList(updatedImps);

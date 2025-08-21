@@ -30,7 +30,7 @@ public class DatabaseStoredDataResultMapper {
     /**
      * Overloaded method for cases when no specific IDs are required, e.g. fetching all records.
      */
-    public static StoredDataResult map(RowSet<Row> resultSet) {
+    public static StoredDataResult<String> map(RowSet<Row> resultSet) {
         return map(resultSet, null, Collections.emptySet(), Collections.emptySet());
     }
 
@@ -38,10 +38,10 @@ public class DatabaseStoredDataResultMapper {
      * Note: mapper should never throw exception in case of using
      * {@link CircuitBreakerSecuredDatabaseClient}.
      */
-    public static StoredDataResult map(RowSet<Row> rowSet,
-                                       String accountId,
-                                       Set<String> requestIds,
-                                       Set<String> impIds) {
+    public static StoredDataResult<String> map(RowSet<Row> rowSet,
+                                               String accountId,
+                                               Set<String> requestIds,
+                                               Set<String> impIds) {
 
         final RowIterator<Row> rowIterator = rowSet != null ? rowSet.iterator() : null;
         final List<String> errors = new ArrayList<>();
@@ -55,8 +55,8 @@ public class DatabaseStoredDataResultMapper {
                     Collections.unmodifiableList(errors));
         }
 
-        final Map<String, Set<StoredItem>> requestIdToStoredItems = new HashMap<>();
-        final Map<String, Set<StoredItem>> impIdToStoredItems = new HashMap<>();
+        final Map<String, Set<StoredItem<String>>> requestIdToStoredItems = new HashMap<>();
+        final Map<String, Set<StoredItem<String>>> impIdToStoredItems = new HashMap<>();
 
         while (rowIterator.hasNext()) {
             final Row row = rowIterator.next();
@@ -125,7 +125,7 @@ public class DatabaseStoredDataResultMapper {
     private static void addStoredItem(String accountId,
                                       String id,
                                       String data,
-                                      Map<String, Set<StoredItem>> idToStoredItems) {
+                                      Map<String, Set<StoredItem<String>>> idToStoredItems) {
 
         idToStoredItems.computeIfAbsent(id, key -> new HashSet<>()).add(StoredItem.of(accountId, data));
     }
@@ -133,14 +133,14 @@ public class DatabaseStoredDataResultMapper {
     private static Map<String, String> storedItemsOrAddError(StoredDataType type,
                                                              String accountId,
                                                              Set<String> searchIds,
-                                                             Map<String, Set<StoredItem>> foundIdToStoredItems,
+                                                             Map<String, Set<StoredItem<String>>> foundIdToStoredItems,
                                                              List<String> errors) {
 
         final Map<String, String> result = new HashMap<>();
 
         if (searchIds.isEmpty()) {
             foundIdToStoredItems.forEach((id, storedItems) -> {
-                for (StoredItem storedItem : storedItems) {
+                for (StoredItem<String> storedItem : storedItems) {
                     result.put(id, storedItem.getData());
                 }
             });
@@ -150,8 +150,8 @@ public class DatabaseStoredDataResultMapper {
 
         for (String id : searchIds) {
             try {
-                final StoredItem resolvedStoredItem = StoredItemResolver
-                        .resolve(type, accountId, id, foundIdToStoredItems.get(id));
+                final StoredItem<String> resolvedStoredItem = StoredItemResolver
+                        .resolve("stored " + type.toString(), accountId, id, foundIdToStoredItems.get(id));
 
                 result.put(id, resolvedStoredItem.getData());
             } catch (PreBidException e) {

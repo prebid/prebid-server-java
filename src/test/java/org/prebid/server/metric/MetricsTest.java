@@ -333,6 +333,15 @@ public class MetricsTest {
     }
 
     @Test
+    public void updateImpsDroppedMetricShouldIncrementMetrics() {
+        // when
+        metrics.updateImpsDroppedMetric(2);
+
+        // then
+        assertThat(metricRegistry.counter("imps_dropped").getCount()).isEqualTo(2);
+    }
+
+    @Test
     public void updateDebugRequestsMetricsShouldIncrementMetrics() {
         // when
         metrics.updateDebugRequestMetrics(false);
@@ -1559,6 +1568,26 @@ public class MetricsTest {
                 .isEqualTo(1);
         assertThat(metricRegistry.histogram("prebid_cache.creative_ttl.unknown").getCount()).isEqualTo(1);
         assertThat(metricRegistry.histogram("account.accountId.prebid_cache.creative_ttl.unknown").getCount())
+                .isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementUpdateProfileMetric() {
+        // when
+        metrics.updateProfileMetric(MetricName.limit_exceeded);
+
+        // then
+        assertThat(metricRegistry.counter("profiles.limit_exceeded").getCount())
+                .isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementUpdateAccountProfileMetric() {
+        // when
+        metrics.updateAccountProfileMetric("accountId", MetricName.limit_exceeded);
+
+        // then
+        assertThat(metricRegistry.counter("account.accountId.profiles.limit_exceeded").getCount())
                 .isEqualTo(1);
     }
 

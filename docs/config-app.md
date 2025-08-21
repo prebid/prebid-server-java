@@ -14,6 +14,7 @@ This section can be extended against standard [Spring configuration](https://doc
 This parameter exists to allow to change the location of the directory Vert.x will create because it will and there is no way to make it not.
 - `vertx.init-timeout-ms` - time to wait for asynchronous initialization steps completion before considering them stuck. When exceeded - exception is thrown and Prebid Server stops.
 - `vertx.enable-per-client-endpoint-metrics` - enables HTTP client metrics per destination endpoint (`host:port`)
+- `vertx.round-robin-inet-address` - enables round-robin inet address selection of the ip address to use
 
 ## Server
 - `server.max-headers-size` - set the maximum length of all headers.
@@ -345,6 +346,7 @@ For HTTP data source available next options:
 - `settings.http.amp-endpoint` - the url to fetch AMP stored requests.
 - `settings.http.video-endpoint` - the url to fetch video stored requests.
 - `settings.http.category-endpoint` - the url to fetch categories for long form video.
+- `settings.http.rfc3986-compatible` - if equals to `true` the url will be build according to RFC 3986, `false` by default
 
 For account processing rules available next options:
 - `settings.enforce-valid-account` - if equals to `true` then request without account id will be rejected with 401.

@@ -26,6 +26,7 @@ import org.prebid.server.settings.HttpApplicationSettings;
 import org.prebid.server.settings.S3ApplicationSettings;
 import org.prebid.server.settings.SettingsCache;
 import org.prebid.server.settings.helper.ParametrizedQueryHelper;
+import org.prebid.server.settings.model.Profile;
 import org.prebid.server.settings.service.DatabasePeriodicRefreshService;
 import org.prebid.server.settings.service.HttpPeriodicRefreshService;
 import org.prebid.server.settings.service.S3PeriodicRefreshService;
@@ -76,13 +77,21 @@ public class SettingsConfiguration {
                 @Value("${settings.filesystem.settings-filename}") String settingsFileName,
                 @Value("${settings.filesystem.stored-requests-dir}") String storedRequestsDir,
                 @Value("${settings.filesystem.stored-imps-dir}") String storedImpsDir,
+                @Value("${settings.filesystem.profiles-dir}") String profilesDir,
                 @Value("${settings.filesystem.stored-responses-dir}") String storedResponsesDir,
                 @Value("${settings.filesystem.categories-dir}") String categoriesDir,
                 FileSystem fileSystem,
                 JacksonMapper jacksonMapper) {
 
-            return new FileApplicationSettings(fileSystem, settingsFileName, storedRequestsDir, storedImpsDir,
-                    storedResponsesDir, categoriesDir, jacksonMapper);
+            return new FileApplicationSettings(
+                    fileSystem,
+                    settingsFileName,
+                    storedRequestsDir,
+                    storedImpsDir,
+                    profilesDir,
+                    storedResponsesDir,
+                    categoriesDir,
+                    jacksonMapper);
         }
     }
 
@@ -95,6 +104,7 @@ public class SettingsConfiguration {
                 @Value("${settings.database.account-query}") String accountQuery,
                 @Value("${settings.database.stored-requests-query}") String storedRequestsQuery,
                 @Value("${settings.database.amp-stored-requests-query}") String ampStoredRequestsQuery,
+                @Value("${settings.database.profiles-query}") String profilesQuery,
                 @Value("${settings.database.stored-responses-query}") String storedResponsesQuery,
                 ParametrizedQueryHelper parametrizedQueryHelper,
                 DatabaseClient databaseClient,
@@ -107,6 +117,7 @@ public class SettingsConfiguration {
                     accountQuery,
                     storedRequestsQuery,
                     ampStoredRequestsQuery,
+                    profilesQuery,
                     storedResponsesQuery);
         }
     }
@@ -117,6 +128,7 @@ public class SettingsConfiguration {
 
         @Bean
         HttpApplicationSettings httpApplicationSettings(
+                @Value("${settings.http.rfc3986-compatible:false}") boolean isRfc3986Compatible,
                 HttpClient httpClient,
                 JacksonMapper mapper,
                 @Value("${settings.http.endpoint}") String endpoint,
@@ -125,6 +137,7 @@ public class SettingsConfiguration {
                 @Value("${settings.http.category-endpoint}") String categoryEndpoint) {
 
             return new HttpApplicationSettings(
+                    isRfc3986Compatible,
                     endpoint,
                     ampEndpoint,
                     videoEndpoint,
@@ -154,7 +167,7 @@ public class SettingsConfiguration {
         @Bean
         public HttpPeriodicRefreshService httpPeriodicRefreshService(
                 @Value("${settings.in-memory-cache.http-update.endpoint}") String endpoint,
-                SettingsCache settingsCache,
+                SettingsCache<String> settingsCache,
                 JacksonMapper mapper) {
 
             return new HttpPeriodicRefreshService(
@@ -164,7 +177,7 @@ public class SettingsConfiguration {
         @Bean
         public HttpPeriodicRefreshService ampHttpPeriodicRefreshService(
                 @Value("${settings.in-memory-cache.http-update.amp-endpoint}") String ampEndpoint,
-                SettingsCache ampSettingsCache,
+                SettingsCache<String> ampSettingsCache,
                 JacksonMapper mapper) {
 
             return new HttpPeriodicRefreshService(
@@ -201,7 +214,7 @@ public class SettingsConfiguration {
 
         @Bean
         public DatabasePeriodicRefreshService databasePeriodicRefreshService(
-                @Qualifier("settingsCache") SettingsCache settingsCache,
+                @Qualifier("settingsCache") SettingsCache<String> settingsCache,
                 @Value("${settings.in-memory-cache.database-update.init-query}") String initQuery,
                 @Value("${settings.in-memory-cache.database-update.update-query}") String updateQuery) {
 
@@ -221,7 +234,7 @@ public class SettingsConfiguration {
 
         @Bean
         public DatabasePeriodicRefreshService ampDatabasePeriodicRefreshService(
-                @Qualifier("ampSettingsCache") SettingsCache ampSettingsCache,
+                @Qualifier("ampSettingsCache") SettingsCache<String> ampSettingsCache,
                 @Value("${settings.in-memory-cache.database-update.amp-init-query}") String ampInitQuery,
                 @Value("${settings.in-memory-cache.database-update.amp-update-query}") String ampUpdateQuery) {
 
@@ -353,7 +366,7 @@ public class SettingsConfiguration {
                 S3AsyncClient s3AsyncClient,
                 S3SettingsConfiguration.S3ConfigurationProperties s3ConfigurationProperties,
                 @Value("${settings.in-memory-cache.s3-update.refresh-rate}") long refreshPeriod,
-                SettingsCache settingsCache,
+                SettingsCache<String> settingsCache,
                 Clock clock,
                 Metrics metrics,
                 Vertx vertx) {
@@ -429,9 +442,10 @@ public class SettingsConfiguration {
         CachingApplicationSettings cachingApplicationSettings(
                 EnrichingApplicationSettings enrichingApplicationSettings,
                 ApplicationSettingsCacheProperties cacheProperties,
-                @Qualifier("settingsCache") SettingsCache cache,
-                @Qualifier("ampSettingsCache") SettingsCache ampCache,
-                @Qualifier("videoSettingCache") SettingsCache videoCache,
+                @Qualifier("settingsCache") SettingsCache<String> cache,
+                @Qualifier("ampSettingsCache") SettingsCache<String> ampCache,
+                @Qualifier("videoSettingCache") SettingsCache<String> videoCache,
+                @Qualifier("profileSettingCache") SettingsCache<Profile> profilesCache,
                 Metrics metrics) {
 
             return new CachingApplicationSettings(
@@ -439,6 +453,7 @@ public class SettingsConfiguration {
                     cache,
                     ampCache,
                     videoCache,
+                    profilesCache,
                     metrics,
                     cacheProperties.getTtlSeconds(),
                     cacheProperties.getCacheSize(),
@@ -463,8 +478,8 @@ public class SettingsConfiguration {
 
         @Bean
         @Qualifier("settingsCache")
-        SettingsCache settingsCache(ApplicationSettingsCacheProperties cacheProperties) {
-            return new SettingsCache(
+        SettingsCache<String> settingsCache(ApplicationSettingsCacheProperties cacheProperties) {
+            return new SettingsCache<>(
                     cacheProperties.getTtlSeconds(),
                     cacheProperties.getCacheSize(),
                     cacheProperties.getJitterSeconds());
@@ -472,8 +487,8 @@ public class SettingsConfiguration {
 
         @Bean
         @Qualifier("ampSettingsCache")
-        SettingsCache ampSettingsCache(ApplicationSettingsCacheProperties cacheProperties) {
-            return new SettingsCache(
+        SettingsCache<String> ampSettingsCache(ApplicationSettingsCacheProperties cacheProperties) {
+            return new SettingsCache<>(
                     cacheProperties.getTtlSeconds(),
                     cacheProperties.getCacheSize(),
                     cacheProperties.getJitterSeconds());
@@ -481,8 +496,17 @@ public class SettingsConfiguration {
 
         @Bean
         @Qualifier("videoSettingCache")
-        SettingsCache videoSettingCache(ApplicationSettingsCacheProperties cacheProperties) {
-            return new SettingsCache(
+        SettingsCache<String> videoSettingCache(ApplicationSettingsCacheProperties cacheProperties) {
+            return new SettingsCache<>(
+                    cacheProperties.getTtlSeconds(),
+                    cacheProperties.getCacheSize(),
+                    cacheProperties.getJitterSeconds());
+        }
+
+        @Bean
+        @Qualifier("profileSettingCache")
+        SettingsCache<Profile> profileSettingCache(ApplicationSettingsCacheProperties cacheProperties) {
+            return new SettingsCache<>(
                     cacheProperties.getTtlSeconds(),
                     cacheProperties.getCacheSize(),
                     cacheProperties.getJitterSeconds());

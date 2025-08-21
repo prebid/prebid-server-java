@@ -42,6 +42,7 @@ import org.prebid.server.proto.openrtb.ext.request.pubmatic.ExtImpPubmatic;
 import org.prebid.server.proto.openrtb.ext.request.pubmatic.ExtImpPubmaticKeyVal;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidMeta;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.proto.openrtb.ext.response.ExtIgi;
 import org.prebid.server.proto.openrtb.ext.response.ExtIgiIgs;
@@ -504,6 +505,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
             return CompositeBidderResponse.builder()
                     .bids(extractBids(bidResponse, errors))
                     .igi(extractIgi(bidResponse))
+                    .errors(errors)
                     .build();
         } catch (DecodeException | PreBidException e) {
             return CompositeBidderResponse.withError(BidderError.badServerResponse(e.getMessage()));
@@ -523,6 +525,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> resolveBidderBid(bid, bidResponse.getCur(), bidderErrors))
+                .filter(Objects::nonNull)
                 .toList();
     }
 
@@ -533,21 +536,22 @@ public class PubmaticBidder implements Bidder<BidRequest> {
                 : null;
 
         final PubmaticBidExt pubmaticBidExt = parseBidExt(bid.getExt(), bidderErrors);
-        final Integer duration = getDuration(pubmaticBidExt);
-        final BidType bidType = getBidType(pubmaticBidExt);
+        final BidType bidType = getBidType(bid, bidderErrors);
+
+        if (bidType == null) {
+            return null;
+        }
 
         final String bidAdm = bid.getAdm();
         final String resolvedAdm = bidAdm != null && bidType == BidType.xNative
                 ? resolveNativeAdm(bidAdm, bidderErrors)
                 : bidAdm;
 
-        final Bid updatedBid = firstCat != null || duration != null || resolvedAdm != null
-                ? bid.toBuilder()
+        final Bid updatedBid = bid.toBuilder()
                 .cat(firstCat)
                 .adm(resolvedAdm != null ? resolvedAdm : bidAdm)
-                .ext(duration != null ? updateBidExtWithExtPrebid(duration, bid.getExt()) : bid.getExt())
-                .build()
-                : bid;
+                .ext(updateBidExtWithExtPrebid(pubmaticBidExt, bidType, bid.getExt()))
+                .build();
 
         return BidderBid.builder()
                 .bid(updatedBid)
@@ -567,22 +571,17 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static Integer getDuration(PubmaticBidExt bidExt) {
-        return Optional.ofNullable(bidExt)
-                .map(PubmaticBidExt::getVideo)
-                .map(VideoCreativeInfo::getDuration)
-                .orElse(null);
-    }
-
-    private static BidType getBidType(PubmaticBidExt bidExt) {
-        final int bidType = Optional.ofNullable(bidExt)
-                .map(PubmaticBidExt::getBidType)
-                .orElse(0);
-
-        return switch (bidType) {
-            case 1 -> BidType.video;
-            case 2 -> BidType.xNative;
-            default -> BidType.banner;
+    private static BidType getBidType(Bid bid, List<BidderError> errors) {
+        return switch (bid.getMtype()) {
+            case 1 -> BidType.banner;
+            case 2 -> BidType.video;
+            case 3 -> BidType.audio;
+            case 4 -> BidType.xNative;
+            case null, default -> {
+                errors.add(BidderError.badServerResponse("failed to parse bid mtype (%d) for impression id %s"
+                        .formatted(bid.getMtype(), bid.getImpid())));
+                yield null;
+            }
         };
     }
 
@@ -603,9 +602,33 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         return null;
     }
 
-    private ObjectNode updateBidExtWithExtPrebid(Integer duration, ObjectNode extBid) {
-        final ExtBidPrebid extBidPrebid = ExtBidPrebid.builder().video(ExtBidPrebidVideo.of(duration, null)).build();
-        return extBid.set(PREBID, mapper.mapper().valueToTree(extBidPrebid));
+    private ObjectNode updateBidExtWithExtPrebid(PubmaticBidExt pubmaticBidExt, BidType type, ObjectNode extBid) {
+        final Integer duration = getDuration(pubmaticBidExt);
+        final boolean inBannerVideo = getInBannerVideo(pubmaticBidExt);
+
+        final ExtBidPrebid extBidPrebid = ExtBidPrebid.builder()
+                .video(duration != null ? ExtBidPrebidVideo.of(duration, null) : null)
+                .meta(ExtBidPrebidMeta.builder()
+                        .mediaType(inBannerVideo ? BidType.video.getName() : type.getName())
+                        .build())
+                .build();
+
+        return extBid != null
+                ? extBid.set(PREBID, mapper.mapper().valueToTree(extBidPrebid))
+                : mapper.mapper().createObjectNode().set(PREBID, mapper.mapper().valueToTree(extBidPrebid));
+    }
+
+    private static Integer getDuration(PubmaticBidExt bidExt) {
+        return Optional.ofNullable(bidExt)
+                .map(PubmaticBidExt::getVideo)
+                .map(VideoCreativeInfo::getDuration)
+                .orElse(null);
+    }
+
+    private static boolean getInBannerVideo(PubmaticBidExt bidExt) {
+        return Optional.ofNullable(bidExt)
+                .map(PubmaticBidExt::getInBannerVideo)
+                .orElse(false);
     }
 
     private static Integer getDealPriority(PubmaticBidExt bidExt) {

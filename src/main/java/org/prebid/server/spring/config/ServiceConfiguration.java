@@ -36,6 +36,7 @@ import org.prebid.server.auction.WinningBidComparatorFactory;
 import org.prebid.server.auction.categorymapping.BasicCategoryMappingService;
 import org.prebid.server.auction.categorymapping.CategoryMappingService;
 import org.prebid.server.auction.categorymapping.NoOpCategoryMappingService;
+import org.prebid.server.auction.externalortb.ProfilesProcessor;
 import org.prebid.server.auction.externalortb.StoredRequestProcessor;
 import org.prebid.server.auction.externalortb.StoredResponseProcessor;
 import org.prebid.server.auction.gpp.AmpGppService;
@@ -433,6 +434,7 @@ public class ServiceConfiguration {
             TimeoutResolver auctionTimeoutResolver,
             TimeoutFactory timeoutFactory,
             StoredRequestProcessor storedRequestProcessor,
+            ProfilesProcessor profilesProcessor,
             ApplicationSettings applicationSettings,
             IpAddressHelper ipAddressHelper,
             HookStageExecutor hookStageExecutor,
@@ -451,6 +453,7 @@ public class ServiceConfiguration {
                 auctionTimeoutResolver,
                 timeoutFactory,
                 storedRequestProcessor,
+                profilesProcessor,
                 applicationSettings,
                 ipAddressHelper,
                 hookStageExecutor,
@@ -463,6 +466,7 @@ public class ServiceConfiguration {
             @Value("${auction.max-request-size}") @Min(0) int maxRequestSize,
             Ortb2RequestFactory ortb2RequestFactory,
             StoredRequestProcessor storedRequestProcessor,
+            ProfilesProcessor profilesProcessor,
             BidRequestOrtbVersionConversionManager bidRequestOrtbVersionConversionManager,
             AuctionGppService auctionGppService,
             CookieDeprecationService cookieDeprecationService,
@@ -479,6 +483,7 @@ public class ServiceConfiguration {
                 maxRequestSize,
                 ortb2RequestFactory,
                 storedRequestProcessor,
+                profilesProcessor,
                 bidRequestOrtbVersionConversionManager,
                 auctionGppService,
                 cookieDeprecationService,
@@ -513,6 +518,7 @@ public class ServiceConfiguration {
     @Bean
     AmpRequestFactory ampRequestFactory(Ortb2RequestFactory ortb2RequestFactory,
                                         StoredRequestProcessor storedRequestProcessor,
+                                        ProfilesProcessor profilesProcessor,
                                         BidRequestOrtbVersionConversionManager bidRequestOrtbVersionConversionManager,
                                         AmpGppService ampGppService,
                                         OrtbTypesResolver ortbTypesResolver,
@@ -527,6 +533,7 @@ public class ServiceConfiguration {
         return new AmpRequestFactory(
                 ortb2RequestFactory,
                 storedRequestProcessor,
+                profilesProcessor,
                 bidRequestOrtbVersionConversionManager,
                 ampGppService,
                 ortbTypesResolver,
@@ -983,6 +990,29 @@ public class ServiceConfiguration {
                 new UUIDIdGenerator(),
                 metrics,
                 timeoutFactory,
+                mapper,
+                jsonMerger);
+    }
+
+    @Bean
+    ProfilesProcessor profilesProcessor(@Value("${auction.profiles.limit}") int maxProfiles,
+                                        @Value("${auction.profiles.timeout-ms}") long defaultTimeoutMillis,
+                                        @Value("${auction.profiles.fail-on-unknown:true}") boolean failOnUnknown,
+                                        @Value("${logging.sampling-rate:0.01}") double logSamplingRate,
+                                        ApplicationSettings applicationSettings,
+                                        TimeoutFactory timeoutFactory,
+                                        Metrics metrics,
+                                        JacksonMapper mapper,
+                                        JsonMerger jsonMerger) {
+
+        return new ProfilesProcessor(
+                maxProfiles,
+                defaultTimeoutMillis,
+                failOnUnknown,
+                logSamplingRate,
+                applicationSettings,
+                timeoutFactory,
+                metrics,
                 mapper,
                 jsonMerger);
     }

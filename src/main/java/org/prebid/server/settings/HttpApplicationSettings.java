@@ -8,6 +8,7 @@ import io.vertx.core.Future;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.json.DecodeException;
@@ -16,9 +17,9 @@ import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.Category;
+import org.prebid.server.settings.model.Profile;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredDataType;
-import org.prebid.server.settings.model.StoredProfileResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 import org.prebid.server.settings.proto.response.HttpAccountsResponse;
 import org.prebid.server.settings.proto.response.HttpFetcherResponse;
@@ -26,6 +27,7 @@ import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -36,6 +38,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Implementation of {@link ApplicationSettings}.
@@ -45,10 +48,14 @@ import java.util.stream.Collectors;
  * In order to enable caching and reduce latency for read operations {@link HttpApplicationSettings}
  * can be decorated by {@link CachingApplicationSettings}.
  * <p>
- * Expected the endpoint to satisfy the following API:
+ * Expected the endpoint to satisfy the following API (URL is encoded):
  * <p>
  * GET {endpoint}?request-ids=["req1","req2"]&imp-ids=["imp1","imp2","imp3"]
  * <p>
+ * or settings.http.rfc3986-compatible is set to true
+ * <p>
+ * * GET {endpoint}?request-id=req1&request-id=req2&imp-id=imp1&imp-id=imp2&imp-id=imp3
+ * * <p>
  * This endpoint should return a payload like:
  * <pre>
  * {
@@ -71,6 +78,7 @@ public class HttpApplicationSettings implements ApplicationSettings {
             new TypeReference<>() {
             };
 
+    private final boolean isRfc3986Compatible;
     private final String endpoint;
     private final String ampEndpoint;
     private final String videoEndpoint;
@@ -78,17 +86,19 @@ public class HttpApplicationSettings implements ApplicationSettings {
     private final HttpClient httpClient;
     private final JacksonMapper mapper;
 
-    public HttpApplicationSettings(String endpoint,
+    public HttpApplicationSettings(boolean isRfc3986Compatible,
+                                   String endpoint,
                                    String ampEndpoint,
                                    String videoEndpoint,
                                    String categoryEndpoint,
                                    HttpClient httpClient,
                                    JacksonMapper mapper) {
 
-        this.endpoint = HttpUtil.validateUrl(Objects.requireNonNull(endpoint));
-        this.ampEndpoint = HttpUtil.validateUrl(Objects.requireNonNull(ampEndpoint));
-        this.videoEndpoint = HttpUtil.validateUrl(Objects.requireNonNull(videoEndpoint));
-        this.categoryEndpoint = HttpUtil.validateUrl(Objects.requireNonNull(categoryEndpoint));
+        this.isRfc3986Compatible = isRfc3986Compatible;
+        this.endpoint = HttpUtil.validateUrlSyntax(Objects.requireNonNull(endpoint));
+        this.ampEndpoint = HttpUtil.validateUrlSyntax(Objects.requireNonNull(ampEndpoint));
+        this.videoEndpoint = HttpUtil.validateUrlSyntax(Objects.requireNonNull(videoEndpoint));
+        this.categoryEndpoint = HttpUtil.validateUrlSyntax(Objects.requireNonNull(categoryEndpoint));
         this.httpClient = Objects.requireNonNull(httpClient);
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -116,15 +126,20 @@ public class HttpApplicationSettings implements ApplicationSettings {
                 .map(response -> processAccountsResponse(response, accountIds));
     }
 
-    private static String accountsRequestUrlFrom(String endpoint, Set<String> accountIds) {
-        final StringBuilder url = new StringBuilder(endpoint);
-        url.append(endpoint.contains("?") ? "&" : "?");
-
-        if (!accountIds.isEmpty()) {
-            url.append("account-ids=[\"").append(joinIds(accountIds)).append("\"]");
+    private String accountsRequestUrlFrom(String endpoint, Set<String> accountIds) {
+        try {
+            final URIBuilder uriBuilder = new URIBuilder(endpoint);
+            if (!accountIds.isEmpty()) {
+                if (isRfc3986Compatible) {
+                    accountIds.forEach(accountId -> uriBuilder.addParameter("account-id", accountId));
+                } else {
+                    uriBuilder.addParameter("account-ids", "[\"%s\"]".formatted(joinIds(accountIds)));
+                }
+            }
+            return uriBuilder.build().toString();
+        } catch (URISyntaxException e) {
+            throw new PreBidException("URL %s has bad syntax".formatted(endpoint));
         }
-
-        return url.toString();
     }
 
     private Set<Account> processAccountsResponse(HttpClientResponse httpClientResponse, Set<String> accountIds) {
@@ -147,36 +162,36 @@ public class HttpApplicationSettings implements ApplicationSettings {
     }
 
     @Override
-    public Future<StoredDataResult> getStoredData(String accountId,
-                                                  Set<String> requestIds,
-                                                  Set<String> impIds,
-                                                  Timeout timeout) {
+    public Future<StoredDataResult<String>> getStoredData(String accountId,
+                                                          Set<String> requestIds,
+                                                          Set<String> impIds,
+                                                          Timeout timeout) {
 
         return fetchStoredData(endpoint, requestIds, impIds, timeout);
     }
 
     @Override
-    public Future<StoredDataResult> getAmpStoredData(String accountId,
-                                                     Set<String> requestIds,
-                                                     Set<String> impIds,
-                                                     Timeout timeout) {
+    public Future<StoredDataResult<String>> getAmpStoredData(String accountId,
+                                                             Set<String> requestIds,
+                                                             Set<String> impIds,
+                                                             Timeout timeout) {
 
-        return fetchStoredData(ampEndpoint, requestIds, impIds, timeout);
+        return fetchStoredData(ampEndpoint, requestIds, Collections.emptySet(), timeout);
     }
 
     @Override
-    public Future<StoredDataResult> getVideoStoredData(String accountId,
-                                                       Set<String> requestIds,
-                                                       Set<String> impIds,
-                                                       Timeout timeout) {
+    public Future<StoredDataResult<String>> getVideoStoredData(String accountId,
+                                                               Set<String> requestIds,
+                                                               Set<String> impIds,
+                                                               Timeout timeout) {
 
         return fetchStoredData(videoEndpoint, requestIds, impIds, timeout);
     }
 
-    private Future<StoredDataResult> fetchStoredData(String endpoint,
-                                                     Set<String> requestIds,
-                                                     Set<String> impIds,
-                                                     Timeout timeout) {
+    private Future<StoredDataResult<String>> fetchStoredData(String endpoint,
+                                                             Set<String> requestIds,
+                                                             Set<String> impIds,
+                                                             Timeout timeout) {
 
         if (CollectionUtils.isEmpty(requestIds) && CollectionUtils.isEmpty(impIds)) {
             return Future.succeededFuture(
@@ -193,17 +208,17 @@ public class HttpApplicationSettings implements ApplicationSettings {
                 .recover(exception -> failStoredDataResponse(exception, requestIds, impIds));
     }
 
-    private static Future<StoredDataResult> failStoredDataResponse(Throwable throwable,
-                                                                   Set<String> requestIds,
-                                                                   Set<String> impIds) {
+    private static Future<StoredDataResult<String>> failStoredDataResponse(Throwable throwable,
+                                                                           Set<String> requestIds,
+                                                                           Set<String> impIds) {
 
         return Future.succeededFuture(toFailedStoredDataResult(requestIds, impIds, throwable.getMessage()));
     }
 
-    private static StoredDataResult toFailedStoredDataResult(Set<String> requestIds,
-                                                             Set<String> impIds,
-                                                             String errorMessageFormat,
-                                                             Object... args) {
+    private static StoredDataResult<String> toFailedStoredDataResult(Set<String> requestIds,
+                                                                     Set<String> impIds,
+                                                                     String errorMessageFormat,
+                                                                     Object... args) {
 
         final String errorRequests = requestIds.isEmpty() ? "" : "stored requests for ids " + requestIds;
         final String separator = requestIds.isEmpty() || impIds.isEmpty() ? "" : " and ";
@@ -216,27 +231,32 @@ public class HttpApplicationSettings implements ApplicationSettings {
         return StoredDataResult.of(Collections.emptyMap(), Collections.emptyMap(), Collections.singletonList(error));
     }
 
-    private static String storeRequestUrlFrom(String endpoint, Set<String> requestIds, Set<String> impIds) {
-        final StringBuilder url = new StringBuilder(endpoint);
-        url.append(endpoint.contains("?") ? "&" : "?");
-
-        if (!requestIds.isEmpty()) {
-            url.append("request-ids=[\"").append(joinIds(requestIds)).append("\"]");
-        }
-
-        if (!impIds.isEmpty()) {
+    private String storeRequestUrlFrom(String endpoint, Set<String> requestIds, Set<String> impIds) {
+        try {
+            final URIBuilder uriBuilder = new URIBuilder(endpoint);
             if (!requestIds.isEmpty()) {
-                url.append("&");
+                if (isRfc3986Compatible) {
+                    requestIds.forEach(requestId -> uriBuilder.addParameter("request-id", requestId));
+                } else {
+                    uriBuilder.addParameter("request-ids", "[\"%s\"]".formatted(joinIds(requestIds)));
+                }
             }
-            url.append("imp-ids=[\"").append(joinIds(impIds)).append("\"]");
+            if (!impIds.isEmpty()) {
+                if (isRfc3986Compatible) {
+                    impIds.forEach(impId -> uriBuilder.addParameter("imp-id", impId));
+                } else {
+                    uriBuilder.addParameter("imp-ids", "[\"%s\"]".formatted(joinIds(impIds)));
+                }
+            }
+            return uriBuilder.build().toString();
+        } catch (URISyntaxException e) {
+            throw new PreBidException("URL %s has bad syntax".formatted(endpoint));
         }
-
-        return url.toString();
     }
 
-    private StoredDataResult processStoredDataResponse(HttpClientResponse httpClientResponse,
-                                                       Set<String> requestIds,
-                                                       Set<String> impIds) {
+    private StoredDataResult<String> processStoredDataResponse(HttpClientResponse httpClientResponse,
+                                                               Set<String> requestIds,
+                                                               Set<String> impIds) {
 
         final int statusCode = httpClientResponse.getStatusCode();
         if (statusCode != HttpResponseStatus.OK.code()) {
@@ -255,7 +275,10 @@ public class HttpApplicationSettings implements ApplicationSettings {
         return parseResponse(requestIds, impIds, response);
     }
 
-    private StoredDataResult parseResponse(Set<String> requestIds, Set<String> impIds, HttpFetcherResponse response) {
+    private StoredDataResult<String> parseResponse(Set<String> requestIds,
+                                                   Set<String> impIds,
+                                                   HttpFetcherResponse response) {
+
         final List<String> errors = new ArrayList<>();
 
         final Map<String, String> storedIdToRequest =
@@ -301,18 +324,21 @@ public class HttpApplicationSettings implements ApplicationSettings {
     }
 
     @Override
-    public Future<StoredProfileResult> getProfiles(String accountId,
-                                                   Set<String> requestIds,
-                                                   Set<String> impIds,
-                                                   Timeout timeout) {
+    public Future<StoredDataResult<Profile>> getProfiles(String accountId,
+                                                         Set<String> requestIds,
+                                                         Set<String> impIds,
+                                                         Timeout timeout) {
 
-        // TODO: change to success
-        return Future.failedFuture("Not supported");
+        return Future.succeededFuture(StoredDataResult.of(
+                Collections.emptyMap(),
+                Collections.emptyMap(),
+                Stream.concat(requestIds.stream(), impIds.stream())
+                        .map(id -> "Profile not found for id: " + id)
+                        .toList()));
     }
 
     @Override
     public Future<StoredResponseDataResult> getStoredResponses(Set<String> responseIds, Timeout timeout) {
-        // TODO: ???
         return Future.failedFuture(new PreBidException("Not supported"));
     }
 
@@ -362,7 +388,6 @@ public class HttpApplicationSettings implements ApplicationSettings {
     }
 
     private static String joinIds(Set<String> ids) {
-        // TODO: Add url encode
         return String.join("\",\"", ids);
     }
 }
