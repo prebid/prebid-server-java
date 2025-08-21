@@ -74,7 +74,7 @@ public class RemoteFileSupplierTest {
 
     private RemoteFileSupplier target(boolean checkRemoteFileSize) {
         return new RemoteFileSupplier(
-                "https://download.url/",
+                "https://download.url.com/",
                 SAVE_PATH,
                 TMP_PATH,
                 httpClient,
