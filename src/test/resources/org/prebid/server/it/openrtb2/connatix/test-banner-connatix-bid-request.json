@@ -11,7 +11,8 @@
       "ext": {
         "connatix": {
           "placementId": "some-placement-id"
-        }
+        },
+        "gpid": "test-gpid"
       }
     }
   ],
