@@ -3,7 +3,6 @@ package org.prebid.server.settings.helper;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.settings.model.StoredDataType;
 import org.prebid.server.settings.model.StoredItem;
 
 import java.util.Objects;
@@ -32,9 +31,9 @@ public class StoredItemResolver {
      * <p>
      * - Otherwise, reject stored item as if there hadn't been match.
      */
-    public static StoredItem resolve(StoredDataType type, String accountId, String id, Set<StoredItem> storedItems) {
+    public static <T> StoredItem<T> resolve(String type, String accountId, String id, Set<StoredItem<T>> storedItems) {
         if (CollectionUtils.isEmpty(storedItems)) {
-            throw new PreBidException("No stored %s found for id: %s".formatted(type, id));
+            throw new PreBidException("No %s found for id: %s".formatted(type, id));
         }
 
         // at least one stored item has account
@@ -42,21 +41,25 @@ public class StoredItemResolver {
             if (StringUtils.isEmpty(accountId)) {
                 // we cannot choose stored item among multiple without account
                 throw new PreBidException(
-                        "Multiple stored %ss found for id: %s but no account was specified".formatted(type, id));
+                        "Multiple %ss found for id: %s but no account was specified".formatted(type, id));
             }
+
             return storedItems.stream()
                     .filter(storedItem -> Objects.equals(storedItem.getAccountId(), accountId))
                     .findAny()
                     .orElseThrow(() -> new PreBidException(
-                            "No stored %s found among multiple id: %s for account: %s".formatted(type, id, accountId)));
+                            "No %s found among multiple id: %s for account: %s".formatted(type, id, accountId)));
         }
 
         // only one stored item found
-        final StoredItem storedItem = storedItems.iterator().next();
-        if (StringUtils.isBlank(accountId) || storedItem.getAccountId() == null
+        final StoredItem<T> storedItem = storedItems.iterator().next();
+        if (StringUtils.isBlank(accountId)
+                || storedItem.getAccountId() == null
                 || Objects.equals(accountId, storedItem.getAccountId())) {
+
             return storedItem;
         }
-        throw new PreBidException("No stored %s found for id: %s for account: %s".formatted(type, id, accountId));
+
+        throw new PreBidException("No %s found for id: %s for account: %s".formatted(type, id, accountId));
     }
 }

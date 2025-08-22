@@ -68,8 +68,14 @@ public class HttpApplicationSettingsTest extends VertxTest {
 
     @BeforeEach
     public void setUp() {
-        httpApplicationSettings = new HttpApplicationSettings(httpClient, jacksonMapper, ENDPOINT, AMP_ENDPOINT,
-                VIDEO_ENDPOINT, CATEGORY_ENDPOINT, false);
+        httpApplicationSettings = new HttpApplicationSettings(
+                false,
+                ENDPOINT,
+                AMP_ENDPOINT,
+                VIDEO_ENDPOINT,
+                CATEGORY_ENDPOINT,
+                httpClient,
+                jacksonMapper);
 
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
@@ -80,24 +86,42 @@ public class HttpApplicationSettingsTest extends VertxTest {
     @Test
     public void creationShouldFailsOnInvalidEndpoint() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new HttpApplicationSettings(httpClient, jacksonMapper, "invalid_url", AMP_ENDPOINT,
-                        VIDEO_ENDPOINT, CATEGORY_ENDPOINT, false))
+                .isThrownBy(() -> new HttpApplicationSettings(
+                        false,
+                        "invalid_url",
+                        AMP_ENDPOINT,
+                        VIDEO_ENDPOINT,
+                        CATEGORY_ENDPOINT,
+                        httpClient,
+                        jacksonMapper))
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 
     @Test
     public void creationShouldFailsOnInvalidAmpEndpoint() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new HttpApplicationSettings(httpClient, jacksonMapper, ENDPOINT, "invalid_url",
-                        VIDEO_ENDPOINT, CATEGORY_ENDPOINT, false))
+                .isThrownBy(() -> new HttpApplicationSettings(
+                        false,
+                        ENDPOINT,
+                        "invalid_url",
+                        VIDEO_ENDPOINT,
+                        CATEGORY_ENDPOINT,
+                        httpClient,
+                        jacksonMapper))
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 
     @Test
     public void creationShouldFailsOnInvalidVideoEndpoint() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new HttpApplicationSettings(httpClient, jacksonMapper, ENDPOINT, AMP_ENDPOINT,
-                        "invalid_url", CATEGORY_ENDPOINT, false))
+                .isThrownBy(() -> new HttpApplicationSettings(
+                        false,
+                        ENDPOINT,
+                        AMP_ENDPOINT,
+                        "invalid_url",
+                        CATEGORY_ENDPOINT,
+                        httpClient,
+                        jacksonMapper))
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 
@@ -132,8 +156,14 @@ public class HttpApplicationSettingsTest extends VertxTest {
     public void getAccountByIdShouldReturnFetchedAccountWithRfc3986CompatibleParams() throws JsonProcessingException {
         // given
         givenHttpClientReturnsResponse(200, null);
-        httpApplicationSettings = new HttpApplicationSettings(httpClient, jacksonMapper,
-                ENDPOINT, AMP_ENDPOINT, VIDEO_ENDPOINT, CATEGORY_ENDPOINT, true);
+        httpApplicationSettings = new HttpApplicationSettings(
+                true,
+                ENDPOINT,
+                AMP_ENDPOINT,
+                VIDEO_ENDPOINT,
+                CATEGORY_ENDPOINT,
+                httpClient,
+                jacksonMapper);
 
         final Account account = Account.builder()
                 .id("someId")
@@ -235,8 +265,8 @@ public class HttpApplicationSettingsTest extends VertxTest {
     @Test
     public void getStoredDataShouldReturnEmptyResultIfEmptyRequestsIdsGiven() {
         // when
-        final Future<StoredDataResult> future = httpApplicationSettings.getStoredData(null, emptySet(),
-                emptySet(), null);
+        final Future<StoredDataResult<String>> future =
+                httpApplicationSettings.getStoredData(null, emptySet(), emptySet(), null);
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -249,7 +279,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
     @Test
     public void getStoredDataShouldReturnResultWithErrorIfTimeoutAlreadyExpired() {
         // when
-        final Future<StoredDataResult> future =
+        final Future<StoredDataResult<String>> future =
                 httpApplicationSettings.getStoredData(null, singleton("id1"), emptySet(), expiredTimeout);
 
         // then
@@ -282,8 +312,14 @@ public class HttpApplicationSettingsTest extends VertxTest {
     public void getStoredDataShouldSendHttpRequestWithExpectedAppendedParams() {
         // given
         givenHttpClientReturnsResponse(200, null);
-        httpApplicationSettings = new HttpApplicationSettings(httpClient, jacksonMapper,
-                "http://some-domain.com?param1=value1", AMP_ENDPOINT, VIDEO_ENDPOINT, CATEGORY_ENDPOINT, false);
+        httpApplicationSettings = new HttpApplicationSettings(
+                false,
+                "http://some-domain.com?param1=value1",
+                AMP_ENDPOINT,
+                VIDEO_ENDPOINT,
+                CATEGORY_ENDPOINT,
+                httpClient,
+                jacksonMapper);
 
         // when
         httpApplicationSettings.getStoredData(null, singleton("id1"), singleton("id2"), timeout);
@@ -299,8 +335,13 @@ public class HttpApplicationSettingsTest extends VertxTest {
     public void getStoredDataShouldSendHttpRequestWithRfc3986CompatibleParams() throws URISyntaxException {
         // given
         givenHttpClientReturnsResponse(200, null);
-        httpApplicationSettings = new HttpApplicationSettings(httpClient, jacksonMapper,
-                ENDPOINT, AMP_ENDPOINT, VIDEO_ENDPOINT, CATEGORY_ENDPOINT, true);
+        httpApplicationSettings = new HttpApplicationSettings(
+                true,
+                ENDPOINT, AMP_ENDPOINT,
+                VIDEO_ENDPOINT,
+                CATEGORY_ENDPOINT,
+                httpClient,
+                jacksonMapper);
 
         // when
         httpApplicationSettings.getStoredData(null, Set.of("id1", "id2"), Set.of("id1", "id2"), timeout);
@@ -328,7 +369,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
         givenHttpClientProducesException(new RuntimeException("Request exception"));
 
         // when
-        final Future<StoredDataResult> future =
+        final Future<StoredDataResult<String>> future =
                 httpApplicationSettings.getStoredData(null, singleton("id1"), emptySet(), timeout);
 
         // then
@@ -345,7 +386,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
         givenHttpClientReturnsResponse(500, "ignored");
 
         // when
-        final Future<StoredDataResult> future =
+        final Future<StoredDataResult<String>> future =
                 httpApplicationSettings.getStoredData(null, singleton("id1"), emptySet(), timeout);
 
         // then
@@ -362,7 +403,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
         givenHttpClientReturnsResponse(200, "invalid-response");
 
         // when
-        final Future<StoredDataResult> future =
+        final Future<StoredDataResult<String>> future =
                 httpApplicationSettings.getStoredData(null, singleton("id1"), emptySet(), timeout);
 
         // then
@@ -381,7 +422,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
         givenHttpClientReturnsResponse(200, malformedStoredRequest);
 
         // when
-        final Future<StoredDataResult> future =
+        final Future<StoredDataResult<String>> future =
                 httpApplicationSettings.getStoredData(null, singleton("id1"), emptySet(), timeout);
 
         // then
@@ -401,7 +442,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
         givenHttpClientReturnsResponse(200, malformedStoredRequest);
 
         // when
-        final Future<StoredDataResult> future =
+        final Future<StoredDataResult<String>> future =
                 httpApplicationSettings.getStoredData(null, singleton("id1"), emptySet(), timeout);
 
         // then
@@ -421,7 +462,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(response));
 
         // when
-        final Future<StoredDataResult> future = httpApplicationSettings.getStoredData(
+        final Future<StoredDataResult<String>> future = httpApplicationSettings.getStoredData(
                 null, new HashSet<>(asList("id1", "id2")), new HashSet<>(asList("id3", "id4")), timeout);
 
         // then
@@ -445,7 +486,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(response));
 
         // when
-        final Future<StoredDataResult> future =
+        final Future<StoredDataResult<String>> future =
                 httpApplicationSettings.getStoredData(null, singleton("id1"), singleton("id2"), timeout);
 
         // then
