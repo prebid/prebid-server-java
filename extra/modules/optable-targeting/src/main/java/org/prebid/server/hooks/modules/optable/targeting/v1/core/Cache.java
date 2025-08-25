@@ -11,8 +11,8 @@ import java.util.Objects;
 
 public class Cache {
 
-    private static final String APP_CODE = "prebid-Java";
-    private static final String APPLICATION = "optable-targeting";
+    private static final String APPLICATION = "prebid-Java";
+    private static final String APP_CODE = "optable-targeting";
 
     private final PbcStorageService cacheService;
     private final JacksonMapper mapper;
