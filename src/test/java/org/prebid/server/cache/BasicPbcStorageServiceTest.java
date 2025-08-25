@@ -84,9 +84,9 @@ public class BasicPbcStorageServiceTest extends VertxTest {
         final ModuleCacheRequest result = captureModuleCacheRequest();
         assertThat(result.getKey()).isEqualTo("module.some-module-code.some-key");
 
-        verify(metrics).updateModuleStorageCacheCreativeTtl(12, MetricName.text);
-        verify(metrics).updateModuleStorageCacheCreativeSize(16, MetricName.text);
-        verify(metrics).updateModuleStorageCacheWriteRequestTime(anyLong(), eq(MetricName.err));
+        verify(metrics).updateModuleStorageCacheEntryTtl("some-module-code", 12, MetricName.text);
+        verify(metrics).updateModuleStorageCacheEntrySize("some-module-code", 16, MetricName.text);
+        verify(metrics).updateModuleStorageCacheWriteRequestTime(eq("some-module-code"), anyLong(), eq(MetricName.err));
     }
 
     @Test
@@ -103,9 +103,9 @@ public class BasicPbcStorageServiceTest extends VertxTest {
         final ModuleCacheRequest result = captureModuleCacheRequest();
         assertThat(result.getKey()).isEqualTo("module.some-module-code.some-key");
 
-        verify(metrics).updateModuleStorageCacheCreativeTtl(12, MetricName.text);
-        verify(metrics).updateModuleStorageCacheCreativeSize(16, MetricName.text);
-        verify(metrics).updateModuleStorageCacheWriteRequestTime(anyLong(), eq(MetricName.ok));
+        verify(metrics).updateModuleStorageCacheEntryTtl("some-module-code", 12, MetricName.text);
+        verify(metrics).updateModuleStorageCacheEntrySize("some-module-code", 16, MetricName.text);
+        verify(metrics).updateModuleStorageCacheWriteRequestTime(eq("some-module-code"), anyLong(), eq(MetricName.ok));
     }
 
     @Test
@@ -122,9 +122,9 @@ public class BasicPbcStorageServiceTest extends VertxTest {
         final ModuleCacheRequest result = captureModuleCacheRequest();
         assertThat(result.getValue()).isEqualTo("c29tZS12YWx1ZQ==");
 
-        verify(metrics).updateModuleStorageCacheCreativeTtl(12, MetricName.text);
-        verify(metrics).updateModuleStorageCacheCreativeSize(16, MetricName.text);
-        verify(metrics).updateModuleStorageCacheWriteRequestTime(anyLong(), eq(MetricName.ok));
+        verify(metrics).updateModuleStorageCacheEntryTtl("some-module-code", 12, MetricName.text);
+        verify(metrics).updateModuleStorageCacheEntrySize("some-module-code", 16, MetricName.text);
+        verify(metrics).updateModuleStorageCacheWriteRequestTime(eq("some-module-code"), anyLong(), eq(MetricName.ok));
     }
 
     @Test
@@ -141,9 +141,9 @@ public class BasicPbcStorageServiceTest extends VertxTest {
         final ModuleCacheRequest result = captureModuleCacheRequest();
         assertThat(result.getApplication()).isEqualTo("some-application");
 
-        verify(metrics).updateModuleStorageCacheCreativeTtl(12, MetricName.text);
-        verify(metrics).updateModuleStorageCacheCreativeSize(16, MetricName.text);
-        verify(metrics).updateModuleStorageCacheWriteRequestTime(anyLong(), eq(MetricName.ok));
+        verify(metrics).updateModuleStorageCacheEntryTtl("some-module-code", 12, MetricName.text);
+        verify(metrics).updateModuleStorageCacheEntrySize("some-module-code", 16, MetricName.text);
+        verify(metrics).updateModuleStorageCacheWriteRequestTime(eq("some-module-code"), anyLong(), eq(MetricName.ok));
     }
 
     @Test
@@ -160,9 +160,9 @@ public class BasicPbcStorageServiceTest extends VertxTest {
         final ModuleCacheRequest result = captureModuleCacheRequest();
         assertThat(result.getType()).isEqualTo(StorageDataType.TEXT);
 
-        verify(metrics).updateModuleStorageCacheCreativeTtl(12, MetricName.text);
-        verify(metrics).updateModuleStorageCacheCreativeSize(16, MetricName.text);
-        verify(metrics).updateModuleStorageCacheWriteRequestTime(anyLong(), eq(MetricName.ok));
+        verify(metrics).updateModuleStorageCacheEntryTtl("some-module-code", 12, MetricName.text);
+        verify(metrics).updateModuleStorageCacheEntrySize("some-module-code", 16, MetricName.text);
+        verify(metrics).updateModuleStorageCacheWriteRequestTime(eq("some-module-code"), anyLong(), eq(MetricName.ok));
     }
 
     @Test
@@ -179,9 +179,9 @@ public class BasicPbcStorageServiceTest extends VertxTest {
         final ModuleCacheRequest result = captureModuleCacheRequest();
         assertThat(result.getType()).isEqualTo(StorageDataType.XML);
 
-        verify(metrics).updateModuleStorageCacheCreativeTtl(12, MetricName.xml);
-        verify(metrics).updateModuleStorageCacheCreativeSize(13, MetricName.xml);
-        verify(metrics).updateModuleStorageCacheWriteRequestTime(anyLong(), eq(MetricName.ok));
+        verify(metrics).updateModuleStorageCacheEntryTtl("some-module-code", 12, MetricName.xml);
+        verify(metrics).updateModuleStorageCacheEntrySize("some-module-code", 13, MetricName.xml);
+        verify(metrics).updateModuleStorageCacheWriteRequestTime(eq("some-module-code"), anyLong(), eq(MetricName.ok));
     }
 
     @Test
@@ -198,9 +198,9 @@ public class BasicPbcStorageServiceTest extends VertxTest {
         final ModuleCacheRequest result = captureModuleCacheRequest();
         assertThat(result.getType()).isEqualTo(StorageDataType.JSON);
 
-        verify(metrics).updateModuleStorageCacheCreativeTtl(12, MetricName.json);
-        verify(metrics).updateModuleStorageCacheCreativeSize(2, MetricName.json);
-        verify(metrics).updateModuleStorageCacheWriteRequestTime(anyLong(), eq(MetricName.ok));
+        verify(metrics).updateModuleStorageCacheEntryTtl("some-module-code", 12, MetricName.json);
+        verify(metrics).updateModuleStorageCacheEntrySize("some-module-code", 2, MetricName.json);
+        verify(metrics).updateModuleStorageCacheWriteRequestTime(eq("some-module-code"), anyLong(), eq(MetricName.ok));
     }
 
     @Test
@@ -217,9 +217,9 @@ public class BasicPbcStorageServiceTest extends VertxTest {
         final ModuleCacheRequest result = captureModuleCacheRequest();
         assertThat(result.getTtlseconds()).isEqualTo(12);
 
-        verify(metrics).updateModuleStorageCacheCreativeTtl(12, MetricName.text);
-        verify(metrics).updateModuleStorageCacheCreativeSize(16, MetricName.text);
-        verify(metrics).updateModuleStorageCacheWriteRequestTime(anyLong(), eq(MetricName.ok));
+        verify(metrics).updateModuleStorageCacheEntryTtl("some-module-code", 12, MetricName.text);
+        verify(metrics).updateModuleStorageCacheEntrySize("some-module-code", 16, MetricName.text);
+        verify(metrics).updateModuleStorageCacheWriteRequestTime(eq("some-module-code"), anyLong(), eq(MetricName.ok));
     }
 
     @Test
@@ -326,9 +326,9 @@ public class BasicPbcStorageServiceTest extends VertxTest {
         final MultiMap result = captureStoreRequestHeaders();
         assertThat(result.get(HttpUtil.X_PBC_API_KEY_HEADER)).isEqualTo("pbc-api-key");
 
-        verify(metrics).updateModuleStorageCacheCreativeTtl(12, MetricName.text);
-        verify(metrics).updateModuleStorageCacheCreativeSize(16, MetricName.text);
-        verify(metrics).updateModuleStorageCacheWriteRequestTime(anyLong(), eq(MetricName.ok));
+        verify(metrics).updateModuleStorageCacheEntryTtl("some-module-code", 12, MetricName.text);
+        verify(metrics).updateModuleStorageCacheEntrySize("some-module-code", 16, MetricName.text);
+        verify(metrics).updateModuleStorageCacheWriteRequestTime(eq("some-module-code"), anyLong(), eq(MetricName.ok));
     }
 
     @Test
@@ -382,7 +382,7 @@ public class BasicPbcStorageServiceTest extends VertxTest {
         final MultiMap result = captureRetrieveRequestHeaders();
         assertThat(result.get(HttpUtil.X_PBC_API_KEY_HEADER)).isEqualTo("pbc-api-key");
 
-        verify(metrics).updateModuleStorageCacheReadRequestTime(anyLong(), eq(MetricName.ok));
+        verify(metrics).updateModuleStorageCacheReadRequestTime(eq("some-module-code"), anyLong(), eq(MetricName.ok));
     }
 
     @Test
@@ -395,7 +395,7 @@ public class BasicPbcStorageServiceTest extends VertxTest {
         assertThat(result)
                 .isEqualTo("http://cache-service/cache?k=module.some-module-code.some-key&a=some-app");
 
-        verify(metrics).updateModuleStorageCacheReadRequestTime(anyLong(), eq(MetricName.ok));
+        verify(metrics).updateModuleStorageCacheReadRequestTime(eq("some-module-code"), anyLong(), eq(MetricName.ok));
     }
 
     @Test
@@ -408,7 +408,7 @@ public class BasicPbcStorageServiceTest extends VertxTest {
         assertThat(result.result())
                 .isEqualTo(ModuleCacheResponse.of("some-key", StorageDataType.JSON, "some-value"));
 
-        verify(metrics).updateModuleStorageCacheReadRequestTime(anyLong(), eq(MetricName.ok));
+        verify(metrics).updateModuleStorageCacheReadRequestTime(eq("some-module-code"), anyLong(), eq(MetricName.ok));
     }
 
     @Test
@@ -424,7 +424,7 @@ public class BasicPbcStorageServiceTest extends VertxTest {
         // then
         assertThat(result.succeeded()).isFalse();
 
-        verify(metrics).updateModuleStorageCacheReadRequestTime(anyLong(), eq(MetricName.err));
+        verify(metrics).updateModuleStorageCacheReadRequestTime(eq("some-module-code"), anyLong(), eq(MetricName.err));
     }
 
     @SneakyThrows

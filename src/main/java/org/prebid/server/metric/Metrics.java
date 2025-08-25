@@ -629,20 +629,20 @@ public class Metrics extends UpdatableMetrics {
         forAccount(accountId).cache().vtrack().creativeTtl().updateHistogram(creativeType, creativeTtl);
     }
 
-    public void updateModuleStorageCacheReadRequestTime(long timeElapsed, MetricName metricName) {
-        cache().moduleStorage().read().updateTimer(metricName, timeElapsed);
+    public void updateModuleStorageCacheReadRequestTime(String moduleCode, long timeElapsed, MetricName metricName) {
+        cache().moduleStorage(moduleCode).read().updateTimer(metricName, timeElapsed);
     }
 
-    public void updateModuleStorageCacheWriteRequestTime(long timeElapsed, MetricName metricName) {
-        cache().moduleStorage().write().updateTimer(metricName, timeElapsed);
+    public void updateModuleStorageCacheWriteRequestTime(String moduleCode, long timeElapsed, MetricName metricName) {
+        cache().moduleStorage(moduleCode).write().updateTimer(metricName, timeElapsed);
     }
 
-    public void updateModuleStorageCacheCreativeSize(int creativeSize, MetricName creativeType) {
-        cache().moduleStorage().creativeSize().updateHistogram(creativeType, creativeSize);
+    public void updateModuleStorageCacheEntrySize(String moduleCode, int entrySize, MetricName type) {
+        cache().moduleStorage(moduleCode).entrySize().updateHistogram(type, entrySize);
     }
 
-    public void updateModuleStorageCacheCreativeTtl(Integer creativeTtl, MetricName creativeType) {
-        cache().moduleStorage().creativeTtl().updateHistogram(creativeType, creativeTtl);
+    public void updateModuleStorageCacheEntryTtl(String moduleCode, Integer entryTtl, MetricName type) {
+        cache().moduleStorage(moduleCode).entryTtl().updateHistogram(type, entryTtl);
     }
 
     public void updateAuctionCacheRequestTime(String accountId, long timeElapsed, MetricName metricName) {

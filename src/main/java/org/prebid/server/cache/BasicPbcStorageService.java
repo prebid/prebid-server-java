@@ -73,7 +73,7 @@ public class BasicPbcStorageService implements PbcStorageService {
                         application,
                         ttlseconds);
 
-        updateCreativeMetrics(valueToStore, type, ttlseconds);
+        updateCreativeMetrics(valueToStore, type, ttlseconds, appCode);
 
         final long startTime = clock.millis();
         return httpClient.post(
@@ -84,7 +84,8 @@ public class BasicPbcStorageService implements PbcStorageService {
                 .compose(response -> processStoreResponse(
                         response.getStatusCode(),
                         response.getBody(),
-                        startTime));
+                        startTime,
+                        appCode));
 
     }
 
@@ -115,16 +116,16 @@ public class BasicPbcStorageService implements PbcStorageService {
         }
     }
 
-    private void updateCreativeMetrics(String value, StorageDataType type, Integer ttlseconds) {
+    private void updateCreativeMetrics(String value, StorageDataType type, Integer ttlseconds, String appCode) {
         final MetricName metricName = switch (type) {
             case XML -> MetricName.xml;
             case JSON -> MetricName.json;
             case TEXT -> MetricName.text;
         };
 
-        metrics.updateModuleStorageCacheCreativeSize(value.length(), metricName);
+        metrics.updateModuleStorageCacheEntrySize(appCode, value.length(), metricName);
         if (ttlseconds != null) {
-            metrics.updateModuleStorageCacheCreativeTtl(ttlseconds, metricName);
+            metrics.updateModuleStorageCacheEntryTtl(appCode, ttlseconds, metricName);
         }
     }
 
@@ -143,22 +144,19 @@ public class BasicPbcStorageService implements PbcStorageService {
         return MODULE_KEY_PREFIX + MODULE_KEY_DELIMETER + moduleCode + MODULE_KEY_DELIMETER + key;
     }
 
-    private Future<Void> processStoreResponse(int statusCode, String responseBody, long startTime) {
+    private Future<Void> processStoreResponse(int statusCode, String responseBody, long startTime, String appCode) {
         if (statusCode != 204) {
-            metrics.updateModuleStorageCacheWriteRequestTime(clock.millis() - startTime, MetricName.err);
+            metrics.updateModuleStorageCacheWriteRequestTime(appCode, clock.millis() - startTime, MetricName.err);
             throw new PreBidException("HTTP status code: '%s', body: '%s' "
                     .formatted(statusCode, responseBody));
         }
 
-        metrics.updateModuleStorageCacheWriteRequestTime(clock.millis() - startTime, MetricName.ok);
+        metrics.updateModuleStorageCacheWriteRequestTime(appCode, clock.millis() - startTime, MetricName.ok);
         return Future.succeededFuture();
     }
 
     @Override
-    public Future<ModuleCacheResponse> retrieveEntry(String key,
-                                                     String appCode,
-                                                     String application) {
-
+    public Future<ModuleCacheResponse> retrieveEntry(String key, String appCode, String application) {
         try {
             validateRetrieveData(key, application, appCode);
         } catch (PreBidException e) {
@@ -170,7 +168,11 @@ public class BasicPbcStorageService implements PbcStorageService {
                         getRetrieveEndpoint(key, appCode, application),
                         securedCallHeaders(),
                         callTimeoutMs)
-                .map(response -> toModuleCacheResponse(response.getStatusCode(), response.getBody(), startTime));
+                .map(response -> toModuleCacheResponse(
+                        response.getStatusCode(),
+                        response.getBody(),
+                        startTime,
+                        appCode));
 
     }
 
@@ -197,13 +199,17 @@ public class BasicPbcStorageService implements PbcStorageService {
                 + "&a=" + application;
     }
 
-    private ModuleCacheResponse toModuleCacheResponse(int statusCode, String responseBody, long startTime) {
+    private ModuleCacheResponse toModuleCacheResponse(int statusCode,
+                                                      String responseBody,
+                                                      long startTime,
+                                                      String application) {
+
         if (statusCode != 200) {
-            metrics.updateModuleStorageCacheReadRequestTime(clock.millis() - startTime, MetricName.err);
+            metrics.updateModuleStorageCacheReadRequestTime(application, clock.millis() - startTime, MetricName.err);
             throw new PreBidException("HTTP status code " + statusCode);
         }
 
-        metrics.updateModuleStorageCacheReadRequestTime(clock.millis() - startTime, MetricName.ok);
+        metrics.updateModuleStorageCacheReadRequestTime(application, clock.millis() - startTime, MetricName.ok);
 
         final ModuleCacheResponse moduleCacheResponse;
         try {
