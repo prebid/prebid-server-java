@@ -7,6 +7,8 @@ import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import org.apache.commons.collections4.ListUtils;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
+import org.prebid.server.hooks.execution.v1.analytics.ActivityImpl;
+import org.prebid.server.hooks.execution.v1.analytics.TagsImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.liveintent.omni.channel.identity.model.IdResResponse;
 import org.prebid.server.hooks.modules.liveintent.omni.channel.identity.model.config.LiveIntentOmniChannelProperties;
@@ -40,6 +42,8 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
     private final JacksonMapper mapper;
     private final HttpClient httpClient;
     private final double logSamplingRate;
+    private final ActivityImpl enriched = ActivityImpl.of("liveintent-enriched", "success", List.of());
+    private final ActivityImpl treatmentRate;
 
     public LiveIntentOmniChannelIdentityProcessedAuctionRequestHook(LiveIntentOmniChannelProperties config,
                                                                     JacksonMapper mapper,
@@ -51,6 +55,11 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
         this.mapper = Objects.requireNonNull(mapper);
         this.httpClient = Objects.requireNonNull(httpClient);
         this.logSamplingRate = logSamplingRate;
+        this.treatmentRate = ActivityImpl.of(
+                "liveintent-treatment-rate",
+                String.valueOf(config.getTreatmentRate()),
+                List.of()
+        );
     }
 
     @Override
@@ -95,6 +104,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
                 .status(InvocationStatus.success)
                 .action(InvocationAction.update)
                 .payloadUpdate(payload -> updatedPayload(payload, resolutionResult.getEids()))
+                .analyticsTags(TagsImpl.of(List.of(enriched, treatmentRate)))
                 .build();
     }
 
