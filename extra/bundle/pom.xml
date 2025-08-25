@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.prebid</groupId>
         <artifactId>prebid-server-aggregator</artifactId>
-        <version>3.27.0-SNAPSHOT</version>
+        <version>3.32.0-SNAPSHOT</version>
         <relativePath>../../extra/pom.xml</relativePath>
     </parent>
 
@@ -53,6 +53,16 @@
         <dependency>
             <groupId>org.prebid.server.hooks.modules</groupId>
             <artifactId>pb-request-correction</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.prebid.server.hooks.modules</groupId>
+            <artifactId>optable-targeting</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.prebid.server.hooks.modules</groupId>
+            <artifactId>wurfl-devicedetection</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

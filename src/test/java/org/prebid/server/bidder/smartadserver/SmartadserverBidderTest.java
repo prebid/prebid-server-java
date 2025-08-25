@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Video;
@@ -27,8 +26,10 @@ import java.util.List;
 import java.util.function.Function;
 
 import static java.util.Collections.singletonList;
+import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.audio;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
@@ -66,7 +67,7 @@ public class SmartadserverBidderTest extends VertxTest {
     public void makeHttpRequestsShouldCreateCorrectURL() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(givenImp(Function.identity())))
+                .imp(singletonList(givenImp(identity())))
                 .build();
 
         // when
@@ -83,7 +84,7 @@ public class SmartadserverBidderTest extends VertxTest {
     public void makeHttpRequestsShouldUpdateSiteObjectIfPresent() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(givenImp(Function.identity())))
+                .imp(singletonList(givenImp(identity())))
                 .site(Site.builder()
                         .domain("www.foo.com")
                         .publisher(Publisher.builder().domain("foo.com").build())
@@ -107,12 +108,12 @@ public class SmartadserverBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldCreateRequestForEveryValidImp() {
+    public void makeHttpRequestsShouldCreateSingleRequest() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(Arrays.asList(givenImp(Function.identity()),
-                        givenImp(impBuilder -> impBuilder.id("456"))
-                ))
+                .imp(Arrays.asList(
+                        givenImp(impBuilder -> impBuilder.id("123")),
+                        givenImp(impBuilder -> impBuilder.id("456"))))
                 .build();
 
         // when
@@ -120,23 +121,22 @@ public class SmartadserverBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
+        assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
-                .flatExtracting(Imp::getId)
+                .extracting(Imp::getId)
                 .containsExactly("123", "456");
     }
 
     @Test
-    public void makeHttpRequestsShouldCreateRequestForValidImpAndSaveErrorForInvalid() {
+    public void makeHttpRequestsShouldCreateSingleRequestWithValidImpsOnly() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(Arrays.asList(givenImp(impBuilder -> impBuilder.id("456")),
+                .imp(Arrays.asList(givenImp(impBuilder -> impBuilder.id("123")),
                         Imp.builder()
                                 .id("invalidImp")
                                 .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
-                                .build()
-                ))
+                                .build()))
                 .build();
 
         // when
@@ -145,11 +145,11 @@ public class SmartadserverBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors())
                 .containsExactly(BidderError.badInput("Error parsing smartadserverExt parameters"));
-        assertThat(result.getValue())
+        assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
-                .flatExtracting(Imp::getId)
-                .containsExactly("456");
+                .extracting(Imp::getId)
+                .containsExactly("123");
     }
 
     @Test
@@ -196,14 +196,12 @@ public class SmartadserverBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBidIfBannerIsPresent() throws JsonProcessingException {
+    public void makeBidsShouldReturnBannerBidIfMarkupTypeIsBanner() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
-                        .build(),
+                BidRequest.builder().build(),
                 mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                        givenBidResponse(bidBuilder -> bidBuilder.mtype(1))));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -211,18 +209,33 @@ public class SmartadserverBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "EUR"));
+                .containsOnly(BidderBid.of(Bid.builder().mtype(1).build(), banner, "EUR"));
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBidByDefault() throws JsonProcessingException {
+    public void makeBidsShouldReturnAudioBidIfMarkupTypeIsAudio() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
-                        .build(),
+                BidRequest.builder().build(),
                 mapper.writeValueAsString(
-                        givenBidResponse(Function.identity())));
+                        givenBidResponse(bidBuilder -> bidBuilder.mtype(3))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().mtype(3).build(), audio, "EUR"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnBannerBidIfMarkupTypeIsNull() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder().build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(identity())));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -234,14 +247,12 @@ public class SmartadserverBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnVideoBidIfVideoIsPresent() throws JsonProcessingException {
+    public void makeBidsShouldReturnBannerBidIfMarkupTypeOutOfBounds() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").video(Video.builder().build()).build()))
-                        .build(),
+                BidRequest.builder().build(),
                 mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                        givenBidResponse(bidBuilder -> bidBuilder.mtype(5))));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -249,18 +260,16 @@ public class SmartadserverBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), video, "EUR"));
+                .containsOnly(BidderBid.of(Bid.builder().mtype(5).build(), banner, "EUR"));
     }
 
     @Test
-    public void makeBidsShouldReturnNativeBidIfNativeIsPresent() throws JsonProcessingException {
+    public void makeBidsShouldReturnVideoBidIfMarkupTypeIsVideo() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").xNative(Native.builder().build()).build()))
-                        .build(),
+                BidRequest.builder().build(),
                 mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                        givenBidResponse(bidBuilder -> bidBuilder.mtype(2))));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -268,7 +277,24 @@ public class SmartadserverBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), xNative, "EUR"));
+                .containsOnly(BidderBid.of(Bid.builder().mtype(2).build(), video, "EUR"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnNativeBidIfMarkupTypeIsNative() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder().build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.mtype(4))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().mtype(4).build(), xNative, "EUR"));
     }
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {

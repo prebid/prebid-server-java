@@ -2,7 +2,9 @@ package org.prebid.server.bidder.kobler;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -163,6 +165,25 @@ public class KoblerBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getCur)
                 .containsExactly(List.of("EUR", "USD"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSanitizeDeviceAndUserData() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                request -> request
+                        .device(Device.builder().ip("ip").ipv6("ipv6").ua("ua").build())
+                        .user(User.builder().consent("consent").build()),
+                givenImp(identity()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getDevice, BidRequest::getUser)
+                .containsExactly(tuple(Device.builder().ua("ua").build(), null));
     }
 
     @Test

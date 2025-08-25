@@ -36,7 +36,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class MobilefuseBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.endpoint.com/openrtb?pub_id=";
+    private static final String ENDPOINT_URL = "https://test.endpoint.com/openrtb";
 
     private final MobilefuseBidder target = new MobilefuseBidder(ENDPOINT_URL, jacksonMapper);
 
@@ -44,7 +44,7 @@ public class MobilefuseBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                         .id("imp_id")
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpMobilefuse.of(1, 2, "tagidSrc")))))
+                                ExtImpMobilefuse.of(1)))))
                 .build();
     }
 
@@ -84,15 +84,18 @@ public class MobilefuseBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
                 .id("456")
-                .banner(null)
+                .banner(Banner.builder().build())
                 .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors())
-                .containsExactly(BidderError.badInput("Invalid ExtImpMobilefuse value"));
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getMessage()).startsWith("Error parsing ExtImpMobilefuse value:");
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+                });
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -100,44 +103,6 @@ public class MobilefuseBidderTest extends VertxTest {
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> new MobilefuseBidder("invalid_url", jacksonMapper));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldCreateCorrectURLWhenTagidSrcEqualsExt() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpMobilefuse.of(1, 2, "ext")))));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getUri)
-                .containsExactly("https://test.endpoint.com/openrtb?pub_id=2&tagid_src=ext");
-    }
-
-    @Test
-    public void makeHttpRequestsShouldSetPubIdToZeroIfPublisherIdNotPresentInRequest() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpMobilefuse.of(1, null, null)))));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getUri)
-                .containsExactly("https://test.endpoint.com/openrtb?pub_id=0");
     }
 
     @Test
@@ -193,7 +158,7 @@ public class MobilefuseBidderTest extends VertxTest {
                         .banner(Banner.builder().build())
                         .tagid("some tag id")
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpMobilefuse.of(1, 2, "ext")))));
+                                ExtImpMobilefuse.of(1)))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -212,7 +177,7 @@ public class MobilefuseBidderTest extends VertxTest {
         // given
         final ObjectNode skadn = mapper.createObjectNode().put("something", "something");
         final ObjectNode impExt = mapper.createObjectNode();
-        impExt.set("bidder", mapper.valueToTree(ExtImpMobilefuse.of(1, 2, "ext")));
+        impExt.set("bidder", mapper.valueToTree(ExtImpMobilefuse.of(1)));
         impExt.set("skadn", skadn);
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder.banner(Banner.builder().build()).ext(impExt));

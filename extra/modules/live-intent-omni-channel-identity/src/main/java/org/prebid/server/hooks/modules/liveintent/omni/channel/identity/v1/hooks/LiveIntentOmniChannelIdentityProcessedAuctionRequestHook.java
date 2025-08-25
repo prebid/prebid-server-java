@@ -5,14 +5,11 @@ import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
-import org.prebid.server.activity.Activity;
+import org.apache.commons.collections4.ListUtils;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
-import org.prebid.server.hooks.execution.v1.analytics.ActivityImpl;
-import org.prebid.server.hooks.execution.v1.analytics.ResultImpl;
-import org.prebid.server.hooks.execution.v1.analytics.TagsImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.liveintent.omni.channel.identity.model.IdResResponse;
-import org.prebid.server.hooks.modules.liveintent.omni.channel.identity.model.config.ModuleConfig;
+import org.prebid.server.hooks.modules.liveintent.omni.channel.identity.model.config.LiveIntentOmniChannelProperties;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
@@ -20,42 +17,42 @@ import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.ProcessedAuctionRequestHook;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.log.Logger;
+import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ListUtil;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.random.RandomGenerator;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements ProcessedAuctionRequestHook {
 
-    private static final Logger logger =
-            LoggerFactory.getLogger(LiveIntentOmniChannelIdentityProcessedAuctionRequestHook.class);
+    private static final ConditionalLogger conditionalLogger = new ConditionalLogger(LoggerFactory.getLogger(
+            LiveIntentOmniChannelIdentityProcessedAuctionRequestHook.class));
+
     private static final String CODE = "liveintent-omni-channel-identity-enrichment-hook";
 
-    private final ModuleConfig config;
+    private final LiveIntentOmniChannelProperties config;
     private final JacksonMapper mapper;
     private final HttpClient httpClient;
-    private final RandomGenerator random;
+    private final double logSamplingRate;
     private final ActivityImpl enriched = ActivityImpl.of("liveintent-enriched", "success", List.of());
     private final ActivityImpl treatmentRate;
 
-    public LiveIntentOmniChannelIdentityProcessedAuctionRequestHook(
-            ModuleConfig config,
-            JacksonMapper mapper,
-            HttpClient httpClient,
-            RandomGenerator random) {
+    public LiveIntentOmniChannelIdentityProcessedAuctionRequestHook(LiveIntentOmniChannelProperties config,
+                                                                    JacksonMapper mapper,
+                                                                    HttpClient httpClient,
+                                                                    double logSamplingRate) {
 
         this.config = Objects.requireNonNull(config);
+        HttpUtil.validateUrlSyntax(config.getIdentityResolutionEndpoint());
         this.mapper = Objects.requireNonNull(mapper);
         this.httpClient = Objects.requireNonNull(httpClient);
-        this.random = Objects.requireNonNull(random);
+        this.logSamplingRate = logSamplingRate;
         this.treatmentRate = ActivityImpl.of(
                 "liveintent-treatment-rate",
                 String.valueOf(config.getTreatmentRate()),
@@ -64,35 +61,22 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
     }
 
     @Override
-    public Future<InvocationResult<AuctionRequestPayload>> call(
-            AuctionRequestPayload auctionRequestPayload,
-            AuctionInvocationContext invocationContext) {
-        if (random.nextFloat() < config.getTreatmentRate()) {
-            return requestEnrichment(auctionRequestPayload)
-                    .<InvocationResult<AuctionRequestPayload>>map(resolutionResult ->
-                            InvocationResultImpl.<AuctionRequestPayload>builder()
-                                    .status(InvocationStatus.success)
-                                    .action(InvocationAction.update)
-                                    .payloadUpdate(requestPayload -> updatedPayload(requestPayload, resolutionResult))
-                                    .analyticsTags(TagsImpl.of(List.of(enriched, treatmentRate)))
-                                    .build())
-                    .onFailure(throwable -> logger.error("Failed enrichment:", throwable));
-        }
-        return Future.succeededFuture(
-            InvocationResultImpl.<AuctionRequestPayload>builder()
-                .status(InvocationStatus.success)
-                .action(InvocationAction.no_action)
-                            .analyticsTags(TagsImpl.of(List.of(treatmentRate)))
-                .build());
+    public Future<InvocationResult<AuctionRequestPayload>> call(AuctionRequestPayload auctionRequestPayload,
+                                                                AuctionInvocationContext invocationContext) {
 
+        return config.getTreatmentRate() > ThreadLocalRandom.current().nextFloat()
+                ? requestIdentities(auctionRequestPayload.bidRequest())
+                .<InvocationResult<AuctionRequestPayload>>map(this::update)
+                .onFailure(throwable -> conditionalLogger.error(
+                        "Failed enrichment: %s".formatted(throwable.getMessage()), logSamplingRate))
+                : noAction();
     }
 
-    private Future<IdResResponse> requestEnrichment(AuctionRequestPayload auctionRequestPayload) {
-        final String bidRequestJson = mapper.encodeToString(auctionRequestPayload.bidRequest());
+    private Future<IdResResponse> requestIdentities(BidRequest bidRequest) {
         return httpClient.post(
                         config.getIdentityResolutionEndpoint(),
                         headers(),
-                        bidRequestJson,
+                        mapper.encodeToString(bidRequest),
                         config.getRequestTimeoutMs())
                 .map(this::processResponse);
     }
@@ -106,19 +90,31 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
         return mapper.decodeValue(response.getBody(), IdResResponse.class);
     }
 
-    private AuctionRequestPayload updatedPayload(AuctionRequestPayload requestPayload, IdResResponse idResResponse) {
-        final User user = Optional.ofNullable(
-                requestPayload.bidRequest())
-                .map(BidRequest::getUser)
-                .orElse(User.builder().build());
+    private static Future<InvocationResult<AuctionRequestPayload>> noAction() {
+        return Future.succeededFuture(InvocationResultImpl.<AuctionRequestPayload>builder()
+                .status(InvocationStatus.success)
+                .action(InvocationAction.no_action)
+                .build());
+    }
 
-        final List<Eid> allEids = ListUtil.union(
-                Optional.ofNullable(user.getEids()).orElse(Collections.emptyList()), idResResponse.getEids());
+    private InvocationResultImpl<AuctionRequestPayload> update(IdResResponse resolutionResult) {
+        return InvocationResultImpl.<AuctionRequestPayload>builder()
+                .status(InvocationStatus.success)
+                .action(InvocationAction.update)
+                .payloadUpdate(payload -> updatedPayload(payload, resolutionResult.getEids()))
+                .analyticsTags(TagsImpl.of(List.of(enriched, treatmentRate)))
+                .build();
+    }
 
-        final User updatedUser = user.toBuilder().eids(allEids).build();
-        final BidRequest updatedBidRequest = requestPayload.bidRequest().toBuilder().user(updatedUser).build();
+    private AuctionRequestPayload updatedPayload(AuctionRequestPayload requestPayload, List<Eid> resolvedEids) {
+        final List<Eid> eids = ListUtils.emptyIfNull(resolvedEids);
+        final BidRequest bidRequest = requestPayload.bidRequest();
+        final User updatedUser = Optional.ofNullable(bidRequest.getUser())
+                .map(user -> user.toBuilder().eids(ListUtil.union(ListUtils.emptyIfNull(user.getEids()), eids)))
+                .orElseGet(() -> User.builder().eids(eids))
+                .build();
 
-        return AuctionRequestPayloadImpl.of(updatedBidRequest);
+        return AuctionRequestPayloadImpl.of(bidRequest.toBuilder().user(updatedUser).build());
     }
 
     @Override
