@@ -13,9 +13,12 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.prebid.server.auction.aliases.AlternateBidder;
+import org.prebid.server.auction.aliases.AlternateBidderCodesConfig;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -25,6 +28,7 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.pubmatic.model.request.PubmaticBidderImpExt;
 import org.prebid.server.bidder.pubmatic.model.request.PubmaticExtDataAdServer;
+import org.prebid.server.bidder.pubmatic.model.request.PubmaticMarketplace;
 import org.prebid.server.bidder.pubmatic.model.request.PubmaticWrapper;
 import org.prebid.server.bidder.pubmatic.model.response.PubmaticBidExt;
 import org.prebid.server.bidder.pubmatic.model.response.PubmaticBidResponse;
@@ -59,6 +63,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -70,15 +75,19 @@ public class PubmaticBidder implements Bidder<BidRequest> {
     private static final String IMP_EXT_AD_UNIT_KEY = "dfp_ad_unit_code";
     private static final String AD_SERVER_GAM = "gam";
     private static final String PREBID = "prebid";
+    private static final String MARKETPLACE_EXT_REQUEST = "marketplace";
     private static final String ACAT_EXT_REQUEST = "acat";
     private static final String WRAPPER_EXT_REQUEST = "wrapper";
     private static final String BIDDER_NAME = "pubmatic";
     private static final String AE = "ae";
     private static final String GP_ID = "gpid";
+    private static final String SKADN = "skadn";
     private static final String IMP_EXT_PBADSLOT = "pbadslot";
     private static final String IMP_EXT_ADSERVER = "adserver";
     private static final List<String> IMP_EXT_DATA_RESERVED_FIELD = List.of(IMP_EXT_PBADSLOT, IMP_EXT_ADSERVER);
     private static final String DCTR_VALUE_FORMAT = "%s=%s";
+    private static final String WILDCARD = "*";
+    private static final String WILDCARD_ALL = "all";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -97,10 +106,13 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         PubmaticWrapper wrapper;
         final List<String> acat;
         final Pair<String, String> displayManagerFields;
+        final List<String> allowedBidders;
 
         try {
-            acat = extractAcat(request);
-            wrapper = extractWrapper(request);
+            final JsonNode bidderparams = getExtRequestPrebidBidderparams(request);
+            acat = extractAcat(bidderparams);
+            wrapper = extractWrapper(bidderparams);
+            allowedBidders = extractAllowedBidders(request);
             displayManagerFields = extractDisplayManagerFields(request.getApp());
         } catch (IllegalArgumentException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
@@ -129,12 +141,43 @@ public class PubmaticBidder implements Bidder<BidRequest> {
             return Result.withErrors(errors);
         }
 
-        final BidRequest modifiedBidRequest = modifyBidRequest(request, validImps, publisherId, wrapper, acat);
+        final BidRequest modifiedBidRequest = modifyBidRequest(
+                request, validImps, publisherId, wrapper, acat, allowedBidders);
         return Result.of(Collections.singletonList(makeHttpRequest(modifiedBidRequest)), errors);
     }
 
-    private List<String> extractAcat(BidRequest request) {
-        final JsonNode bidderParams = getExtRequestPrebidBidderparams(request);
+    private List<String> extractAllowedBidders(BidRequest request) {
+        final AlternateBidderCodesConfig alternateBidderCodes = Optional.ofNullable(request.getExt())
+                .map(ExtRequest::getPrebid)
+                .map(ExtRequestPrebid::getAlternateBidderCodes)
+                .orElse(null);
+
+        if (alternateBidderCodes == null) {
+            return null;
+        }
+
+        if (BooleanUtils.isNotTrue(alternateBidderCodes.getEnabled())) {
+            return Collections.singletonList(BIDDER_NAME);
+        }
+
+        final AlternateBidder alternateBidder = Optional.ofNullable(alternateBidderCodes.getBidders())
+                .map(bidders -> bidders.get(BIDDER_NAME))
+                .filter(bidder -> BooleanUtils.isTrue(bidder.getEnabled()))
+                .orElse(null);
+
+        if (alternateBidder == null) {
+            return Collections.singletonList(BIDDER_NAME);
+        }
+
+        final Set<String> allowedBidderCodes = alternateBidder.getAllowedBidderCodes();
+        if (allowedBidderCodes == null || allowedBidderCodes.contains(WILDCARD)) {
+            return Collections.singletonList(WILDCARD_ALL);
+        }
+
+        return Stream.concat(Stream.of(BIDDER_NAME), allowedBidderCodes.stream()).toList();
+    }
+
+    private List<String> extractAcat(JsonNode bidderParams) {
         final JsonNode acatNode = bidderParams != null ? bidderParams.get(ACAT_EXT_REQUEST) : null;
 
         return acatNode != null && acatNode.isArray()
@@ -144,9 +187,8 @@ public class PubmaticBidder implements Bidder<BidRequest> {
                 : null;
     }
 
-    private PubmaticWrapper extractWrapper(BidRequest request) {
-        final JsonNode pubmatic = getExtRequestPrebidBidderparams(request);
-        final JsonNode wrapperNode = pubmatic != null ? pubmatic.get(WRAPPER_EXT_REQUEST) : null;
+    private PubmaticWrapper extractWrapper(JsonNode bidderParams) {
+        final JsonNode wrapperNode = bidderParams != null ? bidderParams.get(WRAPPER_EXT_REQUEST) : null;
 
         return wrapperNode != null && wrapperNode.isObject()
                 ? mapper.mapper().convertValue(wrapperNode, PubmaticWrapper.class)
@@ -294,6 +336,9 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         if (impExt.getGpId() != null) {
             keywordsNode.put(GP_ID, impExt.getGpId());
         }
+        if (impExt.getSkadn() != null) {
+            keywordsNode.set(SKADN, impExt.getSkadn());
+        }
 
         return keywordsNode;
     }
@@ -433,13 +478,14 @@ public class PubmaticBidder implements Bidder<BidRequest> {
                                         List<Imp> imps,
                                         String publisherId,
                                         PubmaticWrapper wrapper,
-                                        List<String> acat) {
+                                        List<String> acat,
+                                        List<String> allowedBidders) {
 
         return request.toBuilder()
                 .imp(imps)
                 .site(modifySite(request.getSite(), publisherId))
                 .app(modifyApp(request.getApp(), publisherId))
-                .ext(modifyExtRequest(wrapper, acat))
+                .ext(modifyExtRequest(wrapper, acat, allowedBidders))
                 .build();
     }
 
@@ -465,7 +511,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
                 : Publisher.builder().id(publisherId).build();
     }
 
-    private ExtRequest modifyExtRequest(PubmaticWrapper wrapper, List<String> acat) {
+    private ExtRequest modifyExtRequest(PubmaticWrapper wrapper, List<String> acat, List<String> allowedBidders) {
         final ObjectNode extNode = mapper.mapper().createObjectNode();
 
         if (wrapper != null) {
@@ -474,6 +520,10 @@ public class PubmaticBidder implements Bidder<BidRequest> {
 
         if (CollectionUtils.isNotEmpty(acat)) {
             extNode.putPOJO(ACAT_EXT_REQUEST, acat);
+        }
+
+        if (allowedBidders != null) {
+            extNode.putPOJO(MARKETPLACE_EXT_REQUEST, PubmaticMarketplace.of(allowedBidders));
         }
 
         final ExtRequest newExtRequest = ExtRequest.empty();
