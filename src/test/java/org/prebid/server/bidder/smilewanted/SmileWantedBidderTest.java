@@ -17,8 +17,12 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.smilewanted.ExtImpSmilewanted;
 import org.prebid.server.util.HttpUtil;
 
+import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -28,11 +32,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
+import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
 public class SmileWantedBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://{{Host}}/test?param={{PublisherId}}";
+    private static final String ENDPOINT_URL = "https://prebid-server.smilewanted.com/java/";
 
     private final SmileWantedBidder target = new SmileWantedBidder(ENDPOINT_URL, jacksonMapper);
 
@@ -42,9 +47,89 @@ public class SmileWantedBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldCorrectlyAddHeaders() {
+    public void creationShouldFailOnNullEndpointUrl() {
+        assertThatNullPointerException().isThrownBy(() -> new SmileWantedBidder(null, jacksonMapper));
+    }
+
+    @Test
+    public void creationShouldFailOnNullMapper() {
+        assertThatNullPointerException().isThrownBy(() -> new SmileWantedBidder(ENDPOINT_URL, null));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorIfNoImpressions() {
         // given
         final BidRequest bidRequest = BidRequest.builder().build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("No impressions in request"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .id("123")
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+                    assertThat(error.getMessage()).startsWith("Missing bidder ext in impression with id: 123");
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnSingleRequest() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp("zone123")))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldBuildCorrectEndpointUrlWithZoneId() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp("zone456")))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://prebid-server.smilewanted.com/java/zone456");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCorrectlyAddHeaders() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp("zone123")))
+                .build();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -65,7 +150,9 @@ public class SmileWantedBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldSetAtToOne() {
         // given
-        final BidRequest bidRequest = BidRequest.builder().build();
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp("zone123")))
+                .build();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -160,6 +247,105 @@ public class SmileWantedBidderTest extends VertxTest {
                 .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, null));
     }
 
+    @Test
+    public void makeBidsShouldReturnMultipleBidsFromSingleSeatBid() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(List.of(
+                                Imp.builder().id("123").build(),
+                                Imp.builder().id("456").video(Video.builder().build()).build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        BidResponse.builder()
+                                .cur("USD")
+                                .seatbid(singletonList(SeatBid.builder()
+                                        .bid(List.of(
+                                                Bid.builder().impid("123").price(BigDecimal.valueOf(1.0)).build(),
+                                                Bid.builder().impid("456").price(BigDecimal.valueOf(2.0)).build()))
+                                        .build()))
+                                .build()));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(2)
+                .containsExactlyInAnyOrder(
+                        BidderBid.of(Bid.builder().impid("123").price(BigDecimal.valueOf(1.0)).build(), banner, "USD"),
+                        BidderBid.of(Bid.builder().impid("456").price(BigDecimal.valueOf(2.0)).build(), video, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldFilterNullBids() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        BidResponse.builder()
+                                .seatbid(singletonList(SeatBid.builder()
+                                        .bid(Arrays.asList(
+                                                Bid.builder().impid("123").build(),
+                                                null,
+                                                Bid.builder().impid("456").build()))
+                                        .build()))
+                                .build()));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(2)
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getImpid)
+                .containsExactlyInAnyOrder("123", "456");
+    }
+
+    @Test
+    public void makeBidsShouldReturnBidWithCurrency() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        BidResponse.builder()
+                                .cur("EUR")
+                                .seatbid(singletonList(SeatBid.builder()
+                                        .bid(singletonList(Bid.builder().impid("123").build()))
+                                        .build()))
+                                .build()));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBidCurrency)
+                .containsExactly("EUR");
+    }
+
+    @Test
+    public void makeBidsShouldReturnEmptyListIfSeatBidIsEmpty() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
+                mapper.writeValueAsString(BidResponse.builder()
+                        .seatbid(singletonList(SeatBid.builder().build()))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
+    }
+
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
                 .seatbid(singletonList(SeatBid.builder().bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
@@ -172,5 +358,12 @@ public class SmileWantedBidderTest extends VertxTest {
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);
+    }
+
+    private static Imp givenImp(String zoneId) {
+        return Imp.builder()
+                .id("123")
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSmilewanted.of(zoneId))))
+                .build();
     }
 }
