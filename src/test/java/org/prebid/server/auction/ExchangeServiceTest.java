@@ -342,7 +342,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(fpdResolver.resolveImpExt(any(), anyBoolean()))
                 .willAnswer(invocation -> invocation.getArgument(0));
 
-        given(impAdjuster.adjust(any(), any(), any(), any())).willAnswer(invocation -> invocation.getArgument(0));
+        given(impAdjuster.adjust(any(), any(), any())).willAnswer(invocation -> invocation.getArgument(0));
 
         given(supplyChainResolver.resolveForBidder(anyString(), any())).willReturn(null);
 
@@ -498,7 +498,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         final ObjectNode adjustedExt = givenImp.getExt().deepCopy();
         final Imp adjustedImp = givenImp.toBuilder().ext(adjustedExt).build();
-        given(impAdjuster.adjust(any(), any(), any(), any())).willReturn(adjustedImp);
+        given(impAdjuster.adjust(any(), any(), any())).willReturn(adjustedImp);
 
         // when
         target.holdAuction(givenRequestContext(bidRequest));
@@ -519,7 +519,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .build());
 
         final ArgumentCaptor<Imp> impCaptor = forClass(Imp.class);
-        verify(impAdjuster).adjust(impCaptor.capture(), eq("someBidder"), any(), any());
+        verify(impAdjuster).adjust(impCaptor.capture(), eq("someBidder"), any());
 
         final Imp actualImp = impCaptor.getValue();
         assertThat(actualImp).isNotSameAs(givenImp);
