@@ -85,9 +85,13 @@ public class DatabaseProfilesResultMapper {
                 profileBody = ObjectMapperProvider.mapper().readTree(profileBodyAsString);
                 mergePrecedence = Profile.MergePrecedence.valueOf(mergePrecedenceAsString.toUpperCase());
                 type = Profile.Type.valueOf(typeAsString.toUpperCase());
-            } catch (IllegalArgumentException | JsonProcessingException e) {
-                logger.error("Profile with id={} has invalid value: ''{}'' and will be ignored.",
-                        e, id, typeAsString);
+            } catch (IllegalArgumentException e) {
+                logger.error("Profile with id={} has invalid value: type={}, mergePrecedence={} and will be ignored.",
+                        e, id, typeAsString, mergePrecedenceAsString);
+                continue;
+            } catch (JsonProcessingException e) {
+                logger.error("Profile with id={} has invalid body: ''{}'' and will be ignored.",
+                        e, id, profileBodyAsString);
                 continue;
             }
 
