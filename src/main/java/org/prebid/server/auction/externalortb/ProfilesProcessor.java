@@ -151,15 +151,13 @@ public class ProfilesProcessor {
 
     private static AllProfilesIds truncate(AllProfilesIds profilesIds, int maxProfiles) {
         final List<String> requestProfiles = profilesIds.request();
-        final int impProfilesLimit = maxProfiles - requestProfiles.size();
+        final int impProfilesLimit = Math.max(0, maxProfiles - requestProfiles.size());
 
-        return impProfilesLimit > 0
-                ? new AllProfilesIds(
-                requestProfiles,
+        return new AllProfilesIds(
+                truncate(requestProfiles, maxProfiles),
                 profilesIds.imps().stream()
                         .map(impProfiles -> truncate(impProfiles, impProfilesLimit))
-                        .toList())
-                : new AllProfilesIds(truncate(requestProfiles, maxProfiles), Collections.emptyList());
+                        .toList());
     }
 
     private static <T> List<T> truncate(List<T> list, int maxSize) {
