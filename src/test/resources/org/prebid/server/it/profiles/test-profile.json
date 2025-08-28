@@ -1,0 +1,9 @@
+{
+  "type": "request",
+  "mergeprecedence": "profile",
+  "body": {
+    "device": {
+      "devicetype": 1
+    }
+  }
+}
