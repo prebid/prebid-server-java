@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.smartadserver;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
@@ -30,6 +31,7 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
 
@@ -40,38 +42,52 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
             };
 
     private final String endpointUrl;
+    private final String secondaryEndpointUrl;
     private final JacksonMapper mapper;
 
-    public SmartadserverBidder(String endpointUrl, JacksonMapper mapper) {
+    public SmartadserverBidder(String endpointUrl, String secondaryEndpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.secondaryEndpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(secondaryEndpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<BidderError> errors = new ArrayList<>();
-        final List<Imp> imps = new ArrayList<>();
-        ExtImpSmartadserver extImp = null;
+        final List<Imp> modifiedImps = new ArrayList<>();
+        final LinkedHashMap<Imp, ExtImpSmartadserver> impToExtImpMap = new LinkedHashMap<>();
+
+        boolean isProgrammaticGuaranteed = false;
 
         for (Imp imp : request.getImp()) {
             try {
-                extImp = parseImpExt(imp);
-                imps.add(imp);
+                final ExtImpSmartadserver extImp = parseImpExt(imp);
+                if (!isProgrammaticGuaranteed && extImp.isProgrammaticGuaranteed()) {
+                    isProgrammaticGuaranteed = true;
+                }
+                impToExtImpMap.put(imp, extImp);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
         }
 
-        if (imps.isEmpty()) {
+        if (impToExtImpMap.isEmpty()) {
             return Result.withErrors(errors);
         }
 
+        final String extImpKey = isProgrammaticGuaranteed ? "smartadserver" : "bidder";
+        impToExtImpMap.forEach((imp, extImp) -> modifiedImps.add(modifyImp(imp, extImp, extImpKey)));
+
+        final ExtImpSmartadserver lastExtImp = impToExtImpMap.lastEntry().getValue();
         final BidRequest outgoingRequest = request.toBuilder()
-                .imp(imps)
-                .site(modifySite(request.getSite(), extImp.getNetworkId()))
+                .imp(modifiedImps)
+                .site(modifySite(request.getSite(), lastExtImp.getNetworkId()))
                 .build();
 
-        final HttpRequest<BidRequest> httpRequest = BidderUtil.defaultRequest(outgoingRequest, makeUrl(), mapper);
+        final HttpRequest<BidRequest> httpRequest = BidderUtil.defaultRequest(
+                outgoingRequest,
+                makeUrl(isProgrammaticGuaranteed),
+                mapper);
         return Result.of(Collections.singletonList(httpRequest), errors);
     }
 
@@ -81,6 +97,13 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
         } catch (IllegalArgumentException e) {
             throw new PreBidException("Error parsing smartadserverExt parameters");
         }
+    }
+
+    private Imp modifyImp(Imp imp, ExtImpSmartadserver extImp, String impExtKey) {
+        final ObjectNode impExt = imp.getExt().deepCopy();
+        impExt.remove("bidder");
+        impExt.set(impExtKey, mapper.mapper().valueToTree(extImp));
+        return imp.toBuilder().ext(impExt).build();
     }
 
     private static Site modifySite(Site site, Integer networkId) {
@@ -98,17 +121,21 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
         return publisherBuilder.id(String.valueOf(networkId)).build();
     }
 
-    private String makeUrl() {
-        final URI uri;
+    private String makeUrl(boolean isProgrammaticGuaranteed) {
         try {
-            uri = new URI(endpointUrl);
+            final URI uri = new URI(isProgrammaticGuaranteed ? secondaryEndpointUrl : endpointUrl);
+            final String path = isProgrammaticGuaranteed ? "/ortb" : "/api/bid";
+            final URIBuilder uriBuilder = new URIBuilder(uri)
+                    .setPath(StringUtils.removeEnd(uri.getPath(), "/") + path);
+
+            if (!isProgrammaticGuaranteed) {
+                uriBuilder.addParameter("callerId", "5");
+            }
+
+            return uriBuilder.toString();
         } catch (URISyntaxException e) {
-            throw new PreBidException("Malformed URL: %s.".formatted(endpointUrl));
+            throw new PreBidException("Malformed URL: %s.".formatted(secondaryEndpointUrl));
         }
-        return new URIBuilder(uri)
-                .setPath(StringUtils.removeEnd(uri.getPath(), "/") + "/api/bid")
-                .addParameter("callerId", "5")
-                .toString();
     }
 
     @Override
