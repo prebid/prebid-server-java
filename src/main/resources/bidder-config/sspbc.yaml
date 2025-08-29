@@ -16,5 +16,5 @@ adapters:
         uid-macro: '$UID'
       redirect:
         url: https://ssp.wp.pl/v1/sync/prebid-server/pixel?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&redirect={{redirect_url}}
-        userMacro: $UID
         support-cors: false
+        uid-macro: '$UID'
