@@ -11,4 +11,4 @@ adapters:
       vendor-id: 0
     platform-id:
     app-secret:
-    timeout-notification-url-template: https://www.facebook.com/audiencenetwork/nurl/?partner=%s&app=%s&auction=%s&ortb_loss_code=2
+    timeout-notification-url-template: https://www.facebook.com/audiencenetwork/nurl/?partner={{PlatformId}}&app={{PublisherId}}&auction={{RequestId}}&ortb_loss_code=2
