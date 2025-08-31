@@ -42,13 +42,13 @@ CREATE TABLE stored_responses
     storedBidResponse     varchar(1024)
 );
 
-CREATE TABLE profiles_profile
+CREATE TABLE profiles
 (
-    id SERIAL PRIMARY KEY,
-    profileName  varchar(64) UNIQUE,
-    mergePrecedence enum ('request','profile'),
-    profileType enum('request', 'imp'),
-    profileBody json
+    accountId       varchar(64)  NOT NULL,
+    profileId       varchar(128) NOT NULL,
+    profile         json,
+    mergePrecedence enum ('request', 'profile', 'unknown'),
+    type            enum ('request', 'imp', 'unknown')
 );
 
 -- set session wait timeout to 1 minute

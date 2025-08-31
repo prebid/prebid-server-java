@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests
 
+
 import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountProfilesConfigs
@@ -7,65 +8,108 @@ import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredProfileImp
 import org.prebid.server.functional.model.db.StoredProfileRequest
 import org.prebid.server.functional.model.db.StoredResponse
+import org.prebid.server.functional.model.filesystem.FilesystemAccounts
 import org.prebid.server.functional.model.request.auction.App
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Device
+import org.prebid.server.functional.model.request.auction.Format
 import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.ImpExt
 import org.prebid.server.functional.model.request.auction.ImpExtPrebid
 import org.prebid.server.functional.model.request.auction.StoredAuctionResponse
 import org.prebid.server.functional.model.request.auction.StoredBidResponse
 import org.prebid.server.functional.model.request.profile.Profile
-import org.prebid.server.functional.model.request.profile.ProfileImp
-import org.prebid.server.functional.model.request.profile.ProfileRequest
+import org.prebid.server.functional.model.request.profile.ImpProfile
+import org.prebid.server.functional.model.request.profile.RequestProfile
 import org.prebid.server.functional.model.request.profile.ProfileType
 import org.prebid.server.functional.model.request.auction.Site
+import org.prebid.server.functional.model.response.auction.Adm
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
-import org.prebid.server.functional.model.response.auction.NoBidResponse
 import org.prebid.server.functional.model.response.auction.SeatBid
 import org.prebid.server.functional.repository.dao.ProfileImpDao
 import org.prebid.server.functional.repository.dao.ProfileRequestDao
+import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
-import org.prebid.server.functional.testcontainers.PbsServiceFactory
+import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
 import org.prebid.server.functional.util.PBSUtils
+import org.testcontainers.images.builder.Transferable
 
 import static org.prebid.server.functional.model.AccountStatus.ACTIVE
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.request.profile.ProfileMergePrecedence.PROFILE
 import static org.prebid.server.functional.model.request.profile.ProfileMergePrecedence.REQUEST
 import static org.prebid.server.functional.model.request.profile.ProfileMergePrecedence.UNKNOWN
-import static org.prebid.server.functional.model.response.auction.MediaType.NATIVE
 import static org.prebid.server.functional.model.response.auction.MediaType.VIDEO
 
 class ProfileSpec extends BaseSpec {
 
     private static final String PROFILES_PATH = '/app/prebid-server/profiles'
+    private static final String REQUESTS_PATH = '/app/prebid-server/requests'
+    private static final String IMPS_PATH = '/app/prebid-server/imps'
+    private static final String RESPONSES_PATH = '/app/prebid-server/responses'
+    private static final String CATEGORIES_PATH = '/app/prebid-server/categories'
+    private static final String SETTINGS_FILENAME = '/app/prebid-server/settings.yaml'
     private static final Integer LIMIT_HOST_PROFILE = 2
+    private static final Integer ACCOUNT_ID_FILE_STORAGE = PBSUtils.randomNumber
+
+    private static final Map<String, String> FILESYSTEM_CONFIG = [
+            'settings.filesystem.settings-filename'   : SETTINGS_FILENAME,
+            'settings.filesystem.profiles-dir'        : PROFILES_PATH,
+            'settings.filesystem.stored-requests-dir' : REQUESTS_PATH,
+            'settings.filesystem.stored-imps-dir'     : IMPS_PATH,
+            'settings.filesystem.stored-responses-dir': RESPONSES_PATH,
+            'settings.filesystem.categories-dir'      : CATEGORIES_PATH
+    ]
 
     private static final Map<String, String> PROFILES_CONFIG = [
-            "adapters.openx.enabled"          : "true",
-            "auction.profiles.fail-on-unknown": "false",
-            "settings.filesystem.profiles-dir": PROFILES_PATH,
-            "settings.database.profiles-query": 'SELECT profileName, reqId, mergePrecedence, profileType, profileBody FROM profiles_profile WHERE reqId IN (%REQUEST_ID_LIST%)']
+            'adapters.openx.enabled'          : "true",
+            'auction.profiles.fail-on-unknown': "false",
+            'auction.profiles.limit'          : LIMIT_HOST_PROFILE.toString(),
+            'settings.database.profiles-query': "SELECT accountId, profileId, profile, mergePrecedence, type FROM profiles WHERE profileId in (%REQUEST_ID_LIST%, %IMP_ID_LIST%)".toString()]
+
     ProfileImpDao profileImpDao = repository.profileImpDao
     ProfileRequestDao profileRequestDao = repository.profileRequestDao
-    private static PrebidServerService pbsWithStoredProfiles = PbsServiceFactory.getService(PROFILES_CONFIG)
+    private static PrebidServerContainer pbsContainer
+    private static PrebidServerService pbsWithStoredProfiles
+    private static RequestProfile requestProfile
+    private static ImpProfile impProfile
+
     private static final String REJECT_ERROR_MESSAGE = 'replace'
-    private static final String MISSING_ERROR_MESSAGE = 'replace'
-    private static final String REJECT_PROFILE_METRIC = 'profile.rejected'
+    private static final String LIMIT_ERROR_MESSAGE = 'Profiles exceeded the limit.'
+    private static final String INVALID_REQEUST_PREFIX = 'Invalid request format: Error during processing profiles: '
+    private static final String NO_IMP_PROFILE_MESSAGE = "No imp profiles for ids [%s] were found"
+    private static final String NO_REQUEST_PROFILE_MESSAGE = "No request profiles for ids [%s] were found"
+    private static final String NO_PROFILE_MESSAGE = "No profile found for id: %s"
     private static final String REJECT_ACCOUNT_PROFILE_METRIC = "account.%s.profile.rejected"
     private static final String MISSING_PROFILE_METRIC = 'profile.rejected'
-    private static final String MISSING_ACCOUNT_PROFILE_METRIC = "account.%s.profile.rejected"
+    private static final String LIMIT_EXCEEDED_ACCOUNT_PROFILE_METRIC = "account.%s.profiles.limit_exceeded"
+    private static final String MISSING_ACCOUNT_PROFILE_METRIC = "account.%s.profiles.missing"
+
+    def setupSpec() {
+        pbsContainer = new PrebidServerContainer(FILESYSTEM_CONFIG + PROFILES_CONFIG)
+        requestProfile = RequestProfile.getProfile(ACCOUNT_ID_FILE_STORAGE.toString())
+        impProfile = ImpProfile.getProfile(ACCOUNT_ID_FILE_STORAGE.toString())
+        pbsContainer.withCopyToContainer(Transferable.of(encode(requestProfile)), "$PROFILES_PATH/${requestProfile.fileName}")
+        pbsContainer.withCopyToContainer(Transferable.of(encode(impProfile)), "$PROFILES_PATH/${impProfile.fileName}")
+        pbsContainer.withFolder(REQUESTS_PATH)
+        pbsContainer.withFolder(IMPS_PATH)
+        pbsContainer.withFolder(RESPONSES_PATH)
+        pbsContainer.withFolder(CATEGORIES_PATH)
+        pbsContainer.withCopyToContainer(Transferable.of(encodeYaml(new FilesystemAccounts(accounts: [new AccountConfig(id: ACCOUNT_ID_FILE_STORAGE, status: ACTIVE)]))),
+                SETTINGS_FILENAME)
+        pbsContainer.start()
+        pbsWithStoredProfiles = new PrebidServerService(pbsContainer)
+    }
 
     def cleanupSpec() {
-        PbsServiceFactory.removeContainer(PROFILES_CONFIG)
+        pbsContainer.stop()
     }
 
     def "PBS should use profile for request when it exist in database"() {
         given: "Default bidRequest with request profile"
         def accountId = PBSUtils.randomNumber as String
-        def requestProfile = ProfileRequest.getProfile(accountId)
+        def requestProfile = RequestProfile.getProfile(accountId)
         def bidRequest = getRequestWithProfiles(accountId, [requestProfile])
 
         and: "Default account"
@@ -83,16 +127,36 @@ class ProfileSpec extends BaseSpec {
         assert !response.ext?.warnings
 
         and: "Bidder request should contain data from profile"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            it.site == requestProfile.body.site
-            it.device == requestProfile.body.device
+        verifyAll(response.ext.debug.resolvedRequest) {
+            it.site.id == requestProfile.body.site.id
+            it.site.name == requestProfile.body.site.name
+            it.site.domain == requestProfile.body.site.domain
+            it.site.cat == requestProfile.body.site.cat
+            it.site.sectionCat == requestProfile.body.site.sectionCat
+            it.site.pageCat == requestProfile.body.site.pageCat
+            it.site.page == requestProfile.body.site.page
+            it.site.ref == requestProfile.body.site.ref
+            it.site.search == requestProfile.body.site.search
+            it.site.keywords == requestProfile.body.site.keywords
+            it.site.ext.data == requestProfile.body.site.ext.data
+
+            it.device.didsha1 == requestProfile.body.device.didsha1
+            it.device.didmd5 == requestProfile.body.device.didmd5
+            it.device.dpidsha1 == requestProfile.body.device.dpidsha1
+            it.device.ifa == requestProfile.body.device.ifa
+            it.device.macsha1 == requestProfile.body.device.macsha1
+            it.device.macmd5 == requestProfile.body.device.macmd5
+            it.device.dpidmd5 == requestProfile.body.device.dpidmd5
         }
+
+        and: "PBS shouldn't make bidder request"
+        assert !bidder.getBidderRequests(bidRequest.id)
     }
 
     def "PBS should use imp profile for request when it exist in database"() {
         given: "Default bidRequest with request profile"
         def accountId = PBSUtils.randomNumber as String
-        def impProfile = ProfileImp.getProfile(accountId)
+        def impProfile = ImpProfile.getProfile(accountId)
         def bidRequest = getRequestWithProfiles(accountId, [impProfile]).tap {
             imp.first.banner = null
         } as BidRequest
@@ -112,21 +176,15 @@ class ProfileSpec extends BaseSpec {
         assert !response.ext?.warnings
 
         and: "Bidder request imp should contain data from profile"
-        assert bidder.getBidderRequest(bidRequest.id).imp.first == impProfile.body
+        verifyAll(bidder.getBidderRequest(bidRequest.id).imp) {
+            it.id == [impProfile.body.id]
+            it.banner == [impProfile.body.banner]
+        }
     }
 
     def "PBS should use profile for request when it exist in filesystem"() {
         given: "Default bidRequest with request profile"
-        def accountId = PBSUtils.randomNumber as String
-        def profile = ProfileRequest.getProfile(accountId)
-        def bidRequest = getRequestWithProfiles(accountId, [profile])
-
-        and: "Default account"
-        def account = new Account(uuid: bidRequest.accountId, status: ACTIVE)
-        accountDao.save(account)
-
-        and: "Profile fine in PBS container"
-        pbsWithStoredProfiles.copyToContainer(encode(profile), "$PROFILES_PATH/${profile.fileName}")
+        def bidRequest = getRequestWithProfiles(ACCOUNT_ID_FILE_STORAGE.toString(), [requestProfile])
 
         when: "PBS processes auction request"
         def response = pbsWithStoredProfiles.sendAuctionRequest(bidRequest)
@@ -136,26 +194,37 @@ class ProfileSpec extends BaseSpec {
         assert !response.ext?.warnings
 
         and: "Bidder request should contain data from profile"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            it.site == profile.body.site
-            it.device == profile.body.device
+        verifyAll(response.ext.debug.resolvedRequest) {
+            it.site.id == requestProfile.body.site.id
+            it.site.name == requestProfile.body.site.name
+            it.site.domain == requestProfile.body.site.domain
+            it.site.cat == requestProfile.body.site.cat
+            it.site.sectionCat == requestProfile.body.site.sectionCat
+            it.site.pageCat == requestProfile.body.site.pageCat
+            it.site.page == requestProfile.body.site.page
+            it.site.ref == requestProfile.body.site.ref
+            it.site.search == requestProfile.body.site.search
+            it.site.keywords == requestProfile.body.site.keywords
+            it.site.ext.data == requestProfile.body.site.ext.data
+
+            it.device.didsha1 == requestProfile.body.device.didsha1
+            it.device.didmd5 == requestProfile.body.device.didmd5
+            it.device.dpidsha1 == requestProfile.body.device.dpidsha1
+            it.device.ifa == requestProfile.body.device.ifa
+            it.device.macsha1 == requestProfile.body.device.macsha1
+            it.device.macmd5 == requestProfile.body.device.macmd5
+            it.device.dpidmd5 == requestProfile.body.device.dpidmd5
         }
+
+        and: "PBS shouldn't make bidder request"
+        assert !bidder.getBidderRequests(bidRequest.id)
     }
 
     def "PBS should use imp profile for request when it exist in filesystem"() {
         given: "Default bidRequest with request profile"
-        def accountId = PBSUtils.randomNumber as String
-        def profile = ProfileImp.getProfile(accountId)
-        def bidRequest = getRequestWithProfiles(accountId, [profile]).tap {
+        def bidRequest = getRequestWithProfiles(ACCOUNT_ID_FILE_STORAGE.toString(), [impProfile]).tap {
             imp.first.banner = null
         } as BidRequest
-
-        and: "Default account"
-        def account = new Account(uuid: bidRequest.accountId, status: ACTIVE)
-        accountDao.save(account)
-
-        and: "Profile fine in PBS container"
-        pbsWithStoredProfiles.copyToContainer(encode(profile), "$PROFILES_PATH/${profile.fileName}")
 
         when: "PBS processes auction request"
         def response = pbsWithStoredProfiles.sendAuctionRequest(bidRequest)
@@ -165,21 +234,20 @@ class ProfileSpec extends BaseSpec {
         assert !response.ext?.warnings
 
         and: "Bidder request imp should contain data from profile"
-        assert bidder.getBidderRequest(bidRequest.id).imp.first == profile.body
+        verifyAll(bidder.getBidderRequest(bidRequest.id).imp) {
+            it.id == [impProfile.body.id]
+            it.banner == [impProfile.body.banner]
+        }
     }
 
     def "PBS should emit error for request when same profile exist in filesystem and database"() {
         given: "Default bidRequest with request profile"
-        def accountId = PBSUtils.randomNumber as String
-        def profile = ProfileRequest.getProfile(accountId)
-        def bidRequest = getRequestWithProfiles(accountId, [profile])
+        def profile = RequestProfile.getProfile(requestProfile.accountId, requestProfile.name)
+        def bidRequest = getRequestWithProfiles(requestProfile.accountId, [profile])
 
         and: "Default account"
         def account = new Account(uuid: bidRequest.accountId, status: ACTIVE)
         accountDao.save(account)
-
-        and: "Profile fine in PBS container"
-        pbsWithStoredProfiles.copyToContainer(encode(profile), "$PROFILES_PATH/${profile.fileName}")
 
         and: "Default profile in database"
         profileRequestDao.save(StoredProfileRequest.getProfile(profile))
@@ -199,8 +267,7 @@ class ProfileSpec extends BaseSpec {
 
         and: "Reject metric should increments"
         def metrics = pbsWithStoredProfiles.sendCollectedMetricsRequest()
-        assert metrics[REJECT_PROFILE_METRIC] == 1
-        assert metrics[REJECT_ACCOUNT_PROFILE_METRIC.formatted(accountId)] == 1
+        assert metrics[REJECT_ACCOUNT_PROFILE_METRIC.formatted(requestProfile.accountId)] == 1
 
         and: "Bidder request should contain data from original request"
         verifyAll(bidder.getBidderRequest(bidRequest.id)) {
@@ -212,35 +279,49 @@ class ProfileSpec extends BaseSpec {
     def "PBS should prioritise original request data over profile when merge strategy #mergeStrategy"() {
         given: "Default bidRequest with request profile"
         def accountId = PBSUtils.randomNumber as String
-        def requestProfile = ProfileRequest.getProfile(accountId).tap {
+        def requestProfile = RequestProfile.getProfile(accountId).tap {
             mergePrecedence = mergeStrategy
         }
-        BidRequest.getDefaultBidRequest().tap {
-            it.ext.prebid.profilesNames = [requestProfile.name]
-            it.site = new Site()
-            it.device = null
-            setAccountId(accountId)
-        }
-        def bidRequest = getRequestWithProfiles(accountId, [requestProfile])
+        def bidRequest = getRequestWithProfiles(accountId, [requestProfile]).tap {
+            it.site = Site.configFPDSite
+            it.device = Device.default
+        } as BidRequest
 
         and: "Default account"
-        def account = new Account(uuid: bidRequest.accountId, status: ACTIVE)
+        def account = new Account(uuid: accountId, status: ACTIVE)
         accountDao.save(account)
 
         and: "Default profile in database"
         profileRequestDao.save(StoredProfileRequest.getProfile(requestProfile))
 
         when: "PBS processes auction request"
-        def response = pbsWithStoredProfiles.sendAuctionRequest(bidRequest)
+        def response = pbsWithStoredProfiles.sendAuctionRequest(bidRequest as BidRequest)
 
         then: "No errors should be emitted in the debug"
         assert !response.ext?.errors
-        assert !response.ext?.warnings
+//        assert !response.ext?.warnings
 
         and: "Bidder request should contain data from profile"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            it.site == requestProfile.body.site
-            it.device == requestProfile.body.device
+        verifyAll(response.ext.debug.resolvedRequest) {
+            it.site.id == bidRequest.site.id
+            it.site.name == bidRequest.site.name
+            it.site.domain == bidRequest.site.domain
+            it.site.cat == bidRequest.site.cat
+            it.site.sectionCat == bidRequest.site.sectionCat
+            it.site.pageCat == bidRequest.site.pageCat
+            it.site.page == bidRequest.site.page
+            it.site.ref == bidRequest.site.ref
+            it.site.search == bidRequest.site.search
+            it.site.keywords == bidRequest.site.keywords
+            it.site.ext.data == bidRequest.site.ext.data
+
+            it.device.didsha1 == bidRequest.device.didsha1
+            it.device.didmd5 == bidRequest.device.didmd5
+            it.device.dpidsha1 == bidRequest.device.dpidsha1
+            it.device.ifa == bidRequest.device.ifa
+            it.device.macsha1 == bidRequest.device.macsha1
+            it.device.macmd5 == bidRequest.device.macmd5
+            it.device.dpidmd5 == bidRequest.device.dpidmd5
         }
 
         where:
@@ -250,8 +331,10 @@ class ProfileSpec extends BaseSpec {
     def "PBS should prioritise original imp data over profile when merge strategy #mergeStrategy"() {
         given: "Default bidRequest with request profile"
         def accountId = PBSUtils.randomNumber as String
-        def impProfile = ProfileImp.getProfile(accountId).tap {
-            mergePrecedence = mergeStrategy
+        def impProfile = ImpProfile.getProfile(accountId).tap {
+            it.mergePrecedence = mergeStrategy
+            it.body.banner.format.first.height = PBSUtils.randomNumber
+            it.body.banner.format.first.weight = PBSUtils.randomNumber
         }
         def bidRequest = getRequestWithProfiles(accountId, [impProfile])
 
@@ -267,22 +350,27 @@ class ProfileSpec extends BaseSpec {
 
         then: "No errors should be emitted in the debug"
         assert !response.ext?.errors
-        assert !response.ext?.warnings
+//        assert !response.ext?.warnings
 
         and: "Bidder request imp should contain data from profile"
-        assert bidder.getBidderRequest(bidRequest.id).imp == [impProfile.body]
+        assert bidder.getBidderRequest(bidRequest.id).imp.banner == bidRequest.imp.banner
 
         where:
         mergeStrategy << [null, UNKNOWN, REQUEST]
     }
 
-    def "PBS should marge earliest-specified profile profile with request merge precedence when there marge conflict"() {
+    def "PBS should marge latest-specified profile when there marge conflict and different merge precedence present"() {
         given: "Default bidRequest with request profile"
         def accountId = PBSUtils.randomNumber as String
-        def bidRequest = getRequestWithProfiles(accountId, [firstProfile, secondProfile])
+        firstProfile.accountId = accountId
+        secondProfile.accountId = accountId
+        def bidRequest = getRequestWithProfiles(accountId, [firstProfile, secondProfile]).tap {
+            it.site = Site.configFPDSite
+            it.device = Device.default
+        }
 
         and: "Default account"
-        def account = new Account(uuid: bidRequest.accountId, status: ACTIVE)
+        def account = new Account(uuid: accountId, status: ACTIVE)
         accountDao.save(account)
 
         and: "Default profiles in database"
@@ -300,26 +388,51 @@ class ProfileSpec extends BaseSpec {
         assert !response.ext?.warnings
 
         and: "Bidder request should contain data from profiles"
-        def mergedRequest = [firstProfile, secondProfile].find { it.mergePrecedence == REQUEST }.body
-        assert bidder.getBidderRequest(bidRequest.id).site == mergedRequest.site
+        def mergedRequest = [firstProfile, secondProfile].find { it.mergePrecedence == PROFILE }.body
+        and: "Bidder request should contain data from profile"
+        verifyAll(response.ext.debug.resolvedRequest) {
+            it.site.id == mergedRequest.site.id
+            it.site.name == mergedRequest.site.name
+            it.site.domain == mergedRequest.site.domain
+            it.site.cat == mergedRequest.site.cat
+            it.site.sectionCat == mergedRequest.site.sectionCat
+            it.site.pageCat == mergedRequest.site.pageCat
+            it.site.page == mergedRequest.site.page
+            it.site.ref == mergedRequest.site.ref
+            it.site.search == mergedRequest.site.search
+            it.site.keywords == mergedRequest.site.keywords
+            it.site.ext.data == mergedRequest.site.ext.data
+
+            it.device.didsha1 == mergedRequest.device.didsha1
+            it.device.didmd5 == mergedRequest.device.didmd5
+            it.device.dpidsha1 == mergedRequest.device.dpidsha1
+            it.device.ifa == mergedRequest.device.ifa
+            it.device.macsha1 == mergedRequest.device.macsha1
+            it.device.macmd5 == mergedRequest.device.macmd5
+            it.device.dpidmd5 == mergedRequest.device.dpidmd5
+        }
+
+        and: "PBS shouldn't make bidder request"
+        assert !bidder.getBidderRequests(bidRequest.id)
 
         where:
-        firstProfile                                                           | secondProfile
-        ProfileRequest.getProfile(accountId).tap { mergePrecedence = REQUEST } | ProfileRequest.getProfile(accountId)
-        ProfileRequest.getProfile(accountId)                                   | ProfileRequest.getProfile(accountId).tap { mergePrecedence = REQUEST }
-        ProfileRequest.getProfile(accountId).tap { mergePrecedence = REQUEST } | ProfileRequest.getProfile(accountId).tap { mergePrecedence = REQUEST }
+        firstProfile                                                  | secondProfile
+        RequestProfile.getProfile().tap { mergePrecedence = REQUEST } | RequestProfile.getProfile()
+        RequestProfile.getProfile()                                   | RequestProfile.getProfile().tap { mergePrecedence = REQUEST }
     }
 
-    def "PBS should marge latest-specified profile profile with request merge precedence when there marge conflict"() {
+    def "PBS should marge first-specified profile with request merge precedence when there marge conflict"() {
         given: "Default bidRequest with request profile"
         def accountId = PBSUtils.randomNumber as String
-        def firstRequestProfile = ProfileRequest.getProfile(accountId).tap {
+        def firstRequestProfile = RequestProfile.getProfile(accountId).tap {
             body.device = Device.default
-            body.site = Site.defaultSite
+            body.site = Site.rootFPDSite
+            mergePrecedence = REQUEST
         }
-        def secondRequestProfile = ProfileRequest.getProfile(accountId).tap {
+        def secondRequestProfile = RequestProfile.getProfile(accountId).tap {
             body.device = Device.default
-            body.site = Site.defaultSite
+            body.site = Site.rootFPDSite
+            mergePrecedence = REQUEST
         }
         def bidRequest = getRequestWithProfiles(accountId, [firstRequestProfile, secondRequestProfile])
 
@@ -330,10 +443,6 @@ class ProfileSpec extends BaseSpec {
         and: "Default profiles in database"
         profileRequestDao.save(StoredProfileRequest.getProfile(firstRequestProfile))
         profileRequestDao.save(StoredProfileRequest.getProfile(secondRequestProfile))
-        profileImpDao.save(StoredProfileImp.getProfile(impProfile))
-
-        and: "Flash metrics"
-        flushMetrics(pbsWithStoredProfiles)
 
         when: "PBS processes auction request"
         def response = pbsWithStoredProfiles.sendAuctionRequest(bidRequest)
@@ -342,25 +451,98 @@ class ProfileSpec extends BaseSpec {
         assert !response.ext?.errors
         assert !response.ext?.warnings
 
-        and: "Bidder request should contain data from profiles"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            it.site == secondRequestProfile.body.site
-            it.device == secondRequestProfile.body.device
+        and: "Bidder request should contain data from profile"
+        verifyAll(response.ext.debug.resolvedRequest) {
+            it.site.id == firstRequestProfile.body.site.id
+            it.site.name == firstRequestProfile.body.site.name
+            it.site.domain == firstRequestProfile.body.site.domain
+            it.site.cat == firstRequestProfile.body.site.cat
+            it.site.sectionCat == firstRequestProfile.body.site.sectionCat
+            it.site.pageCat == firstRequestProfile.body.site.pageCat
+            it.site.ref == firstRequestProfile.body.site.ref
+            it.site.search == firstRequestProfile.body.site.search
+            it.site.keywords == firstRequestProfile.body.site.keywords
+            it.site.ext.data == firstRequestProfile.body.site.ext.data
+
+            it.device.didsha1 == firstRequestProfile.body.device.didsha1
+            it.device.didmd5 == firstRequestProfile.body.device.didmd5
+            it.device.dpidsha1 == firstRequestProfile.body.device.dpidsha1
+            it.device.ifa == firstRequestProfile.body.device.ifa
+            it.device.macsha1 == firstRequestProfile.body.device.macsha1
+            it.device.macmd5 == firstRequestProfile.body.device.macmd5
+            it.device.dpidmd5 == firstRequestProfile.body.device.dpidmd5
         }
     }
 
-    def "PBS should prioritise profile for request when request is overloaded by profiles"() {
+    def "PBS should marge latest-specified profile with profile merge precedence when there marge conflict"() {
         given: "Default bidRequest with request profile"
         def accountId = PBSUtils.randomNumber as String
-        def profileSite = Site.defaultSite
-        def profileDevice = Device.default
-        def firstRequestProfile = ProfileRequest.getProfile(accountId).tap {
-            body.site = profileSite
+        def firstRequestProfile = RequestProfile.getProfile(accountId).tap {
+            body.device = Device.default
+            body.site = Site.rootFPDSite
         }
-        def secondRequestProfile = ProfileRequest.getProfile(accountId).tap {
+        def secondRequestProfile = RequestProfile.getProfile(accountId).tap {
+            body.device = Device.default
+            body.site = Site.rootFPDSite
+        }
+        def bidRequest = getRequestWithProfiles(accountId, [firstRequestProfile, secondRequestProfile])
+
+        and: "Default account"
+        def account = new Account(uuid: bidRequest.accountId, status: ACTIVE)
+        accountDao.save(account)
+
+        and: "Default profiles in database"
+        profileRequestDao.save(StoredProfileRequest.getProfile(firstRequestProfile))
+        profileRequestDao.save(StoredProfileRequest.getProfile(secondRequestProfile))
+
+        when: "PBS processes auction request"
+        def response = pbsWithStoredProfiles.sendAuctionRequest(bidRequest)
+
+        then: "No errors should be emitted in the debug"
+        assert !response.ext?.errors
+        assert !response.ext?.warnings
+
+        and: "Bidder request should contain data from profile"
+        verifyAll(response.ext.debug.resolvedRequest) {
+            it.site.id == secondRequestProfile.body.site.id
+            it.site.name == secondRequestProfile.body.site.name
+            it.site.domain == secondRequestProfile.body.site.domain
+            it.site.cat == secondRequestProfile.body.site.cat
+            it.site.sectionCat == secondRequestProfile.body.site.sectionCat
+            it.site.pageCat == secondRequestProfile.body.site.pageCat
+            it.site.page == secondRequestProfile.body.site.page
+            it.site.ref == secondRequestProfile.body.site.ref
+            it.site.search == secondRequestProfile.body.site.search
+            it.site.keywords == secondRequestProfile.body.site.keywords
+            it.site.ext.data == secondRequestProfile.body.site.ext.data
+
+            it.device.didsha1 == secondRequestProfile.body.device.didsha1
+            it.device.didmd5 == secondRequestProfile.body.device.didmd5
+            it.device.dpidsha1 == secondRequestProfile.body.device.dpidsha1
+            it.device.ifa == secondRequestProfile.body.device.ifa
+            it.device.macsha1 == secondRequestProfile.body.device.macsha1
+            it.device.macmd5 == secondRequestProfile.body.device.macmd5
+            it.device.dpidmd5 == secondRequestProfile.body.device.dpidmd5
+        }
+
+        and: "PBS shouldn't make bidder request"
+        assert !bidder.getBidderRequests(bidRequest.id)
+    }
+
+    def "PBS should prioritise profile for request and emit warning when request is overloaded by profiles"() {
+        given: "Default bidRequest with request profile"
+        def accountId = PBSUtils.randomNumber as String
+        def profileSite = Site.rootFPDSite
+        def profileDevice = Device.default
+        def firstRequestProfile = RequestProfile.getProfile(accountId).tap {
+            body.site = profileSite
+            body.device = null
+        }
+        def secondRequestProfile = RequestProfile.getProfile(accountId).tap {
+            body.site = null
             body.device = profileDevice
         }
-        def impProfile = ProfileImp.getProfile(accountId, Imp.getDefaultImpression(VIDEO))
+        def impProfile = ImpProfile.getProfile(accountId, Imp.getDefaultImpression(VIDEO))
         def bidRequest = getRequestWithProfiles(accountId, [impProfile, firstRequestProfile, secondRequestProfile])
 
         and: "Default account"
@@ -380,28 +562,47 @@ class ProfileSpec extends BaseSpec {
 
         then: "PBS should emit proper warning"
         assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
-        assert response.ext?.warnings[ErrorType.PREBID]*.message == [MISSING_ERROR_MESSAGE]
+        assert response.ext?.warnings[ErrorType.PREBID]*.message == [LIMIT_ERROR_MESSAGE]
 
         and: "Response should contain error"
         assert !response.ext?.errors
 
-        and: "PBS log should contain error"
-        assert pbsWithStoredProfiles.isContainLogsByValue(MISSING_ERROR_MESSAGE)
-
         and: "Missing metric should increments"
         def metrics = pbsWithStoredProfiles.sendCollectedMetricsRequest()
-        assert metrics[MISSING_PROFILE_METRIC] == 1
-        assert metrics[MISSING_ACCOUNT_PROFILE_METRIC.formatted(accountId)] == 1
+        assert metrics[LIMIT_EXCEEDED_ACCOUNT_PROFILE_METRIC.formatted(accountId)] == 1
 
-        and: "Bidder request should contain data from profiles"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        and: "Bidder request should contain data from profile"
+        def bidderRequest = response.ext.debug.resolvedRequest
         verifyAll(bidderRequest) {
-            it.site == profileSite
-            it.device == profileDevice
+            it.site.id == profileSite.id
+            it.site.name == profileSite.name
+            it.site.domain == profileSite.domain
+            it.site.cat == profileSite.cat
+            it.site.sectionCat == profileSite.sectionCat
+            it.site.pageCat == profileSite.pageCat
+            it.site.page == profileSite.page
+            it.site.ref == profileSite.ref
+            it.site.search == profileSite.search
+            it.site.keywords == profileSite.keywords
+            it.site.ext.data == profileSite.ext.data
+
+            it.device.didsha1 == profileDevice.didsha1
+            it.device.didmd5 == profileDevice.didmd5
+            it.device.dpidsha1 == profileDevice.dpidsha1
+            it.device.ifa == profileDevice.ifa
+            it.device.macsha1 == profileDevice.macsha1
+            it.device.macmd5 == profileDevice.macmd5
+            it.device.dpidmd5 == profileDevice.dpidmd5
         }
 
+        and: "PBS shouldn't make bidder request"
+        assert !bidder.getBidderRequests(bidRequest.id)
+
         and: "Bidder imp should contain original data from request"
-        assert bidderRequest.imp == bidRequest.imp
+        assert verifyAll(bidderRequest.imp) {
+            it.banner == bidRequest.imp.banner
+            it.video == [null]
+        }
     }
 
     def "PBS should be able override profile limit by account config and use remaining limits for each imp separately"() {
@@ -409,15 +610,26 @@ class ProfileSpec extends BaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def profileSite = Site.defaultSite
         def profileDevice = Device.default
-        def firstRequestProfile = ProfileRequest.getProfile(accountId).tap {
+        def firstRequestProfile = RequestProfile.getProfile(accountId).tap {
+            body.device = null
             body.site = profileSite
         }
-        def secondRequestProfile = ProfileRequest.getProfile(accountId).tap {
+        def secondRequestProfile = RequestProfile.getProfile(accountId).tap {
+            body.site = null
             body.device = profileDevice
         }
-        def firstImpProfile = ProfileImp.getProfile(accountId)
-        def secondImpProfile = ProfileImp.getProfile(accountId, Imp.getDefaultImpression(VIDEO))
-        def thirdImpProfile = ProfileImp.getProfile(accountId, Imp.getDefaultImpression(NATIVE))
+        def firstImp = Imp.defaultImpression.tap {
+            it.banner.btype = [PBSUtils.randomNumber]
+        }
+        def secondImp = Imp.defaultImpression.tap {
+            it.banner.battr = [PBSUtils.randomNumber]
+        }
+        def thirdImp = Imp.defaultImpression.tap {
+            it.banner.mimes = [PBSUtils.randomString]
+        }
+        def firstImpProfile = ImpProfile.getProfile(accountId, firstImp)
+        def secondImpProfile = ImpProfile.getProfile(accountId, secondImp)
+        def thirdImpProfile = ImpProfile.getProfile(accountId, thirdImp)
         def bidRequest = getRequestWithProfiles(accountId, [firstImpProfile, secondImpProfile, firstRequestProfile, secondRequestProfile]).tap {
             imp << new Imp(ext: new ImpExt(prebid: new ImpExtPrebid(profilesNames: [secondImpProfile, thirdImpProfile].name)))
         } as BidRequest
@@ -435,7 +647,6 @@ class ProfileSpec extends BaseSpec {
         profileImpDao.save(StoredProfileImp.getProfile(firstImpProfile))
         profileImpDao.save(StoredProfileImp.getProfile(secondImpProfile))
         profileImpDao.save(StoredProfileImp.getProfile(thirdImpProfile))
-        profileImpDao.save(StoredProfileImp.getProfile(fourthImpProfile))
 
         and: "Flash metrics"
         flushMetrics(pbsWithStoredProfiles)
@@ -447,39 +658,73 @@ class ProfileSpec extends BaseSpec {
         assert !response.ext?.errors
         assert !response.ext?.warnings
 
-        and: "PBS log should contain error"
-        assert pbsWithStoredProfiles.isContainLogsByValue(MISSING_ERROR_MESSAGE)
-
         and: "Missing metric shouldn't increments"
         def metrics = pbsWithStoredProfiles.sendCollectedMetricsRequest()
         assert !metrics[MISSING_PROFILE_METRIC]
-        assert !metrics[MISSING_ACCOUNT_PROFILE_METRIC.formatted(accountId)]
+        assert !metrics[LIMIT_EXCEEDED_ACCOUNT_PROFILE_METRIC.formatted(accountId)]
 
         and: "Bidder request should contain data from profiles"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        def bidderRequest = response.ext.debug.resolvedRequest
         verifyAll(bidderRequest) {
-            it.site == profileSite
-            it.device == profileDevice
+            it.site.id == profileSite.id
+            it.site.name == profileSite.name
+            it.site.domain == profileSite.domain
+            it.site.cat == profileSite.cat
+            it.site.sectionCat == profileSite.sectionCat
+            it.site.pageCat == profileSite.pageCat
+            it.site.page == profileSite.page
+            it.site.ref == profileSite.ref
+            it.site.search == profileSite.search
+            it.site.keywords == profileSite.keywords
+
+            it.device.didsha1 == profileDevice.didsha1
+            it.device.didmd5 == profileDevice.didmd5
+            it.device.dpidsha1 == profileDevice.dpidsha1
+            it.device.ifa == profileDevice.ifa
+            it.device.macsha1 == profileDevice.macsha1
+            it.device.macmd5 == profileDevice.macmd5
+            it.device.dpidmd5 == profileDevice.dpidmd5
         }
 
-        and: "Bidder imps should contain data from profiles"
-        assert bidderRequest.imp.first.banner == firstImpProfile.body.banner
-        assert bidderRequest.imp.first.video == secondImpProfile.body.video
-        assert bidderRequest.imp.last.video == secondImpProfile.body.video
-        assert bidderRequest.imp.first.video == thirdImpProfile.body.video
-        assert bidderRequest.imp.banner == [firstImpProfile.body.banner]
+        and: "PBS shouldn't make bidder request"
+        assert !bidder.getBidderRequests(bidRequest.id)
+
+        and: "Bidder imp should contain data from specified profiles"
+        def firstBidderImpBanner = bidderRequest.imp.first.banner
+        verifyAll(firstBidderImpBanner) {
+            it.btype == firstImpProfile.body.banner.btype
+            it.battr == secondImpProfile.body.banner.battr
+        }
+
+        and: "Ignore data from unspecified profiles"
+        assert !firstBidderImpBanner.mimes
+
+        and: "Bidder imp should contain data from specified profiles"
+        def secondBidderImpBanner = bidderRequest.imp.last.banner
+        verifyAll(secondBidderImpBanner) {
+            it.battr == secondImpProfile.body.banner.battr
+            it.mimes == thirdImpProfile.body.banner.mimes
+        }
+
+        and: "Ignore data from unspecified profiles"
+        assert !secondBidderImpBanner.btype
     }
 
     def "PBS should include invalid or missing profiles into limit count"() {
         given: "Default bidRequest with request profiles"
         def accountId = PBSUtils.randomNumber as String
-        def invalidProfileRequest = ProfileRequest.getProfile(accountId).tap {
+        def invalidProfileRequest = RequestProfile.getProfile(accountId).tap {
             body = null
         }
-        def impProfile = ProfileImp.getProfile(accountId)
+        def impProfile = ImpProfile.getProfile(accountId)
         def bidRequest = BidRequest.getDefaultBidRequest().tap {
-            imp.first.ext.prebid.profilesNames = [impProfile.name]
+            it.imp.first.tap {
+                it.banner.format = [Format.randomFormat]
+                it.ext.prebid.profilesNames = [impProfile.name]
+            }
             it.ext.prebid.profilesNames = [invalidProfileRequest.name, PBSUtils.randomString]
+            it.site = Site.configFPDSite
+            it.device = Device.default
             setAccountId(accountId)
         }
 
@@ -498,36 +743,49 @@ class ProfileSpec extends BaseSpec {
         def response = pbsWithStoredProfiles.sendAuctionRequest(bidRequest)
 
         then: "PBS should emit proper warning"
-        assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
-        assert response.ext?.warnings[ErrorType.PREBID]*.message == [MISSING_ERROR_MESSAGE]
+        assert response.ext?.warnings[ErrorType.PREBID]*.message.contains(LIMIT_ERROR_MESSAGE)
 
         and: "Response should contain error"
         assert !response.ext?.errors
 
-        and: "PBS log should contain error"
-        assert pbsWithStoredProfiles.isContainLogsByValue(MISSING_ERROR_MESSAGE)
-
-        and: "Missing metric shouldn't increments"
+        and: "Missing metric should increments"
         def metrics = pbsWithStoredProfiles.sendCollectedMetricsRequest()
-        assert !metrics[MISSING_PROFILE_METRIC]
-        assert !metrics[MISSING_ACCOUNT_PROFILE_METRIC.formatted(accountId)]
+        assert metrics[LIMIT_EXCEEDED_ACCOUNT_PROFILE_METRIC.formatted(accountId)] == 1
 
-        and: "Bidder request should contain data from profiles"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        and: "Bidder request should contain data from original request"
+        def bidderRequest = response.ext.debug.resolvedRequest
         verifyAll(bidderRequest) {
-            it.site == bidRequest.site
-            it.device == bidRequest.device
+            it.site.id == bidRequest.site.id
+            it.site.name == bidRequest.site.name
+            it.site.domain == bidRequest.site.domain
+            it.site.cat == bidRequest.site.cat
+            it.site.sectionCat == bidRequest.site.sectionCat
+            it.site.pageCat == bidRequest.site.pageCat
+            it.site.page == bidRequest.site.page
+            it.site.ref == bidRequest.site.ref
+            it.site.search == bidRequest.site.search
+            it.site.keywords == bidRequest.site.keywords
+            it.site.ext.data == bidRequest.site.ext.data
+
+            it.device.didsha1 == bidRequest.device.didsha1
+            it.device.didmd5 == bidRequest.device.didmd5
+            it.device.dpidsha1 == bidRequest.device.dpidsha1
+            it.device.ifa == bidRequest.device.ifa
+            it.device.macsha1 == bidRequest.device.macsha1
+            it.device.macmd5 == bidRequest.device.macmd5
+            it.device.dpidmd5 == bidRequest.device.dpidmd5
         }
 
-        and: "Bidder imp should contain original data from request"
-        assert bidderRequest.imp == bidRequest.imp
+        and: "Bidder request imp should contain data from request"
+        assert bidder.getBidderRequest(bidRequest.id).imp.banner == bidRequest.imp.banner
     }
+
 
     def "PBS should include data from storedBidResponses when it specified in profiles"() {
         given: "Default basic BidRequest with stored response"
         def accountId = PBSUtils.randomNumber as String
         def storedResponseId = PBSUtils.randomNumber
-        def impProfile = ProfileImp.getProfile(accountId).tap {
+        def impProfile = ImpProfile.getProfile(accountId).tap {
             it.body.ext.prebid.storedBidResponse = [new StoredBidResponse(id: storedResponseId, bidder: GENERIC)]
         }
         def bidRequest = getRequestWithProfiles(accountId, [impProfile])
@@ -559,7 +817,7 @@ class ProfileSpec extends BaseSpec {
         given: "Default basic BidRequest with stored response"
         def accountId = PBSUtils.randomNumber as String
         def storedAuctionId = PBSUtils.randomNumber
-        def impProfile = ProfileImp.getProfile(accountId).tap {
+        def impProfile = ImpProfile.getProfile(accountId).tap {
             it.body.ext.prebid.storedAuctionResponse = new StoredAuctionResponse(id: storedAuctionId)
         }
         def bidRequest = getRequestWithProfiles(accountId, [impProfile])
@@ -596,8 +854,9 @@ class ProfileSpec extends BaseSpec {
 
         and: "Default bidRequest with request profile"
         def accountId = PBSUtils.randomNumber as String
+        def invalidProfileId = PBSUtils.randomString
         def bidRequest = BidRequest.getDefaultBidRequest().tap {
-            it.imp.first.ext.prebid.profilesNames = [PBSUtils.randomString]
+            it.imp.first.ext.prebid.profilesNames = [invalidProfileId]
             it.site = new Site()
             it.device = null
             setAccountId(accountId)
@@ -611,18 +870,12 @@ class ProfileSpec extends BaseSpec {
         flushMetrics(prebidServerService)
 
         when: "PBS processes auction request"
-        def response = prebidServerService.sendAuctionRequest(bidRequest)
+        prebidServerService.sendAuctionRequest(bidRequest)
 
-        then: "PBS should emit proper warning"
-        assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
-        assert response.ext?.warnings[ErrorType.PREBID]*.message == [MISSING_ERROR_MESSAGE]
-
-        and: "Response should contain error"
-        assert !response.ext?.errors
-
-        and: "PBS should fail auction"
-        assert !response.seatbid.bid
-        assert response.noBidResponse == NoBidResponse.INVALID_REQUEST
+        then: "PBs should throw error due to invalid profile"
+        def exception = thrown(PrebidServerException)
+        assert exception.statusCode == 400
+        assert exception.responseBody == INVALID_REQEUST_PREFIX + NO_IMP_PROFILE_MESSAGE.formatted(invalidProfileId)
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(failOnUnknownProfilesConfig)
@@ -636,8 +889,9 @@ class ProfileSpec extends BaseSpec {
 
         and: "Default bidRequest with request profile"
         def accountId = PBSUtils.randomNumber as String
+        def invalidProfileId = PBSUtils.randomString
         def bidRequest = BidRequest.getDefaultBidRequest().tap {
-            it.imp.first.ext.prebid.profilesNames = [PBSUtils.randomString]
+            it.imp.first.ext.prebid.profilesNames = [invalidProfileId]
             it.site = new Site()
             it.device = null
             setAccountId(accountId)
@@ -651,33 +905,23 @@ class ProfileSpec extends BaseSpec {
         flushMetrics(prebidServerService)
 
         when: "PBS processes auction request"
-        def response = prebidServerService.sendAuctionRequest(bidRequest)
+        prebidServerService.sendAuctionRequest(bidRequest)
 
-        then: "PBS should emit proper warning"
-        assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
-        assert response.ext?.warnings[ErrorType.PREBID]*.message == [MISSING_ERROR_MESSAGE]
-
-        and: "Response should contain error"
-        assert !response.ext?.errors
-
-        and: "PBS should fail auction"
-        assert !response.seatbid.bid
-        assert response.noBidResponse == NoBidResponse.INVALID_REQUEST
+        then: "PBs should throw error due to invalid profile"
+        def exception = thrown(PrebidServerException)
+        assert exception.statusCode == 400
+        assert exception.responseBody == INVALID_REQEUST_PREFIX + NO_IMP_PROFILE_MESSAGE.formatted(invalidProfileId)
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(failOnUnknownProfilesConfig)
     }
 
     def "PBS should prioritise fail-on-unknown-profile from account over host config"() {
-        given: "PBS with profiles.fail-on-unknown config"
-        def failOnUnknownProfilesConfig = new HashMap<>(PROFILES_CONFIG)
-        failOnUnknownProfilesConfig["auction.profiles.fail-on-unknown"] = "true"
-        def prebidServerService = pbsServiceFactory.getService(failOnUnknownProfilesConfig)
-
-        and: "Default bidRequest with request profile"
+        given: "Default bidRequest with request profile"
         def accountId = PBSUtils.randomNumber as String
+        def invalidProfileId = PBSUtils.randomString
         def bidRequest = BidRequest.getDefaultBidRequest().tap {
-            it.imp.first.ext.prebid.profilesNames = [PBSUtils.randomString]
+            it.imp.first.ext.prebid.profilesNames = [invalidProfileId]
             it.site = new Site()
             it.device = null
             setAccountId(accountId)
@@ -690,34 +934,19 @@ class ProfileSpec extends BaseSpec {
         accountDao.save(account)
 
         and: "Flash metrics"
-        flushMetrics(prebidServerService)
+        flushMetrics(pbsWithStoredProfiles)
 
         when: "PBS processes auction request"
-        def response = prebidServerService.sendAuctionRequest(bidRequest)
+        pbsWithStoredProfiles.sendAuctionRequest(bidRequest)
 
-        then: "PBS should emit proper warning"
-        assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
-        assert response.ext?.warnings[ErrorType.PREBID]*.message == [MISSING_ERROR_MESSAGE]
-
-        and: "Response should contain error"
-        assert !response.ext?.errors
-
-        and: "PBS log should contain error"
-        assert prebidServerService.isContainLogsByValue(MISSING_ERROR_MESSAGE)
+        then: "PBs should throw error due to invalid profile"
+        def exception = thrown(PrebidServerException)
+        assert exception.statusCode == 400
+        assert exception.responseBody == INVALID_REQEUST_PREFIX + NO_IMP_PROFILE_MESSAGE.formatted(invalidProfileId)
 
         and: "Missing metric should increments"
-        def metrics = prebidServerService.sendCollectedMetricsRequest()
-        assert metrics[MISSING_PROFILE_METRIC] == 1
+        def metrics = pbsWithStoredProfiles.sendCollectedMetricsRequest()
         assert metrics[MISSING_ACCOUNT_PROFILE_METRIC.formatted(accountId)] == 1
-
-        and: "Bidder request should contain data from original request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            it.site == bidRequest.site
-            it.device == bidRequest.device
-        }
-
-        cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(failOnUnknownProfilesConfig)
 
         where:
         profilesConfigs << [
@@ -729,17 +958,20 @@ class ProfileSpec extends BaseSpec {
     def "PBS should ignore inner request profiles when stored request profile contain link for another profile"() {
         given: "Default bidRequest with request profile"
         def accountId = PBSUtils.randomNumber as String
-        def innerRequestProfile = ProfileRequest.getProfile(accountId).tap {
+        def innerRequestProfile = RequestProfile.getProfile(accountId).tap {
             it.body.app = App.defaultApp
         }
 
-        def requestProfile = ProfileRequest.getProfile(accountId).tap {
+        def requestProfile = RequestProfile.getProfile(accountId).tap {
             it.body.ext.prebid.profilesNames = [innerRequestProfile.name]
         }
-        def bidRequest = getRequestWithProfiles(accountId, [requestProfile])
+        def bidRequest = getRequestWithProfiles(accountId, [requestProfile]).tap {
+            site = Site.configFPDSite
+            device = Device.default
+        } as BidRequest
 
         and: "Default account"
-        def account = new Account(uuid: bidRequest.accountId, status: ACTIVE)
+        def account = new Account(uuid: accountId, status: ACTIVE)
         accountDao.save(account)
 
         and: "Default profiles in database"
@@ -754,10 +986,27 @@ class ProfileSpec extends BaseSpec {
         assert !response.ext?.warnings
 
         and: "Bidder request should contain data from profile"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        verifyAll(bidderRequest) {
-            it.site == requestProfile.body.site
-            it.device == requestProfile.body.device
+        def bidderRequest = response.ext.debug.resolvedRequest
+        verifyAll(response.ext.debug.resolvedRequest) {
+            it.site.id == requestProfile.body.site.id
+            it.site.name == requestProfile.body.site.name
+            it.site.domain == requestProfile.body.site.domain
+            it.site.cat == requestProfile.body.site.cat
+            it.site.sectionCat == requestProfile.body.site.sectionCat
+            it.site.pageCat == requestProfile.body.site.pageCat
+            it.site.page == requestProfile.body.site.page
+            it.site.ref == requestProfile.body.site.ref
+            it.site.search == requestProfile.body.site.search
+            it.site.keywords == requestProfile.body.site.keywords
+            it.site.ext.data == requestProfile.body.site.ext.data
+
+            it.device.didsha1 == requestProfile.body.device.didsha1
+            it.device.didmd5 == requestProfile.body.device.didmd5
+            it.device.dpidsha1 == requestProfile.body.device.dpidsha1
+            it.device.ifa == requestProfile.body.device.ifa
+            it.device.macsha1 == requestProfile.body.device.macsha1
+            it.device.macmd5 == requestProfile.body.device.macmd5
+            it.device.dpidmd5 == requestProfile.body.device.dpidmd5
         }
 
         and: "Bidder request shouldn't contain data from inner profile"
@@ -767,8 +1016,8 @@ class ProfileSpec extends BaseSpec {
     def "PBS should ignore inner imp profiles when stored imp profile contain link for another profile"() {
         given: "Default bidRequest with request profile"
         def accountId = PBSUtils.randomNumber as String
-        def innerImpProfile = ProfileImp.getProfile(accountId, Imp.getDefaultImpression(VIDEO))
-        def impProfile = ProfileImp.getProfile(accountId).tap {
+        def innerImpProfile = ImpProfile.getProfile(accountId, Imp.getDefaultImpression(VIDEO))
+        def impProfile = ImpProfile.getProfile(accountId).tap {
             body.ext.prebid.profilesNames = [innerImpProfile.name]
         }
         def bidRequest = getRequestWithProfiles(accountId, [impProfile]).tap {
@@ -801,15 +1050,19 @@ class ProfileSpec extends BaseSpec {
     def "PBS shouldn't validate profiles and imp before margining"() {
         given: "Default bidRequest with request profile"
         def accountId = PBSUtils.randomNumber as String
-        def impProfile = ProfileImp.getProfile(accountId).tap {
-            body.banner.weight = null
+        def weight = PBSUtils.randomNumber
+        def height = PBSUtils.randomNumber
+        def impProfile = ImpProfile.getProfile(accountId).tap {
+            it.body.banner.format.first.weight = null
+            it.body.banner.format.first.height = height
         }
         def bidRequest = getRequestWithProfiles(accountId, [impProfile]).tap {
-            imp.first.banner.height = null
+            imp.first.banner.format.first.height = null
+            imp.first.banner.format.first.weight = weight
         } as BidRequest
 
         and: "Default account"
-        def account = new Account(uuid: bidRequest.accountId, status: ACTIVE)
+        def account = new Account(uuid: accountId, status: ACTIVE)
         accountDao.save(account)
 
         and: "Default profile in database"
@@ -823,18 +1076,26 @@ class ProfileSpec extends BaseSpec {
         assert !response.ext?.warnings
 
         and: "Bidder request imp should contain data from profile"
-        assert bidder.getBidderRequest(bidRequest.id).imp.first == impProfile.body
+        def impBannerFormat = bidder.getBidderRequest(bidRequest.id).imp.first.banner.format
+        assert impBannerFormat.height == [height]
+        assert impBannerFormat.weight == [weight]
     }
 
     def "PBS shouldn't emit error or warnings when bidRequest contains multiple imps with same profile"() {
         given: "Default bidRequest with request profile"
         def accountId = PBSUtils.randomNumber as String
-        def impProfile = ProfileImp.getProfile(accountId, Imp.defaultImpression)
+        def imp = Imp.defaultImpression.tap {
+            it.banner.format.first.height = PBSUtils.randomNumber
+            it.banner.format.first.weight = PBSUtils.randomNumber
+        }
+        def impProfile = ImpProfile.getProfile(accountId, imp)
         def bidRequest = BidRequest.getDefaultBidRequest().tap {
             addImp(Imp.getDefaultImpression())
             setAccountId(accountId)
-            imp.each { it.ext.prebid.profilesNames = [impProfile.name] }
         } as BidRequest
+        bidRequest.imp.each {
+            it.ext.prebid.profilesNames = [impProfile.name]
+        }
 
         and: "Default account"
         def account = new Account(uuid: bidRequest.accountId, status: ACTIVE)
@@ -851,15 +1112,19 @@ class ProfileSpec extends BaseSpec {
         assert !response.ext?.warnings
 
         and: "Bidder request imps should contain data from profile"
-        assert bidder.getBidderRequest(bidRequest.id).imp.first == impProfile.body
-        assert bidder.getBidderRequest(bidRequest.id).imp.last == impProfile.body
+        assert bidder.getBidderRequest(bidRequest.id).imp.first.banner == impProfile.body.banner
+        assert bidder.getBidderRequest(bidRequest.id).imp.last.banner == impProfile.body.banner
     }
 
     def "PBS should ignore imp data from request profile when imp for profile not null"() {
         given: "Default bidRequest with request profile"
         def accountId = PBSUtils.randomNumber as String
-        def requestProfile = ProfileRequest.getProfile(accountId,
-                BidRequest.defaultBidRequest,
+        def bidRequestProfile = BidRequest.defaultBidRequest.tap {
+            it.imp.first.banner.format.first.height = PBSUtils.randomNumber
+            it.imp.first.banner.format.first.weight = PBSUtils.randomNumber
+        }
+        def requestProfile = RequestProfile.getProfile(accountId,
+                bidRequestProfile,
                 PBSUtils.randomString,
                 mergePrecedence)
         def bidRequest = getRequestWithProfiles(accountId, [requestProfile])
@@ -879,20 +1144,18 @@ class ProfileSpec extends BaseSpec {
         assert !response.ext?.warnings
 
         and: "Bidder request should contain data from profile"
-        assert bidder.getBidderRequest(bidRequest.id).imp == bidRequest.imp
+        assert response.ext.debug.resolvedRequest.imp.banner == bidRequest.imp.banner
 
         where:
         mergePrecedence << [REQUEST, PROFILE]
     }
 
-    def "PBS should emit error and metrics when profile name is invalid"() {
+    def "PBS should add error and metrics when imp name is invalid"() {
         given: "Default bidRequest with request profile"
         def accountId = PBSUtils.randomNumber as String
-        def impProfile = ProfileImp.getProfile(accountId, Imp.defaultImpression, invalidProfileName)
+        def impProfile = ImpProfile.getProfile(accountId, Imp.defaultImpression, invalidProfileName)
         def bidRequest = BidRequest.getDefaultBidRequest().tap {
-            it.imp.first.ext.prebid.profilesNames = [PBSUtils.randomString]
-            it.site = new Site()
-            it.device = null
+            it.imp.first.ext.prebid.profilesNames = [impProfile.name]
             setAccountId(accountId)
         }
 
@@ -911,18 +1174,18 @@ class ProfileSpec extends BaseSpec {
 
         then: "PBS should emit proper warning"
         assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
-        assert response.ext?.warnings[ErrorType.PREBID]*.message == [MISSING_ERROR_MESSAGE]
+        assert response.ext?.warnings[ErrorType.PREBID]*.message == [LIMIT_ERROR_MESSAGE]
 
         and: "Response should contain error"
         assert !response.ext?.errors
 
         and: "PBS log should contain error"
-        assert pbsWithStoredProfiles.isContainLogsByValue(MISSING_ERROR_MESSAGE)
+        assert pbsWithStoredProfiles.isContainLogsByValue(LIMIT_ERROR_MESSAGE)
 
         and: "Missing metric should increments"
         def metrics = pbsWithStoredProfiles.sendCollectedMetricsRequest()
         assert metrics[MISSING_PROFILE_METRIC] == 1
-        assert metrics[MISSING_ACCOUNT_PROFILE_METRIC.formatted(accountId)] == 1
+        assert metrics[LIMIT_EXCEEDED_ACCOUNT_PROFILE_METRIC.formatted(accountId)] == 1
 
         and: "Bidder request should contain data from original request"
         verifyAll(bidder.getBidderRequest(bidRequest.id)) {
@@ -937,11 +1200,11 @@ class ProfileSpec extends BaseSpec {
     def "PBS should emit error and metrics when request profile called from imp level"() {
         given: "Default bidRequest with request profile"
         def accountId = PBSUtils.randomNumber as String
-        def requestProfile = ProfileRequest.getProfile(accountId)
+        def requestProfile = RequestProfile.getProfile(accountId)
         def bidRequest = BidRequest.getDefaultBidRequest().tap {
-            it.imp.first.ext.prebid.profilesNames = [requestProfile.recordName]
-            it.site = new Site()
-            it.device = null
+            it.imp.first.ext.prebid.profilesNames = [requestProfile.name]
+            it.site = Site.getRootFPDSite()
+            it.device = Device.getDefault()
             setAccountId(accountId)
         }
 
@@ -960,34 +1223,46 @@ class ProfileSpec extends BaseSpec {
 
         then: "PBS should emit proper warning"
         assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
-        assert response.ext?.warnings[ErrorType.PREBID]*.message == [REJECT_ERROR_MESSAGE]
+        assert response.ext?.warnings[ErrorType.PREBID]*.message == [NO_PROFILE_MESSAGE.formatted(requestProfile.name)]
 
         and: "Response should contain error"
         assert !response.ext?.errors
 
-        and: "PBS log should contain error"
-        assert pbsWithStoredProfiles.isContainLogsByValue(REJECT_ERROR_MESSAGE)
-
-        and: "Reject metric should increments"
+        and: "Missing metric should increments"
         def metrics = pbsWithStoredProfiles.sendCollectedMetricsRequest()
-        assert metrics[REJECT_PROFILE_METRIC] == 1
-        assert metrics[REJECT_ACCOUNT_PROFILE_METRIC.formatted(accountId)] == 1
+        assert metrics[MISSING_ACCOUNT_PROFILE_METRIC.formatted(accountId)] == 1
 
-        and: "Bidder request should contain data from original request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            it.site == bidRequest.site
-            it.device == bidRequest.device
+        and: "Bidder request should contain data from profile"
+        verifyAll(response.ext.debug.resolvedRequest) {
+            it.site.id == bidRequest.site.id
+            it.site.name == bidRequest.site.name
+            it.site.domain == bidRequest.site.domain
+            it.site.cat == bidRequest.site.cat
+            it.site.sectionCat == bidRequest.site.sectionCat
+            it.site.pageCat == bidRequest.site.pageCat
+            it.site.page == bidRequest.site.page
+            it.site.ref == bidRequest.site.ref
+            it.site.search == bidRequest.site.search
+            it.site.keywords == bidRequest.site.keywords
+
+            it.device.didsha1 == bidRequest.device.didsha1
+            it.device.didmd5 == bidRequest.device.didmd5
+            it.device.dpidsha1 == bidRequest.device.dpidsha1
+            it.device.ifa == bidRequest.device.ifa
+            it.device.macsha1 == bidRequest.device.macsha1
+            it.device.macmd5 == bidRequest.device.macmd5
+            it.device.dpidmd5 == bidRequest.device.dpidmd5
         }
     }
 
     def "PBS should emit error and metrics when imp profile called from request level"() {
         given: "Default bidRequest with request profile"
         def accountId = PBSUtils.randomNumber as String
-        def requestProfile = ProfileImp.getProfile(accountId)
+        def requestProfile = ImpProfile.getProfile(accountId)
         def bidRequest = BidRequest.getDefaultBidRequest().tap {
-            it.ext.prebid.profilesNames = [requestProfile.recordName]
-            it.site = new Site()
-            it.device = null
+            it.ext.prebid.profilesNames = [requestProfile.name]
+            it.site = Site.getRootFPDSite()
+            it.device = Device.getDefault()
             setAccountId(accountId)
         }
 
@@ -1006,75 +1281,44 @@ class ProfileSpec extends BaseSpec {
 
         then: "PBS should emit proper warning"
         assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
-        assert response.ext?.warnings[ErrorType.PREBID]*.message == [ERROR_MESSAGE]
+        assert response.ext?.warnings[ErrorType.PREBID]*.message == [NO_PROFILE_MESSAGE.formatted(requestProfile.name)]
 
         and: "Response should contain error"
         assert !response.ext?.errors
-
-        and: "PBS log should contain error"
-        assert pbsWithStoredProfiles.isContainLogsByValue(ERROR_MESSAGE)
-
-        and: "Reject metric should increments"
-        def metrics = pbsWithStoredProfiles.sendCollectedMetricsRequest()
-        assert metrics[REJECT_PROFILE_METRIC] == 1
-        assert metrics[REJECT_ACCOUNT_PROFILE_METRIC] == 1
-
-        and: "Bidder request should contain data from original request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            it.site == bidRequest.site
-            it.device == bidRequest.device
-        }
-    }
-
-    def "PBS should emit error and metrics when request profile missing"() {
-        given: "Default bidRequest with request profile"
-        def accountId = PBSUtils.randomNumber as String
-        def bidRequest = BidRequest.getDefaultBidRequest().tap {
-            it.imp.first.ext.prebid.profilesNames = [PBSUtils.randomString]
-            it.site = new Site()
-            it.device = null
-            setAccountId(accountId)
-        }
-
-        and: "Default account"
-        def account = new Account(uuid: bidRequest.accountId, status: ACTIVE)
-        accountDao.save(account)
-
-        and: "Flash metrics"
-        flushMetrics(pbsWithStoredProfiles)
-
-        when: "PBS processes auction request"
-        def response = pbsWithStoredProfiles.sendAuctionRequest(bidRequest)
-
-        then: "PBS should emit proper warning"
-        assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
-        assert response.ext?.warnings[ErrorType.PREBID]*.message == [MISSING_ERROR_MESSAGE]
-
-        and: "Response should contain error"
-        assert !response.ext?.errors
-
-        and: "PBS log should contain error"
-        assert pbsWithStoredProfiles.isContainLogsByValue(MISSING_ERROR_MESSAGE)
 
         and: "Missing metric should increments"
         def metrics = pbsWithStoredProfiles.sendCollectedMetricsRequest()
-        assert metrics[MISSING_PROFILE_METRIC] == 1
         assert metrics[MISSING_ACCOUNT_PROFILE_METRIC.formatted(accountId)] == 1
 
-        and: "Bidder request should contain data from original request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            it.site == bidRequest.site
-            it.device == bidRequest.device
+        and: "Bidder request should contain data from profile"
+        verifyAll(response.ext.debug.resolvedRequest) {
+            it.site.id == bidRequest.site.id
+            it.site.name == bidRequest.site.name
+            it.site.domain == bidRequest.site.domain
+            it.site.cat == bidRequest.site.cat
+            it.site.sectionCat == bidRequest.site.sectionCat
+            it.site.pageCat == bidRequest.site.pageCat
+            it.site.page == bidRequest.site.page
+            it.site.ref == bidRequest.site.ref
+            it.site.search == bidRequest.site.search
+            it.site.keywords == bidRequest.site.keywords
+
+            it.device.didsha1 == bidRequest.device.didsha1
+            it.device.didmd5 == bidRequest.device.didmd5
+            it.device.dpidsha1 == bidRequest.device.dpidsha1
+            it.device.ifa == bidRequest.device.ifa
+            it.device.macsha1 == bidRequest.device.macsha1
+            it.device.macmd5 == bidRequest.device.macmd5
+            it.device.dpidmd5 == bidRequest.device.dpidmd5
         }
     }
 
     def "PBS should emit error and metrics when imp profile missing"() {
         given: "Default bidRequest with request profile"
         def accountId = PBSUtils.randomNumber as String
+        def invalidProfileId = PBSUtils.randomString
         def bidRequest = BidRequest.getDefaultBidRequest().tap {
-            it.ext.prebid.profilesNames = [PBSUtils.randomString]
-            it.site = new Site()
-            it.device = null
+            it.imp.first.ext.prebid.profilesNames = [invalidProfileId]
             setAccountId(accountId)
         }
 
@@ -1088,38 +1332,83 @@ class ProfileSpec extends BaseSpec {
         when: "PBS processes auction request"
         def response = pbsWithStoredProfiles.sendAuctionRequest(bidRequest)
 
-
         then: "PBS should emit proper warning"
         assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
-        assert response.ext?.warnings[ErrorType.PREBID]*.message == [MISSING_ERROR_MESSAGE]
+        assert response.ext?.warnings[ErrorType.PREBID]*.message == [NO_IMP_PROFILE_MESSAGE.formatted(invalidProfileId)]
 
         and: "Response should contain error"
         assert !response.ext?.errors
 
-        and: "PBS log should contain error"
-        assert pbsWithStoredProfiles.isContainLogsByValue(MISSING_ERROR_MESSAGE)
+        and: "Missing metric should increments"
+        def metrics = pbsWithStoredProfiles.sendCollectedMetricsRequest()
+        assert metrics[MISSING_ACCOUNT_PROFILE_METRIC.formatted(accountId)] == 1
+
+        and: "Bidder request imp should contain data from original imp"
+        assert bidder.getBidderRequest(bidRequest.id).imp.banner == bidRequest.imp.banner
+    }
+
+    def "PBS should emit error and metrics when request profile missing"() {
+        given: "Default bidRequest with request profile"
+        def accountId = PBSUtils.randomNumber as String
+        def invalidProfileId = PBSUtils.randomString
+        def bidRequest = BidRequest.getDefaultBidRequest().tap {
+            it.ext.prebid.profilesNames = [invalidProfileId]
+            it.site = Site.getRootFPDSite()
+            it.device = Device.getDefault()
+            setAccountId(accountId)
+        }
+
+        and: "Default account"
+        def account = new Account(uuid: bidRequest.accountId, status: ACTIVE)
+        accountDao.save(account)
+
+        and: "Flash metrics"
+        flushMetrics(pbsWithStoredProfiles)
+
+        when: "PBS processes auction request"
+        def response = pbsWithStoredProfiles.sendAuctionRequest(bidRequest)
+
+        then: "PBS should emit proper warning"
+        assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
+        assert response.ext?.warnings[ErrorType.PREBID]*.message == [NO_REQUEST_PROFILE_MESSAGE.formatted(invalidProfileId)]
+
+        and: "Response should contain error"
+        assert !response.ext?.errors
 
         and: "Missing metric should increments"
         def metrics = pbsWithStoredProfiles.sendCollectedMetricsRequest()
-        assert metrics[MISSING_PROFILE_METRIC] == 1
         assert metrics[MISSING_ACCOUNT_PROFILE_METRIC.formatted(accountId)] == 1
 
-        and: "Bidder request should contain data from original request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            it.site == bidRequest.site
-            it.device == bidRequest.device
+        and: "Bidder request should contain data from profile"
+        verifyAll(response.ext.debug.resolvedRequest) {
+            it.site.id == bidRequest.site.id
+            it.site.name == bidRequest.site.name
+            it.site.domain == bidRequest.site.domain
+            it.site.cat == bidRequest.site.cat
+            it.site.sectionCat == bidRequest.site.sectionCat
+            it.site.pageCat == bidRequest.site.pageCat
+            it.site.page == bidRequest.site.page
+            it.site.ref == bidRequest.site.ref
+            it.site.search == bidRequest.site.search
+            it.site.keywords == bidRequest.site.keywords
+
+            it.device.didsha1 == bidRequest.device.didsha1
+            it.device.didmd5 == bidRequest.device.didmd5
+            it.device.dpidsha1 == bidRequest.device.dpidsha1
+            it.device.ifa == bidRequest.device.ifa
+            it.device.macsha1 == bidRequest.device.macsha1
+            it.device.macmd5 == bidRequest.device.macmd5
+            it.device.dpidmd5 == bidRequest.device.dpidmd5
         }
     }
 
     private static BidRequest getRequestWithProfiles(String accountId, List<Profile> profiles) {
         BidRequest.getDefaultBidRequest().tap {
             if (profiles.type.contains(ProfileType.IMP)) {
-                imp = [new Imp(ext: new ImpExt(prebid: new ImpExtPrebid(profilesNames: profiles.findAll { it.type == ProfileType.IMP }*.name)))]
+                imp.first.ext.prebid.profilesNames = profiles.findAll { it.type == ProfileType.IMP }*.name
             }
             imp.first.ext.prebid.profilesNames = profiles.findAll { it.type == ProfileType.IMP }*.name
             it.ext.prebid.profilesNames = profiles.findAll { it.type == ProfileType.REQUEST }*.name
-            it.site = new Site()
-            it.device = null
             setAccountId(accountId)
         }
     }

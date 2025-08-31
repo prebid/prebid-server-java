@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.xml.XmlMapper
+import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL
 
@@ -11,6 +12,8 @@ trait ObjectMapperWrapper {
 
     private static final ObjectMapper mapper = new ObjectMapper().setSerializationInclusion(NON_NULL)
                                                                  .registerModule(new ZonedDateTimeModule())
+    private static final YAMLMapper yaml = new YAMLMapper().setSerializationInclusion(NON_NULL)
+                                                                 .registerModule(new ZonedDateTimeModule()) as YAMLMapper
     private static final XmlMapper xmlMapper = new XmlMapper()
 
     final static String encode(Object object) {
@@ -43,5 +46,21 @@ trait ObjectMapperWrapper {
 
     final static String encodeXml(Object object) {
         xmlMapper.writeValueAsString(object)
+    }
+
+    final static String encodeYaml(Object object) {
+        yaml.writeValueAsString(object)
+    }
+
+    final static <T> T decodeYaml(String yamlString, Class<T> clazz) {
+        yaml.readValue(yamlString, clazz)
+    }
+
+    final static <T> T decodeYaml(String yamlString, TypeReference<T> typeReference) {
+        yaml.readValue(yamlString, typeReference)
+    }
+
+    final static <T> T decodeYaml(InputStream inputStream, Class<T> clazz) {
+        yaml.readValue(inputStream, clazz)
     }
 }

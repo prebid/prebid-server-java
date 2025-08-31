@@ -4,7 +4,6 @@ import groovy.transform.ToString
 import jakarta.persistence.Column
 import jakarta.persistence.Convert
 import jakarta.persistence.Entity
-import jakarta.persistence.GeneratedValue
 import jakarta.persistence.Id
 import jakarta.persistence.Table
 import org.prebid.server.functional.model.db.typeconverter.ProfileMergePrecedenceConvert
@@ -12,35 +11,33 @@ import org.prebid.server.functional.model.db.typeconverter.ProfileTypeConvert
 import org.prebid.server.functional.model.db.typeconverter.BidRequestConfigTypeConverter
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.profile.ProfileMergePrecedence
-import org.prebid.server.functional.model.request.profile.ProfileRequest
+import org.prebid.server.functional.model.request.profile.RequestProfile
 import org.prebid.server.functional.model.request.profile.ProfileType
 
-import static jakarta.persistence.GenerationType.IDENTITY
-
 @Entity
-@Table(name = "profiles_profile")
+@Table(name = "profiles")
 @ToString(includeNames = true)
 class StoredProfileRequest {
 
     @Id
-    @GeneratedValue(strategy = IDENTITY)
-    @Column(name = "id")
-    Integer id
-    @Column(name = "profileName")
-    String profileRecordName
+    @Column(name = "profileId")
+    String profileName
+    @Column(name = "accountId")
+    String accountId
     @Column(name = "mergePrecedence")
     @Convert(converter = ProfileMergePrecedenceConvert)
     ProfileMergePrecedence mergePrecedence
-    @Column(name = "profileType")
+    @Column(name = "type")
     @Convert(converter = ProfileTypeConvert)
     ProfileType type
-    @Column(name = "profileBody")
+    @Column(name = "profile")
     @Convert(converter = BidRequestConfigTypeConverter)
     BidRequest requestBody
 
-    static StoredProfileRequest getProfile(ProfileRequest profile) {
+    static StoredProfileRequest getProfile(RequestProfile profile) {
         new StoredProfileRequest().tap {
-            it.profileRecordName = profile.recordName
+            it.profileName = profile.name
+            it.accountId = profile.accountId
             it.mergePrecedence = profile.mergePrecedence
             it.type = profile.type
             it.requestBody = profile.body

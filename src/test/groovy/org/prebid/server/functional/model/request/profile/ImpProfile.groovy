@@ -7,14 +7,14 @@ import org.prebid.server.functional.util.PBSUtils
 import static ProfileMergePrecedence.PROFILE
 
 @ToString(includeNames = true, ignoreNulls = true)
-class ProfileImp extends Profile<Imp> {
+class ImpProfile extends Profile<Imp> {
 
     static getProfile(String accountId,
                       Imp imp = Imp.defaultImpression,
                       String name = PBSUtils.randomString,
                       ProfileMergePrecedence mergePrecedence = PROFILE) {
 
-        new ProfileImp(accountId: accountId,
+        new ImpProfile(accountId: accountId,
                 name: name,
                 type: ProfileType.IMP,
                 mergePrecedence: mergePrecedence,

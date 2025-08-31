@@ -10,6 +10,7 @@ import org.prebid.server.functional.util.SystemProperties
 import org.testcontainers.DockerClientFactory
 import org.testcontainers.containers.GenericContainer
 import org.testcontainers.containers.wait.strategy.Wait
+import org.testcontainers.images.builder.Transferable
 import org.testcontainers.utility.MountableFile
 
 import java.nio.charset.StandardCharsets
@@ -115,6 +116,14 @@ class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
         copyArchiveToContainer(archive, parentDir)
 
         return self()
+    }
+
+    PrebidServerContainer withFolder(String containerPath) {
+        this.withCopyToContainer(
+                Transferable.of(new byte[0], 010755),
+                containerPath + "/.keep"
+        )
+        return this
     }
 
     private static String getParentDirectory(String containerPath) {
