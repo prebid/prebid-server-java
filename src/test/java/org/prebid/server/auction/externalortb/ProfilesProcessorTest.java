@@ -192,6 +192,32 @@ class ProfilesProcessorTest extends VertxTest {
     }
 
     @Test
+    public void processShouldHandleCorrectlyWhenLimitEqualsRequestProfilesCount() {
+        // given
+        final AuctionContext auctionContext = givenAuctionContext(AccountProfilesConfig.of(2, null), true);
+        final BidRequest bidRequest = withProfiles(
+                givenBidRequest(
+                        identity(),
+                        withProfiles(givenImp(identity())),
+                        withProfiles(givenImp(identity())),
+                        withProfiles(givenImp(identity()))),
+                "rp1", "rp2");
+
+        // when
+        target.process(auctionContext, bidRequest);
+
+        // then
+        assertThat(auctionContext.getDebugWarnings()).isEmpty();
+
+        verify(applicationSettings).getProfiles(
+                eq("accountId"),
+                eq(Set.of("rp1", "rp2")),
+                eq(emptySet()),
+                any());
+        verifyNoInteractions(metrics);
+    }
+
+    @Test
     public void processShouldFailAndEmitMetricsWhenDebugDisabledAndFailOnUnknownIsTrue() {
         // given
         given(applicationSettings.getProfiles(any(), any(), any(), any()))
