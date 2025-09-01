@@ -28,7 +28,7 @@ class RequestProfile extends Profile<BidRequest> {
                       ProfileMergePrecedence mergePrecedence = PROFILE) {
 
         new RequestProfile(accountId: accountId,
-                name: name,
+                id: name,
                 type: ProfileType.REQUEST,
                 mergePrecedence: mergePrecedence,
                 body: request)

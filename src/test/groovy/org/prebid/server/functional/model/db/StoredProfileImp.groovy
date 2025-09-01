@@ -36,7 +36,7 @@ class StoredProfileImp {
 
     static StoredProfileImp getProfile(ImpProfile profile) {
         new StoredProfileImp().tap {
-            it.profileName = profile.name
+            it.profileName = profile.id
             it.accountId = profile.accountId
             it.mergePrecedence = profile.mergePrecedence
             it.type = profile.type

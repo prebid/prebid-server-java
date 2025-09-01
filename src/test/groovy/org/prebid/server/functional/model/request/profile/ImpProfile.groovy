@@ -15,7 +15,7 @@ class ImpProfile extends Profile<Imp> {
                       ProfileMergePrecedence mergePrecedence = PROFILE) {
 
         new ImpProfile(accountId: accountId,
-                name: name,
+                id: name,
                 type: ProfileType.IMP,
                 mergePrecedence: mergePrecedence,
                 body: imp)

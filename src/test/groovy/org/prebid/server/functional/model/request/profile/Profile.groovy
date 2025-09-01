@@ -8,14 +8,14 @@ abstract class Profile<T> {
     @JsonIgnore
     String accountId
     @JsonIgnore
-    String name
+    String id
     ProfileType type
     @JsonProperty("mergeprecedence")
     ProfileMergePrecedence mergePrecedence
     T body
 
     String getRecordName() {
-        "${accountId}-${name}"
+        "${accountId}-${id}"
     }
 
     String getFileName() {

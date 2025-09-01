@@ -36,7 +36,7 @@ class StoredProfileRequest {
 
     static StoredProfileRequest getProfile(RequestProfile profile) {
         new StoredProfileRequest().tap {
-            it.profileName = profile.name
+            it.profileName = profile.id
             it.accountId = profile.accountId
             it.mergePrecedence = profile.mergePrecedence
             it.type = profile.type
