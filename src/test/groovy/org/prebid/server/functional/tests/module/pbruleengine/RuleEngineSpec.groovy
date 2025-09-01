@@ -49,6 +49,7 @@ import org.prebid.server.functional.tests.module.ModuleBaseSpec
 import org.prebid.server.functional.util.HttpUtil
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.TcfConsent
+import spock.lang.IgnoreRest
 
 import java.time.Instant
 
@@ -109,6 +110,7 @@ class RuleEngineSpec extends ModuleBaseSpec {
     private static final Integer BIDDERS_REQUESTED = 3
     private static final Integer ONE_BIDDER_REQUESTED = 1
     private static final String APPLIED_FOR_ALL_IMPS = "*"
+    private static final String DEFAULT_CONDITIONS = "default"
     private static final Map<String, String> OPENX_CONFIG = ["adapters.${OPENX}.enabled" : "true",
                                                              "adapters.${OPENX}.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
     private static final Map<String, String> AMX_CONFIG = ["adapters.${AMX}.enabled" : "true",
@@ -341,6 +343,38 @@ class RuleEngineSpec extends ModuleBaseSpec {
 
         and: "PBS response shouldn't contain seatNonBid"
         assert !bidResponse.ext.seatnonbid
+    }
+
+    def "PBS shouldn't remove any bidder without cache request"() {
+        given: "Bid request with multiply bidders"
+        def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
+            updateBidRequestWithGeoCountry(it)
+            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
+        }
+
+        and: "Account with rules sets"
+        def pbRuleEngine = createRulesEngineWithRule()
+        def accountWithRulesEngine = getAccountWithRulesEngine(bidRequest.accountId, pbRuleEngine)
+        accountDao.save(accountWithRulesEngine)
+
+        when: "PBS processes auction request"
+        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+
+        then: "Bid response should contain seats"
+        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED
+
+        and: "PBs should perform bidder request"
+        assert bidder.getBidderRequests(bidRequest.id)
+
+        and: "PBS should not contain errors, warnings"
+        assert !bidResponse.ext?.warnings
+        assert !bidResponse.ext?.errors
+
+        and: "PBS response shouldn't contain seatNonBid"
+        assert !bidResponse.ext.seatnonbid
+
+        and: "Analytics result shouldn't contain info about module exclude"
+        assert !getAnalyticResults(bidResponse)
     }
 
     def "PBS should remove bidder and not update analytics when bidder matched with conditions and without analytics key"() {
@@ -634,9 +668,6 @@ class RuleEngineSpec extends ModuleBaseSpec {
         and: "PBS should not contain errors, warnings"
         assert !bidResponse.ext?.warnings
         assert !bidResponse.ext?.errors
-
-        and: "PBS response shouldn't contain seatNonBid"
-        assert !bidResponse.ext.seatnonbid
 
         and: "Analytics result should contain info about module exclude"
         def analyticsResult = getAnalyticResults(bidResponse)
@@ -1625,6 +1656,61 @@ class RuleEngineSpec extends ModuleBaseSpec {
         assert seatNonBid.nonBid[0].statusCode == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
     }
 
+    def "PBS shouldn't log the default model group and should modify response when other rule fire"() {
+        given: "Bid request with multiply bidders"
+        def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
+            updateBidRequestWithGeoCountry(it)
+            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
+        }
+
+        and: "Account with default model"
+        def analyticsValue = PBSUtils.randomString
+        def pbRuleEngine = createRulesEngineWithRule().tap {
+            it.ruleSets[0].modelGroups[0].modelDefault = [new RuleEngineModelDefault(
+                    function: LOG_A_TAG,
+                    args: new RuleEngineModelDefaultArgs(analyticsValue: analyticsValue))]
+        }
+        def accountWithRulesEngine = getAccountWithRulesEngine(bidRequest.accountId, pbRuleEngine)
+        accountDao.save(accountWithRulesEngine)
+
+        and: "Cache account"
+        pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+
+        when: "PBS processes auction request"
+        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+
+        then: "Bid response should contain seats"
+        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED - 1
+        assert bidResponse.seatbid.seat.sort() == [GENERIC, AMX].sort()
+
+        and: "PBs should perform bidder requests"
+        assert bidder.getBidderRequests(bidRequest.id)
+
+        and: "PBS should not contain errors, warnings"
+        assert !bidResponse.ext?.warnings
+        assert !bidResponse.ext?.errors
+
+        and: "PBS response shouldn't contain seatNonBid"
+        assert !bidResponse.ext.seatnonbid
+
+        and: "Analytics result should contain info about module exclude"
+        def analyticsResult = getAnalyticResults(bidResponse)
+        def result = analyticsResult[0]
+        assert result.name == PB_RULE_ENGINE_CODE
+        assert result.status == SUCCESS
+        def impResult = result.results[0]
+        def groups = pbRuleEngine.ruleSets[0].modelGroups[0]
+        assert impResult.status == SUCCESS
+        assert impResult.values.analyticsKey == groups.analyticsKey
+        assert impResult.values.modelVersion == groups.version
+        assert impResult.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
+        assert impResult.values.resultFunction == groups.rules.first.results.first.function.value
+        assert impResult.values.conditionFired == groups.rules.first.conditions.first
+        assert impResult.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
+        assert impResult.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
+        assert impResult.appliedTo.impIds == bidRequest.imp.id
+    }
+
     def "PBS should log the default model group and shouldn't modify response when other rules not fire"() {
         given: "Bid request with multiply bidders"
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
@@ -1633,10 +1719,11 @@ class RuleEngineSpec extends ModuleBaseSpec {
         }
 
         and: "Account with default model"
+        def analyticsValue = PBSUtils.randomString
         def pbRuleEngine = createRulesEngineWithRule().tap {
             it.ruleSets[0].modelGroups[0].modelDefault = [new RuleEngineModelDefault(
                     function: LOG_A_TAG,
-                    args: new RuleEngineModelDefaultArgs(analyticsValue: PBSUtils.randomString))]
+                    args: new RuleEngineModelDefaultArgs(analyticsValue: analyticsValue))]
         }
         def accountWithRulesEngine = getAccountWithRulesEngine(bidRequest.accountId, pbRuleEngine)
         accountDao.save(accountWithRulesEngine)
@@ -1671,12 +1758,13 @@ class RuleEngineSpec extends ModuleBaseSpec {
         assert impResult.status == SUCCESS
         assert impResult.values.analyticsKey == groups.analyticsKey
         assert impResult.values.modelVersion == groups.version
-        assert impResult.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
-        assert impResult.values.resultFunction == groups.rules.first.results.first.function.value
-        assert impResult.values.conditionFired == groups.rules.first.conditions.first
-        assert impResult.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
-        assert impResult.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
-        assert impResult.appliedTo.impIds == bidRequest.imp.id
+        assert impResult.values.analyticsValue == analyticsValue
+        assert impResult.values.resultFunction == LOG_A_TAG.value
+        assert impResult.values.conditionFired == DEFAULT_CONDITIONS
+        assert impResult.appliedTo.impIds == [APPLIED_FOR_ALL_IMPS]
+
+        assert !impResult.values.biddersRemoved
+        assert !impResult.values.seatNonBid
     }
 
     def "PBS shouldn't log the default model group and modify response when rules fire"() {
