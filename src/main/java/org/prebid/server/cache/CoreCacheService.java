@@ -208,6 +208,13 @@ public class CoreCacheService {
         return bidCacheResponse;
     }
 
+    private <T> Future<T> failVtrackCacheWriteResponse(Throwable exception, String accountId, long startTime) {
+        if (exception instanceof PreBidException) {
+            metrics.updateVtrackCacheWriteRequestTime(accountId, clock.millis() - startTime, MetricName.err);
+        }
+        return failResponse(exception);
+    }
+
     public Future<BidCacheResponse> cachePutObjects(List<BidPutObject> bidPutObjects,
                                                     Boolean isEventsEnabled,
                                                     Set<String> biddersAllowingVastUpdate,
@@ -664,7 +671,7 @@ public class CoreCacheService {
         final long startTime = clock.millis();
         return httpClient.get(url, cacheHeaders, remainingTimeout)
                 .map(response -> processVtrackReadResponse(response, startTime))
-                .recover(exception -> failVtrackCacheReadResponse(exception, startTime));
+                .recover(CoreCacheService::failResponse);
     }
 
     private HttpClientResponse processVtrackReadResponse(HttpClientResponse response, long startTime) {
@@ -676,27 +683,14 @@ public class CoreCacheService {
             return response;
         }
 
+        metrics.updateVtrackCacheReadRequestTime(clock.millis() - startTime, MetricName.err);
+
         try {
             final CacheErrorResponse errorResponse = mapper.decodeValue(body, CacheErrorResponse.class);
-            metrics.updateVtrackCacheReadRequestTime(clock.millis() - startTime, MetricName.err);
             return HttpClientResponse.of(statusCode, response.getHeaders(), errorResponse.getMessage());
         } catch (DecodeException e) {
             throw new PreBidException("Cannot parse response: " + body, e);
         }
-    }
-
-    private <T> Future<T> failVtrackCacheWriteResponse(Throwable exception, String accountId, long startTime) {
-        if (exception instanceof PreBidException) {
-            metrics.updateVtrackCacheWriteRequestTime(accountId, clock.millis() - startTime, MetricName.err);
-        }
-        return failResponse(exception);
-    }
-
-    private <T> Future<T> failVtrackCacheReadResponse(Throwable exception, long startTime) {
-        if (exception instanceof PreBidException) {
-            metrics.updateVtrackCacheReadRequestTime(clock.millis() - startTime, MetricName.err);
-        }
-        return failResponse(exception);
     }
 
     private static <T> Future<T> failResponse(Throwable exception) {
