@@ -7,7 +7,7 @@ import org.prebid.server.functional.model.config.AccountConfig
 
 @ToString(includeNames = true, ignoreNulls = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy)
-class FilesystemAccounts {
+class FileSystemAccountsConfig {
 
     List<AccountConfig> accounts
 }
