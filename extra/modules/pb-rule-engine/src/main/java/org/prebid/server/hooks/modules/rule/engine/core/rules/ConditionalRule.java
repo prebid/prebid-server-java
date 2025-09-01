@@ -47,13 +47,7 @@ public class ConditionalRule<T, C> implements Rule<T, C> {
                 .map(matcher -> StringUtils.defaultIfEmpty(matcher, SchemaFunction.UNDEFINED_RESULT))
                 .toList();
 
-        final LookupResult<RuleConfig<T, C>> lookupResult;
-        try {
-            lookupResult = ruleTree.lookup(matchers);
-        } catch (NoMatchingRuleException e) {
-            return RuleResult.noAction(value);
-        }
-
+        final LookupResult<RuleConfig<T, C>> lookupResult = ruleTree.lookup(matchers);
         final RuleConfig<T, C> ruleConfig = lookupResult.getValue();
 
         final InfrastructureArguments<C> infrastructureArguments =
