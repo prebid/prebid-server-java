@@ -219,11 +219,12 @@ public class CoreCacheService {
                                                     Boolean isEventsEnabled,
                                                     Set<String> biddersAllowingVastUpdate,
                                                     String accountId,
+                                                    Integer accountTtl,
                                                     String integration,
                                                     Timeout timeout) {
 
-        final List<CachedCreative> cachedCreatives =
-                updatePutObjects(bidPutObjects, isEventsEnabled, biddersAllowingVastUpdate, accountId, integration);
+        final List<CachedCreative> cachedCreatives = updatePutObjects(
+                bidPutObjects, isEventsEnabled, biddersAllowingVastUpdate, accountId, accountTtl, integration);
 
         updateCreativeMetrics(
                 cachedCreatives,
@@ -237,6 +238,7 @@ public class CoreCacheService {
                                                   Boolean isEventsEnabled,
                                                   Set<String> allowedBidders,
                                                   String accountId,
+                                                  Integer accountTtl,
                                                   String integration) {
 
         return bidPutObjects.stream()
@@ -251,6 +253,7 @@ public class CoreCacheService {
                                 putObject,
                                 accountId,
                                 integration))
+                        .ttlseconds(ObjectUtils.min(putObject.getTtlseconds(), accountTtl))
                         .build())
                 .map(payload -> CachedCreative.of(payload, creativeSizeFromTextNode(payload.getValue())))
                 .toList();
