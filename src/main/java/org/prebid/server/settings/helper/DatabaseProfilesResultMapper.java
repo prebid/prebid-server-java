@@ -75,7 +75,7 @@ public class DatabaseProfilesResultMapper {
             final String fetchedAccountId = Objects.toString(row.getValue(0), null);
             final String id = Objects.toString(row.getValue(1), null);
             final String profileBodyAsString = Objects.toString(row.getValue(2), StringUtils.EMPTY);
-            final String mergePrecedenceAsString = Objects.toString(row.getValue(3), StringUtils.EMPTY);
+            final String mergePrecedenceAsString = Objects.toString(row.getValue(3), null);
             final String typeAsString = Objects.toString(row.getValue(4), StringUtils.EMPTY);
 
             final JsonNode profileBody;
@@ -83,7 +83,9 @@ public class DatabaseProfilesResultMapper {
             final Profile.Type type;
             try {
                 profileBody = ObjectMapperProvider.mapper().readTree(profileBodyAsString);
-                mergePrecedence = Profile.MergePrecedence.valueOf(mergePrecedenceAsString.toUpperCase());
+                mergePrecedence = mergePrecedenceAsString != null
+                        ? Profile.MergePrecedence.valueOf(mergePrecedenceAsString.toUpperCase())
+                        : Profile.MergePrecedence.REQUEST;
                 type = Profile.Type.valueOf(typeAsString.toUpperCase());
             } catch (IllegalArgumentException e) {
                 logger.error("Profile with id={} has invalid value: type={}, mergePrecedence={} and will be ignored.",

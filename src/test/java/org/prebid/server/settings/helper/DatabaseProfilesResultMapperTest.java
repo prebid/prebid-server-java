@@ -152,6 +152,28 @@ public class DatabaseProfilesResultMapperTest extends VertxTest {
     }
 
     @Test
+    public void mapShouldUseDefaultMergePrecedence() {
+        // given
+        givenRowSet(givenRow("accountId", "id1", "{}", null, "request"));
+
+        // when
+        final StoredDataResult<Profile> result = DatabaseProfilesResultMapper.map(
+                rowSet,
+                "accountId",
+                singleton("id1"),
+                emptySet());
+
+        // then
+        assertThat(result.getStoredIdToRequest())
+                .containsExactly(entry("id1", Profile.of(
+                        Profile.Type.REQUEST,
+                        Profile.MergePrecedence.REQUEST,
+                        mapper.createObjectNode())));
+        assertThat(result.getStoredIdToImp()).isEmpty();
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
     public void mapShouldSkipProfileWithInvalidType() {
         // given
         givenRowSet(
