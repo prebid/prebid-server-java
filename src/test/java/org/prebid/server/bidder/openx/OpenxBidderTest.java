@@ -995,23 +995,23 @@ public class OpenxBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBidMeta() throws JsonProcessingException {
         // given
-        final var allBuyerExt = new ObjectNode(JsonNodeFactory.instance);
-        final var onlyBrandExt = new ObjectNode(JsonNodeFactory.instance);
-        final var badExt = new ObjectNode(JsonNodeFactory.instance);
+        final ObjectNode allBuyerExt = new ObjectNode(JsonNodeFactory.instance);
+        final ObjectNode onlyBrandExt = new ObjectNode(JsonNodeFactory.instance);
+        final ObjectNode badExt = new ObjectNode(JsonNodeFactory.instance);
 
         allBuyerExt.put("dsp_id", "1").put("buyer_id", "2").put("brand_id", "3");
         onlyBrandExt.put("brand_id", "4");
         badExt.put("dsp_id", "abc").put("brand_id", "cba");
 
-        final var allBuyerExpectedExtJson = "{\"dsp_id\":\"1\",\"buyer_id\":\"2\",\"brand_id\":\"3\",\"prebid\":"
+        final String allBuyerExpectedExtJson = "{\"dsp_id\":\"1\",\"buyer_id\":\"2\",\"brand_id\":\"3\",\"prebid\":"
                 + "{\"meta\":{\"advertiserId\":2,\"brandId\":3,\"networkId\":1}}}";
-        final var onlyBrandExpectedExtJson = "{\"brand_id\":\"4\",\"prebid\":{\"meta\":{\"advertiserId\":0,"
+        final String onlyBrandExpectedExtJson = "{\"brand_id\":\"4\",\"prebid\":{\"meta\":{\"advertiserId\":0,"
                 + "\"brandId\":4,\"networkId\":0}}}";
-        final var badExpectedExtJson = "{\"dsp_id\":\"abc\",\"brand_id\":\"cba\"}";
+        final String badExpectedExtJson = "{\"dsp_id\":\"abc\",\"brand_id\":\"cba\"}";
 
-        final var allBuyerExpectedExt = (ObjectNode) mapper.readTree(allBuyerExpectedExtJson);
-        final var onlyBrandExpectedExt = (ObjectNode) mapper.readTree(onlyBrandExpectedExtJson);
-        final var badExpectedExt = (ObjectNode) mapper.readTree(badExpectedExtJson);
+        final ObjectNode allBuyerExpectedExt = (ObjectNode) mapper.readTree(allBuyerExpectedExtJson);
+        final ObjectNode onlyBrandExpectedExt = (ObjectNode) mapper.readTree(onlyBrandExpectedExtJson);
+        final ObjectNode badExpectedExt = (ObjectNode) mapper.readTree(badExpectedExtJson);
 
         final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder()
                 .seatbid(singletonList(SeatBid.builder()
@@ -1042,8 +1042,7 @@ public class OpenxBidderTest extends VertxTest {
                                         .dealid("dealid3")
                                         .adm("<div>This is an Ad</div>")
                                         .ext(badExt)
-                                        .build()
-                                ))
+                                        .build()))
                         .build()))
                 .build()));
 
@@ -1053,8 +1052,7 @@ public class OpenxBidderTest extends VertxTest {
                         Imp.builder()
                                 .id("impId1")
                                 .banner(Banner.builder().build())
-                                .build()
-                ))
+                                .build()))
                 .build();
 
         // when

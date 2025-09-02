@@ -340,12 +340,12 @@ public class OpenxBidder implements Bidder<BidRequest> {
     }
 
     private ObjectNode updateBidMeta(Bid bid) {
-        final var ext = bid.getExt();
+        final ObjectNode ext = bid.getExt();
         if (ext == null) {
             return null;
         }
 
-        final var openxBidExt = parseOpenxBidExt(ext);
+        final OpenxBidExt openxBidExt = parseOpenxBidExt(ext);
         final int buyerId = parseStringToInt(openxBidExt.getBuyerId());
         final int dspId = parseStringToInt(openxBidExt.getDspId());
         final int brandId = parseStringToInt(openxBidExt.getBrandId());
@@ -354,13 +354,13 @@ public class OpenxBidder implements Bidder<BidRequest> {
             return ext;
         }
 
-        final var updatedMeta = ExtBidPrebidMeta.builder()
+        final ExtBidPrebidMeta updatedMeta = ExtBidPrebidMeta.builder()
                 .networkId(dspId)
                 .advertiserId(buyerId)
                 .brandId(brandId)
                 .build();
 
-        final var modifiedExtBidPrebid = ExtBidPrebid.builder().meta(updatedMeta).build();
+        final ExtBidPrebid modifiedExtBidPrebid = ExtBidPrebid.builder().meta(updatedMeta).build();
 
         ext.set(PREBID_EXT, mapper.mapper().valueToTree(modifiedExtBidPrebid));
 
