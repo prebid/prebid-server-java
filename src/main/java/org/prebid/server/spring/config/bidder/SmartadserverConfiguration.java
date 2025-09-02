@@ -24,14 +24,6 @@ public class SmartadserverConfiguration {
 
     private static final String BIDDER_NAME = "smartadserver";
 
-    @Data
-    @EqualsAndHashCode(callSuper = true)
-    @NoArgsConstructor
-    private static class SmartadserverConfigurationProperties extends BidderConfigurationProperties {
-
-        private String secondaryEndpoint;
-    }
-
     @Bean("smartadserverConfigurationProperties")
     @ConfigurationProperties("adapters.smartadserver")
     SmartadserverConfigurationProperties configurationProperties() {
@@ -49,5 +41,13 @@ public class SmartadserverConfiguration {
                 .bidderCreator(config -> new SmartadserverBidder(
                         config.getEndpoint(), config.getSecondaryEndpoint(), mapper))
                 .assemble();
+    }
+
+    @Data
+    @EqualsAndHashCode(callSuper = true)
+    @NoArgsConstructor
+    private static class SmartadserverConfigurationProperties extends BidderConfigurationProperties {
+
+        private String secondaryEndpoint;
     }
 }

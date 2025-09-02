@@ -62,9 +62,7 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
         for (Imp imp : request.getImp()) {
             try {
                 final ExtImpSmartadserver extImp = parseImpExt(imp);
-                if (!isProgrammaticGuaranteed && extImp.isProgrammaticGuaranteed()) {
-                    isProgrammaticGuaranteed = true;
-                }
+                isProgrammaticGuaranteed |= extImp.isProgrammaticGuaranteed();
                 impToExtImpMap.put(imp, extImp);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
@@ -122,8 +120,9 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
     }
 
     private String makeUrl(boolean isProgrammaticGuaranteed) {
+        final String url = isProgrammaticGuaranteed ? secondaryEndpointUrl : endpointUrl;
         try {
-            final URI uri = new URI(isProgrammaticGuaranteed ? secondaryEndpointUrl : endpointUrl);
+            final URI uri = new URI(url);
             final String path = isProgrammaticGuaranteed ? "/ortb" : "/api/bid";
             final URIBuilder uriBuilder = new URIBuilder(uri)
                     .setPath(StringUtils.removeEnd(uri.getPath(), "/") + path);
@@ -134,7 +133,7 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
 
             return uriBuilder.toString();
         } catch (URISyntaxException e) {
-            throw new PreBidException("Malformed URL: %s.".formatted(secondaryEndpointUrl));
+            throw new PreBidException("Malformed URL: %s.".formatted(url));
         }
     }
 
