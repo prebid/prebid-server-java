@@ -362,10 +362,9 @@ public class OpenxBidder implements Bidder<BidRequest> {
 
         final var modifiedExtBidPrebid = ExtBidPrebid.builder().meta(updatedMeta).build();
 
-        final var updatedExt = ext.deepCopy();
-        updatedExt.set(PREBID_EXT, mapper.mapper().valueToTree(modifiedExtBidPrebid));
+        ext.set(PREBID_EXT, mapper.mapper().valueToTree(modifiedExtBidPrebid));
 
-        return updatedExt;
+        return ext;
     }
 
     private OpenxBidExt parseOpenxBidExt(ObjectNode ext) {
