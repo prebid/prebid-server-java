@@ -42,8 +42,6 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
     private final JacksonMapper mapper;
     private final HttpClient httpClient;
     private final double logSamplingRate;
-    private final ActivityImpl enriched = ActivityImpl.of("liveintent-enriched", "success", List.of());
-    private final ActivityImpl treatmentRate;
 
     public LiveIntentOmniChannelIdentityProcessedAuctionRequestHook(LiveIntentOmniChannelProperties config,
                                                                     JacksonMapper mapper,
@@ -55,11 +53,6 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
         this.mapper = Objects.requireNonNull(mapper);
         this.httpClient = Objects.requireNonNull(httpClient);
         this.logSamplingRate = logSamplingRate;
-        this.treatmentRate = ActivityImpl.of(
-                "liveintent-treatment-rate",
-                String.valueOf(config.getTreatmentRate()),
-                List.of()
-        );
     }
 
     @Override
@@ -104,7 +97,9 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
                 .status(InvocationStatus.success)
                 .action(InvocationAction.update)
                 .payloadUpdate(payload -> updatedPayload(payload, resolutionResult.getEids()))
-                .analyticsTags(TagsImpl.of(List.of(enriched, treatmentRate)))
+                .analyticsTags(TagsImpl.of(List.of(
+                        ActivityImpl.of("liveintent-enriched", "success", List.of()),
+                        ActivityImpl.of("liveintent-treatment-rate", String.valueOf(config.getTreatmentRate()), List.of()))))
                 .build();
     }
 
