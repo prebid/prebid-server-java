@@ -128,8 +128,8 @@ class AlvadsBidderTest extends VertxTest {
     void makeBidsShouldReturnBidderBids() {
 
         final String impId = "AE_AD_1748977459403";
-        final String publisherId = "3A2E67BB-0545-44A8-B3C3-A0BC2DEFE453";
-        final String endPointUrl = "https://helios-ads-dev-core.ssidevops.com/decision/openrtb";
+        final String publisherId = "D7DACCE3-C23D-4AB9-8FE6-9FF41BF32F8F";
+        final String endPointUrl = "https://helios-ads-qa-core.ssidevops.com/decision/openrtb";
         final JacksonMapper jacksonMapper = new JacksonMapper(new ObjectMapper());
 
         // --- Bid real ---
