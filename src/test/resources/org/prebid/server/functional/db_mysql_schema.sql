@@ -44,7 +44,7 @@ CREATE TABLE stored_responses
 
 CREATE TABLE profiles
 (
-    accountId       varchar(64)  NOT NULL,
+    accountId       varchar(40)  NOT NULL,
     profileId       varchar(128) NOT NULL,
     profile         json,
     mergePrecedence enum ('request', 'profile', 'unknown'),

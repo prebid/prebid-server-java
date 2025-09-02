@@ -648,7 +648,7 @@ class ProfileSpec extends BaseSpec {
         def secondImpProfile = ImpProfile.getProfile(accountId, secondImp)
         def thirdImpProfile = ImpProfile.getProfile(accountId, thirdImp)
         def bidRequest = getRequestWithProfiles(accountId, [firstImpProfile, secondImpProfile, firstRequestProfile, secondRequestProfile]).tap {
-            imp << new Imp(ext: new ImpExt(prebid: new ImpExtPrebid(profilesNames: [secondImpProfile, thirdImpProfile].id)))
+            imp << new Imp(ext: new ImpExt(prebid: new ImpExtPrebid(profileNames: [secondImpProfile, thirdImpProfile].id)))
         } as BidRequest
 
         and: "Default account"
@@ -736,9 +736,9 @@ class ProfileSpec extends BaseSpec {
         def bidRequest = BidRequest.getDefaultBidRequest().tap {
             it.imp.first.tap {
                 it.banner.format = [Format.randomFormat]
-                it.ext.prebid.profilesNames = [impProfile.id]
+                it.ext.prebid.profileNames = [impProfile.id]
             }
-            it.ext.prebid.profilesNames = [invalidProfileRequest.id, PBSUtils.randomString]
+            it.ext.prebid.profileNames = [invalidProfileRequest.id, PBSUtils.randomString]
             it.site = Site.configFPDSite
             it.device = Device.default
             setAccountId(accountId)
@@ -873,7 +873,7 @@ class ProfileSpec extends BaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def invalidProfileId = PBSUtils.randomString
         def bidRequest = BidRequest.getDefaultBidRequest().tap {
-            it.imp.first.ext.prebid.profilesNames = [invalidProfileId]
+            it.imp.first.ext.prebid.profileNames = [invalidProfileId]
             it.site = new Site()
             it.device = null
             setAccountId(accountId)
@@ -908,7 +908,7 @@ class ProfileSpec extends BaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def invalidProfileId = PBSUtils.randomString
         def bidRequest = BidRequest.getDefaultBidRequest().tap {
-            it.imp.first.ext.prebid.profilesNames = [invalidProfileId]
+            it.imp.first.ext.prebid.profileNames = [invalidProfileId]
             it.site = new Site()
             it.device = null
             setAccountId(accountId)
@@ -938,7 +938,7 @@ class ProfileSpec extends BaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def invalidProfileId = PBSUtils.randomString
         def bidRequest = BidRequest.getDefaultBidRequest().tap {
-            it.imp.first.ext.prebid.profilesNames = [invalidProfileId]
+            it.imp.first.ext.prebid.profileNames = [invalidProfileId]
             it.site = new Site()
             it.device = null
             setAccountId(accountId)
@@ -980,7 +980,7 @@ class ProfileSpec extends BaseSpec {
         }
 
         def requestProfile = RequestProfile.getProfile(accountId).tap {
-            it.body.ext.prebid.profilesNames = [innerRequestProfile.id]
+            it.body.ext.prebid.profileNames = [innerRequestProfile.id]
         }
         def bidRequest = getRequestWithProfiles(accountId, [requestProfile]).tap {
             it.site = Site.configFPDSite
@@ -1035,7 +1035,7 @@ class ProfileSpec extends BaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def innerImpProfile = ImpProfile.getProfile(accountId, Imp.getDefaultImpression(VIDEO))
         def impProfile = ImpProfile.getProfile(accountId).tap {
-            it.body.ext.prebid.profilesNames = [innerImpProfile.id]
+            it.body.ext.prebid.profileNames = [innerImpProfile.id]
         }
         def bidRequest = getRequestWithProfiles(accountId, [impProfile]).tap {
             it.imp.first.banner = null
@@ -1103,7 +1103,7 @@ class ProfileSpec extends BaseSpec {
             setAccountId(accountId)
         } as BidRequest
         bidRequest.imp.each {
-            it.ext.prebid.profilesNames = [impProfile.id]
+            it.ext.prebid.profileNames = [impProfile.id]
         }
 
         and: "Default account"
@@ -1164,7 +1164,7 @@ class ProfileSpec extends BaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def impProfile = ImpProfile.getProfile(accountId, Imp.defaultImpression, invalidProfileName)
         def bidRequest = BidRequest.getDefaultBidRequest().tap {
-            it.imp.first.ext.prebid.profilesNames = [impProfile.id]
+            it.imp.first.ext.prebid.profileNames = [impProfile.id]
             setAccountId(accountId)
         }
 
@@ -1210,7 +1210,7 @@ class ProfileSpec extends BaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def requestProfile = RequestProfile.getProfile(accountId)
         def bidRequest = BidRequest.getDefaultBidRequest().tap {
-            it.imp.first.ext.prebid.profilesNames = [requestProfile.id]
+            it.imp.first.ext.prebid.profileNames = [requestProfile.id]
             it.site = Site.getRootFPDSite()
             it.device = Device.getDefault()
             setAccountId(accountId)
@@ -1268,7 +1268,7 @@ class ProfileSpec extends BaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def requestProfile = ImpProfile.getProfile(accountId)
         def bidRequest = BidRequest.getDefaultBidRequest().tap {
-            it.ext.prebid.profilesNames = [requestProfile.id]
+            it.ext.prebid.profileNames = [requestProfile.id]
             it.site = Site.getRootFPDSite()
             it.device = Device.getDefault()
             setAccountId(accountId)
@@ -1326,7 +1326,7 @@ class ProfileSpec extends BaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def invalidProfileId = PBSUtils.randomString
         def bidRequest = BidRequest.getDefaultBidRequest().tap {
-            it.imp.first.ext.prebid.profilesNames = [invalidProfileId]
+            it.imp.first.ext.prebid.profileNames = [invalidProfileId]
             setAccountId(accountId)
         }
 
@@ -1360,7 +1360,7 @@ class ProfileSpec extends BaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def invalidProfileId = PBSUtils.randomString
         def bidRequest = BidRequest.getDefaultBidRequest().tap {
-            it.ext.prebid.profilesNames = [invalidProfileId]
+            it.ext.prebid.profileNames = [invalidProfileId]
             it.site = Site.getRootFPDSite()
             it.device = Device.getDefault()
             setAccountId(accountId)
@@ -1413,10 +1413,10 @@ class ProfileSpec extends BaseSpec {
     private static BidRequest getRequestWithProfiles(String accountId, List<Profile> profiles) {
         BidRequest.getDefaultBidRequest().tap {
             if (profiles.type.contains(ProfileType.IMP)) {
-                it.imp.first.ext.prebid.profilesNames = profiles.findAll { it.type == ProfileType.IMP }*.id
+                it.imp.first.ext.prebid.profileNames = profiles.findAll { it.type == ProfileType.IMP }*.id
             }
-            it.imp.first.ext.prebid.profilesNames = profiles.findAll { it.type == ProfileType.IMP }*.id
-            it.ext.prebid.profilesNames = profiles.findAll { it.type == ProfileType.REQUEST }*.id
+            it.imp.first.ext.prebid.profileNames = profiles.findAll { it.type == ProfileType.IMP }*.id
+            it.ext.prebid.profileNames = profiles.findAll { it.type == ProfileType.REQUEST }*.id
             setAccountId(accountId)
         }
     }

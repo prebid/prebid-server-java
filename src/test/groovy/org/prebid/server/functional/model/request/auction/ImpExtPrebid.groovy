@@ -22,7 +22,7 @@ class ImpExtPrebid {
     String adUnitCode
     PrebidOptions options
     @JsonProperty("profiles")
-    List<String> profilesNames
+    List<String> profileNames
 
     static ImpExtPrebid getDefaultImpExtPrebid() {
         new ImpExtPrebid().tap {

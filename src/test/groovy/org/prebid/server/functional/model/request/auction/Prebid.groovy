@@ -46,7 +46,7 @@ class Prebid {
     @JsonProperty("alternatebiddercodes")
     AlternateBidderCodes alternateBidderCodes
     @JsonProperty("profiles")
-    List<String> profilesNames
+    List<String> profileNames
 
     static class Channel {
 
