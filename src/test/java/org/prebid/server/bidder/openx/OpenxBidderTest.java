@@ -2,6 +2,7 @@ package org.prebid.server.bidder.openx;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
@@ -989,5 +990,113 @@ public class OpenxBidderTest extends VertxTest {
 
     private static BidderCall<BidRequest> givenHttpCall(String body) {
         return BidderCall.succeededHttp(null, HttpResponse.of(200, null, body), null);
+    }
+
+    @Test
+    public void makeBidsShouldReturnBidMeta() throws JsonProcessingException {
+        // given
+        final var allBuyerExt = new ObjectNode(JsonNodeFactory.instance);
+        final var onlyBrandExt = new ObjectNode(JsonNodeFactory.instance);
+        final var badExt = new ObjectNode(JsonNodeFactory.instance);
+
+        allBuyerExt.put("dsp_id", "1").put("buyer_id", "2").put("brand_id", "3");
+        onlyBrandExt.put("brand_id", "4");
+        badExt.put("dsp_id", "abc").put("brand_id", "cba");
+        badExt.put("something", "abc");
+
+        final var allBuyerExpectedExtJson = "{\"dsp_id\":\"1\",\"buyer_id\":\"2\",\"brand_id\":\"3\",\"prebid\":"
+                + "{\"meta\":{\"advertiserId\":2,\"brandId\":3,\"networkId\":1}}}";
+        final var onlyBrandExpectedExtJson = "{\"brand_id\":\"4\",\"prebid\":{\"meta\":{\"advertiserId\":0,"
+                + "\"brandId\":4,\"networkId\":0}}}";
+        final var badExpectedExtJson = "{\"dsp_id\":\"abc\",\"brand_id\":\"cba\"}";
+
+        final var allBuyerExpectedExt = (ObjectNode) mapper.readTree(allBuyerExpectedExtJson);
+        final var onlyBrandExpectedExt = (ObjectNode) mapper.readTree(onlyBrandExpectedExtJson);
+        final var badExpectedExt = (ObjectNode) mapper.readTree(badExpectedExtJson);
+
+        final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder()
+                .seatbid(singletonList(SeatBid.builder()
+                        .bid(List.of(
+                                Bid.builder()
+                                        .w(200)
+                                        .h(150)
+                                        .price(BigDecimal.ONE)
+                                        .impid("impId1")
+                                        .dealid("dealid")
+                                        .adm("<div>This is an Ad</div>")
+                                        .ext(allBuyerExt)
+                                        .build(),
+                                Bid.builder()
+                                        .w(200)
+                                        .h(150)
+                                        .price(BigDecimal.ONE)
+                                        .impid("impId1")
+                                        .dealid("dealid2")
+                                        .adm("<div>This is an Ad</div>")
+                                        .ext(onlyBrandExt)
+                                        .build(),
+                                Bid.builder()
+                                        .w(200)
+                                        .h(150)
+                                        .price(BigDecimal.ONE)
+                                        .impid("impId1")
+                                        .dealid("dealid3")
+                                        .adm("<div>This is an Ad</div>")
+                                        .ext(badExt)
+                                        .build()
+                                ))
+                        .build()))
+                .build()));
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .id("bidRequestId")
+                .imp(List.of(
+                        Imp.builder()
+                                .id("impId1")
+                                .banner(Banner.builder().build())
+                                .build()
+                ))
+                .build();
+
+        // when
+        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getBids()).hasSize(3).containsExactlyInAnyOrder(
+                BidderBid.of(
+                        Bid.builder()
+                                .impid("impId1")
+                                .price(BigDecimal.ONE)
+                                .dealid("dealid")
+                                .w(200)
+                                .h(150)
+                                .adm("<div>This is an Ad</div>")
+                                .ext(allBuyerExpectedExt)
+                                .build(),
+                        BidType.banner, "USD"),
+                BidderBid.of(
+                        Bid.builder()
+                                .impid("impId1")
+                                .price(BigDecimal.ONE)
+                                .dealid("dealid2")
+                                .w(200)
+                                .h(150)
+                                .adm("<div>This is an Ad</div>")
+                                .ext(onlyBrandExpectedExt)
+                                .build(),
+                        BidType.banner, "USD"),
+                BidderBid.of(
+                        Bid.builder()
+                                .impid("impId1")
+                                .price(BigDecimal.ONE)
+                                .dealid("dealid3")
+                                .w(200)
+                                .h(150)
+                                .adm("<div>This is an Ad</div>")
+                                .ext(badExpectedExt)
+                                .build(),
+                        BidType.banner, "USD")
+        );
     }
 }

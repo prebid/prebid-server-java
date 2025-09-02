@@ -17,6 +17,7 @@ import org.prebid.server.bidder.model.CompositeBidderResponse;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.openx.model.OpenxImpType;
+import org.prebid.server.bidder.openx.proto.OpenxBidExt;
 import org.prebid.server.bidder.openx.proto.OpenxBidResponse;
 import org.prebid.server.bidder.openx.proto.OpenxBidResponseExt;
 import org.prebid.server.bidder.openx.proto.OpenxRequestExt;
@@ -29,6 +30,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.openx.ExtImpOpenx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidMeta;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.proto.openrtb.ext.response.ExtIgi;
 import org.prebid.server.proto.openrtb.ext.response.ExtIgiIgs;
@@ -57,6 +60,9 @@ public class OpenxBidder implements Bidder<BidRequest> {
     private static final Set<String> IMP_EXT_SKIP_FIELDS = Set.of(BIDDER_EXT, PREBID_EXT);
 
     private static final TypeReference<ExtPrebid<ExtImpPrebid, ExtImpOpenx>> OPENX_EXT_TYPE_REFERENCE =
+            new TypeReference<>() {
+            };
+    private static final TypeReference<ExtPrebid<ExtBidPrebid, ObjectNode>> EXT_PREBID_TYPE_REFERENCE =
             new TypeReference<>() {
             };
 
@@ -270,13 +276,13 @@ public class OpenxBidder implements Bidder<BidRequest> {
         return openxImpExt;
     }
 
-    private static List<BidderBid> extractBids(BidRequest bidRequest, OpenxBidResponse bidResponse) {
+    private List<BidderBid> extractBids(BidRequest bidRequest, OpenxBidResponse bidResponse) {
         return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
                 ? Collections.emptyList()
                 : bidsFromResponse(bidRequest, bidResponse);
     }
 
-    private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, OpenxBidResponse bidResponse) {
+    private List<BidderBid> bidsFromResponse(BidRequest bidRequest, OpenxBidResponse bidResponse) {
         final Map<String, BidType> impIdToBidType = impIdToBidType(bidRequest);
 
         final String bidCurrency = StringUtils.isNotBlank(bidResponse.getCur())
@@ -288,6 +294,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
+                .map(bid -> bid.toBuilder().ext(updateBidMeta(bid)).build())
                 .map(bid -> toBidderBid(bid, impIdToBidType, bidCurrency))
                 .toList();
     }
@@ -333,5 +340,61 @@ public class OpenxBidder implements Bidder<BidRequest> {
                 .toList();
 
         return igs.isEmpty() ? null : Collections.singletonList(ExtIgi.builder().igs(igs).build());
+    }
+
+    private ObjectNode updateBidMeta(Bid bid) {
+        final var ext = bid.getExt();
+        if (ext == null) {
+            return null;
+        }
+
+        final var openxBidExt = parseOpenxBidExt(ext);
+        final int buyerId = parseStringToInt(openxBidExt.getBuyerId());
+        final int dspId = parseStringToInt(openxBidExt.getDspId());
+        final int brandId = parseStringToInt(openxBidExt.getBrandId());
+
+        if (buyerId == 0 && dspId == 0 && brandId == 0) {
+            return ext;
+        }
+
+        final var extPrebid = getExtPrebid(ext, bid.getId());
+        final var updatedMeta = ExtBidPrebidMeta.builder()
+                .networkId(dspId)
+                .advertiserId(buyerId)
+                .brandId(brandId)
+                .build();
+
+        final var modifiedExtBidPrebid = Optional.ofNullable(extPrebid.getPrebid())
+                .map(p -> p.toBuilder().meta(updatedMeta).build())
+                .orElse(ExtBidPrebid.builder().meta(updatedMeta).build());
+
+        final var updatedExt = ext.deepCopy();
+        updatedExt.set(PREBID_EXT, mapper.mapper().valueToTree(modifiedExtBidPrebid));
+
+        return updatedExt;
+    }
+
+    private OpenxBidExt parseOpenxBidExt(ObjectNode ext) {
+        try {
+            return mapper.mapper().convertValue(ext, OpenxBidExt.class);
+        } catch (IllegalArgumentException e) {
+            return new OpenxBidExt();
+        }
+    }
+
+    private ExtPrebid<ExtBidPrebid, ObjectNode> getExtPrebid(ObjectNode bidExt, String bidId) {
+        try {
+            return mapper.mapper().convertValue(bidExt, EXT_PREBID_TYPE_REFERENCE);
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException("Invalid ext in bid with id: " + bidId, e);
+        }
+    }
+
+    private int parseStringToInt(String value) {
+        try {
+            return value != null ? Integer.parseInt(value) : 0;
+        } catch (NumberFormatException e) {
+            return 0;
+        }
     }
 }
