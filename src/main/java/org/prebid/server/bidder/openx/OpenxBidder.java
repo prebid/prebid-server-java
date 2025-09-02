@@ -62,9 +62,6 @@ public class OpenxBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<ExtImpPrebid, ExtImpOpenx>> OPENX_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
-    private static final TypeReference<ExtPrebid<ExtBidPrebid, ObjectNode>> EXT_PREBID_TYPE_REFERENCE =
-            new TypeReference<>() {
-            };
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -357,16 +354,13 @@ public class OpenxBidder implements Bidder<BidRequest> {
             return ext;
         }
 
-        final var extPrebid = getExtPrebid(ext, bid.getId());
         final var updatedMeta = ExtBidPrebidMeta.builder()
                 .networkId(dspId)
                 .advertiserId(buyerId)
                 .brandId(brandId)
                 .build();
 
-        final var modifiedExtBidPrebid = Optional.ofNullable(extPrebid.getPrebid())
-                .map(p -> p.toBuilder().meta(updatedMeta).build())
-                .orElse(ExtBidPrebid.builder().meta(updatedMeta).build());
+        final var modifiedExtBidPrebid = ExtBidPrebid.builder().meta(updatedMeta).build();
 
         final var updatedExt = ext.deepCopy();
         updatedExt.set(PREBID_EXT, mapper.mapper().valueToTree(modifiedExtBidPrebid));
@@ -379,14 +373,6 @@ public class OpenxBidder implements Bidder<BidRequest> {
             return mapper.mapper().convertValue(ext, OpenxBidExt.class);
         } catch (IllegalArgumentException e) {
             return new OpenxBidExt();
-        }
-    }
-
-    private ExtPrebid<ExtBidPrebid, ObjectNode> getExtPrebid(ObjectNode bidExt, String bidId) {
-        try {
-            return mapper.mapper().convertValue(bidExt, EXT_PREBID_TYPE_REFERENCE);
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException("Invalid ext in bid with id: " + bidId, e);
         }
     }
 

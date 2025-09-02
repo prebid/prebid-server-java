@@ -1002,7 +1002,6 @@ public class OpenxBidderTest extends VertxTest {
         allBuyerExt.put("dsp_id", "1").put("buyer_id", "2").put("brand_id", "3");
         onlyBrandExt.put("brand_id", "4");
         badExt.put("dsp_id", "abc").put("brand_id", "cba");
-        badExt.put("something", "abc");
 
         final var allBuyerExpectedExtJson = "{\"dsp_id\":\"1\",\"buyer_id\":\"2\",\"brand_id\":\"3\",\"prebid\":"
                 + "{\"meta\":{\"advertiserId\":2,\"brandId\":3,\"networkId\":1}}}";
