@@ -1017,7 +1017,8 @@ public class OpenxBidderTest extends VertxTest {
         return Stream.of(
                 Arguments.of(allBuyerExt, allBuyerExpectedExt),
                 Arguments.of(onlyBrandExt, onlyBrandExpectedExt),
-                Arguments.of(badExt, badExpectedExt)
+                Arguments.of(badExt, badExpectedExt),
+                Arguments.of(null, null)
         );
     }
 
