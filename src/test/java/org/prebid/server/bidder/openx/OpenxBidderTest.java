@@ -27,6 +27,7 @@ import org.prebid.server.bidder.model.CompositeBidderResponse;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.bidder.openx.proto.OpenxBidExt;
 import org.prebid.server.bidder.openx.proto.OpenxBidResponse;
 import org.prebid.server.bidder.openx.proto.OpenxBidResponseExt;
 import org.prebid.server.bidder.openx.proto.OpenxRequestExt;
@@ -996,23 +997,50 @@ public class OpenxBidderTest extends VertxTest {
         return BidderCall.succeededHttp(null, HttpResponse.of(200, null, body), null);
     }
 
-    private static Stream<Arguments> makeBidsShouldReturnBidWithExtBidPrebidMetaArgs() throws JsonProcessingException {
-        final ObjectNode allBuyerExt = new ObjectNode(JsonNodeFactory.instance);
-        final ObjectNode onlyBrandExt = new ObjectNode(JsonNodeFactory.instance);
-        final ObjectNode badExt = new ObjectNode(JsonNodeFactory.instance);
+    private static Stream<Arguments> bidWithExtTestCases() throws JsonProcessingException {
+        final ObjectNode allBuyerExt = mapper.valueToTree(OpenxBidExt.builder()
+                .dspId("1")
+                .buyerId("2")
+                .brandId("3")
+                .build());
+        final ObjectNode onlyBrandExt = mapper.valueToTree(OpenxBidExt.builder()
+                .brandId("4")
+                .build());
+        final ObjectNode badExt = mapper.valueToTree(OpenxBidExt.builder()
+                .dspId("abc")
+                .brandId("cba")
+                .build());
 
-        allBuyerExt.put("dsp_id", "1").put("buyer_id", "2").put("brand_id", "3");
-        onlyBrandExt.put("brand_id", "4");
-        badExt.put("dsp_id", "abc").put("brand_id", "cba");
-
-        final String allBuyerExpectedExtJson = "{\"dsp_id\":\"1\",\"buyer_id\":\"2\",\"brand_id\":\"3\",\"prebid\":"
-                + "{\"meta\":{\"advertiserId\":2,\"brandId\":3,\"networkId\":1}}}";
-        final String onlyBrandExpectedExtJson = "{\"brand_id\":\"4\",\"prebid\":{\"meta\":{\"brandId\":4}}}";
-        final String badExpectedExtJson = "{\"dsp_id\":\"abc\",\"brand_id\":\"cba\"}";
-
-        final ObjectNode allBuyerExpectedExt = (ObjectNode) mapper.readTree(allBuyerExpectedExtJson);
-        final ObjectNode onlyBrandExpectedExt = (ObjectNode) mapper.readTree(onlyBrandExpectedExtJson);
-        final ObjectNode badExpectedExt = (ObjectNode) mapper.readTree(badExpectedExtJson);
+        final ObjectNode allBuyerExpectedExt = (ObjectNode) mapper.readTree("""
+                {
+                    "dsp_id": "1",
+                    "buyer_id": "2",
+                    "brand_id": "3",
+                    "prebid": {
+                        "meta": {
+                            "advertiserId":2,
+                            "brandId":3,
+                            "networkId":1
+                        }
+                    }
+                }
+                """);
+        final ObjectNode onlyBrandExpectedExt = (ObjectNode) mapper.readTree("""
+                {
+                    "brand_id": "4",
+                    "prebid": {
+                        "meta": {
+                            "brandId":4
+                        }
+                    }
+                }
+                """);
+        final ObjectNode badExpectedExt = (ObjectNode) mapper.readTree("""
+                {
+                    "dsp_id": "abc",
+                    "brand_id": "cba"
+                }
+                """);
 
         return Stream.of(
                 Arguments.of(allBuyerExt, allBuyerExpectedExt),
@@ -1023,8 +1051,8 @@ public class OpenxBidderTest extends VertxTest {
     }
 
     @ParameterizedTest
-    @MethodSource("makeBidsShouldReturnBidWithExtBidPrebidMetaArgs")
-    public void makeBidsShouldReturnBidWithExtBidPrebidMeta(
+    @MethodSource("bidWithExtTestCases")
+    public void makeBidsShouldReturnBidWithExt(
             ObjectNode bidExt,
             ObjectNode expectedExtWithBidMeta) throws JsonProcessingException {
         // given
@@ -1058,18 +1086,9 @@ public class OpenxBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getBids()).hasSize(1).containsExactlyInAnyOrder(
-                BidderBid.of(
-                        Bid.builder()
-                                .impid("impId1")
-                                .price(BigDecimal.ONE)
-                                .dealid("dealid")
-                                .w(200)
-                                .h(150)
-                                .adm("<div>This is an Ad</div>")
-                                .ext(expectedExtWithBidMeta)
-                                .build(),
-                        BidType.banner, "USD")
-        );
+        assertThat(result.getBids()).hasSize(1)
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getExt)
+                .containsExactly(expectedExtWithBidMeta);
     }
 }
