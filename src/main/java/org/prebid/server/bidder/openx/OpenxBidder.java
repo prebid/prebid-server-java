@@ -291,7 +291,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> bid.toBuilder().ext(updateBidMeta(bid)).build())
+                .map(bid -> bid.toBuilder().ext(getBidExt(bid)).build())
                 .map(bid -> toBidderBid(bid, impIdToBidType, bidCurrency))
                 .toList();
     }
@@ -339,30 +339,30 @@ public class OpenxBidder implements Bidder<BidRequest> {
         return igs.isEmpty() ? null : Collections.singletonList(ExtIgi.builder().igs(igs).build());
     }
 
-    private ObjectNode updateBidMeta(Bid bid) {
+    private ObjectNode getBidExt(Bid bid) {
         final ObjectNode ext = bid.getExt();
         if (ext == null) {
             return null;
         }
 
         final OpenxBidExt openxBidExt = parseOpenxBidExt(ext);
-        final int buyerId = parseStringToInt(openxBidExt.getBuyerId());
-        final int dspId = parseStringToInt(openxBidExt.getDspId());
-        final int brandId = parseStringToInt(openxBidExt.getBrandId());
+        final Integer buyerId = parseStringToInt(openxBidExt.getBuyerId());
+        final Integer dspId = parseStringToInt(openxBidExt.getDspId());
+        final Integer brandId = parseStringToInt(openxBidExt.getBrandId());
 
-        if (buyerId == 0 && dspId == 0 && brandId == 0) {
+        if (buyerId == null && dspId == null && brandId == null) {
             return ext;
         }
 
-        final ExtBidPrebidMeta updatedMeta = ExtBidPrebidMeta.builder()
+        final ExtBidPrebidMeta meta = ExtBidPrebidMeta.builder()
                 .networkId(dspId)
                 .advertiserId(buyerId)
                 .brandId(brandId)
                 .build();
 
-        final ExtBidPrebid modifiedExtBidPrebid = ExtBidPrebid.builder().meta(updatedMeta).build();
+        final ExtBidPrebid extBidPrebid = ExtBidPrebid.builder().meta(meta).build();
 
-        ext.set(PREBID_EXT, mapper.mapper().valueToTree(modifiedExtBidPrebid));
+        ext.set(PREBID_EXT, mapper.mapper().valueToTree(extBidPrebid));
 
         return ext;
     }
@@ -375,11 +375,11 @@ public class OpenxBidder implements Bidder<BidRequest> {
         }
     }
 
-    private int parseStringToInt(String value) {
+    private static Integer parseStringToInt(String value) {
         try {
-            return value != null ? Integer.parseInt(value) : 0;
+            return Integer.parseInt(value);
         } catch (NumberFormatException e) {
-            return 0;
+            return null;
         }
     }
 }

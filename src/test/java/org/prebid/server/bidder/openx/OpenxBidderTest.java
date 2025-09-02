@@ -16,6 +16,9 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -43,6 +46,7 @@ import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -992,9 +996,7 @@ public class OpenxBidderTest extends VertxTest {
         return BidderCall.succeededHttp(null, HttpResponse.of(200, null, body), null);
     }
 
-    @Test
-    public void makeBidsShouldReturnBidMeta() throws JsonProcessingException {
-        // given
+    private static Stream<Arguments> makeBidsShouldReturnBidWithExtBidPrebidMetaArgs() throws JsonProcessingException {
         final ObjectNode allBuyerExt = new ObjectNode(JsonNodeFactory.instance);
         final ObjectNode onlyBrandExt = new ObjectNode(JsonNodeFactory.instance);
         final ObjectNode badExt = new ObjectNode(JsonNodeFactory.instance);
@@ -1005,46 +1007,41 @@ public class OpenxBidderTest extends VertxTest {
 
         final String allBuyerExpectedExtJson = "{\"dsp_id\":\"1\",\"buyer_id\":\"2\",\"brand_id\":\"3\",\"prebid\":"
                 + "{\"meta\":{\"advertiserId\":2,\"brandId\":3,\"networkId\":1}}}";
-        final String onlyBrandExpectedExtJson = "{\"brand_id\":\"4\",\"prebid\":{\"meta\":{\"advertiserId\":0,"
-                + "\"brandId\":4,\"networkId\":0}}}";
+        final String onlyBrandExpectedExtJson = "{\"brand_id\":\"4\",\"prebid\":{\"meta\":{\"brandId\":4}}}";
         final String badExpectedExtJson = "{\"dsp_id\":\"abc\",\"brand_id\":\"cba\"}";
 
         final ObjectNode allBuyerExpectedExt = (ObjectNode) mapper.readTree(allBuyerExpectedExtJson);
         final ObjectNode onlyBrandExpectedExt = (ObjectNode) mapper.readTree(onlyBrandExpectedExtJson);
         final ObjectNode badExpectedExt = (ObjectNode) mapper.readTree(badExpectedExtJson);
 
-        final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder()
-                .seatbid(singletonList(SeatBid.builder()
-                        .bid(List.of(
-                                Bid.builder()
-                                        .w(200)
-                                        .h(150)
-                                        .price(BigDecimal.ONE)
-                                        .impid("impId1")
-                                        .dealid("dealid")
-                                        .adm("<div>This is an Ad</div>")
-                                        .ext(allBuyerExt)
-                                        .build(),
-                                Bid.builder()
-                                        .w(200)
-                                        .h(150)
-                                        .price(BigDecimal.ONE)
-                                        .impid("impId1")
-                                        .dealid("dealid2")
-                                        .adm("<div>This is an Ad</div>")
-                                        .ext(onlyBrandExt)
-                                        .build(),
-                                Bid.builder()
-                                        .w(200)
-                                        .h(150)
-                                        .price(BigDecimal.ONE)
-                                        .impid("impId1")
-                                        .dealid("dealid3")
-                                        .adm("<div>This is an Ad</div>")
-                                        .ext(badExt)
-                                        .build()))
-                        .build()))
-                .build()));
+        return Stream.of(
+                Arguments.of(allBuyerExt, allBuyerExpectedExt),
+                Arguments.of(onlyBrandExt, onlyBrandExpectedExt),
+                Arguments.of(badExt, badExpectedExt)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("makeBidsShouldReturnBidWithExtBidPrebidMetaArgs")
+    public void makeBidsShouldReturnBidWithExtBidPrebidMeta(
+            ObjectNode bidExt,
+            ObjectNode expectedExtWithBidMeta) throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(
+                BidResponse.builder()
+                        .seatbid(singletonList(SeatBid.builder()
+                                .bid(List.of(
+                                        Bid.builder()
+                                                .w(200)
+                                                .h(150)
+                                                .price(BigDecimal.ONE)
+                                                .impid("impId1")
+                                                .dealid("dealid")
+                                                .adm("<div>This is an Ad</div>")
+                                                .ext(bidExt)
+                                                .build()))
+                                .build()))
+                        .build()));
 
         final BidRequest bidRequest = BidRequest.builder()
                 .id("bidRequestId")
@@ -1060,7 +1057,7 @@ public class OpenxBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getBids()).hasSize(3).containsExactlyInAnyOrder(
+        assertThat(result.getBids()).hasSize(1).containsExactlyInAnyOrder(
                 BidderBid.of(
                         Bid.builder()
                                 .impid("impId1")
@@ -1069,29 +1066,7 @@ public class OpenxBidderTest extends VertxTest {
                                 .w(200)
                                 .h(150)
                                 .adm("<div>This is an Ad</div>")
-                                .ext(allBuyerExpectedExt)
-                                .build(),
-                        BidType.banner, "USD"),
-                BidderBid.of(
-                        Bid.builder()
-                                .impid("impId1")
-                                .price(BigDecimal.ONE)
-                                .dealid("dealid2")
-                                .w(200)
-                                .h(150)
-                                .adm("<div>This is an Ad</div>")
-                                .ext(onlyBrandExpectedExt)
-                                .build(),
-                        BidType.banner, "USD"),
-                BidderBid.of(
-                        Bid.builder()
-                                .impid("impId1")
-                                .price(BigDecimal.ONE)
-                                .dealid("dealid3")
-                                .w(200)
-                                .h(150)
-                                .adm("<div>This is an Ad</div>")
-                                .ext(badExpectedExt)
+                                .ext(expectedExtWithBidMeta)
                                 .build(),
                         BidType.banner, "USD")
         );
