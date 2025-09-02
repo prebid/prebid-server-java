@@ -49,22 +49,30 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final List<HttpRequest<BidRequest>> result = new ArrayList<>();
         final List<BidderError> errors = new ArrayList<>();
+        final List<Imp> imps = new ArrayList<>();
+        ExtImpSmartadserver extImp = null;
 
         for (Imp imp : request.getImp()) {
             try {
-                final ExtImpSmartadserver extImpSmartadserver = parseImpExt(imp);
-                final BidRequest updatedRequest = request.toBuilder()
-                        .imp(Collections.singletonList(imp))
-                        .site(modifySite(request.getSite(), extImpSmartadserver.getNetworkId()))
-                        .build();
-                result.add(createSingleRequest(updatedRequest));
+                extImp = parseImpExt(imp);
+                imps.add(imp);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
         }
-        return Result.of(result, errors);
+
+        if (imps.isEmpty()) {
+            return Result.withErrors(errors);
+        }
+
+        final BidRequest outgoingRequest = request.toBuilder()
+                .imp(imps)
+                .site(modifySite(request.getSite(), extImp.getNetworkId()))
+                .build();
+
+        final HttpRequest<BidRequest> httpRequest = BidderUtil.defaultRequest(outgoingRequest, makeUrl(), mapper);
+        return Result.of(Collections.singletonList(httpRequest), errors);
     }
 
     private ExtImpSmartadserver parseImpExt(Imp imp) {
@@ -73,24 +81,6 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
         } catch (IllegalArgumentException e) {
             throw new PreBidException("Error parsing smartadserverExt parameters");
         }
-    }
-
-    private HttpRequest<BidRequest> createSingleRequest(BidRequest request) {
-
-        return BidderUtil.defaultRequest(request, getUri(), mapper);
-    }
-
-    private String getUri() {
-        final URI uri;
-        try {
-            uri = new URI(endpointUrl);
-        } catch (URISyntaxException e) {
-            throw new PreBidException("Malformed URL: %s.".formatted(endpointUrl));
-        }
-        return new URIBuilder(uri)
-                .setPath(StringUtils.removeEnd(uri.getPath(), "/") + "/api/bid")
-                .addParameter("callerId", "5")
-                .toString();
     }
 
     private static Site modifySite(Site site, Integer networkId) {
@@ -106,6 +96,19 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
                 : Publisher.builder();
 
         return publisherBuilder.id(String.valueOf(networkId)).build();
+    }
+
+    private String makeUrl() {
+        final URI uri;
+        try {
+            uri = new URI(endpointUrl);
+        } catch (URISyntaxException e) {
+            throw new PreBidException("Malformed URL: %s.".formatted(endpointUrl));
+        }
+        return new URIBuilder(uri)
+                .setPath(StringUtils.removeEnd(uri.getPath(), "/") + "/api/bid")
+                .addParameter("callerId", "5")
+                .toString();
     }
 
     @Override
@@ -135,7 +138,6 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
 
     private static BidType getBidTypeFromMarkupType(Integer markupType) {
         return switch (markupType) {
-            case 1 -> BidType.banner;
             case 2 -> BidType.video;
             case 3 -> BidType.audio;
             case 4 -> BidType.xNative;
