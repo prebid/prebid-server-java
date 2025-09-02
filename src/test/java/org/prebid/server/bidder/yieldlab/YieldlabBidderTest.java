@@ -278,6 +278,7 @@ public class YieldlabBidderTest extends VertxTest {
                         .w(728)
                         .h(90)
                         .adm(adm)
+                        .adomain(singletonList("yieldlab"))
                         .build(),
                 BidType.banner, "EUR");
 
