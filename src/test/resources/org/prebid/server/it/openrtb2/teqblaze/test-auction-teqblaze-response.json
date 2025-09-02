@@ -28,7 +28,7 @@
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "playdigo": "{{ teqblaze.response_time_ms }}"
+      "teqblaze": "{{ teqblaze.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 0
