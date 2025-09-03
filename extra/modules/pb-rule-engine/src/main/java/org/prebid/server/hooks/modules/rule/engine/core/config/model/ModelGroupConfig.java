@@ -6,8 +6,8 @@ import lombok.Value;
 
 import java.util.List;
 
+@Value
 @Builder
-@Value(staticConstructor = "of")
 public class ModelGroupConfig {
 
     int weight;

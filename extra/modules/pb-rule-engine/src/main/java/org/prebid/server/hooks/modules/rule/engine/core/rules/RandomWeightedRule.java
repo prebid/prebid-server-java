@@ -13,6 +13,6 @@ public class RandomWeightedRule<T, C> implements Rule<T, C> {
 
     @Override
     public RuleResult<T> process(T value, C context) {
-        return weightedList.getForSeed(random.nextInt(weightedList.maxSeed() + 1)).process(value, context);
+        return weightedList.getForSeed(random.nextInt(weightedList.maxSeed())).process(value, context);
     }
 }

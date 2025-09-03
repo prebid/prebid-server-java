@@ -23,10 +23,6 @@ public class WeightedList<T> {
         if (CollectionUtils.isEmpty(entries)) {
             throw new IllegalArgumentException("Weighted list cannot be empty");
         }
-
-        if (entries.stream().anyMatch(weightedEntry -> weightedEntry.getWeight() <= 0)) {
-            throw new IllegalArgumentException("Weighted entry should have weight greater than zero");
-        }
     }
 
     private List<WeightedEntry<T>> prepareEntries(List<WeightedEntry<T>> entries) {
@@ -43,12 +39,12 @@ public class WeightedList<T> {
     }
 
     public T getForSeed(int seed) {
-        if (seed < 0 || seed > maxSeed()) {
+        if (seed < 0 || seed >= maxSeed()) {
             throw new IllegalArgumentException("Seed number must be between 0 and " + weightSum);
         }
 
         for (WeightedEntry<T> entry : entries) {
-            if (seed <= entry.getWeight()) {
+            if (seed < entry.getWeight()) {
                 return entry.getValue();
             }
         }

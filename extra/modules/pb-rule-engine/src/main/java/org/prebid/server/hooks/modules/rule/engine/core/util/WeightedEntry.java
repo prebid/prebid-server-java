@@ -13,7 +13,7 @@ public class WeightedEntry<T> {
         this.weight = weight;
         this.value = value;
 
-        if (weight < 0) {
+        if (weight <= 0) {
             throw new IllegalArgumentException("Weight must be greater than zero");
         }
     }
