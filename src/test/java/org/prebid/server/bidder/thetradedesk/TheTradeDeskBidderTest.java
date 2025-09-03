@@ -512,7 +512,8 @@ public class TheTradeDeskBidderTest extends VertxTest {
                         .impid("123")
                         .price(BigDecimal.valueOf(1.23))
                         .nurl("http://example.com/nurl?price=${AUCTION_PRICE}")
-                        .adm("<div>Price: ${AUCTION_PRICE}</div>")));
+                        .adm("<div>Price: ${AUCTION_PRICE}</div>")
+                        .burl("https://adsrvr.org/feedback/xxx?wp=${AUCTION_PRICE}&param2=xyz")));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -521,8 +522,9 @@ public class TheTradeDeskBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(BidderBid::getBid)
-                .extracting(Bid::getNurl, Bid::getAdm, Bid::getPrice)
-                .containsOnly(tuple("http://example.com/nurl?price=1.23", "<div>Price: 1.23</div>", BigDecimal.valueOf(1.23)));
+                .extracting(Bid::getNurl, Bid::getAdm, Bid::getBurl, Bid::getPrice)
+                .containsOnly(tuple("http://example.com/nurl?price=1.23", "<div>Price: 1.23</div>",
+                        "https://adsrvr.org/feedback/xxx?wp=1.23&param2=xyz", BigDecimal.valueOf(1.23)));
     }
 
     @Test
@@ -534,7 +536,8 @@ public class TheTradeDeskBidderTest extends VertxTest {
                         .impid("123")
                         .price(null)
                         .nurl("http://example.com/nurl?price=${AUCTION_PRICE}")
-                        .adm("<div>Price: ${AUCTION_PRICE}</div>")));
+                        .adm("<div>Price: ${AUCTION_PRICE}</div>")
+                        .burl("https://adsrvr.org/feedback/xxx?wp=${AUCTION_PRICE}&param2=xyz")));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -543,8 +546,9 @@ public class TheTradeDeskBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(BidderBid::getBid)
-                .extracting(Bid::getNurl, Bid::getAdm)
-                .containsOnly(tuple("http://example.com/nurl?price=0", "<div>Price: 0</div>"));
+                .extracting(Bid::getNurl, Bid::getAdm, Bid::getBurl)
+                .containsOnly(tuple("http://example.com/nurl?price=0", "<div>Price: 0</div>",
+                        "https://adsrvr.org/feedback/xxx?wp=0&param2=xyz"));
     }
 
     @Test
@@ -556,7 +560,8 @@ public class TheTradeDeskBidderTest extends VertxTest {
                         .impid("123")
                         .price(BigDecimal.ZERO)
                         .nurl("http://example.com/nurl?price=${AUCTION_PRICE}")
-                        .adm("<div>Price: ${AUCTION_PRICE}</div>")));
+                        .adm("<div>Price: ${AUCTION_PRICE}</div>")
+                        .burl("https://adsrvr.org/feedback/xxx?wp=${AUCTION_PRICE}&param2=xyz")));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -565,8 +570,9 @@ public class TheTradeDeskBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(BidderBid::getBid)
-                .extracting(Bid::getNurl, Bid::getAdm)
-                .containsOnly(tuple("http://example.com/nurl?price=0", "<div>Price: 0</div>"));
+                .extracting(Bid::getNurl, Bid::getAdm, Bid::getBurl)
+                .containsOnly(tuple("http://example.com/nurl?price=0", "<div>Price: 0</div>",
+                        "https://adsrvr.org/feedback/xxx?wp=0&param2=xyz"));
     }
 
     @Test
@@ -578,7 +584,8 @@ public class TheTradeDeskBidderTest extends VertxTest {
                         .impid("123")
                         .price(BigDecimal.valueOf(5.67))
                         .nurl("http://example.com/nurl?price=${AUCTION_PRICE}")
-                        .adm("<div>No macro here</div>")));
+                        .adm("<div>No macro here</div>")
+                        .burl("http://example.com/burl")));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -587,8 +594,9 @@ public class TheTradeDeskBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(BidderBid::getBid)
-                .extracting(Bid::getNurl, Bid::getAdm)
-                .containsOnly(tuple("http://example.com/nurl?price=5.67", "<div>No macro here</div>"));
+                .extracting(Bid::getNurl, Bid::getAdm, Bid::getBurl)
+                .containsOnly(tuple("http://example.com/nurl?price=5.67", "<div>No macro here</div>",
+                        "http://example.com/burl"));
     }
 
     @Test
@@ -600,7 +608,8 @@ public class TheTradeDeskBidderTest extends VertxTest {
                         .impid("123")
                         .price(BigDecimal.valueOf(8.90))
                         .nurl("http://example.com/nurl")
-                        .adm("<div>Price: ${AUCTION_PRICE}</div>")));
+                        .adm("<div>Price: ${AUCTION_PRICE}</div>")
+                        .burl("http://example.com/burl")));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -609,8 +618,9 @@ public class TheTradeDeskBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(BidderBid::getBid)
-                .extracting(Bid::getNurl, Bid::getAdm)
-                .containsOnly(tuple("http://example.com/nurl", "<div>Price: 8.9</div>"));
+                .extracting(Bid::getNurl, Bid::getAdm, Bid::getBurl)
+                .containsOnly(tuple("http://example.com/nurl", "<div>Price: 8.9</div>",
+                        "http://example.com/burl"));
     }
 
     @Test
@@ -622,7 +632,8 @@ public class TheTradeDeskBidderTest extends VertxTest {
                         .impid("123")
                         .price(BigDecimal.valueOf(12.34))
                         .nurl("http://example.com/nurl")
-                        .adm("<div>No macro</div>")));
+                        .adm("<div>No macro</div>")
+                        .burl("http://example.com/burl")));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -631,8 +642,9 @@ public class TheTradeDeskBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(BidderBid::getBid)
-                .extracting(Bid::getNurl, Bid::getAdm)
-                .containsOnly(tuple("http://example.com/nurl", "<div>No macro</div>"));
+                .extracting(Bid::getNurl, Bid::getAdm, Bid::getBurl)
+                .containsOnly(tuple("http://example.com/nurl", "<div>No macro</div>",
+                        "http://example.com/burl"));
     }
 
     @Test
@@ -644,7 +656,8 @@ public class TheTradeDeskBidderTest extends VertxTest {
                         .impid("123")
                         .price(BigDecimal.valueOf(15.00))
                         .nurl(null)
-                        .adm(null)));
+                        .adm(null)
+                        .burl(null)));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -653,8 +666,8 @@ public class TheTradeDeskBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(BidderBid::getBid)
-                .extracting(Bid::getNurl, Bid::getAdm)
-                .containsOnly(tuple(null, null));
+                .extracting(Bid::getNurl, Bid::getAdm, Bid::getBurl)
+                .containsOnly(tuple(null, null, null));
     }
 
     @Test
@@ -666,7 +679,8 @@ public class TheTradeDeskBidderTest extends VertxTest {
                         .impid("123")
                         .price(BigDecimal.valueOf(9.99))
                         .nurl("http://example.com/nurl?price=${AUCTION_PRICE}&backup_price=${AUCTION_PRICE}")
-                        .adm("<div>Price: ${AUCTION_PRICE}, Fallback: ${AUCTION_PRICE}</div>")));
+                        .adm("<div>Price: ${AUCTION_PRICE}, Fallback: ${AUCTION_PRICE}</div>")
+                        .burl("https://adsrvr.org/feedback/xxx?wp=${AUCTION_PRICE}&backup_wp=${AUCTION_PRICE}&param2=xyz")));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -675,8 +689,11 @@ public class TheTradeDeskBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(BidderBid::getBid)
-                .extracting(Bid::getNurl, Bid::getAdm)
-                .containsOnly(tuple("http://example.com/nurl?price=9.99&backup_price=9.99", "<div>Price: 9.99, Fallback: 9.99</div>"));
+                .extracting(Bid::getNurl, Bid::getAdm, Bid::getBurl)
+                .containsOnly(tuple(
+                        "http://example.com/nurl?price=9.99&backup_price=9.99",
+                        "<div>Price: 9.99, Fallback: 9.99</div>",
+                        "https://adsrvr.org/feedback/xxx?wp=9.99&backup_wp=9.99&param2=xyz"));
     }
 
     @Test
@@ -688,7 +705,8 @@ public class TheTradeDeskBidderTest extends VertxTest {
                         .impid("123")
                         .price(new BigDecimal("123456789.123456789"))
                         .nurl("http://example.com/nurl?price=${AUCTION_PRICE}")
-                        .adm("<div>Price: ${AUCTION_PRICE}</div>")));
+                        .adm("<div>Price: ${AUCTION_PRICE}</div>")
+                        .burl("https://adsrvr.org/feedback/xxx?wp=${AUCTION_PRICE}&param2=xyz")));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -697,8 +715,37 @@ public class TheTradeDeskBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(BidderBid::getBid)
-                .extracting(Bid::getNurl, Bid::getAdm)
-                .containsOnly(tuple("http://example.com/nurl?price=123456789.123456789", "<div>Price: 123456789.123456789</div>"));
+                .extracting(Bid::getNurl, Bid::getAdm, Bid::getBurl)
+                .containsOnly(tuple(
+                        "http://example.com/nurl?price=123456789.123456789",
+                        "<div>Price: 123456789.123456789</div>",
+                        "https://adsrvr.org/feedback/xxx?wp=123456789.123456789&param2=xyz"));
+    }
+
+    @Test
+    public void makeBidsShouldReplacePriceMacroInBurlIfNurlAndAdmDoNotContainMacro() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidResponse(bidBuilder -> bidBuilder
+                        .mtype(1)
+                        .impid("123")
+                        .price(BigDecimal.valueOf(7.77))
+                        .nurl("http://example.com/nurl")
+                        .adm("<div>No macro</div>")
+                        .burl("https://adsrvr.org/feedback/xxx?wp=${AUCTION_PRICE}&param2=xyz")));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getNurl, Bid::getAdm, Bid::getBurl)
+                .containsOnly(tuple(
+                        "http://example.com/nurl",
+                        "<div>No macro</div>",
+                        "https://adsrvr.org/feedback/xxx?wp=7.77&param2=xyz"));
     }
 
     private String givenBidResponse(UnaryOperator<Bid.BidBuilder> bidCustomizer) throws JsonProcessingException {

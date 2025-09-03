@@ -61,7 +61,7 @@ public class ZentotemBidder implements Bidder<BidRequest> {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             final List<BidderError> errors = new ArrayList<>();
             return Result.of(extractBids(bidResponse, errors), errors);
-        } catch (DecodeException | PreBidException e) {
+        } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
