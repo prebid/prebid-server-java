@@ -46,8 +46,8 @@ public class OrtbDeviceUpdaterTest {
     @Test
     public void updateShouldUpdateDeviceMakeWhenOriginalIsEmpty() {
         // given
-        given(wurflDevice.getCapability("brand_name")).willReturn("Apple");
-        given(wurflDevice.getCapability("model_name")).willReturn("iPhone");
+        given(wurflDevice.getCapability("brand_name")).willReturn("Pear");
+        given(wurflDevice.getCapability("model_name")).willReturn("youPhone");
         given(wurflDevice.getCapabilityAsBool("ajax_support_javascript")).willReturn(true);
         given(wurflDevice.getVirtualCapabilityAsBool("is_mobile")).willReturn(true);
         given(wurflDevice.getVirtualCapabilityAsBool("is_phone")).willReturn(true);
@@ -62,8 +62,8 @@ public class OrtbDeviceUpdaterTest {
 
         // then
         final Device resultDevice = result.bidRequest().getDevice();
-        assertThat(resultDevice.getMake()).isEqualTo("Apple");
-        assertThat(resultDevice.getDevicetype()).isEqualTo(1);
+        assertThat(resultDevice.getMake()).isEqualTo("Pear");
+        assertThat(resultDevice.getDevicetype()).isEqualTo(4);
     }
 
     @Test
@@ -345,10 +345,10 @@ public class OrtbDeviceUpdaterTest {
         // given
         given(wurflDevice.getCapabilityAsBool("is_tablet")).willReturn(true);
         given(wurflDevice.getVirtualCapabilityAsBool("is_full_desktop")).willReturn(false);
-        given(wurflDevice.getVirtualCapabilityAsBool("is_mobile")).willReturn(false);
+        given(wurflDevice.getVirtualCapabilityAsBool("is_mobile")).willReturn(true);
         given(wurflDevice.getVirtualCapabilityAsBool("is_phone")).willReturn(false);
-        given(wurflDevice.getCapability("brand_name")).willReturn("Samsung");
-        given(wurflDevice.getCapability("model_name")).willReturn("Galaxy Tab S9+");
+        given(wurflDevice.getCapability("brand_name")).willReturn("SamTest");
+        given(wurflDevice.getCapability("model_name")).willReturn("Test Tab S9+");
 
         final Device device = Device.builder().build();
         final BidRequest bidRequest = BidRequest.builder().device(device).build();
@@ -360,6 +360,28 @@ public class OrtbDeviceUpdaterTest {
         // then
         final Device resultDevice = result.bidRequest().getDevice();
         assertThat(resultDevice.getDevicetype()).isEqualTo(5);
+    }
+
+    @Test
+    public void updateShouldHandlePhoneDeviceType() {
+        // given
+        given(wurflDevice.getCapabilityAsBool("is_tablet")).willReturn(false);
+        given(wurflDevice.getVirtualCapabilityAsBool("is_full_desktop")).willReturn(false);
+        given(wurflDevice.getVirtualCapabilityAsBool("is_mobile")).willReturn(true);
+        given(wurflDevice.getVirtualCapabilityAsBool("is_phone")).willReturn(true);
+        given(wurflDevice.getCapability("brand_name")).willReturn("PixTest");
+        given(wurflDevice.getCapability("model_name")).willReturn("Test Pix 9");
+
+        final Device device = Device.builder().build();
+        final BidRequest bidRequest = BidRequest.builder().device(device).build();
+        final OrtbDeviceUpdater target = new OrtbDeviceUpdater(wurflDevice, staticCaps, virtualCaps, true, mapper);
+        given(payload.bidRequest()).willReturn(bidRequest);
+        // when
+        final AuctionRequestPayload result = target.apply(payload);
+
+        // then
+        final Device resultDevice = result.bidRequest().getDevice();
+        assertThat(resultDevice.getDevicetype()).isEqualTo(4);
     }
 
     @Test

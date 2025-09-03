@@ -103,12 +103,16 @@ public class OrtbDeviceUpdater implements PayloadUpdate<AuctionRequestPayload> {
     }
 
     private Integer getWurflDeviceType() {
+
         try {
-            if (wurflDevice.getVirtualCapabilityAsBool("is_mobile")) {
+            final boolean isDeviceMobile = wurflDevice.getVirtualCapabilityAsBool("is_mobile");
+            if (isDeviceMobile) {
                 // if at least one of these capabilities is not defined, the mobile device type is undefined
                 final boolean isPhone = wurflDevice.getVirtualCapabilityAsBool("is_phone");
                 final boolean isTablet = wurflDevice.getCapabilityAsBool("is_tablet");
-                return isPhone || isTablet ? 1 : 6;
+                if (!(isPhone || isTablet)) {
+                    return 6;
+                }
             }
 
             if (wurflDevice.getVirtualCapabilityAsBool("is_full_desktop")) {
@@ -119,7 +123,7 @@ public class OrtbDeviceUpdater implements PayloadUpdate<AuctionRequestPayload> {
                 return 3;
             }
 
-            if (wurflDevice.getCapabilityAsBool("is_phone")) {
+            if (wurflDevice.getVirtualCapabilityAsBool("is_phone")) {
                 return 4;
             }
 
@@ -131,14 +135,28 @@ public class OrtbDeviceUpdater implements PayloadUpdate<AuctionRequestPayload> {
                 return 7;
             }
 
-            final String physicalFormFactor = wurflDevice.getCapability("physical_form_factor");
+            final String physicalFormFactor = getPhysicalFormFactor();
             if (physicalFormFactor != null && physicalFormFactor.equals("out_of_home_device")) {
                 return 8;
+            }
+
+            if (isDeviceMobile) {
+                return 1;
             }
         } catch (CapabilityNotDefinedException | VirtualCapabilityNotDefinedException | NumberFormatException e) {
             logger.warn("Failed to determine device type from WURFL device capabilities", e);
         }
+
         return null;
+    }
+
+    private String getPhysicalFormFactor() {
+        try {
+            return wurflDevice.getCapability("physical_form_factor");
+        } catch (CapabilityNotDefinedException e) {
+            logger.warn("Failed to get physical form factor from WURFL device capabilities", e);
+            return "";
+        }
     }
 
     private String getWurflOs() {
