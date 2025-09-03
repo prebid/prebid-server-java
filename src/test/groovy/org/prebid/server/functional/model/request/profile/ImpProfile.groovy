@@ -9,15 +9,18 @@ import static ProfileMergePrecedence.PROFILE
 @ToString(includeNames = true, ignoreNulls = true)
 class ImpProfile extends Profile<Imp> {
 
-    static getProfile(String accountId,
+    static ImpProfile getProfile(String accountId,
                       Imp imp = Imp.defaultImpression,
                       String name = PBSUtils.randomString,
                       ProfileMergePrecedence mergePrecedence = PROFILE) {
 
-        new ImpProfile(accountId: accountId,
-                id: name,
-                type: ProfileType.IMP,
-                mergePrecedence: mergePrecedence,
-                body: imp)
+        new ImpProfile().tap {
+            it.accountId = accountId
+            it.id = name
+            it.type = ProfileType.IMP
+            it.mergePrecedence = mergePrecedence
+            it.body = imp
+            it.accountId = accountId
+        }
     }
 }

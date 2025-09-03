@@ -11,10 +11,11 @@ import static ProfileMergePrecedence.PROFILE
 @ToString(includeNames = true, ignoreNulls = true)
 class RequestProfile extends Profile<BidRequest> {
 
-    static getProfile(String accountId = PBSUtils.randomString,
+    static RequestProfile getProfile(String accountId = PBSUtils.randomString,
                       String name = PBSUtils.randomString,
                       ProfileMergePrecedence mergePrecedence = PROFILE) {
         BidRequest request = BidRequest.defaultBidRequest.tap {
+            it.id = null
             it.imp = null
             it.site = Site.configFPDSite
             it.device = Device.default
@@ -22,15 +23,18 @@ class RequestProfile extends Profile<BidRequest> {
         getProfile(accountId, request, name, mergePrecedence)
     }
 
-    static getProfile(String accountId,
+    static RequestProfile getProfile(String accountId,
                       BidRequest request,
                       String name = PBSUtils.randomString,
                       ProfileMergePrecedence mergePrecedence = PROFILE) {
 
-        new RequestProfile(accountId: accountId,
-                id: name,
-                type: ProfileType.REQUEST,
-                mergePrecedence: mergePrecedence,
-                body: request)
+        new RequestProfile().tap {
+            it.accountId = accountId
+            it.id = name
+            it.type = ProfileType.REQUEST
+            it.mergePrecedence = mergePrecedence
+            it.body = request
+            it.accountId = accountId
+        }
     }
 }
