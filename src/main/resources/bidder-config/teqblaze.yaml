@@ -1,7 +1,6 @@
 adapters:
   teqblaze:
     meta-info:
-      whiteLabelOnly: true
       maintainer-email: github@teqblaze.com
       app-media-types:
         - banner
