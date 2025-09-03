@@ -482,7 +482,7 @@ public class Ortb2RequestFactory {
             return Future.succeededFuture(accountId);
         }
 
-        return accountIdFromStored(bidRequest)
+        return accountIdFromStoredRequest(bidRequest)
                 .compose(id -> StringUtils.isBlank(id)
                         ? accountIdFromProfiles(auctionContext, bidRequest)
                         : Future.succeededFuture(id));
@@ -511,7 +511,7 @@ public class Ortb2RequestFactory {
         return extPublisherPrebid != null ? StringUtils.stripToNull(extPublisherPrebid.getParentAccount()) : null;
     }
 
-    private Future<String> accountIdFromStored(BidRequest bidRequest) {
+    private Future<String> accountIdFromStoredRequest(BidRequest bidRequest) {
         return storedRequestProcessor.processAuctionRequest(StringUtils.EMPTY, bidRequest)
                 .map(AuctionStoredResult::bidRequest)
                 .map(this::accountIdFromBidRequest);

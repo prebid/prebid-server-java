@@ -18,6 +18,7 @@ import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.Profile;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
+import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.vertx.database.CircuitBreakerSecuredDatabaseClient;
 import org.prebid.server.vertx.database.DatabaseClient;
 
@@ -129,7 +130,7 @@ public class DatabaseApplicationSettings implements ApplicationSettings {
     }
 
     private Account toAccount(Row row) {
-        final String source = Objects.toString(row.getValue(0), null);
+        final String source = ObjectUtil.getIfNotNull(row.getValue(0), Object::toString);
         try {
             return source != null ? mapper.decodeValue(source, Account.class) : null;
         } catch (DecodeException e) {
