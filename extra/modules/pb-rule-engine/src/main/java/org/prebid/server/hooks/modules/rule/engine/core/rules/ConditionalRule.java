@@ -1,7 +1,6 @@
 package org.prebid.server.hooks.modules.rule.engine.core.rules;
 
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.hooks.modules.rule.engine.core.rules.exception.NoMatchingRuleException;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.result.InfrastructureArguments;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.result.ResultFunctionArguments;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.result.ResultFunctionHolder;
