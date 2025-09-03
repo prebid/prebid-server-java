@@ -635,7 +635,7 @@ class ProfileSpec extends BaseSpec {
         assert !secondBidderImpBanner.btype
     }
 
-    def "PBS should include invalid or missing profiles into limit count"() {
+    def "PBS should count invalid or missing profiles towards the limit"() {
         given: "Default bidRequest with request profiles"
         def accountId = PBSUtils.randomNumber as String
         def invalidProfileRequest = RequestProfile.getProfile(accountId).tap {
