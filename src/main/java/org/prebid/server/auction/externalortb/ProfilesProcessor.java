@@ -100,8 +100,8 @@ public class ProfilesProcessor {
                                 profiles.getStoredIdToImp(),
                                 bidRequest.getImp(),
                                 failOnUnknown)))
-                .recover(e -> Future.failedFuture(
-                        new InvalidRequestException("Error during processing profiles: " + e.getMessage())));
+                .recover(error -> Future.failedFuture(
+                        new InvalidRequestException("Error during processing profiles: " + error.getMessage())));
     }
 
     private AllProfilesIds profilesIds(BidRequest bidRequest, AuctionContext auctionContext, String accountId) {
@@ -218,14 +218,13 @@ public class ProfilesProcessor {
                                             boolean failOnUnknown) {
 
         return !idToRequestProfile.isEmpty()
-                ? applyProfiles(profilesIds, idToRequestProfile, bidRequest, BidRequest.class, failOnUnknown)
+                ? applyProfiles(profilesIds, idToRequestProfile, bidRequest, failOnUnknown)
                 : bidRequest;
     }
 
     private <T> T applyProfiles(List<String> profilesIds,
                                 Map<String, Profile> idToProfile,
                                 T original,
-                                Class<T> tClass,
                                 boolean failOnUnknown) {
 
         if (profilesIds.isEmpty()) {
@@ -249,7 +248,7 @@ public class ProfilesProcessor {
         }
 
         try {
-            return mapper.mapper().treeToValue(result, tClass);
+            return mapper.mapper().treeToValue(result, (Class<T>) original.getClass());
         } catch (JsonProcessingException e) {
             throw new InvalidProfileException(e.getMessage());
         }
@@ -285,7 +284,6 @@ public class ProfilesProcessor {
                     profilesIds.get(i),
                     idToImpProfile,
                     imps.get(i),
-                    Imp.class,
                     failOnUnknown));
         }
 
