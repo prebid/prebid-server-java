@@ -9,7 +9,7 @@ import static ProfileMergePrecedence.PROFILE
 @ToString(includeNames = true, ignoreNulls = true)
 class ImpProfile extends Profile<Imp> {
 
-    static ImpProfile getProfile(String accountId,
+    static ImpProfile getProfile(String accountId = PBSUtils.randomNumber.toString(),
                                  Imp imp = Imp.defaultImpression,
                                  String name = PBSUtils.randomString,
                                  ProfileMergePrecedence mergePrecedence = PROFILE) {

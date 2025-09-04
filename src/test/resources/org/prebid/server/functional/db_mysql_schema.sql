@@ -47,8 +47,8 @@ CREATE TABLE profiles
     accountId       varchar(40)  NOT NULL,
     profileId       varchar(128) NOT NULL,
     profile         json,
-    mergePrecedence enum ('request', 'profile', ''),
-    type            enum ('request', 'imp')
+    mergePrecedence enum ('request', 'profile', '', 'unknown'),
+    type            enum ('request', 'imp', '', 'unknown')
 );
 
 -- set session wait timeout to 1 minute

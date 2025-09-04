@@ -19,6 +19,7 @@ import org.prebid.server.functional.model.request.auction.StoredAuctionResponse
 import org.prebid.server.functional.model.request.auction.StoredBidResponse
 import org.prebid.server.functional.model.request.profile.Profile
 import org.prebid.server.functional.model.request.profile.ImpProfile
+import org.prebid.server.functional.model.request.profile.ProfileMergePrecedence
 import org.prebid.server.functional.model.request.profile.RequestProfile
 import org.prebid.server.functional.model.request.profile.ProfileType
 import org.prebid.server.functional.model.request.auction.Site
@@ -36,7 +37,6 @@ import spock.lang.PendingFeature
 
 import static org.prebid.server.functional.model.AccountStatus.ACTIVE
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
-import static org.prebid.server.functional.model.request.profile.ProfileMergePrecedence.EMPTY
 import static org.prebid.server.functional.model.request.profile.ProfileMergePrecedence.PROFILE
 import static org.prebid.server.functional.model.request.profile.ProfileMergePrecedence.REQUEST
 import static org.prebid.server.functional.model.response.auction.MediaType.VIDEO
@@ -235,11 +235,11 @@ class ProfileSpec extends BaseSpec {
         }
     }
 
-    def "PBS should set merge strategy to default profile without error for profile profile when merge strategy #mergeStrategy"() {
+    def "PBS should set merge strategy to default profile without error for request profile when merge strategy is empty in database"() {
         given: "Default bidRequest with request profile"
         def accountId = PBSUtils.randomNumber as String
         def requestProfile = RequestProfile.getProfile(accountId).tap {
-            it.mergePrecedence = mergeStrategy
+            it.mergePrecedence = null
         }
         def bidRequest = getRequestWithProfiles(accountId, [requestProfile]).tap {
             it.site = Site.configFPDSite
@@ -278,16 +278,51 @@ class ProfileSpec extends BaseSpec {
             it.device.macmd5 == bidRequest.device.macmd5
             it.device.dpidmd5 == bidRequest.device.dpidmd5
         }
-
-        where:
-        mergeStrategy << [null, EMPTY]
     }
 
-    def "PBS should set merge strategy to default profile without error for imp profile when merge strategy #mergeStrategy"() {
+    def "PBS should set merge strategy to default profile without error for request profile when merge strategy is empty in filesystem"() {
+        given: "Default bidRequest with request profile"
+        def bidRequest = getRequestWithProfiles(ACCOUNT_ID_FILE_STORAGE.toString(), [fileRequestProfileWithEmptyMerge]).tap {
+            it.site = Site.configFPDSite
+            it.device = Device.default
+        } as BidRequest
+
+        when: "PBS processes auction request"
+        def response = pbsWithStoredProfiles.sendAuctionRequest(bidRequest as BidRequest)
+
+        then: "Response should not contain errors and warnings"
+        assert !response.ext?.errors
+        assert !response.ext?.warnings
+
+        and: "Bidder request should contain data from profile"
+        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
+            it.site.id == bidRequest.site.id
+            it.site.name == bidRequest.site.name
+            it.site.domain == bidRequest.site.domain
+            it.site.cat == bidRequest.site.cat
+            it.site.sectionCat == bidRequest.site.sectionCat
+            it.site.pageCat == bidRequest.site.pageCat
+            it.site.page == bidRequest.site.page
+            it.site.ref == bidRequest.site.ref
+            it.site.search == bidRequest.site.search
+            it.site.keywords == bidRequest.site.keywords
+            it.site.ext.data == bidRequest.site.ext.data
+
+            it.device.didsha1 == bidRequest.device.didsha1
+            it.device.didmd5 == bidRequest.device.didmd5
+            it.device.dpidsha1 == bidRequest.device.dpidsha1
+            it.device.ifa == bidRequest.device.ifa
+            it.device.macsha1 == bidRequest.device.macsha1
+            it.device.macmd5 == bidRequest.device.macmd5
+            it.device.dpidmd5 == bidRequest.device.dpidmd5
+        }
+    }
+
+    def "PBS should set merge strategy to default profile without error for imp profile when merge strategy is empty in database"() {
         given: "Default bidRequest with imp profile"
         def accountId = PBSUtils.randomNumber as String
         def impProfile = ImpProfile.getProfile(accountId).tap {
-            it.mergePrecedence = mergeStrategy
+            it.mergePrecedence = null
             it.body.banner.format = [Format.randomFormat]
         }
         def bidRequest = getRequestWithProfiles(accountId, [impProfile])
@@ -304,9 +339,21 @@ class ProfileSpec extends BaseSpec {
 
         and: "Bidder request imp should contain data from profile"
         assert bidder.getBidderRequest(bidRequest.id).imp.banner == bidRequest.imp.banner
+    }
 
-        where:
-        mergeStrategy << [null, EMPTY]
+    def "PBS should set merge strategy to default profile without error for imp profile when merge strategy is empty in filesystem"() {
+        given: "Default bidRequest with imp profile"
+        def bidRequest = getRequestWithProfiles(ACCOUNT_ID_FILE_STORAGE.toString(), [fileImpProfileWithEmptyMerge])
+
+        when: "PBS processes auction request"
+        def response = pbsWithStoredProfiles.sendAuctionRequest(bidRequest)
+
+        then: "Response should not contain errors and warnings"
+        assert !response.ext?.errors
+        assert !response.ext?.warnings
+
+        and: "Bidder request imp should contain data from profile"
+        assert bidder.getBidderRequest(bidRequest.id).imp.banner == bidRequest.imp.banner
     }
 
     def "PBS should merge latest-specified profile when there merge conflict and different merge precedence present"() {
@@ -1249,6 +1296,102 @@ class ProfileSpec extends BaseSpec {
             it.device.macmd5 == bidRequest.device.macmd5
             it.device.dpidmd5 == bidRequest.device.dpidmd5
         }
+    }
+
+    def "PBS should emit error and metrics when imp profile have invalid data"() {
+        given: "Default bidRequest with request profile"
+        def accountId = PBSUtils.randomNumber as String
+        def bidRequest = BidRequest.getDefaultBidRequest().tap {
+            it.imp.first.ext.prebid.profileNames = [invalidProfile.id]
+            setAccountId(accountId)
+        }
+
+        and: "Flash metrics"
+        flushMetrics(pbsWithStoredProfiles)
+
+        when: "PBS processes auction request"
+        def response = pbsWithStoredProfiles.sendAuctionRequest(bidRequest)
+
+        then: "PBS should emit proper warning"
+        assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
+        assert response.ext?.warnings[ErrorType.PREBID]*.message == [NO_IMP_PROFILE_MESSAGE.formatted(invalidProfile.id)]
+
+        and: "Response should contain error"
+        assert !response.ext?.errors
+
+        and: "Missing metric should increments"
+        def metrics = pbsWithStoredProfiles.sendCollectedMetricsRequest()
+        assert metrics[MISSING_ACCOUNT_PROFILE_METRIC.formatted(accountId)] == 1
+
+        and: "Bidder request imp should contain data from original imp"
+        assert bidder.getBidderRequest(bidRequest.id).imp.banner == bidRequest.imp.banner
+
+        where:
+        invalidProfile << [
+                ImpProfile.getProfile().tap { it.type = ProfileType.EMPTY},
+                ImpProfile.getProfile().tap { it.type = ProfileType.UNKNOWN},
+                ImpProfile.getProfile().tap { it.mergePrecedence = ProfileMergePrecedence.EMPTY},
+                ImpProfile.getProfile().tap { it.mergePrecedence = ProfileMergePrecedence.UNKNOWN},
+        ]
+    }
+
+    def "PBS should emit error and metrics when request profile have invalid data"() {
+        given: "Default bidRequest with request profile"
+        def accountId = PBSUtils.randomNumber as String
+        def invalidProfileId = PBSUtils.randomString
+        def bidRequest = BidRequest.getDefaultBidRequest().tap {
+            it.ext.prebid.profileNames = [invalidProfileId]
+            it.site = Site.getRootFPDSite()
+            it.device = Device.getDefault()
+            setAccountId(accountId)
+        }
+
+        and: "Flash metrics"
+        flushMetrics(pbsWithStoredProfiles)
+
+        when: "PBS processes auction request"
+        def response = pbsWithStoredProfiles.sendAuctionRequest(bidRequest)
+
+        then: "PBS should emit proper warning"
+        assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
+        assert response.ext?.warnings[ErrorType.PREBID]*.message == [NO_REQUEST_PROFILE_MESSAGE.formatted(invalidProfileId)]
+
+        and: "Response should contain error"
+        assert !response.ext?.errors
+
+        and: "Missing metric should increments"
+        def metrics = pbsWithStoredProfiles.sendCollectedMetricsRequest()
+        assert metrics[MISSING_ACCOUNT_PROFILE_METRIC.formatted(accountId)] == 1
+
+        and: "Bidder request should contain data from profile"
+        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
+            it.site.id == bidRequest.site.id
+            it.site.name == bidRequest.site.name
+            it.site.domain == bidRequest.site.domain
+            it.site.cat == bidRequest.site.cat
+            it.site.sectionCat == bidRequest.site.sectionCat
+            it.site.pageCat == bidRequest.site.pageCat
+            it.site.page == bidRequest.site.page
+            it.site.ref == bidRequest.site.ref
+            it.site.search == bidRequest.site.search
+            it.site.keywords == bidRequest.site.keywords
+
+            it.device.didsha1 == bidRequest.device.didsha1
+            it.device.didmd5 == bidRequest.device.didmd5
+            it.device.dpidsha1 == bidRequest.device.dpidsha1
+            it.device.ifa == bidRequest.device.ifa
+            it.device.macsha1 == bidRequest.device.macsha1
+            it.device.macmd5 == bidRequest.device.macmd5
+            it.device.dpidmd5 == bidRequest.device.dpidmd5
+        }
+
+        where:
+        invalidProfile << [
+                RequestProfile.getProfile().tap { it.type = ProfileType.EMPTY},
+                RequestProfile.getProfile().tap { it.type = ProfileType.UNKNOWN},
+                RequestProfile.getProfile().tap { it.mergePrecedence = ProfileMergePrecedence.EMPTY},
+                RequestProfile.getProfile().tap { it.mergePrecedence = ProfileMergePrecedence.UNKNOWN},
+        ]
     }
 
     private static BidRequest getRequestWithProfiles(String accountId, List<Profile> profiles) {

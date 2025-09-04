@@ -8,7 +8,8 @@ enum ProfileMergePrecedence {
 
     EMPTY(""),
     REQUEST("request"),
-    PROFILE("profile")
+    PROFILE("profile"),
+    UNKNOWN("unknown")
 
     private final String value
 
@@ -18,7 +19,7 @@ enum ProfileMergePrecedence {
 
     @JsonValue
     String getValue() {
-        value
+        name().toLowerCase()
     }
 
     static ProfileMergePrecedence forValue(String value) {
