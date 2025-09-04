@@ -250,7 +250,7 @@ class ProfileSpec extends BaseSpec {
         profileRequestDao.save(StoredProfileRequest.getProfile(requestProfile))
 
         when: "PBS processes auction request"
-        def response = pbsWithStoredProfiles.sendAuctionRequest(bidRequest as BidRequest)
+        def response = pbsWithStoredProfiles.sendAuctionRequest(bidRequest)
 
         then: "Response should not contain errors and warnings"
         assert !response.ext?.errors
@@ -288,7 +288,7 @@ class ProfileSpec extends BaseSpec {
         } as BidRequest
 
         when: "PBS processes auction request"
-        def response = pbsWithStoredProfiles.sendAuctionRequest(bidRequest as BidRequest)
+        def response = pbsWithStoredProfiles.sendAuctionRequest(bidRequest)
 
         then: "Response should not contain errors and warnings"
         assert !response.ext?.errors
