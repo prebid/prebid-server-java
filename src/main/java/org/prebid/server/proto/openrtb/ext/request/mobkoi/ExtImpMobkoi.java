@@ -9,6 +9,9 @@ public class ExtImpMobkoi {
     @JsonProperty("placementId")
     String placementId;
 
-    @JsonProperty("adServerBaseUrl")
-    String adServerBaseUrl;
+    /**
+     * The integration endpoint that the bid requests will be sent to. For example, https://test.mobkoi.com/bid.
+     */
+    @JsonProperty("integrationEndpoint")
+    String integrationEndpoint;
 }
