@@ -107,7 +107,7 @@ class PBSUtils implements ObjectMapperWrapper {
         }
     }
 
-    static BigDecimal getRandomPrice(int min = 0, int max = 10, int scale = 3) {
+    static BigDecimal getRandomPrice(int min = 1, int max = 10, int scale = 3) {
         getRandomDecimal(min, max).setScale(scale, HALF_UP)
     }
 
