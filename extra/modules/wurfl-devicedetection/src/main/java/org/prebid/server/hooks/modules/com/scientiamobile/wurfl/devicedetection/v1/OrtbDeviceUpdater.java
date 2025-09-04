@@ -55,6 +55,7 @@ public class OrtbDeviceUpdater implements PayloadUpdate<AuctionRequestPayload> {
     private Device update(Device ortbDevice) {
         final String make = tryUpdateField(ortbDevice.getMake(), this::getWurflMake);
         final String model = tryUpdateField(ortbDevice.getModel(), this::getWurflModel);
+        final String hwv = tryUpdateField(ortbDevice.getHwv(), this::getWurflModel);
         final Integer deviceType = tryUpdateField(
                 Optional.ofNullable(ortbDevice.getDevicetype())
                         .filter(it -> it > 0)
@@ -72,6 +73,7 @@ public class OrtbDeviceUpdater implements PayloadUpdate<AuctionRequestPayload> {
                 .make(make)
                 .model(model)
                 .devicetype(deviceType)
+                .hwv(hwv)
                 .os(os)
                 .osv(osv)
                 .h(h)
