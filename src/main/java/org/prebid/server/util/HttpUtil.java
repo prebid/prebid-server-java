@@ -8,7 +8,6 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.validator.routines.UrlValidator;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
@@ -16,6 +15,8 @@ import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
 
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
@@ -85,33 +86,34 @@ public final class HttpUtil {
     public static final String MACROS_OPEN = "{{";
     public static final String MACROS_CLOSE = "}}";
 
-    private static final UrlValidator URL_VALIDAROR = UrlValidator.getInstance();
-
     private HttpUtil() {
     }
 
     /**
      * Checks the input string for using as URL.
      */
-    @Deprecated
     public static String validateUrl(String url) {
         if (containsMacrosses(url)) {
             return url;
         }
 
         try {
-            return new URL(url).toString();
+            return parseUrl(url).toString();
         } catch (MalformedURLException e) {
             throw new IllegalArgumentException("URL supplied is not valid: " + url, e);
         }
     }
 
-    public static String validateUrlSyntax(String url) {
-        if (containsMacrosses(url) || URL_VALIDAROR.isValid(url)) {
-            return url;
+    public static URL parseUrl(String url) throws MalformedURLException {
+        if (StringUtils.isBlank(url)) {
+            throw new MalformedURLException("URL supplied is not valid: null");
         }
 
-        throw new IllegalArgumentException("URL supplied is not valid: " + url);
+        try {
+            return new URI(url).toURL();
+        } catch (MalformedURLException | URISyntaxException | IllegalArgumentException e) {
+            throw new MalformedURLException("URL supplied is not valid: %s. Reason: %s".formatted(url, e.getMessage()));
+        }
     }
 
     // TODO: We need our own way to work with url macrosses
@@ -161,7 +163,7 @@ public final class HttpUtil {
             return null;
         }
         try {
-            return new URL(url).getHost();
+            return parseUrl(url).getHost();
         } catch (MalformedURLException e) {
             return null;
         }

@@ -18,7 +18,6 @@ import org.prebid.server.vertx.verticles.server.HttpEndpoint;
 import org.prebid.server.vertx.verticles.server.application.ApplicationResource;
 
 import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.List;
 import java.util.Objects;
 
@@ -35,8 +34,12 @@ public class OptoutHandler implements ApplicationResource {
     private final String optoutUrl;
     private final String optinUrl;
 
-    public OptoutHandler(GoogleRecaptchaVerifier googleRecaptchaVerifier, UidsCookieService uidsCookieService,
-                         String optoutRedirectUrl, String optoutUrl, String optinUrl) {
+    public OptoutHandler(GoogleRecaptchaVerifier googleRecaptchaVerifier,
+                         UidsCookieService uidsCookieService,
+                         String optoutRedirectUrl,
+                         String optoutUrl,
+                         String optinUrl) {
+
         this.googleRecaptchaVerifier = Objects.requireNonNull(googleRecaptchaVerifier);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.optoutRedirectUrl = Objects.requireNonNull(optoutRedirectUrl);
@@ -121,8 +124,7 @@ public class OptoutHandler implements ApplicationResource {
 
     public static String getOptoutRedirectUrl(String externalUrl) {
         try {
-            final URL url = new URL(externalUrl);
-            return new URL(url.toExternalForm() + "/static/optout.html").toString();
+            return HttpUtil.parseUrl(externalUrl + "/static/optout.html").toString();
         } catch (MalformedURLException e) {
             throw new IllegalArgumentException("Could not get optout redirect url", e);
         }
