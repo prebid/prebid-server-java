@@ -2,6 +2,7 @@ package org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection
 
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.Device;
+import com.scientiamobile.wurfl.core.exc.VirtualCapabilityNotDefinedException;
 import org.mockito.Mock;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,6 +20,7 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mock.Strictness.LENIENT;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class OrtbDeviceUpdaterTest {
@@ -46,13 +48,14 @@ public class OrtbDeviceUpdaterTest {
     @Test
     public void updateShouldUpdateDeviceMakeWhenOriginalIsEmpty() {
         // given
-        given(wurflDevice.getCapability("brand_name")).willReturn("Pear");
+        given(wurflDevice.getCapability("brand_name")).willReturn("TestPhone");
         given(wurflDevice.getCapability("model_name")).willReturn("youPhone");
         given(wurflDevice.getCapabilityAsBool("ajax_support_javascript")).willReturn(true);
         given(wurflDevice.getVirtualCapabilityAsBool("is_mobile")).willReturn(true);
         given(wurflDevice.getVirtualCapabilityAsBool("is_phone")).willReturn(true);
         given(wurflDevice.getCapabilityAsBool("is_tablet")).willReturn(false);
         given(wurflDevice.getVirtualCapabilityAsBool("is_full_desktop")).willReturn(false);
+        given(wurflDevice.getVirtualCapability("form_factor")).willReturn("Smartphone");
         final OrtbDeviceUpdater target = new OrtbDeviceUpdater(wurflDevice, staticCaps, virtualCaps, true, mapper);
         final Device device = Device.builder().build();
         final BidRequest bidRequest = BidRequest.builder().device(device).build();
@@ -62,22 +65,22 @@ public class OrtbDeviceUpdaterTest {
 
         // then
         final Device resultDevice = result.bidRequest().getDevice();
-        assertThat(resultDevice.getMake()).isEqualTo("Pear");
+        assertThat(resultDevice.getMake()).isEqualTo("TestPhone");
         assertThat(resultDevice.getDevicetype()).isEqualTo(4);
     }
 
     @Test
     public void updateShouldNotUpdateDeviceMakeWhenOriginalExists() {
         // given
-        final Device device = Device.builder().make("Samsung").build();
+        final Device device = Device.builder().make("Samphone").build();
         final BidRequest bidRequest = BidRequest.builder().device(device).build();
-        given(wurflDevice.getCapability("brand_name")).willReturn("Apple");
-        given(wurflDevice.getCapability("model_name")).willReturn("iPhone");
+        given(wurflDevice.getCapability("brand_name")).willReturn("TestPhone");
+        given(wurflDevice.getCapability("model_name")).willReturn("youPhone");
         given(wurflDevice.getCapability("ajax_support_javascript")).willReturn("true");
         given(wurflDevice.getVirtualCapability("is_mobile")).willReturn("true");
         given(wurflDevice.getVirtualCapability("is_phone")).willReturn("true");
         given(wurflDevice.getCapability("is_tablet")).willReturn("false");
-        given(wurflDevice.getVirtualCapability("is_full_desktop")).willReturn("false");
+        given(wurflDevice.getVirtualCapability("form_factor")).willReturn("Smartphone");
         final OrtbDeviceUpdater target = new OrtbDeviceUpdater(wurflDevice, staticCaps, virtualCaps, true, mapper);
         given(payload.bidRequest()).willReturn(bidRequest);
 
@@ -86,7 +89,7 @@ public class OrtbDeviceUpdaterTest {
 
         // then
         final Device resultDevice = result.bidRequest().getDevice();
-        assertThat(resultDevice.getMake()).isEqualTo("Samsung");
+        assertThat(resultDevice.getMake()).isEqualTo("Samphone");
     }
 
     @Test
@@ -94,13 +97,14 @@ public class OrtbDeviceUpdaterTest {
         // given
         final Device device = Device.builder().make("Apple").pxratio(new BigDecimal("1.0")).build();
         final BidRequest bidRequest = BidRequest.builder().device(device).build();
-        given(wurflDevice.getCapability("brand_name")).willReturn("Apple");
-        given(wurflDevice.getCapability("model_name")).willReturn("iPhone");
+        given(wurflDevice.getCapability("brand_name")).willReturn("TestPhone");
+        given(wurflDevice.getCapability("model_name")).willReturn("youPhone");
         given(wurflDevice.getCapability("ajax_support_javascript")).willReturn("true");
         given(wurflDevice.getVirtualCapability("is_mobile")).willReturn("true");
         given(wurflDevice.getVirtualCapability("is_phone")).willReturn("true");
         given(wurflDevice.getCapability("is_tablet")).willReturn("false");
         given(wurflDevice.getVirtualCapability("is_full_desktop")).willReturn("false");
+        given(wurflDevice.getVirtualCapability("form_factor")).willReturn("Smartphone");
         final OrtbDeviceUpdater target = new OrtbDeviceUpdater(wurflDevice, staticCaps, virtualCaps, true, mapper);
         given(payload.bidRequest()).willReturn(bidRequest);
 
@@ -118,13 +122,14 @@ public class OrtbDeviceUpdaterTest {
         // given
         final Device device = Device.builder().build();
         final BidRequest bidRequest = BidRequest.builder().device(device).build();
-        given(wurflDevice.getCapability("brand_name")).willReturn("Apple");
-        given(wurflDevice.getCapability("model_name")).willReturn("iPhone");
+        given(wurflDevice.getCapability("brand_name")).willReturn("TestPhone");
+        given(wurflDevice.getCapability("model_name")).willReturn("youPhone");
         given(wurflDevice.getCapability("ajax_support_javascript")).willReturn("true");
         given(wurflDevice.getVirtualCapability("is_mobile")).willReturn("true");
         given(wurflDevice.getVirtualCapability("is_phone")).willReturn("true");
         given(wurflDevice.getCapability("is_tablet")).willReturn("false");
         given(wurflDevice.getVirtualCapability("is_full_desktop")).willReturn("false");
+        given(wurflDevice.getVirtualCapability("form_factor")).willReturn("Smartphone");
         final OrtbDeviceUpdater target = new OrtbDeviceUpdater(wurflDevice, staticCaps, virtualCaps, true, mapper);
         given(payload.bidRequest()).willReturn(bidRequest);
 
@@ -133,7 +138,7 @@ public class OrtbDeviceUpdaterTest {
 
         // then
         final Device resultDevice = result.bidRequest().getDevice();
-        assertThat(resultDevice.getModel()).isEqualTo("iPhone");
+        assertThat(resultDevice.getModel()).isEqualTo("youPhone");
     }
 
     @Test
@@ -141,10 +146,11 @@ public class OrtbDeviceUpdaterTest {
         // given
         final Device device = Device.builder().build();
         final BidRequest bidRequest = BidRequest.builder().device(device).build();
-        given(wurflDevice.getCapability("brand_name")).willReturn("Apple");
-        given(wurflDevice.getCapability("model_name")).willReturn("iPhone");
-        given(wurflDevice.getVirtualCapability("advertised_device_os")).willReturn("iOS");
+        given(wurflDevice.getCapability("brand_name")).willReturn("TestPhone");
+        given(wurflDevice.getCapability("model_name")).willReturn("youPhone");
+        given(wurflDevice.getVirtualCapability("advertised_device_os")).willReturn("testOS");
         given(wurflDevice.getVirtualCapabilityAsBool("is_full_desktop")).willReturn(false);
+        given(wurflDevice.getVirtualCapability("form_factor")).willReturn("Smartphone");
         final OrtbDeviceUpdater target = new OrtbDeviceUpdater(wurflDevice, staticCaps, virtualCaps, true, mapper);
         given(payload.bidRequest()).willReturn(bidRequest);
 
@@ -153,7 +159,7 @@ public class OrtbDeviceUpdaterTest {
 
         // then
         final Device resultDevice = result.bidRequest().getDevice();
-        assertThat(resultDevice.getOs()).isEqualTo("iOS");
+        assertThat(resultDevice.getOs()).isEqualTo("testOS");
     }
 
     @Test
@@ -161,13 +167,13 @@ public class OrtbDeviceUpdaterTest {
         // given
         final Device device = Device.builder().build();
         final BidRequest bidRequest = BidRequest.builder().device(device).build();
-        given(wurflDevice.getCapability("brand_name")).willReturn("Apple");
-        given(wurflDevice.getCapability("model_name")).willReturn("iPhone");
+        given(wurflDevice.getCapability("brand_name")).willReturn("TestPhone");
+        given(wurflDevice.getCapability("model_name")).willReturn("youPhone");
         given(wurflDevice.getCapabilityAsBool("ajax_support_javascript")).willReturn(true);
         given(wurflDevice.getVirtualCapabilityAsBool("is_mobile")).willReturn(true);
         given(wurflDevice.getVirtualCapabilityAsBool("is_phone")).willReturn(true);
         given(wurflDevice.getVirtualCapabilityAsBool("is_tablet")).willReturn(false);
-        given(wurflDevice.getVirtualCapabilityAsBool("is_full_desktop")).willReturn(false);
+        given(wurflDevice.getVirtualCapability("form_factor")).willReturn("Smartphone");
         given(wurflDevice.getCapabilityAsInt("resolution_width")).willReturn(3200);
         given(wurflDevice.getCapabilityAsInt("resolution_height")).willReturn(1440);
         final OrtbDeviceUpdater target = new OrtbDeviceUpdater(wurflDevice, staticCaps, virtualCaps, true, mapper);
@@ -188,6 +194,7 @@ public class OrtbDeviceUpdaterTest {
         final BidRequest bidRequest = BidRequest.builder().device(device).build();
         given(wurflDevice.getCapabilityAsBool("ajax_support_javascript")).willReturn(true);
         given(wurflDevice.getVirtualCapabilityAsBool("is_mobile")).willReturn(true);
+        given(wurflDevice.getVirtualCapability("form_factor")).willReturn("Smartphone");
         final OrtbDeviceUpdater target = new OrtbDeviceUpdater(wurflDevice, staticCaps, virtualCaps, true, mapper);
         given(payload.bidRequest()).willReturn(bidRequest);
 
@@ -242,12 +249,13 @@ public class OrtbDeviceUpdaterTest {
         // given
         final Device device = Device.builder().build();
         final BidRequest bidRequest = BidRequest.builder().device(device).build();
-        given(wurflDevice.getVirtualCapabilityAsBool("is_mobile")).willReturn(true);
+        given(wurflDevice.getVirtualCapabilityAsBool("is_mobile")).willReturn(false);
         given(wurflDevice.getVirtualCapabilityAsBool("is_phone")).willReturn(false);
         given(wurflDevice.getCapabilityAsBool("is_tablet")).willReturn(false);
         given(wurflDevice.getVirtualCapabilityAsBool("is_full_desktop")).willReturn(false);
         given(wurflDevice.getVirtualCapability("advertised_device_os")).willReturn("TestOs");
         given(wurflDevice.getVirtualCapability("advertised_device_os_version")).willReturn("1.0");
+        given(wurflDevice.getVirtualCapability("form_factor")).willReturn("Other Non-Mobile");
         final OrtbDeviceUpdater target = new OrtbDeviceUpdater(wurflDevice, staticCaps, virtualCaps, true, mapper);
         given(payload.bidRequest()).willReturn(bidRequest);
 
@@ -259,12 +267,12 @@ public class OrtbDeviceUpdaterTest {
     }
 
     @Test
-    public void updateShouldReturnNullWhenMobileTypeIsUnknown() {
+    public void updateShouldReturnNullDeviceTypeWhenMobileTypeIsUnknown() {
         // given
         given(wurflDevice.getVirtualCapability("is_mobile")).willReturn("false");
         given(wurflDevice.getVirtualCapability("is_phone")).willReturn("false");
         given(wurflDevice.getCapability("is_tablet")).willReturn("false");
-        given(wurflDevice.getVirtualCapability("is_full_desktop")).willReturn("false");
+        given(wurflDevice.getVirtualCapability("form_factor")).willReturn("Other non-Mobile");
         final Device device = Device.builder().build();
         final BidRequest bidRequest = BidRequest.builder().device(device).build();
         final OrtbDeviceUpdater target = new OrtbDeviceUpdater(wurflDevice, staticCaps, virtualCaps, true, mapper);
@@ -274,6 +282,41 @@ public class OrtbDeviceUpdaterTest {
         // then
         final Device resultDevice = result.bidRequest().getDevice();
         assertThat(resultDevice.getDevicetype()).isNull();
+    }
+
+    @Test
+    public void updateShouldReturnNullDeviceTypeWhenFormFactorIsMissing() {
+        // given
+        given(wurflDevice.getVirtualCapability("is_mobile")).willReturn("true");
+        given(wurflDevice.getVirtualCapability("is_phone")).willReturn("false");
+        given(wurflDevice.getCapability("is_tablet")).willReturn("false");
+        when(wurflDevice.getVirtualCapability("form_factor"))
+                .thenThrow(new VirtualCapabilityNotDefinedException("form_factor"));
+        final Device device = Device.builder().build();
+        final BidRequest bidRequest = BidRequest.builder().device(device).build();
+        final OrtbDeviceUpdater target = new OrtbDeviceUpdater(wurflDevice, staticCaps, virtualCaps, true, mapper);
+        // when
+        given(payload.bidRequest()).willReturn(bidRequest);
+        final AuctionRequestPayload result = target.apply(payload);
+        // then
+        final Device resultDevice = result.bidRequest().getDevice();
+        assertThat(resultDevice.getDevicetype()).isNull();
+    }
+
+    @Test
+    public void updateShouldReturnGenericMobileTabletDeviceTypeWhenFormFactorIsOtherMobile() {
+        // given
+        given(wurflDevice.getCapability("is_tablet")).willReturn("false");
+        given(wurflDevice.getVirtualCapability("form_factor")).willReturn("Other Mobile");
+        final Device device = Device.builder().build();
+        final BidRequest bidRequest = BidRequest.builder().device(device).build();
+        final OrtbDeviceUpdater target = new OrtbDeviceUpdater(wurflDevice, staticCaps, virtualCaps, true, mapper);
+        // when
+        given(payload.bidRequest()).willReturn(bidRequest);
+        final AuctionRequestPayload result = target.apply(payload);
+        // then
+        final Device resultDevice = result.bidRequest().getDevice();
+        assertThat(resultDevice.getDevicetype()).isEqualTo(1);
     }
 
     @Test
@@ -311,6 +354,7 @@ public class OrtbDeviceUpdaterTest {
         given(wurflDevice.getVirtualCapability("advertised_device_os")).willReturn("WebOS");
         given(wurflDevice.getVirtualCapability("advertised_device_os_version")).willReturn("4");
         given(wurflDevice.getCapabilityAsBool("is_connected_tv")).willReturn(true);
+        given(wurflDevice.getVirtualCapability("form_factor")).willReturn("Smart-TV");
         final OrtbDeviceUpdater target = new OrtbDeviceUpdater(wurflDevice, staticCaps, virtualCaps, true, mapper);
         // when
         given(payload.bidRequest()).willReturn(bidRequest);
@@ -349,6 +393,7 @@ public class OrtbDeviceUpdaterTest {
         given(wurflDevice.getVirtualCapabilityAsBool("is_phone")).willReturn(false);
         given(wurflDevice.getCapability("brand_name")).willReturn("SamTest");
         given(wurflDevice.getCapability("model_name")).willReturn("Test Tab S9+");
+        given(wurflDevice.getVirtualCapability("form_factor")).willReturn("Tablet");
 
         final Device device = Device.builder().build();
         final BidRequest bidRequest = BidRequest.builder().device(device).build();
@@ -371,6 +416,7 @@ public class OrtbDeviceUpdaterTest {
         given(wurflDevice.getVirtualCapabilityAsBool("is_phone")).willReturn(true);
         given(wurflDevice.getCapability("brand_name")).willReturn("PixTest");
         given(wurflDevice.getCapability("model_name")).willReturn("Test Pix 9");
+        given(wurflDevice.getVirtualCapability("form_factor")).willReturn("Smartphone");
 
         final Device device = Device.builder().build();
         final BidRequest bidRequest = BidRequest.builder().device(device).build();
@@ -393,13 +439,14 @@ public class OrtbDeviceUpdaterTest {
                 .ext(existingExt)
                 .build();
         final BidRequest bidRequest = BidRequest.builder().device(device).build();
-        given(wurflDevice.getCapability("brand_name")).willReturn("Apple");
-        given(wurflDevice.getCapability("model_name")).willReturn("iPhone");
+        given(wurflDevice.getCapability("brand_name")).willReturn("TestPhone");
+        given(wurflDevice.getCapability("model_name")).willReturn("youPhone");
         given(wurflDevice.getCapability("ajax_support_javascript")).willReturn("true");
         given(wurflDevice.getVirtualCapability("is_mobile")).willReturn("true");
         given(wurflDevice.getVirtualCapability("is_phone")).willReturn("true");
         given(wurflDevice.getCapability("is_tablet")).willReturn("false");
         given(wurflDevice.getVirtualCapability("is_full_desktop")).willReturn("false");
+        given(wurflDevice.getVirtualCapability("form_factor")).willReturn("Smartphone");
         final Set<String> staticCaps = Set.of("brand_name");
         final Set<String> virtualCaps = Set.of("advertised_device_os");
         final OrtbDeviceUpdater target = new OrtbDeviceUpdater(wurflDevice, staticCaps, virtualCaps, true, mapper);

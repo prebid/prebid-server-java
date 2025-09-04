@@ -104,58 +104,64 @@ public class OrtbDeviceUpdater implements PayloadUpdate<AuctionRequestPayload> {
 
     private Integer getWurflDeviceType() {
 
-        try {
-            final boolean isDeviceMobile = wurflDevice.getVirtualCapabilityAsBool("is_mobile");
-            if (isDeviceMobile) {
-                // if at least one of these capabilities is not defined, the mobile device type is undefined
-                final boolean isPhone = wurflDevice.getVirtualCapabilityAsBool("is_phone");
-                final boolean isTablet = wurflDevice.getCapabilityAsBool("is_tablet");
-                if (!(isPhone || isTablet)) {
-                    return 6;
-                }
-            }
-
-            if (wurflDevice.getVirtualCapabilityAsBool("is_full_desktop")) {
-                return 2;
-            }
-
-            if (wurflDevice.getCapabilityAsBool("is_connected_tv")) {
-                return 3;
-            }
-
-            if (wurflDevice.getVirtualCapabilityAsBool("is_phone")) {
-                return 4;
-            }
-
-            if (wurflDevice.getCapabilityAsBool("is_tablet")) {
-                return 5;
-            }
-
-            if (wurflDevice.getCapabilityAsBool("is_ott")) {
-                return 7;
-            }
-
-            final String physicalFormFactor = getPhysicalFormFactor();
-            if (physicalFormFactor != null && physicalFormFactor.equals("out_of_home_device")) {
-                return 8;
-            }
-
-            if (isDeviceMobile) {
-                return 1;
-            }
-        } catch (CapabilityNotDefinedException | VirtualCapabilityNotDefinedException | NumberFormatException e) {
-            logger.warn("Failed to determine device type from WURFL device capabilities", e);
+        if (getWurflIsOtt()) {
+            return 7;
         }
 
-        return null;
+        final Boolean isConsole = getWurflIsConsole();
+        if (isConsole) {
+            return 6;
+        }
+
+        if ("out_of_home_device".equals(getWurflPhysicalFormFactor())) {
+            return 8;
+        }
+
+        final String formFactor = getWurflFormFactor();
+        return switch (formFactor) {
+            case "Desktop" -> 2;
+            case "Smartphone", "Feature Phone" -> 4;
+            case "Tablet" -> 5;
+            case "Smart-TV" -> 3;
+            case "Other Non-Mobile" -> 6;
+            case "Other Mobile" -> 1;
+            default -> null;
+        };
     }
 
-    private String getPhysicalFormFactor() {
+    private Boolean getWurflIsOtt() {
+        try {
+            return wurflDevice.getCapabilityAsBool("is_ott");
+        } catch (CapabilityNotDefinedException e) {
+            logger.warn("Failed to get is_ott from WURFL device capabilities", e);
+            return Boolean.FALSE;
+        }
+    }
+
+    private String getWurflFormFactor() {
+        try {
+            return wurflDevice.getVirtualCapability("form_factor");
+        } catch (VirtualCapabilityNotDefinedException e) {
+            logger.warn("Failed to get form_factor from WURFL device capabilities", e);
+            return "";
+        }
+    }
+
+    private String getWurflPhysicalFormFactor() {
         try {
             return wurflDevice.getCapability("physical_form_factor");
         } catch (CapabilityNotDefinedException e) {
-            logger.warn("Failed to get physical form factor from WURFL device capabilities", e);
+            logger.warn("Failed to get physical_form_factor from WURFL device capabilities", e);
             return "";
+        }
+    }
+
+    private Boolean getWurflIsConsole() {
+        try {
+            return wurflDevice.getCapabilityAsBool("is_console");
+        } catch (CapabilityNotDefinedException e) {
+            logger.warn("Failed to get is_console from WURFL device capabilities", e);
+            return Boolean.FALSE;
         }
     }
 
