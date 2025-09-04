@@ -1,6 +1,5 @@
 package org.prebid.server.settings.helper;
 
-import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowIterator;
 import io.vertx.sqlclient.RowSet;
@@ -13,7 +12,6 @@ import org.prebid.server.settings.model.StoredDataResult;
 
 import java.util.Arrays;
 import java.util.Iterator;
-import java.util.stream.IntStream;
 
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singleton;
@@ -37,7 +35,8 @@ public class DatabaseStoredDataResultMapperTest {
         givenRowSet();
 
         // when
-        final StoredDataResult result = DatabaseStoredDataResultMapper.map(rowSet, null, emptySet(), emptySet());
+        final StoredDataResult<String> result = DatabaseStoredDataResultMapper.map(
+                rowSet, null, emptySet(), emptySet());
 
         // then
         assertThat(result.getStoredIdToRequest()).isEmpty();
@@ -52,7 +51,7 @@ public class DatabaseStoredDataResultMapperTest {
         givenRowSet();
 
         // when
-        final StoredDataResult result = DatabaseStoredDataResultMapper.map(
+        final StoredDataResult<String> result = DatabaseStoredDataResultMapper.map(
                 rowSet,
                 null,
                 singleton("reqId"),
@@ -71,7 +70,7 @@ public class DatabaseStoredDataResultMapperTest {
         givenRowSet(givenRow("accountId", "id1", "data"));
 
         // when
-        final StoredDataResult result = DatabaseStoredDataResultMapper.map(
+        final StoredDataResult<String> result = DatabaseStoredDataResultMapper.map(
                 rowSet,
                 "accountId",
                 singleton("reqId"),
@@ -90,7 +89,7 @@ public class DatabaseStoredDataResultMapperTest {
         givenRowSet(givenRow("accountId", "id1", "data", 123));
 
         // when
-        final StoredDataResult result = DatabaseStoredDataResultMapper.map(
+        final StoredDataResult<String> result = DatabaseStoredDataResultMapper.map(
                 rowSet,
                 "accountId",
                 singleton("reqId"),
@@ -111,7 +110,7 @@ public class DatabaseStoredDataResultMapperTest {
                 givenRow("accountId", "id1", "data2", "invalid"));
 
         // when
-        final StoredDataResult result = DatabaseStoredDataResultMapper.map(
+        final StoredDataResult<String> result = DatabaseStoredDataResultMapper.map(
                 rowSet,
                 "accountId",
                 singleton("id1"),
@@ -130,7 +129,7 @@ public class DatabaseStoredDataResultMapperTest {
         givenRowSet(givenRow("accountId", "id1", "data1", "request"));
 
         // when
-        final StoredDataResult result = DatabaseStoredDataResultMapper.map(
+        final StoredDataResult<String> result = DatabaseStoredDataResultMapper.map(
                 rowSet,
                 "accountId",
                 singleton("id1"),
@@ -152,7 +151,7 @@ public class DatabaseStoredDataResultMapperTest {
                 givenRow("accountId", "id2", "data2", "imp"));
 
         // when
-        final StoredDataResult result = DatabaseStoredDataResultMapper.map(
+        final StoredDataResult<String> result = DatabaseStoredDataResultMapper.map(
                 rowSet,
                 "otherAccountId",
                 singleton("id1"),
@@ -175,7 +174,7 @@ public class DatabaseStoredDataResultMapperTest {
                 givenRow("accountId2", "id1", "data2", "request"));
 
         // when
-        final StoredDataResult result = DatabaseStoredDataResultMapper.map(
+        final StoredDataResult<String> result = DatabaseStoredDataResultMapper.map(
                 rowSet,
                 null,
                 singleton("id1"),
@@ -198,7 +197,7 @@ public class DatabaseStoredDataResultMapperTest {
                 givenRow("accountId2", "id2", "data-otherAccountId", "imp"));
 
         // when
-        final StoredDataResult result = DatabaseStoredDataResultMapper.map(
+        final StoredDataResult<String> result = DatabaseStoredDataResultMapper.map(
                 rowSet,
                 "otherAccountId",
                 singleton("id1"),
@@ -223,7 +222,7 @@ public class DatabaseStoredDataResultMapperTest {
                 givenRow("otherAccountId", "id2", "data-otherAccountId", "imp"));
 
         // when
-        final StoredDataResult result = DatabaseStoredDataResultMapper.map(
+        final StoredDataResult<String> result = DatabaseStoredDataResultMapper.map(
                 rowSet,
                 "accountId",
                 singleton("id1"),
@@ -243,7 +242,7 @@ public class DatabaseStoredDataResultMapperTest {
         givenRowSet();
 
         // when
-        final StoredDataResult result = DatabaseStoredDataResultMapper.map(rowSet);
+        final StoredDataResult<String> result = DatabaseStoredDataResultMapper.map(rowSet);
 
         // then
         assertThat(result.getStoredIdToRequest()).isEmpty();
@@ -260,7 +259,7 @@ public class DatabaseStoredDataResultMapperTest {
                 givenRow("accountId", "id2", "data2", "invalid"));
 
         // when
-        final StoredDataResult result = DatabaseStoredDataResultMapper.map(rowSet);
+        final StoredDataResult<String> result = DatabaseStoredDataResultMapper.map(rowSet);
 
         // then
         assertThat(result.getStoredIdToRequest()).hasSize(1)
@@ -275,7 +274,7 @@ public class DatabaseStoredDataResultMapperTest {
         givenRowSet(givenRow("accountId", "id1", "data"));
 
         // when
-        final StoredDataResult result = DatabaseStoredDataResultMapper.map(rowSet);
+        final StoredDataResult<String> result = DatabaseStoredDataResultMapper.map(rowSet);
 
         // then
         assertThat(result.getStoredIdToRequest()).isEmpty();
@@ -290,7 +289,7 @@ public class DatabaseStoredDataResultMapperTest {
         givenRowSet(givenRow("accountId", "id1", "data", 123));
 
         // when
-        final StoredDataResult result = DatabaseStoredDataResultMapper.map(rowSet);
+        final StoredDataResult<String> result = DatabaseStoredDataResultMapper.map(rowSet);
 
         // then
         assertThat(result.getStoredIdToRequest()).isEmpty();
@@ -306,7 +305,7 @@ public class DatabaseStoredDataResultMapperTest {
                 givenRow("accountId", "id2", "data2", "imp"));
 
         // when
-        final StoredDataResult result = DatabaseStoredDataResultMapper.map(rowSet);
+        final StoredDataResult<String> result = DatabaseStoredDataResultMapper.map(rowSet);
 
         // then
         assertThat(result.getStoredIdToRequest()).hasSize(1)
@@ -323,9 +322,7 @@ public class DatabaseStoredDataResultMapperTest {
     private Row givenRow(Object... values) {
         final Row row = mock(Row.class, withSettings().strictness(LENIENT));
         given(row.getValue(anyInt())).willAnswer(invocation -> values[(Integer) invocation.getArgument(0)]);
-        final JsonObject json = new JsonObject();
-        IntStream.range(0, values.length).forEach(i -> json.put(String.valueOf(i), values[i]));
-        given(row.toJson()).willReturn(json);
+        given(row.size()).willReturn(values.length);
         return row;
     }
 

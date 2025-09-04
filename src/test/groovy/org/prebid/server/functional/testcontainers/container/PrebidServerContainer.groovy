@@ -5,6 +5,7 @@ import org.prebid.server.functional.testcontainers.PbsConfig
 import org.prebid.server.functional.util.SystemProperties
 import org.testcontainers.containers.GenericContainer
 import org.testcontainers.containers.wait.strategy.Wait
+import org.testcontainers.images.builder.Transferable
 
 import static org.prebid.server.functional.testcontainers.PbsConfig.DEFAULT_ENV
 
@@ -93,6 +94,14 @@ class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
         property.replace(".", "_")
                 .replace("[", "_")
                 .replace("]", "_")
+    }
+
+    PrebidServerContainer withFolder(String containerPath) {
+        this.withCopyToContainer(
+                Transferable.of(new byte[0], 010755),
+                containerPath + "/.keep"
+        )
+        return this
     }
 
     // This is a workaround for cases when container is killed mid-test due to OOM
