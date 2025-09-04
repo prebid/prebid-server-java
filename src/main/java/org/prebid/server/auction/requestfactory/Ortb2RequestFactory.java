@@ -378,7 +378,7 @@ public class Ortb2RequestFactory {
                         toCaseInsensitiveMultiMap(routingContext.queryParams()),
                         toCaseInsensitiveMultiMap(routingContext.request().headers()),
                         body,
-                        auctionContext.getHookExecutionContext())
+                        auctionContext)
                 .map(stageResult -> toHttpRequest(stageResult, routingContext, auctionContext));
     }
 
