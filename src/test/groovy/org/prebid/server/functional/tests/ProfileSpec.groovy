@@ -96,6 +96,10 @@ class ProfileSpec extends BaseSpec {
             mergePrecedence = null
         }
         fileImpProfileWithEmptyMerge = ImpProfile.getProfile(ACCOUNT_ID_FILE_STORAGE.toString()).tap {
+            body.banner.tap {
+                btype = [PBSUtils.randomNumber]
+                format = [Format.randomFormat]
+            }
             mergePrecedence = null
         }
         pbsContainer.withCopyToContainer(Transferable.of(encode(fileRequestProfileWithEmptyMerge)), "$PROFILES_PATH/${fileRequestProfileWithEmptyMerge.fileName}")
@@ -243,7 +247,6 @@ class ProfileSpec extends BaseSpec {
         }
         def bidRequest = getRequestWithProfiles(accountId, [requestProfile]).tap {
             it.site = Site.configFPDSite
-            it.device = Device.default
         } as BidRequest
 
         and: "Default profile in database"
@@ -256,7 +259,7 @@ class ProfileSpec extends BaseSpec {
         assert !response.ext?.errors
         assert !response.ext?.warnings
 
-        and: "Bidder request should contain data from profile"
+        and: "Bidder request should contain data from original request when data is present"
         verifyAll(bidder.getBidderRequest(bidRequest.id)) {
             it.site.id == bidRequest.site.id
             it.site.name == bidRequest.site.name
@@ -269,14 +272,17 @@ class ProfileSpec extends BaseSpec {
             it.site.search == bidRequest.site.search
             it.site.keywords == bidRequest.site.keywords
             it.site.ext.data == bidRequest.site.ext.data
+        }
 
-            it.device.didsha1 == bidRequest.device.didsha1
-            it.device.didmd5 == bidRequest.device.didmd5
-            it.device.dpidsha1 == bidRequest.device.dpidsha1
-            it.device.ifa == bidRequest.device.ifa
-            it.device.macsha1 == bidRequest.device.macsha1
-            it.device.macmd5 == bidRequest.device.macmd5
-            it.device.dpidmd5 == bidRequest.device.dpidmd5
+        and: "Bidder request should contain data from profile when data is empty"
+        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
+            it.device.didsha1 == requestProfile.body.device.didsha1
+            it.device.didmd5 == requestProfile.body.device.didmd5
+            it.device.dpidsha1 == requestProfile.body.device.dpidsha1
+            it.device.ifa == requestProfile.body.device.ifa
+            it.device.macsha1 == requestProfile.body.device.macsha1
+            it.device.macmd5 == requestProfile.body.device.macmd5
+            it.device.dpidmd5 == requestProfile.body.device.dpidmd5
         }
     }
 
@@ -284,7 +290,6 @@ class ProfileSpec extends BaseSpec {
         given: "Default bidRequest with request profile"
         def bidRequest = getRequestWithProfiles(ACCOUNT_ID_FILE_STORAGE.toString(), [fileRequestProfileWithEmptyMerge]).tap {
             it.site = Site.configFPDSite
-            it.device = Device.default
         } as BidRequest
 
         when: "PBS processes auction request"
@@ -294,7 +299,7 @@ class ProfileSpec extends BaseSpec {
         assert !response.ext?.errors
         assert !response.ext?.warnings
 
-        and: "Bidder request should contain data from profile"
+        and: "Bidder request should contain data from original request when data is present"
         verifyAll(bidder.getBidderRequest(bidRequest.id)) {
             it.site.id == bidRequest.site.id
             it.site.name == bidRequest.site.name
@@ -307,14 +312,17 @@ class ProfileSpec extends BaseSpec {
             it.site.search == bidRequest.site.search
             it.site.keywords == bidRequest.site.keywords
             it.site.ext.data == bidRequest.site.ext.data
+        }
 
-            it.device.didsha1 == bidRequest.device.didsha1
-            it.device.didmd5 == bidRequest.device.didmd5
-            it.device.dpidsha1 == bidRequest.device.dpidsha1
-            it.device.ifa == bidRequest.device.ifa
-            it.device.macsha1 == bidRequest.device.macsha1
-            it.device.macmd5 == bidRequest.device.macmd5
-            it.device.dpidmd5 == bidRequest.device.dpidmd5
+        and: "Bidder request should contain data from original request when data is empty"
+        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
+            it.device.didsha1 == fileRequestProfileWithEmptyMerge.body.device.didsha1
+            it.device.didmd5 == fileRequestProfileWithEmptyMerge.body.device.didmd5
+            it.device.dpidsha1 == fileRequestProfileWithEmptyMerge.body.device.dpidsha1
+            it.device.ifa == fileRequestProfileWithEmptyMerge.body.device.ifa
+            it.device.macsha1 == fileRequestProfileWithEmptyMerge.body.device.macsha1
+            it.device.macmd5 == fileRequestProfileWithEmptyMerge.body.device.macmd5
+            it.device.dpidmd5 == fileRequestProfileWithEmptyMerge.body.device.dpidmd5
         }
     }
 
@@ -323,7 +331,10 @@ class ProfileSpec extends BaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def impProfile = ImpProfile.getProfile(accountId).tap {
             it.mergePrecedence = null
-            it.body.banner.format = [Format.randomFormat]
+            body.banner.tap {
+                btype = [PBSUtils.randomNumber]
+                format = [Format.randomFormat]
+            }
         }
         def bidRequest = getRequestWithProfiles(accountId, [impProfile])
 
@@ -337,8 +348,12 @@ class ProfileSpec extends BaseSpec {
         assert !response.ext?.errors
         assert !response.ext?.warnings
 
-        and: "Bidder request imp should contain data from profile"
-        assert bidder.getBidderRequest(bidRequest.id).imp.banner == bidRequest.imp.banner
+        and: "Bidder request imp should contain data from profile when data is present"
+        def bidderImpBanner = bidder.getBidderRequest(bidRequest.id).imp.banner.first
+        assert bidderImpBanner.format == bidRequest.imp.first.banner.format
+
+        and: "Bidder request should contain data from profile when data is empty"
+        assert bidderImpBanner.btype == impProfile.body.banner.btype
     }
 
     def "PBS should set merge strategy to default profile without error for imp profile when merge strategy is empty in filesystem"() {
@@ -352,8 +367,12 @@ class ProfileSpec extends BaseSpec {
         assert !response.ext?.errors
         assert !response.ext?.warnings
 
-        and: "Bidder request imp should contain data from profile"
-        assert bidder.getBidderRequest(bidRequest.id).imp.banner == bidRequest.imp.banner
+        and: "Bidder request imp should contain data from profile when data is present"
+        def bidderImpBanner = bidder.getBidderRequest(bidRequest.id).imp.banner.first
+        assert bidderImpBanner.format == bidRequest.imp.first.banner.format
+
+        and: "Bidder request should contain data from profile when data is empty"
+        assert bidderImpBanner.btype == fileImpProfileWithEmptyMerge.body.banner.btype
     }
 
     def "PBS should merge latest-specified profile when there merge conflict and different merge precedence present"() {
