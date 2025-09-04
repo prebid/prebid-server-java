@@ -12,8 +12,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
-import org.prebid.server.auction.aliases.BidderAliases;
-import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.validation.ImpValidator;
 import org.prebid.server.validation.ValidationException;
@@ -22,7 +20,6 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -35,18 +32,11 @@ public class ImpAdjusterTest extends VertxTest {
     @Mock
     private ImpValidator impValidator;
 
-    @Mock
-    private BidderCatalog bidderCatalog;
-
     private ImpAdjuster target;
-
-    private BidderAliases bidderAliases;
 
     @BeforeEach
     public void setUp() {
         target = new ImpAdjuster(jacksonMapper, new JsonMerger(jacksonMapper), impValidator);
-        bidderAliases = BidderAliases.of(
-                Map.of("someBidderAlias", "someBidder"), Collections.emptyMap(), bidderCatalog);
     }
 
     @Test
@@ -56,7 +46,7 @@ public class ImpAdjusterTest extends VertxTest {
         final List<String> debugMessages = new ArrayList<>();
 
         // when
-        final Imp result = target.adjust(givenImp, "someBidder", bidderAliases, debugMessages);
+        final Imp result = target.adjust(givenImp, "someBidder", debugMessages);
 
         // then
         assertThat(result).isSameAs(givenImp);
@@ -72,7 +62,7 @@ public class ImpAdjusterTest extends VertxTest {
         final List<String> debugMessages = new ArrayList<>();
 
         // when
-        final Imp result = target.adjust(givenImp, "someBidder", bidderAliases, debugMessages);
+        final Imp result = target.adjust(givenImp, "someBidder", debugMessages);
 
         // then
         assertThat(result).isSameAs(givenImp);
@@ -90,7 +80,7 @@ public class ImpAdjusterTest extends VertxTest {
         final List<String> debugMessages = new ArrayList<>();
 
         // when
-        final Imp result = target.adjust(givenImp, "someBidder", bidderAliases, debugMessages);
+        final Imp result = target.adjust(givenImp, "someBidder", debugMessages);
 
         // then
         assertThat(result.getExt().get("igs").get("ae")).isEqualTo(IntNode.valueOf(0));
@@ -108,7 +98,7 @@ public class ImpAdjusterTest extends VertxTest {
         final List<String> debugMessages = new ArrayList<>();
 
         // when
-        final Imp result = target.adjust(givenImp, "someBidder", bidderAliases, debugMessages);
+        final Imp result = target.adjust(givenImp, "someBidder", debugMessages);
 
         // then
         assertThat(result.getExt().get("igs").get("ae")).isEqualTo(IntNode.valueOf(1));
@@ -126,7 +116,7 @@ public class ImpAdjusterTest extends VertxTest {
         final List<String> debugMessages = new ArrayList<>();
 
         // when
-        final Imp result = target.adjust(givenImp, "someBidder", bidderAliases, debugMessages);
+        final Imp result = target.adjust(givenImp, "someBidder", debugMessages);
 
         // then
         assertThat(result.getExt().get("igs")).isNull();
@@ -145,7 +135,7 @@ public class ImpAdjusterTest extends VertxTest {
         final List<String> debugMessages = new ArrayList<>();
 
         // when
-        final Imp result = target.adjust(givenImp, "someBidder", bidderAliases, debugMessages);
+        final Imp result = target.adjust(givenImp, "someBidder", debugMessages);
 
         // then
         assertThat(result.getExt().get("igs").get("ae")).isEqualTo(IntNode.valueOf(123));
@@ -162,7 +152,7 @@ public class ImpAdjusterTest extends VertxTest {
         final List<String> debugMessages = new ArrayList<>();
 
         // when
-        final Imp result = target.adjust(givenImp, "someBidder", bidderAliases, debugMessages);
+        final Imp result = target.adjust(givenImp, "someBidder", debugMessages);
 
         // then
         final Imp expectedImp = givenImp.toBuilder()
@@ -186,7 +176,7 @@ public class ImpAdjusterTest extends VertxTest {
         final List<String> debugMessages = new ArrayList<>();
 
         // when
-        final Imp result = target.adjust(givenImp, "someBidder", bidderAliases, debugMessages);
+        final Imp result = target.adjust(givenImp, "someBidder", debugMessages);
 
         // then
         final Imp expectedImp = givenImp.toBuilder()
@@ -214,7 +204,7 @@ public class ImpAdjusterTest extends VertxTest {
         final List<String> debugMessages = new ArrayList<>();
 
         // when
-        final Imp result = target.adjust(givenImp, "SOMEbiDDer", bidderAliases, debugMessages);
+        final Imp result = target.adjust(givenImp, "SOMEbiDDer", debugMessages);
 
         // then
         final Imp expectedImp = givenImp.toBuilder()
@@ -238,11 +228,11 @@ public class ImpAdjusterTest extends VertxTest {
                         .set("deals", mapper.createArrayNode()
                                 .add(mapper.createObjectNode().put("id", "dealId2"))));
 
-        final Imp givenImp = givenImp("someBidderAlias", givenBidderImp);
+        final Imp givenImp = givenImp("someBidder", givenBidderImp);
         final List<String> debugMessages = new ArrayList<>();
 
         // when
-        final Imp result = target.adjust(givenImp, "SOMEbiDDer", bidderAliases, debugMessages);
+        final Imp result = target.adjust(givenImp, "SOMEbiDDer", debugMessages);
 
         // then
         final Imp expectedImp = givenImp.toBuilder()
@@ -272,7 +262,7 @@ public class ImpAdjusterTest extends VertxTest {
         final List<String> debugMessages = new ArrayList<>();
 
         // when
-        final Imp result = target.adjust(givenImp, "someBidder", bidderAliases, debugMessages);
+        final Imp result = target.adjust(givenImp, "someBidder", debugMessages);
 
         // then
         final Imp expectedImp = givenImp.toBuilder()
@@ -297,7 +287,7 @@ public class ImpAdjusterTest extends VertxTest {
         final List<String> debugMessages = new ArrayList<>();
 
         // when
-        final Imp result = target.adjust(givenImp, "someBidder", bidderAliases, debugMessages);
+        final Imp result = target.adjust(givenImp, "someBidder", debugMessages);
 
         // then
         final Imp expectedImp = givenImp.toBuilder()
