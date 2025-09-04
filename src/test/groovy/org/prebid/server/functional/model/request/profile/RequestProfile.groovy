@@ -12,8 +12,8 @@ import static ProfileMergePrecedence.PROFILE
 class RequestProfile extends Profile<BidRequest> {
 
     static RequestProfile getProfile(String accountId = PBSUtils.randomString,
-                      String name = PBSUtils.randomString,
-                      ProfileMergePrecedence mergePrecedence = PROFILE) {
+                                     String name = PBSUtils.randomString,
+                                     ProfileMergePrecedence mergePrecedence = PROFILE) {
         BidRequest request = BidRequest.defaultBidRequest.tap {
             it.id = null
             it.imp = null
@@ -24,9 +24,9 @@ class RequestProfile extends Profile<BidRequest> {
     }
 
     static RequestProfile getProfile(String accountId,
-                      BidRequest request,
-                      String name = PBSUtils.randomString,
-                      ProfileMergePrecedence mergePrecedence = PROFILE) {
+                                     BidRequest request,
+                                     String name = PBSUtils.randomString,
+                                     ProfileMergePrecedence mergePrecedence = PROFILE) {
 
         new RequestProfile().tap {
             it.accountId = accountId

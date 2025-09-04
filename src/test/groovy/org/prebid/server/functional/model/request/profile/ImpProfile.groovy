@@ -10,9 +10,9 @@ import static ProfileMergePrecedence.PROFILE
 class ImpProfile extends Profile<Imp> {
 
     static ImpProfile getProfile(String accountId,
-                      Imp imp = Imp.defaultImpression,
-                      String name = PBSUtils.randomString,
-                      ProfileMergePrecedence mergePrecedence = PROFILE) {
+                                 Imp imp = Imp.defaultImpression,
+                                 String name = PBSUtils.randomString,
+                                 ProfileMergePrecedence mergePrecedence = PROFILE) {
 
         new ImpProfile().tap {
             it.accountId = accountId

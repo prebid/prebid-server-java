@@ -127,7 +127,7 @@ class ProfileSpec extends BaseSpec {
         when: "PBS processes auction request"
         def response = pbsWithStoredProfiles.sendAuctionRequest(bidRequest)
 
-        then: "No errors should be emitted in debug"
+        then: "Response should not contain errors and warnings"
         assert !response.ext?.errors
         assert !response.ext?.warnings
 
@@ -169,7 +169,7 @@ class ProfileSpec extends BaseSpec {
         when: "PBS processes auction request"
         def response = pbsWithStoredProfiles.sendAuctionRequest(bidRequest)
 
-        then: "No errors should be emitted in debug"
+        then: "Response should not contain errors and warnings"
         assert !response.ext?.errors
         assert !response.ext?.warnings
 
@@ -187,7 +187,7 @@ class ProfileSpec extends BaseSpec {
         when: "PBS processes auction request"
         def response = pbsWithStoredProfiles.sendAuctionRequest(bidRequest)
 
-        then: "No errors should be emitted in debug"
+        then: "Response should not contain errors and warnings"
         assert !response.ext?.errors
         assert !response.ext?.warnings
 
@@ -224,7 +224,7 @@ class ProfileSpec extends BaseSpec {
         when: "PBS processes auction request"
         def response = pbsWithStoredProfiles.sendAuctionRequest(bidRequest)
 
-        then: "No errors should be emitted in debug"
+        then: "Response should not contain errors and warnings"
         assert !response.ext?.errors
         assert !response.ext?.warnings
 
@@ -246,17 +246,13 @@ class ProfileSpec extends BaseSpec {
             it.device = Device.default
         } as BidRequest
 
-        and: "Default account"
-        def account = new Account(uuid: accountId, status: ACTIVE)
-        accountDao.save(account)
-
         and: "Default profile in database"
         profileRequestDao.save(StoredProfileRequest.getProfile(requestProfile))
 
         when: "PBS processes auction request"
         def response = pbsWithStoredProfiles.sendAuctionRequest(bidRequest as BidRequest)
 
-        then: "No errors should be emitted in debug"
+        then: "Response should not contain errors and warnings"
         assert !response.ext?.errors
         assert !response.ext?.warnings
 
@@ -302,7 +298,7 @@ class ProfileSpec extends BaseSpec {
         when: "PBS processes auction request"
         def response = pbsWithStoredProfiles.sendAuctionRequest(bidRequest)
 
-        then: "No errors should be emitted in debug"
+        then: "Response should not contain errors and warnings"
         assert !response.ext?.errors
         assert !response.ext?.warnings
 
@@ -323,10 +319,6 @@ class ProfileSpec extends BaseSpec {
             it.device = Device.default
         }
 
-        and: "Default account"
-        def account = new Account(uuid: accountId, status: ACTIVE)
-        accountDao.save(account)
-
         and: "Default profiles in database"
         profileRequestDao.save(StoredProfileRequest.getProfile(firstProfile))
         profileRequestDao.save(StoredProfileRequest.getProfile(secondProfile))
@@ -334,7 +326,7 @@ class ProfileSpec extends BaseSpec {
         when: "PBS processes auction request"
         def response = pbsWithStoredProfiles.sendAuctionRequest(bidRequest)
 
-        then: "No errors should be emitted in debug"
+        then: "Response should not contain errors and warnings"
         assert !response.ext?.errors
         assert !response.ext?.warnings
 
@@ -390,7 +382,7 @@ class ProfileSpec extends BaseSpec {
         when: "PBS processes auction request"
         def response = pbsWithStoredProfiles.sendAuctionRequest(bidRequest)
 
-        then: "No errors should be emitted in debug"
+        then: "Response should not contain errors and warnings"
         assert !response.ext?.errors
         assert !response.ext?.warnings
 
@@ -437,7 +429,7 @@ class ProfileSpec extends BaseSpec {
         when: "PBS processes auction request"
         def response = pbsWithStoredProfiles.sendAuctionRequest(bidRequest)
 
-        then: "No errors should be emitted in debug"
+        then: "Response should not contain errors and warnings"
         assert !response.ext?.errors
         assert !response.ext?.warnings
 
@@ -583,7 +575,7 @@ class ProfileSpec extends BaseSpec {
         when: "PBS processes auction request"
         def response = pbsWithStoredProfiles.sendAuctionRequest(bidRequest)
 
-        then: "No errors should be emitted in debug"
+        then: "Response should not contain errors and warnings"
         assert !response.ext?.errors
         assert !response.ext?.warnings
 
@@ -876,10 +868,6 @@ class ProfileSpec extends BaseSpec {
             it.device = Device.default
         } as BidRequest
 
-        and: "Default account"
-        def account = new Account(uuid: accountId, status: ACTIVE)
-        accountDao.save(account)
-
         and: "Default profiles in database"
         profileRequestDao.save(StoredProfileRequest.getProfile(innerRequestProfile))
         profileRequestDao.save(StoredProfileRequest.getProfile(requestProfile))
@@ -887,7 +875,7 @@ class ProfileSpec extends BaseSpec {
         when: "PBS processes auction request"
         def response = pbsWithStoredProfiles.sendAuctionRequest(bidRequest)
 
-        then: "No errors should be emitted in debug"
+        then: "Response should not contain errors and warnings"
         assert !response.ext?.errors
         assert !response.ext?.warnings
 
@@ -937,7 +925,7 @@ class ProfileSpec extends BaseSpec {
         when: "PBS processes auction request"
         def response = pbsWithStoredProfiles.sendAuctionRequest(bidRequest)
 
-        then: "No errors should be emitted in debug"
+        then: "Response should not contain errors and warnings"
         assert !response.ext?.errors
         assert !response.ext?.warnings
 
@@ -959,10 +947,6 @@ class ProfileSpec extends BaseSpec {
             it.body.banner.format.first.height = height
         }
         def bidRequest = getRequestWithProfiles(accountId, [impProfile]) as BidRequest
-
-        and: "Default account"
-        def account = new Account(uuid: accountId, status: ACTIVE)
-        accountDao.save(account)
 
         and: "Default profile in database"
         profileImpDao.save(StoredProfileImp.getProfile(impProfile))
@@ -997,7 +981,7 @@ class ProfileSpec extends BaseSpec {
         when: "PBS processes auction request"
         def response = pbsWithStoredProfiles.sendAuctionRequest(bidRequest)
 
-        then: "No errors should be emitted in debug"
+        then: "Response should not contain errors and warnings"
         assert !response.ext?.errors
         assert !response.ext?.warnings
 
@@ -1025,7 +1009,7 @@ class ProfileSpec extends BaseSpec {
         when: "PBS processes auction request"
         def response = pbsWithStoredProfiles.sendAuctionRequest(bidRequest)
 
-        then: "No errors should be emitted in debug"
+        then: "Response should not contain errors and warnings"
         assert !response.ext?.errors
         assert !response.ext?.warnings
 
