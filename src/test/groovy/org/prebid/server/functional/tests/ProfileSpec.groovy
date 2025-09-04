@@ -36,9 +36,9 @@ import spock.lang.PendingFeature
 
 import static org.prebid.server.functional.model.AccountStatus.ACTIVE
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.request.profile.ProfileMergePrecedence.EMPTY
 import static org.prebid.server.functional.model.request.profile.ProfileMergePrecedence.PROFILE
 import static org.prebid.server.functional.model.request.profile.ProfileMergePrecedence.REQUEST
-import static org.prebid.server.functional.model.request.profile.ProfileMergePrecedence.UNKNOWN
 import static org.prebid.server.functional.model.response.auction.MediaType.VIDEO
 
 class ProfileSpec extends BaseSpec {
@@ -280,7 +280,7 @@ class ProfileSpec extends BaseSpec {
         }
 
         where:
-        mergeStrategy << [null, UNKNOWN]
+        mergeStrategy << [null, EMPTY]
     }
 
     def "PBS should set merge strategy to default profile without error for imp profile when merge strategy #mergeStrategy"() {
@@ -306,7 +306,7 @@ class ProfileSpec extends BaseSpec {
         assert bidder.getBidderRequest(bidRequest.id).imp.banner == bidRequest.imp.banner
 
         where:
-        mergeStrategy << [null, UNKNOWN]
+        mergeStrategy << [null, EMPTY]
     }
 
     def "PBS should merge latest-specified profile when there merge conflict and different merge precedence present"() {
@@ -317,7 +317,7 @@ class ProfileSpec extends BaseSpec {
         def bidRequest = getRequestWithProfiles(accountId, [firstProfile, secondProfile]).tap {
             it.site = Site.configFPDSite
             it.device = Device.default
-        }
+        } as BidRequest
 
         and: "Default profiles in database"
         profileRequestDao.save(StoredProfileRequest.getProfile(firstProfile))
@@ -940,7 +940,6 @@ class ProfileSpec extends BaseSpec {
     def "PBS shouldn't validate profiles and imp before margining"() {
         given: "Default bidRequest with request profile"
         def accountId = PBSUtils.randomNumber as String
-        def weight = PBSUtils.randomNumber
         def height = PBSUtils.randomNumber
         def impProfile = ImpProfile.getProfile(accountId).tap {
             it.body.banner.format.first.weight = null

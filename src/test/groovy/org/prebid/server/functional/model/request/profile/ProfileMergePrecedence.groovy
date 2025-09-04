@@ -6,11 +6,19 @@ import groovy.transform.ToString
 @ToString(includeNames = true, ignoreNulls = true)
 enum ProfileMergePrecedence {
 
-    REQUEST, PROFILE, UNKNOWN
+    EMPTY(""),
+    REQUEST("request"),
+    PROFILE("profile")
+
+    private final String value
+
+    ProfileMergePrecedence(String value) {
+        this.value = value
+    }
 
     @JsonValue
     String getValue() {
-        name().toLowerCase()
+        value
     }
 
     static ProfileMergePrecedence forValue(String value) {
