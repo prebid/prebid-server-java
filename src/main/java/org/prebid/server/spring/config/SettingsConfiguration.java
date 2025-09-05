@@ -77,7 +77,7 @@ public class SettingsConfiguration {
                 @Value("${settings.filesystem.settings-filename}") String settingsFileName,
                 @Value("${settings.filesystem.stored-requests-dir}") String storedRequestsDir,
                 @Value("${settings.filesystem.stored-imps-dir}") String storedImpsDir,
-                @Value("${settings.filesystem.profiles-dir}") String profilesDir,
+                @Value("${settings.filesystem.profiles-dir:#{null}}") String profilesDir,
                 @Value("${settings.filesystem.stored-responses-dir}") String storedResponsesDir,
                 @Value("${settings.filesystem.categories-dir}") String categoriesDir,
                 FileSystem fileSystem,
