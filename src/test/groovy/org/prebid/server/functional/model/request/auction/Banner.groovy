@@ -10,7 +10,7 @@ class Banner {
 
     List<Format> format
     @JsonProperty("w")
-    Integer weight
+    Integer width
     @JsonProperty("h")
     Integer height
     List<Integer> btype

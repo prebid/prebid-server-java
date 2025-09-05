@@ -10,26 +10,26 @@ import org.prebid.server.functional.util.PBSUtils
 class Format {
 
     @JsonProperty("w")
-    Integer weight
+    Integer width
     @JsonProperty("h")
     Integer height
     @JsonProperty("wratio")
-    Integer weightRatio
+    Integer widthRatio
     @JsonProperty("hratio")
     Integer heightRatio
     @JsonProperty("wmin")
-    Integer weightMin
+    Integer widthMin
 
     static Format getDefaultFormat() {
         new Format().tap {
-            weight = 300
+            width = 300
             height = 250
         }
     }
 
     static Format getRandomFormat() {
         new Format().tap {
-            weight = PBSUtils.randomNumber
+            width = PBSUtils.randomNumber
             height = PBSUtils.randomNumber
         }
     }
