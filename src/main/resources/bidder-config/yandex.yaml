@@ -13,6 +13,6 @@ adapters:
     usersync:
       cookie-family-name: yandex
       redirect:
-        url: https://an.yandex.ru/mapuid/yandex/?ssp-id=10500&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&location={{redirect_url}}
+        url: https://yandex.ru/an/mapuid/yandex/?ssp-id=10500&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&location={{redirect_url}}
         support-cors: false
         uid-macro: '{YANDEXUID}'

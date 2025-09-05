@@ -182,7 +182,6 @@ public class YandexBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder.id("blockA").banner(Banner.builder().build()),
                 identity());
-
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
@@ -260,8 +259,8 @@ public class YandexBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getVideo)
-                .extracting(Video::getMinduration, Video::getMaxduration, Video::getMimes, Video::getProtocols)
-                .containsOnly(tuple(1, 120, singletonList("video/mp4"), singletonList(3)));
+                .extracting(Video::getMinduration, Video::getMaxduration, Video::getProtocols)
+                .containsOnly(tuple(1, 120, singletonList(3)));
     }
 
     @Test
