@@ -291,16 +291,15 @@ public class OpenxBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> bid.toBuilder().ext(getBidExt(bid)).build())
                 .map(bid -> toBidderBid(bid, impIdToBidType, bidCurrency))
                 .toList();
     }
 
-    private static BidderBid toBidderBid(Bid bid, Map<String, BidType> impIdToBidType, String bidCurrency) {
+    private BidderBid toBidderBid(Bid bid, Map<String, BidType> impIdToBidType, String bidCurrency) {
         final BidType bidType = getBidType(bid, impIdToBidType);
         final ExtBidPrebidVideo videoInfo = bidType == BidType.video ? getVideoInfo(bid) : null;
         return BidderBid.builder()
-                .bid(bid)
+                .bid(bid.toBuilder().ext(getBidExt(bid)).build())
                 .type(bidType)
                 .bidCurrency(bidCurrency)
                 .videoInfo(videoInfo)
@@ -371,7 +370,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
         try {
             return mapper.mapper().convertValue(ext, OpenxBidExt.class);
         } catch (IllegalArgumentException e) {
-            return new OpenxBidExt();
+            return OpenxBidExt.builder().build();
         }
     }
 

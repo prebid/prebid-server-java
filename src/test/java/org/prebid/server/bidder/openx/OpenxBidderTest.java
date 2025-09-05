@@ -2,6 +2,7 @@ package org.prebid.server.bidder.openx;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
@@ -15,9 +16,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -46,7 +44,6 @@ import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -988,73 +985,14 @@ public class OpenxBidderTest extends VertxTest {
                 .containsOnly(Collections.emptyList(), Collections.emptyList());
     }
 
-    private static Map<String, JsonNode> givenCustomParams(String key, Object values) {
-        return singletonMap(key, mapper.valueToTree(values));
-    }
-
-    private static BidderCall<BidRequest> givenHttpCall(String body) {
-        return BidderCall.succeededHttp(null, HttpResponse.of(200, null, body), null);
-    }
-
-    private static Stream<Arguments> bidWithExtTestCases() throws JsonProcessingException {
-        final ObjectNode allBuyerExt = mapper.valueToTree(OpenxBidExt.builder()
+    @Test
+    public void makeBidShouldReturnBidWithExtPrebidMetaContainingAllFieldsFromBidExt() throws JsonProcessingException {
+        // given
+        final ObjectNode bidExt = mapper.valueToTree(OpenxBidExt.builder()
                 .dspId("1")
                 .buyerId("2")
                 .brandId("3")
                 .build());
-        final ObjectNode onlyBrandExt = mapper.valueToTree(OpenxBidExt.builder()
-                .brandId("4")
-                .build());
-        final ObjectNode badExt = mapper.valueToTree(OpenxBidExt.builder()
-                .dspId("abc")
-                .brandId("cba")
-                .build());
-
-        final ObjectNode allBuyerExpectedExt = (ObjectNode) mapper.readTree("""
-                {
-                    "dsp_id": "1",
-                    "buyer_id": "2",
-                    "brand_id": "3",
-                    "prebid": {
-                        "meta": {
-                            "advertiserId":2,
-                            "brandId":3,
-                            "networkId":1
-                        }
-                    }
-                }
-                """);
-        final ObjectNode onlyBrandExpectedExt = (ObjectNode) mapper.readTree("""
-                {
-                    "brand_id": "4",
-                    "prebid": {
-                        "meta": {
-                            "brandId":4
-                        }
-                    }
-                }
-                """);
-        final ObjectNode badExpectedExt = (ObjectNode) mapper.readTree("""
-                {
-                    "dsp_id": "abc",
-                    "brand_id": "cba"
-                }
-                """);
-
-        return Stream.of(
-                Arguments.of(allBuyerExt, allBuyerExpectedExt),
-                Arguments.of(onlyBrandExt, onlyBrandExpectedExt),
-                Arguments.of(badExt, badExpectedExt),
-                Arguments.of(null, null)
-        );
-    }
-
-    @ParameterizedTest
-    @MethodSource("bidWithExtTestCases")
-    public void makeBidsShouldReturnBidWithExt(
-            ObjectNode bidExt,
-            ObjectNode expectedExtWithBidMeta) throws JsonProcessingException {
-        // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(
                 BidResponse.builder()
                         .seatbid(singletonList(SeatBid.builder()
@@ -1084,10 +1022,123 @@ public class OpenxBidderTest extends VertxTest {
         final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
 
         // then
+        final ObjectNode expectedExtWithBidMeta = JsonNodeFactory.instance.objectNode()
+                .put("dsp_id", "1")
+                .put("buyer_id", "2")
+                .put("brand_id", "3")
+                .set("prebid", JsonNodeFactory.instance.objectNode()
+                        .set("meta", JsonNodeFactory.instance.objectNode()
+                                .put("advertiserId", 2)
+                                .put("brandId", 3)
+                                .put("networkId", 1)));
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getBids()).hasSize(1)
                 .extracting(BidderBid::getBid)
                 .extracting(Bid::getExt)
                 .containsExactly(expectedExtWithBidMeta);
+    }
+
+    @Test
+    public void makeBidShouldReturnBidWithExtPrebidMetaContainingBrandIdFieldOnly() throws JsonProcessingException {
+        // given
+        final ObjectNode bidExt = mapper.valueToTree(OpenxBidExt.builder()
+                .brandId("4")
+                .build());
+        final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(
+                BidResponse.builder()
+                        .seatbid(singletonList(SeatBid.builder()
+                                .bid(List.of(
+                                        Bid.builder()
+                                                .w(200)
+                                                .h(150)
+                                                .price(BigDecimal.ONE)
+                                                .impid("impId1")
+                                                .dealid("dealid")
+                                                .adm("<div>This is an Ad</div>")
+                                                .ext(bidExt)
+                                                .build()))
+                                .build()))
+                        .build()));
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .id("bidRequestId")
+                .imp(List.of(
+                        Imp.builder()
+                                .id("impId1")
+                                .banner(Banner.builder().build())
+                                .build()))
+                .build();
+
+        // when
+        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
+
+        // then
+        final ObjectNode expectedExtWithBidMeta = JsonNodeFactory.instance.objectNode()
+                .put("brand_id", "4")
+                .set("prebid", JsonNodeFactory.instance.objectNode()
+                        .set("meta", JsonNodeFactory.instance.objectNode()
+                                .put("brandId", 4)));
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getBids()).hasSize(1)
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getExt)
+                .containsExactly(expectedExtWithBidMeta);
+    }
+
+    @Test
+    public void makeBidShouldReturnBidWithExtPrebidMetaNotContainingFieldsWithInvalidValues()
+            throws JsonProcessingException {
+        // given
+        final ObjectNode bidExt = mapper.valueToTree(OpenxBidExt.builder()
+                .dspId("abc")
+                .buyerId("xyz")
+                .brandId("cba")
+                .build());
+        final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(
+                BidResponse.builder()
+                        .seatbid(singletonList(SeatBid.builder()
+                                .bid(List.of(
+                                        Bid.builder()
+                                                .w(200)
+                                                .h(150)
+                                                .price(BigDecimal.ONE)
+                                                .impid("impId1")
+                                                .dealid("dealid")
+                                                .adm("<div>This is an Ad</div>")
+                                                .ext(bidExt)
+                                                .build()))
+                                .build()))
+                        .build()));
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .id("bidRequestId")
+                .imp(List.of(
+                        Imp.builder()
+                                .id("impId1")
+                                .banner(Banner.builder().build())
+                                .build()))
+                .build();
+
+        // when
+        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
+
+        // then
+        final ObjectNode expectedExtWithBidMeta = JsonNodeFactory.instance.objectNode()
+                .put("dsp_id", "abc")
+                .put("buyer_id", "xyz")
+                .put("brand_id", "cba");
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getBids()).hasSize(1)
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getExt)
+                .containsExactly(expectedExtWithBidMeta);
+    }
+
+    private static Map<String, JsonNode> givenCustomParams(String key, Object values) {
+        return singletonMap(key, mapper.valueToTree(values));
+    }
+
+    private static BidderCall<BidRequest> givenHttpCall(String body) {
+        return BidderCall.succeededHttp(null, HttpResponse.of(200, null, body), null);
     }
 }
