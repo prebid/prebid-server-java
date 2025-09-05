@@ -23,6 +23,7 @@ settings:
   filesystem:
     settings-filename: sample/configs/sample-app-settings.yaml
     stored-requests-dir: sample
+    profiles-dir: sample
     stored-imps-dir: sample
     stored-responses-dir: sample
     categories-dir:
