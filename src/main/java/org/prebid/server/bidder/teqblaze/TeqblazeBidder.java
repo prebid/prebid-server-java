@@ -8,7 +8,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -64,18 +63,16 @@ public class TeqblazeBidder implements Bidder<BidRequest> {
             }
         }
 
-        if (httpRequests.isEmpty()) {
-            return Result.withError(BidderError.badInput("found no valid impressions"));
-        }
-
-        return Result.of(httpRequests, errors);
+        return httpRequests.isEmpty()
+                ? Result.withErrors(errors)
+                : Result.of(httpRequests, errors);
     }
 
     private ExtImpTeqblaze parseExtImp(Imp imp) {
         try {
             return mapper.mapper().convertValue(imp.getExt(), EXT_TYPE_REF).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException("Cannot deserialize ExtImpLoyal: " + e.getMessage());
+            throw new PreBidException("Cannot deserialize ExtImpTeqblaze: " + e.getMessage());
         }
     }
 
@@ -94,6 +91,8 @@ public class TeqblazeBidder implements Bidder<BidRequest> {
             builder.type(PUBLISHER_PROPERTY).placementId(extImpTeqblaze.getPlacementId());
         } else if (StringUtils.isNotEmpty(extImpTeqblaze.getEndpointId())) {
             builder.type(NETWORK_PROPERTY).endpointId(extImpTeqblaze.getEndpointId());
+        } else {
+            throw new PreBidException("found no valid impressions");
         }
 
         return builder.build();
@@ -132,15 +131,14 @@ public class TeqblazeBidder implements Bidder<BidRequest> {
     }
 
     private BidType getBidType(Bid bid) {
-        final Integer markupType = ObjectUtils.defaultIfNull(bid.getMtype(), 0);
 
-        return switch (markupType) {
+        return switch (bid.getMtype()) {
             case 1 -> BidType.banner;
             case 2 -> BidType.video;
             case 3 -> BidType.audio;
             case 4 -> BidType.xNative;
-            default -> throw new PreBidException(
-                    "could not define media type for impression: " + bid.getImpid());
+            case null, default ->
+                    throw new PreBidException("could not define media type for impression: " + bid.getImpid());
         };
     }
 }

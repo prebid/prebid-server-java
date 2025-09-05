@@ -30,12 +30,17 @@ import java.util.function.UnaryOperator;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
+import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.audio;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
+import static org.prebid.server.util.HttpUtil.ACCEPT_HEADER;
+import static org.prebid.server.util.HttpUtil.APPLICATION_JSON_CONTENT_TYPE;
+import static org.prebid.server.util.HttpUtil.CONTENT_TYPE_HEADER;
+import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
 
 public class TeqblazeBidderTest extends VertxTest {
 
@@ -78,8 +83,8 @@ public class TeqblazeBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         //then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(2)
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getImp)
                 .extracting(List::size)
@@ -90,8 +95,9 @@ public class TeqblazeBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnExtTypePublisher() {
         // given
         final BidRequest bidRequest = givenBidRequest(impCustomizer -> impCustomizer
-                .ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpTeqblaze.of("somePlacementId", "")))));
+                .ext(givenImpExtTeqblazeBidder(ext -> ext
+                        .type("publisher")
+                        .placementId("somePlacementId"))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -111,8 +117,9 @@ public class TeqblazeBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnExtTypeNetwork() {
         // given
         final BidRequest bidRequest = givenBidRequest(impCustomizer -> impCustomizer
-                .ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpTeqblaze.of("", "someEndpointId")))));
+                .ext(givenImpExtTeqblazeBidder(ext -> ext
+                        .type("publisher")
+                        .endpointId("someEndpointId"))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -138,10 +145,46 @@ public class TeqblazeBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
 
-        final List<BidderError> errors = result.getErrors();
-        assertThat(errors).hasSize(1);
-        assertThat(errors.get(0).getMessage())
-                .startsWith("found no valid impressions");
+        assertThat(result.getErrors())
+                .hasSize(1)
+                .extracting(BidderError::getMessage)
+                .anySatisfy(msg -> assertThat(msg).startsWith("Cannot deserialize ExtImpTeqblaze:"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnExpectedHeaders() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1).first()
+                .extracting(HttpRequest::getHeaders)
+                .satisfies(headers -> assertThat(headers.get(CONTENT_TYPE_HEADER))
+                        .isEqualTo(APPLICATION_JSON_CONTENT_TYPE))
+                .satisfies(headers -> assertThat(headers.get(ACCEPT_HEADER))
+                        .isEqualTo(APPLICATION_JSON_VALUE));
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCreateMultipleRequestsForMultipleImps() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(asList(
+                        givenImp(UnaryOperator.identity()),
+                        givenImp(UnaryOperator.identity()),
+                        givenImp(UnaryOperator.identity())))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(3);
     }
 
     @Test
@@ -192,85 +235,69 @@ public class TeqblazeBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBid() throws JsonProcessingException {
         // given
-        final ObjectNode bidExt = mapper.createObjectNode()
-                .putPOJO("prebid", ExtBidPrebid.builder().type(banner).build());
+        final Bid bannerBid = givenBid(bid -> bid.id("bidId").impid("impId").mtype(1));
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
-                        .build(),
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).impid("123").mtype(1))));
+                givenBidRequest(imp -> imp.id("impId").banner(Banner.builder().build())),
+                givenBidResponse(bannerBid));
+
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .extracting(BidderBid::getType)
-                .containsExactly(banner);
+                .containsOnly(BidderBid.of(bannerBid.toBuilder().mtype(1).build(), banner, "USD"));
     }
 
     @Test
     public void makeBidsShouldReturnVideoBid() throws JsonProcessingException {
         // given
-        final ObjectNode bidExt = mapper.createObjectNode()
-                .putPOJO("prebid", ExtBidPrebid.builder().type(video).build());
+        final Bid videoBid = givenBid(bid -> bid.id("bidId").impid("impId").mtype(2));
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").video(Video.builder().build()).build()))
-                        .build(),
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).impid("123").mtype(2))));
+                givenBidRequest(imp -> imp.id("impId").video(Video.builder().build())),
+                givenBidResponse(videoBid));
+
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .extracting(BidderBid::getType)
-                .containsExactly(video);
+                .containsOnly(BidderBid.of(videoBid.toBuilder().mtype(2).build(), video, "USD"));
     }
 
     @Test
     public void makeBidsShouldReturnAudioBid() throws JsonProcessingException {
         // given
-        final ObjectNode bidExt = mapper.createObjectNode()
-                .putPOJO("prebid", ExtBidPrebid.builder().type(audio).build());
+        final Bid audioBid = givenBid(bid -> bid.id("bidId").impid("impId").mtype(3));
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").audio(Audio.builder().build()).build()))
-                        .build(),
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).impid("123").mtype(3))));
+                givenBidRequest(imp -> imp.id("impId").audio(Audio.builder().build())),
+                givenBidResponse(audioBid));
+
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .extracting(BidderBid::getType)
-                .containsExactly(audio);
+                .containsOnly(BidderBid.of(audioBid.toBuilder().mtype(3).build(), audio, "USD"));
     }
 
     @Test
     public void makeBidsShouldReturnNativeBid() throws JsonProcessingException {
         // given
-        final ObjectNode bidExt = mapper.createObjectNode()
-                .putPOJO("prebid", ExtBidPrebid.builder().type(xNative).build());
+        final Bid nativeBid = givenBid(bid -> bid.id("bidId").impid("impId").mtype(4));
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").xNative(Native.builder().build()).build()))
-                        .build(),
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).impid("123").mtype(4))));
+                givenBidRequest(imp -> imp.id("impId").xNative(Native.builder().build())),
+                givenBidResponse(nativeBid));
+
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .extracting(BidderBid::getType)
-                .containsExactly(xNative);
+                .containsOnly(BidderBid.of(nativeBid.toBuilder().mtype(4).build(), xNative, "USD"));
     }
 
     @Test
@@ -278,12 +305,16 @@ public class TeqblazeBidderTest extends VertxTest {
         // given
         final ObjectNode bidExt = mapper.createObjectNode()
                 .putPOJO("prebid", ExtBidPrebid.builder().type(banner).build());
+        final Bid bid = givenBid(bidBuilder -> bidBuilder
+                .ext(bidExt)
+                .impid("123")
+                .mtype(5));
+
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
                         .build(),
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).impid("123").mtype(5))));
+                givenBidResponse(bid));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -294,6 +325,10 @@ public class TeqblazeBidderTest extends VertxTest {
                 .extracting(BidderError::getMessage)
                 .containsExactly("could not define media type for impression: 123");
         assertThat(result.getValue()).isEmpty();
+    }
+
+    private static Bid givenBid(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
+        return bidCustomizer.apply(Bid.builder()).build();
     }
 
     private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
@@ -325,12 +360,11 @@ public class TeqblazeBidderTest extends VertxTest {
         return givenBidRequest(UnaryOperator.identity(), impCustomizer);
     }
 
-    private static BidResponse givenBidResponse(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
-        return BidResponse.builder()
+    private static String givenBidResponse(Bid... bids) throws JsonProcessingException {
+        return mapper.writeValueAsString(BidResponse.builder()
+                .seatbid(singletonList(SeatBid.builder().bid(asList(bids)).build()))
                 .cur("USD")
-                .seatbid(singletonList(SeatBid.builder().bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
-                        .build()))
-                .build();
+                .build());
     }
 
     private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {

@@ -1,6 +1,7 @@
 adapters:
   teqblaze:
-    meta-info:
+      endpoint: http://
+      meta-info:
       maintainer-email: github@teqblaze.com
       app-media-types:
         - banner
