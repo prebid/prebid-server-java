@@ -350,11 +350,12 @@ public class ConnatixBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldIncludeGpidWhenPresent() {
+    public void makeHttpRequestsShouldIncludeEntireImpExt() {
         // given
         final ObjectNode impExt = mapper.createObjectNode();
         impExt.set("bidder", mapper.valueToTree(ExtImpConnatix.of("placementId", null)));
         impExt.put("gpid", "test-gpid");
+        impExt.put("random", "test-random");
 
         final BidRequest bidRequest = givenBidRequest(
                 UnaryOperator.identity(),
@@ -367,6 +368,7 @@ public class ConnatixBidderTest extends VertxTest {
         final ObjectNode expectedExt = mapper.createObjectNode();
         expectedExt.set("connatix", mapper.valueToTree(ExtImpConnatix.of("placementId", null)));
         expectedExt.put("gpid", "test-gpid");
+        expectedExt.put("random", "test-random");
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
