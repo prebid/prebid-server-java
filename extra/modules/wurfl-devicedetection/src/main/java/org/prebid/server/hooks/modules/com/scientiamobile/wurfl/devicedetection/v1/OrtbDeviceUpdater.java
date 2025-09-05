@@ -55,6 +55,7 @@ public class OrtbDeviceUpdater implements PayloadUpdate<AuctionRequestPayload> {
     private Device update(Device ortbDevice) {
         final String make = tryUpdateField(ortbDevice.getMake(), this::getWurflMake);
         final String model = tryUpdateField(ortbDevice.getModel(), this::getWurflModel);
+        final String hwv = tryUpdateField(ortbDevice.getHwv(), this::getWurflModel);
         final Integer deviceType = tryUpdateField(
                 Optional.ofNullable(ortbDevice.getDevicetype())
                         .filter(it -> it > 0)
@@ -72,6 +73,7 @@ public class OrtbDeviceUpdater implements PayloadUpdate<AuctionRequestPayload> {
                 .make(make)
                 .model(model)
                 .devicetype(deviceType)
+                .hwv(hwv)
                 .os(os)
                 .osv(osv)
                 .h(h)
@@ -103,42 +105,66 @@ public class OrtbDeviceUpdater implements PayloadUpdate<AuctionRequestPayload> {
     }
 
     private Integer getWurflDeviceType() {
-        try {
-            if (wurflDevice.getVirtualCapabilityAsBool("is_mobile")) {
-                // if at least one of these capabilities is not defined, the mobile device type is undefined
-                final boolean isPhone = wurflDevice.getVirtualCapabilityAsBool("is_phone");
-                final boolean isTablet = wurflDevice.getCapabilityAsBool("is_tablet");
-                return isPhone || isTablet ? 1 : 6;
-            }
 
-            if (wurflDevice.getVirtualCapabilityAsBool("is_full_desktop")) {
-                return 2;
-            }
-
-            if (wurflDevice.getCapabilityAsBool("is_connected_tv")) {
-                return 3;
-            }
-
-            if (wurflDevice.getCapabilityAsBool("is_phone")) {
-                return 4;
-            }
-
-            if (wurflDevice.getCapabilityAsBool("is_tablet")) {
-                return 5;
-            }
-
-            if (wurflDevice.getCapabilityAsBool("is_ott")) {
-                return 7;
-            }
-
-            final String physicalFormFactor = wurflDevice.getCapability("physical_form_factor");
-            if (physicalFormFactor != null && physicalFormFactor.equals("out_of_home_device")) {
-                return 8;
-            }
-        } catch (CapabilityNotDefinedException | VirtualCapabilityNotDefinedException | NumberFormatException e) {
-            logger.warn("Failed to determine device type from WURFL device capabilities", e);
+        if (getWurflIsOtt()) {
+            return 7;
         }
-        return null;
+
+        final Boolean isConsole = getWurflIsConsole();
+        if (isConsole) {
+            return 6;
+        }
+
+        if ("out_of_home_device".equals(getWurflPhysicalFormFactor())) {
+            return 8;
+        }
+
+        final String formFactor = getWurflFormFactor();
+        return switch (formFactor) {
+            case "Desktop" -> 2;
+            case "Smartphone", "Feature Phone" -> 4;
+            case "Tablet" -> 5;
+            case "Smart-TV" -> 3;
+            case "Other Non-Mobile" -> 6;
+            case "Other Mobile" -> 1;
+            default -> null;
+        };
+    }
+
+    private Boolean getWurflIsOtt() {
+        try {
+            return wurflDevice.getCapabilityAsBool("is_ott");
+        } catch (CapabilityNotDefinedException e) {
+            logger.warn("Failed to get is_ott from WURFL device capabilities", e);
+            return Boolean.FALSE;
+        }
+    }
+
+    private String getWurflFormFactor() {
+        try {
+            return wurflDevice.getVirtualCapability("form_factor");
+        } catch (VirtualCapabilityNotDefinedException e) {
+            logger.warn("Failed to get form_factor from WURFL device capabilities", e);
+            return "";
+        }
+    }
+
+    private String getWurflPhysicalFormFactor() {
+        try {
+            return wurflDevice.getCapability("physical_form_factor");
+        } catch (CapabilityNotDefinedException e) {
+            logger.warn("Failed to get physical_form_factor from WURFL device capabilities", e);
+            return "";
+        }
+    }
+
+    private Boolean getWurflIsConsole() {
+        try {
+            return wurflDevice.getCapabilityAsBool("is_console");
+        } catch (CapabilityNotDefinedException e) {
+            logger.warn("Failed to get is_console from WURFL device capabilities", e);
+            return Boolean.FALSE;
+        }
     }
 
     private String getWurflOs() {
