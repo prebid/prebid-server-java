@@ -152,7 +152,8 @@ public class LiveIntentAnalyticsReporter implements AnalyticsReporter {
         return Optional.ofNullable(auctionContext)
                 .map(AuctionContext::getHookExecutionContext)
                 .map(HookExecutionContext::getStageOutcomes)
-                .map(stages -> stages.get(Stage.processed_auction_request)).stream()
+                .map(stages -> stages.get(Stage.processed_auction_request))
+                .stream()
                 .flatMap(Collection::stream)
                 .filter(stageExecutionOutcome -> "auction-request".equals(stageExecutionOutcome.getEntity()))
                 .map(StageExecutionOutcome::getGroups)
@@ -164,8 +165,11 @@ public class LiveIntentAnalyticsReporter implements AnalyticsReporter {
                                 && hook.getStatus() == ExecutionStatus.success
                 )
                 .map(HookExecutionOutcome::getAnalyticsTags)
+                .filter(Objects::nonNull)
                 .map(Tags::activities)
+                .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
                 .findFirst();
     }
 
