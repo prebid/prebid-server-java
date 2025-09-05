@@ -9,8 +9,7 @@
       },
       "ext": {
         "teqblaze": {
-          "placementId": "testPlacementId",
-          "type": "publisher"
+          "placementId": "testPlacementId"
         }
       }
     }
