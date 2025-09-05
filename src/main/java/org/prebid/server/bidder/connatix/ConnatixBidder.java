@@ -171,13 +171,11 @@ public class ConnatixBidder implements Bidder<BidRequest> {
     private Imp modifyImp(Imp imp, ExtImpConnatix extImpConnatix, String displayManagerVer, BidRequest request) {
         final Price bidFloorPrice = resolveBidFloor(imp, request);
 
-        final ObjectNode impExt = mapper.mapper()
-                .createObjectNode().set("connatix", mapper.mapper().valueToTree(extImpConnatix));
+        final ObjectNode impExt = imp.getExt() != null 
+                ? (ObjectNode) imp.getExt().deepCopy()
+                : mapper.mapper().createObjectNode();
 
-        Optional.ofNullable(imp.getExt())
-                .map(ext -> ext.get(GPID_KEY))
-                .filter(JsonNode::isTextual)
-                .ifPresent(gpidNode -> impExt.set(GPID_KEY, gpidNode));
+        impExt.set("connatix", mapper.mapper().valueToTree(extImpConnatix));
 
         return imp.toBuilder()
                 .ext(impExt)
