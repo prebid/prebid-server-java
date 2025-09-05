@@ -107,7 +107,12 @@ public class ProfilesProcessor {
     private AllProfilesIds profilesIds(BidRequest bidRequest, AuctionContext auctionContext, String accountId) {
         final AllProfilesIds initialProfilesIds = new AllProfilesIds(
                 requestProfilesIds(bidRequest),
-                bidRequest.getImp().stream().map(this::impProfilesIds).toList());
+                Optional.ofNullable(bidRequest)
+                        .map(BidRequest::getImp)
+                        .orElse(Collections.emptyList())
+                        .stream()
+                        .map(this::impProfilesIds)
+                        .toList());
 
         final AllProfilesIds profilesIds = truncate(
                 initialProfilesIds,

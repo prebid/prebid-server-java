@@ -104,7 +104,7 @@ public class SettingsConfiguration {
                 @Value("${settings.database.account-query}") String accountQuery,
                 @Value("${settings.database.stored-requests-query}") String storedRequestsQuery,
                 @Value("${settings.database.amp-stored-requests-query}") String ampStoredRequestsQuery,
-                @Value("${settings.database.profiles-query}") String profilesQuery,
+                @Value("${settings.database.profiles-query:#{null}}") String profilesQuery,
                 @Value("${settings.database.stored-responses-query}") String storedResponsesQuery,
                 ParametrizedQueryHelper parametrizedQueryHelper,
                 DatabaseClient databaseClient,
