@@ -172,7 +172,7 @@ public class ConnatixBidder implements Bidder<BidRequest> {
         final Price bidFloorPrice = resolveBidFloor(imp, request);
 
         final ObjectNode impExt = imp.getExt() != null 
-                ? (ObjectNode) imp.getExt().deepCopy()
+                ? imp.getExt().deepCopy()
                 : mapper.mapper().createObjectNode();
 
         impExt.set("connatix", mapper.mapper().valueToTree(extImpConnatix));
