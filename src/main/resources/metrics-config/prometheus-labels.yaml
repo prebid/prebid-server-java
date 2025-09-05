@@ -202,3 +202,9 @@ mappers:
     labels:
       adapter: ${0}
       action: ${1}
+  - match: adapter.*.activity.*.*.count
+    name: adapter.activity
+    labels:
+      adapter: ${0}
+      activity: ${1}
+      action: ${2}

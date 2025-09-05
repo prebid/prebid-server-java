@@ -6,9 +6,9 @@ import lombok.Value;
  * The model helps to reduce multiple rows found for single stored request/imp ID.
  */
 @Value(staticConstructor = "of")
-public class StoredItem {
+public class StoredItem<T> {
 
     String accountId;
 
-    String data;
+    T data;
 }

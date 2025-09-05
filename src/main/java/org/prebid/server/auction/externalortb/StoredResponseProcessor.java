@@ -1,4 +1,4 @@
-package org.prebid.server.auction;
+package org.prebid.server.auction.externalortb;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -67,7 +67,7 @@ public class StoredResponseProcessor {
         this.mapper = Objects.requireNonNull(mapper);
     }
 
-    Future<StoredResponseResult> getStoredResponseResult(List<Imp> imps, Timeout timeout) {
+    public Future<StoredResponseResult> getStoredResponseResult(List<Imp> imps, Timeout timeout) {
         final Map<String, ExtImpPrebid> impExtPrebids = getImpsExtPrebid(imps);
         final Map<String, StoredResponse> impIdsToStoredResponses = getAuctionStoredResponses(impExtPrebids);
         final List<Imp> requiredRequestImps = excludeStoredAuctionResponseImps(imps, impIdsToStoredResponses);
@@ -96,7 +96,7 @@ public class StoredResponseProcessor {
                                 impToBidderToStoredBidResponseId)));
     }
 
-    Future<StoredResponseResult> getStoredResponseResult(String storedId, Timeout timeout) {
+    public Future<StoredResponseResult> getStoredResponseResult(String storedId, Timeout timeout) {
         return applicationSettings.getStoredResponses(Collections.singleton(storedId), timeout)
                 .recover(exception -> Future.failedFuture(new InvalidRequestException(
                         "Stored response fetching failed with reason: " + exception.getMessage())))
@@ -345,10 +345,10 @@ public class StoredResponseProcessor {
                 .build();
     }
 
-    List<AuctionParticipation> mergeWithBidderResponses(List<AuctionParticipation> auctionParticipations,
-                                                        List<SeatBid> storedAuctionResponses,
-                                                        List<Imp> imps,
-                                                        Map<String, BidRejectionTracker> bidRejectionTrackers) {
+    public List<AuctionParticipation> mergeWithBidderResponses(List<AuctionParticipation> auctionParticipations,
+                                                               List<SeatBid> storedAuctionResponses,
+                                                               List<Imp> imps,
+                                                               Map<String, BidRejectionTracker> bidRejectionTrackers) {
 
         if (CollectionUtils.isEmpty(storedAuctionResponses)) {
             return auctionParticipations;

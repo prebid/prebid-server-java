@@ -3,10 +3,14 @@ package org.prebid.server.functional.repository
 import org.hibernate.SessionFactory
 import org.hibernate.cfg.Configuration
 import org.prebid.server.functional.model.db.Account
+import org.prebid.server.functional.model.db.StoredProfileImp
+import org.prebid.server.functional.model.db.StoredProfileRequest
 import org.prebid.server.functional.model.db.StoredImp
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.db.StoredResponse
 import org.prebid.server.functional.repository.dao.AccountDao
+import org.prebid.server.functional.repository.dao.ProfileImpDao
+import org.prebid.server.functional.repository.dao.ProfileRequestDao
 import org.prebid.server.functional.repository.dao.StoredImpDao
 import org.prebid.server.functional.repository.dao.StoredRequestDao
 import org.prebid.server.functional.repository.dao.StoredResponseDao
@@ -23,6 +27,8 @@ class HibernateRepositoryService {
     StoredImpDao storedImpDao
     StoredRequestDao storedRequestDao
     StoredResponseDao storedResponseDao
+    ProfileImpDao profileImpDao
+    ProfileRequestDao profileRequestDao
 
     HibernateRepositoryService(JdbcDatabaseContainer container) {
         def jdbcUrl = container.jdbcUrl
@@ -38,6 +44,8 @@ class HibernateRepositoryService {
         storedImpDao = new StoredImpDao(entityManagerUtil)
         storedRequestDao = new StoredRequestDao(entityManagerUtil)
         storedResponseDao = new StoredResponseDao(entityManagerUtil)
+        profileImpDao = new ProfileImpDao(entityManagerUtil)
+        profileRequestDao = new ProfileRequestDao(entityManagerUtil)
     }
 
     private static SessionFactory configureHibernate(String jdbcUrl,
@@ -59,6 +67,8 @@ class HibernateRepositoryService {
         configuration.addAnnotatedClass(StoredImp)
         configuration.addAnnotatedClass(StoredRequest)
         configuration.addAnnotatedClass(StoredResponse)
+        configuration.addAnnotatedClass(StoredProfileImp)
+        configuration.addAnnotatedClass(StoredProfileRequest)
 
         SessionFactory sessionFactory = configuration.addProperties(properties).buildSessionFactory()
         sessionFactory
@@ -69,5 +79,7 @@ class HibernateRepositoryService {
         storedImpDao.removeAll()
         storedRequestDao.removeAll()
         storedResponseDao.removeAll()
+        profileImpDao.removeAll()
+        profileRequestDao.removeAll()
     }
 }
