@@ -2,6 +2,7 @@ package org.prebid.server.bidder.openx;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
@@ -23,6 +24,7 @@ import org.prebid.server.bidder.model.CompositeBidderResponse;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.bidder.openx.proto.OpenxBidExt;
 import org.prebid.server.bidder.openx.proto.OpenxBidResponse;
 import org.prebid.server.bidder.openx.proto.OpenxBidResponseExt;
 import org.prebid.server.bidder.openx.proto.OpenxRequestExt;
@@ -981,6 +983,155 @@ public class OpenxBidderTest extends VertxTest {
         assertThat(result).isNotNull()
                 .extracting(CompositeBidderResponse::getBids, CompositeBidderResponse::getErrors)
                 .containsOnly(Collections.emptyList(), Collections.emptyList());
+    }
+
+    @Test
+    public void makeBidShouldReturnBidWithExtPrebidMetaContainingAllFieldsFromBidExt() throws JsonProcessingException {
+        // given
+        final ObjectNode bidExt = mapper.valueToTree(OpenxBidExt.builder()
+                .dspId("1")
+                .buyerId("2")
+                .brandId("3")
+                .build());
+        final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(
+                BidResponse.builder()
+                        .seatbid(singletonList(SeatBid.builder()
+                                .bid(List.of(
+                                        Bid.builder()
+                                                .w(200)
+                                                .h(150)
+                                                .price(BigDecimal.ONE)
+                                                .impid("impId1")
+                                                .dealid("dealid")
+                                                .adm("<div>This is an Ad</div>")
+                                                .ext(bidExt)
+                                                .build()))
+                                .build()))
+                        .build()));
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .id("bidRequestId")
+                .imp(List.of(
+                        Imp.builder()
+                                .id("impId1")
+                                .banner(Banner.builder().build())
+                                .build()))
+                .build();
+
+        // when
+        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
+
+        // then
+        final ObjectNode expectedExtWithBidMeta = JsonNodeFactory.instance.objectNode()
+                .put("dsp_id", "1")
+                .put("buyer_id", "2")
+                .put("brand_id", "3")
+                .set("prebid", JsonNodeFactory.instance.objectNode()
+                        .set("meta", JsonNodeFactory.instance.objectNode()
+                                .put("advertiserId", 2)
+                                .put("brandId", 3)
+                                .put("networkId", 1)));
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getBids()).hasSize(1)
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getExt)
+                .containsExactly(expectedExtWithBidMeta);
+    }
+
+    @Test
+    public void makeBidShouldReturnBidWithExtPrebidMetaContainingBrandIdFieldOnly() throws JsonProcessingException {
+        // given
+        final ObjectNode bidExt = mapper.valueToTree(OpenxBidExt.builder()
+                .brandId("4")
+                .build());
+        final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(
+                BidResponse.builder()
+                        .seatbid(singletonList(SeatBid.builder()
+                                .bid(List.of(
+                                        Bid.builder()
+                                                .w(200)
+                                                .h(150)
+                                                .price(BigDecimal.ONE)
+                                                .impid("impId1")
+                                                .dealid("dealid")
+                                                .adm("<div>This is an Ad</div>")
+                                                .ext(bidExt)
+                                                .build()))
+                                .build()))
+                        .build()));
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .id("bidRequestId")
+                .imp(List.of(
+                        Imp.builder()
+                                .id("impId1")
+                                .banner(Banner.builder().build())
+                                .build()))
+                .build();
+
+        // when
+        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
+
+        // then
+        final ObjectNode expectedExtWithBidMeta = JsonNodeFactory.instance.objectNode()
+                .put("brand_id", "4")
+                .set("prebid", JsonNodeFactory.instance.objectNode()
+                        .set("meta", JsonNodeFactory.instance.objectNode()
+                                .put("brandId", 4)));
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getBids()).hasSize(1)
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getExt)
+                .containsExactly(expectedExtWithBidMeta);
+    }
+
+    @Test
+    public void makeBidShouldReturnBidWithExtPrebidMetaNotContainingFieldsWithInvalidValues()
+            throws JsonProcessingException {
+        // given
+        final ObjectNode bidExt = mapper.valueToTree(OpenxBidExt.builder()
+                .dspId("abc")
+                .buyerId("xyz")
+                .brandId("cba")
+                .build());
+        final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(
+                BidResponse.builder()
+                        .seatbid(singletonList(SeatBid.builder()
+                                .bid(List.of(
+                                        Bid.builder()
+                                                .w(200)
+                                                .h(150)
+                                                .price(BigDecimal.ONE)
+                                                .impid("impId1")
+                                                .dealid("dealid")
+                                                .adm("<div>This is an Ad</div>")
+                                                .ext(bidExt)
+                                                .build()))
+                                .build()))
+                        .build()));
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .id("bidRequestId")
+                .imp(List.of(
+                        Imp.builder()
+                                .id("impId1")
+                                .banner(Banner.builder().build())
+                                .build()))
+                .build();
+
+        // when
+        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
+
+        // then
+        final ObjectNode expectedExtWithBidMeta = JsonNodeFactory.instance.objectNode()
+                .put("dsp_id", "abc")
+                .put("buyer_id", "xyz")
+                .put("brand_id", "cba");
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getBids()).hasSize(1)
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getExt)
+                .containsExactly(expectedExtWithBidMeta);
     }
 
     private static Map<String, JsonNode> givenCustomParams(String key, Object values) {
