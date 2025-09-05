@@ -135,7 +135,7 @@ public class OrtbDeviceUpdater implements PayloadUpdate<AuctionRequestPayload> {
         try {
             return wurflDevice.getCapabilityAsBool("is_ott");
         } catch (CapabilityNotDefinedException e) {
-            logger.warn("Failed to get is_ott from WURFL device capabilities", e);
+            logger.warn("Failed to get is_ott from WURFL device capabilities");
             return Boolean.FALSE;
         }
     }
@@ -144,7 +144,7 @@ public class OrtbDeviceUpdater implements PayloadUpdate<AuctionRequestPayload> {
         try {
             return wurflDevice.getVirtualCapability("form_factor");
         } catch (VirtualCapabilityNotDefinedException e) {
-            logger.warn("Failed to get form_factor from WURFL device capabilities", e);
+            logger.warn("Failed to get form_factor from WURFL device capabilities");
             return "";
         }
     }
@@ -153,7 +153,7 @@ public class OrtbDeviceUpdater implements PayloadUpdate<AuctionRequestPayload> {
         try {
             return wurflDevice.getCapability("physical_form_factor");
         } catch (CapabilityNotDefinedException e) {
-            logger.warn("Failed to get physical_form_factor from WURFL device capabilities", e);
+            logger.warn("Failed to get physical_form_factor from WURFL device capabilities");
             return "";
         }
     }
@@ -162,7 +162,7 @@ public class OrtbDeviceUpdater implements PayloadUpdate<AuctionRequestPayload> {
         try {
             return wurflDevice.getCapabilityAsBool("is_console");
         } catch (CapabilityNotDefinedException e) {
-            logger.warn("Failed to get is_console from WURFL device capabilities", e);
+            logger.warn("Failed to get is_console from WURFL device capabilities");
             return Boolean.FALSE;
         }
     }
@@ -171,7 +171,7 @@ public class OrtbDeviceUpdater implements PayloadUpdate<AuctionRequestPayload> {
         try {
             return wurflDevice.getVirtualCapability("advertised_device_os");
         } catch (VirtualCapabilityNotDefinedException e) {
-            logger.warn("Failed to evaluate advertised device OS", e);
+            logger.warn("Failed to evaluate advertised device OS");
             return null;
         }
     }
@@ -180,7 +180,7 @@ public class OrtbDeviceUpdater implements PayloadUpdate<AuctionRequestPayload> {
         try {
             return wurflDevice.getVirtualCapability("advertised_device_os_version");
         } catch (VirtualCapabilityNotDefinedException e) {
-            logger.warn("Failed to evaluate advertised device OS version", e);
+            logger.warn("Failed to evaluate advertised device OS version");
         }
         return null;
     }
@@ -189,7 +189,7 @@ public class OrtbDeviceUpdater implements PayloadUpdate<AuctionRequestPayload> {
         try {
             return wurflDevice.getCapabilityAsInt("resolution_height");
         } catch (NumberFormatException e) {
-            logger.warn("Failed to get resolution height from WURFL device capabilities", e);
+            logger.warn("Failed to get resolution height from WURFL device capabilities");
             return null;
         }
     }
@@ -198,7 +198,7 @@ public class OrtbDeviceUpdater implements PayloadUpdate<AuctionRequestPayload> {
         try {
             return wurflDevice.getCapabilityAsInt("resolution_width");
         } catch (NumberFormatException e) {
-            logger.warn("Failed to get resolution width from WURFL device capabilities", e);
+            logger.warn("Failed to get resolution width from WURFL device capabilities");
             return null;
         }
     }
@@ -207,7 +207,7 @@ public class OrtbDeviceUpdater implements PayloadUpdate<AuctionRequestPayload> {
         try {
             return wurflDevice.getVirtualCapabilityAsInt("pixel_density");
         } catch (VirtualCapabilityNotDefinedException e) {
-            logger.warn("Failed to get pixel density from WURFL device capabilities", e);
+            logger.warn("Failed to get pixel density from WURFL device capabilities");
             return null;
         }
     }
@@ -219,7 +219,7 @@ public class OrtbDeviceUpdater implements PayloadUpdate<AuctionRequestPayload> {
                     ? new BigDecimal(densityAsString)
                     : null;
         } catch (CapabilityNotDefinedException | NumberFormatException e) {
-            logger.warn("Failed to get pixel ratio from WURFL device capabilities", e);
+            logger.warn("Failed to get pixel ratio from WURFL device capabilities");
             return null;
         }
     }
@@ -228,7 +228,7 @@ public class OrtbDeviceUpdater implements PayloadUpdate<AuctionRequestPayload> {
         try {
             return wurflDevice.getCapabilityAsBool("ajax_support_javascript") ? 1 : 0;
         } catch (CapabilityNotDefinedException | NumberFormatException e) {
-            logger.warn("Failed to get JS support from WURFL device capabilities", e);
+            logger.warn("Failed to get JS support from WURFL device capabilities");
             return null;
         }
     }
