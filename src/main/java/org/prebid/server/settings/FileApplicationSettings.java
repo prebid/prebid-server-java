@@ -77,7 +77,9 @@ public class FileApplicationSettings implements ApplicationSettings {
 
         storedIdToRequest = readStoredData(fileSystem, Objects.requireNonNull(storedRequestsDir));
         storedIdToImp = readStoredData(fileSystem, Objects.requireNonNull(storedImpsDir));
-        profileIdToProfile = readProfiles(fileSystem, Objects.requireNonNull(profilesDir), jacksonMapper);
+        profileIdToProfile = profilesDir != null // TODO: require in PBS 4.0
+                ? readProfiles(fileSystem, Objects.requireNonNull(profilesDir), jacksonMapper)
+                : Collections.emptyMap();
         storedIdToSeatBid = readStoredData(fileSystem, Objects.requireNonNull(storedResponsesDir));
         fileToCategories = readCategories(fileSystem, Objects.requireNonNull(categoriesDir), jacksonMapper);
     }

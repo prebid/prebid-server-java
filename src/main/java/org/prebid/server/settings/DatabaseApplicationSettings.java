@@ -102,7 +102,7 @@ public class DatabaseApplicationSettings implements ApplicationSettings {
                 Objects.requireNonNull(selectAccountQuery));
         this.selectStoredRequestsQuery = Objects.requireNonNull(selectStoredRequestsQuery);
         this.selectAmpStoredRequestsQuery = Objects.requireNonNull(selectAmpStoredRequestsQuery);
-        this.selectProfilesQuery = Objects.requireNonNull(selectProfilesQuery);
+        this.selectProfilesQuery = selectProfilesQuery;
         this.selectStoredResponsesQuery = Objects.requireNonNull(selectStoredResponsesQuery);
     }
 
@@ -185,6 +185,11 @@ public class DatabaseApplicationSettings implements ApplicationSettings {
                                                          Set<String> requestIds,
                                                          Set<String> impIds,
                                                          Timeout timeout) {
+
+        // TODO: remove in PBS 4.0
+        if (selectProfilesQuery == null) {
+            return Future.failedFuture("Profiles storage not configured.");
+        }
 
         return fetchStoredData(
                 selectProfilesQuery,
