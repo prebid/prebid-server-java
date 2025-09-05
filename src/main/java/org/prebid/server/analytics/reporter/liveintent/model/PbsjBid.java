@@ -6,17 +6,24 @@ import lombok.Value;
 
 import java.math.BigDecimal;
 
-@Data
 @Builder(toBuilder = true)
 @Value
 public class PbsjBid {
 
     String bidId;
+
     boolean enriched;
+
     BigDecimal price;
+
     String adUnitId;
+
     String currency;
+
     Float treatmentRate;
+
     Long timestamp;
+
     String partnerId;
+
 }

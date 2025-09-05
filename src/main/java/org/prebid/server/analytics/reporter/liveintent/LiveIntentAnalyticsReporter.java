@@ -1,8 +1,12 @@
 package org.prebid.server.analytics.reporter.liveintent;
 
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
+import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.model.NotificationEvent;
@@ -24,6 +28,8 @@ import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.vertx.httpclient.HttpClient;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
@@ -31,17 +37,19 @@ import java.util.Optional;
 
 public class LiveIntentAnalyticsReporter implements AnalyticsReporter {
 
+    private static final Logger logger = LoggerFactory.getLogger(LiveIntentAnalyticsReporter.class);
+
+    private static final String LIVEINTENT_HOOK_ID = "liveintent-omni-channel-identity-enrichment-hook";
+
     private final HttpClient httpClient;
     private final LiveIntentAnalyticsProperties properties;
     private final JacksonMapper jacksonMapper;
 
-    private static final Logger logger = LoggerFactory.getLogger(LiveIntentAnalyticsReporter.class);
 
     public LiveIntentAnalyticsReporter(
             LiveIntentAnalyticsProperties properties,
             HttpClient httpClient,
-            JacksonMapper jacksonMapper
-    ) {
+            JacksonMapper jacksonMapper) {
         this.httpClient = Objects.requireNonNull(httpClient);
         this.properties = Objects.requireNonNull(properties);
         this.jacksonMapper = Objects.requireNonNull(jacksonMapper);
@@ -59,44 +67,78 @@ public class LiveIntentAnalyticsReporter implements AnalyticsReporter {
     }
 
     private Future<Void> processNotificationEvent(NotificationEvent notificationEvent) {
-        final String url = properties.getAnalyticsEndpoint() + "/analytic-events/pbsj-winning-bid?"
-                + "b=" + notificationEvent.getBidder()
-                + "&bidId=" + notificationEvent.getBidId();
-        return httpClient.get(url, properties.getTimeoutMs()).mapEmpty();
+        try {
+            final String url = new URIBuilder(URI.create(properties.getAnalyticsEndpoint()))
+                    .setPath("/analytic-events/pbsj-winning-bid")
+                    .setParameter("b=", notificationEvent.getBidder())
+                    .setParameter("bidId=", notificationEvent.getBidId())
+                    .build()
+                    .toString();
+            return httpClient.get(url, properties.getTimeoutMs()).mapEmpty();
+        }
+        catch (URISyntaxException e) {
+            logger.error("Error composing url for notification event: {}", e.getMessage());
+            return Future.failedFuture(e);
+        }
+    }
+
+    private Optional<PbsjBid> buildPbsjBid(
+            BidRequest bidRequest,
+            BidResponse bidResponse,
+            Bid bid,
+            boolean isEnriched,
+            Float treatmentRate,
+            Long timestamp) {
+        return bidRequest.getImp().stream()
+                .filter(impItem -> impItem.getId().equals(bid.getImpid()))
+                .map(imp ->
+                        PbsjBid.builder()
+                                .bidId(bid.getId())
+                                .price(bid.getPrice())
+                                .adUnitId(imp.getTagid())
+                                .enriched(isEnriched)
+                                .currency(bidResponse.getCur())
+                                .treatmentRate(treatmentRate)
+                                .timestamp(timestamp)
+                                .partnerId(properties.getPartnerId())
+                                .build()
+                )
+                .findFirst();
     }
 
     private Future<Void> processAuctionEvent(AuctionContext auctionContext) {
-        try {
-            final BidRequest bidRequest = Optional.ofNullable(auctionContext.getBidRequest())
-                    .orElseThrow(() -> new PreBidException("Bid request should not be empty"));
-            final BidResponse bidResponse = Optional.ofNullable(auctionContext.getBidResponse())
-                    .orElseThrow(() -> new PreBidException("Bid response should not be empty"));
+            if(auctionContext.getBidRequest() == null) {
+                return Future.failedFuture(new PreBidException("Bid request should not be empty"));
+            }
+
+            if(auctionContext.getBidResponse() == null) {
+                return Future.failedFuture(new PreBidException("Bid response should not be empty"));
+            }
+
+            final BidRequest bidRequest = auctionContext.getBidRequest();
+            final BidResponse bidResponse = auctionContext.getBidResponse();
             final Optional<ExtRequestPrebid> requestPrebid = Optional.ofNullable(bidRequest.getExt())
                     .flatMap(ext -> Optional.of(ext.getPrebid()));
 
-            final List<Activity> activities = getActivities(auctionContext);
+            final Optional<Activity> activity = getActivities(auctionContext);
+            final boolean isEnriched = isEnriched(activity);
+            final Float treatmentRate = getTreatmentRate(activity);
+            final Long timestamp = requestPrebid.map(ExtRequestPrebid::getAuctiontimestamp).orElse(0L);
 
-            final List<PbsjBid> pbsjBids = bidResponse.getSeatbid().stream()
-                    .flatMap(seatBid -> seatBid.getBid().stream())
-                    .flatMap(bid ->
-                        bidRequest.getImp().stream()
-                            .filter(impItem -> impItem.getId().equals(bid.getImpid()))
-                            .map(imp ->
-                                PbsjBid.builder()
-                                    .bidId(bid.getId())
-                                    .price(bid.getPrice())
-                                    .adUnitId(imp.getTagid())
-                                    .enriched(isEnriched(activities))
-                                    .currency(bidResponse.getCur())
-                                    .treatmentRate(getTreatmentRate(activities))
-                                    .timestamp(requestPrebid.map(ExtRequestPrebid::getAuctiontimestamp).orElse(0L))
-                                    .partnerId(properties.getPartnerId())
-                                    .build()
-                            )
-            ).toList();
+            final List<PbsjBid> pbsjBids = CollectionUtils.emptyIfNull(bidResponse.getSeatbid()).stream()
+                    .map(SeatBid::getBid)
+                    .flatMap(Collection::stream)
+                    .map(bid -> buildPbsjBid(bidRequest, bidResponse, bid, isEnriched, treatmentRate, timestamp))
+                    .filter(Optional::isPresent)
+                    .map(Optional::get)
+                    .toList();
 
+        try {
             return httpClient.post(
-                    properties.getAnalyticsEndpoint() + "/analytic-events/pbsj-bids",
+                    new URIBuilder(URI.create(properties.getAnalyticsEndpoint()))
+                            .setPath("/analytic-events/pbsj-bids")
+                            .build()
+                            .toString(),
                     jacksonMapper.encodeToString(pbsjBids),
                     properties.getTimeoutMs()
                  ).mapEmpty();
@@ -106,7 +148,7 @@ public class LiveIntentAnalyticsReporter implements AnalyticsReporter {
         }
     }
 
-    private List<Activity> getActivities(AuctionContext auctionContext) {
+    private Optional<Activity> getActivities(AuctionContext auctionContext) {
         return Optional.ofNullable(auctionContext)
                 .map(AuctionContext::getHookExecutionContext)
                 .map(HookExecutionContext::getStageOutcomes)
@@ -118,33 +160,25 @@ public class LiveIntentAnalyticsReporter implements AnalyticsReporter {
                 .map(GroupExecutionOutcome::getHooks)
                 .flatMap(Collection::stream)
                 .filter(hook ->
-                        "liveintent-omni-channel-identity-enrichment-hook".equals(hook.getHookId().getModuleCode())
+                        LIVEINTENT_HOOK_ID.equals(hook.getHookId().getModuleCode())
                                 && hook.getStatus() == ExecutionStatus.success
                 )
                 .map(HookExecutionOutcome::getAnalyticsTags)
                 .map(Tags::activities)
                 .flatMap(Collection::stream)
-                .toList();
+                .findFirst();
     }
 
-    private Float getTreatmentRate(List<Activity> activities) {
-        return activities
-                .stream()
-                .filter(activity -> "liveintent-treatment-rate".equals(activity.name()))
+    private Float getTreatmentRate(Optional<Activity> activity) {
+        return activity.stream()
+                .flatMap(a -> a.results().stream())
                 .findFirst()
-                .map(activity -> {
-                    try {
-                        return Float.parseFloat(activity.status());
-                    } catch (NumberFormatException e) {
-                        logger.warn("Invalid treatment rate value: {}", activity.status());
-                        throw e;
-                    }
-                })
+                .map(a -> a.values().at("treatmentRate").floatValue())
                 .orElse(null);
     }
 
-    private boolean isEnriched(List<Activity> activities) {
-        return activities.stream().anyMatch(activity -> "liveintent-enriched".equals(activity.name()));
+    private boolean isEnriched(Optional<Activity> activity) {
+        return activity.stream().anyMatch(a -> "liveintent-enriched".equals(a.name()));
     }
 
     @Override
