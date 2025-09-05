@@ -175,7 +175,6 @@ public class ConnatixBidder implements Bidder<BidRequest> {
                 ? imp.getExt().deepCopy()
                 : mapper.mapper().createObjectNode();
 
-        impExt.remove("bidder");
         impExt.set("connatix", mapper.mapper().valueToTree(extImpConnatix));
 
         return imp.toBuilder()
