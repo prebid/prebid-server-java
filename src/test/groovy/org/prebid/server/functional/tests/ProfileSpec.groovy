@@ -6,8 +6,10 @@ import org.prebid.server.functional.model.config.AccountProfilesConfigs
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredProfileImp
 import org.prebid.server.functional.model.db.StoredProfileRequest
+import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.db.StoredResponse
 import org.prebid.server.functional.model.filesystem.FileSystemAccountsConfig
+import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.App
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Device
@@ -68,6 +70,7 @@ class ProfileSpec extends BaseSpec {
                     "WHERE profileId in (%REQUEST_ID_LIST%, %IMP_ID_LIST%)".toString()]
 
     private static final String LIMIT_ERROR_MESSAGE = 'Profiles exceeded the limit.'
+    private static final String CONFIG_ERROR_MESSAGE = 'Profiles storage not configured.'
     private static final String INVALID_REQUEST_PREFIX = 'Invalid request format: Error during processing profiles: '
     private static final String NO_IMP_PROFILE_MESSAGE = "No imp profiles for ids [%s] were found"
     private static final String NO_REQUEST_PROFILE_MESSAGE = "No request profiles for ids [%s] were found"
@@ -236,6 +239,89 @@ class ProfileSpec extends BaseSpec {
         verifyAll(bidder.getBidderRequest(bidRequest.id).imp) {
             it.id == [fileImpProfile.body.id]
             it.banner == [fileImpProfile.body.banner]
+        }
+    }
+
+    def "PBS should use request profile for amp request"() {
+        given: "Default AmpRequest"
+        def accountId = PBSUtils.randomNumber as String
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.account = accountId
+        }
+
+        and: "Stored request with profile"
+        def requestProfile = RequestProfile.getProfile(accountId)
+        def ampStoredRequest = getRequestWithProfiles(accountId, [requestProfile])
+        ampStoredRequest.setAccountId(ampRequest.account)
+
+        and: "Default profile in database"
+        profileRequestDao.save(StoredProfileRequest.getProfile(requestProfile))
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        def response = pbsWithStoredProfiles.sendAmpRequest(ampRequest)
+
+        then: "Response should not contain errors and warnings"
+        assert !response.ext?.errors
+        assert !response.ext?.warnings
+
+        and: "Bidder request should contain data from profile"
+        verifyAll(bidder.getBidderRequest(ampStoredRequest.id)) {
+            it.site.id == requestProfile.body.site.id
+            it.site.name == requestProfile.body.site.name
+            it.site.domain == requestProfile.body.site.domain
+            it.site.cat == requestProfile.body.site.cat
+            it.site.sectionCat == requestProfile.body.site.sectionCat
+            it.site.pageCat == requestProfile.body.site.pageCat
+            it.site.page == requestProfile.body.site.page
+            it.site.ref == requestProfile.body.site.ref
+            it.site.search == requestProfile.body.site.search
+            it.site.keywords == requestProfile.body.site.keywords
+            it.site.ext.data == requestProfile.body.site.ext.data
+
+            it.device.didsha1 == requestProfile.body.device.didsha1
+            it.device.didmd5 == requestProfile.body.device.didmd5
+            it.device.dpidsha1 == requestProfile.body.device.dpidsha1
+            it.device.ifa == requestProfile.body.device.ifa
+            it.device.macsha1 == requestProfile.body.device.macsha1
+            it.device.macmd5 == requestProfile.body.device.macmd5
+            it.device.dpidmd5 == requestProfile.body.device.dpidmd5
+        }
+    }
+
+    def "PBS should use imp profile for amp request"() {
+        given: "Default AmpRequest"
+        def accountId = PBSUtils.randomNumber as String
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.account = accountId
+        }
+
+        and: "Stored request with profile"
+        def impProfile = ImpProfile.getProfile(accountId)
+        def ampStoredRequest = getRequestWithProfiles(accountId, [impProfile])
+        ampStoredRequest.setAccountId(ampRequest.account)
+
+        and: "Default profile in database"
+        profileImpDao.save(StoredProfileImp.getProfile(impProfile))
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        def response = pbsWithStoredProfiles.sendAmpRequest(ampRequest)
+
+        then: "Response should not contain errors and warnings"
+        assert !response.ext?.errors
+        assert !response.ext?.warnings
+
+        and: "Bidder request imp should contain data from profile"
+        verifyAll(bidder.getBidderRequest(ampStoredRequest.id).imp) {
+            it.id == [impProfile.body.id]
+            it.banner == [impProfile.body.banner]
         }
     }
 
@@ -841,7 +927,6 @@ class ProfileSpec extends BaseSpec {
             setAccountId(accountId)
         }
 
-
         when: "PBS processes auction request"
         prebidServerService.sendAuctionRequest(bidRequest)
 
@@ -1008,7 +1093,7 @@ class ProfileSpec extends BaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def height = PBSUtils.randomNumber
         def impProfile = ImpProfile.getProfile(accountId).tap {
-            it.body.banner.format.first.weight = null
+            it.body.banner.format.first.width = null
             it.body.banner.format.first.height = height
         }
         def bidRequest = getRequestWithProfiles(accountId, [impProfile]) as BidRequest
@@ -1347,10 +1432,10 @@ class ProfileSpec extends BaseSpec {
 
         where:
         invalidProfile << [
-                ImpProfile.getProfile().tap { it.type = ProfileType.EMPTY},
-                ImpProfile.getProfile().tap { it.type = ProfileType.UNKNOWN},
-                ImpProfile.getProfile().tap { it.mergePrecedence = ProfileMergePrecedence.EMPTY},
-                ImpProfile.getProfile().tap { it.mergePrecedence = ProfileMergePrecedence.UNKNOWN},
+                ImpProfile.getProfile().tap { it.type = ProfileType.EMPTY },
+                ImpProfile.getProfile().tap { it.type = ProfileType.UNKNOWN },
+                ImpProfile.getProfile().tap { it.mergePrecedence = ProfileMergePrecedence.EMPTY },
+                ImpProfile.getProfile().tap { it.mergePrecedence = ProfileMergePrecedence.UNKNOWN },
         ]
     }
 
@@ -1406,11 +1491,62 @@ class ProfileSpec extends BaseSpec {
 
         where:
         invalidProfile << [
-                RequestProfile.getProfile().tap { it.type = ProfileType.EMPTY},
-                RequestProfile.getProfile().tap { it.type = ProfileType.UNKNOWN},
-                RequestProfile.getProfile().tap { it.mergePrecedence = ProfileMergePrecedence.EMPTY},
-                RequestProfile.getProfile().tap { it.mergePrecedence = ProfileMergePrecedence.UNKNOWN},
+                RequestProfile.getProfile().tap { it.type = ProfileType.EMPTY },
+                RequestProfile.getProfile().tap { it.type = ProfileType.UNKNOWN },
+                RequestProfile.getProfile().tap { it.mergePrecedence = ProfileMergePrecedence.EMPTY },
+                RequestProfile.getProfile().tap { it.mergePrecedence = ProfileMergePrecedence.UNKNOWN },
         ]
+    }
+
+    def "PBS should throw exception when profiles are not configured and request contain profileId"() {
+        when: "PBS processes auction request"
+        defaultPbsService.sendAuctionRequest(requestWithProfile)
+
+        then: "PBs should throw error due to invalid profile config"
+        def exception = thrown(PrebidServerException)
+        assert exception.statusCode == 400
+        assert exception.responseBody == INVALID_REQUEST_PREFIX + CONFIG_ERROR_MESSAGE
+
+        where:
+        requestWithProfile << [
+                BidRequest.getDefaultBidRequest().tap {
+                    it.imp.first.ext.prebid.profileNames = [PBSUtils.randomString]
+                },
+                BidRequest.getDefaultBidRequest().tap {
+                    it.ext.prebid.profileNames = [PBSUtils.randomString]
+                }
+        ]
+    }
+
+    def "PBS should throw exception when profiles are not configured for filesystem and request contain profileId"() {
+        given: "PBS with profiles.fail-on-unknown config"
+        def config = FILESYSTEM_CONFIG + PROFILES_CONFIG + ['settings.filesystem.profiles-dir': null]
+        pbsContainer = new PrebidServerContainer(config)
+        pbsContainer.withFolder(REQUESTS_PATH)
+        pbsContainer.withFolder(IMPS_PATH)
+        pbsContainer.withFolder(RESPONSES_PATH)
+        pbsContainer.withFolder(CATEGORIES_PATH)
+        def accountsConfig = new FileSystemAccountsConfig(accounts: [new AccountConfig(id: ACCOUNT_ID_FILE_STORAGE, status: ACTIVE)])
+        pbsContainer.withCopyToContainer(Transferable.of(encodeYaml(accountsConfig)),
+                SETTINGS_FILENAME)
+        pbsContainer.start()
+        pbsWithStoredProfiles = new PrebidServerService(pbsContainer)
+
+        and: "BidRequest with profile"
+        def requestWithProfile = BidRequest.getDefaultBidRequest().tap {
+            it.ext.prebid.profileNames = [PBSUtils.randomString]
+        }
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAuctionRequest(requestWithProfile)
+
+        then: "PBs should throw error due to invalid profile config"
+        def exception = thrown(PrebidServerException)
+        assert exception.statusCode == 400
+        assert exception.responseBody == INVALID_REQUEST_PREFIX + CONFIG_ERROR_MESSAGE
+
+        cleanup: "Stop and remove pbs container"
+        pbsContainer.stop()
     }
 
     private static BidRequest getRequestWithProfiles(String accountId, List<Profile> profiles) {
