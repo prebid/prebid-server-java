@@ -14,7 +14,7 @@ adapters:
           maintainer-email: support@rocketlab.ai
         usersync:
           enabled: true
-          cookie-family-name: rockelab
+          cookie-family-name: rocketlab
           redirect:
             url: https://usync.rocketlab.ai/pbserver?gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redirect={{redirect_url}}
             support-cors: false

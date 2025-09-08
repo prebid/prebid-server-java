@@ -342,8 +342,7 @@ public class TeqblazeBidderTest extends VertxTest {
     private static Imp givenBadImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                         .id("invalidImp")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpTeqblaze.of(null, null)))))
+                        .ext(mapper.createObjectNode().set("bidder", mapper.createArrayNode())))
                 .build();
     }
 
