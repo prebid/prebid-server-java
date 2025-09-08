@@ -91,8 +91,6 @@ public class TeqblazeBidder implements Bidder<BidRequest> {
             builder.type(PUBLISHER_PROPERTY).placementId(extImpTeqblaze.getPlacementId());
         } else if (StringUtils.isNotEmpty(extImpTeqblaze.getEndpointId())) {
             builder.type(NETWORK_PROPERTY).endpointId(extImpTeqblaze.getEndpointId());
-        } else {
-            throw new PreBidException("found no valid impressions");
         }
 
         return builder.build();
@@ -131,7 +129,6 @@ public class TeqblazeBidder implements Bidder<BidRequest> {
     }
 
     private BidType getBidType(Bid bid) {
-
         return switch (bid.getMtype()) {
             case 1 -> BidType.banner;
             case 2 -> BidType.video;
