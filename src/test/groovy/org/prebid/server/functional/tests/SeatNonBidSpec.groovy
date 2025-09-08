@@ -118,7 +118,7 @@ class SeatNonBidSpec extends BaseSpec {
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
             seatbid.first.tap {
                 bid.first.height = bidRequest.imp.first.banner.format.first.height + 1
-                bid.first.weight = bidRequest.imp.first.banner.format.first.weight + 1
+                bid.first.width = bidRequest.imp.first.banner.format.first.width + 1
             }
         }
 
