@@ -314,7 +314,6 @@ class ProfileSpec extends BaseSpec {
         when: "PBS processes amp request"
         def response = pbsWithStoredProfiles.sendAmpRequest(ampRequest)
 
-
         then: "Response should not contain errors and warnings"
         assert !response.ext?.errors
         assert !response.ext?.warnings
@@ -927,7 +926,6 @@ class ProfileSpec extends BaseSpec {
             it.device = null
             setAccountId(accountId)
         }
-
 
         when: "PBS processes auction request"
         prebidServerService.sendAuctionRequest(bidRequest)
