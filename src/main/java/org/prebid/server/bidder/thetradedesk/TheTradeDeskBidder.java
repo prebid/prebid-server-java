@@ -29,6 +29,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -44,6 +45,7 @@ public class TheTradeDeskBidder implements Bidder<BidRequest> {
 
     private static final String SUPPLY_ID_MACRO = "{{SupplyId}}";
     private static final Pattern SUPPLY_ID_PATTERN = Pattern.compile("([a-z]+)$");
+    private static final String PRICE_MACRO = "${AUCTION_PRICE}";
 
     private final String endpointUrl;
     private final String supplyId;
@@ -87,6 +89,11 @@ public class TheTradeDeskBidder implements Bidder<BidRequest> {
             } catch (PreBidException e) {
                 return Result.withError(BidderError.badInput(e.getMessage()));
             }
+        }
+
+        if (StringUtils.isBlank(sourceSupplyId) && StringUtils.isBlank(supplyId)) {
+            return Result.withError(
+                BidderError.badInput("Either supplySourceId or a default endpoint must be provided"));
         }
 
         final BidRequest outgoingRequest = modifyRequest(request, modifiedImps, publisherId);
@@ -175,32 +182,56 @@ public class TheTradeDeskBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.withValues(extractBids(bidResponse));
-        } catch (DecodeException | PreBidException e) {
+            final List<BidderError> errors = new ArrayList<>();
+            final List<BidderBid> bids = extractBids(bidResponse, errors);
+            return Result.of(bids, errors);
+        } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private static List<BidderBid> extractBids(BidResponse bidResponse) {
+    private static List<BidderBid> extractBids(BidResponse bidResponse, List<BidderError> errors) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
 
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
-                .map(SeatBid::getBid).filter(Objects::nonNull)
+                .map(SeatBid::getBid)
+                .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(bid, getBidType(bid), bidResponse.getCur()))
+                .map(bid -> makeBid(bid, bidResponse.getCur(), errors))
+                .filter(Objects::nonNull)
                 .toList();
     }
 
-    private static BidType getBidType(Bid bid) {
+    private static BidderBid makeBid(Bid bid, String currency, List<BidderError> errors) {
+        final BidType bidType = getBidType(bid, errors);
+        return bidType != null ? BidderBid.of(resolvePriceMacros(bid), bidType, currency) : null;
+    }
+
+    private static BidType getBidType(Bid bid, List<BidderError> errors) {
         return switch (bid.getMtype()) {
             case 1 -> BidType.banner;
             case 2 -> BidType.video;
             case 4 -> BidType.xNative;
-            case null, default -> throw new PreBidException("unsupported mtype: %s".formatted(bid.getMtype()));
+            case null, default -> {
+                errors.add(BidderError.badServerResponse(
+                        "could not define media type for impression: " + bid.getImpid()));
+                yield null;
+            }
         };
+    }
+
+    private static Bid resolvePriceMacros(Bid bid) {
+        final BigDecimal price = bid.getPrice();
+        final String priceAsString = price != null ? price.toPlainString() : "0";
+
+        return bid.toBuilder()
+                .nurl(StringUtils.replace(bid.getNurl(), PRICE_MACRO, priceAsString))
+                .adm(StringUtils.replace(bid.getAdm(), PRICE_MACRO, priceAsString))
+                .burl(StringUtils.replace(bid.getBurl(), PRICE_MACRO, priceAsString))
+                .build();
     }
 }

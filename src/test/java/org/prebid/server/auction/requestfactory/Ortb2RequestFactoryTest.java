@@ -7,6 +7,7 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Dooh;
 import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Geo;
+import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
@@ -26,8 +27,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
 import org.prebid.server.auction.IpAddressHelper;
-import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.TimeoutResolver;
+import org.prebid.server.auction.externalortb.ProfilesProcessor;
+import org.prebid.server.auction.externalortb.StoredRequestProcessor;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionStoredResult;
 import org.prebid.server.auction.model.IpAddress;
@@ -83,6 +85,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
@@ -90,12 +93,14 @@ import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.prebid.server.assertion.FutureAssertion.assertThat;
@@ -118,6 +123,8 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     private TimeoutFactory timeoutFactory;
     @Mock
     private StoredRequestProcessor storedRequestProcessor;
+    @Mock(strictness = LENIENT)
+    private ProfilesProcessor profilesProcessor;
     @Mock(strictness = LENIENT)
     private ApplicationSettings applicationSettings;
     @Mock
@@ -145,6 +152,9 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
 
         given(timeoutResolver.limitToMax(any())).willReturn(2000L);
+
+        given(profilesProcessor.process(any(), any()))
+                .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(1)));
 
         given(hookStageExecutor.executeEntrypointStage(any(), any(), any(), any()))
                 .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.success(
@@ -534,29 +544,6 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldFetchAccountFromStoredAndReturnEmptyAccountIfStoredLookupIsFailed() {
-        // given
-        final BidRequest receivedBidRequest = givenBidRequest(identity());
-        given(storedRequestProcessor.processAuctionRequest(any(), any()))
-                .willReturn(Future.failedFuture(new RuntimeException("error")));
-
-        // when
-        final Future<Account> result = target.fetchAccount(
-                AuctionContext.builder()
-                        .httpRequest(httpRequest)
-                        .bidRequest(receivedBidRequest)
-                        .timeoutContext(TimeoutContext.of(0, null, 0))
-                        .build());
-
-        // then
-        verify(storedRequestProcessor).processAuctionRequest("", receivedBidRequest);
-        verifyNoInteractions(applicationSettings);
-
-        assertThat(result.failed()).isTrue();
-        assertThat(result.cause()).hasMessage("error");
-    }
-
-    @Test
     public void fetchAccountWithoutStoredRequestLookupShouldNeverCallStoredProcessor() {
         // when
         target.fetchAccountWithoutStoredRequestLookup(
@@ -568,6 +555,42 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         // then
         verifyNoInteractions(storedRequestProcessor);
+    }
+
+    @Test
+    public void shouldFetchAccountFromProfileIfStoredLookupIsTrueAndAccountIsNotFoundPreviously() {
+        // given
+        final BidRequest receivedBidRequest = givenBidRequest(identity());
+
+        final String accountId = "accountId";
+        final BidRequest mergedBidRequest = givenBidRequest(builder -> builder
+                .site(Site.builder()
+                        .publisher(Publisher.builder().id(accountId).build())
+                        .build()));
+
+        given(storedRequestProcessor.processAuctionRequest(any(), any()))
+                .willAnswer(invocation -> Future.succeededFuture(
+                        AuctionStoredResult.of(false, invocation.getArgument(1))));
+        given(profilesProcessor.process(any(), any()))
+                .willReturn(Future.succeededFuture(mergedBidRequest));
+
+        final Account fetchedAccount = Account.builder().id(accountId).status(AccountStatus.active).build();
+        given(applicationSettings.getAccountById(eq(accountId), any()))
+                .willReturn(Future.succeededFuture(fetchedAccount));
+
+        // when
+        final Future<Account> result = target.fetchAccount(
+                AuctionContext.builder()
+                        .httpRequest(httpRequest)
+                        .bidRequest(receivedBidRequest)
+                        .timeoutContext(TimeoutContext.of(0, null, 0))
+                        .build());
+
+        // then
+        verify(storedRequestProcessor).processAuctionRequest("", receivedBidRequest);
+        verify(applicationSettings).getAccountById(eq(accountId), any());
+
+        assertThat(result.result()).isEqualTo(fetchedAccount);
     }
 
     @Test
@@ -1025,11 +1048,11 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         // when
         final Future<BidRequest> result = target.enrichBidRequestWithAccountAndPrivacyData(
-                        AuctionContext.builder()
-                                .bidRequest(bidRequest)
-                                .account(account)
-                                .privacyContext(privacyContext)
-                                .build());
+                AuctionContext.builder()
+                        .bidRequest(bidRequest)
+                        .account(account)
+                        .privacyContext(privacyContext)
+                        .build());
 
         // then
         assertThat(result).isSucceeded().unwrap()
@@ -1058,11 +1081,11 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         // when
         final Future<BidRequest> result = target.enrichBidRequestWithAccountAndPrivacyData(
-                        AuctionContext.builder()
-                                .bidRequest(bidRequest)
-                                .account(account)
-                                .privacyContext(privacyContext)
-                                .build());
+                AuctionContext.builder()
+                        .bidRequest(bidRequest)
+                        .account(account)
+                        .privacyContext(privacyContext)
+                        .build());
 
         // then
         assertThat(result).isSucceeded().unwrap()
@@ -1704,6 +1727,70 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 "removed EID source3 due to empty ID");
     }
 
+    @Test
+    public void validateShouldDropImpressionsOverAccountLimitAndReturnWarning() {
+        // given
+        final Imp imp1 = Imp.builder().id("1").build();
+        final Imp imp2 = Imp.builder().id("2").build();
+        final BidRequest bidRequest = givenBidRequest(request -> request.imp(asList(imp1, imp2)));
+        final List<String> warning = new ArrayList<>();
+
+        final Account givenAccount = Account.builder()
+                .id(ACCOUNT_ID)
+                .auction(AccountAuctionConfig.builder().impressionLimit(1).build())
+                .build();
+
+        // when
+        final BidRequest result = target.limitImpressions(givenAccount, bidRequest, warning).result();
+
+        // then
+        assertThat(warning).hasSize(1)
+                .containsOnly("Only first 1 impressions were kept due to the limit, "
+                        + "all the subsequent impressions have been dropped for the auction");
+
+        verify(metrics).updateImpsDroppedMetric(1);
+        assertThat(result.getImp()).containsOnly(imp1);
+    }
+
+    @Test
+    public void validateShouldNotDropImpressionsReturnWarningWhenAccountLimitIsSetToZero() {
+        // given
+        final Imp imp1 = Imp.builder().id("1").build();
+        final Imp imp2 = Imp.builder().id("2").build();
+        final BidRequest bidRequest = givenBidRequest(request -> request.imp(asList(imp1, imp2)));
+        final List<String> warning = new ArrayList<>();
+
+        final Account givenAccount = Account.builder()
+                .id(ACCOUNT_ID)
+                .auction(AccountAuctionConfig.builder().impressionLimit(0).build())
+                .build();
+
+        // when
+        final BidRequest result = target.limitImpressions(givenAccount, bidRequest, warning).result();
+
+        // then
+        assertThat(warning).isEmpty();
+        assertThat(result).isEqualTo(bidRequest);
+        verify(metrics, never()).updateImpsDroppedMetric(anyInt());
+    }
+
+    @Test
+    public void validateShouldNotDropImpressionsReturnWarningWhenAccountLimitIsNotSet() {
+        // given
+        final Imp imp1 = Imp.builder().id("1").build();
+        final Imp imp2 = Imp.builder().id("2").build();
+        final BidRequest bidRequest = givenBidRequest(request -> request.imp(asList(imp1, imp2)));
+        final List<String> warning = new ArrayList<>();
+
+        // when
+        final BidRequest result = target.limitImpressions(Account.empty(ACCOUNT_ID), bidRequest, warning).result();
+
+        // then
+        assertThat(warning).isEmpty();
+        assertThat(result).isEqualTo(bidRequest);
+        verify(metrics, never()).updateImpsDroppedMetric(anyInt());
+    }
+
     private void givenTarget(int timeoutAdjustmentFactor) {
         target = new Ortb2RequestFactory(
                 timeoutAdjustmentFactor,
@@ -1715,6 +1802,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 timeoutResolver,
                 timeoutFactory,
                 storedRequestProcessor,
+                profilesProcessor,
                 applicationSettings,
                 ipAddressHelper,
                 hookStageExecutor,

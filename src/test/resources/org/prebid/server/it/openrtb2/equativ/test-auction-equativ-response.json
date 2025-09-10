@@ -1,0 +1,46 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "exp": 300,
+          "price": 0.5,
+          "adm": "some-test-ad",
+          "adid": "adid",
+          "adomain": [
+            "advertsite.com"
+          ],
+          "cid": "cid",
+          "crid": "crid",
+          "w": 1024,
+          "h": 576,
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "meta": {
+                "adaptercode": "equativ"
+              }
+            },
+            "origbidcpm": 0.5
+          },
+          "mtype": 1
+        }
+      ],
+      "seat": "equativ",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "equativ": "{{ equativ.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}

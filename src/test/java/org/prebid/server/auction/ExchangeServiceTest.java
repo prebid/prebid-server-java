@@ -43,6 +43,7 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
+import org.prebid.server.auction.externalortb.StoredResponseProcessor;
 import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessingResult;
 import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessor;
 import org.prebid.server.auction.model.AuctionContext;
@@ -302,7 +303,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(bidderCatalog.isValidName(anyString())).willReturn(true);
         given(bidderCatalog.isActive(anyString())).willReturn(true);
         given(bidderCatalog.usersyncerByName(anyString()))
-                .willReturn(Optional.of(Usersyncer.of("cookieFamily", null, null)));
+                .willReturn(Optional.of(Usersyncer.of("cookieFamily", null, null, false, null)));
         given(bidderCatalog.bidderInfoByName(anyString())).willReturn(BidderInfo.create(
                 true,
                 null,

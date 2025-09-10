@@ -1,18 +1,13 @@
 package org.prebid.server.settings.helper;
 
+import io.vertx.core.Future;
+import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.settings.model.StoredDataResult;
 
-/**
- * Interface to satisfy obtaining of {@link StoredDataResult}.
- *
- * @param <ACC>  account ID
- * @param <REQS> set of stored request IDs
- * @param <IMPS> set of stored imp IDs
- * @param <T>    processing timeout
- * @param <R>    result of fetching stored data
- */
-@FunctionalInterface
-public interface StoredDataFetcher<ACC, REQS, IMPS, T, R> {
+import java.util.Set;
 
-    R apply(ACC account, REQS reqIds, IMPS impIds, T timeout);
+@FunctionalInterface
+public interface StoredDataFetcher<T> {
+
+    Future<StoredDataResult<T>> apply(String account, Set<String> reqIds, Set<String> impIds, Timeout timeout);
 }

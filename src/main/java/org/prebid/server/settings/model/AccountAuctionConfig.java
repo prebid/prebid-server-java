@@ -60,4 +60,9 @@ public class AccountAuctionConfig {
     AccountCacheConfig cache;
 
     AccountBidRankingConfig ranking;
+
+    @JsonAlias("impression-limit")
+    Integer impressionLimit;
+
+    AccountProfilesConfig profiles;
 }

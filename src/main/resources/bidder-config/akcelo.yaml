@@ -1,0 +1,12 @@
+adapters:
+  akcelo:
+    endpoint: https://s2s.sportslocalmedia.com/openrtb2/auction
+    meta-info:
+      maintainer-email: tech@akcelo.io
+      app-media-types:
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 0

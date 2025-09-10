@@ -76,34 +76,34 @@ public class AdminEndpointsConfiguration {
     @ConditionalOnExpression("${settings.in-memory-cache.notification-endpoints-enabled:false}"
             + " and ${admin-endpoints.storedrequest.enabled} == true")
     AdminResource cacheNotificationEndpoint(
-            SettingsCache settingsCache,
-            JacksonMapper mapper,
             @Value("${admin-endpoints.storedrequest.path}") String path,
             @Value("${admin-endpoints.storedrequest.on-application-port}") boolean isOnApplicationPort,
-            @Value("${admin-endpoints.storedrequest.protected}") boolean isProtected) {
+            @Value("${admin-endpoints.storedrequest.protected}") boolean isProtected,
+            SettingsCache<String> settingsCache,
+            JacksonMapper mapper) {
 
         return new AdminResourceWrapper(
                 path,
                 isOnApplicationPort,
                 isProtected,
-                new SettingsCacheNotificationHandler(settingsCache, mapper, path));
+                new SettingsCacheNotificationHandler(path, settingsCache, mapper));
     }
 
     @Bean
     @ConditionalOnExpression("${settings.in-memory-cache.notification-endpoints-enabled:false}"
             + " and ${admin-endpoints.storedrequest-amp.enabled} == true")
     AdminResource ampCacheNotificationEndpoint(
-            SettingsCache ampSettingsCache,
-            JacksonMapper mapper,
             @Value("${admin-endpoints.storedrequest-amp.path}") String path,
             @Value("${admin-endpoints.storedrequest-amp.on-application-port}") boolean isOnApplicationPort,
-            @Value("${admin-endpoints.storedrequest-amp.protected}") boolean isProtected) {
+            @Value("${admin-endpoints.storedrequest-amp.protected}") boolean isProtected,
+            SettingsCache<String> ampSettingsCache,
+            JacksonMapper mapper) {
 
         return new AdminResourceWrapper(
                 path,
                 isOnApplicationPort,
                 isProtected,
-                new SettingsCacheNotificationHandler(ampSettingsCache, mapper, path));
+                new SettingsCacheNotificationHandler(path, ampSettingsCache, mapper));
     }
 
     @Bean
