@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
 import org.prebid.server.hooks.execution.v1.auction.AuctionInvocationContextImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.liveintent.omni.channel.identity.model.IdResResponse;
@@ -45,6 +46,9 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
     private static final JacksonMapper MAPPER = new JacksonMapper(ObjectMapperProvider.mapper());
 
     @Mock
+    private UserFpdActivityMask userFpdActivityMask;
+
+    @Mock
     private HttpClient httpClient;
 
     @Mock(strictness = LENIENT)
@@ -60,7 +64,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
         given(properties.getTreatmentRate()).willReturn(1.0f);
 
         target = new LiveIntentOmniChannelIdentityProcessedAuctionRequestHook(
-                properties, MAPPER, httpClient, 0.01d);
+                properties, userFpdActivityMask, MAPPER, httpClient, 0.01d);
     }
 
     @Test
@@ -68,7 +72,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
         given(properties.getIdentityResolutionEndpoint()).willReturn("invalid_url");
         assertThatIllegalArgumentException().isThrownBy(() ->
                 new LiveIntentOmniChannelIdentityProcessedAuctionRequestHook(
-                        properties, MAPPER, httpClient, 0.01d));
+                        properties, userFpdActivityMask, MAPPER, httpClient, 0.01d));
     }
 
     @Test
