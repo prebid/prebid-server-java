@@ -8,7 +8,7 @@ import com.iab.openrtb.response.Bid;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.prebid.server.auction.model.RejectedBid;
+import org.prebid.server.auction.model.BidRejection;
 import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.config.Attribute;
@@ -196,7 +196,7 @@ public class BidsBlockerTest {
         // when and then
         assertThat(blocker.block()).satisfies(result -> {
             hasValue(result, 0);
-            assertThat(result.getRejections()).containsOnly(RejectedBid.of(bid, RESPONSE_REJECTED_ADVERTISER_BLOCKED));
+            assertThat(result.getRejections()).containsOnly(BidRejection.of(bid, RESPONSE_REJECTED_ADVERTISER_BLOCKED));
         });
     }
 
@@ -327,7 +327,7 @@ public class BidsBlockerTest {
         // when and then
         assertThat(blocker.block()).satisfies(result -> {
             hasValue(result, 0);
-            assertThat(result.getRejections()).containsOnly(RejectedBid.of(bid, RESPONSE_REJECTED_ADVERTISER_BLOCKED));
+            assertThat(result.getRejections()).containsOnly(BidRejection.of(bid, RESPONSE_REJECTED_ADVERTISER_BLOCKED));
         });
     }
 
@@ -350,7 +350,7 @@ public class BidsBlockerTest {
             assertThat(result.getValue()).isEqualTo(BlockedBids.of(singleton(0)));
             assertThat(result.getDebugMessages()).containsOnly(
                     "Bid 0 from bidder bidder1 has been rejected, failed checks: [bcat]");
-            assertThat(result.getRejections()).containsOnly(RejectedBid.of(bid, RESPONSE_REJECTED_INVALID_CREATIVE));
+            assertThat(result.getRejections()).containsOnly(BidRejection.of(bid, RESPONSE_REJECTED_INVALID_CREATIVE));
         });
     }
 
@@ -371,7 +371,7 @@ public class BidsBlockerTest {
         // when and then
         assertThat(blocker.block()).satisfies(result -> {
             hasValue(result, 0);
-            assertThat(result.getRejections()).containsOnly(RejectedBid.of(bid, RESPONSE_REJECTED_INVALID_CREATIVE));
+            assertThat(result.getRejections()).containsOnly(BidRejection.of(bid, RESPONSE_REJECTED_INVALID_CREATIVE));
         });
     }
 
@@ -437,9 +437,9 @@ public class BidsBlockerTest {
                     AnalyticsResult.of("success-allow", null, "bidder1", "impId1"));
 
             assertThat(result.getRejections()).containsOnly(
-                    RejectedBid.of(bid1, RESPONSE_REJECTED_INVALID_CREATIVE),
-                    RejectedBid.of(bid2, RESPONSE_REJECTED_INVALID_CREATIVE),
-                    RejectedBid.of(bid1, RESPONSE_REJECTED_ADVERTISER_BLOCKED));
+                    BidRejection.of(bid1, RESPONSE_REJECTED_INVALID_CREATIVE),
+                    BidRejection.of(bid2, RESPONSE_REJECTED_INVALID_CREATIVE),
+                    BidRejection.of(bid1, RESPONSE_REJECTED_ADVERTISER_BLOCKED));
         });
     }
 
@@ -510,13 +510,13 @@ public class BidsBlockerTest {
                     "Bid 5 from bidder bidder1 has been rejected, failed checks: [battr]",
                     "Bid 7 from bidder bidder1 has been rejected, failed checks: [badv, bcat]");
             assertThat(result.getRejections()).containsOnly(
-                    RejectedBid.of(bid1, RESPONSE_REJECTED_INVALID_CREATIVE),
-                    RejectedBid.of(bid1, RESPONSE_REJECTED_ADVERTISER_BLOCKED),
-                    RejectedBid.of(bid2, RESPONSE_REJECTED_INVALID_CREATIVE),
-                    RejectedBid.of(bid4, RESPONSE_REJECTED_INVALID_CREATIVE),
-                    RejectedBid.of(bid6, RESPONSE_REJECTED_INVALID_CREATIVE),
-                    RejectedBid.of(bid8, RESPONSE_REJECTED_INVALID_CREATIVE),
-                    RejectedBid.of(bid8, RESPONSE_REJECTED_ADVERTISER_BLOCKED));
+                    BidRejection.of(bid1, RESPONSE_REJECTED_INVALID_CREATIVE),
+                    BidRejection.of(bid1, RESPONSE_REJECTED_ADVERTISER_BLOCKED),
+                    BidRejection.of(bid2, RESPONSE_REJECTED_INVALID_CREATIVE),
+                    BidRejection.of(bid4, RESPONSE_REJECTED_INVALID_CREATIVE),
+                    BidRejection.of(bid6, RESPONSE_REJECTED_INVALID_CREATIVE),
+                    BidRejection.of(bid8, RESPONSE_REJECTED_INVALID_CREATIVE),
+                    BidRejection.of(bid8, RESPONSE_REJECTED_ADVERTISER_BLOCKED));
         });
     }
 

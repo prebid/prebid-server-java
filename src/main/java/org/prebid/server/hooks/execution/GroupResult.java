@@ -3,7 +3,7 @@ package org.prebid.server.hooks.execution;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import org.apache.commons.collections4.MapUtils;
-import org.prebid.server.auction.model.Rejected;
+import org.prebid.server.auction.model.Rejection;
 import org.prebid.server.hooks.execution.model.ExecutionAction;
 import org.prebid.server.hooks.execution.model.ExecutionStatus;
 import org.prebid.server.hooks.execution.model.GroupExecutionOutcome;
@@ -37,7 +37,7 @@ class GroupResult<T> {
 
     private final boolean rejectAllowed;
 
-    private final Map<String, List<Rejected>> rejections = new HashMap<>();
+    private final Map<String, List<Rejection>> rejections = new HashMap<>();
 
     private final List<HookExecutionOutcome> hookExecutionOutcomes = new ArrayList<>();
 

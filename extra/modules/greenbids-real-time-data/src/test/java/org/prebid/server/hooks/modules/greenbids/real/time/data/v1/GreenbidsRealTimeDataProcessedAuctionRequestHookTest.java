@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.prebid.server.auction.model.RejectedImp;
+import org.prebid.server.auction.model.ImpRejection;
 import org.prebid.server.hooks.execution.v1.analytics.ActivityImpl;
 import org.prebid.server.hooks.execution.v1.analytics.ResultImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionInvocationContextImpl;
@@ -165,8 +165,8 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHookTest {
         assertThat(actualResult.values().get("adunitcodevalue").get("tid").asText())
                 .isEqualTo("67eaab5f-27a6-4689-93f7-bd8f024576e3");
         assertThat(result.rejections()).containsOnly(
-                entry("appnexus", List.of(RejectedImp.of("adunitcodevalue", REQUEST_BLOCKED_OPTIMIZED))),
-                entry("pubmatic", List.of(RejectedImp.of("adunitcodevalue", REQUEST_BLOCKED_OPTIMIZED))));
+                entry("appnexus", List.of(ImpRejection.of("adunitcodevalue", REQUEST_BLOCKED_OPTIMIZED))),
+                entry("pubmatic", List.of(ImpRejection.of("adunitcodevalue", REQUEST_BLOCKED_OPTIMIZED))));
     }
 
     private AuctionInvocationContext givenAuctionInvocationContext(Double explorationRate) {

@@ -11,8 +11,8 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.prebid.server.analytics.reporter.greenbids.model.ExplorationResult;
 import org.prebid.server.analytics.reporter.greenbids.model.Ortb2ImpExtResult;
 import org.prebid.server.auction.model.BidRejectionReason;
-import org.prebid.server.auction.model.Rejected;
-import org.prebid.server.auction.model.RejectedImp;
+import org.prebid.server.auction.model.Rejection;
+import org.prebid.server.auction.model.ImpRejection;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.execution.v1.analytics.ActivityImpl;
@@ -218,7 +218,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
         return values != null ? mapper.valueToTree(values) : null;
     }
 
-    private Map<String, List<Rejected>> toRejections(Map<String, Map<String, Boolean>> impsBiddersFilterMap) {
+    private Map<String, List<Rejection>> toRejections(Map<String, Map<String, Boolean>> impsBiddersFilterMap) {
         return impsBiddersFilterMap.entrySet().stream()
                 .flatMap(entry -> Stream.ofNullable(entry.getValue())
                         .map(Map::entrySet)
@@ -227,7 +227,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                         .map(Map.Entry::getKey)
                         .map(bidder -> Pair.of(
                                 bidder,
-                                RejectedImp.of(entry.getKey(), BidRejectionReason.REQUEST_BLOCKED_OPTIMIZED))))
+                                ImpRejection.of(entry.getKey(), BidRejectionReason.REQUEST_BLOCKED_OPTIMIZED))))
                 .collect(Collectors.groupingBy(Pair::getKey, Collectors.mapping(Pair::getValue, Collectors.toList())));
     }
 

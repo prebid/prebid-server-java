@@ -17,7 +17,7 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
-import org.prebid.server.auction.model.Rejected;
+import org.prebid.server.auction.model.Rejection;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.execution.timeout.TimeoutFactory;
@@ -570,7 +570,7 @@ public class HookStageExecutor {
                                 bidder,
                                 key -> new BidRejectionTracker(
                                         key,
-                                        rejectedList.stream().map(Rejected::impId).collect(Collectors.toSet()),
+                                        rejectedList.stream().map(Rejection::impId).collect(Collectors.toSet()),
                                         logSamplingRate))
                         .reject(rejectedList));
 

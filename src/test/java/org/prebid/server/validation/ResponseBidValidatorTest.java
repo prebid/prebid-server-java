@@ -15,7 +15,7 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.auction.aliases.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidRejectionTracker;
-import org.prebid.server.auction.model.RejectedBid;
+import org.prebid.server.auction.model.BidRejection;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
@@ -160,7 +160,7 @@ public class ResponseBidValidatorTest extends VertxTest {
                         creative size validation for bid bidId1, account=account, referrer=unknown, \
                         max imp size='100x200', bid response size='nullxnull'""");
         verify(bidRejectionTracker)
-                .reject(RejectedBid.of(givenBid, RESPONSE_REJECTED_INVALID_CREATIVE_SIZE_NOT_ALLOWED));
+                .reject(BidRejection.of(givenBid, RESPONSE_REJECTED_INVALID_CREATIVE_SIZE_NOT_ALLOWED));
     }
 
     @Test
@@ -177,7 +177,7 @@ public class ResponseBidValidatorTest extends VertxTest {
                         creative size validation for bid bidId1, account=account, referrer=unknown, \
                         max imp size='100x200', bid response size='150x150'""");
         verify(bidRejectionTracker)
-                .reject(RejectedBid.of(givenBid, RESPONSE_REJECTED_INVALID_CREATIVE_SIZE_NOT_ALLOWED));
+                .reject(BidRejection.of(givenBid, RESPONSE_REJECTED_INVALID_CREATIVE_SIZE_NOT_ALLOWED));
     }
 
     @Test
@@ -194,7 +194,7 @@ public class ResponseBidValidatorTest extends VertxTest {
                         creative size validation for bid bidId1, account=account, referrer=unknown, \
                         max imp size='100x200', bid response size='50x250'""");
         verify(bidRejectionTracker)
-                .reject(RejectedBid.of(givenBid, RESPONSE_REJECTED_INVALID_CREATIVE_SIZE_NOT_ALLOWED));
+                .reject(BidRejection.of(givenBid, RESPONSE_REJECTED_INVALID_CREATIVE_SIZE_NOT_ALLOWED));
     }
 
     @Test
@@ -278,7 +278,7 @@ public class ResponseBidValidatorTest extends VertxTest {
                         secure creative validation for bid bidId1, account=account, referrer=unknown, \
                         adm=<tag>http://site.com/creative.jpg</tag>""");
         verify(bidRejectionTracker)
-                .reject(RejectedBid.of(givenBid, RESPONSE_REJECTED_INVALID_CREATIVE_NOT_SECURE));
+                .reject(BidRejection.of(givenBid, RESPONSE_REJECTED_INVALID_CREATIVE_NOT_SECURE));
     }
 
     @Test
@@ -298,7 +298,7 @@ public class ResponseBidValidatorTest extends VertxTest {
                         secure creative validation for bid bidId1, account=account, referrer=unknown, \
                         adm=<tag>http%3A//site.com/creative.jpg</tag>""");
         verify(bidRejectionTracker)
-                .reject(RejectedBid.of(givenBid, RESPONSE_REJECTED_INVALID_CREATIVE_NOT_SECURE));
+                .reject(BidRejection.of(givenBid, RESPONSE_REJECTED_INVALID_CREATIVE_NOT_SECURE));
     }
 
     @Test
@@ -318,7 +318,7 @@ public class ResponseBidValidatorTest extends VertxTest {
                         secure creative validation for bid bidId1, account=account, referrer=unknown, \
                         adm=<tag>//site.com/creative.jpg</tag>""");
         verify(bidRejectionTracker)
-                .reject(RejectedBid.of(givenBid, RESPONSE_REJECTED_INVALID_CREATIVE_NOT_SECURE));
+                .reject(BidRejection.of(givenBid, RESPONSE_REJECTED_INVALID_CREATIVE_NOT_SECURE));
     }
 
     @Test
@@ -482,7 +482,7 @@ public class ResponseBidValidatorTest extends VertxTest {
         // then
         verify(metrics).updateSizeValidationMetrics(BIDDER_NAME, ACCOUNT_ID, MetricName.err);
         verify(bidRejectionTracker)
-                .reject(RejectedBid.of(givenBid, RESPONSE_REJECTED_INVALID_CREATIVE_SIZE_NOT_ALLOWED));
+                .reject(BidRejection.of(givenBid, RESPONSE_REJECTED_INVALID_CREATIVE_SIZE_NOT_ALLOWED));
     }
 
     @Test
@@ -512,7 +512,7 @@ public class ResponseBidValidatorTest extends VertxTest {
         // then
         verify(metrics).updateSecureValidationMetrics(BIDDER_NAME, ACCOUNT_ID, MetricName.err);
         verify(bidRejectionTracker)
-                .reject(RejectedBid.of(givenBid, RESPONSE_REJECTED_INVALID_CREATIVE_NOT_SECURE));
+                .reject(BidRejection.of(givenBid, RESPONSE_REJECTED_INVALID_CREATIVE_NOT_SECURE));
     }
 
     @Test
@@ -566,7 +566,7 @@ public class ResponseBidValidatorTest extends VertxTest {
         assertThat(result.getErrors())
                 .containsOnly("invalid bidder code seat was set by the adapter bidder for the account account");
         verify(metrics).updateSeatValidationMetrics(BIDDER_NAME);
-        verify(bidRejectionTracker).reject(RejectedBid.of(givenBid, RESPONSE_REJECTED_GENERAL));
+        verify(bidRejectionTracker).reject(BidRejection.of(givenBid, RESPONSE_REJECTED_GENERAL));
     }
 
     @Test

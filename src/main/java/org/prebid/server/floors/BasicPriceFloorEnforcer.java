@@ -11,7 +11,7 @@ import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
-import org.prebid.server.auction.model.RejectedBid;
+import org.prebid.server.auction.model.BidRejection;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
@@ -180,7 +180,7 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
                         "Bid with id '%s' was rejected by floor enforcement: price %s is below the floor %s"
                                 .formatted(bid.getId(), price, floor), impId));
 
-                rejectionTracker.reject(RejectedBid.of(bidderBid, BidRejectionReason.RESPONSE_REJECTED_BELOW_FLOOR));
+                rejectionTracker.reject(BidRejection.of(bidderBid, BidRejectionReason.RESPONSE_REJECTED_BELOW_FLOOR));
                 updatedBidderBids.remove(bidderBid);
             }
         }

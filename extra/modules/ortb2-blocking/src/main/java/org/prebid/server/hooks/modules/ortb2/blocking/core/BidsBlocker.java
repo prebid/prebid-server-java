@@ -6,8 +6,8 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.BidRejectionReason;
-import org.prebid.server.auction.model.Rejected;
-import org.prebid.server.auction.model.RejectedBid;
+import org.prebid.server.auction.model.Rejection;
+import org.prebid.server.auction.model.BidRejection;
 import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.exception.InvalidAccountConfigurationException;
@@ -100,7 +100,7 @@ public class BidsBlocker {
             final BlockedBids blockedBids = !blockedBidIndexes.isEmpty() ? BlockedBids.of(blockedBidIndexes) : null;
             final List<String> warnings = MergeUtils.mergeMessages(blockedBidResults);
 
-            final List<Rejected> rejectedBids = new ArrayList<>();
+            final List<Rejection> rejectedBids = new ArrayList<>();
             if (blockedBids != null) {
                 blockedBidIndexes.forEach(index ->
                         rejectBlockedBid(rejectedBids, blockedBidResults.get(index).getValue(), bids.get(index)));
@@ -286,18 +286,18 @@ public class BidsBlocker {
                 blockingResult.getFailedChecks());
     }
 
-    private void rejectBlockedBid(List<Rejected> rejections, BlockingResult blockingResult, BidderBid blockedBid) {
+    private void rejectBlockedBid(List<Rejection> rejections, BlockingResult blockingResult, BidderBid blockedBid) {
         if (blockingResult.getBattrCheckResult().isFailed()
                 || blockingResult.getBappCheckResult().isFailed()
                 || blockingResult.getBcatCheckResult().isFailed()) {
 
-            rejections.add(RejectedBid.of(
+            rejections.add(BidRejection.of(
                     blockedBid,
                     BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE));
         }
 
         if (blockingResult.getBadvCheckResult().isFailed()) {
-            rejections.add(RejectedBid.of(
+            rejections.add(BidRejection.of(
                     blockedBid,
                     BidRejectionReason.RESPONSE_REJECTED_ADVERTISER_BLOCKED));
         }

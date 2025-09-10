@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.auction.model.RejectedBid;
+import org.prebid.server.auction.model.BidRejection;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.execution.v1.analytics.ActivityImpl;
@@ -197,9 +197,9 @@ public class Ortb2BlockingRawBidderResponseHookTest {
                                         .build()))))));
 
         assertThat(invocationResult.rejections()).containsOnly(entry("bidder1", List.of(
-                        RejectedBid.of(bid1,
+                        BidRejection.of(bid1,
                                 RESPONSE_REJECTED_ADVERTISER_BLOCKED),
-                        RejectedBid.of(bid(bid -> bid.id("bidId2").adomain(singletonList("domain2.com"))),
+                        BidRejection.of(bid(bid -> bid.id("bidId2").adomain(singletonList("domain2.com"))),
                                 RESPONSE_REJECTED_ADVERTISER_BLOCKED))));
     }
 

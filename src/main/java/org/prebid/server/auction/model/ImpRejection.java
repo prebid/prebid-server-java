@@ -5,7 +5,7 @@ import lombok.experimental.Accessors;
 
 @Value(staticConstructor = "of")
 @Accessors(fluent = true)
-public class RejectedImp implements Rejected {
+public class ImpRejection implements Rejection {
 
     String seat;
 
@@ -13,8 +13,8 @@ public class RejectedImp implements Rejected {
 
     BidRejectionReason reason;
 
-    public static RejectedImp of(String impId, BidRejectionReason reason) {
-        return RejectedImp.of(null, impId, reason);
+    public static ImpRejection of(String impId, BidRejectionReason reason) {
+        return ImpRejection.of(null, impId, reason);
     }
 
 }

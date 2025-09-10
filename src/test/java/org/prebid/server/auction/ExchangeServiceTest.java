@@ -54,7 +54,7 @@ import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.MultiBidConfig;
-import org.prebid.server.auction.model.RejectedImp;
+import org.prebid.server.auction.model.ImpRejection;
 import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.auction.model.TimeoutContext;
 import org.prebid.server.auction.model.debug.DebugContext;
@@ -4062,7 +4062,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .extracting(AuctionContext::getBidRejectionTrackers)
                 .extracting(rejectionTrackers -> rejectionTrackers.get("bidder1"))
                 .extracting(BidRejectionTracker::getRejected)
-                .isEqualTo(Set.of(RejectedImp.of("bidder1", "impId1", REQUEST_BLOCKED_UNACCEPTABLE_CURRENCY)));
+                .isEqualTo(Set.of(ImpRejection.of("bidder1", "impId1", REQUEST_BLOCKED_UNACCEPTABLE_CURRENCY)));
     }
 
     @Test
@@ -4096,11 +4096,11 @@ public class ExchangeServiceTest extends VertxTest {
         final Map<String, BidRejectionTracker> actualTrackers = result.result().getBidRejectionTrackers();
         assertThat(actualTrackers.keySet()).containsOnly("bidder1", "bidder2");
         assertThat(actualTrackers.get("bidder1").getRejected()).containsOnly(
-                RejectedImp.of("bidder1", "impId1", NO_BID),
-                RejectedImp.of("bidder1", "impId2", NO_BID));
+                ImpRejection.of("bidder1", "impId1", NO_BID),
+                ImpRejection.of("bidder1", "impId2", NO_BID));
         assertThat(actualTrackers.get("bidder2").getRejected()).containsOnly(
-                RejectedImp.of("bidder2", "impId1", NO_BID),
-                RejectedImp.of("bidder2", "impId2", NO_BID));
+                ImpRejection.of("bidder2", "impId1", NO_BID),
+                ImpRejection.of("bidder2", "impId2", NO_BID));
     }
 
     @Test

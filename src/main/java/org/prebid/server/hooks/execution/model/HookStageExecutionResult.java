@@ -1,7 +1,7 @@
 package org.prebid.server.hooks.execution.model;
 
 import lombok.Value;
-import org.prebid.server.auction.model.Rejected;
+import org.prebid.server.auction.model.Rejection;
 
 import java.util.Collections;
 import java.util.List;
@@ -14,10 +14,10 @@ public class HookStageExecutionResult<PAYLOAD> {
 
     PAYLOAD payload;
 
-    Map<String, List<Rejected>> rejections;
+    Map<String, List<Rejection>> rejections;
 
     public static <PAYLOAD> HookStageExecutionResult<PAYLOAD> success(PAYLOAD payload,
-                                                                      Map<String, List<Rejected>> rejections) {
+                                                                      Map<String, List<Rejection>> rejections) {
         return of(false, payload, rejections);
     }
 

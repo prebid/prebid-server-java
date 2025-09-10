@@ -3,7 +3,7 @@ package org.prebid.server.hooks.execution.provider.abtest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.vertx.core.Future;
-import org.prebid.server.auction.model.Rejected;
+import org.prebid.server.auction.model.Rejection;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.execution.v1.analytics.ActivityImpl;
 import org.prebid.server.hooks.execution.v1.analytics.ResultImpl;
@@ -123,7 +123,7 @@ public class ABTestHook<PAYLOAD, CONTEXT extends InvocationContext> implements H
         }
 
         @Override
-        public Map<String, List<Rejected>> rejections() {
+        public Map<String, List<Rejection>> rejections() {
             return invocationResult.rejections();
         }
 

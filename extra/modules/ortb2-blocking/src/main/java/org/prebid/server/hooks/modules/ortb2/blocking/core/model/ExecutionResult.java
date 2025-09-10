@@ -2,7 +2,7 @@ package org.prebid.server.hooks.modules.ortb2.blocking.core.model;
 
 import lombok.Builder;
 import lombok.Value;
-import org.prebid.server.auction.model.Rejected;
+import org.prebid.server.auction.model.Rejection;
 
 import java.util.Collections;
 import java.util.List;
@@ -23,7 +23,7 @@ public class ExecutionResult<T> {
 
     List<AnalyticsResult> analyticsResults;
 
-    List<Rejected> rejections;
+    List<Rejection> rejections;
 
     public boolean hasValue() {
         return value != null;

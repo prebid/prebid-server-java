@@ -29,8 +29,8 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
-import org.prebid.server.auction.model.RejectedBid;
-import org.prebid.server.auction.model.RejectedImp;
+import org.prebid.server.auction.model.BidRejection;
+import org.prebid.server.auction.model.ImpRejection;
 import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderSeatBid;
@@ -1727,10 +1727,10 @@ public class HookStageExecutorTest extends VertxTest {
                 immediateHook(InvocationResultUtils.succeeded(
                         payload -> AuctionRequestPayloadImpl.of(payload.bidRequest().toBuilder().at(1).build()),
                         Map.of("bidderA", List.of(
-                                        RejectedImp.of("impId1", REQUEST_BLOCKED_OPTIMIZED),
-                                        RejectedImp.of("impId3", REQUEST_BLOCKED_GENERAL)),
+                                        ImpRejection.of("impId1", REQUEST_BLOCKED_OPTIMIZED),
+                                        ImpRejection.of("impId3", REQUEST_BLOCKED_GENERAL)),
                                 "bidderC", List.of(
-                                        RejectedImp.of("impId4", REQUEST_BLOCKED_GENERAL))))));
+                                        ImpRejection.of("impId4", REQUEST_BLOCKED_GENERAL))))));
 
         givenRawAuctionRequestHook(
                 "module-alpha",
@@ -1738,10 +1738,10 @@ public class HookStageExecutorTest extends VertxTest {
                 immediateHook(InvocationResultUtils.succeeded(
                         payload -> AuctionRequestPayloadImpl.of(payload.bidRequest().toBuilder().id("id").build()),
                         Map.of("bidderB", List.of(
-                                        RejectedImp.of("impId2", REQUEST_BLOCKED_PRIVACY),
-                                        RejectedImp.of("impId3", REQUEST_BLOCKED_GENERAL)),
+                                        ImpRejection.of("impId2", REQUEST_BLOCKED_PRIVACY),
+                                        ImpRejection.of("impId3", REQUEST_BLOCKED_GENERAL)),
                                 "bidderC", List.of(
-                                        RejectedImp.of("impId4", REQUEST_BLOCKED_GENERAL))))));
+                                        ImpRejection.of("impId4", REQUEST_BLOCKED_GENERAL))))));
 
         givenRawAuctionRequestHook(
                 "module-beta",
@@ -1749,10 +1749,10 @@ public class HookStageExecutorTest extends VertxTest {
                 immediateHook(InvocationResultUtils.succeeded(
                         payload -> AuctionRequestPayloadImpl.of(payload.bidRequest().toBuilder().test(1).build()),
                         Map.of("bidderA", List.of(
-                                        RejectedImp.of("impId1", REQUEST_BLOCKED_UNSUPPORTED_MEDIA_TYPE),
-                                        RejectedImp.of("impId3", REQUEST_BLOCKED_GENERAL)),
+                                        ImpRejection.of("impId1", REQUEST_BLOCKED_UNSUPPORTED_MEDIA_TYPE),
+                                        ImpRejection.of("impId3", REQUEST_BLOCKED_GENERAL)),
                                 "bidderC", List.of(
-                                        RejectedImp.of("impId4", REQUEST_BLOCKED_GENERAL))))));
+                                        ImpRejection.of("impId4", REQUEST_BLOCKED_GENERAL))))));
 
         givenRawAuctionRequestHook(
                 "module-beta",
@@ -1760,10 +1760,10 @@ public class HookStageExecutorTest extends VertxTest {
                 immediateHook(InvocationResultUtils.succeeded(
                         payload -> AuctionRequestPayloadImpl.of(payload.bidRequest().toBuilder().tmax(1000L).build()),
                         Map.of("bidderB", List.of(
-                                        RejectedImp.of("impId2", REQUEST_BLOCKED_UNACCEPTABLE_CURRENCY),
-                                        RejectedImp.of("impId3", REQUEST_BLOCKED_GENERAL)),
+                                        ImpRejection.of("impId2", REQUEST_BLOCKED_UNACCEPTABLE_CURRENCY),
+                                        ImpRejection.of("impId3", REQUEST_BLOCKED_GENERAL)),
                                 "bidderC", List.of(
-                                        RejectedImp.of("impId4", REQUEST_BLOCKED_GENERAL))))));
+                                        ImpRejection.of("impId4", REQUEST_BLOCKED_GENERAL))))));
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
@@ -1811,24 +1811,24 @@ public class HookStageExecutorTest extends VertxTest {
         assertThat(bidRejectionTrackers.keySet()).containsOnly("bidderA", "bidderB", "bidderC");
         assertThat(bidRejectionTrackers.get("bidderA").getAllRejected()).containsOnly(
                 entry("impId1", List.of(
-                        RejectedImp.of("bidderA", "impId1", REQUEST_BLOCKED_OPTIMIZED),
-                        RejectedImp.of("bidderA", "impId1", REQUEST_BLOCKED_UNSUPPORTED_MEDIA_TYPE))),
+                        ImpRejection.of("bidderA", "impId1", REQUEST_BLOCKED_OPTIMIZED),
+                        ImpRejection.of("bidderA", "impId1", REQUEST_BLOCKED_UNSUPPORTED_MEDIA_TYPE))),
                 entry("impId3", List.of(
-                        RejectedImp.of("bidderA", "impId3", REQUEST_BLOCKED_GENERAL),
-                        RejectedImp.of("bidderA", "impId3", REQUEST_BLOCKED_GENERAL))));
+                        ImpRejection.of("bidderA", "impId3", REQUEST_BLOCKED_GENERAL),
+                        ImpRejection.of("bidderA", "impId3", REQUEST_BLOCKED_GENERAL))));
         assertThat(bidRejectionTrackers.get("bidderB").getAllRejected()).containsOnly(
                 entry("impId2", List.of(
-                        RejectedImp.of("bidderB", "impId2", REQUEST_BLOCKED_UNACCEPTABLE_CURRENCY),
-                        RejectedImp.of("bidderB", "impId2", REQUEST_BLOCKED_PRIVACY))),
+                        ImpRejection.of("bidderB", "impId2", REQUEST_BLOCKED_UNACCEPTABLE_CURRENCY),
+                        ImpRejection.of("bidderB", "impId2", REQUEST_BLOCKED_PRIVACY))),
                 entry("impId3", List.of(
-                        RejectedImp.of("bidderB", "impId3", REQUEST_BLOCKED_GENERAL),
-                        RejectedImp.of("bidderB", "impId3", REQUEST_BLOCKED_GENERAL))));
+                        ImpRejection.of("bidderB", "impId3", REQUEST_BLOCKED_GENERAL),
+                        ImpRejection.of("bidderB", "impId3", REQUEST_BLOCKED_GENERAL))));
         assertThat(bidRejectionTrackers.get("bidderC").getAllRejected()).containsOnly(
                 entry("impId4", List.of(
-                        RejectedImp.of("bidderC", "impId4", REQUEST_BLOCKED_GENERAL),
-                        RejectedImp.of("bidderC", "impId4", REQUEST_BLOCKED_GENERAL),
-                        RejectedImp.of("bidderC", "impId4", REQUEST_BLOCKED_GENERAL),
-                        RejectedImp.of("bidderC", "impId4", REQUEST_BLOCKED_GENERAL))));
+                        ImpRejection.of("bidderC", "impId4", REQUEST_BLOCKED_GENERAL),
+                        ImpRejection.of("bidderC", "impId4", REQUEST_BLOCKED_GENERAL),
+                        ImpRejection.of("bidderC", "impId4", REQUEST_BLOCKED_GENERAL),
+                        ImpRejection.of("bidderC", "impId4", REQUEST_BLOCKED_GENERAL))));
     }
 
     @Test
@@ -2907,12 +2907,12 @@ public class HookStageExecutorTest extends VertxTest {
                                                         || bidderBid.equals(bidderBBid4)))
                                         .toList()),
                         Map.of("bidderA", List.of(
-                                        RejectedBid.of(bidderABid1, REQUEST_BLOCKED_OPTIMIZED),
-                                        RejectedBid.of(bidderABid2, REQUEST_BLOCKED_GENERAL)),
+                                        BidRejection.of(bidderABid1, REQUEST_BLOCKED_OPTIMIZED),
+                                        BidRejection.of(bidderABid2, REQUEST_BLOCKED_GENERAL)),
                                 "bidderC", List.of(
-                                        RejectedBid.of(bidderCBid5, REQUEST_BLOCKED_GENERAL)),
+                                        BidRejection.of(bidderCBid5, REQUEST_BLOCKED_GENERAL)),
                                 "bidderD", List.of(
-                                        RejectedBid.of(bidderDBid6, REQUEST_BLOCKED_GENERAL))))));
+                                        BidRejection.of(bidderDBid6, REQUEST_BLOCKED_GENERAL))))));
 
         givenAllProcessedBidderResponsesHook(
                 "module-alpha",
@@ -2924,12 +2924,12 @@ public class HookStageExecutorTest extends VertxTest {
                                                         || bidderBid.equals(bidderABid2)))
                                         .toList()),
                         Map.of("bidderB", List.of(
-                                        RejectedBid.of(bidderBBid3, REQUEST_BLOCKED_PRIVACY),
-                                        RejectedBid.of(bidderBBid4, REQUEST_BLOCKED_GENERAL)),
+                                        BidRejection.of(bidderBBid3, REQUEST_BLOCKED_PRIVACY),
+                                        BidRejection.of(bidderBBid4, REQUEST_BLOCKED_GENERAL)),
                                 "bidderC", List.of(
-                                        RejectedBid.of(bidderCBid5, REQUEST_BLOCKED_GENERAL)),
+                                        BidRejection.of(bidderCBid5, REQUEST_BLOCKED_GENERAL)),
                                 "bidderD", List.of(
-                                        RejectedBid.of(bidderDBid6, REQUEST_BLOCKED_GENERAL))))));
+                                        BidRejection.of(bidderDBid6, REQUEST_BLOCKED_GENERAL))))));
 
         givenAllProcessedBidderResponsesHook(
                 "module-beta",
@@ -2941,12 +2941,12 @@ public class HookStageExecutorTest extends VertxTest {
                                                         || bidderBid.equals(bidderBBid4)))
                                         .toList()),
                         Map.of("bidderA", List.of(
-                                        RejectedBid.of(bidderABid1, REQUEST_BLOCKED_UNSUPPORTED_MEDIA_TYPE),
-                                        RejectedBid.of(bidderABid2, REQUEST_BLOCKED_GENERAL)),
+                                        BidRejection.of(bidderABid1, REQUEST_BLOCKED_UNSUPPORTED_MEDIA_TYPE),
+                                        BidRejection.of(bidderABid2, REQUEST_BLOCKED_GENERAL)),
                                 "bidderC", List.of(
-                                        RejectedBid.of(bidderCBid5, REQUEST_BLOCKED_GENERAL)),
+                                        BidRejection.of(bidderCBid5, REQUEST_BLOCKED_GENERAL)),
                                 "bidderD", List.of(
-                                        RejectedBid.of(bidderDBid6, REQUEST_BLOCKED_GENERAL))))));
+                                        BidRejection.of(bidderDBid6, REQUEST_BLOCKED_GENERAL))))));
 
         givenAllProcessedBidderResponsesHook(
                 "module-beta",
@@ -2958,12 +2958,12 @@ public class HookStageExecutorTest extends VertxTest {
                                                         || bidderBid.equals(bidderABid2)))
                                         .toList()),
                         Map.of("bidderB", List.of(
-                                        RejectedBid.of(bidderBBid3, REQUEST_BLOCKED_UNACCEPTABLE_CURRENCY),
-                                        RejectedBid.of(bidderBBid4, REQUEST_BLOCKED_GENERAL)),
+                                        BidRejection.of(bidderBBid3, REQUEST_BLOCKED_UNACCEPTABLE_CURRENCY),
+                                        BidRejection.of(bidderBBid4, REQUEST_BLOCKED_GENERAL)),
                                 "bidderC", List.of(
-                                        RejectedBid.of(bidderCBid5, REQUEST_BLOCKED_GENERAL)),
+                                        BidRejection.of(bidderCBid5, REQUEST_BLOCKED_GENERAL)),
                                 "bidderD", List.of(
-                                        RejectedBid.of(bidderDBid6, REQUEST_BLOCKED_GENERAL))))));
+                                        BidRejection.of(bidderDBid6, REQUEST_BLOCKED_GENERAL))))));
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
@@ -3011,20 +3011,20 @@ public class HookStageExecutorTest extends VertxTest {
 
         assertThat(bidRejectionTrackers.keySet()).containsOnly("bidderA", "bidderB", "bidderC");
         assertThat(bidRejectionTrackers.get("bidderA").getAllRejected().get("impId")).containsOnly(
-                        RejectedBid.of(bidderABid1, REQUEST_BLOCKED_OPTIMIZED),
-                        RejectedBid.of(bidderABid1, REQUEST_BLOCKED_UNSUPPORTED_MEDIA_TYPE),
-                        RejectedBid.of(bidderABid2, REQUEST_BLOCKED_GENERAL),
-                        RejectedBid.of(bidderABid2, REQUEST_BLOCKED_GENERAL));
+                        BidRejection.of(bidderABid1, REQUEST_BLOCKED_OPTIMIZED),
+                        BidRejection.of(bidderABid1, REQUEST_BLOCKED_UNSUPPORTED_MEDIA_TYPE),
+                        BidRejection.of(bidderABid2, REQUEST_BLOCKED_GENERAL),
+                        BidRejection.of(bidderABid2, REQUEST_BLOCKED_GENERAL));
         assertThat(bidRejectionTrackers.get("bidderB").getAllRejected().get("impId")).containsOnly(
-                        RejectedBid.of(bidderBBid3, REQUEST_BLOCKED_UNACCEPTABLE_CURRENCY),
-                        RejectedBid.of(bidderBBid3, REQUEST_BLOCKED_PRIVACY),
-                        RejectedBid.of(bidderBBid4, REQUEST_BLOCKED_GENERAL),
-                        RejectedBid.of(bidderBBid4, REQUEST_BLOCKED_GENERAL));
+                        BidRejection.of(bidderBBid3, REQUEST_BLOCKED_UNACCEPTABLE_CURRENCY),
+                        BidRejection.of(bidderBBid3, REQUEST_BLOCKED_PRIVACY),
+                        BidRejection.of(bidderBBid4, REQUEST_BLOCKED_GENERAL),
+                        BidRejection.of(bidderBBid4, REQUEST_BLOCKED_GENERAL));
         assertThat(bidRejectionTrackers.get("bidderC").getAllRejected().get("impId")).containsOnly(
-                        RejectedBid.of(bidderCBid5, REQUEST_BLOCKED_GENERAL),
-                        RejectedBid.of(bidderCBid5, REQUEST_BLOCKED_GENERAL),
-                        RejectedBid.of(bidderCBid5, REQUEST_BLOCKED_GENERAL),
-                        RejectedBid.of(bidderCBid5, REQUEST_BLOCKED_GENERAL));
+                        BidRejection.of(bidderCBid5, REQUEST_BLOCKED_GENERAL),
+                        BidRejection.of(bidderCBid5, REQUEST_BLOCKED_GENERAL),
+                        BidRejection.of(bidderCBid5, REQUEST_BLOCKED_GENERAL),
+                        BidRejection.of(bidderCBid5, REQUEST_BLOCKED_GENERAL));
     }
 
     @Test

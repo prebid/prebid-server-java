@@ -13,7 +13,7 @@ import org.prebid.server.auction.aliases.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.auction.model.BidRejectionTracker;
-import org.prebid.server.auction.model.RejectedBid;
+import org.prebid.server.auction.model.BidRejection;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.Logger;
@@ -166,7 +166,7 @@ public class ResponseBidValidator {
 
             final String message = "invalid bidder code %s was set by the adapter %s for the account %s"
                     .formatted(bid.getSeat(), bidder, account.getId());
-            bidRejectionTracker.reject(RejectedBid.of(bid, BidRejectionReason.RESPONSE_REJECTED_GENERAL));
+            bidRejectionTracker.reject(BidRejection.of(bid, BidRejectionReason.RESPONSE_REJECTED_GENERAL));
             metrics.updateSeatValidationMetrics(bidder);
             alternateBidderCodeLogger.warn(message, logSamplingRate);
             throw new ValidationException(message);
@@ -318,7 +318,7 @@ public class ResponseBidValidator {
 
         return switch (enforcement) {
             case enforce -> {
-                bidRejectionTracker.reject(RejectedBid.of(bidderBid, bidRejectionReason));
+                bidRejectionTracker.reject(BidRejection.of(bidderBid, bidRejectionReason));
                 metricsRecorder.accept(MetricName.err);
                 conditionalLogger.warn(message, logSamplingRate);
                 throw new ValidationException(message);

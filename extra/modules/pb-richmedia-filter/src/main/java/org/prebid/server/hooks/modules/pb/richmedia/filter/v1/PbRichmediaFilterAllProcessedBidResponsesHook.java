@@ -6,8 +6,8 @@ import io.vertx.core.Future;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.prebid.server.auction.model.BidderResponse;
-import org.prebid.server.auction.model.Rejected;
-import org.prebid.server.auction.model.RejectedBid;
+import org.prebid.server.auction.model.Rejection;
+import org.prebid.server.auction.model.BidRejection;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.execution.v1.analytics.ActivityImpl;
 import org.prebid.server.hooks.execution.v1.analytics.AppliedToImpl;
@@ -27,13 +27,13 @@ import org.prebid.server.hooks.v1.analytics.Tags;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.bidder.AllProcessedBidResponsesHook;
 import org.prebid.server.hooks.v1.bidder.AllProcessedBidResponsesPayload;
+import org.prebid.server.util.ListUtil;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class PbRichmediaFilterAllProcessedBidResponsesHook implements AllProcessedBidResponsesHook {
 
@@ -82,20 +82,20 @@ public class PbRichmediaFilterAllProcessedBidResponsesHook implements AllProcess
                 InvocationAction.no_action));
     }
 
-    private Map<String, List<Rejected>> toRejections(List<AnalyticsResult> analyticsResults) {
+    private Map<String, List<Rejection>> toRejections(List<AnalyticsResult> analyticsResults) {
         return analyticsResults.stream().collect(Collectors.toMap(
                 AnalyticsResult::getBidder,
                 result -> result.getRejectedBids().stream()
-                        .map(bid -> RejectedBid.of(bid, result.getRejectionReason()))
-                        .map(Rejected.class::cast)
+                        .map(bid -> BidRejection.of(bid, result.getRejectionReason()))
+                        .map(Rejection.class::cast)
                         .toList(),
-                (list1, list2) -> Stream.concat(list1.stream(), list2.stream()).collect(Collectors.toList())));
+                ListUtil::union));
     }
 
     private static InvocationResult<AllProcessedBidResponsesPayload> toInvocationResult(
             List<BidderResponse> bidderResponses,
             Tags analyticsTags,
-            Map<String, List<Rejected>> rejections,
+            Map<String, List<Rejection>> rejections,
             InvocationAction action) {
 
         return InvocationResultImpl.<AllProcessedBidResponsesPayload>builder()

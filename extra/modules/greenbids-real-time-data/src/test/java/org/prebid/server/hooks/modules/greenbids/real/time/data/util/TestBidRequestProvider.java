@@ -25,8 +25,8 @@ public class TestBidRequestProvider {
                                              List<Imp> imps) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .id("request")
-                .imp(imps)
+                        .id("request")
+                        .imp(imps)
                         .site(givenSite())
                         .device(givenDevice()))
                 .build();

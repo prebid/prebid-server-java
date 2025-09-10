@@ -9,7 +9,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.auction.model.BidderResponse;
-import org.prebid.server.auction.model.RejectedBid;
+import org.prebid.server.auction.model.BidRejection;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.hooks.execution.v1.analytics.ActivityImpl;
@@ -223,18 +223,18 @@ public class PbRichmediaFilterAllProcessedBidResponsesHookTest {
 
         assertThat(result.rejections()).containsOnly(
                 entry("bidderA", List.of(
-                        RejectedBid.of(
+                        BidRejection.of(
                                 BidderBid.builder()
                                         .bid(Bid.builder().id("bid-imp_id1").impid("imp_id1").build())
                                         .build(),
                                 RESPONSE_REJECTED_INVALID_CREATIVE),
-                        RejectedBid.of(
+                        BidRejection.of(
                                 BidderBid.builder()
                                         .bid(Bid.builder().id("bid-imp_id2").impid("imp_id2").build())
                                         .build(),
                                 RESPONSE_REJECTED_INVALID_CREATIVE))),
                 entry("bidderB", List.of(
-                        RejectedBid.of(BidderBid.builder()
+                        BidRejection.of(BidderBid.builder()
                                         .bid(Bid.builder().id("bid-imp_id3").impid("imp_id3").build())
                                         .build(),
                                 RESPONSE_REJECTED_INVALID_CREATIVE))));

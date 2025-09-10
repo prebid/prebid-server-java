@@ -1,6 +1,6 @@
 package org.prebid.server.hooks.v1;
 
-import org.prebid.server.auction.model.Rejected;
+import org.prebid.server.auction.model.Rejection;
 import org.prebid.server.hooks.v1.analytics.Tags;
 
 import java.util.List;
@@ -20,7 +20,7 @@ public interface InvocationResult<PAYLOAD> {
 
     List<String> warnings();
 
-    Map<String, List<Rejected>> rejections();
+    Map<String, List<Rejection>> rejections();
 
     List<String> debugMessages();
 

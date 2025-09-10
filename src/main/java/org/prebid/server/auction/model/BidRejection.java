@@ -4,7 +4,7 @@ import lombok.Value;
 import org.prebid.server.bidder.model.BidderBid;
 
 @Value(staticConstructor = "of")
-public class RejectedBid implements Rejected {
+public class BidRejection implements Rejection {
 
     BidderBid bid;
 

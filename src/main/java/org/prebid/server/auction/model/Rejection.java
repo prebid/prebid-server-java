@@ -1,6 +1,6 @@
 package org.prebid.server.auction.model;
 
-public interface Rejected {
+public interface Rejection {
 
     String seat();
 

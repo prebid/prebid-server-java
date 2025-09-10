@@ -39,7 +39,7 @@ import org.prebid.server.analytics.reporter.greenbids.model.Ortb2ImpResult;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.auction.model.BidRejectionTracker;
-import org.prebid.server.auction.model.RejectedImp;
+import org.prebid.server.auction.model.ImpRejection;
 import org.prebid.server.hooks.execution.model.ExecutionStatus;
 import org.prebid.server.hooks.execution.model.GroupExecutionOutcome;
 import org.prebid.server.hooks.execution.model.HookExecutionContext;
@@ -817,7 +817,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 "seat3",
                 Set.of("adunitcodevalue"),
                 1.0);
-        bidRejectionTracker.reject(RejectedImp.of("imp1", BidRejectionReason.NO_BID));
+        bidRejectionTracker.reject(ImpRejection.of("imp1", BidRejectionReason.NO_BID));
         return bidRejectionTracker;
     }
 

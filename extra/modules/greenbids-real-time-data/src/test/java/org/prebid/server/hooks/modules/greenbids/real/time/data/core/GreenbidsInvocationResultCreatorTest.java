@@ -11,7 +11,6 @@ import org.prebid.server.hooks.modules.greenbids.real.time.data.model.data.Green
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.result.GreenbidsInvocationResult;
 import org.prebid.server.hooks.v1.InvocationAction;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -114,27 +113,21 @@ public class GreenbidsInvocationResultCreatorTest {
     }
 
     private Map<String, Map<String, Boolean>> givenImpsBiddersFilterMap() {
-        final Map<String, Boolean> biddersFitlerMap = new HashMap<>();
-        biddersFitlerMap.put("rubicon", true);
-        biddersFitlerMap.put("appnexus", false);
-        biddersFitlerMap.put("pubmatic", false);
+        final Map<String, Boolean> biddersFitlerMap = Map.of(
+                "rubicon", true,
+                "appnexus", false,
+                "pubmatic", false);
 
-        final Map<String, Map<String, Boolean>> impsBiddersFilterMap = new HashMap<>();
-        impsBiddersFilterMap.put("adunitcodevalue", biddersFitlerMap);
-
-        return impsBiddersFilterMap;
+        return Map.of("adunitcodevalue", biddersFitlerMap);
     }
 
     private Map<String, Map<String, Boolean>> givenFilterMapWithAllFilteredImps() {
-        final Map<String, Boolean> biddersFitlerMap = new HashMap<>();
-        biddersFitlerMap.put("rubicon", false);
-        biddersFitlerMap.put("appnexus", false);
-        biddersFitlerMap.put("pubmatic", false);
+        final Map<String, Boolean> biddersFitlerMap = Map.of(
+                "rubicon", false,
+                "appnexus", false,
+                "pubmatic", false);
 
-        final Map<String, Map<String, Boolean>> impsBiddersFilterMap = new HashMap<>();
-        impsBiddersFilterMap.put("adunitcodevalue", biddersFitlerMap);
-
-        return impsBiddersFilterMap;
+        return Map.of("adunitcodevalue", biddersFitlerMap);
     }
 
     private GreenbidsConfig givenConfig(Double explorationRate) {

@@ -45,7 +45,7 @@ import org.prebid.server.auction.model.CachedDebugLog;
 import org.prebid.server.auction.model.CategoryMappingResult;
 import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.PaaFormat;
-import org.prebid.server.auction.model.RejectedImp;
+import org.prebid.server.auction.model.ImpRejection;
 import org.prebid.server.auction.model.TargetingInfo;
 import org.prebid.server.auction.model.TimeoutContext;
 import org.prebid.server.auction.model.debug.DebugContext;
@@ -4394,7 +4394,7 @@ public class BidResponseCreatorTest extends VertxTest {
     public void shouldPopulateExtPrebidSeatNonBidWhenReturnAllBidStatusFlagIsTrue() {
         // given
         final BidRejectionTracker bidRejectionTracker = mock(BidRejectionTracker.class);
-        given(bidRejectionTracker.getRejected()).willReturn(singleton(RejectedImp.of("someBidder", "impId2", NO_BID)));
+        given(bidRejectionTracker.getRejected()).willReturn(singleton(ImpRejection.of("someBidder", "impId2", NO_BID)));
 
         final Bid bid = Bid.builder().id("bidId").price(BigDecimal.valueOf(3.67)).impid("impId").build();
         final List<BidderResponse> bidderResponses = singletonList(

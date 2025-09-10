@@ -1,6 +1,6 @@
 package org.prebid.server.hooks.v1;
 
-import org.prebid.server.auction.model.Rejected;
+import org.prebid.server.auction.model.Rejection;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 
 import java.util.List;
@@ -21,7 +21,7 @@ public class InvocationResultUtils {
     }
 
     public static <PAYLOAD> InvocationResult<PAYLOAD> succeeded(PayloadUpdate<PAYLOAD> payloadUpdate,
-                                                                Map<String, List<Rejected>> rejections) {
+                                                                Map<String, List<Rejection>> rejections) {
         return InvocationResultImpl.<PAYLOAD>builder()
                 .status(InvocationStatus.success)
                 .action(InvocationAction.update)
