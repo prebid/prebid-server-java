@@ -1,7 +1,10 @@
 package org.prebid.server.hooks.modules.liveintent.omni.channel.identity.v1;
 
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Eid;
+import com.iab.openrtb.request.Geo;
+import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.Uid;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
@@ -10,6 +13,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.prebid.server.activity.Activity;
+import org.prebid.server.activity.infrastructure.ActivityController;
+import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
+import org.prebid.server.activity.infrastructure.debug.ActivityInfrastructureDebug;
+import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
 import org.prebid.server.hooks.execution.v1.auction.AuctionInvocationContextImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
@@ -27,6 +35,7 @@ import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
 import static java.util.Collections.singletonList;
@@ -51,6 +60,9 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
     @Mock
     private HttpClient httpClient;
 
+    @Mock
+    private ActivityInfrastructureDebug activityInfrastructureDebug;
+
     @Mock(strictness = LENIENT)
     private LiveIntentOmniChannelProperties properties;
 
@@ -73,6 +85,169 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
         assertThatIllegalArgumentException().isThrownBy(() ->
                 new LiveIntentOmniChannelIdentityProcessedAuctionRequestHook(
                         properties, userFpdActivityMask, MAPPER, httpClient, 0.01d));
+    }
+
+    @Test
+    public void geoPassingRestrictionShouldBeRespected() {
+        // given
+        final Geo givenGeo = Geo.builder()
+                .lat(52.51671856406936f)
+                .lon(13.377639726342583f)
+                .city("Berlin")
+                .country("Germany")
+                .build();
+        final Device givenDevice = Device.builder()
+                .geo(givenGeo)
+                .ip("192.168.127.12")
+                .ifa("foo")
+                .macsha1("bar")
+                .macmd5("baz")
+                .dpidsha1("boo")
+                .dpidmd5("far")
+                .didsha1("zoo")
+                .didmd5("goo")
+                .build();
+        final BidRequest givenBidRequest = BidRequest.builder().id("request").device(givenDevice).build();
+
+        final Geo expectedGeo = givenGeo.toBuilder()
+                .country(null)
+                .city(null)
+                .lat(52.52f)
+                .lon(13.38f)
+                .build();
+        final Device expectedDevice = givenDevice.toBuilder()
+                .geo(expectedGeo)
+                .ip("192.168.127.0")
+                .ifa(null)
+                .macsha1(null)
+                .macmd5(null)
+                .dpidsha1(null)
+                .dpidmd5(null)
+                .didsha1(null)
+                .didmd5(null)
+                .build();
+        final BidRequest expectedBidRequest = givenBidRequest.toBuilder().device(expectedDevice).build();
+
+        final Eid expectedEid = Eid.builder().source("liveintent.com").build();
+
+        final String responseBody = MAPPER.encodeToString(IdResResponse.of(List.of(expectedEid)));
+        given(httpClient.post(any(), any(), any(), anyLong()))
+                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, responseBody)));
+
+        final ActivityController activityController = ActivityController.of(
+                false, List.of(), activityInfrastructureDebug);
+
+        final ActivityInfrastructure givenActivityInfrastructure = new ActivityInfrastructure(
+                Map.of(Activity.TRANSMIT_TID, activityController,
+                        Activity.TRANSMIT_UFPD, activityController),
+                activityInfrastructureDebug);
+
+        final AuctionInvocationContext auctionInvocationContext = AuctionInvocationContextImpl.of(
+                null,
+                AuctionContext.builder().activityInfrastructure(givenActivityInfrastructure).build(),
+                false,
+                null,
+                null);
+
+        // when
+        final InvocationResult<AuctionRequestPayload> result =
+                target.call(AuctionRequestPayloadImpl.of(givenBidRequest), auctionInvocationContext).result();
+        // then
+        assertThat(result.status()).isEqualTo(InvocationStatus.success);
+
+        verify(httpClient).post(
+                eq("https://test.com/idres"),
+                argThat(headers -> headers.contains("Authorization", "Bearer auth_token", true)),
+                eq(MAPPER.encodeToString(expectedBidRequest)),
+                eq(5L));
+    }
+
+    @Test
+    public void tidPassingRestrictionShouldBeRespected() {
+        // given
+        final Source givenSource = Source.builder().tid("tid1").build();
+        final BidRequest givenBidRequest = BidRequest.builder().id("request").source(givenSource).build();
+
+        final Source expectedSource = givenSource.toBuilder().tid(null).build();
+        final BidRequest expectedBidRequest = givenBidRequest.toBuilder().source(expectedSource).build();
+
+        final Eid expectedEid = Eid.builder().source("liveintent.com").build();
+
+        final String responseBody = MAPPER.encodeToString(IdResResponse.of(List.of(expectedEid)));
+        given(httpClient.post(any(), any(), any(), anyLong()))
+                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, responseBody)));
+
+        final ActivityController activityController = ActivityController.of(
+                false, List.of(), activityInfrastructureDebug);
+
+        final ActivityInfrastructure givenActivityInfrastructure = new ActivityInfrastructure(
+                Map.of(Activity.TRANSMIT_TID, activityController,
+                        Activity.TRANSMIT_UFPD, activityController),
+                activityInfrastructureDebug);
+
+        final AuctionInvocationContext auctionInvocationContext = AuctionInvocationContextImpl.of(
+                null,
+                AuctionContext.builder().activityInfrastructure(givenActivityInfrastructure).build(),
+                false,
+                null,
+                null);
+
+        // when
+        final InvocationResult<AuctionRequestPayload> result =
+                target.call(AuctionRequestPayloadImpl.of(givenBidRequest), auctionInvocationContext).result();
+        // then
+        assertThat(result.status()).isEqualTo(InvocationStatus.success);
+
+        verify(httpClient).post(
+                eq("https://test.com/idres"),
+                argThat(headers -> headers.contains("Authorization", "Bearer auth_token", true)),
+                eq(MAPPER.encodeToString(expectedBidRequest)),
+                eq(5L));
+    }
+
+    @Test
+    public void eidPassingRestrictionShouldBeRespected() {
+        // given
+        final Uid givenUid = Uid.builder().id("id1").atype(2).build();
+        final Eid givenEid = Eid.builder().source("some.source.com").uids(singletonList(givenUid)).build();
+        final User givenUser = User.builder().eids(singletonList(givenEid)).build();
+        final BidRequest givenBidRequest = BidRequest.builder().id("request").user(givenUser).build();
+
+        final User expectedUser = givenUser.toBuilder().eids(null).build();
+        final BidRequest expectedBidRequest = givenBidRequest.toBuilder().user(expectedUser).build();
+
+        final Eid expectedEid = Eid.builder().source("liveintent.com").build();
+
+        final String responseBody = MAPPER.encodeToString(IdResResponse.of(List.of(expectedEid)));
+        given(httpClient.post(any(), any(), any(), anyLong()))
+                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, responseBody)));
+
+        final ActivityController activityController = ActivityController.of(
+                false, List.of(), activityInfrastructureDebug);
+
+        final ActivityInfrastructure givenActivityInfrastructure = new ActivityInfrastructure(
+                Map.of(Activity.TRANSMIT_EIDS, activityController,
+                        Activity.TRANSMIT_UFPD, activityController),
+                activityInfrastructureDebug);
+
+        final AuctionInvocationContext auctionInvocationContext = AuctionInvocationContextImpl.of(
+                null,
+                AuctionContext.builder().activityInfrastructure(givenActivityInfrastructure).build(),
+                false,
+                null,
+                null);
+
+        // when
+        final InvocationResult<AuctionRequestPayload> result =
+                target.call(AuctionRequestPayloadImpl.of(givenBidRequest), auctionInvocationContext).result();
+        // then
+        assertThat(result.status()).isEqualTo(InvocationStatus.success);
+
+        verify(httpClient).post(
+                eq("https://test.com/idres"),
+                argThat(headers -> headers.contains("Authorization", "Bearer auth_token", true)),
+                eq(MAPPER.encodeToString(expectedBidRequest)),
+                eq(5L));
     }
 
     @Test

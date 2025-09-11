@@ -123,7 +123,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
         final Device maskedDevice = userFpdActivityMask.maskDevice(
                 bidRequest.getDevice(), disallowTransmitUfpd, disallowTransmitGeo);
 
-        final Source maskedSource = disallowTransmitTid
+        final Source maskedSource = (disallowTransmitUfpd && disallowTransmitTid)
                 ? bidRequest.getSource().toBuilder().tid(null).build()
                 : bidRequest.getSource();
 
