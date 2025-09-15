@@ -7,10 +7,15 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Video;
+import com.iab.openrtb.request.Source;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -18,14 +23,23 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.showheroes.ExtImpShowheroes;
+import org.prebid.server.version.PrebidVersionProvider;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mock.Strictness.LENIENT;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.BDDMockito.given;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -34,15 +48,30 @@ import static org.assertj.core.api.Assertions.tuple;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
+@ExtendWith(MockitoExtension.class)
 public class ShowheroesBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://ads.showheroes.com/";
 
-    private final ShowheroesBidder target = new ShowheroesBidder(ENDPOINT_URL, jacksonMapper);
+    private ShowheroesBidder target;
+
+    @Mock(strictness = LENIENT)
+    private CurrencyConversionService currencyConversionService;
+
+    @Mock(strictness = LENIENT)
+    private PrebidVersionProvider prebidVersionProvider;
+
+    @BeforeEach
+    public void setUp() {
+        // set always 'test_version' as Prebid version for testing
+        given(prebidVersionProvider.getNameVersionRecord()).willReturn("test_version");
+        target = new ShowheroesBidder(ENDPOINT_URL, currencyConversionService, prebidVersionProvider, jacksonMapper);
+    }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new ShowheroesBidder("invalid_url", jacksonMapper));
+        assertThatIllegalArgumentException().isThrownBy(() -> new ShowheroesBidder("invalid_url",
+                currencyConversionService, prebidVersionProvider, jacksonMapper));
     }
 
     @Test
@@ -74,26 +103,39 @@ public class ShowheroesBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .extracting(BidderError::getMessage)
-                .containsExactly("unitId parameter is required");
+                .containsExactly("unitId is required");
         assertThat(result.getValue()).isEmpty();
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorWhenSitePageAndAppBundleAreEmpty() {
+    public void makeHttpRequestsShouldReturnErrorWhenSitePageIsEmpty() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(givenImp(identity())))
-                .site(Site.builder().page("").build())
-                .app(App.builder().bundle("").build())
+                .site(Site.builder().build())
                 .build();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsExactly("site.page or app.bundle is required");
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorWhenAppBundleIsEmpty() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(identity())))
+                .app(App.builder().build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -112,8 +154,7 @@ public class ShowheroesBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldConvertCurrencyFromUsdToEur() {
-        // given
+    public void makeHttpRequestsShouldReturnPbsVersion() {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
@@ -121,10 +162,60 @@ public class ShowheroesBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getSource)
+                .extracting(Source::getExt)
+                .extracting(ext -> ext.getProperty("pbs"))
+                .containsExactly(mapper.createObjectNode()
+                        .put("pbsv", "test_version")
+                        .put("pbsp", "java"));
+    }
 
-        final BidRequest outgoingRequest = result.getValue().get(0).getPayload();
-        assertThat(outgoingRequest.getCur()).containsExactly("EUR");
+    @Test
+    public void makeHttpRequestsShouldConvertCurrencyFromUsdToEur() {
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(List.of(givenImp(impBuilder -> impBuilder.bidfloor(BigDecimal.ONE).bidfloorcur("USD"))))
+                .app(App.builder().bundle("test_bundle").build())
+                .build();
+
+        given(currencyConversionService.convertCurrency(any(), any(), anyString(), anyString()))
+                .willReturn(BigDecimal.TEN);
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        verify(currencyConversionService).convertCurrency(eq(BigDecimal.ONE), any(), eq("USD"), eq("EUR"));
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp).doesNotContainNull()
+                .extracting(Imp::getBidfloor, Imp::getBidfloorcur)
+                .containsOnly(tuple(BigDecimal.TEN, "EUR"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotConvertCurrencyEur() {
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(List.of(givenImp(impBuilder -> impBuilder.bidfloor(BigDecimal.ONE).bidfloorcur("EUR"))))
+                .app(App.builder().bundle("test_bundle").build())
+                .build();
+
+        given(currencyConversionService.convertCurrency(any(), any(), anyString(), anyString()))
+                .willReturn(BigDecimal.TEN);
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        verify(currencyConversionService, never()).convertCurrency(any(), any(), anyString(), anyString());
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp).doesNotContainNull()
+                .extracting(Imp::getBidfloor, Imp::getBidfloorcur)
+                .containsOnly(tuple(BigDecimal.ONE, "EUR"));
     }
 
     @Test
@@ -162,7 +253,8 @@ public class ShowheroesBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
 
-        final Map<String, String> headers = result.getValue().get(0).getHeaders();
+        final Map<String, String> headers = result.getValue().get(0).getHeaders().entries().stream()
+                .collect(java.util.stream.Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         assertThat(headers).containsEntry("Content-Type", "application/json;charset=utf-8")
                 .containsEntry("Accept", "application/json");
     }

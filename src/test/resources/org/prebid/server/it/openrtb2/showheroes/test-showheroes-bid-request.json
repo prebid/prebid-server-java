@@ -12,7 +12,10 @@
       "ext": {
         "tid": "${json-unit.any-string}",
         "bidder": {
-          "unitId": "1234"
+          "unitId": "12345"
+        },
+        "params": {
+          "unitId": "12345"
         }
       }
     }
@@ -33,12 +36,14 @@
   },
   "at": 1,
   "tmax": "${json-unit.any-number}",
-  "cur": ["EUR"],
+  "cur": ["USD"],
   "source": {
     "tid": "${json-unit.any-string}",
     "ext": {
-      "str": "10.0",
-      "version": "{{ pbs.java.version }}"
+      "pbs": {
+        "pbsv": "{{ pbs.java.version }}",
+        "pbsp": "java"
+      }
     }
   },
   "regs": {
