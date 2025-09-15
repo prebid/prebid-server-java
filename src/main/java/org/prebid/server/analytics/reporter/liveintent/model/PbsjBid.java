@@ -1,7 +1,6 @@
 package org.prebid.server.analytics.reporter.liveintent.model;
 
 import lombok.Builder;
-import lombok.Data;
 import lombok.Value;
 
 import java.math.BigDecimal;

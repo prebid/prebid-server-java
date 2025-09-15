@@ -45,7 +45,6 @@ public class LiveIntentAnalyticsReporter implements AnalyticsReporter {
     private final LiveIntentAnalyticsProperties properties;
     private final JacksonMapper jacksonMapper;
 
-
     public LiveIntentAnalyticsReporter(
             LiveIntentAnalyticsProperties properties,
             HttpClient httpClient,
@@ -75,8 +74,7 @@ public class LiveIntentAnalyticsReporter implements AnalyticsReporter {
                     .build()
                     .toString();
             return httpClient.get(url, properties.getTimeoutMs()).mapEmpty();
-        }
-        catch (URISyntaxException e) {
+        } catch (URISyntaxException e) {
             logger.error("Error composing url for notification event: {}", e.getMessage());
             return Future.failedFuture(e);
         }
@@ -107,31 +105,31 @@ public class LiveIntentAnalyticsReporter implements AnalyticsReporter {
     }
 
     private Future<Void> processAuctionEvent(AuctionContext auctionContext) {
-            if(auctionContext.getBidRequest() == null) {
-                return Future.failedFuture(new PreBidException("Bid request should not be empty"));
-            }
+        if(auctionContext.getBidRequest() == null) {
+            return Future.failedFuture(new PreBidException("Bid request should not be empty"));
+        }
 
-            if(auctionContext.getBidResponse() == null) {
-                return Future.failedFuture(new PreBidException("Bid response should not be empty"));
-            }
+        if(auctionContext.getBidResponse() == null) {
+            return Future.failedFuture(new PreBidException("Bid response should not be empty"));
+        }
 
-            final BidRequest bidRequest = auctionContext.getBidRequest();
-            final BidResponse bidResponse = auctionContext.getBidResponse();
-            final Optional<ExtRequestPrebid> requestPrebid = Optional.ofNullable(bidRequest.getExt())
-                    .flatMap(ext -> Optional.of(ext.getPrebid()));
+        final BidRequest bidRequest = auctionContext.getBidRequest();
+        final BidResponse bidResponse = auctionContext.getBidResponse();
+        final Optional<ExtRequestPrebid> requestPrebid = Optional.ofNullable(bidRequest.getExt())
+                .flatMap(ext -> Optional.of(ext.getPrebid()));
 
-            final Optional<Activity> activity = getActivities(auctionContext);
-            final boolean isEnriched = isEnriched(activity);
-            final Float treatmentRate = getTreatmentRate(activity);
-            final Long timestamp = requestPrebid.map(ExtRequestPrebid::getAuctiontimestamp).orElse(0L);
+        final Optional<Activity> activity = getActivities(auctionContext);
+        final boolean isEnriched = isEnriched(activity);
+        final Float treatmentRate = getTreatmentRate(activity);
+        final Long timestamp = requestPrebid.map(ExtRequestPrebid::getAuctiontimestamp).orElse(0L);
 
-            final List<PbsjBid> pbsjBids = CollectionUtils.emptyIfNull(bidResponse.getSeatbid()).stream()
-                    .map(SeatBid::getBid)
-                    .flatMap(Collection::stream)
-                    .map(bid -> buildPbsjBid(bidRequest, bidResponse, bid, isEnriched, treatmentRate, timestamp))
-                    .filter(Optional::isPresent)
-                    .map(Optional::get)
-                    .toList();
+        final List<PbsjBid> pbsjBids = CollectionUtils.emptyIfNull(bidResponse.getSeatbid()).stream()
+                .map(SeatBid::getBid)
+                .flatMap(Collection::stream)
+                .map(bid -> buildPbsjBid(bidRequest, bidResponse, bid, isEnriched, treatmentRate, timestamp))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .toList();
 
         try {
             return httpClient.post(
