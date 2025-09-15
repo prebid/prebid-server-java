@@ -55,9 +55,7 @@ public abstract class FilterBiddersFunction implements ResultFunction<BidRequest
         final List<SeatNonBid> seatNonBid = new ArrayList<>();
 
         for (Imp imp : bidRequest.getImp()) {
-            if (granularity instanceof Granularity.Imp
-                    && !StringUtils.equals(((Granularity.Imp) granularity).impId(), imp.getId())) {
-
+            if (granularity instanceof Granularity.Imp(String impId) && !StringUtils.equals(impId, imp.getId())) {
                 updatedImps.add(imp);
                 continue;
             }

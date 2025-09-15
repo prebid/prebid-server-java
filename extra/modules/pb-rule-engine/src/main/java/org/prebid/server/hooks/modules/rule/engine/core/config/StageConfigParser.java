@@ -9,8 +9,8 @@ import org.prebid.server.hooks.modules.rule.engine.core.config.model.RuleSetConf
 import org.prebid.server.hooks.modules.rule.engine.core.config.model.SchemaFunctionConfig;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.AlternativeActionRule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.CompositeRule;
-import org.prebid.server.hooks.modules.rule.engine.core.rules.DefaultActionRule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.ConditionalRuleFactory;
+import org.prebid.server.hooks.modules.rule.engine.core.rules.DefaultActionRule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.NoOpRule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.RandomWeightedRule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.Rule;
@@ -161,9 +161,7 @@ public class StageConfigParser<T, C> {
         }
     }
 
-    private Rule<T, C> combineRules(
-            Rule<T, C> left, Rule<T, C> right) {
-
+    private Rule<T, C> combineRules(Rule<T, C> left, Rule<T, C> right) {
         if (left == null && right == null) {
             return NoOpRule.create();
         } else if (left != null && right != null) {

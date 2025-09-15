@@ -41,8 +41,8 @@ public class AnalyticsMapper {
                 LogATagFunction.NAME);
 
         final Granularity granularity = infrastructureArguments.getContext().getGranularity();
-        final List<String> impIds = granularity instanceof Granularity.Imp
-                ? Collections.singletonList(((Granularity.Imp) granularity).impId())
+        final List<String> impIds = granularity instanceof Granularity.Imp(String impId)
+                ? Collections.singletonList(impId)
                 : Collections.singletonList("*");
 
         final Result result = ResultImpl.of(

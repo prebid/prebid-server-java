@@ -5,8 +5,8 @@ import lombok.Value;
 
 import java.util.Map;
 
+@Value
 @Builder
-@Value(staticConstructor = "of")
 public class InfrastructureArguments<C> {
 
     C context;

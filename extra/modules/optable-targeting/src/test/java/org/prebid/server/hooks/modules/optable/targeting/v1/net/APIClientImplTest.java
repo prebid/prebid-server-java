@@ -154,6 +154,31 @@ public class APIClientImplTest extends BaseOptableTest {
     }
 
     @Test
+    public void shouldBuildApiUrlByReplacingTenantAndOriginMacros() {
+        //  given
+        target = new APIClientImpl(
+                "http://endpoint.optable.com?t={{TENANT}}&o={{ORIGIN}}",
+                httpClient,
+                jacksonMapper,
+                10);
+
+        when(httpClient.get(any(), any(), anyLong()))
+                .thenReturn(Future.succeededFuture(givenFailHttpResponse(HttpStatus.SC_INTERNAL_SERVER_ERROR,
+                        "plain_text_response.json")));
+
+        // when
+        final Future<TargetingResult> result = target.getTargeting(givenOptableTargetingProperties(false),
+                givenQuery(), List.of("8.8.8.8"), timeout);
+
+        // then
+        final ArgumentCaptor<String> endpointCaptor = ArgumentCaptor.forClass(String.class);
+        verify(httpClient).get(endpointCaptor.capture(), any(), anyLong());
+        assertThat(endpointCaptor.getValue())
+                .isEqualTo("http://endpoint.optable.com?t=accountId&o=origin?query");
+        assertThat(result.result()).isNull();
+    }
+
+    @Test
     public void shouldNotUseAuthorizationHeaderIfApiKeyIsAbsent() {
         //  given
         when(httpClient.get(any(), any(), anyLong())).thenReturn(Future.succeededFuture(

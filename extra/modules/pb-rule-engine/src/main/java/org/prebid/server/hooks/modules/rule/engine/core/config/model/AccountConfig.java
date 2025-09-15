@@ -6,12 +6,12 @@ import lombok.Value;
 import lombok.extern.jackson.Jacksonized;
 
 import java.time.Instant;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
+@Value
 @Builder
 @Jacksonized
-@Value(staticConstructor = "of")
 public class AccountConfig {
 
     @Builder.Default
@@ -22,5 +22,5 @@ public class AccountConfig {
 
     @Builder.Default
     @JsonProperty("ruleSets")
-    List<RuleSetConfig> ruleSets = new ArrayList<>();
+    List<RuleSetConfig> ruleSets = Collections.emptyList();
 }

@@ -8,9 +8,9 @@ import org.prebid.server.auction.model.BidRejectionReason;
 
 import java.util.Set;
 
+@Value
 @Builder
 @Jacksonized
-@Value(staticConstructor = "of")
 public class FilterBiddersFunctionConfig {
 
     Set<String> bidders;
