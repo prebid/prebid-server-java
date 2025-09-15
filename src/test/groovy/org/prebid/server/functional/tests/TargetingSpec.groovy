@@ -543,6 +543,31 @@ class TargetingSpec extends BaseSpec {
         assert targetingKeyMap["hb_pb"] == String.format("%,.2f", max.setScale(precision, RoundingMode.DOWN))
     }
 
+    def "PBS auction shouldn't delete bid and update targeting if price equal zero and dealId it present"() {
+        given: "Default bid request with stored response"
+        def storedBidResponseId = PBSUtils.randomString
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.prebid.storedBidResponse = [new StoredBidResponse(id: storedBidResponseId, bidder: GENERIC)]
+            ext.prebid.targeting = Targeting.createWithAllValuesSetTo(true)
+        }
+
+        and: "Create and save stored response with zero prise into DB"
+        def storedBidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid[0].bid[0].price = 0
+            seatbid[0].bid[0].dealid = PBSUtils.randomNumber
+        }
+        def storedResponse = new StoredResponse(responseId: storedBidResponseId, storedBidResponse: storedBidResponse)
+        storedResponseDao.save(storedResponse)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain proper targeting hb_pb"
+        def targetingKeyMap = response.seatbid?.first()?.bid?.first()?.ext?.prebid?.targeting
+        assert targetingKeyMap["hb_pb"] == '0.0'
+        assert targetingKeyMap["hb_pb_generic"] == '0.0'
+    }
+
     def "PBS auction should use default targeting prefix when ext.prebid.targeting.prefix is biggest that twenty"() {
         given: "Bid request with long targeting prefix"
         def prefix = PBSUtils.getRandomString(30)
