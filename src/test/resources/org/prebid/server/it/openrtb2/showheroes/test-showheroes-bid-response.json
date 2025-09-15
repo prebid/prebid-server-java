@@ -10,6 +10,7 @@
           "id": "bid_id",
           "impid": "imp_id",
           "cid": "cid",
+          "mtype": 1,
           "ext": {
             "prebid": {
               "type": "banner"
@@ -19,5 +20,6 @@
       ],
       "type": "banner"
     }
-  ]
+  ],
+  "cur": "USD"
 }

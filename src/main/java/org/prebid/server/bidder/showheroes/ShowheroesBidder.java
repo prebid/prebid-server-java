@@ -1,12 +1,12 @@
 package org.prebid.server.bidder.showheroes;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Video;
+import com.iab.openrtb.request.Source;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -25,6 +25,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
+import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.showheroes.ExtImpShowheroes;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
@@ -43,6 +44,7 @@ public class ShowheroesBidder implements Bidder<BidRequest> {
 
     private static final String BID_CURRENCY = "EUR";
     private static final String DEFAULT_ORTB_CURRENCY = "USD";
+    private static final String PBSP_JAVA = "java";
     private static final TypeReference<ExtPrebid<?, ExtImpShowheroes>> SHOWHEROES_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
@@ -50,15 +52,18 @@ public class ShowheroesBidder implements Bidder<BidRequest> {
     private final String endpointUrl;
     private final CurrencyConversionService currencyConversionService;
     private final JacksonMapper mapper;
+    private final String pbsVersion;
 
     public ShowheroesBidder(String endpointUrl,
             CurrencyConversionService currencyConversionService,
             PrebidVersionProvider prebidVersionProvider,
             JacksonMapper mapper) {
 
-        this.endpointUrl = HttpUtil.validateUrlSyntax(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
         this.mapper = Objects.requireNonNull(mapper);
+
+        this.pbsVersion = prebidVersionProvider.getNameVersionRecord();
     }
 
     private BidderError validate(BidRequest bidRequest) {
@@ -83,17 +88,15 @@ public class ShowheroesBidder implements Bidder<BidRequest> {
     }
 
     private Imp processImpression(BidRequest bidRequest, Imp imp, ExtRequestPrebidChannel prebidChannel) {
-        final Banner banner = imp.getBanner();
-        final Video video = imp.getVideo();
-        if (banner == null && video == null) {
-            throw new PreBidException("Impression must contain one of banner, video or native");
+        if (imp.getBanner() == null && imp.getVideo() == null) {
+            throw new PreBidException("Impression must contain one of banner or video");
         }
 
         final ExtImpShowheroes extImpShowheroes = mapper.mapper()
                 .convertValue(imp.getExt(), SHOWHEROES_EXT_TYPE_REFERENCE).getBidder();
         if (extImpShowheroes == null || extImpShowheroes.getUnitId() == null
                 || extImpShowheroes.getUnitId().isBlank()) {
-            throw new PreBidException("Ext.imp.bidder.unitId is required");
+            throw new PreBidException("unitId is required");
         }
 
         String channelName = null;
@@ -136,6 +139,29 @@ public class ShowheroesBidder implements Bidder<BidRequest> {
                 .build();
     }
 
+    private Source getPBSSource(BidRequest bidRequest) {
+        Source source = bidRequest.getSource();
+        if (source == null) {
+            source = Source.builder().build();
+        }
+
+        ExtSource extSource = source.getExt();
+        if (extSource == null) {
+            extSource = ExtSource.of(null);
+        }
+
+        JsonNode prebidExt = extSource.getProperty("pbs");
+        if (prebidExt == null || !prebidExt.isObject()) {
+            prebidExt = mapper.mapper().createObjectNode();
+        }
+
+        ((ObjectNode) prebidExt).put("pbsv", pbsVersion).put("pbsp", PBSP_JAVA);
+
+        extSource.addProperty("pbs", prebidExt);
+
+        return source.toBuilder().ext(extSource).build();
+    }
+
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final BidderError validationError = validate(request);
@@ -158,7 +184,15 @@ public class ShowheroesBidder implements Bidder<BidRequest> {
             }
         }
 
-        httpRequests.add(makeHttpRequest(request.toBuilder().imp(modifiedImps).build()));
+        if (modifiedImps.isEmpty()) {
+            return Result.of(httpRequests, errors);
+        }
+        Source source = request.getSource();
+        if (pbsVersion != null) {
+            source = getPBSSource(request);
+        }
+
+        httpRequests.add(makeHttpRequest(request.toBuilder().imp(modifiedImps).source(source).build()));
         return Result.of(httpRequests, errors);
     }
 
@@ -207,7 +241,7 @@ public class ShowheroesBidder implements Bidder<BidRequest> {
         return switch (bid.getMtype()) {
             case 1 -> BidType.banner;
             case 2 -> BidType.video;
-            default -> BidType.video; // if not provided video is assumed
+            case null, default -> BidType.video; // if not provided video is assumed
         };
     }
 }
