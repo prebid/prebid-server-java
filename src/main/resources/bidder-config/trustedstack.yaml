@@ -1,0 +1,27 @@
+adapters:
+  trustedstack:
+    endpoint: https://prebid-adapter.trustedstack.com/rtb/pb/trustedstacks2s?src={{PREBID_SERVER_ENDPOINT}}
+    ortb-version: "2.6"
+    endpoint-compression: gzip
+    meta-info:
+      maintainer-email: product@trustedstack.com
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 1288
+    usersync:
+      cookie-family-name: trustedstack
+      iframe:
+        url: https://hb.trustedstack.com/checksync.php?cid=TS2Q14L8J&cs=87&type=mpbc&cv=37&vsSync=1&uspstring={{us_privacy}}&gdpr={{gdpr}}&gdprstring={{gdpr_consent}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redirect={{redirect_url}}
+        support-cors: false
+        uid-macro: '<vsid>'
+      redirect:
+        url: https://hb.trustedstack.com/cksync?cs=1&type=pbs&ovsid=setstatuscode&bidder=trustedstack&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redirect={{redirect_url}}
+        support-cors: false
+        uid-macro: '<vsid>'

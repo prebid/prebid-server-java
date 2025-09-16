@@ -1,0 +1,16 @@
+adapters:
+  beintoo:
+    endpoint: https://ib.beintoo.com/um
+    meta-info:
+      maintainer-email: adops@beintoo.com
+      app-media-types:
+      site-media-types:
+        - banner
+      supported-vendors:
+      vendor-id: 618
+    usersync:
+      cookie-family-name: beintoo
+      iframe:
+        url: https://ib.beintoo.com/um?ssp=pbs&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+        support-cors: false
+        uid-macro: '$UID'

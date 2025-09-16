@@ -1,0 +1,20 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "2",
+          "price": 8.43,
+          "crid": "crid14",
+          "adm": "{\"assets\":[{\"id\":0,\"title\":{\"text\":\"This is an example Prebid Native creative\"}}]}",
+          "w": 300,
+          "h": 250
+        }
+      ],
+      "seat": "adtelligent",
+      "group": 0
+    }
+  ]
+}

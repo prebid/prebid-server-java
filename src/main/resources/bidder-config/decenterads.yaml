@@ -1,0 +1,15 @@
+adapters:
+  decenterads:
+    endpoint: http://supply.decenterads.com/?c=o&m=rtb
+    meta-info:
+      maintainer-email: support@decenterads.com
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 0

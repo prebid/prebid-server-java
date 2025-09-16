@@ -1,0 +1,19 @@
+adapters:
+  gamoshi:
+    endpoint: https://rtb.gamoshi.io
+    meta-info:
+      maintainer-email: dev@gamoshi.com
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 644
+    usersync:
+      cookie-family-name: gamoshi
+      redirect:
+        url: https://rtb.gamoshi.io/user_sync_prebid?gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&rurl={{redirect_url}}
+        support-cors: false
+        uid-macro: '[gusr]'

@@ -1,0 +1,48 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "exp": 300,
+          "price": 0.5,
+          "adm": "<!-- admarkup -->",
+          "adid": "adid",
+          "adomain": [
+            "test.com"
+          ],
+          "cid": "cid",
+          "crid": "crid",
+          "cat": [
+            "IAB2"
+          ],
+          "w": 300,
+          "h": 250,
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "meta": {
+                "adaptercode": "tappx"
+              }
+            },
+            "origbidcpm": 0.5
+          }
+        }
+      ],
+      "seat": "tappx",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "tappx": "{{ tappx.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "exp": 1500,
+          "price": 0.5,
+          "adm": "some-test-ad",
+          "adid": "29681110",
+          "adomain": [
+            "advertsite.com"
+          ],
+          "api": 1,
+          "cid": "772",
+          "crid": "29681110",
+          "w": 1024,
+          "h": 576,
+          "ext": {
+            "avocet": {
+              "duration": 30
+            },
+            "prebid": {
+              "type": "video",
+              "meta": {
+                "adaptercode": "avocet"
+              }
+            },
+            "origbidcpm": 0.5
+          }
+        }
+      ],
+      "seat": "avocet",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "avocet": "{{ avocet.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}

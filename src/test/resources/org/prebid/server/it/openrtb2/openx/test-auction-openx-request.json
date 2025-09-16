@@ -1,0 +1,32 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "banner": {
+        "w": 300,
+        "h": 250
+      },
+      "ext": {
+        "openx": {
+          "unit": "539439964",
+          "delDomain": "se-demo-d.openx.net",
+          "customFloor": "0.5",
+          "customParams": {
+            "foo": "bar",
+            "multifoo": [
+              "bar1",
+              "bar2"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "tmax": 5000,
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "id": "test-request-id",
+  "seatbid": [
+    {
+      "seat": "consumable",
+      "bid": [
+        {
+          "id": "8ee514f1-b2b8-4abb-89fd-084437d1e800",
+          "impid": "test-imp-id",
+          "exp": 300,
+          "price": 0.500000,
+          "adm": "some-test-ad",
+          "crid": "crid_10",
+          "h": 90,
+          "w": 728,
+          "mtype": 1,
+          "ext": {
+            "origbidcpm": 0.5,
+            "origbidcur": "USD",
+            "prebid": {
+              "type": "banner",
+              "meta": {
+                "adaptercode": "consumable"
+              }
+            }
+          }
+        }
+      ],
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "consumable": "{{ consumable.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}

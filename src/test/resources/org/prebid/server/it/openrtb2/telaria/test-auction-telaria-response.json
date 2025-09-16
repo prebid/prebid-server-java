@@ -1,0 +1,40 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "price": 0.01,
+          "adm": "<b>hi</b>",
+          "cid": "cid",
+          "crid": "crid",
+          "exp": 120,
+          "ext": {
+            "prebid": {
+              "type": "video",
+              "meta": {
+                "adaptercode": "telaria"
+              }
+            },
+            "origbidcpm": 0.01,
+            "format": "VIDEO"
+          }
+        }
+      ],
+      "seat": "telaria",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "telaria": "{{ telaria.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}

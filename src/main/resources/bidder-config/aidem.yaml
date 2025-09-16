@@ -1,0 +1,20 @@
+adapters:
+  aidem:
+    endpoint: https://zero.aidemsrv.com/ortb/v2.6/bid/request?billing_id={{PublisherId}}
+    modifying-vast-xml-allowed: true
+    meta-info:
+      maintainer-email: prebid@aidem.com
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 0
+    usersync:
+      cookie-family-name: aidem
+      redirect:
+        url: https://gum.aidemsrv.com/prebid_sync?gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+        support-cors: false
+        uid-macro: '$UID'

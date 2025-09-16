@@ -1,0 +1,40 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id1",
+          "impid": "imp_id1",
+          "exp": 300,
+          "price": 1.25,
+          "adm": "adm001",
+          "crid": "crid001",
+          "w": 300,
+          "h": 250,
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "meta": {
+                "adaptercode": "adman"
+              }
+            },
+            "origbidcpm": 1.25
+          }
+        }
+      ],
+      "seat": "adman",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "adman": "{{ adman.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}

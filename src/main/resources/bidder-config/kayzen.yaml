@@ -1,0 +1,15 @@
+adapters:
+  kayzen:
+    endpoint: https://bids-{{ZoneID}}.bidder.kayzen.io/?exchange={{AccountID}}
+    meta-info:
+      maintainer-email: platform-dev@kayzen.io
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 528

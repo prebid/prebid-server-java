@@ -1,0 +1,48 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "some_ad_id",
+          "impid": "imp_id",
+          "exp": 300,
+          "price": 42420.00,
+          "adm": "some_html",
+          "adid": "some_ad_id",
+          "adomain": [
+            "domain.dm"
+          ],
+          "cid": "some_line_item_id",
+          "crid": "some_creative_id",
+          "dealid": "some_deal_id",
+          "w": 140,
+          "mtype": 1,
+          "h": 90,
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "meta": {
+                "adaptercode": "adnuntius"
+              }
+            },
+            "origbidcpm": 42420.00,
+            "origbidcur": "USD"
+          }
+        }
+      ],
+      "seat": "adnuntius",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "adnuntius": "{{ adnuntius.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}

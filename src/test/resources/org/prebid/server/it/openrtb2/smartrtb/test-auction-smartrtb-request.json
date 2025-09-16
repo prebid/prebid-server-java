@@ -1,0 +1,26 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "tagid": "tag_id",
+      "banner": {
+        "w": 300,
+        "h": 250
+      },
+      "ext": {
+        "smartrtb": {
+          "pub_id": "1234",
+          "zone_id": "N4zTDq3PPEHBIODv7cXK",
+          "force_bid": true
+        }
+      }
+    }
+  ],
+  "tmax": 5000,
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id_banner",
+          "impid": "imp_id_banner",
+          "price": 10,
+          "adomain": [],
+          "adm": "<html>",
+          "crid": "test-creative-id-2",
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "meta": {
+                "adaptercode": "gross"
+              }
+            },
+            "pt": "gross"
+          }
+        }
+      ]
+    }
+  ],
+  "cur": "EUR"
+}

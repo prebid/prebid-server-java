@@ -1,0 +1,65 @@
+{
+  "id": "tid",
+  "imp": [
+    {
+      "ext": {
+        "prebid": {
+          "storedrequest": {
+            "id": "test-generic-stored-imp-cache-update"
+          }
+        }
+      }
+    },
+    {
+      "video": {
+        "minduration": 15
+      },
+      "ext": {
+        "prebid": {
+          "storedrequest": {
+            "id": "test-genericAlias-stored-video-cache-update"
+          },
+          "options": {
+            "echovideoattrs": true
+          }
+        }
+      }
+    }
+  ],
+  "at": 1,
+  "tmax": 5000,
+  "cur": [
+    "USD"
+  ],
+  "ext": {
+    "prebid": {
+      "targeting": {
+        "pricegranularity": {
+          "precision": 2,
+          "ranges": [
+            {
+              "max": 20,
+              "increment": 0.1
+            }
+          ]
+        },
+        "currency": {
+          "rates": {
+            "EUR": {
+              "USD": 1.2406
+            },
+            "USD": {
+              "EUR": 0.8110
+            }
+          }
+        }
+      },
+      "auctiontimestamp": 0
+    }
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

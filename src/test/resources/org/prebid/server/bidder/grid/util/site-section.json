@@ -1,0 +1,13 @@
+{
+  "secondPublisher": [
+    {
+      "name": "siteSection",
+      "segments": [
+        {
+          "name": "segment",
+          "value": "value"
+        }
+      ]
+    }
+  ]
+}

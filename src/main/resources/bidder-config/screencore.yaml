@@ -1,0 +1,15 @@
+adapters:
+  screencore:
+    endpoint: http://h1.screencore.io/?kp={{AccountId}}&kn={{SourceId}}
+    meta-info:
+      maintainer-email: connect@screencore.io
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 0

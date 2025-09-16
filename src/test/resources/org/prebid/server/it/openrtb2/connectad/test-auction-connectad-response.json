@@ -1,0 +1,40 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "exp": 300,
+          "price": 0.01,
+          "adm": "<b>hi</b>",
+          "cid": "test_cid",
+          "crid": "test_banner_crid",
+          "ext": {
+            "format": "BANNER",
+            "prebid": {
+              "type": "banner",
+              "meta": {
+                "adaptercode": "connectad"
+              }
+            },
+            "origbidcpm": 0.01
+          }
+        }
+      ],
+      "group": 0,
+      "seat": "connectad"
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "connectad": "{{ connectad.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}

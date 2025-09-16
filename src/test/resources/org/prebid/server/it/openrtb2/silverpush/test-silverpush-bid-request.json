@@ -1,0 +1,55 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "secure": 1,
+      "bidfloor": 2,
+      "banner": {
+        "w": 300,
+        "h": 250
+      },
+      "ext": {
+        "tid": "${json-unit.any-string}",
+        "bidder": {
+          "publisherId": "testPublisherId",
+          "bidfloor": 2
+        }
+      }
+    }
+  ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
+  "site": {
+    "domain": "www.example.com",
+    "page": "http://www.example.com",
+    "publisher": {
+      "id" : "testPublisherId",
+      "domain": "example.com"
+    },
+    "ext": {
+      "amp": 0
+    }
+  },
+  "device": {
+    "ua": "userAgent",
+    "ip": "193.168.244.1",
+    "devicetype" : 2,
+    "os" : "Unknown"
+  },
+  "at": 1,
+  "tmax": "${json-unit.any-number}",
+  "cur": [
+    "USD"
+  ],
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  },
+  "ext": {
+    "bc" : "sp_pb_ortb_1.0.0",
+    "publisherId" : "testPublisherId"
+  }
+}

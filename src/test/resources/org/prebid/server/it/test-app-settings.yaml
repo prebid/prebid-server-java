@@ -1,0 +1,149 @@
+---
+accounts:
+  - id: 14062
+    auction:
+      banner-cache-ttl: 100
+      video-cache-ttl: 100
+      events:
+        enabled: true
+  - id: 1001
+    auction:
+      debug-allow: true
+  - id: 2001
+    auction:
+      events:
+        enabled: true
+  - id: 2763
+  - id: 5001
+    auction:
+      events:
+        enabled: true
+  - id: 6001
+    hooks:
+      execution-plan:
+        endpoints:
+          /openrtb2/auction:
+            stages:
+              raw-auction-request:
+                groups:
+                  - timeout: 5
+                    hook-sequence:
+                      - module-code: sample-it-module
+                        hook-impl-code: raw-auction-request
+              processed-auction-request:
+                groups:
+                  - timeout: 5
+                    hook-sequence:
+                      - module-code: sample-it-module
+                        hook-impl-code: processed-auction-request
+              bidder-request:
+                groups:
+                  - timeout: 5
+                    hook-sequence:
+                      - module-code: sample-it-module
+                        hook-impl-code: bidder-request
+              raw-bidder-response:
+                groups:
+                  - timeout: 5
+                    hook-sequence:
+                      - module-code: sample-it-module
+                        hook-impl-code: raw-bidder-response
+              processed-bidder-response:
+                groups:
+                  - timeout: 5
+                    hook-sequence:
+                      - module-code: sample-it-module
+                        hook-impl-code: processed-bidder-response
+              auction-response:
+                groups:
+                  - timeout: 5
+                    hook-sequence:
+                      - module-code: sample-it-module
+                        hook-impl-code: auction-response
+              exitpoint:
+                groups:
+                  - timeout: 5
+                    hook-sequence:
+                      - module-code: sample-it-module
+                        hook-impl-code: exitpoint
+  - id: 7001
+    hooks:
+      execution-plan:
+        endpoints:
+          /openrtb2/auction:
+            stages:
+              raw-auction-request:
+                groups:
+                  - timeout: 5
+                    hook-sequence:
+                      - module-code: sample-it-module
+                        hook-impl-code: rejecting-raw-auction-request
+  - id: 8001
+    hooks:
+      execution-plan:
+        endpoints:
+          /openrtb2/auction:
+            stages:
+              processed-auction-request:
+                groups:
+                  - timeout: 5
+                    hook-sequence:
+                      - module-code: sample-it-module
+                        hook-impl-code: rejecting-processed-auction-request
+  - id: 9001
+    hooks:
+      execution-plan:
+        endpoints:
+          /openrtb2/auction:
+            stages:
+              bidder-request:
+                groups:
+                  - timeout: 5
+                    hook-sequence:
+                      - module-code: sample-it-module
+                        hook-impl-code: rejecting-bidder-request
+  - id: 10001
+    hooks:
+      execution-plan:
+        endpoints:
+          /openrtb2/auction:
+            stages:
+              raw-bidder-response:
+                groups:
+                  - timeout: 5
+                    hook-sequence:
+                      - module-code: sample-it-module
+                        hook-impl-code: rejecting-raw-bidder-response
+  - id: 11001
+    hooks:
+      execution-plan:
+        endpoints:
+          /openrtb2/auction:
+            stages:
+              processed-bidder-response:
+                groups:
+                  - timeout: 5
+                    hook-sequence:
+                      - module-code: sample-it-module
+                        hook-impl-code: rejecting-processed-bidder-response
+  - id: 13001
+    hooks:
+      execution-plan:
+        endpoints:
+          /openrtb2/auction:
+            stages:
+              exitpoint:
+                groups:
+                  - timeout: 5
+                    hook-sequence:
+                      - module-code: sample-it-module
+                        hook-impl-code: exitpoint
+  - id: 12001
+    auction:
+      price-floors:
+        fetch:
+          url: http://localhost:8100/floors-provider
+          enabled: true
+domains:
+  - rubiconproject.com
+  - www.rubiconproject.com

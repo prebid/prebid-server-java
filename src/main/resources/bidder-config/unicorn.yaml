@@ -1,0 +1,10 @@
+adapters:
+  unicorn:
+    endpoint: https://ds.uncn.jp/pb/0/bid.json
+    meta-info:
+      maintainer-email: prebid@unicorn.inc
+      app-media-types:
+        - banner
+      site-media-types:
+      supported-vendors:
+      vendor-id: 0

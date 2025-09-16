@@ -1,0 +1,146 @@
+package org.prebid.server.bidder.aja;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.response.Bid;
+import com.iab.openrtb.response.BidResponse;
+import com.iab.openrtb.response.SeatBid;
+import org.apache.commons.collections4.CollectionUtils;
+import org.prebid.server.bidder.Bidder;
+import org.prebid.server.bidder.aja.proto.ExtImpAja;
+import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
+import org.prebid.server.bidder.model.HttpRequest;
+import org.prebid.server.bidder.model.Result;
+import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
+import org.prebid.server.util.HttpUtil;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+public class AjaBidder implements Bidder<BidRequest> {
+
+    private static final TypeReference<ExtPrebid<?, ExtImpAja>> AJA_EXT_TYPE_REFERENCE =
+            new TypeReference<>() {
+            };
+
+    private final String endpointUrl;
+    private final JacksonMapper mapper;
+
+    public AjaBidder(String endpointUrl, JacksonMapper mapper) {
+        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.mapper = Objects.requireNonNull(mapper);
+    }
+
+    @Override
+    public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
+        final List<BidderError> errors = new ArrayList<>();
+        final List<HttpRequest<BidRequest>> result = new ArrayList<>();
+
+        final List<String> tagIds = new ArrayList<>();
+        final Map<String, Imp> impsByTagID = new HashMap<>();
+
+        for (Imp imp : bidRequest.getImp()) {
+            final ExtImpAja extImpAja = parseExtAJA(imp, errors);
+            if (extImpAja == null) {
+                continue;
+            }
+            imp = imp.toBuilder()
+                    .tagid(extImpAja.getAdSpotID())
+                    .ext(null)
+                    .build();
+
+            final String tagId = imp.getTagid();
+            if (!impsByTagID.containsKey(tagId)) {
+                tagIds.add(tagId);
+            }
+            impsByTagID.put(tagId, imp);
+        }
+
+        for (final String tagId : tagIds) {
+            final Imp imp = impsByTagID.get(tagId);
+            final HttpRequest<BidRequest> singleRequest = createSingleRequest(imp, bidRequest, endpointUrl);
+            result.add(singleRequest);
+        }
+
+        return Result.of(result, errors);
+    }
+
+    private ExtImpAja parseExtAJA(Imp imp, List<BidderError> errors) {
+        try {
+            return mapper.mapper().convertValue(imp.getExt(), AJA_EXT_TYPE_REFERENCE)
+                    .getBidder();
+        } catch (IllegalArgumentException e) {
+            errors.add(BidderError.badInput(
+                    "Failed to unmarshal ext.bidder impID: %s err: %s".formatted(imp.getId(), e.getMessage())));
+        }
+        return null;
+    }
+
+    private HttpRequest<BidRequest> createSingleRequest(Imp imp, BidRequest request, String url) {
+        final BidRequest outgoingRequest = request.toBuilder().imp(Collections.singletonList(imp)).build();
+
+        return BidderUtil.defaultRequest(outgoingRequest, url, mapper);
+    }
+
+    @Override
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
+        try {
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            return extractBids(httpCall.getRequest().getPayload(), bidResponse);
+        } catch (DecodeException e) {
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
+        }
+    }
+
+    private Result<List<BidderBid>> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
+        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
+            return Result.empty();
+        }
+        final List<BidderError> errors = new ArrayList<>();
+        final List<BidderBid> bidderBids = bidResponse.getSeatbid().stream()
+                .filter(Objects::nonNull)
+                .map(SeatBid::getBid)
+                .filter(Objects::nonNull)
+                .flatMap(Collection::stream)
+                .map(bid -> bidFromResponse(bidRequest.getImp(), bid, errors, bidResponse.getCur()))
+                .filter(Objects::nonNull)
+                .toList();
+        return Result.of(bidderBids, errors);
+    }
+
+    private static BidderBid bidFromResponse(List<Imp> imps, Bid bid, List<BidderError> errors, String currency) {
+        try {
+            final BidType bidType = getBidType(bid.getImpid(), imps, bid.getId());
+            return BidderBid.of(bid, bidType, currency);
+        } catch (PreBidException e) {
+            errors.add(BidderError.badInput(e.getMessage()));
+            return null;
+        }
+    }
+
+    private static BidType getBidType(String impId, List<Imp> imps, String bidId) {
+        for (final Imp imp : imps) {
+            if (imp.getId().equals(impId)) {
+                if (imp.getBanner() != null) {
+                    return BidType.banner;
+                } else if (imp.getVideo() != null) {
+                    return BidType.video;
+                }
+            }
+        }
+        throw new PreBidException("Response received for unexpected type of bid bidID: " + bidId);
+    }
+}

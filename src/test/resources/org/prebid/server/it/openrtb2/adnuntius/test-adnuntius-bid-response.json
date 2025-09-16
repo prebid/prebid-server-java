@@ -1,0 +1,27 @@
+{
+  "adUnits": [
+    {
+      "auId": "some_au_id",
+      "targetId": "some_au_id-imp_id:banner",
+      "matchedAdCount": 1,
+      "html": "some_html",
+      "ads": [
+        {
+          "bid": {
+            "amount": 42.42,
+            "currency": "USD"
+          },
+          "adId": "some_ad_id",
+          "creativeWidth": "140",
+          "creativeHeight": "90",
+          "creativeId": "some_creative_id",
+          "lineItemId": "some_line_item_id",
+          "dealId": "some_deal_id",
+          "advertiserDomains": [
+            "domain.dm"
+          ]
+        }
+      ]
+    }
+  ]
+}

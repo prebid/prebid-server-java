@@ -1,0 +1,40 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "exp": 1500,
+          "price": 1.25,
+          "adm": "adm001",
+          "crid": "crid",
+          "w": 800,
+          "h": 600,
+          "ext": {
+            "prebid": {
+              "type": "video",
+              "meta": {
+                "adaptercode": "emtv"
+              }
+            },
+            "origbidcpm": 1.25
+          }
+        }
+      ],
+      "seat": "emtv",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "emtv": "{{ emtv.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}

@@ -1,0 +1,204 @@
+mappers:
+  - match: vertx.http.servers.*.*.*.*.*
+    name: vertx.http.servers.${4}
+    labels:
+      address: ${0}.${1}.${2}.${3}
+  - match: requests.*.*
+    name: requests.status.type
+    labels:
+      status: ${0}
+      type: ${1}
+  - match: bidder-cardinality.*.requests
+    name: bidder-cardinality.requests
+    labels:
+      cardinality: ${0}
+  - match: vertx.http.clients.get-requests
+    name: vertx.http.clients.requests_by_type
+    labels:
+      request: get
+  - match: vertx.http.clients.post-requests
+    name: vertx.http.clients.requests_by_type
+    labels:
+      request: post
+  - match: vertx.http.clients.head-requests
+    name: vertx.http.clients.requests_by_type
+    labels:
+      request: head
+  - match: vertx.http.clients.delete-requests
+    name: vertx.http.clients.requests_by_type
+    labels:
+      request: delete
+  - match: vertx.http.clients.connect-requests
+    name: vertx.http.clients.requests_by_type
+    labels:
+      request: connect
+  - match: vertx.http.clients.options-requests
+    name: vertx.http.clients.requests_by_type
+    labels:
+      request: options
+  - match: vertx.http.clients.patch-requests
+    name: vertx.http.clients.requests_by_type
+    labels:
+      request: patch
+  - match: vertx.http.clients.put-requests
+    name: vertx.http.clients.requests_by_type
+    labels:
+      request: put
+  - match: vertx.http.clients.other-requests
+    name: vertx.http.clients.requests_by_type
+    labels:
+      request: other
+  - match: vertx.http.clients.trace-requests
+    name: vertx.http.clients.requests_by_type
+    labels:
+      request: trace
+  - match: vertx.http.clients.responses-1xx
+    name: vertx.http.clients.response_by_status
+    labels:
+      responses: 1xx
+  - match: vertx.http.clients.responses-2xx
+    name: vertx.http.clients.response_by_status
+    labels:
+      responses: 2xx
+  - match: vertx.http.clients.responses-3xx
+    name: vertx.http.clients.response_by_status
+    labels:
+      responses: 3xx
+  - match: vertx.http.clients.responses-4xx
+    name: vertx.http.clients.response_by_status
+    labels:
+      responses: 4xx
+  - match: privacy.tcf.missing
+    name: privacy.tcf.errors
+    labels:
+      error: missing
+  - match: privacy.tcf.invalid
+    name: privacy.tcf.errors
+    labels:
+      error: invalid
+  - match: privacy.tcf.invalid
+    name: privacy.tcf.errors
+    labels:
+      error: invalid
+  - match: privacy.tcf.*.vendorlist.*
+    name: privacy.tcf.vendorlist
+    labels:
+      tcf: ${0}
+      status: ${1}
+  - match: privacy.tcf.*.*
+    name: privacy.tcf.${1}
+    labels:
+      tcf: ${0}
+  - match: account.*.modules.module.*.*
+    name: account.module_calls
+    labels:
+      account: ${0}
+      module: ${1}
+      action: ${2}
+  - match: modules.module.*.stage.*.hook.*.*
+    name: module.calls
+    labels:
+      module: ${0}
+      stage: ${1}
+      hook: ${2}
+      action: ${3}
+  - match: account.*.adapter.*.request_time
+    name: account.request_time
+    labels:
+      account: ${0}
+      adapter: ${1}
+  - match: account.*.adapter.*.requests.*
+    name: account.requests.responses
+    labels:
+      account: ${0}
+      adapter: ${1}
+      response: ${2}
+  - match: account.*.adapter.*.bids_received
+    name: account.bids_received
+    labels:
+      account: ${0}
+      adapter: ${1}
+  - match: account.*.requests.type.*
+    name: account.requests.type
+    labels:
+      account: ${0}
+      type: ${1}
+  - match: account.*.adapter.*.prices
+    name: account.prices
+    labels:
+      account: ${0}
+      adapter: ${1}
+  - match: account.*.response.validation.*.*
+    name: account.response.validation
+    labels:
+      account: ${0}
+      validation: ${1}
+      level: ${2}
+  - match: account.*.prebid_cache.requests.*
+    name: account.requests.type
+    labels:
+      account: ${0}
+      result: ${1}
+  - match: account.*.requests
+    name: account.requests.type
+    labels:
+      account: ${0}
+  - match: adapter.*.request_time
+    name: adapter.request_time
+    labels:
+      adapter: ${0}
+  - match: adapter.*.requests.type.*
+    name: adapter.requests.type
+    labels:
+      adapter: ${0}
+      type: ${1}
+  - match: adapter.*.requests.*
+    name: adapter.requests.result
+    labels:
+      adapter: ${0}
+      result: ${1}
+  - match: adapter.*.bids_received
+    name: adapter.bids_received
+    labels:
+      adapter: ${0}
+  - match: adapter.*.prices
+    name: adapter.prices
+    labels:
+      adapter: ${0}
+  - match: adapter.*.response.validation.*.*
+    name: adapter.response.validation
+    labels:
+      adapter: ${0}
+      validation: ${1}
+      level: ${2}
+  - match: adapter.*.no_cookie_requests
+    name: adapter.no_cookie_requests
+    labels:
+      adapter: ${0}
+  - match: adapter.*.*.tcf.*
+    name: adapter.tcf
+    labels:
+      adapter: ${0}
+      type: ${1}
+      tcf: ${2}
+  - match: adapter.*.*.*
+    name: adapter.media_type
+    labels:
+      adapter: ${0}
+      mediaType: ${1}
+      metric: ${2}
+  - match: cookie_sync.*.tcf.*
+    name: adapter.cookie_sync.tcf
+    labels:
+      adapter: ${0}
+      tcf: ${1}
+  - match: cookie_sync.*.*
+    name: adapter.cookie_sync.action
+    labels:
+      adapter: ${0}
+      action: ${1}
+  - match: usersync.*.*
+    name: adapter.usersync.action
+    labels:
+      adapter: ${0}
+      action: ${1}

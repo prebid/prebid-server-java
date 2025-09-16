@@ -1,0 +1,27 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "banner": {
+        "w": 300,
+        "h": 250
+      },
+      "ext": {
+        "unicorn": {
+          "placementId": "placementId",
+          "publisherId": "123",
+          "mediaId": "mediaTestId",
+          "accountId": 456
+        }
+      }
+    }
+  ],
+  "app": {},
+  "tmax": 5000,
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

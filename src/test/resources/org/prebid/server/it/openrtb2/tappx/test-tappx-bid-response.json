@@ -1,0 +1,28 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "seat": "rtbhouse",
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "price": 0.5,
+          "cid": "cid",
+          "crid": "crid",
+          "adid": "adid",
+          "adm": "<!-- admarkup -->",
+          "cat": [
+            "IAB2"
+          ],
+          "adomain": [
+            "test.com"
+          ],
+          "h": 250,
+          "w": 300
+        }
+      ]
+    }
+  ],
+  "bidid": "bid_id"
+}

@@ -1,0 +1,13 @@
+adapters:
+  adtarget:
+    endpoint: http://ghb.console.adtarget.com.tr/pbs/ortb
+    meta-info:
+      maintainer-email: kamil@adtarget.com.tr
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 779

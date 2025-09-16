@@ -1,0 +1,24 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "banner": {
+        "w": 300,
+        "h": 250
+      },
+      "ext": {
+        "ucfunnel": {
+          "adunitid": "ad-E2B22B678D6A664E092824848D26BB2",
+          "partnerid": "par-2EDDB423AA24474188B843EE4842932"
+        }
+      }
+    }
+  ],
+  "tmax": 5000,
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

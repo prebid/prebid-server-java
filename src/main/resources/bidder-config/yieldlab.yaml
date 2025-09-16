@@ -1,0 +1,19 @@
+adapters:
+  yieldlab:
+    endpoint: https://ad.yieldlab.net/yp
+    meta-info:
+      maintainer-email: solutions@yieldlab.de
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 70
+    usersync:
+      cookie-family-name: yieldlab
+      redirect:
+        url: https://ad.yieldlab.net/mr?t=2&pid=9140838&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&r={{redirect_url}}
+        support-cors: false
+        uid-macro: '%%YL_UID%%'

@@ -1,0 +1,13 @@
+adapters:
+  adhese:
+    endpoint: https://ads-{{AccountId}}.adhese.com/openrtb2
+    meta-info:
+      maintainer-email: info@adhese.com
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 553

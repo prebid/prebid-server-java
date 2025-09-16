@@ -1,0 +1,37 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "price": 3.33,
+          "adid": "adid001",
+          "crid": "crid001",
+          "cid": "cid001",
+          "adm": "adm001",
+          "h": 250,
+          "w": 300,
+          "ext": {
+            "bidder": {
+              "grid": {
+                "demandSource": "trustx"
+              }
+            },
+            "skadn": {
+              "version": "2.0",
+              "sourceapp": "880047117"
+            },
+            "data": {
+              "adserver": {
+                "name": "some_name",
+                "adslot": "some_slot"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

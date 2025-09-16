@@ -1,0 +1,91 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "secure": 1,
+      "video": {
+        "mimes": [
+          "mimes"
+        ],
+        "w": 300,
+        "h": 250
+      },
+      "ext": {
+        "rp": {
+          "pb_bid_id": "${json-unit.any-string}",
+          "zone_id": 4001,
+          "target": {
+            "page": [
+              "http://www.example.com"
+            ],
+            "pbs_version": "{{ pbs.java.version }}",
+            "pbs_login": "rubicon_user",
+            "pbs_url": "http://localhost:8080"
+          },
+          "track": {
+            "mint": "",
+            "mint_version": ""
+          }
+        },
+        "tid": "${json-unit.any-string}"
+      }
+    }
+  ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
+  "site": {
+    "domain": "www.example.com",
+    "page": "http://www.example.com",
+    "publisher": {
+      "ext": {
+        "rp": {
+          "account_id": 2001
+        }
+      }
+    },
+    "content": {
+      "language": "en"
+    },
+    "ext": {
+      "amp": 0,
+      "rp": {
+        "site_id": 3001,
+        "target": {
+          "iab": [
+            "segmentId1",
+            "segmentId2",
+            "segmentId3"
+          ]
+        }
+      }
+    }
+  },
+  "device": {
+    "ua": "userAgent",
+    "ip": "193.168.244.1",
+    "ext": {
+      "rp": {
+      }
+    }
+  },
+  "user": {
+    "ext": {
+      "rp": {
+        "target": {
+          "iab": [
+            "segmentId4"
+          ]
+        }
+      }
+    }
+  },
+  "at": 1,
+  "tmax": "${json-unit.any-number}",
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

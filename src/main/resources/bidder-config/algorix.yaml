@@ -1,0 +1,15 @@
+adapters:
+  algorix:
+    endpoint: https://{{HOST}}.svr-algorix.com/rtb/sa?sid={{SID}}&token={{TOKEN}}
+    meta-info:
+      maintainer-email: prebid@algorix.co
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 1176

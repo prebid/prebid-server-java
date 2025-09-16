@@ -1,0 +1,27 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "banner": {
+        "w": 300,
+        "h": 250
+      },
+      "ext": {
+        "pubnative": {
+          "zone_id": 1,
+          "app_auth_token": "4fd53a12b78af4b39835de9e449c3082"
+        }
+      }
+    }
+  ],
+  "device": {
+    "os": "someos"
+  },
+  "tmax": 5000,
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

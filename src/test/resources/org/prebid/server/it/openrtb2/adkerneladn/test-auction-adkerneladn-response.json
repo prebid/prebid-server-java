@@ -1,0 +1,48 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "exp": 300,
+          "price": 0.5,
+          "adm": "adm021",
+          "adid": "19005",
+          "adomain": [
+            "test.com"
+          ],
+          "cid": "3706",
+          "crid": "crid021",
+          "cat": [
+            "IAB2"
+          ],
+          "w": 300,
+          "h": 250,
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "meta": {
+                "adaptercode": "adkernelAdn"
+              }
+            },
+            "origbidcpm": 0.5
+          }
+        }
+      ],
+      "seat": "adkernelAdn",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "adkernelAdn": "{{ adkernelAdn.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}

@@ -1,0 +1,17 @@
+adapters:
+  between:
+    endpoint: http://{{Host}}.betweendigital.com/openrtb_bid?sspId={{PublisherId}}
+    meta-info:
+      maintainer-email: buying@betweenx.com
+      app-media-types:
+        - banner
+      site-media-types:
+        - banner
+      supported-vendors:
+      vendor-id: 724
+    usersync:
+      cookie-family-name: between
+      redirect:
+        url: https://ads.betweendigital.com/match?bidder_id=pbs&gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&callback_url={{redirect_url}}
+        support-cors: false
+        uid-macro: '${USER_ID}'

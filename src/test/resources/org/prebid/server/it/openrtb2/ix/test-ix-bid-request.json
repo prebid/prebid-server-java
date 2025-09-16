@@ -1,0 +1,68 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "secure": 1,
+      "banner": {
+        "format": [
+          {
+            "h": 250,
+            "w": 300
+          }
+        ],
+        "w": 300,
+        "h": 250
+      },
+      "ext": {
+        "ae": 1,
+        "igs": {
+          "ae": 1
+        },
+        "tid": "${json-unit.any-string}",
+        "bidder": {
+          "siteId": "10002"
+        }
+      }
+    }
+  ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
+  "site": {
+    "domain": "www.example.com",
+    "page": "http://www.example.com",
+    "publisher": {
+      "id": "10002",
+      "domain": "example.com"
+    },
+    "ext": {
+      "amp": 0
+    }
+  },
+  "device": {
+    "ua": "userAgent",
+    "ip": "193.168.244.1"
+  },
+  "at": 1,
+  "tmax": "${json-unit.any-number}",
+  "cur": [
+    "USD"
+  ],
+  "regs": {
+    "gdpr": 0
+  },
+  "ext": {
+    "prebid": {
+      "server": {
+        "externalurl": "http://localhost:8080",
+        "gvlid": 1,
+        "datacenter": "local",
+        "endpoint": "/openrtb2/auction"
+      }
+    },
+    "ixdiag": {
+      "pbsv": "{{ pbs.java.version }}"
+    }
+  }
+}

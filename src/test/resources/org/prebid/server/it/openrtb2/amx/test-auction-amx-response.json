@@ -1,0 +1,43 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "exp": 1500,
+          "price": 0.01,
+          "adid": "2068416",
+          "cid": "8048",
+          "crid": "24080",
+          "adm": "adm001",
+          "nurl": "nurl001",
+          "ext": {
+            "prebid": {
+              "type": "video",
+              "meta": {
+                "adaptercode": "amx"
+              }
+            },
+            "origbidcpm": 0.01,
+            "ct": 0,
+            "startdelay": 0
+          }
+        }
+      ],
+      "seat": "amx",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "amx": "{{ amx.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}

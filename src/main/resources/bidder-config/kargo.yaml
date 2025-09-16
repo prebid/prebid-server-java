@@ -1,0 +1,21 @@
+adapters:
+  kargo:
+    endpoint: https://krk.kargo.com/api/v1/openrtb
+    ortb-version: "2.6"
+    endpoint-compression: gzip
+    modifying-vast-xml-allowed: true
+    meta-info:
+      maintainer-email: kraken@kargo.com
+      app-media-types:
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 972
+    usersync:
+      cookie-family-name: kargo
+      redirect:
+        url: https://crb.kargo.com/api/v1/dsync/PrebidServer?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&r={{redirect_url}}
+        support-cors: false
+        uid-macro: '$UID'

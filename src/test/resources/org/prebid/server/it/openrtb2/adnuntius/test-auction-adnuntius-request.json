@@ -1,0 +1,47 @@
+{
+  "id": "request_id",
+  "user": {
+    "id": "user_d",
+    "ext": {
+      "eids": [
+        {
+          "source": "adserver.org",
+          "uids": [
+            {
+              "id": "id"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "site": {
+    "page": "some_page",
+    "ext": {
+      "data": {
+        "any": "any"
+      }
+    }
+  },
+  "imp": [
+    {
+      "id": "imp_id",
+      "banner": {
+        "w": 300,
+        "h": 250
+      },
+      "ext": {
+        "adnuntius": {
+          "auId": "some_au_id",
+          "network": "some_network"
+        }
+      }
+    }
+  ],
+  "tmax": 5000,
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Pulsepoint Adapter Params",
+  "description": "A schema which validates params accepted by the Pulsepoint adapter",
+  "type": "object",
+  "properties": {
+    "cp": {
+      "type": [
+        "integer",
+        "string"
+      ],
+      "description": "An ID which identifies the publisher selling the impression"
+    },
+    "ct": {
+      "type": [
+        "integer",
+        "string"
+      ],
+      "description": "An ID which identifies the ad slot being sold"
+    }
+  },
+  "required": [
+    "cp",
+    "ct"
+  ]
+}

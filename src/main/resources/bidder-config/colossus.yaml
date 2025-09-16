@@ -1,0 +1,23 @@
+adapters:
+  colossus:
+    endpoint: http://colossusssp.com/?c=o&m=rtb
+    ortb-version: "2.6"
+    aliases:
+      colossusssp:
+        enabled: false
+    meta-info:
+      maintainer-email: support@colossusmediassp.com
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 0
+    usersync:
+      cookie-family-name: colossus
+      redirect:
+        url: https://sync.colossusssp.com/pbs.gif?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir={{redirect_url}}
+        support-cors: false
+        uid-macro: '[UID]'

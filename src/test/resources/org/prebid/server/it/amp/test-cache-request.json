@@ -1,0 +1,74 @@
+{
+  "puts": [
+    {
+      "type": "json",
+      "value": {
+        "id": "326132363",
+        "impid": "impId1",
+        "price": 12.09,
+        "adm": "adm1",
+        "crid": "crid1",
+        "w": 300,
+        "h": 600,
+        "ext": {
+          "prebid": {
+            "type": "banner",
+            "meta": {
+              "adaptercode": "generic"
+            }
+          },
+          "rp": {
+            "targeting": [
+              {
+                "key": "rpfl_1001",
+                "values": [
+                  "2_tier0100"
+                ]
+              }
+            ]
+          },
+          "origbidcpm": 12.09
+        }
+      },
+      "aid":"tid",
+      "ttlseconds": 300
+    },
+    {
+      "type": "json",
+      "value": {
+        "id": "7706636740145184841",
+        "impid": "impId1",
+        "price": 5.5,
+        "adm": "some-test-ad",
+        "adid": "29681110",
+        "adomain": [
+          "genericAlias.com"
+        ],
+        "iurl": "http://nym1-ib.adnxs.com/cr?id=29681110",
+        "cid": "958",
+        "crid": "29681110",
+        "w": 300,
+        "h": 250,
+        "ext": {
+          "prebid": {
+            "type": "banner",
+            "meta": {
+              "adaptercode": "genericAlias"
+            }
+          },
+          "genericAlias": {
+            "brand_id": 1,
+            "auction_id": 8189378542222915032,
+            "bidder_id": 2,
+            "bid_ad_type": 0,
+            "ranking_price": 0.0
+          },
+          "origbidcpm": 5.5,
+          "origbidcur": "USD"
+        }
+      },
+      "aid":"tid",
+      "ttlseconds": 300
+    }
+  ]
+}

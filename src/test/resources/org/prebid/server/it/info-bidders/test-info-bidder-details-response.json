@@ -1,0 +1,23 @@
+{
+  "status":"ACTIVE",
+  "usesHttps": false,
+  "maintainer": {
+    "email": "header-bidding@rubiconproject.com"
+  },
+  "capabilities": {
+    "app": {
+      "mediaTypes": [
+        "banner",
+        "video",
+        "native"
+      ]
+    },
+    "site": {
+      "mediaTypes": [
+        "banner",
+        "video",
+        "native"
+      ]
+    }
+  }
+}

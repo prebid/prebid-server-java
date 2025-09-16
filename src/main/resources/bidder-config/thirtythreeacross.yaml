@@ -1,0 +1,25 @@
+adapters:
+  thirtythreeacross:
+    endpoint: https://ssc.33across.com/api/v1/s2s
+    # This bidder does not operate globally. Please consider setting "disabled: true" in European datacenters.
+    geoscope:
+      - "!EEA"
+    aliases:
+      33across:
+        enabled: false
+      ttx:
+        enabled: false
+    meta-info:
+      maintainer-email: headerbidding@33across.com
+      app-media-types:
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 58
+    usersync:
+      cookie-family-name: 33across
+      iframe:
+        url: https://ssc-cms.33across.com/ps/?m=xch&rt=html&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&id=zzz000000000002zzz&ru={{redirect_url}}
+        support-cors: false
+        uid-macro: '33XUSERID33X'

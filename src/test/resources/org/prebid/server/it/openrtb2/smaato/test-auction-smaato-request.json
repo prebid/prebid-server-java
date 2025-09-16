@@ -1,0 +1,51 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "tagid": "tag_id",
+      "banner": {
+        "w": 300,
+        "h": 250
+      },
+      "instl": 1,
+      "ext": {
+        "gpid": 1,
+        "skadn": {
+          "versions": [
+            "2.0",
+            "2.1",
+            "2.2",
+            "3.0",
+            "4.0"
+          ],
+          "sourceapp": "880047117",
+          "productpage": 1,
+          "skadnetlist": {
+            "max": 306,
+            "excl": [
+              2,
+              8,
+              10,
+              55
+            ],
+            "addl": [
+              "cdkw7geqsh.skadnetwork",
+              "qyJfv329m4.skadnetwork"
+            ]
+          }
+        },
+        "smaato": {
+          "publisherId": "11000",
+          "adspaceId": "130563103"
+        }
+      }
+    }
+  ],
+  "tmax": 5000,
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

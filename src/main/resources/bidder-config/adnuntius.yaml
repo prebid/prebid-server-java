@@ -1,0 +1,14 @@
+adapters:
+  adnuntius:
+    endpoint: https://ads.adnuntius.delivery/i
+    eu-endpoint: https://europe.delivery.adnuntius.com/i
+    meta-info:
+      maintainer-email: hello@adnuntius.com
+      app-media-types:
+        - banner
+        - native
+      site-media-types:
+        - banner
+        - native
+      supported-vendors:
+      vendor-id: 855

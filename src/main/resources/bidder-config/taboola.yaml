@@ -1,0 +1,25 @@
+adapters:
+  taboola:
+    endpoint: "https://{{MediaType}}.bidder.taboola.com/OpenRTB/PS/auction?exchange={{GvlID}}&publisher={{PublisherID}}"
+    meta-info:
+      maintainer-email: ps-team@taboola.com
+      app-media-types:
+        - banner
+        - native
+      site-media-types:
+        mediaTypes:
+          - banner
+          - native
+      supported-vendors:
+      vendor-id: 42
+    userSync:
+      cookie-family-name: taboola
+      redirect:
+        url: https://trc.taboola.com/sg/ps/1/cm?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redirect={{redirect_url}}
+        support-cors: false
+        uid-macro: '<TUID>'
+      iframe:
+        url: https://cdn.taboola.com/scripts/ps-sync.html?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redirect={{redirect_url}}
+        support-cors: false
+        uid-macro: '<TUID>'
+

@@ -1,0 +1,22 @@
+adapters:
+  adyoulike:
+    endpoint: https://hb-ss.omnitagjs.com/broker/bid?partnerId=19340f4f097d16f41f34fc0274981ca4
+    meta-info:
+      maintainer-email: core@adyoulike.com
+      app-media-types:
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 259
+    usersync:
+      cookie-family-name: adyoulike
+      iframe:
+        url: https://visitor.omnitagjs.com/visitor/isync?uid=19340f4f097d16f41f34fc0274981ca4&name=PrebidServer&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&url={{redirect_url}}
+        support-cors: false
+        uid-macro: '[BUYER_USERID]'
+      redirect:
+        url: https://visitor.omnitagjs.com/visitor/bsync?uid=19340f4f097d16f41f34fc0274981ca4&name=PrebidServer&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&url={{redirect_url}}
+        support-cors: false
+        uid-macro: '[BUYER_USERID]'

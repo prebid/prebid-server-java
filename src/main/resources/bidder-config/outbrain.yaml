@@ -1,0 +1,19 @@
+adapters:
+  outbrain:
+    endpoint: https://prebidtest.zemanta.com/api/bidder/prebidtest/bid/
+    meta-info:
+      maintainer-email: prog-ops-team@outbrain.com
+      app-media-types:
+        - banner
+        - native
+      site-media-types:
+        - banner
+        - native
+      supported-vendors:
+      vendor-id: 164
+    usersync:
+      cookie-family-name: outbrain
+      redirect:
+        url: https://prebidtest.zemanta.com/usersync/prebidtest?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&cb={{redirect_url}}
+        support-cors: false
+        uid-macro: '__ZUID__'

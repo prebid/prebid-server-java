@@ -1,0 +1,24 @@
+adapters:
+  pulsepoint:
+    endpoint: http://bid.contextweb.com/header/s/ortb/prebid-s2s
+    ortb-version: "2.6"
+    meta-info:
+      maintainer-email: ExchangeTeam@pulsepoint.com
+      app-media-types:
+        - banner
+        - video
+        - audio
+        - native
+      site-media-types:
+        - banner
+        - video
+        - audio
+        - native
+      supported-vendors:
+      vendor-id: 81
+    usersync:
+      cookie-family-name: pulsepoint
+      redirect:
+        url: https://bh.contextweb.com/rtset?pid=561205&ev=1&rurl={{redirect_url}}
+        support-cors: false
+        uid-macro: '%%VGUID%%'

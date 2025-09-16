@@ -1,0 +1,23 @@
+adapters:
+  loopme:
+    endpoint: http://prebid.loopmertb.com
+    meta-info:
+      maintainer-email: prebid@loopme.com
+      app-media-types:
+        - banner
+        - video
+        - audio
+        - native
+      site-media-types:
+        - banner
+        - video
+        - audio
+        - native
+      supported-vendors:
+      vendor-id: 109
+    usersync:
+      url: https://csync.loopme.me/?pubid=11393&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+      redirect-url: /setuid?bidder=loopme&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid={udid}
+      cookie-family-name: loopme
+      type: redirect
+      support-cors: false

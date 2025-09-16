@@ -1,0 +1,23 @@
+adapters:
+  admixer:
+    endpoint: http://inv-nets.admixer.net/pbs.aspx
+    meta-info:
+      maintainer-email: prebid@admixer.net
+      app-media-types:
+        - banner
+        - video
+        - native
+        - audio
+      site-media-types:
+        - banner
+        - video
+        - native
+        - audio
+      supported-vendors:
+      vendor-id: 511
+    usersync:
+      cookie-family-name: admixer
+      redirect:
+        url: https://inv-nets.admixer.net/adxcm.aspx?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir=1&rurl={{redirect_url}}
+        support-cors: false
+        uid-macro: '$$visitor_cookie$$'

@@ -1,0 +1,51 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "id",
+          "impid": "imp_id",
+          "exp": 1500,
+          "price": 3.33,
+          "adm": "adm001",
+          "adid": "adid001",
+          "cid": "cid001",
+          "crid": "crid001",
+          "w": 300,
+          "h": 250,
+          "ext": {
+            "rp": {
+              "advid": "1"
+            },
+            "prebid": {
+              "meta": {
+                "advertiserId": 1,
+                "secondaryCatIds": [
+                  "id1",
+                  "id2"
+                ],
+                "networkId": 123,
+                "adaptercode": "magnite"
+              },
+              "type": "video"
+            },
+            "origbidcpm": 3.33
+          }
+        }
+      ],
+      "seat": "magnite",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "magnite": "{{ magnite.response_time_ms }}"
+    },
+    "tmaxrequest": 5000,
+    "prebid": {
+      "auctiontimestamp": 0
+    }
+  }
+}

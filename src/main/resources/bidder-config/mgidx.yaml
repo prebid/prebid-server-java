@@ -1,0 +1,27 @@
+adapters:
+  mgidX:
+    # We have the following regional endpoint domains: 'us-east-x' and 'eu-x'
+    # Please deploy this config in each of your datacenters with the appropriate regional subdomain
+    endpoint: https://REGION.mgid.com/pserver
+    meta-info:
+      maintainer-email: prebid@mgid.com
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 358
+    usersync:
+      cookie-family-name: mgidX
+      iframe:
+        url: https://cm.mgid.com/i.gif?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&adu={{redirect_url}}
+        support-cors: false
+        uid-macro: '{muidn}'
+      redirect:
+        url: https://cm.mgid.com/i.html?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&adu={{redirect_url}}
+        support-cors: false
+        uid-macro: '{muidn}'

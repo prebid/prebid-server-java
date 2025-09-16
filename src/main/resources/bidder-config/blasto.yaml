@@ -1,0 +1,22 @@
+# Contact support@blasto.ai to connect with Blasto exchange.
+# We have the following regional endpoint sub-domains:
+# US East: t-us
+# EU: t-eu
+# APAC: t-apac
+# Please deploy this config in each of your datacenters with the appropriate regional subdomain
+adapters:
+  blasto:
+    endpoint: http://t-us.blasto.ai/bid?rtb_seat_id={{SourceId}}&secret_key={{AccountID}}
+    endpoint-compression: gzip
+    meta-info:
+      maintainer-email: support@blasto.ai
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 0

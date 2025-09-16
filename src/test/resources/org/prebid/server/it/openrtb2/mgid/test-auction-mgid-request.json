@@ -1,0 +1,26 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "banner": {
+        "w": 300,
+        "h": 250
+      },
+      "ext": {
+        "mgid": {
+          "accountId": "123",
+          "placementId": "456",
+          "bidfloor": 1.1,
+          "cur": "GBP"
+        }
+      }
+    }
+  ],
+  "tmax": 5000,
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

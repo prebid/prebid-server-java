@@ -1,0 +1,26 @@
+{
+  "targeting": {
+    "hb_pb_genericAlias": "5.50",
+    "hb_pb": "12.00",
+    "hb_cache_id_generic": "fea00992-651c-44c8-b16a-b9af99fdf2dd",
+    "hb_cache_id_genericAlias": "1cfbe067-aa0f-4857-a18f-cb8e7e991293",
+    "hb_pb_generic": "12.00",
+    "hb_size": "300x600",
+    "hb_size_generic": "300x600",
+    "hb_bidder_genericAlias": "genericAlias",
+    "hb_bidder": "generic",
+    "hb_cache_id": "fea00992-651c-44c8-b16a-b9af99fdf2dd",
+    "hb_bidder_generic": "generic",
+    "hb_size_genericAlias": "300x250",
+    "hb_env": "amp",
+    "hb_env_generic": "amp",
+    "hb_env_genericAlias": "amp",
+    "hb_cache_host": "{{ cache.host }}",
+    "hb_cache_path": "{{ cache.path }}",
+    "hb_cache_host_generic": "{{ cache.host }}",
+    "hb_cache_path_generic": "{{ cache.path }}",
+    "hb_cache_host_genericAlias": "{{ cache.host }}",
+    "hb_cache_path_genericAlias": "{{ cache.path }}",
+    "static_keyword1": "static_value1"
+  }
+}

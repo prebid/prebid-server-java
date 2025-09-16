@@ -1,0 +1,68 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "banner": {
+        "w": 300,
+        "h": 250
+      },
+      "secure": 1,
+      "ext": {
+        "nextMillennium" : {
+          "nmmFlags" : [ "1" ]
+        },
+        "prebid": {
+          "storedrequest": {
+            "id": "placement_id"
+          }
+        }
+      }
+    }
+  ],
+  "site": {
+    "domain": "www.example.com",
+    "page": "http://www.example.com",
+    "publisher": {
+      "domain": "example.com"
+    },
+    "ext": {
+      "amp": 0
+    }
+  },
+  "device": {
+    "ua": "userAgent",
+    "ip": "193.168.244.1"
+  },
+  "at": 1,
+  "tmax": "${json-unit.any-number}",
+  "cur": [
+    "USD"
+  ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  },
+  "ext": {
+    "prebid": {
+      "storedrequest": {
+        "id": "placement_id"
+      },
+      "server": {
+        "externalurl": "http://localhost:8080",
+        "gvlid": 1,
+        "datacenter": "local",
+        "endpoint": "/openrtb2/auction"
+      }
+    },
+    "nextMillennium": {
+      "nmmFlags": [ "1" ],
+      "nm_version": "v1.0.0",
+      "server_version": "${json-unit.any-string}"
+    }
+  }
+}

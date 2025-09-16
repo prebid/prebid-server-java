@@ -1,0 +1,23 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "banner": {
+        "w": 320,
+        "h": 250
+      },
+      "ext": {
+        "aceex": {
+          "accountid": "accountid"
+        }
+      }
+    }
+  ],
+  "tmax": 5000,
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "seat": "revcontent",
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "price": 0.500000,
+          "adid": "12345678",
+          "adm": "<div id='rtb-widget",
+          "cid": "987",
+          "crid": "12345678",
+          "h": 250,
+          "w": 300
+        }
+      ]
+    }
+  ],
+  "bidid": "bid_id"
+}

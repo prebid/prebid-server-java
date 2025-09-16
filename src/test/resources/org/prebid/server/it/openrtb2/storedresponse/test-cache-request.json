@@ -1,0 +1,27 @@
+{
+  "puts": [
+    {
+      "type": "json",
+      "value": {
+        "id": "466223845",
+        "impid": "impStoredBidResponse",
+        "price": 0.8,
+        "adm": "adm1",
+        "crid": "crid1",
+        "w": 300,
+        "h": 250,
+        "ext": {
+          "prebid": {
+            "type": "banner",
+            "meta": {
+              "adaptercode": "generic"
+            }
+          },
+          "origbidcpm": 0.8
+        }
+      },
+      "aid": "tid",
+      "ttlseconds": 300
+    }
+  ]
+}

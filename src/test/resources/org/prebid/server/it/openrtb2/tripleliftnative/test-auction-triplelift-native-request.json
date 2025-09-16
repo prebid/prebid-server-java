@@ -1,0 +1,29 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "native": {
+        "request": "{\"ver\":\"1.1\",\"context\":1,\"contextsubtype\":11,\"plcmttype\":4,\"plcmtcnt\":1,\"assets\":[{\"required\":1,\"title\":{\"len\":500}}]}"
+      },
+      "ext": {
+        "prebid": {
+          "bidder": {
+            "triplelift_native": {
+              "inventoryCode": "foo"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "site": {
+    "publisher": {
+      "id": "test"
+    }
+  },
+  "tmax": 5000,
+  "regs": {
+    "gdpr": 0
+  }
+}

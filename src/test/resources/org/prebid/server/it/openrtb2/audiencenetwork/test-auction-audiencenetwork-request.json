@@ -1,0 +1,28 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "banner": {
+        "w": 320,
+        "h": 50
+      },
+      "ext": {
+        "audienceNetwork": {
+          "placementId": "pub1_place1"
+        }
+      }
+    }
+  ],
+  "app": {
+  },
+  "tmax": 5000,
+  "user": {
+    "buyeruid": "buyer_id"
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

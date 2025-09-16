@@ -1,0 +1,19 @@
+adapters:
+  yieldone:
+    endpoint: https://y.one.impact-ad.jp/hbs_imp
+    meta-info:
+      maintainer-email: y1dev@platform-one.co.jp
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 0
+    usersync:
+      cookie-family-name: yieldone
+      redirect:
+        url: https://y.one.impact-ad.jp/hbs_cs?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirectUri={{redirect_url}}
+        support-cors: false
+        uid-macro: '$UID'

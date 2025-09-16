@@ -1,0 +1,27 @@
+adapters:
+  smartadserver:
+    endpoint: https://ssb-global.smartadserver.com
+    endpoint-compression: gzip
+    aliases:
+      equativ:
+        enabled: false
+    meta-info:
+      maintainer-email: supply-partner-integration@equativ.com
+      app-media-types:
+        - banner
+        - video
+        - native
+        - audio
+      site-media-types:
+        - banner
+        - video
+        - native
+        - audio
+      supported-vendors:
+      vendor-id: 45
+    usersync:
+      cookie-family-name: smartadserver
+      redirect:
+        url: https://ssbsync-global.smartadserver.com/api/sync?callerId=5&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirectUri={{redirect_url}}
+        support-cors: false
+        uid-macro: '[ssb_sync_pid]'

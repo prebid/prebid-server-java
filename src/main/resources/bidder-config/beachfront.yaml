@@ -1,0 +1,20 @@
+adapters:
+  beachfront:
+    endpoint: https://display.bfmio.com/prebid_display
+    meta-info:
+      maintainer-email: prebid@beachfront.com
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 335
+    usersync:
+      cookie-family-name: beachfront
+      iframe:
+        url: https://sync.bfmio.com/sync_s2s?gdpr={{gdpr}}&url={{redirect_url}}
+        support-cors: false
+        uid-macro: '[io_cid]'
+    video-endpoint: https://reachms.bfmio.com/bid.json?exchange_id=

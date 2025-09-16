@@ -1,0 +1,13 @@
+adapters:
+  kidoz:
+    endpoint: http://prebid-adapter.kidoz.net/openrtb2/auction?src=prebid-server
+    meta-info:
+      maintainer-email: prebid-support@kidoz.net
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 0

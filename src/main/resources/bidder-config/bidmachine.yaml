@@ -1,0 +1,11 @@
+adapters:
+  bidmachine:
+    endpoint: https://{{Host}}.bidmachine.io/{{PATH}}/{{SELLER_ID}}
+    meta-info:
+      maintainer-email: hi@bidmachine.io
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+      supported-vendors:
+      vendor-id: 736

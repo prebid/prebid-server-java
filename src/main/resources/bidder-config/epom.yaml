@@ -1,0 +1,15 @@
+adapters:
+  epom:
+    endpoint: https://an.epom.com/ortb
+    meta-info:
+      maintainer-email: support@epom.com
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 849

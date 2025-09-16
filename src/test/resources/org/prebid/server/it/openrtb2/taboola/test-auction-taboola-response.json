@@ -1,0 +1,59 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "1",
+          "exp": 300,
+          "price": 8.43,
+          "crid": "crid14",
+          "adm": "some-test-ad",
+          "w": 300,
+          "h": 250,
+          "ext": {
+            "origbidcpm": 8.43,
+            "prebid": {
+              "type": "banner",
+              "meta": {
+                "adaptercode": "taboola"
+              }
+            }
+          }
+        },
+        {
+          "id": "bid_id",
+          "impid": "2",
+          "exp": 300,
+          "price": 8.43,
+          "crid": "crid14",
+          "adm": "{\"assets\":[{\"id\":0,\"title\":{\"text\":\"This is an example Prebid Native creative\"}}]}",
+          "w": 300,
+          "h": 250,
+          "ext": {
+            "origbidcpm": 8.43,
+            "prebid": {
+              "type": "native",
+              "meta": {
+                "adaptercode": "taboola"
+              }
+            }
+          }
+        }
+      ],
+      "seat": "taboola",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "taboola": "{{ taboola.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}

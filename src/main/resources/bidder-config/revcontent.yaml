@@ -1,0 +1,13 @@
+adapters:
+  revcontent:
+    endpoint: https://trends.revcontent.com/rtb
+    meta-info:
+      maintainer-email: developers@revcontent.com
+      app-media-types:
+        - banner
+        - native
+      site-media-types:
+        - banner
+        - native
+      supported-vendors:
+      vendor-id: 203

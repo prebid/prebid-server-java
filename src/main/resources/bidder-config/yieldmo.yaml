@@ -1,0 +1,20 @@
+adapters:
+  yieldmo:
+    endpoint: https://ads.yieldmo.com/exchange/prebid-server
+    ortb-version: "2.6"
+    meta-info:
+      maintainer-email: prebid@yieldmo.com
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 173
+    usersync:
+      cookie-family-name: yieldmo
+      redirect:
+        url: https://ads.yieldmo.com/pbsync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redirectUri={{redirect_url}}
+        support-cors: false
+        uid-macro: '$UID'

@@ -1,0 +1,64 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "banner": {
+        "w": 300,
+        "h": 250
+      },
+      "tagid": "placementId",
+      "secure": 1,
+      "ext": {
+        "bidder": {
+          "placementId": "placementId",
+          "publisherId": "123",
+          "mediaId": "mediaTestId",
+          "accountId": 456
+        }
+      }
+    }
+  ],
+  "app": {
+    "id": "mediaTestId",
+    "publisher": {
+      "id": "123"
+    }
+  },
+  "device": {
+    "ua": "userAgent",
+    "ip": "193.168.244.1"
+  },
+  "at": 1,
+  "tmax": "${json-unit.any-number}",
+  "cur": [
+    "USD"
+  ],
+  "source": {
+    "tid": "${json-unit.any-string}",
+    "ext": {
+      "bidder": "unicorn",
+      "stype": "prebid_server_uncn"
+    }
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  },
+  "ext": {
+    "accountId": 456,
+    "prebid": {
+      "channel": {
+        "name": "app"
+      },
+      "server": {
+        "externalurl": "http://localhost:8080",
+        "gvlid": 1,
+        "datacenter": "local",
+        "endpoint": "/openrtb2/auction"
+      }
+    }
+  }
+}
+

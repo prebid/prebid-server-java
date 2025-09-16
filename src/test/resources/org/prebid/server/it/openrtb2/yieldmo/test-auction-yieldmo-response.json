@@ -1,0 +1,43 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "exp": 300,
+          "price": 3.33,
+          "adm": "adm001",
+          "adid": "adid",
+          "cid": "cid",
+          "crid": "crid",
+          "w": 300,
+          "h": 250,
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "meta": {
+                "adaptercode": "yieldmo"
+              }
+            },
+            "origbidcpm": 3.33,
+            "mediatype": "banner"
+          }
+        }
+      ],
+      "seat": "yieldmo",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "yieldmo": "{{ yieldmo.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}

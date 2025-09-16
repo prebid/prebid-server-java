@@ -1,0 +1,17 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "price": 10,
+          "adomain": [],
+          "crid": "crid"
+        }
+      ]
+    }
+  ],
+  "cur": "USD"
+}

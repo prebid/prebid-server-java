@@ -1,0 +1,31 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "banner": {
+        "w": 300,
+        "h": 250
+      },
+      "secure": 1,
+      "ext": {
+        "visx": {
+          "ga_parms": {
+            "place_on_page": "ATF"
+          },
+          "size": [
+            300,
+            250
+          ],
+          "uid": 7
+        }
+      }
+    }
+  ],
+  "tmax": 5000,
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

@@ -1,0 +1,13 @@
+adapters:
+  adoppler:
+    endpoint: http://{{AccountID}}.trustedmarketplace.io/ads/processHeaderBid/{{AdUnit}}
+    meta-info:
+      maintainer-email: info@adoppler.com
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 0

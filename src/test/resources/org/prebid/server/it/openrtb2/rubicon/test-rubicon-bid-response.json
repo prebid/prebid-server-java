@@ -1,0 +1,35 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "buyer": "123",
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "price": 3.33,
+          "adid": "adid001",
+          "crid": "crid001",
+          "cid": "cid001",
+          "adm": "adm001",
+          "h": 250,
+          "w": 300,
+          "ext": {
+            "rp": {
+              "advid": "1"
+            },
+            "prebid": {
+              "meta": {
+                "secondaryCatIds": [
+                  "id1",
+                  "id2"
+                ],
+                "networkId": 3
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

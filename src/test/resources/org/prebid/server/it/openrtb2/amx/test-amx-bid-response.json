@@ -1,0 +1,24 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "crid": "24080",
+          "adid": "2068416",
+          "price": 0.01,
+          "id": "bid_id",
+          "impid": "imp_id",
+          "adm": "adm001",
+          "nurl": "nurl001",
+          "cid": "8048",
+          "ext": {
+            "ct": 0,
+            "startdelay": 0
+          }
+        }
+      ],
+      "type": "video"
+    }
+  ]
+}

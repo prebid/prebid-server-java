@@ -1,0 +1,41 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "exp": 300,
+          "price": 11.393,
+          "adm": "some adm price 10",
+          "adomain": [
+          ],
+          "crid": "test-creative-id-1",
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "meta": {
+                "adaptercode": "suntContent"
+              }
+            },
+            "origbidcpm": 10,
+            "origbidcur": "EUR"
+          }
+        }
+      ],
+      "seat": "suntContent",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "suntContent": "{{ suntContent.response_time_ms }}"
+    },
+    "tmaxrequest": 5000,
+    "prebid": {
+      "auctiontimestamp": 0
+    }
+  }
+}

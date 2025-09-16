@@ -1,0 +1,11 @@
+adapters:
+  interactiveoffers:
+    endpoint: https://prebid-server.ioadx.com/bidRequest/?partnerId={{PartnerId}}
+    meta-info:
+      maintainer-email: dev@interactiveoffers.com
+      app-media-types:
+        - banner
+      site-media-types:
+        - banner
+      supported-vendors:
+      vendor-id: 0

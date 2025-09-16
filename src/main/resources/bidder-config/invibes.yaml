@@ -1,0 +1,10 @@
+adapters:
+  invibes:
+    endpoint: https://{{ZoneID}}.videostep.com/bid/ServerBidAdContent
+    endpoint-compression: gzip
+    meta-info:
+      maintainer-email: system_operations@invibes.com
+      site-media-types:
+        - banner
+      supported-vendors:
+      vendor-id: 436

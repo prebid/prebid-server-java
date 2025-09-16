@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "GumGum Adapter Params",
+  "description": "A schema which validates params accepted by the GumGum adapter",
+  "type": "object",
+  "properties": {
+    "zone": {
+      "type": "string",
+      "description": "A tracking id used to identify GumGum zone.",
+      "minLength": 8
+    },
+    "pubId": {
+      "type": "integer",
+      "description": "A tracking id used to identify GumGum publisher"
+    },
+    "irisid": {
+      "type": "string",
+      "description": "A hashed IRIS.TV Content ID"
+    },
+    "slot": {
+      "type": "integer",
+      "description": "A slot id used to identify a slot placement mapped to a GumGum zone or publisher"
+    },
+    "product": {
+      "type": "string",
+      "description": "A product"
+    }
+  },
+  "anyOf": [
+    {
+      "required": [
+        "zone"
+      ]
+    },
+    {
+      "required": [
+        "pubId"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "id": "test-request-id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "8400d766-58b3-47d4-80d7-6658b337d403",
+          "impid": "test-imp-id",
+          "exp": 300,
+          "adm": "{\"ver\":\"1.2\"}",
+          "price": 1.2,
+          "cid": "1",
+          "crid": "1",
+          "ext": {
+            "prebid": {
+              "type": "native",
+              "meta": {
+                "adaptercode": "yeahmobi"
+              }
+            },
+            "origbidcpm": 1.2
+          }
+        }
+      ],
+      "group": 0,
+      "seat": "yeahmobi"
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "yeahmobi": "{{ yeahmobi.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 1000
+    },
+    "tmaxrequest": 5000
+  }
+}

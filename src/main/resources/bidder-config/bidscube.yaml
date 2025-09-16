@@ -1,0 +1,15 @@
+adapters:
+  bidscube:
+    endpoint: http://supply.bidscube.com/?c=o&m=rtb
+    meta-info:
+      maintainer-email: support@bidscube.com
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 0

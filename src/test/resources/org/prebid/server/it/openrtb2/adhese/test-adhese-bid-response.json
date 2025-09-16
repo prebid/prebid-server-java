@@ -1,0 +1,32 @@
+{
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "price": 2.184,
+          "adm": "<script>console.log(\"Hello prebid server!\");</script><div style=\"position: absolute; left: 0px; top: 0px; visibility: hidden;\"><img src=\"https://ads-demo.adhese.com/track/2291//sl178/dtunknown/ogcontrol/II1927b7b0-0f50-48b9-a906-c1dd15e93568/tlall/A2127.68.78.84/?t=1687263510533\" border=\"0\" width=\"1\" height=\"1\" alt=\"\" style=\"display:none\"></div>",
+          "w": 728,
+          "h": 90,
+          "crid": "demo-424",
+          "dealid": "demo-218",
+          "ext": {
+            "adhese": {
+              "id": "2291",
+              "libId": "424",
+              "orderId": "218",
+              "adspaceId": "386",
+              "priority": "0",
+              "adType": "leaderboard",
+              "adFormat": "",
+              "viewableImpressionCounter": "https://ads-demo.adhese.com/track/2291-Adhese_IABview/sl178/dtunknown/ogcontrol/II1927b7b0-0f50-48b9-a906-c1dd15e93568/tlall/A2127.68.78.84/?t=1687263510533",
+              "orderProperty": ""
+            }
+          },
+          "id": "bid_id",
+          "impid": "imp_id"
+        }
+      ]
+    }
+  ],
+  "cur": "USD"
+}

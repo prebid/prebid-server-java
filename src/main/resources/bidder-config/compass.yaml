@@ -1,0 +1,25 @@
+adapters:
+  compass:
+    endpoint: http://sa-lb.deliverimp.com/pserver
+    meta-info:
+      maintainer-email: sa-support@brightcom.com
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-type:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 883
+    usersync:
+      cookie-family-name: compass
+      redirect:
+        url: https://sa-cs.deliverimp.com/pbserver?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redir={{redirect_url}}
+        support-cors: false
+        uid-macro: '[UID]'
+      iframe:
+        support-cors: false
+        url: https://sa-cs.deliverimp.com/pbserverIframe?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&pbserverUrl={{redirect_url}}
+        uid-macro: '[UID]'

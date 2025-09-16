@@ -1,0 +1,19 @@
+adapters:
+  marsmedia:
+    endpoint: https://bid306.rtbsrv.com/bidder/?bid=f3xtet
+    meta-info:
+      maintainer-email: prebid@mars.media
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 776
+    usersync:
+      cookie-family-name: marsmedia
+      redirect:
+        url: https://dmp.rtbsrv.com/dmp/profiles/cm?p_id=179&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+        support-cors: false
+        uid-macro: '${UUID}'

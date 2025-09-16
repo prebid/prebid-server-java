@@ -1,0 +1,25 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "banner": {
+        "w": 320,
+        "h": 250
+      },
+      "ext": {
+        "advangelists": {
+          "pubid": "19f1b372c7548ec1fe734d2c9f8dc688",
+          "placement": "dummyplacement"
+        }
+      },
+      "tagid": "tag_id"
+    }
+  ],
+  "tmax": 5000,
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

@@ -1,0 +1,23 @@
+adapters:
+  triplelift_native:
+    endpoint: https://tlx.3lift.com/s2sn/auction?supplier_id=20
+    ortb-version: "2.6"
+    meta-info:
+      maintainer-email: prebid@triplelift.com
+      app-media-types:
+        - native
+      site-media-types:
+        - native
+      supported-vendors:
+      vendor-id: 28
+    usersync:
+      cookie-family-name: triplelift_native
+      iframe:
+        url: https://eb2.3lift.com/sync?gdpr={{gdpr}}&cmp_cs={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redir={{redirect_url}}
+        support-cors: false
+        uid-macro: '$UID'
+      redirect:
+        url: https://eb2.3lift.com/getuid?gdpr={{gdpr}}&cmp_cs={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redir={{redirect_url}}
+        support-cors: false
+        uid-macro: '$UID'
+    whitelist:

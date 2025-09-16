@@ -1,0 +1,50 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "exp": 300,
+          "price": 0.5,
+          "adm": "some-test-ad",
+          "adid": "adid",
+          "adomain": [
+            "triplelift.com"
+          ],
+          "iurl": "http://nym1-ib.adnxs.com/cr?id=29681110",
+          "cid": "cid",
+          "crid": "crid",
+          "w": 300,
+          "h": 250,
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "meta": {
+                "adaptercode": "triplelift"
+              }
+            },
+            "origbidcpm": 0.5,
+            "origbidcur": "USD",
+            "triplelift_pb": {
+              "format": 2
+            }
+          }
+        }
+      ],
+      "seat": "triplelift",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "triplelift": "{{ triplelift.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}

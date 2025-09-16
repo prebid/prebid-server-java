@@ -1,0 +1,41 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "183599115",
+          "impid": "imp_id",
+          "exp": 300,
+          "price": 12.34,
+          "adm": "creativeContent",
+          "crid": "81325690",
+          "w": 300,
+          "h": 600,
+          "ext": {
+            "origbidcpm": 12.34,
+            "origbidcur": "USD",
+            "prebid": {
+              "type": "banner",
+              "meta": {
+                "adaptercode": "flipp"
+              }
+            }
+          }
+        }
+      ],
+      "seat": "flipp",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "flipp": "{{ flipp.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}

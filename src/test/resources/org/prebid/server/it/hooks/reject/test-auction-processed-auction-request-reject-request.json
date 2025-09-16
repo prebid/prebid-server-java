@@ -1,0 +1,40 @@
+{
+  "id": "tid",
+  "imp": [
+    {
+      "id": "impId1",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          },
+          {
+            "w": 300,
+            "h": 600
+          }
+        ]
+      },
+      "ext": {
+        "generic": {
+        }
+      }
+    }
+  ],
+  "site": {
+    "page": "http://www.example.com",
+    "publisher": {
+      "id": "8001"
+    }
+  },
+  "at": 1,
+  "cur": [
+    "USD"
+  ],
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  },
+  "tmax": 5000
+}

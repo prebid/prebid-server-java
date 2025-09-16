@@ -1,0 +1,25 @@
+adapters:
+  inmobi:
+    endpoint: https://api.w.inmobi.com/showad/openrtb/bidder/prebid
+    meta-info:
+      maintainer-email: prebid-support@inmobi.com
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 333
+    usersync:
+      cookie-family-name: inmobi
+      iframe:
+        url: https://sync.inmobi.com/prebid?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redirect={{redirect_url}}
+        support-cors: false
+        uid-macro: '{ID5UID}'
+      redirect:
+        url: https://sync.inmobi.com/prebid?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redirect={{redirect_url}}
+        support-cors: false
+        userMacro: '{ID5UID}'

@@ -1,0 +1,24 @@
+{
+  "id": "22e26bd9a702bc",
+  "imp": [
+    {
+      "id": "22e26bd9a702bc",
+      "banner": {
+        "w": 300,
+        "h": 250
+      },
+      "ext": {
+        "adquery": {
+          "placementId": "6d93f2a0e5f0fe2cc3a6e9e3ade964b43b07f897",
+          "type": "banner"
+        }
+      }
+    }
+  ],
+  "tmax": 5000,
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "adm": "<b>hi</b>",
+          "cid": "cid",
+          "crid": "crid",
+          "ext": {
+            "format": "BANNER",
+            "prebid": {
+              "type": "banner",
+              "meta": {
+                "adaptercode": "orbidder"
+              }
+            },
+            "origbidcpm": 0.01
+          },
+          "id": "bid_id",
+          "impid": "imp_id",
+          "exp": 300,
+          "price": 0.01,
+          "mtype": 1
+        }
+      ],
+      "group": 0,
+      "seat": "orbidder"
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "orbidder": "{{ orbidder.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}

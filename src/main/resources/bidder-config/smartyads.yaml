@@ -1,0 +1,21 @@
+adapters:
+  smartyads:
+    endpoint: http://{{Host}}.smartyads.com/bid?rtb_seat_id={{SourceId}}&secret_key={{AccountID}}
+    meta-info:
+      maintainer-email: support@smartyads.com
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 534
+    usersync:
+      cookie-family-name: smartyads
+      redirect:
+        url: https://us.ck-ie.com/yhsfle286.gif?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir={{redirect_url}}
+        support-cors: false
+        uid-macro: '{$PARTNER_UID}'

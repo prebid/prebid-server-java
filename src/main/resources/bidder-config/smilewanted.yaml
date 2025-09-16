@@ -1,0 +1,19 @@
+adapters:
+  smilewanted:
+    endpoint: https://prebid-server.smilewanted.com
+    meta-info:
+      maintainer-email: tech@smilewanted.com
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 639
+    usersync:
+      cookie-family-name: smilewanted
+      redirect:
+        url: https://csync.smilewanted.com/getuid?source=prebid-server&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+        support-cors: false
+        uid-macro: '$UID'

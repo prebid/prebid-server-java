@@ -1,0 +1,22 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "price": 3.5,
+          "nurl": "nurl",
+          "crid": "crid002",
+          "adm": "some-test-ad",
+          "w": 300,
+          "h": 250,
+          "ext": {
+            "crtype": "banner"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Sharethrough Adapter Params",
+  "description": "A schema which validates params accepted by the Sharethrough adapter",
+  "type": "object",
+  "properties": {
+    "pkey": {
+      "type": "string",
+      "description": "Placement Key"
+    },
+    "badv": {
+      "type": "array",
+      "minItems": 0,
+      "items": {
+        "type": "string"
+      },
+      "description": "Blocked Advertiser Domains"
+    },
+    "bcat": {
+      "type": "array",
+      "minItems": 0,
+      "items": {
+        "type": "string"
+      },
+      "description": "Blocked IAB Categories"
+    }
+  },
+  "required": ["pkey"]
+}

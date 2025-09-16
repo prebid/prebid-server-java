@@ -1,0 +1,13 @@
+adapters:
+  mobfoxpb:
+    endpoint: http://bes.mobfox.com/?c=__route__&m=__method__&key=__key__
+    meta-info:
+      maintainer-email: support@mobfox.com
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 311

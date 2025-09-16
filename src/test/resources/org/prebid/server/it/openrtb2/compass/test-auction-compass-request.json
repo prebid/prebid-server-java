@@ -1,0 +1,26 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "video": {
+        "mimes": [
+          "video/mp4"
+        ],
+        "w": 800,
+        "h": 600
+      },
+      "ext": {
+        "compass": {
+          "endpointId": "test"
+        }
+      }
+    }
+  ],
+  "tmax": 5000,
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

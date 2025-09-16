@@ -1,0 +1,24 @@
+{
+  "id": "test-request-id",
+  "imp": [
+    {
+      "id": "test-imp-id",
+      "banner": {
+        "w": 300,
+        "h": 250
+      },
+      "ext": {
+        "medianet": {
+          "cid": "8CUTSTCID",
+          "crid": "999999999"
+        }
+      }
+    }
+  ],
+  "tmax": 5000,
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

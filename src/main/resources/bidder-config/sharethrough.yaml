@@ -1,0 +1,22 @@
+adapters:
+  sharethrough:
+    endpoint: https://btlr.sharethrough.com/universal/v1?supply_id=FGMrCMMc
+    ortb-version: '2.6'
+    meta-info:
+      maintainer-email: pubgrowth.engineering@sharethrough.com
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 80
+    usersync:
+      cookie-family-name: sharethrough
+      redirect:
+        url: https://match.sharethrough.com/FGMrCMMc/v1?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redirectUri={{redirect_url}}
+        support-cors: false
+        uid-macro: '$UID'

@@ -1,0 +1,17 @@
+adapters:
+  thetradedesk:
+    endpoint: https://direct.adsrvr.org/bid/bidder/{{SupplyId}}
+    aliases:
+      ttd: ~
+    meta-info:
+      maintainer-email: Prebid-Maintainers@thetradedesk.com
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 21

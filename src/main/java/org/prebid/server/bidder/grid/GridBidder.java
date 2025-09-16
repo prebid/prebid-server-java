@@ -1,0 +1,304 @@
+package org.prebid.server.bidder.grid;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.MissingNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Native;
+import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.User;
+import com.iab.openrtb.response.Bid;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.bidder.Bidder;
+import org.prebid.server.bidder.grid.model.request.ExtImp;
+import org.prebid.server.bidder.grid.model.request.ExtImpGridData;
+import org.prebid.server.bidder.grid.model.request.ExtImpGridDataAdServer;
+import org.prebid.server.bidder.grid.model.request.GridNative;
+import org.prebid.server.bidder.grid.model.request.Keywords;
+import org.prebid.server.bidder.grid.model.response.GridBidResponse;
+import org.prebid.server.bidder.grid.model.response.GridSeatBid;
+import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
+import org.prebid.server.bidder.model.HttpRequest;
+import org.prebid.server.bidder.model.Result;
+import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.grid.ExtImpGrid;
+import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidMeta;
+import org.prebid.server.util.BidderUtil;
+import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.ObjectUtil;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+public class GridBidder implements Bidder<BidRequest> {
+
+    private final String endpointUrl;
+    private final JacksonMapper mapper;
+    private final GridKeywordsProcessor gridKeywordsProcessor;
+
+    public GridBidder(String endpointUrl, JacksonMapper mapper) {
+        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.mapper = Objects.requireNonNull(mapper);
+        this.gridKeywordsProcessor = new GridKeywordsProcessor(mapper);
+    }
+
+    @Override
+    public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
+        final List<BidderError> errors = new ArrayList<>();
+        final List<Imp> imps = request.getImp();
+        final List<Imp> modifiedImps = modifyImps(imps, errors);
+
+        if (modifiedImps.isEmpty()) {
+            errors.add(BidderError.badInput("No valid impressions for grid"));
+            return Result.withErrors(errors);
+        }
+
+        final Keywords firstImpKeywords = getKeywordsFromImpExt(imps.getFirst().getExt());
+        final BidRequest modifiedRequest = modifyRequest(request, firstImpKeywords, modifiedImps);
+
+        return Result.of(Collections.singletonList(
+                BidderUtil.defaultRequest(modifiedRequest, endpointUrl, mapper)), errors);
+    }
+
+    private List<Imp> modifyImps(List<Imp> imps, List<BidderError> errors) {
+        final List<Imp> modifiedImps = new ArrayList<>();
+        for (Imp imp : imps) {
+            try {
+                modifiedImps.add(modifyImp(imp, parseAndValidateImpExt(imp)));
+            } catch (IllegalArgumentException | PreBidException e) {
+                errors.add(BidderError.badInput(e.getMessage()));
+            }
+        }
+
+        return modifiedImps;
+    }
+
+    private ExtImp parseAndValidateImpExt(Imp imp) {
+        final ExtImp extImp = mapper.mapper().convertValue(imp.getExt(), ExtImp.class);
+        validateImpExt(extImp, imp.getId());
+        return extImp;
+    }
+
+    private static void validateImpExt(ExtImp extImp, String impId) {
+        final ExtImpGrid extImpGrid = extImp != null ? extImp.getBidder() : null;
+        final Integer uid = extImpGrid != null ? extImpGrid.getUid() : null;
+        if (BidderUtil.isNullOrZero(uid)) {
+            throw new PreBidException("Empty uid in imp with id: " + impId);
+        }
+    }
+
+    private Imp modifyImp(Imp imp, ExtImp extImp) {
+        return imp.toBuilder()
+                .xNative(modifyNative(imp.getXNative()))
+                .ext(modifyImpExt(extImp))
+                .build();
+    }
+
+    private ObjectNode modifyImpExt(ExtImp extImp) {
+        final ExtImpGridData extImpData = extImp.getData();
+        final ExtImpGridDataAdServer adServer = extImpData != null ? extImpData.getAdServer() : null;
+        final String adSlot = adServer != null ? adServer.getAdSlot() : null;
+
+        if (StringUtils.isNotEmpty(adSlot)) {
+            final ExtImp modifiedExtImp = extImp.toBuilder().gpid(adSlot).build();
+            return mapper.mapper().valueToTree(modifiedExtImp);
+        }
+
+        return mapper.mapper().valueToTree(extImp);
+    }
+
+    private Native modifyNative(Native xNative) {
+        if (xNative == null) {
+            return null;
+        }
+
+        final String nativeRequest = xNative.getRequest();
+        final JsonNode requestNode = nodeFromString(nativeRequest);
+
+        return GridNative.builder()
+                .requestNative((ObjectNode) requestNode)
+                .ver(xNative.getVer())
+                .api(xNative.getApi())
+                .battr(xNative.getBattr())
+                .ext(xNative.getExt())
+                .build();
+    }
+
+    public final JsonNode nodeFromString(String stringValue) {
+        try {
+            return StringUtils.isNotBlank(stringValue) ? mapper.mapper().readTree(stringValue) : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private Keywords getKeywordsFromImpExt(JsonNode extImp) {
+        try {
+            return getExtImpGridBidder(extImp).getKeywords();
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    private ExtImpGrid getExtImpGridBidder(JsonNode extImp) {
+        return mapper.mapper().convertValue(extImp, ExtImp.class).getBidder();
+    }
+
+    private BidRequest modifyRequest(BidRequest bidRequest, Keywords firstImpKeywords, List<Imp> imp) {
+        final User user = bidRequest.getUser();
+        final String userKeywords = user != null ? user.getKeywords() : null;
+        final Site site = bidRequest.getSite();
+        final String siteKeywords = site != null ? site.getKeywords() : null;
+
+        final ExtRequest extRequest = bidRequest.getExt();
+        final Keywords resolvedKeywords = buildBidRequestExtKeywords(
+                userKeywords, siteKeywords, firstImpKeywords, getKeywordsFromRequestExt(extRequest));
+
+        return bidRequest.toBuilder()
+                .imp(imp)
+                .ext(modifyExtRequest(extRequest, resolvedKeywords))
+                .build();
+    }
+
+    private Keywords getKeywordsFromRequestExt(ExtRequest extRequest) {
+        try {
+            final JsonNode requestKeywordsNode = extRequest != null ? extRequest.getProperty("keywords") : null;
+            return requestKeywordsNode != null
+                    ? mapper.mapper().treeToValue(requestKeywordsNode, Keywords.class)
+                    : null;
+        } catch (JsonProcessingException e) {
+            return null;
+        }
+    }
+
+    private Keywords buildBidRequestExtKeywords(String userKeywords,
+                                                String siteKeywords,
+                                                Keywords firstImpExtKeywords,
+                                                Keywords requestExtKeywords) {
+
+        final String resolvedUserKeywords = ObjectUtils.defaultIfNull(userKeywords, "");
+        final String resolvedSiteKeywords = ObjectUtils.defaultIfNull(siteKeywords, "");
+
+        return gridKeywordsProcessor.merge(
+                gridKeywordsProcessor.resolveKeywordsFromOpenRtb(resolvedUserKeywords, resolvedSiteKeywords),
+                gridKeywordsProcessor.resolveKeywords(firstImpExtKeywords),
+                gridKeywordsProcessor.resolveKeywords(requestExtKeywords));
+    }
+
+    private ExtRequest modifyExtRequest(ExtRequest extRequest, Keywords keywords) {
+        final ExtRequestPrebid extRequestPrebid = ObjectUtil.getIfNotNull(extRequest, ExtRequest::getPrebid);
+        final Map<String, JsonNode> extRequestProperties = ObjectUtil.getIfNotNullOrDefault(
+                extRequest, ExtRequest::getProperties, Collections::emptyMap);
+
+        final Map<String, JsonNode> modifiedExtRequestProperties =
+                gridKeywordsProcessor.modifyWithKeywords(extRequestProperties, keywords);
+        if (modifiedExtRequestProperties.isEmpty()) {
+            return null;
+        }
+
+        final ExtRequest modifiedBidRequestExt = ExtRequest.of(extRequestPrebid);
+        modifiedBidRequestExt.addProperties(modifiedExtRequestProperties);
+        return modifiedBidRequestExt;
+    }
+
+    @Override
+    public final Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
+        try {
+            final GridBidResponse bidResponse =
+                    mapper.decodeValue(httpCall.getResponse().getBody(), GridBidResponse.class);
+            return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
+        } catch (DecodeException | PreBidException e) {
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
+        }
+    }
+
+    private List<BidderBid> extractBids(BidRequest bidRequest, GridBidResponse gridBidResponse) {
+        if (gridBidResponse == null || CollectionUtils.isEmpty(gridBidResponse.getSeatbid())) {
+            return Collections.emptyList();
+        }
+        return bidsFromResponse(bidRequest, gridBidResponse);
+    }
+
+    private List<BidderBid> bidsFromResponse(BidRequest bidRequest, GridBidResponse gridBidResponse) {
+        return gridBidResponse.getSeatbid().stream()
+                .filter(Objects::nonNull)
+                .map(GridSeatBid::getBid)
+                .filter(Objects::nonNull)
+                .flatMap(Collection::stream)
+                .map(bid -> makeBidderBid(bid, bidRequest.getImp(), gridBidResponse.getCur()))
+                .toList();
+    }
+
+    private BidderBid makeBidderBid(ObjectNode bidNode, List<Imp> imps, String currency) {
+        try {
+            final Bid bid = mapper.mapper().treeToValue(bidNode, Bid.class);
+            final Bid modifiedBid = bid.toBuilder().adm(modifyAdm(bidNode, bid)).ext(modifyBidExt(bidNode)).build();
+
+            return BidderBid.of(modifiedBid, resolveBidType(bidNode, bid.getImpid(), imps), currency);
+        } catch (JsonProcessingException | IllegalArgumentException e) {
+            throw new PreBidException(e.getMessage());
+        }
+    }
+
+    private String modifyAdm(ObjectNode bidNode, Bid bid) {
+        final JsonNode admNative = bidNode.at("/adm_native");
+        final String bidAdm = bid.getAdm();
+        if (admNative != null && !admNative.isEmpty() && StringUtils.isBlank(bidAdm)) {
+            return mapper.encodeToString(admNative);
+        }
+
+        return bidAdm;
+    }
+
+    private ObjectNode modifyBidExt(ObjectNode gridBid) {
+        final String demandSource = ObjectUtils.defaultIfNull(gridBid, MissingNode.getInstance())
+                .at("/ext/bidder/grid/demandSource")
+                .textValue();
+        if (StringUtils.isEmpty(demandSource)) {
+            return null;
+        }
+
+        final ExtBidPrebid extBidPrebid = ExtBidPrebid.builder()
+                .meta(ExtBidPrebidMeta.builder().demandSource(demandSource).build())
+                .build();
+        return mapper.mapper().valueToTree(ExtPrebid.of(extBidPrebid, null));
+    }
+
+    private static BidType resolveBidType(ObjectNode bidNode, String impId, List<Imp> imps) {
+        final BidType contentType = BidType.fromString(bidNode.at("/content_type").asText());
+        if (contentType != null) {
+            return contentType;
+        }
+
+        for (Imp imp : imps) {
+            if (imp.getId().equals(impId)) {
+                if (imp.getBanner() != null) {
+                    return BidType.banner;
+                } else if (imp.getVideo() != null) {
+                    return BidType.video;
+                } else if (imp.getXNative() != null) {
+                    return BidType.xNative;
+                }
+                throw new PreBidException("Unknown impression type for ID: " + impId);
+            }
+        }
+        throw new PreBidException("Failed to find impression for ID: " + impId);
+    }
+}

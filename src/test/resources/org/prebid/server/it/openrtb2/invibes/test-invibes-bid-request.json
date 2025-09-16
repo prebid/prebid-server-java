@@ -1,0 +1,11 @@
+{
+  "BidParamsJson": "{\"PlacementIds\":[\"plcId\"],\"BidVersion\":\"4\",\"Properties\":{\"plcId\":{\"Formats\":[{\"w\":300,\"h\":250}],\"ImpID\":\"imp_id\"}}}",
+  "Location": "http://www.example.com",
+  "Lid": "",
+  "IsTestBid": false,
+  "IsAMP" : false,
+  "GdprConsent": "",
+  "Gdpr": false,
+  "InvibBVLog": false,
+  "VideoAdDebug": false
+}

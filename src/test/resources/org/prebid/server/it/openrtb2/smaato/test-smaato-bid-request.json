@@ -1,0 +1,70 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "secure": 1,
+      "instl": 1,
+      "banner": {
+        "w": 300,
+        "h": 250
+      },
+      "tagid": "130563103",
+      "ext" : {
+        "gpid": 1,
+        "skadn": {
+          "versions": [
+            "2.0",
+            "2.1",
+            "2.2",
+            "3.0",
+            "4.0"
+          ],
+          "sourceapp": "880047117",
+          "productpage": 1,
+          "skadnetlist": {
+            "max": 306,
+            "excl": [
+              2,
+              8,
+              10,
+              55
+            ],
+            "addl": [
+              "cdkw7geqsh.skadnetwork",
+              "qyJfv329m4.skadnetwork"
+            ]
+          }
+        },
+        "tid": "${json-unit.any-string}"
+      }
+    }
+  ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
+  "site" : {
+    "domain" : "www.example.com",
+    "page" : "http://www.example.com",
+    "publisher" : {
+      "id" : "11000"
+    }
+  },
+  "device": {
+    "ua": "userAgent",
+    "ip": "193.168.244.1"
+  },
+  "at": 1,
+  "tmax": "${json-unit.any-number}",
+  "cur": [
+    "USD"
+  ],
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  },
+  "ext": {
+    "client": "prebid_server_1.2"
+  }
+}

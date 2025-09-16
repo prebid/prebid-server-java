@@ -1,0 +1,28 @@
+{
+  "user": {
+    "firstPublisher": [
+      {
+        "name": "secondKeywordsUserSection",
+        "segments": [
+          {
+            "name": "segment2",
+            "value": "value2"
+          }
+        ]
+      }
+    ]
+  },
+  "site": {
+    "secondPublisher": [
+      {
+        "name": "secondKeywordsSiteSection",
+        "segments": [
+          {
+            "name": "segment2",
+            "value": "value2"
+          }
+        ]
+      }
+    ]
+  }
+}

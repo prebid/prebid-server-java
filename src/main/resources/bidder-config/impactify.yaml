@@ -1,0 +1,17 @@
+adapters:
+  impactify:
+    endpoint: https://sonic.impactify.media/bidder
+    meta-info:
+      maintainer-email: contact@impactify.io
+      app-media-types:
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 606
+    usersync:
+      cookie-family-name: impactify
+      iframe:
+        url: https://sonic.impactify.media/static/cookie_sync.html?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect_url={{redirect_url}}
+        support-cors: false
+        uid-macro: '{IMPACTIFY_UID}'

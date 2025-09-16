@@ -1,0 +1,12 @@
+adapters:
+  silvermob:
+    endpoint: http://{{Host}}.silvermob.com/marketplace/api/dsp/bid/{{ZoneID}}
+    meta-info:
+      maintainer-email: support@silvermob.com
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+      supported-vendors:
+      vendor-id: 0

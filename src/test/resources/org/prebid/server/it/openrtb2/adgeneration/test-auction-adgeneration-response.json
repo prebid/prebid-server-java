@@ -1,0 +1,42 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "id",
+          "impid": "id",
+          "exp": 300,
+          "price": 46.6,
+          "adm": "",
+          "crid": "Dummy_supership.jp",
+          "dealid": "test-deal-id",
+          "w": 300,
+          "h": 250,
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "meta": {
+                "adaptercode": "adgeneration"
+              }
+            },
+            "origbidcpm": 46.6,
+            "origbidcur": "USD"
+          }
+        }
+      ],
+      "seat": "adgeneration",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "adgeneration": "{{ adgeneration.response_time_ms }}"
+    },
+    "tmaxrequest": 5000,
+    "prebid": {
+      "auctiontimestamp": 0
+    }
+  }
+}

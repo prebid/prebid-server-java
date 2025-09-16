@@ -1,0 +1,30 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "id",
+      "banner": {
+        "w": 300,
+        "h": 250
+      },
+      "ext": {
+        "adgeneration": {
+          "id": "id"
+        }
+      }
+    }
+  ],
+  "device": {
+    "pxratio": 4.2,
+    "ua": "some-agent",
+    "dnt": 2,
+    "language": "en",
+    "ifa": "ifaId"
+  },
+  "tmax": 5000,
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

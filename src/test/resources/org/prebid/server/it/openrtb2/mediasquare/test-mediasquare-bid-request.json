@@ -1,0 +1,110 @@
+{
+  "codes": [
+    {
+      "auctionid": "70e5672c-515b-406e-967c-fcc2b04de04f",
+      "bidid": "2c35e25e-e7d3-41bf-b810-06a449f456b9",
+      "code": "publishername_atf_desktop_rg_pave",
+      "owner": "test",
+      "mediatypes": {
+        "banner": {
+          "sizes": [
+            [
+              970,
+              250
+            ]
+          ]
+        }
+      },
+      "floor": {
+        "970x250": {
+          "floor": 1,
+          "currency": "USD"
+        }
+      }
+    },
+    {
+      "auctionid": "70e5672c-515b-406e-967c-fcc2b04de04f",
+      "bidid": "2059a3e6-71a3-43ea-8290-b5ceb13d35a8",
+      "code": "publishername_atf_desktop_rg_pave",
+      "owner": "test",
+      "mediatypes": {
+        "banner": {
+          "sizes": [
+            [
+              300,
+              250
+            ],
+            [
+              300,
+              600
+            ],
+            [
+              120,
+              600
+            ]
+          ]
+        }
+      },
+      "floor": {
+        "120x600": {
+          "floor": 0.01,
+          "currency": "USD"
+        },
+        "300x250": {
+          "floor": 0.01,
+          "currency": "USD"
+        },
+        "300x600": {
+          "floor": 0.01,
+          "currency": "USD"
+        }
+      }
+    }
+  ],
+  "gdpr": {
+    "consent_required": false
+  },
+  "dsa": {
+    "dsarequired": 1,
+    "pubrender": 0,
+    "datatopub": 2,
+    "transparency": [
+      {
+        "domain": "platform1domain.com",
+        "dsaparams": [
+          1
+        ]
+      },
+      {
+        "domain": "SSP2domain.com",
+        "dsaparams": [
+          1,
+          2
+        ]
+      }
+    ]
+  },
+  "tech": {
+    "device": {
+      "geo": {
+        "ipservice": 3,
+        "country": "FRA"
+      },
+      "ip": "92.154.6.0",
+      "devicetype": 1,
+      "language": "fr",
+      "ua": "userAgent"
+    },
+    "app": {
+      "id": "app-id-test",
+      "name": "debug.mediasquare.fr",
+      "domain": "debug.mediasquare.fr",
+      "publisher": {
+        "id": "MEDIA_SQUARE"
+      },
+      "content": {}
+    }
+  },
+  "type": "pbs",
+  "test": false
+}

@@ -1,0 +1,27 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "banner": {
+        "w": 320,
+        "h": 250
+      },
+      "bidfloor": 10,
+      "bidfloorcur": "USD",
+      "ext": {
+        "impactify": {
+          "appId": "appId",
+          "format": "format",
+          "style": "style"
+        }
+      }
+    }
+  ],
+  "tmax": 5000,
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

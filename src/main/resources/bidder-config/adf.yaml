@@ -1,0 +1,23 @@
+adapters:
+  adf:
+    endpoint: https://adx.adform.net/adx/openrtb
+    aliases:
+      adform: ~
+    meta-info:
+      maintainer-email: scope.sspp@adform.com
+      app-media-types:
+        - banner
+        - native
+        - video
+      site-media-types:
+        - banner
+        - native
+        - video
+      supported-vendors:
+      vendor-id: 50
+    usersync:
+      cookie-family-name: adf
+      redirect:
+        url: https://c1.adform.net/cookie?redirect_url={{redirect_url}}
+        support-cors: false
+        uid-macro: '$UID'

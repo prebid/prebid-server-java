@@ -1,0 +1,29 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "banner": {
+        "w": 300,
+        "h": 250
+      },
+      "ext": {
+        "adprime": {
+          "TagID": "tag_id",
+          "keywords": [
+            "keyword1"
+          ],
+          "audiences": [
+            "audience1"
+          ]
+        }
+      }
+    }
+  ],
+  "tmax": 5000,
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

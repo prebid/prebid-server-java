@@ -1,0 +1,46 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "native": {
+        "request": "{\"ver\":\"1.2\",\"context\":1,\"plcmttype\":4,\"plcmtcnt\":1,\"assets\":[{\"id\":2,\"required\":1,\"title\":{\"len\":90}},{\"id\":6,\"required\":1,\"img\":{\"type\":3,\"wmin\":128,\"hmin\":128,\"mimes\":[\"image/jpg\",\"image/jpeg\",\"image/png\"]}},{\"id\":7,\"required\":1,\"data\":{\"type\":2,\"len\":120}}]}",
+        "ver": "1.2"
+      },
+      "ext": {
+        "adf": {
+          "mid": "1",
+          "priceType": "net"
+        }
+      }
+    },
+    {
+      "id": "imp_id_banner",
+      "banner": {
+        "format": [
+          {
+            "w": 100,
+            "h": 100
+          }
+        ]
+      },
+      "ext": {
+        "adf": {
+          "inv": 1234,
+          "mname": "wallpaper",
+          "priceType": "gross"
+        }
+      }
+    }
+  ],
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  },
+  "ext": {
+    "someObj": {
+      "someField": "someValue"
+    }
+  }
+}

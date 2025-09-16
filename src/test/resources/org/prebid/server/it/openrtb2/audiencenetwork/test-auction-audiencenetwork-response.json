@@ -1,0 +1,41 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "exp": 300,
+          "price": 9.0,
+          "adm": "{\"bid_id\":\"10\"}",
+          "adid": "10",
+          "crid": "10",
+          "w": 0,
+          "h": 50,
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "meta": {
+                "adaptercode": "audienceNetwork"
+              }
+            },
+            "origbidcpm": 9.0
+          }
+        }
+      ],
+      "seat": "audienceNetwork",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "audienceNetwork": "{{ audienceNetwork.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}

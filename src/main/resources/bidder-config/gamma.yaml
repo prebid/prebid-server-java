@@ -1,0 +1,11 @@
+adapters:
+  gamma:
+    endpoint: https://hb.gammaplatform.com/adx/request/
+    meta-info:
+      maintainer-email: support@gammassp.com
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+      supported-vendors:
+      vendor-id: 0

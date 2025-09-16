@@ -1,0 +1,32 @@
+package org.prebid.server.settings.model;
+
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import lombok.Value;
+
+import java.util.Map;
+
+@Value(staticConstructor = "of")
+public class AccountAnalyticsConfig {
+
+    private static final Map<String, Boolean> FALLBACK_AUCTION_EVENTS;
+
+    static {
+        FALLBACK_AUCTION_EVENTS = Map.of(
+                "web", false,
+                "amp", true,
+                "app", true);
+    }
+
+    @JsonAlias("allow-client-details")
+    boolean allowClientDetails;
+
+    @JsonAlias("auction-events")
+    AccountAuctionEventConfig auctionEvents;
+
+    Map<String, ObjectNode> modules;
+
+    public static Map<String, Boolean> fallbackAuctionEvents() {
+        return FALLBACK_AUCTION_EVENTS;
+    }
+}

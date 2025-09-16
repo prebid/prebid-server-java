@@ -1,0 +1,25 @@
+adapters:
+  e_volution:
+    endpoint: http://service.e-volution.ai/pbserver
+    meta-info:
+      maintainer-email: admin@e-volution.ai
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 957
+    usersync:
+      cookie-family-name: e_volution
+      redirect:
+        url: https://sync.e-volution.ai/pbserver?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&redirect={{redirect_url}}
+        support-cors: false
+        uid-macro: '[UID]'
+      iframe:
+        url: https://sync.e-volution.ai/pbserver?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&redirect={{redirect_url}}
+        support-cors: false
+        uid-macro: '[UID]'

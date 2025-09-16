@@ -1,0 +1,45 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "tagid": "tag_id",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          }
+        ]
+      },
+      "ext": {
+        "dmx": {
+          "dmxid": "1007",
+          "memberid": "123456",
+          "seller_id": "1008",
+          "publisher_id": "10400"
+        }
+      }
+    }
+  ],
+  "tmax": 5000,
+  "user": {
+    "ext": {
+      "eids": [
+        {
+          "source": "adserver.org",
+          "uids": [
+            {
+              "id": "id"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

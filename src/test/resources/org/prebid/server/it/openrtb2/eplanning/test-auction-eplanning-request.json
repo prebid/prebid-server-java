@@ -1,0 +1,24 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "banner": {
+        "w": 300,
+        "h": 600
+      },
+      "ext": {
+        "eplanning": {
+          "ci": "12345",
+          "adunit_code": "test_adunitcode"
+        }
+      }
+    }
+  ],
+  "tmax": 5000,
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

@@ -1,0 +1,17 @@
+adapters:
+  eplanning:
+    endpoint: http://rtb.e-planning.net/pbs/1
+    meta-info:
+      maintainer-email: producto@e-planning.net
+      app-media-types:
+        - banner
+      site-media-types:
+        - banner
+      supported-vendors:
+      vendor-id: 90
+    usersync:
+      cookie-family-name: eplanning
+      iframe:
+        url: https://ads.us.e-planning.net/uspd/1/?du={{redirect_url}}
+        support-cors: false
+        uid-macro: '$UID'

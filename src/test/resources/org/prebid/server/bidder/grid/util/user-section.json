@@ -1,0 +1,13 @@
+{
+  "firstPublisher": [
+    {
+      "name": "userSection",
+      "segments": [
+        {
+          "name": "segment",
+          "value": "value"
+        }
+      ]
+    }
+  ]
+}

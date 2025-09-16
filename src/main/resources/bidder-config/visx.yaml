@@ -1,0 +1,19 @@
+adapters:
+  visx:
+    endpoint: https://t.visx.net/s2s_bid?wrapperType=s2s_prebid_standard:0.1.2
+    meta-info:
+      maintainer-email: supply.partners@yoc.com
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 154
+    usersync:
+      cookie-family-name: visx
+      redirect:
+        url: https://t.visx.net/s2s_sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir={{redirect_url}}
+        support-cors: false
+        uid-macro: '${UUID}'

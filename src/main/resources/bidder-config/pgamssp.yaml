@@ -1,0 +1,21 @@
+adapters:
+  pgamssp:
+    endpoint: http://us-east.pgammedia.com/pserver
+    meta-info:
+      maintainer-email: info@pgammedia.com
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 1353
+    usersync:
+      cookie-family-name: pgamssp
+      redirect:
+        url: https://cs.pgammedia.com/pserver?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&r={{redirect_url}}
+        support-cors: false
+        uid-macro: '[UID]'

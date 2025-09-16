@@ -1,0 +1,27 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "seat": "958",
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "price": 0.5,
+          "adid": "adid",
+          "adm": "{\"assets\":[{\"id\":0,\"title\":{\"text\":\"This is an example Prebid Native creative\"}}]}",
+          "adomain": [
+            "triplelift.com"
+          ],
+          "iurl": "http://nym1-ib.adnxs.com/cr?id=29681110",
+          "cid": "cid",
+          "crid": "crid",
+          "h": 250,
+          "w": 300
+        }
+      ]
+    }
+  ],
+  "bidid": "bid_id",
+  "cur": "USD"
+}

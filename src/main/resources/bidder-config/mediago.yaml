@@ -1,0 +1,29 @@
+adapters:
+  mediago:
+    endpoint: https://REGION.mediago.io/api/bid?tn={{AccountID}}
+    endpoint-compression: gzip
+    geoscope:
+      - USA
+      - DEU
+      - JPN
+      - GBR
+      - KOR
+      - CAN
+      - FRA
+      - ITA
+    meta-info:
+      maintainer-email: ext_mediago_cm@baidu.com
+      app-media-types:
+        - banner
+        - native
+      site-media-types:
+        - banner
+        - native
+      supported-vendors:
+      vendor-id: 1020
+    usersync:
+      cookie-family-name: mediago
+      redirect:
+        url: https://trace.mediago.io/ju/cs/prebid?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+        support-cors: false
+        uid-macro: '$UID'

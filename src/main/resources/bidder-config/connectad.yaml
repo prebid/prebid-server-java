@@ -1,0 +1,26 @@
+adapters:
+  connectad:
+    # Please uncomment the appropriate endpoint URL for your datacenter
+    # Europe
+    endpoint: "http://bidder.connectad.io/API?src=pbs"
+    # North/South America
+    # endpoint: "http://bidder-us.connectad.io/API?src=pbs"
+    # APAC
+    # endpoint: "http://bidder-apac.connectad.io/API?src=pbs"
+    endpoint-compression: gzip
+    meta-info:
+      maintainer-email: support@connectad.io
+      app-media-types:
+        - banner
+      site-media-types:
+        - banner
+      supported-vendors:
+      vendor-id: 138
+    usersync:
+      cookie-family-name: connectad
+      redirect:
+        url: https://sync.connectad.io/ImageSyncer?gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&cb={{redirect_url}}
+        support-cors: false
+      iframe:
+        url: https://sync.connectad.io/iFrameSyncer?gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&cb={{redirect_url}}
+        support-cors: false

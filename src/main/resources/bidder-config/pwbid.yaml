@@ -1,0 +1,15 @@
+adapters:
+  pwbid:
+    endpoint: https://bidder.east2.pubwise.io/bid/pubwisedirect
+    meta-info:
+      maintainer-email: info@pubwise.io
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 842

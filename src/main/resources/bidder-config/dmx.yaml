@@ -1,0 +1,13 @@
+adapters:
+  dmx:
+    endpoint: https://dmx-direct.districtm.io/b/v2
+    meta-info:
+      maintainer-email: prebid@districtm.net
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 144

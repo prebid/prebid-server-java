@@ -1,0 +1,61 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id_1",
+          "impid": "imp_id_1",
+          "exp": 300,
+          "price": 7.713,
+          "adm": "<div>foo</div>",
+          "crid":"banner_creative_id",
+          "w": 300,
+          "h": 250,
+          "mtype": 1,
+          "ext": {
+            "origbidcpm": 6.77,
+            "origbidcur": "EUR",
+            "prebid": {
+              "type": "banner",
+              "meta": {
+                "adaptercode": "stroeerCore"
+              }
+            }
+          }
+        },
+        {
+          "id": "bid_id_2",
+          "impid": "imp_id_2",
+          "exp": 1500,
+          "price": 6.494,
+          "adm": "<vast><div>video</div></vast>",
+          "crid":"video_creative_id",
+          "mtype": 2,
+          "ext": {
+            "origbidcpm": 5.7,
+            "origbidcur": "EUR",
+            "prebid": {
+              "type": "video",
+              "meta": {
+                "adaptercode": "stroeerCore"
+              }
+            }
+          }
+        }
+      ],
+      "seat": "stroeerCore",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "stroeerCore": "{{ stroeerCore.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}

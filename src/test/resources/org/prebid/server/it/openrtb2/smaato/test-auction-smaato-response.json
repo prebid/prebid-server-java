@@ -1,0 +1,42 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "adm": "<div style=\"cursor:pointer\" onclick=\"fetch(decodeURIComponent('curl1'.replace(/\\+/g, ' ')), {cache: 'no-cache'});fetch(decodeURIComponent('curl2'.replace(/\\+/g, ' ')), {cache: 'no-cache'});\">{\"image\":{\"img\":{\"url\":\"//prebid-test.smaatolabs.net/img/320x50.jpg\",\"w\":350,\"h\":50,\"ctaurl\":\"//prebid-test.smaatolabs.net/track/ctaurl/1\"},\"impressiontrackers\":[\"//prebid-test.smaatolabs.net/track/imp/1\",\"//prebid-test.smaatolabs.net/track/imp/2\"],\"clicktrackers\":[\"//prebid-test.smaatolabs.net/track/click/1\",\"//prebid-test.smaatolabs.net/track/click/2\"]}}</div>",
+          "cid": "cid",
+          "crid": "crid",
+          "id": "bid_id",
+          "impid": "imp_id",
+          "exp": 300,
+          "price": 0.01,
+          "exp": 300,
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "meta": {
+                "adaptercode": "smaato"
+              }
+            },
+            "origbidcpm": 0.01,
+            "format": "BANNER",
+            "curls": ["curl1", "curl2"]
+          }
+        }
+      ],
+      "group": 0,
+      "seat": "smaato"
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "smaato": "{{ smaato.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}

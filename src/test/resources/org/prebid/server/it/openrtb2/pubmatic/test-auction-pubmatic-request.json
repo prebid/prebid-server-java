@@ -1,0 +1,66 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "test-imp-id",
+      "video": {
+        "mimes": [
+          "mimes"
+        ],
+        "w": 300,
+        "h": 600
+      },
+      "ext": {
+        "ae": 1,
+        "pubmatic": {
+          "adSlot": "slot9@300x250:zzz",
+          "publisherId": "   publisherId   ",
+          "keywords": [
+            {
+              "key": "pmZoneId",
+              "value": [
+                "Zone1",
+                "Zone2"
+              ]
+            },
+            {
+              "key": "preference",
+              "value": [
+                "sports",
+                "movies"
+              ]
+            }
+          ],
+          "wrapper": {
+            "version": 1,
+            "profile": 5123
+          },
+          "kadfloor": "0.12"
+        },
+        "data": {
+          "adserver": {
+            "name": "gam",
+            "adslot": "thirdPbAdSlot"
+          },
+          "pbadslot": "firstPbAdSlot"
+        }
+      }
+    }
+  ],
+  "tmax": 5000,
+  "regs": {
+    "gdpr": 0
+  },
+  "ext": {
+    "prebid": {
+      "bidderparams": {
+        "pubmatic": {
+          "acat": [
+            "testValue1",
+            "testValue2"
+          ]
+        }
+      }
+    }
+  }
+}

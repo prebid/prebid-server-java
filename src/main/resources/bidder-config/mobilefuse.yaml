@@ -1,0 +1,28 @@
+adapters:
+  mobilefuse:
+    endpoint: http://mfx.mobilefuse.com/openrtb
+    ortb-version: "2.6"
+    endpoint-compression: gzip
+    # This bidder does not operate globally. Please consider setting "disabled: true" outside of the following regions:
+    geoscope:
+      - USA
+      - CAN
+    meta-info:
+      maintainer-email: prebid@mobilefuse.com
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+      supported-vendors:
+      vendor-id: 909
+      usersync:
+        cookie-family-name: mobilefuse
+        iframe:
+          url: https://mfx.mobilefuse.com/usync?us_privacy={{us_privacy}}&pxurl={{redirect_url}}
+          support-cors: false
+          uid-macro: '$UID'
+        redirect:
+          url: https://mfx.mobilefuse.com/getuid?us_privacy={{us_privacy}}&redir={{redirect_url}}
+          support-cors: false
+          uid-macro: '$UID'

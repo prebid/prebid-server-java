@@ -1,0 +1,22 @@
+{
+  "bids": [
+    {
+      "id": "bid_id_1",
+      "bidId": "imp_id_1",
+      "cpm": 6.77,
+      "width": 300,
+      "height": 250,
+      "ad": "<div>foo</div>",
+      "crid": "banner_creative_id",
+      "mtype": "banner"
+    },
+    {
+      "id": "bid_id_2",
+      "bidId": "imp_id_2",
+      "cpm": 5.7,
+      "ad": "<vast><div>video</div></vast>",
+      "crid": "video_creative_id",
+      "mtype": "video"
+    }
+  ]
+}

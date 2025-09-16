@@ -1,0 +1,25 @@
+adapters:
+  pubrise:
+    endpoint: https://backend.pubrise.ai/pserver
+    meta-info:
+      maintainer-email: prebid@pubrise.ai
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 0
+    usersync:
+      cookie-family-name: pubrise
+      redirect:
+        support-cors: false
+        url: https://sync.pubrise.ai/pbserver?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redir={{redirect_url}}
+        uid-macro: '[UID]'
+      iframe:
+        support-cors: false
+        url: https://sync.pubrise.ai/pbserverIframe?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&pbserverUrl={{redirect_url}}
+        uid-macro: '[UID]'

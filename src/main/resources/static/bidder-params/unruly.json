@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Unruly Adapter Params",
+  "description": "A schema which validates params accepted by the Unruly adapter",
+  "type": "object",
+  "properties": {
+    "siteId": {
+      "type": "integer",
+      "description": "ID for publisher site"
+    },
+    "siteid": {
+      "type": "integer",
+      "description": "ID for publisher site"
+    }
+  },
+
+  "oneOf": [
+    {
+      "required": ["siteId"]
+    },
+    {
+      "required": ["siteid"]
+    }
+  ]
+}
