@@ -23,8 +23,12 @@ import org.prebid.server.auction.GeoLocationServiceWrapper;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.OrtbTypesResolver;
 import org.prebid.server.auction.PriceGranularity;
+<<<<<<< HEAD
 import org.prebid.server.auction.externalortb.ProfilesProcessor;
 import org.prebid.server.auction.externalortb.StoredRequestProcessor;
+=======
+import org.prebid.server.auction.StoredRequestProcessor;
+>>>>>>> 04d9d4a13 (Initial commit)
 import org.prebid.server.auction.gpp.AmpGppService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.ConsentType;
@@ -91,7 +95,10 @@ public class AmpRequestFactory {
 
     private final Ortb2RequestFactory ortb2RequestFactory;
     private final StoredRequestProcessor storedRequestProcessor;
+<<<<<<< HEAD
     private final ProfilesProcessor profilesProcessor;
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
     private final BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
     private final AmpGppService gppService;
     private final OrtbTypesResolver ortbTypesResolver;
@@ -105,7 +112,10 @@ public class AmpRequestFactory {
 
     public AmpRequestFactory(Ortb2RequestFactory ortb2RequestFactory,
                              StoredRequestProcessor storedRequestProcessor,
+<<<<<<< HEAD
                              ProfilesProcessor profilesProcessor,
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
                              BidRequestOrtbVersionConversionManager ortbVersionConversionManager,
                              AmpGppService gppService,
                              OrtbTypesResolver ortbTypesResolver,
@@ -119,7 +129,10 @@ public class AmpRequestFactory {
 
         this.ortb2RequestFactory = Objects.requireNonNull(ortb2RequestFactory);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
+<<<<<<< HEAD
         this.profilesProcessor = Objects.requireNonNull(profilesProcessor);
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
         this.ortbVersionConversionManager = Objects.requireNonNull(ortbVersionConversionManager);
         this.gppService = Objects.requireNonNull(gppService);
         this.ortbTypesResolver = Objects.requireNonNull(ortbTypesResolver);
@@ -411,7 +424,10 @@ public class AmpRequestFactory {
         final HttpRequestContext httpRequest = auctionContext.getHttpRequest();
 
         return storedRequestProcessor.processAmpRequest(accountId, storedRequestId, receivedBidRequest)
+<<<<<<< HEAD
                 .compose(bidRequest -> profilesProcessor.process(auctionContext, bidRequest))
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
                 .map(ortbVersionConversionManager::convertToAuctionSupportedVersion)
                 .map(bidRequest -> gppService.updateBidRequest(bidRequest, auctionContext))
                 .map(bidRequest -> validateStoredBidRequest(storedRequestId, bidRequest))

@@ -50,6 +50,7 @@ class PBSUtils implements ObjectMapperWrapper {
         RandomStringUtils.randomAlphanumeric(stringLength)
     }
 
+<<<<<<< HEAD
     static String getRandomSpecialChars(int stringLength = 20) {
         RandomStringUtils.random(stringLength, "!@#\$%^&*()-_=+[]{}|;:'\",.<>/?")
     }
@@ -58,6 +59,8 @@ class PBSUtils implements ObjectMapperWrapper {
         RandomStringUtils.randomAscii(stringLength)
     }
 
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
     static Boolean getRandomBoolean() {
         new Random().nextBoolean()
     }
@@ -115,7 +118,11 @@ class PBSUtils implements ObjectMapperWrapper {
         }
     }
 
+<<<<<<< HEAD
     static BigDecimal getRandomPrice(int min = 1, int max = 10, int scale = 3) {
+=======
+    static BigDecimal getRandomPrice(int min = 0, int max = 10, int scale = 3) {
+>>>>>>> 04d9d4a13 (Initial commit)
         getRandomDecimal(min, max).setScale(scale, HALF_UP)
     }
 

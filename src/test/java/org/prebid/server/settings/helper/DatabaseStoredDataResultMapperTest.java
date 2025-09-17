@@ -1,5 +1,9 @@
 package org.prebid.server.settings.helper;
 
+<<<<<<< HEAD
+=======
+import io.vertx.core.json.JsonObject;
+>>>>>>> 04d9d4a13 (Initial commit)
 import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowIterator;
 import io.vertx.sqlclient.RowSet;
@@ -12,6 +16,10 @@ import org.prebid.server.settings.model.StoredDataResult;
 
 import java.util.Arrays;
 import java.util.Iterator;
+<<<<<<< HEAD
+=======
+import java.util.stream.IntStream;
+>>>>>>> 04d9d4a13 (Initial commit)
 
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singleton;
@@ -35,8 +43,12 @@ public class DatabaseStoredDataResultMapperTest {
         givenRowSet();
 
         // when
+<<<<<<< HEAD
         final StoredDataResult<String> result = DatabaseStoredDataResultMapper.map(
                 rowSet, null, emptySet(), emptySet());
+=======
+        final StoredDataResult result = DatabaseStoredDataResultMapper.map(rowSet, null, emptySet(), emptySet());
+>>>>>>> 04d9d4a13 (Initial commit)
 
         // then
         assertThat(result.getStoredIdToRequest()).isEmpty();
@@ -51,7 +63,11 @@ public class DatabaseStoredDataResultMapperTest {
         givenRowSet();
 
         // when
+<<<<<<< HEAD
         final StoredDataResult<String> result = DatabaseStoredDataResultMapper.map(
+=======
+        final StoredDataResult result = DatabaseStoredDataResultMapper.map(
+>>>>>>> 04d9d4a13 (Initial commit)
                 rowSet,
                 null,
                 singleton("reqId"),
@@ -70,7 +86,11 @@ public class DatabaseStoredDataResultMapperTest {
         givenRowSet(givenRow("accountId", "id1", "data"));
 
         // when
+<<<<<<< HEAD
         final StoredDataResult<String> result = DatabaseStoredDataResultMapper.map(
+=======
+        final StoredDataResult result = DatabaseStoredDataResultMapper.map(
+>>>>>>> 04d9d4a13 (Initial commit)
                 rowSet,
                 "accountId",
                 singleton("reqId"),
@@ -89,7 +109,11 @@ public class DatabaseStoredDataResultMapperTest {
         givenRowSet(givenRow("accountId", "id1", "data", 123));
 
         // when
+<<<<<<< HEAD
         final StoredDataResult<String> result = DatabaseStoredDataResultMapper.map(
+=======
+        final StoredDataResult result = DatabaseStoredDataResultMapper.map(
+>>>>>>> 04d9d4a13 (Initial commit)
                 rowSet,
                 "accountId",
                 singleton("reqId"),
@@ -110,7 +134,11 @@ public class DatabaseStoredDataResultMapperTest {
                 givenRow("accountId", "id1", "data2", "invalid"));
 
         // when
+<<<<<<< HEAD
         final StoredDataResult<String> result = DatabaseStoredDataResultMapper.map(
+=======
+        final StoredDataResult result = DatabaseStoredDataResultMapper.map(
+>>>>>>> 04d9d4a13 (Initial commit)
                 rowSet,
                 "accountId",
                 singleton("id1"),
@@ -129,7 +157,11 @@ public class DatabaseStoredDataResultMapperTest {
         givenRowSet(givenRow("accountId", "id1", "data1", "request"));
 
         // when
+<<<<<<< HEAD
         final StoredDataResult<String> result = DatabaseStoredDataResultMapper.map(
+=======
+        final StoredDataResult result = DatabaseStoredDataResultMapper.map(
+>>>>>>> 04d9d4a13 (Initial commit)
                 rowSet,
                 "accountId",
                 singleton("id1"),
@@ -151,7 +183,11 @@ public class DatabaseStoredDataResultMapperTest {
                 givenRow("accountId", "id2", "data2", "imp"));
 
         // when
+<<<<<<< HEAD
         final StoredDataResult<String> result = DatabaseStoredDataResultMapper.map(
+=======
+        final StoredDataResult result = DatabaseStoredDataResultMapper.map(
+>>>>>>> 04d9d4a13 (Initial commit)
                 rowSet,
                 "otherAccountId",
                 singleton("id1"),
@@ -174,7 +210,11 @@ public class DatabaseStoredDataResultMapperTest {
                 givenRow("accountId2", "id1", "data2", "request"));
 
         // when
+<<<<<<< HEAD
         final StoredDataResult<String> result = DatabaseStoredDataResultMapper.map(
+=======
+        final StoredDataResult result = DatabaseStoredDataResultMapper.map(
+>>>>>>> 04d9d4a13 (Initial commit)
                 rowSet,
                 null,
                 singleton("id1"),
@@ -197,7 +237,11 @@ public class DatabaseStoredDataResultMapperTest {
                 givenRow("accountId2", "id2", "data-otherAccountId", "imp"));
 
         // when
+<<<<<<< HEAD
         final StoredDataResult<String> result = DatabaseStoredDataResultMapper.map(
+=======
+        final StoredDataResult result = DatabaseStoredDataResultMapper.map(
+>>>>>>> 04d9d4a13 (Initial commit)
                 rowSet,
                 "otherAccountId",
                 singleton("id1"),
@@ -222,7 +266,11 @@ public class DatabaseStoredDataResultMapperTest {
                 givenRow("otherAccountId", "id2", "data-otherAccountId", "imp"));
 
         // when
+<<<<<<< HEAD
         final StoredDataResult<String> result = DatabaseStoredDataResultMapper.map(
+=======
+        final StoredDataResult result = DatabaseStoredDataResultMapper.map(
+>>>>>>> 04d9d4a13 (Initial commit)
                 rowSet,
                 "accountId",
                 singleton("id1"),
@@ -242,7 +290,11 @@ public class DatabaseStoredDataResultMapperTest {
         givenRowSet();
 
         // when
+<<<<<<< HEAD
         final StoredDataResult<String> result = DatabaseStoredDataResultMapper.map(rowSet);
+=======
+        final StoredDataResult result = DatabaseStoredDataResultMapper.map(rowSet);
+>>>>>>> 04d9d4a13 (Initial commit)
 
         // then
         assertThat(result.getStoredIdToRequest()).isEmpty();
@@ -259,7 +311,11 @@ public class DatabaseStoredDataResultMapperTest {
                 givenRow("accountId", "id2", "data2", "invalid"));
 
         // when
+<<<<<<< HEAD
         final StoredDataResult<String> result = DatabaseStoredDataResultMapper.map(rowSet);
+=======
+        final StoredDataResult result = DatabaseStoredDataResultMapper.map(rowSet);
+>>>>>>> 04d9d4a13 (Initial commit)
 
         // then
         assertThat(result.getStoredIdToRequest()).hasSize(1)
@@ -274,7 +330,11 @@ public class DatabaseStoredDataResultMapperTest {
         givenRowSet(givenRow("accountId", "id1", "data"));
 
         // when
+<<<<<<< HEAD
         final StoredDataResult<String> result = DatabaseStoredDataResultMapper.map(rowSet);
+=======
+        final StoredDataResult result = DatabaseStoredDataResultMapper.map(rowSet);
+>>>>>>> 04d9d4a13 (Initial commit)
 
         // then
         assertThat(result.getStoredIdToRequest()).isEmpty();
@@ -289,7 +349,11 @@ public class DatabaseStoredDataResultMapperTest {
         givenRowSet(givenRow("accountId", "id1", "data", 123));
 
         // when
+<<<<<<< HEAD
         final StoredDataResult<String> result = DatabaseStoredDataResultMapper.map(rowSet);
+=======
+        final StoredDataResult result = DatabaseStoredDataResultMapper.map(rowSet);
+>>>>>>> 04d9d4a13 (Initial commit)
 
         // then
         assertThat(result.getStoredIdToRequest()).isEmpty();
@@ -305,7 +369,11 @@ public class DatabaseStoredDataResultMapperTest {
                 givenRow("accountId", "id2", "data2", "imp"));
 
         // when
+<<<<<<< HEAD
         final StoredDataResult<String> result = DatabaseStoredDataResultMapper.map(rowSet);
+=======
+        final StoredDataResult result = DatabaseStoredDataResultMapper.map(rowSet);
+>>>>>>> 04d9d4a13 (Initial commit)
 
         // then
         assertThat(result.getStoredIdToRequest()).hasSize(1)
@@ -322,7 +390,13 @@ public class DatabaseStoredDataResultMapperTest {
     private Row givenRow(Object... values) {
         final Row row = mock(Row.class, withSettings().strictness(LENIENT));
         given(row.getValue(anyInt())).willAnswer(invocation -> values[(Integer) invocation.getArgument(0)]);
+<<<<<<< HEAD
         given(row.size()).willReturn(values.length);
+=======
+        final JsonObject json = new JsonObject();
+        IntStream.range(0, values.length).forEach(i -> json.put(String.valueOf(i), values[i]));
+        given(row.toJson()).willReturn(json);
+>>>>>>> 04d9d4a13 (Initial commit)
         return row;
     }
 

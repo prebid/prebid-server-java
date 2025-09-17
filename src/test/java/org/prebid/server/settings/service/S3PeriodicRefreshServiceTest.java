@@ -51,7 +51,11 @@ public class S3PeriodicRefreshServiceTest extends VertxTest {
     private S3AsyncClient s3AsyncClient;
 
     @Mock
+<<<<<<< HEAD
     private CacheNotificationListener<String> cacheNotificationListener;
+=======
+    private CacheNotificationListener cacheNotificationListener;
+>>>>>>> 04d9d4a13 (Initial commit)
 
     @Mock
     private Clock clock;

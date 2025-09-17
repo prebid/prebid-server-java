@@ -11,6 +11,9 @@ adapters:
       maintainer-email: bidding-support@kobler.no
       site-media-types:
       - banner
+<<<<<<< HEAD
       app-media-types:
       - banner
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
       vendor-id: 0

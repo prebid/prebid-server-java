@@ -11,11 +11,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class SettingsCacheTest {
 
+<<<<<<< HEAD
     private SettingsCache<String> settingsCache;
 
     @BeforeEach
     public void setUp() {
         settingsCache = new SettingsCache<>(10, 10, 0);
+=======
+    private SettingsCache settingsCache;
+
+    @BeforeEach
+    public void setUp() {
+        settingsCache = new SettingsCache(10, 10, 0);
+>>>>>>> 04d9d4a13 (Initial commit)
     }
 
     @Test

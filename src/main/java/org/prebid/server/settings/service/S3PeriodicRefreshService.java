@@ -43,7 +43,11 @@ public class S3PeriodicRefreshService implements Initializable {
     private final String storedRequestsDirectory;
     private final String storedImpressionsDirectory;
     private final long refreshPeriod;
+<<<<<<< HEAD
     private final CacheNotificationListener<String> cacheNotificationListener;
+=======
+    private final CacheNotificationListener cacheNotificationListener;
+>>>>>>> 04d9d4a13 (Initial commit)
     private final MetricName cacheType;
     private final Clock clock;
     private final Metrics metrics;
@@ -54,7 +58,11 @@ public class S3PeriodicRefreshService implements Initializable {
                                     String storedRequestsDirectory,
                                     String storedImpressionsDirectory,
                                     long refreshPeriod,
+<<<<<<< HEAD
                                     CacheNotificationListener<String> cacheNotificationListener,
+=======
+                                    CacheNotificationListener cacheNotificationListener,
+>>>>>>> 04d9d4a13 (Initial commit)
                                     MetricName cacheType,
                                     Clock clock,
                                     Metrics metrics,
@@ -84,7 +92,11 @@ public class S3PeriodicRefreshService implements Initializable {
         }
     }
 
+<<<<<<< HEAD
     private Future<StoredDataResult<String>> fetchStoredDataResult(long startTime, MetricName metricName) {
+=======
+    private Future<StoredDataResult> fetchStoredDataResult(long startTime, MetricName metricName) {
+>>>>>>> 04d9d4a13 (Initial commit)
         return Future.all(
                         getFileContentsForDirectory(storedRequestsDirectory),
                         getFileContentsForDirectory(storedImpressionsDirectory))
@@ -132,7 +144,11 @@ public class S3PeriodicRefreshService implements Initializable {
                 .replace(JSON_SUFFIX, "");
     }
 
+<<<<<<< HEAD
     private void handleResult(StoredDataResult<String> storedDataResult, long startTime, MetricName refreshType) {
+=======
+    private void handleResult(StoredDataResult storedDataResult, long startTime, MetricName refreshType) {
+>>>>>>> 04d9d4a13 (Initial commit)
         cacheNotificationListener.save(storedDataResult.getStoredIdToRequest(), storedDataResult.getStoredIdToImp());
         metrics.updateSettingsCacheRefreshTime(cacheType, refreshType, clock.millis() - startTime);
     }

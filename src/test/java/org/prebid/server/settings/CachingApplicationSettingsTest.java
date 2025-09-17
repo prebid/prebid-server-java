@@ -58,10 +58,16 @@ public class CachingApplicationSettingsTest {
 
         target = new CachingApplicationSettings(
                 delegateSettings,
+<<<<<<< HEAD
                 new SettingsCache<>(360, 100, 0),
                 new SettingsCache<>(360, 100, 0),
                 new SettingsCache<>(360, 100, 0),
                 new SettingsCache<>(360, 100, 0),
+=======
+                new SettingsCache(360, 100, 0),
+                new SettingsCache(360, 100, 0),
+                new SettingsCache(360, 100, 0),
+>>>>>>> 04d9d4a13 (Initial commit)
                 metrics,
                 360,
                 100,
@@ -358,7 +364,11 @@ public class CachingApplicationSettingsTest {
                         singletonMap("reqid", "json"), singletonMap("impid", "json2"), emptyList())));
 
         // when
+<<<<<<< HEAD
         final Future<StoredDataResult<String>> future =
+=======
+        final Future<StoredDataResult> future =
+>>>>>>> 04d9d4a13 (Initial commit)
                 target.getStoredData("1001", singleton("reqid"), singleton("impid"), timeout);
         // second call
         target.getStoredData("1001", singleton("reqid"), singleton("impid"), timeout);
@@ -379,7 +389,11 @@ public class CachingApplicationSettingsTest {
                 .willReturn(Future.failedFuture(new InvalidRequestException("error")));
 
         // when
+<<<<<<< HEAD
         final Future<StoredDataResult<String>> future =
+=======
+        final Future<StoredDataResult> future =
+>>>>>>> 04d9d4a13 (Initial commit)
                 target.getStoredData(null, singleton("id"), emptySet(), timeout);
 
         // then
@@ -397,7 +411,11 @@ public class CachingApplicationSettingsTest {
                         emptyMap(), emptyMap(), singletonList("error"))));
 
         // when
+<<<<<<< HEAD
         final Future<StoredDataResult<String>> future =
+=======
+        final Future<StoredDataResult> future =
+>>>>>>> 04d9d4a13 (Initial commit)
                 target.getStoredData(null, singleton("id"), emptySet(), timeout);
 
         // then
@@ -417,7 +435,11 @@ public class CachingApplicationSettingsTest {
         // when
         target.getStoredData("1001", singleton("reqid"), emptySet(), timeout);
         // second call
+<<<<<<< HEAD
         final Future<StoredDataResult<String>> future =
+=======
+        final Future<StoredDataResult> future =
+>>>>>>> 04d9d4a13 (Initial commit)
                 target.getStoredData("1002", singleton("reqid"), emptySet(), timeout);
 
         // then

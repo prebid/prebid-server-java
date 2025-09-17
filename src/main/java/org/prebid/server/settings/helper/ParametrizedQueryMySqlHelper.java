@@ -13,17 +13,28 @@ public class ParametrizedQueryMySqlHelper implements ParametrizedQueryHelper {
     }
 
     @Override
+<<<<<<< HEAD
+=======
+    public String replaceStoredResponseIdPlaceholders(String query, int idsNumber) {
+        return query.replaceAll(RESPONSE_ID_PLACEHOLDER, parameterHolders(idsNumber));
+    }
+
+    @Override
+>>>>>>> 04d9d4a13 (Initial commit)
     public String replaceRequestAndImpIdPlaceholders(String query, int requestIdNumber, int impIdNumber) {
         return query
                 .replace(REQUEST_ID_PLACEHOLDER, parameterHolders(requestIdNumber))
                 .replace(IMP_ID_PLACEHOLDER, parameterHolders(impIdNumber));
     }
 
+<<<<<<< HEAD
     @Override
     public String replaceStoredResponseIdPlaceholders(String query, int idsNumber) {
         return query.replace(RESPONSE_ID_PLACEHOLDER, parameterHolders(idsNumber));
     }
 
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
     private static String parameterHolders(int paramsSize) {
         return paramsSize == 0
                 ? "NULL"

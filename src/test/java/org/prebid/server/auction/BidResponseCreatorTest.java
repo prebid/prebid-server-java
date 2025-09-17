@@ -35,7 +35,10 @@ import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.activity.infrastructure.rule.Rule;
 import org.prebid.server.auction.categorymapping.CategoryMappingService;
+<<<<<<< HEAD
 import org.prebid.server.auction.externalortb.StoredRequestProcessor;
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionParticipation;
 import org.prebid.server.auction.model.BidInfo;
@@ -1107,8 +1110,12 @@ public class BidResponseCreatorTest extends VertxTest {
                 contextBuilder -> contextBuilder
                         .auctionParticipations(toAuctionParticipant(bidderResponses))
                         .account(Account.builder().auction(AccountAuctionConfig.builder()
+<<<<<<< HEAD
                                         .ranking(AccountBidRankingConfig.of(true))
                                         .build())
+=======
+                                .ranking(AccountBidRankingConfig.of(true)).build())
+>>>>>>> 04d9d4a13 (Initial commit)
                                 .build()));
 
         final BidRequestCacheInfo cacheInfo = BidRequestCacheInfo.builder().doCaching(true).build();

@@ -16,6 +16,14 @@ public class ParametrizedQueryPostgresHelper implements ParametrizedQueryHelper 
     }
 
     @Override
+<<<<<<< HEAD
+=======
+    public String replaceStoredResponseIdPlaceholders(String query, int idsNumber) {
+        return query.replaceAll(RESPONSE_ID_PLACEHOLDER, parameterHolders(idsNumber, 0));
+    }
+
+    @Override
+>>>>>>> 04d9d4a13 (Initial commit)
     public String replaceRequestAndImpIdPlaceholders(String query, int requestIdNumber, int impIdNumber) {
         final Matcher matcher = PLACEHOLDER_PATTERN.matcher(query);
 
@@ -27,6 +35,7 @@ public class ParametrizedQueryPostgresHelper implements ParametrizedQueryHelper 
             i += paramsNumber;
         }
         matcher.appendTail(queryBuilder);
+<<<<<<< HEAD
 
         return queryBuilder.toString();
     }
@@ -36,6 +45,11 @@ public class ParametrizedQueryPostgresHelper implements ParametrizedQueryHelper 
         return query.replaceAll(RESPONSE_ID_PLACEHOLDER, parameterHolders(idsNumber, 0));
     }
 
+=======
+        return queryBuilder.toString();
+    }
+
+>>>>>>> 04d9d4a13 (Initial commit)
     private static String parameterHolders(int paramsSize, int start) {
         return paramsSize == 0
                 ? "NULL"

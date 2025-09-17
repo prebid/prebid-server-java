@@ -27,9 +27,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
 import org.prebid.server.auction.IpAddressHelper;
+<<<<<<< HEAD
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.externalortb.ProfilesProcessor;
 import org.prebid.server.auction.externalortb.StoredRequestProcessor;
+=======
+import org.prebid.server.auction.StoredRequestProcessor;
+import org.prebid.server.auction.TimeoutResolver;
+>>>>>>> 04d9d4a13 (Initial commit)
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionStoredResult;
 import org.prebid.server.auction.model.IpAddress;
@@ -124,8 +129,11 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     @Mock
     private StoredRequestProcessor storedRequestProcessor;
     @Mock(strictness = LENIENT)
+<<<<<<< HEAD
     private ProfilesProcessor profilesProcessor;
     @Mock(strictness = LENIENT)
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
     private ApplicationSettings applicationSettings;
     @Mock
     private IpAddressHelper ipAddressHelper;
@@ -153,9 +161,12 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         given(timeoutResolver.limitToMax(any())).willReturn(2000L);
 
+<<<<<<< HEAD
         given(profilesProcessor.process(any(), any()))
                 .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(1)));
 
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
         given(hookStageExecutor.executeEntrypointStage(any(), any(), any(), any()))
                 .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
                         false,
@@ -547,6 +558,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     }
 
     @Test
+<<<<<<< HEAD
     public void fetchAccountWithoutStoredRequestLookupShouldNeverCallStoredProcessor() {
         // when
         target.fetchAccountWithoutStoredRequestLookup(
@@ -580,6 +592,13 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         final Account fetchedAccount = Account.builder().id(accountId).status(AccountStatus.active).build();
         given(applicationSettings.getAccountById(eq(accountId), any()))
                 .willReturn(Future.succeededFuture(fetchedAccount));
+=======
+    public void shouldFetchAccountFromStoredAndReturnEmptyAccountIfStoredLookupIsFailed() {
+        // given
+        final BidRequest receivedBidRequest = givenBidRequest(identity());
+        given(storedRequestProcessor.processAuctionRequest(any(), any()))
+                .willReturn(Future.failedFuture(new RuntimeException("error")));
+>>>>>>> 04d9d4a13 (Initial commit)
 
         // when
         final Future<Account> result = target.fetchAccount(
@@ -591,9 +610,30 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         // then
         verify(storedRequestProcessor).processAuctionRequest("", receivedBidRequest);
+<<<<<<< HEAD
         verify(applicationSettings).getAccountById(eq(accountId), any());
 
         assertThat(result.result()).isEqualTo(fetchedAccount);
+=======
+        verifyNoInteractions(applicationSettings);
+
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause()).hasMessage("error");
+    }
+
+    @Test
+    public void fetchAccountWithoutStoredRequestLookupShouldNeverCallStoredProcessor() {
+        // when
+        target.fetchAccountWithoutStoredRequestLookup(
+                AuctionContext.builder()
+                        .httpRequest(httpRequest)
+                        .bidRequest(givenBidRequest(identity()))
+                        .timeoutContext(TimeoutContext.of(0, null, 0))
+                        .build());
+
+        // then
+        verifyNoInteractions(storedRequestProcessor);
+>>>>>>> 04d9d4a13 (Initial commit)
     }
 
     @Test
@@ -1051,11 +1091,19 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         // when
         final Future<BidRequest> result = target.enrichBidRequestWithAccountAndPrivacyData(
+<<<<<<< HEAD
                 AuctionContext.builder()
                         .bidRequest(bidRequest)
                         .account(account)
                         .privacyContext(privacyContext)
                         .build());
+=======
+                        AuctionContext.builder()
+                                .bidRequest(bidRequest)
+                                .account(account)
+                                .privacyContext(privacyContext)
+                                .build());
+>>>>>>> 04d9d4a13 (Initial commit)
 
         // then
         assertThat(result).isSucceeded().unwrap()
@@ -1084,11 +1132,19 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         // when
         final Future<BidRequest> result = target.enrichBidRequestWithAccountAndPrivacyData(
+<<<<<<< HEAD
                 AuctionContext.builder()
                         .bidRequest(bidRequest)
                         .account(account)
                         .privacyContext(privacyContext)
                         .build());
+=======
+                        AuctionContext.builder()
+                                .bidRequest(bidRequest)
+                                .account(account)
+                                .privacyContext(privacyContext)
+                                .build());
+>>>>>>> 04d9d4a13 (Initial commit)
 
         // then
         assertThat(result).isSucceeded().unwrap()
@@ -1806,7 +1862,10 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 timeoutResolver,
                 timeoutFactory,
                 storedRequestProcessor,
+<<<<<<< HEAD
                 profilesProcessor,
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
                 applicationSettings,
                 ipAddressHelper,
                 hookStageExecutor,

@@ -22,6 +22,10 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
+<<<<<<< HEAD
+=======
+import java.util.ArrayList;
+>>>>>>> 04d9d4a13 (Initial commit)
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -44,18 +48,31 @@ public class OnetagBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
+<<<<<<< HEAD
+=======
+        final List<Imp> modifiedImps = new ArrayList<>();
+>>>>>>> 04d9d4a13 (Initial commit)
         String requestPubId = null;
         for (Imp imp : request.getImp()) {
             try {
                 final ExtImpOnetag impExt = parseImpExt(imp);
                 requestPubId = resolveAndValidatePubId(impExt.getPubId(), requestPubId);
+<<<<<<< HEAD
+=======
+
+                modifiedImps.add(imp.toBuilder().ext(impExt.getExt()).build());
+>>>>>>> 04d9d4a13 (Initial commit)
             } catch (PreBidException e) {
                 return Result.withError(BidderError.badInput(e.getMessage()));
             }
         }
 
+<<<<<<< HEAD
         final String url = endpointUrl.replace(URL_PUBLISHER_ID_MACRO, StringUtils.defaultString(requestPubId));
         return Result.withValue(BidderUtil.defaultRequest(request, url, mapper));
+=======
+        return Result.withValue(createRequest(request, modifiedImps, requestPubId));
+>>>>>>> 04d9d4a13 (Initial commit)
     }
 
     private ExtImpOnetag parseImpExt(Imp imp) {
@@ -66,8 +83,13 @@ public class OnetagBidder implements Bidder<BidRequest> {
         }
     }
 
+<<<<<<< HEAD
     private static String resolveAndValidatePubId(String impExtPubId, String requestPubId) {
         if (StringUtils.isBlank(impExtPubId)) {
+=======
+    private String resolveAndValidatePubId(String impExtPubId, String requestPubId) {
+        if (StringUtils.isEmpty(impExtPubId)) {
+>>>>>>> 04d9d4a13 (Initial commit)
             throw new PreBidException("The publisher ID must not be empty");
         }
         if (requestPubId != null && !impExtPubId.equals(requestPubId)) {
@@ -76,6 +98,16 @@ public class OnetagBidder implements Bidder<BidRequest> {
         return impExtPubId;
     }
 
+<<<<<<< HEAD
+=======
+    private HttpRequest<BidRequest> createRequest(BidRequest request, List<Imp> imps, String pubId) {
+        final String url = endpointUrl.replace(URL_PUBLISHER_ID_MACRO, pubId);
+        final BidRequest outgoingRequest = request.toBuilder().imp(imps).build();
+
+        return BidderUtil.defaultRequest(outgoingRequest, url, mapper);
+    }
+
+>>>>>>> 04d9d4a13 (Initial commit)
     @Override
     public final Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {

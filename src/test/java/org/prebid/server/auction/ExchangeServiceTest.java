@@ -43,7 +43,10 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
+<<<<<<< HEAD
 import org.prebid.server.auction.externalortb.StoredResponseProcessor;
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
 import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessingResult;
 import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessor;
 import org.prebid.server.auction.model.AuctionContext;

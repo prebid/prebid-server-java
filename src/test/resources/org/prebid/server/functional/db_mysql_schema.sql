@@ -42,6 +42,7 @@ CREATE TABLE stored_responses
     storedBidResponse     varchar(1024)
 );
 
+<<<<<<< HEAD
 CREATE TABLE profiles
 (
     accountId       varchar(40)  NOT NULL,
@@ -51,5 +52,7 @@ CREATE TABLE profiles
     type            enum ('request', 'imp', '', 'unknown')
 );
 
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
 -- set session wait timeout to 1 minute
 SET SESSION wait_timeout = 60000;

@@ -1,5 +1,9 @@
 package org.prebid.server.settings.helper;
 
+<<<<<<< HEAD
+=======
+import io.vertx.core.json.JsonObject;
+>>>>>>> 04d9d4a13 (Initial commit)
 import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowIterator;
 import io.vertx.sqlclient.RowSet;
@@ -14,6 +18,10 @@ import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Set;
+<<<<<<< HEAD
+=======
+import java.util.stream.IntStream;
+>>>>>>> 04d9d4a13 (Initial commit)
 
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singleton;
@@ -108,7 +116,13 @@ public class DatabaseStoredResponseResultMapperTest {
     private Row givenRow(Object... values) {
         final Row row = mock(Row.class, withSettings().strictness(LENIENT));
         given(row.getValue(anyInt())).willAnswer(invocation -> values[(Integer) invocation.getArgument(0)]);
+<<<<<<< HEAD
         given(row.size()).willReturn(values.length);
+=======
+        final JsonObject json = new JsonObject();
+        IntStream.range(0, values.length).forEach(i -> json.put(String.valueOf(i), values[i]));
+        given(row.toJson()).willReturn(json);
+>>>>>>> 04d9d4a13 (Initial commit)
         return row;
     }
 

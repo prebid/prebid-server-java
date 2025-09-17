@@ -26,7 +26,10 @@ class AccountAuctionConfig {
     AccountCacheConfig cache
     AccountRankingConfig ranking
     AccountPriceFloorsConfig priceFloors
+<<<<<<< HEAD
     AccountProfilesConfigs profiles
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
     Targeting targeting
     PaaFormat paaformat
     @JsonProperty("preferredmediatype")

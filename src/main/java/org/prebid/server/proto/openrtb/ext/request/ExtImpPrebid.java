@@ -21,11 +21,14 @@ public class ExtImpPrebid {
     ExtStoredRequest storedrequest;
 
     /**
+<<<<<<< HEAD
      * Defines the contract for bidrequest.imp[i].ext.prebid.profiles
      */
     List<String> profiles;
 
     /**
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
      * Defines the contract for bidrequest.imp[i].ext.prebid.storedauctionresponse
      */
     @JsonProperty("storedauctionresponse")

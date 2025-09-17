@@ -14,8 +14,12 @@
               "siteId": 1,
               "pageId": 2,
               "formatId": 3,
+<<<<<<< HEAD
               "networkId": 73,
               "programmaticGuaranteed": true
+=======
+              "networkId": 73
+>>>>>>> 04d9d4a13 (Initial commit)
             }
           }
         }

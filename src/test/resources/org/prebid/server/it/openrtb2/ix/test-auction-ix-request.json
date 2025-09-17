@@ -20,6 +20,7 @@
     "ext": {
       "gdpr": 0
     }
+<<<<<<< HEAD
   },
   "ext": {
     "ixdiag": {
@@ -29,5 +30,7 @@
       "ren": false,
       "version": "6.29.1"
     }
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
   }
 }

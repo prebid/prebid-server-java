@@ -1,8 +1,11 @@
 package org.prebid.server.spring.config.bidder;
 
+<<<<<<< HEAD
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.smartadserver.SmartadserverBidder;
 import org.prebid.server.json.JacksonMapper;
@@ -26,6 +29,7 @@ public class SmartadserverConfiguration {
 
     @Bean("smartadserverConfigurationProperties")
     @ConfigurationProperties("adapters.smartadserver")
+<<<<<<< HEAD
     SmartadserverConfigurationProperties configurationProperties() {
         return new SmartadserverConfigurationProperties();
     }
@@ -50,4 +54,21 @@ public class SmartadserverConfiguration {
 
         private String secondaryEndpoint;
     }
+=======
+    BidderConfigurationProperties configurationProperties() {
+        return new BidderConfigurationProperties();
+    }
+
+    @Bean
+    BidderDeps smartadserverBidderDeps(BidderConfigurationProperties smartadserverConfigurationProperties,
+                                       @NotBlank @Value("${external-url}") String externalUrl,
+                                       JacksonMapper mapper) {
+
+        return BidderDepsAssembler.forBidder(BIDDER_NAME)
+                .withConfig(smartadserverConfigurationProperties)
+                .usersyncerCreator(UsersyncerCreator.create(externalUrl))
+                .bidderCreator(config -> new SmartadserverBidder(config.getEndpoint(), mapper))
+                .assemble();
+    }
+>>>>>>> 04d9d4a13 (Initial commit)
 }

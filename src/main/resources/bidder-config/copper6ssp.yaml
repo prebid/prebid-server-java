@@ -12,7 +12,11 @@ adapters:
         - video
         - native
       supported-vendors:
+<<<<<<< HEAD
       vendor-id: 1356
+=======
+      vendor-id: 0
+>>>>>>> 04d9d4a13 (Initial commit)
     usersync:
       cookie-family-name: copper6ssp
       redirect:

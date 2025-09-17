@@ -17,10 +17,17 @@ import java.util.concurrent.ThreadLocalRandom;
 /**
  * Just a simple wrapper over in-memory caches for requests and imps.
  */
+<<<<<<< HEAD
 public class SettingsCache<T> implements CacheNotificationListener<T> {
 
     private final Map<String, Set<StoredItem<T>>> requestCache;
     private final Map<String, Set<StoredItem<T>>> impCache;
+=======
+public class SettingsCache implements CacheNotificationListener {
+
+    private final Map<String, Set<StoredItem>> requestCache;
+    private final Map<String, Set<StoredItem>> impCache;
+>>>>>>> 04d9d4a13 (Initial commit)
 
     public SettingsCache(int ttl, int size, int jitter) {
         if (ttl <= 0 || size <= 0) {
@@ -47,6 +54,7 @@ public class SettingsCache<T> implements CacheNotificationListener<T> {
                 .asMap();
     }
 
+<<<<<<< HEAD
     Map<String, Set<StoredItem<T>>> getRequestCache() {
         return requestCache;
     }
@@ -69,6 +77,30 @@ public class SettingsCache<T> implements CacheNotificationListener<T> {
                                             T value) {
 
         final Set<StoredItem<T>> values = ObjectUtils.defaultIfNull(cache.get(id), new HashSet<>());
+=======
+    Map<String, Set<StoredItem>> getRequestCache() {
+        return requestCache;
+    }
+
+    Map<String, Set<StoredItem>> getImpCache() {
+        return impCache;
+    }
+
+    void saveRequestCache(String accountId, String requestId, String requestValue) {
+        saveCachedValue(requestCache, accountId, requestId, requestValue);
+    }
+
+    void saveImpCache(String accountId, String impId, String impValue) {
+        saveCachedValue(impCache, accountId, impId, impValue);
+    }
+
+    private static void saveCachedValue(Map<String, Set<StoredItem>> cache,
+                                        String accountId,
+                                        String id,
+                                        String value) {
+
+        final Set<StoredItem> values = ObjectUtils.defaultIfNull(cache.get(id), new HashSet<>());
+>>>>>>> 04d9d4a13 (Initial commit)
         values.add(StoredItem.of(accountId, value));
         cache.put(id, values);
     }
@@ -79,7 +111,11 @@ public class SettingsCache<T> implements CacheNotificationListener<T> {
      * TODO: account should be added to all services uses this method
      */
     @Override
+<<<<<<< HEAD
     public void save(Map<String, T> requests, Map<String, T> imps) {
+=======
+    public void save(Map<String, String> requests, Map<String, String> imps) {
+>>>>>>> 04d9d4a13 (Initial commit)
         if (MapUtils.isNotEmpty(requests)) {
             requests.forEach((key, value) -> requestCache.put(key, Collections.singleton(StoredItem.of(null, value))));
         }

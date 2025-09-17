@@ -77,11 +77,14 @@ public class ExtRequestPrebid {
     ExtStoredRequest storedrequest;
 
     /**
+<<<<<<< HEAD
      * Defines the contract for bidrequest.ext.prebid.profiles
      */
     List<String> profiles;
 
     /**
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
      * Defines the contract for bidrequest.ext.prebid.storedauctionresponse
      */
     @JsonProperty("storedauctionresponse")

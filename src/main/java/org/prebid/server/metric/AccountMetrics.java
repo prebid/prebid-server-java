@@ -23,7 +23,10 @@ class AccountMetrics extends UpdatableMetrics {
     private final ResponseMetrics responseMetrics;
     private final HooksMetrics hooksMetrics;
     private final ActivitiesMetrics activitiesMetrics;
+<<<<<<< HEAD
     private final ProfileMetrics profileMetrics;
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
 
     AccountMetrics(MetricRegistry metricRegistry, CounterType counterType, String account) {
         super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),
@@ -37,7 +40,10 @@ class AccountMetrics extends UpdatableMetrics {
         responseMetrics = new ResponseMetrics(metricRegistry, counterType, createPrefix(account));
         hooksMetrics = new HooksMetrics(metricRegistry, counterType, createPrefix(account));
         activitiesMetrics = new ActivitiesMetrics(metricRegistry, counterType, createPrefix(account));
+<<<<<<< HEAD
         profileMetrics = new ProfileMetrics(metricRegistry, counterType, createPrefix(account));
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
     }
 
     private static String createPrefix(String account) {
@@ -75,8 +81,11 @@ class AccountMetrics extends UpdatableMetrics {
     ActivitiesMetrics activities() {
         return activitiesMetrics;
     }
+<<<<<<< HEAD
 
     ProfileMetrics profiles() {
         return profileMetrics;
     }
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
 }

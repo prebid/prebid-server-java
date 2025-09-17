@@ -209,7 +209,11 @@ public class S3ApplicationSettingsTest extends VertxTest {
                                 "storedRequest".getBytes())));
 
         // when
+<<<<<<< HEAD
         final Future<StoredDataResult<String>> result = target.getStoredData(
+=======
+        final Future<StoredDataResult> result = target.getStoredData(
+>>>>>>> 04d9d4a13 (Initial commit)
                 "accountId", Set.of("request"), emptySet(), timeout);
 
         // then
@@ -237,7 +241,11 @@ public class S3ApplicationSettingsTest extends VertxTest {
                                 "storedImp".getBytes())));
 
         // when
+<<<<<<< HEAD
         final Future<StoredDataResult<String>> result = target.getStoredData(
+=======
+        final Future<StoredDataResult> result = target.getStoredData(
+>>>>>>> 04d9d4a13 (Initial commit)
                 "accountId", emptySet(), Set.of("imp"), timeout);
 
         // then
@@ -265,8 +273,12 @@ public class S3ApplicationSettingsTest extends VertxTest {
                                 "storedImp".getBytes())));
 
         // when
+<<<<<<< HEAD
         final Future<StoredDataResult<String>> result = target.getStoredData(
                 "accountId", emptySet(), Set.of("/imp"), timeout);
+=======
+        final Future<StoredDataResult> result = target.getStoredData("accountId", emptySet(), Set.of("/imp"), timeout);
+>>>>>>> 04d9d4a13 (Initial commit)
 
         // then
         result.onComplete(context.succeeding(storedDataResult -> {
@@ -303,7 +315,11 @@ public class S3ApplicationSettingsTest extends VertxTest {
                                 "storedImp".getBytes())));
 
         // when
+<<<<<<< HEAD
         final Future<StoredDataResult<String>> result = target.getStoredData(
+=======
+        final Future<StoredDataResult> result = target.getStoredData(
+>>>>>>> 04d9d4a13 (Initial commit)
                 "accountId", Set.of("request"), Set.of("imp"), timeout);
 
         // then
@@ -326,7 +342,11 @@ public class S3ApplicationSettingsTest extends VertxTest {
                                 new IllegalStateException("error"))));
 
         // when
+<<<<<<< HEAD
         final Future<StoredDataResult<String>> result = target.getStoredData(
+=======
+        final Future<StoredDataResult> result = target.getStoredData(
+>>>>>>> 04d9d4a13 (Initial commit)
                 "accountId", Set.of("request"), emptySet(), timeout);
 
         // then
@@ -350,7 +370,11 @@ public class S3ApplicationSettingsTest extends VertxTest {
                                 new IllegalStateException("error"))));
 
         // when
+<<<<<<< HEAD
         final Future<StoredDataResult<String>> result = target.getStoredData(
+=======
+        final Future<StoredDataResult> result = target.getStoredData(
+>>>>>>> 04d9d4a13 (Initial commit)
                 "accountId", emptySet(), Set.of("imp"), timeout);
 
         // then

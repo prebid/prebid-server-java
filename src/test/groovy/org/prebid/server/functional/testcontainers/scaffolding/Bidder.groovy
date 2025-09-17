@@ -75,7 +75,11 @@ class Bidder extends NetworkScaffolding {
             def formatNode = it.get("banner") != null ? it.get("banner").get("format") : null
             new Imp(id: it.get("id").asText(),
                     banner: formatNode != null
+<<<<<<< HEAD
                             ? new Banner(format: [new Format(width: formatNode.first().get("w").asInt(), height: formatNode.first().get("h").asInt())])
+=======
+                            ? new Banner(format: [new Format(weight: formatNode.first().get("w").asInt(), height: formatNode.first().get("h").asInt())])
+>>>>>>> 04d9d4a13 (Initial commit)
                             : null)}
         def bidRequest = new BidRequest(id: id, imp: imps)
         def response = BidResponse.getDefaultBidResponse(bidRequest)

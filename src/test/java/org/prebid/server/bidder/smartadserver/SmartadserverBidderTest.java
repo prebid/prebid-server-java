@@ -1,7 +1,10 @@
 package org.prebid.server.bidder.smartadserver;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+<<<<<<< HEAD
 import com.fasterxml.jackson.databind.node.ObjectNode;
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -38,6 +41,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 public class SmartadserverBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com/path?testParam=testVal";
+<<<<<<< HEAD
     private static final String SECONDARY_URL = "https://test.endpoint2.com/path?testParam=testVal";
 
     private final SmartadserverBidder target = new SmartadserverBidder(ENDPOINT_URL, SECONDARY_URL, jacksonMapper);
@@ -52,6 +56,14 @@ public class SmartadserverBidderTest extends VertxTest {
     public void creationShouldFailOnInvalidSecondaryEndpointUrl() {
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> new SmartadserverBidder(ENDPOINT_URL, "invalid_url", jacksonMapper));
+=======
+
+    private final SmartadserverBidder target = new SmartadserverBidder(ENDPOINT_URL, jacksonMapper);
+
+    @Test
+    public void creationShouldFailOnInvalidEndpointUrl() {
+        assertThatIllegalArgumentException().isThrownBy(() -> new SmartadserverBidder("invalid_url", jacksonMapper));
+>>>>>>> 04d9d4a13 (Initial commit)
     }
 
     @Test
@@ -73,7 +85,11 @@ public class SmartadserverBidderTest extends VertxTest {
     }
 
     @Test
+<<<<<<< HEAD
     public void makeHttpRequestsShouldCreateCorrectPrimaryURLWhenProgrammaticGuaranteedIsAbsent() {
+=======
+    public void makeHttpRequestsShouldCreateCorrectURL() {
+>>>>>>> 04d9d4a13 (Initial commit)
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(givenImp(identity())))
@@ -90,6 +106,7 @@ public class SmartadserverBidderTest extends VertxTest {
     }
 
     @Test
+<<<<<<< HEAD
     public void makeHttpRequestsShouldCreateCorrectSecondaryURLWhenProgrammaticGuaranteedIsTrue() {
         // given
         final ObjectNode givenImpExt = mapper.createObjectNode()
@@ -130,6 +147,8 @@ public class SmartadserverBidderTest extends VertxTest {
     }
 
     @Test
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
     public void makeHttpRequestsShouldUpdateSiteObjectIfPresent() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
@@ -202,6 +221,7 @@ public class SmartadserverBidderTest extends VertxTest {
     }
 
     @Test
+<<<<<<< HEAD
     public void makeHttpRequestsShouldModifyImpWhenProgrammaticGuaranteedIsTrueAtLeastInOneValidImp() {
         // given
         final ObjectNode givenImpExt1 = mapper.createObjectNode()
@@ -252,6 +272,8 @@ public class SmartadserverBidderTest extends VertxTest {
     }
 
     @Test
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
@@ -398,12 +420,19 @@ public class SmartadserverBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
+<<<<<<< HEAD
                         .id("123")
                         .banner(Banner.builder().build())
                         .video(Video.builder().build())
                         .ext(mapper.valueToTree(ExtPrebid.of(
                                 null,
                                 ExtImpSmartadserver.of(1, 2, 3, 4, false)))))
+=======
+                        .id("123"))
+                .banner(Banner.builder().build())
+                .video(Video.builder().build())
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSmartadserver.of(1, 2, 3, 4))))
+>>>>>>> 04d9d4a13 (Initial commit)
                 .build();
     }
 

@@ -30,8 +30,12 @@ import org.prebid.server.auction.GeoLocationServiceWrapper;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.InterstitialProcessor;
 import org.prebid.server.auction.OrtbTypesResolver;
+<<<<<<< HEAD
 import org.prebid.server.auction.externalortb.ProfilesProcessor;
 import org.prebid.server.auction.externalortb.StoredRequestProcessor;
+=======
+import org.prebid.server.auction.StoredRequestProcessor;
+>>>>>>> 04d9d4a13 (Initial commit)
 import org.prebid.server.auction.gpp.AuctionGppService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionStoredResult;
@@ -40,7 +44,10 @@ import org.prebid.server.auction.privacy.contextfactory.AuctionPrivacyContextFac
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.bidadjustments.BidAdjustmentsEnricher;
 import org.prebid.server.bidadjustments.model.BidAdjustmentType;
+<<<<<<< HEAD
 import org.prebid.server.bidadjustments.model.BidAdjustmentsRule;
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
 import org.prebid.server.cookie.CookieDeprecationService;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.geolocation.model.GeoInfo;
@@ -54,6 +61,10 @@ import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsa;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+<<<<<<< HEAD
+=======
+import org.prebid.server.bidadjustments.model.BidAdjustmentsRule;
+>>>>>>> 04d9d4a13 (Initial commit)
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidDataEidPermissions;
@@ -90,8 +101,11 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Mock(strictness = LENIENT)
     private StoredRequestProcessor storedRequestProcessor;
     @Mock(strictness = LENIENT)
+<<<<<<< HEAD
     private ProfilesProcessor profilesProcessor;
     @Mock(strictness = LENIENT)
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
     private BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
     @Mock(strictness = LENIENT)
     private AuctionGppService auctionGppService;
@@ -149,9 +163,12 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .debugContext(DebugContext.of(true, true, null))
                 .build();
 
+<<<<<<< HEAD
         given(profilesProcessor.process(any(), any()))
                 .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(1)));
 
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
         given(ortbVersionConversionManager.convertToAuctionSupportedVersion(any()))
                 .willAnswer(invocation -> invocation.getArgument(0));
 
@@ -213,7 +230,10 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 Integer.MAX_VALUE,
                 ortb2RequestFactory,
                 storedRequestProcessor,
+<<<<<<< HEAD
                 profilesProcessor,
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
                 ortbVersionConversionManager,
                 auctionGppService,
                 cookieDeprecationService,
@@ -250,7 +270,10 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 1,
                 ortb2RequestFactory,
                 storedRequestProcessor,
+<<<<<<< HEAD
                 profilesProcessor,
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
                 ortbVersionConversionManager,
                 auctionGppService,
                 cookieDeprecationService,
@@ -812,6 +835,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .isEqualTo(10000L);
     }
 
+<<<<<<< HEAD
     @Test
     public void shouldUseProfilesResult() {
         // given
@@ -833,6 +857,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 anyBoolean());
     }
 
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
     private void givenBidRequest(BidRequest bidRequest) {
         try {
             given(requestBody.asString()).willReturn(mapper.writeValueAsString(bidRequest));

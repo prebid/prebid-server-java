@@ -26,6 +26,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
+<<<<<<< HEAD
+=======
+import org.prebid.server.bidder.ix.model.request.IxDiag;
+>>>>>>> 04d9d4a13 (Initial commit)
 import org.prebid.server.bidder.ix.model.response.AuctionConfigExtBidResponse;
 import org.prebid.server.bidder.ix.model.response.IxBidResponse;
 import org.prebid.server.bidder.ix.model.response.IxExtBidResponse;
@@ -190,10 +194,15 @@ public class IxBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getExt)
                 .extracting(ext -> ext.getProperty("ixdiag"))
+<<<<<<< HEAD
                 .containsExactly(mapper.createObjectNode()
                         .put("pbsv", "unknown")
                         .put("pbjsv", "pbjsv")
                         .put("pbsp", "java"));
+=======
+                .extracting(diagNode -> mapper.treeToValue(diagNode, IxDiag.class))
+                .containsExactly(IxDiag.of(null, "pbjsv", null));
+>>>>>>> 04d9d4a13 (Initial commit)
     }
 
     @Test
@@ -211,9 +220,14 @@ public class IxBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getExt)
                 .extracting(ext -> ext.getProperty("ixdiag"))
+<<<<<<< HEAD
                 .containsExactly(mapper.createObjectNode()
                         .put("pbsv", "pbsv")
                         .put("pbsp", "java"));
+=======
+                .extracting(diagNode -> mapper.treeToValue(diagNode, IxDiag.class))
+                .containsExactly(IxDiag.of("pbsv", null, null));
+>>>>>>> 04d9d4a13 (Initial commit)
     }
 
     @Test
@@ -232,6 +246,7 @@ public class IxBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getExt)
                 .extracting(ext -> ext.getProperty("ixdiag"))
+<<<<<<< HEAD
                 .containsExactly(mapper.createObjectNode()
                         .put("pbsv", "unknown")
                         .put("pbsp", "java")
@@ -277,6 +292,10 @@ public class IxBidderTest extends VertxTest {
                 .extracting(BidRequest::getExt)
                 .extracting(ext -> ext.getProperty("ixdiag"))
                 .containsExactly(expectedIxDiag);
+=======
+                .extracting(diagNode -> mapper.treeToValue(diagNode, IxDiag.class))
+                .containsExactly(IxDiag.of(null, null, "site1, site2"));
+>>>>>>> 04d9d4a13 (Initial commit)
     }
 
     @Test
@@ -931,12 +950,15 @@ public class IxBidderTest extends VertxTest {
                 .build());
     }
 
+<<<<<<< HEAD
     private static ExtRequest givenExtRequestWithIxDiag(String pbjsv, ObjectNode ixDiag) {
         final ExtRequest extRequest = givenExtRequest(pbjsv);
         extRequest.addProperty("ixdiag", ixDiag);
         return extRequest;
     }
 
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
     private static ObjectNode givenImpExt(String siteId, String sid) {
         return mapper.valueToTree(ExtPrebid.of(null, ExtImpIx.of(siteId, null, sid)));
     }

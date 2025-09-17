@@ -141,7 +141,11 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
                 identity(),
                 builder -> builder.pods(pods));
 
+<<<<<<< HEAD
         final StoredDataResult<String> storedDataResult = StoredDataResult.of(
+=======
+        final StoredDataResult storedDataResult = StoredDataResult.of(
+>>>>>>> 04d9d4a13 (Initial commit)
                 singletonMap(STORED_REQUEST_ID, jacksonMapper.encodeToString(storedVideo)),
                 singletonMap(STORED_POD_ID, "{}"),
                 emptyList());
@@ -245,7 +249,11 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
                 identity(),
                 builder -> builder.pods(asList(pod1, pod2)));
 
+<<<<<<< HEAD
         final StoredDataResult<String> storedDataResult = StoredDataResult.of(emptyMap(), emptyMap(), emptyList());
+=======
+        final StoredDataResult storedDataResult = StoredDataResult.of(emptyMap(), emptyMap(), emptyList());
+>>>>>>> 04d9d4a13 (Initial commit)
 
         given(applicationSettings.getVideoStoredData(any(), anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(storedDataResult));
@@ -291,7 +299,11 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
                         .durationRangeSec(asList(30, 60, 80))
                         .pods(singletonList(Pod.of(123, 30, STORED_POD_ID))));
 
+<<<<<<< HEAD
         final StoredDataResult<String> storedDataResult = StoredDataResult.of(
+=======
+        final StoredDataResult storedDataResult = StoredDataResult.of(
+>>>>>>> 04d9d4a13 (Initial commit)
                 singletonMap(STORED_REQUEST_ID, jacksonMapper.encodeToString(storedVideo)),
                 singletonMap(STORED_POD_ID, "{}"),
                 emptyList());
@@ -364,7 +376,11 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
                 bidRequestVideoBuilder -> bidRequestVideoBuilder.pricegranularity(priceGranularity),
                 builder -> builder.pods(singletonList(Pod.of(123, 20, STORED_POD_ID))));
 
+<<<<<<< HEAD
         final StoredDataResult<String> storedDataResult = StoredDataResult.of(
+=======
+        final StoredDataResult storedDataResult = StoredDataResult.of(
+>>>>>>> 04d9d4a13 (Initial commit)
                 singletonMap(STORED_REQUEST_ID, jacksonMapper.encodeToString(storedVideo)),
                 singletonMap(STORED_POD_ID, "{}"),
                 emptyList());

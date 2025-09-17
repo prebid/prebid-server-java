@@ -27,18 +27,30 @@ import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.OrtbTypesResolver;
 import org.prebid.server.auction.SecBrowsingTopicsResolver;
 import org.prebid.server.auction.SkippedAuctionService;
+<<<<<<< HEAD
+=======
+import org.prebid.server.auction.StoredRequestProcessor;
+import org.prebid.server.auction.StoredResponseProcessor;
+>>>>>>> 04d9d4a13 (Initial commit)
 import org.prebid.server.auction.SupplyChainResolver;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.UidUpdater;
 import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.VideoStoredRequestProcessor;
 import org.prebid.server.auction.WinningBidComparatorFactory;
+<<<<<<< HEAD
 import org.prebid.server.auction.categorymapping.BasicCategoryMappingService;
 import org.prebid.server.auction.categorymapping.CategoryMappingService;
 import org.prebid.server.auction.categorymapping.NoOpCategoryMappingService;
 import org.prebid.server.auction.externalortb.ProfilesProcessor;
 import org.prebid.server.auction.externalortb.StoredRequestProcessor;
 import org.prebid.server.auction.externalortb.StoredResponseProcessor;
+=======
+import org.prebid.server.bidadjustments.BidAdjustmentFactorResolver;
+import org.prebid.server.auction.categorymapping.BasicCategoryMappingService;
+import org.prebid.server.auction.categorymapping.CategoryMappingService;
+import org.prebid.server.auction.categorymapping.NoOpCategoryMappingService;
+>>>>>>> 04d9d4a13 (Initial commit)
 import org.prebid.server.auction.gpp.AmpGppService;
 import org.prebid.server.auction.gpp.AuctionGppService;
 import org.prebid.server.auction.gpp.CookieSyncGppService;
@@ -65,10 +77,16 @@ import org.prebid.server.auction.requestfactory.Ortb2RequestFactory;
 import org.prebid.server.auction.requestfactory.VideoRequestFactory;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConverterFactory;
+<<<<<<< HEAD
 import org.prebid.server.bidadjustments.BidAdjustmentFactorResolver;
 import org.prebid.server.bidadjustments.BidAdjustmentsEnricher;
 import org.prebid.server.bidadjustments.BidAdjustmentsProcessor;
 import org.prebid.server.bidadjustments.BidAdjustmentsResolver;
+=======
+import org.prebid.server.bidadjustments.BidAdjustmentsProcessor;
+import org.prebid.server.bidadjustments.BidAdjustmentsResolver;
+import org.prebid.server.bidadjustments.BidAdjustmentsEnricher;
+>>>>>>> 04d9d4a13 (Initial commit)
 import org.prebid.server.bidadjustments.BidAdjustmentsRulesResolver;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderDeps;
@@ -434,7 +452,10 @@ public class ServiceConfiguration {
             TimeoutResolver auctionTimeoutResolver,
             TimeoutFactory timeoutFactory,
             StoredRequestProcessor storedRequestProcessor,
+<<<<<<< HEAD
             ProfilesProcessor profilesProcessor,
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
             ApplicationSettings applicationSettings,
             IpAddressHelper ipAddressHelper,
             HookStageExecutor hookStageExecutor,
@@ -453,7 +474,10 @@ public class ServiceConfiguration {
                 auctionTimeoutResolver,
                 timeoutFactory,
                 storedRequestProcessor,
+<<<<<<< HEAD
                 profilesProcessor,
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
                 applicationSettings,
                 ipAddressHelper,
                 hookStageExecutor,
@@ -466,7 +490,10 @@ public class ServiceConfiguration {
             @Value("${auction.max-request-size}") @Min(0) int maxRequestSize,
             Ortb2RequestFactory ortb2RequestFactory,
             StoredRequestProcessor storedRequestProcessor,
+<<<<<<< HEAD
             ProfilesProcessor profilesProcessor,
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
             BidRequestOrtbVersionConversionManager bidRequestOrtbVersionConversionManager,
             AuctionGppService auctionGppService,
             CookieDeprecationService cookieDeprecationService,
@@ -483,7 +510,10 @@ public class ServiceConfiguration {
                 maxRequestSize,
                 ortb2RequestFactory,
                 storedRequestProcessor,
+<<<<<<< HEAD
                 profilesProcessor,
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
                 bidRequestOrtbVersionConversionManager,
                 auctionGppService,
                 cookieDeprecationService,
@@ -518,7 +548,10 @@ public class ServiceConfiguration {
     @Bean
     AmpRequestFactory ampRequestFactory(Ortb2RequestFactory ortb2RequestFactory,
                                         StoredRequestProcessor storedRequestProcessor,
+<<<<<<< HEAD
                                         ProfilesProcessor profilesProcessor,
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
                                         BidRequestOrtbVersionConversionManager bidRequestOrtbVersionConversionManager,
                                         AmpGppService ampGppService,
                                         OrtbTypesResolver ortbTypesResolver,
@@ -533,7 +566,10 @@ public class ServiceConfiguration {
         return new AmpRequestFactory(
                 ortb2RequestFactory,
                 storedRequestProcessor,
+<<<<<<< HEAD
                 profilesProcessor,
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
                 bidRequestOrtbVersionConversionManager,
                 ampGppService,
                 ortbTypesResolver,
@@ -995,6 +1031,7 @@ public class ServiceConfiguration {
     }
 
     @Bean
+<<<<<<< HEAD
     ProfilesProcessor profilesProcessor(@Value("${auction.profiles.limit}") int maxProfiles,
                                         @Value("${auction.profiles.timeout-ms}") long defaultTimeoutMillis,
                                         @Value("${auction.profiles.fail-on-unknown:true}") boolean failOnUnknown,
@@ -1018,6 +1055,8 @@ public class ServiceConfiguration {
     }
 
     @Bean
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
     WinningBidComparatorFactory winningBidComparatorFactory() {
         return new WinningBidComparatorFactory();
     }

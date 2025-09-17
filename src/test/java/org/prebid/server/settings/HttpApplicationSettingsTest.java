@@ -68,6 +68,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
 
     @BeforeEach
     public void setUp() {
+<<<<<<< HEAD
         httpApplicationSettings = new HttpApplicationSettings(
                 false,
                 ENDPOINT,
@@ -76,6 +77,10 @@ public class HttpApplicationSettingsTest extends VertxTest {
                 CATEGORY_ENDPOINT,
                 httpClient,
                 jacksonMapper);
+=======
+        httpApplicationSettings = new HttpApplicationSettings(httpClient, jacksonMapper, ENDPOINT, AMP_ENDPOINT,
+                VIDEO_ENDPOINT, CATEGORY_ENDPOINT, false);
+>>>>>>> 04d9d4a13 (Initial commit)
 
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
@@ -86,6 +91,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
     @Test
     public void creationShouldFailsOnInvalidEndpoint() {
         assertThatIllegalArgumentException()
+<<<<<<< HEAD
                 .isThrownBy(() -> new HttpApplicationSettings(
                         false,
                         "invalid_url",
@@ -94,12 +100,17 @@ public class HttpApplicationSettingsTest extends VertxTest {
                         CATEGORY_ENDPOINT,
                         httpClient,
                         jacksonMapper))
+=======
+                .isThrownBy(() -> new HttpApplicationSettings(httpClient, jacksonMapper, "invalid_url", AMP_ENDPOINT,
+                        VIDEO_ENDPOINT, CATEGORY_ENDPOINT, false))
+>>>>>>> 04d9d4a13 (Initial commit)
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 
     @Test
     public void creationShouldFailsOnInvalidAmpEndpoint() {
         assertThatIllegalArgumentException()
+<<<<<<< HEAD
                 .isThrownBy(() -> new HttpApplicationSettings(
                         false,
                         ENDPOINT,
@@ -108,12 +119,17 @@ public class HttpApplicationSettingsTest extends VertxTest {
                         CATEGORY_ENDPOINT,
                         httpClient,
                         jacksonMapper))
+=======
+                .isThrownBy(() -> new HttpApplicationSettings(httpClient, jacksonMapper, ENDPOINT, "invalid_url",
+                        VIDEO_ENDPOINT, CATEGORY_ENDPOINT, false))
+>>>>>>> 04d9d4a13 (Initial commit)
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 
     @Test
     public void creationShouldFailsOnInvalidVideoEndpoint() {
         assertThatIllegalArgumentException()
+<<<<<<< HEAD
                 .isThrownBy(() -> new HttpApplicationSettings(
                         false,
                         ENDPOINT,
@@ -122,6 +138,10 @@ public class HttpApplicationSettingsTest extends VertxTest {
                         CATEGORY_ENDPOINT,
                         httpClient,
                         jacksonMapper))
+=======
+                .isThrownBy(() -> new HttpApplicationSettings(httpClient, jacksonMapper, ENDPOINT, AMP_ENDPOINT,
+                        "invalid_url", CATEGORY_ENDPOINT, false))
+>>>>>>> 04d9d4a13 (Initial commit)
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 
@@ -156,6 +176,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
     public void getAccountByIdShouldReturnFetchedAccountWithRfc3986CompatibleParams() throws JsonProcessingException {
         // given
         givenHttpClientReturnsResponse(200, null);
+<<<<<<< HEAD
         httpApplicationSettings = new HttpApplicationSettings(
                 true,
                 ENDPOINT,
@@ -164,6 +185,10 @@ public class HttpApplicationSettingsTest extends VertxTest {
                 CATEGORY_ENDPOINT,
                 httpClient,
                 jacksonMapper);
+=======
+        httpApplicationSettings = new HttpApplicationSettings(httpClient, jacksonMapper,
+                ENDPOINT, AMP_ENDPOINT, VIDEO_ENDPOINT, CATEGORY_ENDPOINT, true);
+>>>>>>> 04d9d4a13 (Initial commit)
 
         final Account account = Account.builder()
                 .id("someId")
@@ -265,8 +290,13 @@ public class HttpApplicationSettingsTest extends VertxTest {
     @Test
     public void getStoredDataShouldReturnEmptyResultIfEmptyRequestsIdsGiven() {
         // when
+<<<<<<< HEAD
         final Future<StoredDataResult<String>> future =
                 httpApplicationSettings.getStoredData(null, emptySet(), emptySet(), null);
+=======
+        final Future<StoredDataResult> future = httpApplicationSettings.getStoredData(null, emptySet(),
+                emptySet(), null);
+>>>>>>> 04d9d4a13 (Initial commit)
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -279,7 +309,11 @@ public class HttpApplicationSettingsTest extends VertxTest {
     @Test
     public void getStoredDataShouldReturnResultWithErrorIfTimeoutAlreadyExpired() {
         // when
+<<<<<<< HEAD
         final Future<StoredDataResult<String>> future =
+=======
+        final Future<StoredDataResult> future =
+>>>>>>> 04d9d4a13 (Initial commit)
                 httpApplicationSettings.getStoredData(null, singleton("id1"), emptySet(), expiredTimeout);
 
         // then
@@ -312,6 +346,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
     public void getStoredDataShouldSendHttpRequestWithExpectedAppendedParams() {
         // given
         givenHttpClientReturnsResponse(200, null);
+<<<<<<< HEAD
         httpApplicationSettings = new HttpApplicationSettings(
                 false,
                 "http://some-domain.com?param1=value1",
@@ -320,6 +355,10 @@ public class HttpApplicationSettingsTest extends VertxTest {
                 CATEGORY_ENDPOINT,
                 httpClient,
                 jacksonMapper);
+=======
+        httpApplicationSettings = new HttpApplicationSettings(httpClient, jacksonMapper,
+                "http://some-domain.com?param1=value1", AMP_ENDPOINT, VIDEO_ENDPOINT, CATEGORY_ENDPOINT, false);
+>>>>>>> 04d9d4a13 (Initial commit)
 
         // when
         httpApplicationSettings.getStoredData(null, singleton("id1"), singleton("id2"), timeout);
@@ -335,6 +374,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
     public void getStoredDataShouldSendHttpRequestWithRfc3986CompatibleParams() throws URISyntaxException {
         // given
         givenHttpClientReturnsResponse(200, null);
+<<<<<<< HEAD
         httpApplicationSettings = new HttpApplicationSettings(
                 true,
                 ENDPOINT, AMP_ENDPOINT,
@@ -342,6 +382,10 @@ public class HttpApplicationSettingsTest extends VertxTest {
                 CATEGORY_ENDPOINT,
                 httpClient,
                 jacksonMapper);
+=======
+        httpApplicationSettings = new HttpApplicationSettings(httpClient, jacksonMapper,
+                ENDPOINT, AMP_ENDPOINT, VIDEO_ENDPOINT, CATEGORY_ENDPOINT, true);
+>>>>>>> 04d9d4a13 (Initial commit)
 
         // when
         httpApplicationSettings.getStoredData(null, Set.of("id1", "id2"), Set.of("id1", "id2"), timeout);
@@ -369,7 +413,11 @@ public class HttpApplicationSettingsTest extends VertxTest {
         givenHttpClientProducesException(new RuntimeException("Request exception"));
 
         // when
+<<<<<<< HEAD
         final Future<StoredDataResult<String>> future =
+=======
+        final Future<StoredDataResult> future =
+>>>>>>> 04d9d4a13 (Initial commit)
                 httpApplicationSettings.getStoredData(null, singleton("id1"), emptySet(), timeout);
 
         // then
@@ -386,7 +434,11 @@ public class HttpApplicationSettingsTest extends VertxTest {
         givenHttpClientReturnsResponse(500, "ignored");
 
         // when
+<<<<<<< HEAD
         final Future<StoredDataResult<String>> future =
+=======
+        final Future<StoredDataResult> future =
+>>>>>>> 04d9d4a13 (Initial commit)
                 httpApplicationSettings.getStoredData(null, singleton("id1"), emptySet(), timeout);
 
         // then
@@ -403,7 +455,11 @@ public class HttpApplicationSettingsTest extends VertxTest {
         givenHttpClientReturnsResponse(200, "invalid-response");
 
         // when
+<<<<<<< HEAD
         final Future<StoredDataResult<String>> future =
+=======
+        final Future<StoredDataResult> future =
+>>>>>>> 04d9d4a13 (Initial commit)
                 httpApplicationSettings.getStoredData(null, singleton("id1"), emptySet(), timeout);
 
         // then
@@ -422,7 +478,11 @@ public class HttpApplicationSettingsTest extends VertxTest {
         givenHttpClientReturnsResponse(200, malformedStoredRequest);
 
         // when
+<<<<<<< HEAD
         final Future<StoredDataResult<String>> future =
+=======
+        final Future<StoredDataResult> future =
+>>>>>>> 04d9d4a13 (Initial commit)
                 httpApplicationSettings.getStoredData(null, singleton("id1"), emptySet(), timeout);
 
         // then
@@ -442,7 +502,11 @@ public class HttpApplicationSettingsTest extends VertxTest {
         givenHttpClientReturnsResponse(200, malformedStoredRequest);
 
         // when
+<<<<<<< HEAD
         final Future<StoredDataResult<String>> future =
+=======
+        final Future<StoredDataResult> future =
+>>>>>>> 04d9d4a13 (Initial commit)
                 httpApplicationSettings.getStoredData(null, singleton("id1"), emptySet(), timeout);
 
         // then
@@ -462,7 +526,11 @@ public class HttpApplicationSettingsTest extends VertxTest {
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(response));
 
         // when
+<<<<<<< HEAD
         final Future<StoredDataResult<String>> future = httpApplicationSettings.getStoredData(
+=======
+        final Future<StoredDataResult> future = httpApplicationSettings.getStoredData(
+>>>>>>> 04d9d4a13 (Initial commit)
                 null, new HashSet<>(asList("id1", "id2")), new HashSet<>(asList("id3", "id4")), timeout);
 
         // then
@@ -486,7 +554,11 @@ public class HttpApplicationSettingsTest extends VertxTest {
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(response));
 
         // when
+<<<<<<< HEAD
         final Future<StoredDataResult<String>> future =
+=======
+        final Future<StoredDataResult> future =
+>>>>>>> 04d9d4a13 (Initial commit)
                 httpApplicationSettings.getStoredData(null, singleton("id1"), singleton("id2"), timeout);
 
         // then

@@ -1,6 +1,10 @@
 adapters:
   zmaticoo:
+<<<<<<< HEAD
     endpoint: https://rtbbid.zmaticoo.com/prebid/bid
+=======
+    endpoint: https://bid.zmaticoo.com/prebid/bid
+>>>>>>> 04d9d4a13 (Initial commit)
     meta-info:
       maintainer-email: adam.li@eclicktech.com.cn
       app-media-types:

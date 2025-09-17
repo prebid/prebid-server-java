@@ -12,6 +12,7 @@
       "displaymanagerver": "2.0.0",
       "tagid": "possibleTagId",
       "ext": {
+<<<<<<< HEAD
         "tid": "${json-unit.any-string}",
         "bidder": {
           "pubId": "386276e072",
@@ -20,6 +21,10 @@
             "key2": "value2"
           }
         }
+=======
+        "key1": "value1",
+        "key2": "value2"
+>>>>>>> 04d9d4a13 (Initial commit)
       }
     }
   ],

@@ -12,7 +12,10 @@ import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.settings.model.Account;
+<<<<<<< HEAD
 import org.prebid.server.settings.model.Profile;
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 import software.amazon.awssdk.core.BytesWrapper;
@@ -101,10 +104,17 @@ public class S3ApplicationSettings implements ApplicationSettings {
     }
 
     @Override
+<<<<<<< HEAD
     public Future<StoredDataResult<String>> getStoredData(String accountId,
                                                           Set<String> requestIds,
                                                           Set<String> impIds,
                                                           Timeout timeout) {
+=======
+    public Future<StoredDataResult> getStoredData(String accountId,
+                                                  Set<String> requestIds,
+                                                  Set<String> impIds,
+                                                  Timeout timeout) {
+>>>>>>> 04d9d4a13 (Initial commit)
 
         return withTimeout(
                 () -> Future.all(
@@ -118,10 +128,17 @@ public class S3ApplicationSettings implements ApplicationSettings {
                         impIds));
     }
 
+<<<<<<< HEAD
     private StoredDataResult<String> buildStoredDataResult(Map<String, String> storedIdToRequest,
                                                            Map<String, String> storedIdToImp,
                                                            Set<String> requestIds,
                                                            Set<String> impIds) {
+=======
+    private StoredDataResult buildStoredDataResult(Map<String, String> storedIdToRequest,
+                                                   Map<String, String> storedIdToImp,
+                                                   Set<String> requestIds,
+                                                   Set<String> impIds) {
+>>>>>>> 04d9d4a13 (Initial commit)
 
         final List<String> errors = Stream.concat(
                         missingStoredDataIds(storedIdToImp, impIds).stream()
@@ -133,6 +150,7 @@ public class S3ApplicationSettings implements ApplicationSettings {
         return StoredDataResult.of(storedIdToRequest, storedIdToImp, errors);
     }
 
+<<<<<<< HEAD
     @Override
     public Future<StoredDataResult<String>> getAmpStoredData(String accountId,
                                                              Set<String> requestIds,
@@ -163,6 +181,28 @@ public class S3ApplicationSettings implements ApplicationSettings {
                 Stream.concat(requestIds.stream(), impIds.stream())
                         .map(id -> "Profile not found for id: " + id)
                         .toList()));
+=======
+    private Set<String> missingStoredDataIds(Map<String, String> fileContents, Set<String> responseIds) {
+        return SetUtils.difference(responseIds, fileContents.keySet());
+    }
+
+    @Override
+    public Future<StoredDataResult> getAmpStoredData(String accountId,
+                                                     Set<String> requestIds,
+                                                     Set<String> impIds,
+                                                     Timeout timeout) {
+
+        return getStoredData(accountId, requestIds, Collections.emptySet(), timeout);
+    }
+
+    @Override
+    public Future<StoredDataResult> getVideoStoredData(String accountId,
+                                                       Set<String> requestIds,
+                                                       Set<String> impIds,
+                                                       Timeout timeout) {
+
+        return getStoredData(accountId, requestIds, impIds, timeout);
+>>>>>>> 04d9d4a13 (Initial commit)
     }
 
     @Override
@@ -235,8 +275,11 @@ public class S3ApplicationSettings implements ApplicationSettings {
 
         return promise.future();
     }
+<<<<<<< HEAD
 
     private Set<String> missingStoredDataIds(Map<String, String> fileContents, Set<String> requestedIds) {
         return SetUtils.difference(requestedIds, fileContents.keySet());
     }
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
 }

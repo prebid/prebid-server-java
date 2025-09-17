@@ -63,6 +63,9 @@ public class AccountAuctionConfig {
 
     @JsonAlias("impression-limit")
     Integer impressionLimit;
+<<<<<<< HEAD
 
     AccountProfilesConfig profiles;
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
 }

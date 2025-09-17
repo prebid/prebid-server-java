@@ -1,7 +1,10 @@
 package org.prebid.server.bidder.smartadserver;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+<<<<<<< HEAD
 import com.fasterxml.jackson.databind.node.ObjectNode;
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
@@ -31,7 +34,10 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+<<<<<<< HEAD
 import java.util.LinkedHashMap;
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
 import java.util.List;
 import java.util.Objects;
 
@@ -42,18 +48,26 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
             };
 
     private final String endpointUrl;
+<<<<<<< HEAD
     private final String secondaryEndpointUrl;
     private final JacksonMapper mapper;
 
     public SmartadserverBidder(String endpointUrl, String secondaryEndpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.secondaryEndpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(secondaryEndpointUrl));
+=======
+    private final JacksonMapper mapper;
+
+    public SmartadserverBidder(String endpointUrl, JacksonMapper mapper) {
+        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+>>>>>>> 04d9d4a13 (Initial commit)
         this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<BidderError> errors = new ArrayList<>();
+<<<<<<< HEAD
         final List<Imp> modifiedImps = new ArrayList<>();
         final LinkedHashMap<Imp, ExtImpSmartadserver> impToExtImpMap = new LinkedHashMap<>();
 
@@ -64,11 +78,21 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
                 final ExtImpSmartadserver extImp = parseImpExt(imp);
                 isProgrammaticGuaranteed |= extImp.isProgrammaticGuaranteed();
                 impToExtImpMap.put(imp, extImp);
+=======
+        final List<Imp> imps = new ArrayList<>();
+        ExtImpSmartadserver extImp = null;
+
+        for (Imp imp : request.getImp()) {
+            try {
+                extImp = parseImpExt(imp);
+                imps.add(imp);
+>>>>>>> 04d9d4a13 (Initial commit)
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
         }
 
+<<<<<<< HEAD
         if (impToExtImpMap.isEmpty()) {
             return Result.withErrors(errors);
         }
@@ -86,6 +110,18 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
                 outgoingRequest,
                 makeUrl(isProgrammaticGuaranteed),
                 mapper);
+=======
+        if (imps.isEmpty()) {
+            return Result.withErrors(errors);
+        }
+
+        final BidRequest outgoingRequest = request.toBuilder()
+                .imp(imps)
+                .site(modifySite(request.getSite(), extImp.getNetworkId()))
+                .build();
+
+        final HttpRequest<BidRequest> httpRequest = BidderUtil.defaultRequest(outgoingRequest, makeUrl(), mapper);
+>>>>>>> 04d9d4a13 (Initial commit)
         return Result.of(Collections.singletonList(httpRequest), errors);
     }
 
@@ -97,6 +133,7 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
         }
     }
 
+<<<<<<< HEAD
     private Imp modifyImp(Imp imp, ExtImpSmartadserver extImp, String impExtKey) {
         final ObjectNode impExt = imp.getExt().deepCopy();
         impExt.remove("bidder");
@@ -104,6 +141,8 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
         return imp.toBuilder().ext(impExt).build();
     }
 
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
     private static Site modifySite(Site site, Integer networkId) {
         final Site.SiteBuilder siteBuilder = site != null ? site.toBuilder() : Site.builder();
         final Publisher sitePublisher = site != null ? site.getPublisher() : null;
@@ -119,6 +158,7 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
         return publisherBuilder.id(String.valueOf(networkId)).build();
     }
 
+<<<<<<< HEAD
     private String makeUrl(boolean isProgrammaticGuaranteed) {
         final String url = isProgrammaticGuaranteed ? secondaryEndpointUrl : endpointUrl;
         try {
@@ -135,6 +175,19 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
         } catch (URISyntaxException e) {
             throw new PreBidException("Malformed URL: %s.".formatted(url));
         }
+=======
+    private String makeUrl() {
+        final URI uri;
+        try {
+            uri = new URI(endpointUrl);
+        } catch (URISyntaxException e) {
+            throw new PreBidException("Malformed URL: %s.".formatted(endpointUrl));
+        }
+        return new URIBuilder(uri)
+                .setPath(StringUtils.removeEnd(uri.getPath(), "/") + "/api/bid")
+                .addParameter("callerId", "5")
+                .toString();
+>>>>>>> 04d9d4a13 (Initial commit)
     }
 
     @Override

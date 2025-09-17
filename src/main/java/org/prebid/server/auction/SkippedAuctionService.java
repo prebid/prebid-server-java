@@ -7,7 +7,10 @@ import io.vertx.core.Future;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
+<<<<<<< HEAD
 import org.prebid.server.auction.externalortb.StoredResponseProcessor;
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.bidder.model.BidderError;

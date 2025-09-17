@@ -30,8 +30,12 @@ import org.prebid.server.auction.FpdResolver;
 import org.prebid.server.auction.GeoLocationServiceWrapper;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.OrtbTypesResolver;
+<<<<<<< HEAD
 import org.prebid.server.auction.externalortb.ProfilesProcessor;
 import org.prebid.server.auction.externalortb.StoredRequestProcessor;
+=======
+import org.prebid.server.auction.StoredRequestProcessor;
+>>>>>>> 04d9d4a13 (Initial commit)
 import org.prebid.server.auction.gpp.AmpGppService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.debug.DebugContext;
@@ -73,12 +77,20 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+<<<<<<< HEAD
 import java.util.function.UnaryOperator;
+=======
+import java.util.function.Function;
+>>>>>>> 04d9d4a13 (Initial commit)
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
+<<<<<<< HEAD
 import static java.util.function.UnaryOperator.identity;
+=======
+import static java.util.function.Function.identity;
+>>>>>>> 04d9d4a13 (Initial commit)
 import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
@@ -104,8 +116,11 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Mock(strictness = LENIENT)
     private StoredRequestProcessor storedRequestProcessor;
     @Mock(strictness = LENIENT)
+<<<<<<< HEAD
     private ProfilesProcessor profilesProcessor;
     @Mock(strictness = LENIENT)
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
     private BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
     @Mock(strictness = LENIENT)
     private AmpGppService ampGppService;
@@ -142,9 +157,12 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(ortbVersionConversionManager.convertToAuctionSupportedVersion(any()))
                 .willAnswer(invocation -> invocation.getArgument(0));
 
+<<<<<<< HEAD
         given(profilesProcessor.process(any(), any()))
                 .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(1)));
 
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
         given(ampGppService.contextFrom(any())).willReturn(Future.succeededFuture());
         given(ampGppService.updateBidRequest(any(), any()))
                 .willAnswer(invocation -> invocation.getArgument(0));
@@ -197,7 +215,10 @@ public class AmpRequestFactoryTest extends VertxTest {
         target = new AmpRequestFactory(
                 ortb2RequestFactory,
                 storedRequestProcessor,
+<<<<<<< HEAD
                 profilesProcessor,
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
                 ortbVersionConversionManager,
                 ampGppService,
                 ortbTypesResolver,
@@ -1743,6 +1764,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .isEqualTo(10000L);
     }
 
+<<<<<<< HEAD
     @Test
     public void shouldUseProfilesResult() {
         // given
@@ -1767,6 +1789,11 @@ public class AmpRequestFactoryTest extends VertxTest {
     private void givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> storedBidRequestBuilderCustomizer,
                                  Imp... imps) {
 
+=======
+    private void givenBidRequest(
+            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> storedBidRequestBuilderCustomizer,
+            Imp... imps) {
+>>>>>>> 04d9d4a13 (Initial commit)
         final List<Imp> impList = imps.length > 0 ? asList(imps) : null;
 
         given(storedRequestProcessor.processAmpRequest(any(), anyString(), any()))

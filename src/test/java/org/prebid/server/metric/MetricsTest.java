@@ -1571,6 +1571,7 @@ public class MetricsTest {
                 .isEqualTo(1);
     }
 
+<<<<<<< HEAD
     @Test
     public void shouldIncrementUpdateProfileMetric() {
         // when
@@ -1591,6 +1592,8 @@ public class MetricsTest {
                 .isEqualTo(1);
     }
 
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
     private void verifyCreatesConfiguredCounterType(Consumer<Metrics> metricsConsumer) {
         final EnumMap<CounterType, Class<? extends Metric>> counterTypeClasses = new EnumMap<>(CounterType.class);
         counterTypeClasses.put(CounterType.counter, Counter.class);

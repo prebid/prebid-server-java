@@ -129,9 +129,15 @@ public class VideoStoredRequestProcessor {
                 : null;
     }
 
+<<<<<<< HEAD
     private StoredDataResult<String> updateMetrics(StoredDataResult<String> storedDataResult,
                                                    Set<String> requestIds,
                                                    Set<String> impIds) {
+=======
+    private StoredDataResult updateMetrics(StoredDataResult storedDataResult,
+                                           Set<String> requestIds,
+                                           Set<String> impIds) {
+>>>>>>> 04d9d4a13 (Initial commit)
 
         requestIds.forEach(
                 id -> metrics.updateStoredRequestMetric(storedDataResult.getStoredIdToRequest().containsKey(id)));
@@ -142,7 +148,11 @@ public class VideoStoredRequestProcessor {
         return storedDataResult;
     }
 
+<<<<<<< HEAD
     private WithPodErrors<BidRequest> toBidRequestWithPodErrors(StoredDataResult<String> storedResult,
+=======
+    private WithPodErrors<BidRequest> toBidRequestWithPodErrors(StoredDataResult storedResult,
+>>>>>>> 04d9d4a13 (Initial commit)
                                                                 BidRequestVideo videoRequest,
                                                                 String storedBidRequestId) {
 
@@ -161,7 +171,11 @@ public class VideoStoredRequestProcessor {
 
     private BidRequestVideo mergeBidRequest(BidRequestVideo originalRequest,
                                             String storedRequestId,
+<<<<<<< HEAD
                                             StoredDataResult<String> storedDataResult) {
+=======
+                                            StoredDataResult storedDataResult) {
+>>>>>>> 04d9d4a13 (Initial commit)
 
         final String storedRequest = storedDataResult.getStoredIdToRequest().get(storedRequestId);
         if (enforceStoredRequest && StringUtils.isBlank(storedRequest)) {

@@ -11,8 +11,12 @@ import org.prebid.server.auction.GeoLocationServiceWrapper;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.InterstitialProcessor;
 import org.prebid.server.auction.OrtbTypesResolver;
+<<<<<<< HEAD
 import org.prebid.server.auction.externalortb.ProfilesProcessor;
 import org.prebid.server.auction.externalortb.StoredRequestProcessor;
+=======
+import org.prebid.server.auction.StoredRequestProcessor;
+>>>>>>> 04d9d4a13 (Initial commit)
 import org.prebid.server.auction.gpp.AuctionGppService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionStoredResult;
@@ -41,7 +45,10 @@ public class AuctionRequestFactory {
     private final long maxRequestSize;
     private final Ortb2RequestFactory ortb2RequestFactory;
     private final StoredRequestProcessor storedRequestProcessor;
+<<<<<<< HEAD
     private final ProfilesProcessor profilesProcessor;
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
     private final BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
     private final AuctionGppService gppService;
     private final CookieDeprecationService cookieDeprecationService;
@@ -60,7 +67,10 @@ public class AuctionRequestFactory {
     public AuctionRequestFactory(long maxRequestSize,
                                  Ortb2RequestFactory ortb2RequestFactory,
                                  StoredRequestProcessor storedRequestProcessor,
+<<<<<<< HEAD
                                  ProfilesProcessor profilesProcessor,
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
                                  BidRequestOrtbVersionConversionManager ortbVersionConversionManager,
                                  AuctionGppService gppService,
                                  CookieDeprecationService cookieDeprecationService,
@@ -77,7 +87,10 @@ public class AuctionRequestFactory {
         this.maxRequestSize = maxRequestSize;
         this.ortb2RequestFactory = Objects.requireNonNull(ortb2RequestFactory);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
+<<<<<<< HEAD
         this.profilesProcessor = Objects.requireNonNull(profilesProcessor);
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
         this.ortbVersionConversionManager = Objects.requireNonNull(ortbVersionConversionManager);
         this.gppService = Objects.requireNonNull(gppService);
         this.cookieDeprecationService = Objects.requireNonNull(cookieDeprecationService);
@@ -256,7 +269,11 @@ public class AuctionRequestFactory {
 
         final boolean hasStoredBidRequest = auctionStoredResult.hasStoredBidRequest();
 
+<<<<<<< HEAD
         return profilesProcessor.process(auctionContext, auctionStoredResult.bidRequest())
+=======
+        return Future.succeededFuture(auctionStoredResult.bidRequest())
+>>>>>>> 04d9d4a13 (Initial commit)
                 .map(ortbVersionConversionManager::convertToAuctionSupportedVersion)
                 .map(bidRequest -> gppService.updateBidRequest(bidRequest, auctionContext))
                 .map(bidRequest -> paramsResolver.resolve(bidRequest, auctionContext, ENDPOINT, hasStoredBidRequest))

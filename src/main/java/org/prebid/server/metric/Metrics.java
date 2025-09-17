@@ -59,7 +59,10 @@ public class Metrics extends UpdatableMetrics {
     private final CurrencyRatesMetrics currencyRatesMetrics;
     private final Map<MetricName, SettingsCacheMetrics> settingsCacheMetrics;
     private final HooksMetrics hooksMetrics;
+<<<<<<< HEAD
     private final ProfileMetrics profileMetrics;
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
 
     public Metrics(MetricRegistry metricRegistry,
                    CounterType counterType,
@@ -98,7 +101,10 @@ public class Metrics extends UpdatableMetrics {
         currencyRatesMetrics = new CurrencyRatesMetrics(metricRegistry, counterType);
         settingsCacheMetrics = new HashMap<>();
         hooksMetrics = new HooksMetrics(metricRegistry, counterType);
+<<<<<<< HEAD
         profileMetrics = new ProfileMetrics(metricRegistry, counterType);
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
     }
 
     RequestsMetrics requests() {
@@ -729,6 +735,7 @@ public class Metrics extends UpdatableMetrics {
         forAccount(account).activities().incCounter(MetricName.processed_rules_count);
     }
 
+<<<<<<< HEAD
     public void updateProfileMetric(MetricName metricName) {
         profileMetrics.incCounter(metricName);
     }
@@ -737,6 +744,8 @@ public class Metrics extends UpdatableMetrics {
         forAccount(account).profiles().incCounter(metricName);
     }
 
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
     private static class HookMetricMapper {
 
         private static final EnumMap<ExecutionStatus, MetricName> STATUS_TO_METRIC =

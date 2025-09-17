@@ -21,6 +21,10 @@ import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
+<<<<<<< HEAD
+=======
+import org.prebid.server.bidder.ix.model.request.IxDiag;
+>>>>>>> 04d9d4a13 (Initial commit)
 import org.prebid.server.bidder.ix.model.response.IxBidResponse;
 import org.prebid.server.bidder.ix.model.response.IxExtBidResponse;
 import org.prebid.server.bidder.ix.model.response.NativeV11Wrapper;
@@ -64,8 +68,11 @@ public class IxBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpIx>> IX_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
+<<<<<<< HEAD
     private static final String PBSP_JAVA = "java";
     private static final String PBS_VERSION_UNKNOWN = "unknown";
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
 
     private final String endpointUrl;
     private final PrebidVersionProvider prebidVersionProvider;
@@ -205,11 +212,19 @@ public class IxBidder implements Bidder<BidRequest> {
             modifiedExt = ExtRequest.empty();
         }
 
+<<<<<<< HEAD
         modifiedExt.addProperty("ixdiag", makeDiagData(extRequest, siteIds));
         return modifiedExt;
     }
 
     private ObjectNode makeDiagData(ExtRequest extRequest, Set<String> siteIds) {
+=======
+        modifiedExt.addProperty("ixdiag", mapper.mapper().valueToTree(makeDiagData(extRequest, siteIds)));
+        return modifiedExt;
+    }
+
+    private IxDiag makeDiagData(ExtRequest extRequest, Set<String> siteIds) {
+>>>>>>> 04d9d4a13 (Initial commit)
         final String pbjsv = Optional.ofNullable(extRequest)
                 .map(ExtRequest::getPrebid)
                 .map(ExtRequestPrebid::getChannel)
@@ -222,6 +237,7 @@ public class IxBidder implements Bidder<BidRequest> {
                 ? siteIds.stream().sorted().collect(Collectors.joining(", "))
                 : null;
 
+<<<<<<< HEAD
         final ObjectNode ixdiag = Optional.ofNullable(extRequest)
                 .map(ext -> ext.getProperty("ixdiag"))
                 .filter(JsonNode::isObject)
@@ -239,6 +255,9 @@ public class IxBidder implements Bidder<BidRequest> {
         }
 
         return ixdiag;
+=======
+        return IxDiag.of(pbsv, pbjsv, multipleSiteIds);
+>>>>>>> 04d9d4a13 (Initial commit)
     }
 
     @Override

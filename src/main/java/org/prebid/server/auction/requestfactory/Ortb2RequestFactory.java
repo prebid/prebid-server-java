@@ -23,11 +23,17 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
 import org.prebid.server.auction.IpAddressHelper;
+<<<<<<< HEAD
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.externalortb.ProfilesProcessor;
 import org.prebid.server.auction.externalortb.StoredRequestProcessor;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionStoredResult;
+=======
+import org.prebid.server.auction.StoredRequestProcessor;
+import org.prebid.server.auction.TimeoutResolver;
+import org.prebid.server.auction.model.AuctionContext;
+>>>>>>> 04d9d4a13 (Initial commit)
 import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.auction.model.TimeoutContext;
 import org.prebid.server.auction.model.debug.DebugContext;
@@ -103,7 +109,10 @@ public class Ortb2RequestFactory {
     private final TimeoutResolver timeoutResolver;
     private final TimeoutFactory timeoutFactory;
     private final StoredRequestProcessor storedRequestProcessor;
+<<<<<<< HEAD
     private final ProfilesProcessor profilesProcessor;
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
     private final ApplicationSettings applicationSettings;
     private final IpAddressHelper ipAddressHelper;
     private final HookStageExecutor hookStageExecutor;
@@ -119,7 +128,10 @@ public class Ortb2RequestFactory {
                                TimeoutResolver timeoutResolver,
                                TimeoutFactory timeoutFactory,
                                StoredRequestProcessor storedRequestProcessor,
+<<<<<<< HEAD
                                ProfilesProcessor profilesProcessor,
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
                                ApplicationSettings applicationSettings,
                                IpAddressHelper ipAddressHelper,
                                HookStageExecutor hookStageExecutor,
@@ -139,7 +151,10 @@ public class Ortb2RequestFactory {
         this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
+<<<<<<< HEAD
         this.profilesProcessor = Objects.requireNonNull(profilesProcessor);
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.ipAddressHelper = Objects.requireNonNull(ipAddressHelper);
         this.hookStageExecutor = Objects.requireNonNull(hookStageExecutor);
@@ -186,7 +201,11 @@ public class Ortb2RequestFactory {
         final Timeout timeout = auctionContext.getTimeoutContext().getTimeout();
         final HttpRequestContext httpRequest = auctionContext.getHttpRequest();
 
+<<<<<<< HEAD
         return findAccountIdFrom(auctionContext, bidRequest, isLookupStoredRequest)
+=======
+        return findAccountIdFrom(bidRequest, isLookupStoredRequest)
+>>>>>>> 04d9d4a13 (Initial commit)
                 .map(this::validateIfAccountBlocklisted)
                 .compose(accountId -> loadAccount(timeout, httpRequest, accountId));
     }
@@ -473,6 +492,7 @@ public class Ortb2RequestFactory {
         return timeoutFactory.create(startTime, timeout);
     }
 
+<<<<<<< HEAD
     private Future<String> findAccountIdFrom(AuctionContext auctionContext,
                                              BidRequest bidRequest,
                                              boolean isLookupStoredRequest) {
@@ -520,6 +540,14 @@ public class Ortb2RequestFactory {
     private Future<String> accountIdFromProfiles(AuctionContext auctionContext, BidRequest bidRequest) {
         return profilesProcessor.process(auctionContext, bidRequest)
                 .map(this::accountIdFromBidRequest);
+=======
+    private Future<String> findAccountIdFrom(BidRequest bidRequest, boolean isLookupStoredRequest) {
+        final String accountId = accountIdFrom(bidRequest);
+        return StringUtils.isNotBlank(accountId) || !isLookupStoredRequest
+                ? Future.succeededFuture(accountId)
+                : storedRequestProcessor.processAuctionRequest(accountId, bidRequest)
+                .map(storedAuctionResult -> accountIdFrom(storedAuctionResult.bidRequest()));
+>>>>>>> 04d9d4a13 (Initial commit)
     }
 
     private String validateIfAccountBlocklisted(String accountId) {
@@ -554,6 +582,43 @@ public class Ortb2RequestFactory {
                 : Future.succeededFuture(account);
     }
 
+<<<<<<< HEAD
+=======
+    /**
+     * Extracts publisher id either from {@link BidRequest}.app.publisher or {@link BidRequest}.site.publisher.
+     * If neither is present returns empty string.
+     */
+    private String accountIdFrom(BidRequest bidRequest) {
+        final App app = bidRequest.getApp();
+        final Publisher appPublisher = app != null ? app.getPublisher() : null;
+        final Site site = bidRequest.getSite();
+        final Publisher sitePublisher = site != null ? site.getPublisher() : null;
+        final Dooh dooh = bidRequest.getDooh();
+        final Publisher doohPublisher = dooh != null ? dooh.getPublisher() : null;
+
+        final Publisher publisher = ObjectUtils.firstNonNull(appPublisher, doohPublisher, sitePublisher);
+        final String publisherId = publisher != null ? resolvePublisherId(publisher) : null;
+        return ObjectUtils.defaultIfNull(publisherId, StringUtils.EMPTY);
+    }
+
+    /**
+     * Resolves what value should be used as a publisher id - either taken from publisher.ext.parentAccount
+     * or publisher.id in this respective priority.
+     */
+    private String resolvePublisherId(Publisher publisher) {
+        final String parentAccountId = parentAccountIdFromExtPublisher(publisher.getExt());
+        return ObjectUtils.defaultIfNull(parentAccountId, publisher.getId());
+    }
+
+    /**
+     * Parses publisher.ext and returns parentAccount value from it. Returns null if any parsing error occurs.
+     */
+    private String parentAccountIdFromExtPublisher(ExtPublisher extPublisher) {
+        final ExtPublisherPrebid extPublisherPrebid = extPublisher != null ? extPublisher.getPrebid() : null;
+        return extPublisherPrebid != null ? StringUtils.stripToNull(extPublisherPrebid.getParentAccount()) : null;
+    }
+
+>>>>>>> 04d9d4a13 (Initial commit)
     private Future<Account> wrapFailure(Throwable exception, String accountId, HttpRequestContext httpRequest) {
         if (exception instanceof UnauthorizedAccountException) {
             return Future.failedFuture(exception);

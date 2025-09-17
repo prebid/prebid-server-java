@@ -306,8 +306,13 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         def higherWidth = lowerWidth + 1
         def higherHigh = lowerHigh + 1
         def bidRequest = BidRequest.defaultBidRequest.tap {
+<<<<<<< HEAD
             imp[0].banner.format = [new Format(width: lowerWidth, height: lowerHigh),
                                     new Format(width: higherWidth, height: higherHigh)]
+=======
+            imp[0].banner.format = [new Format(weight: lowerWidth, height: lowerHigh),
+                                    new Format(weight: higherWidth, height: higherHigh)]
+>>>>>>> 04d9d4a13 (Initial commit)
         }
 
         and: "Account with enabled fetch, fetch.url in the DB"
@@ -374,19 +379,31 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         mediaType                                                            | impClosure
         org.prebid.server.functional.model.response.auction.MediaType.BANNER | { int widthVal, int heightVal ->
             Imp.getDefaultImpression(mediaType).tap {
+<<<<<<< HEAD
                 banner.format = [new Format(width: widthVal, height: heightVal)]
+=======
+                banner.format = [new Format(weight: widthVal, height: heightVal)]
+>>>>>>> 04d9d4a13 (Initial commit)
             }
         }
         org.prebid.server.functional.model.response.auction.MediaType.BANNER | { int widthVal, int heightVal ->
             Imp.getDefaultImpression(mediaType).tap {
                 banner.format = null
+<<<<<<< HEAD
                 banner.width = widthVal
+=======
+                banner.weight = widthVal
+>>>>>>> 04d9d4a13 (Initial commit)
                 banner.height = heightVal
             }
         }
         org.prebid.server.functional.model.response.auction.MediaType.VIDEO  | { int widthVal, int heightVal ->
             Imp.getDefaultImpression(mediaType).tap {
+<<<<<<< HEAD
                 video.width = widthVal
+=======
+                video.weight = widthVal
+>>>>>>> 04d9d4a13 (Initial commit)
                 video.height = heightVal
             }
         }

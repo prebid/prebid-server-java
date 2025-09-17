@@ -45,8 +45,11 @@ class Prebid {
     PaaFormat paaFormat
     @JsonProperty("alternatebiddercodes")
     AlternateBidderCodes alternateBidderCodes
+<<<<<<< HEAD
     @JsonProperty("profiles")
     List<String> profileNames
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
 
     static class Channel {
 

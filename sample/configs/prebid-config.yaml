@@ -1,4 +1,200 @@
 status-response: "ok"
+<<<<<<< HEAD
+=======
+
+spring:
+  main:
+    banner-mode: "off"
+
+# Configuración de valores por defecto para adaptadores
+adapter-defaults:
+  enabled: false
+  ortb-version: "2.5"
+  ortb:
+    multiformat-supported: true
+  pbs-enforces-ccpa: true
+  modifying-vast-xml-allowed: true
+  debug:
+    allow: true
+
+# Configuración de Vert.x
+vertx:
+  worker-pool-size: 20
+  uploads-dir: file-uploads
+  init-timeout-ms: 5000
+  enable-per-client-endpoint-metrics: false
+
+# Configuración de métricas
+metrics:
+  prefix: prebid
+  jmx:
+    enabled: false
+
+# URL externa (requerida por algunos bidders)
+external-url: http://localhost:8080
+
+# Configuración de identificación del servidor
+host-id: localhost
+datacenter-region: local
+vendor: local
+system: system
+sub-system: subSystem
+infra: infra
+data-center: dataCenter
+profile: profile
+
+# Configuración de host-cookie (IMPORTANTE: esta configuración faltaba)
+host-cookie:
+  opt-out-url: http://prebid.org/optout
+  opt-in-url: http://prebid.org/optin
+  ttl-days: 90
+  max-cookie-size-bytes: 4096
+
+# Configuración de IPv6 (requerida para ipAddressHelper)
+ipv6:
+  always-mask-right: 56
+  anon-left-mask-bits: 56
+  private-networks: "fc00::/7,fe80::/10,::1/128"
+
+# Configuración de CCPA (California Consumer Privacy Act)
+ccpa:
+  enforce: true
+
+# Configuración completa de GDPR
+gdpr:
+  enabled: true
+  default-value: 0
+  eea-countries: "at,bg,be,cy,cz,dk,ee,fi,fr,de,gr,hu,ie,it,lv,lt,lu,mt,nl,pl,pt,ro,sk,si,es,se,gb,is,no,li"
+  vendorlist:
+    default-timeout-ms: 2000
+    v2:
+      http-endpoint-template: "https://vendor-list.consensu.org/v2/archives/vendor-list-v{VERSION}.json"
+      refresh-missing-list-period-ms: 3600000
+      cache-dir: /var/tmp/vendor2
+      deprecated: false
+      retry-policy:
+        exponential-backoff:
+          delay-millis: 100
+          max-delay-millis: 1000
+          factor: 2.0
+          jitter: 0.1
+    v3:
+      http-endpoint-template: "https://vendor-list.consensu.org/v3/archives/vendor-list-v{VERSION}.json"
+      refresh-missing-list-period-ms: 3600000
+      cache-dir: /var/tmp/vendor3
+      deprecated: false
+      retry-policy:
+        exponential-backoff:
+          delay-millis: 100
+          max-delay-millis: 1000
+          factor: 2.0
+          jitter: 0.1
+  purposes:
+    p1:
+      enforce-purpose: full
+      enforce-vendors: true
+    p2:
+      enforce-purpose: full
+      enforce-vendors: true
+    p3:
+      enforce-purpose: full
+      enforce-vendors: true
+    p4:
+      enforce-purpose: full
+      enforce-vendors: true
+    p5:
+      enforce-purpose: full
+      enforce-vendors: true
+    p6:
+      enforce-purpose: full
+      enforce-vendors: true
+    p7:
+      enforce-purpose: full
+      enforce-vendors: true
+    p8:
+      enforce-purpose: full
+      enforce-vendors: true
+    p9:
+      enforce-purpose: full
+      enforce-vendors: true
+    p10:
+      enforce-purpose: full
+      enforce-vendors: true
+  special-features:
+    sf1:
+      enforce: true
+    sf2:
+      enforce: true
+
+# Configuración de LMT (Limit Ad Tracking)
+lmt:
+  enforce: true
+
+# Configuración completa de auction
+auction:
+  ad-server-currency: USD
+  blocklisted-accounts: []
+  blocklisted-apps: []
+  biddertmax:
+    min: 50
+    max: 5000
+    percent: 100
+  tmax-upstream-response-time: 30
+  stored-requests-timeout-ms: 100
+  timeout-notification:
+    timeout-ms: 200
+    log-result: false
+    log-failure-only: false
+    log-sampling-rate: 0.0
+  max-request-size: 262144
+  generate-bid-id: false
+  cache:
+    expected-request-time-ms: 10
+    only-winning-bids: false
+  validations:
+    banner-creative-max-size: skip
+    secure-markup: skip
+  host-schain-node: []
+  category-mapping-enabled: false
+  strict-app-site-dooh: true
+
+# Configuración de video
+video:
+  stored-request-required: false
+  stored-requests-timeout-ms: 90
+
+# Configuración de eventos
+event:
+  default-timeout-ms: 1000
+
+# Configuración de setuid
+setuid:
+  default-timeout-ms: 2000
+  number-of-uid-cookies: 1
+
+# Configuración de vtrack
+vtrack:
+  default-timeout-ms: 2000
+  allow-unknown-bidder: true
+  modify-vast-for-unknown-bidder: true
+
+# Configuración de cookie-sync
+cookie-sync:
+  default-limit: 8
+  coop-sync:
+    default: true
+  default-timeout-ms: 2000
+
+# Configuración de logging (necesaria para sampling-rate)
+logging:
+  sampling-rate: 0.01
+  http-interaction:
+    max-limit: 10000
+  change-level:
+    max-duration-ms: 60000
+
+# Configuración de adaptadores
+>>>>>>> 04d9d4a13 (Initial commit)
 adapters:
   appnexus:
     enabled: true
@@ -8,22 +204,45 @@ adapters:
     enabled: true
   pubmatic:
     enabled: true
+<<<<<<< HEAD
   rubicon:
     enabled: true
 metrics:
   prefix: prebid
+=======
+  bidmatic:
+    enabled: true
+  rubicon:
+    enabled: true
+  mockbider:
+    enabled: true
+  alvads:
+    enabled: true
+# Configuración de cache
+>>>>>>> 04d9d4a13 (Initial commit)
 cache:
   scheme: http
   host: localhost
   path: /cache
   query: uuid=
+<<<<<<< HEAD
 settings:
   enforce-valid-account: false
   generate-storedrequest-bidrequest-id: true
+=======
+
+# Configuración de settings (IMPORTANTE: faltaba targeting.truncate-attr-chars)
+settings:
+  enforce-valid-account: false
+  generate-storedrequest-bidrequest-id: true
+  targeting:
+    truncate-attr-chars: 20
+>>>>>>> 04d9d4a13 (Initial commit)
   filesystem:
     settings-filename: sample/configs/sample-app-settings.yaml
     stored-requests-dir: sample
     stored-imps-dir: sample
+<<<<<<< HEAD
     profiles-dir: sample
     stored-responses-dir: sample
     categories-dir:
@@ -34,9 +253,149 @@ gdpr:
       cache-dir: /var/tmp/vendor2
     v3:
       cache-dir: /var/tmp/vendor3
+=======
+    stored-responses-dir: sample
+    categories-dir:
+  in-memory-cache:
+    notification-endpoints-enabled: false
+  default-account-config: >
+    {
+      "auction": {
+        "price-floors": {
+          "enabled": true,
+          "fetch": {
+            "enabled": false,
+            "timeout-ms": 5000,
+            "max-rules": 0,
+            "max-schema-dims": 5,
+            "max-file-size-kb": 200,
+            "max-age-sec": 86400,
+            "period-sec": 3600
+          },
+          "enforce-floors-rate": 100,
+          "adjust-for-bid-adjustment": true,
+          "enforce-deal-floors": true,
+          "use-dynamic-data": true,
+          "max-rules": 100,
+          "max-schema-dims": 3
+        }
+      }
+    }
+
+# Configuración del convertidor de monedas
+currency-converter:
+  external-rates:
+    enabled: false
+    url: https://currencies.prebid.org
+    default-timeout-ms: 4000
+    refresh-period-ms: 900000
+
+# Configuración completa de admin endpoints
+>>>>>>> 04d9d4a13 (Initial commit)
 admin-endpoints:
   logging-changelevel:
     enabled: true
     path: /logging/changelevel
     on-application-port: true
     protected: false
+<<<<<<< HEAD
+=======
+  version:
+    enabled: true
+    path: /version
+    on-application-port: true
+    protected: false
+  collected-metrics:
+    enabled: false
+    path: /collected-metrics
+    on-application-port: true
+    protected: false
+  currency-rates:
+    enabled: false
+    path: /currency-rates
+    on-application-port: true
+    protected: false
+  storedrequest:
+    enabled: false
+    path: /storedrequest
+    on-application-port: true
+    protected: false
+  storedrequest-amp:
+    enabled: false
+    path: /storedrequest-amp
+    on-application-port: true
+    protected: false
+  cache-invalidation:
+    enabled: false
+    path: /cache-invalidation
+    on-application-port: true
+    protected: false
+  logging-httpinteraction:
+    enabled: false
+    path: /logging-httpinteraction
+    on-application-port: true
+    protected: false
+  tracelog:
+    enabled: false
+    path: /tracelog
+    on-application-port: true
+    protected: false
+
+# Configuración del puerto admin
+admin:
+  port: 8060
+
+# Configuración de geolocalización
+geolocation:
+  enabled: false
+
+# Configuración de health checks
+health-check:
+  geolocation:
+    enabled: false
+    refresh-period-ms: 30000
+  database:
+    enabled: false
+    refresh-period-ms: 30000
+
+# Configuración básica del servidor
+server:
+  max-initial-line-length: 8092
+  max-headers-size: 16384
+  ssl: false
+  jks-path:
+  jks-password:
+  unix-socket:
+    enabled: false
+    path:
+    server-instances: 1
+  http:
+    enabled: true
+    port: 8080
+    server-instances: 1
+  cpu-load-monitoring:
+    enabled: false
+    measurement-interval-ms: 60000
+  idle-timeout: 10
+
+# Configuración de HTTP client
+http-client:
+  max-pool-size: 4000
+  idle-timeout-ms: 0
+  pool-cleaner-period-ms: 1000
+  connect-timeout-ms: 2500
+  use-compression: true
+  max-redirects: 0
+  ssl: false
+  jks-path:
+  jks-password:
+
+# reCAPTCHA (para algunos endpoints específicos)
+recaptcha-url: https://www.google.com/recaptcha/api/siteverify
+recaptcha-secret: secret_value
+
+# Configuración de analytics (opcional)
+analytics:
+  global:
+    adapters: logAnalytics
+>>>>>>> 04d9d4a13 (Initial commit)

@@ -10,7 +10,11 @@
       },
       "ext": {
         "tid": "${json-unit.any-string}",
+<<<<<<< HEAD
         "smartadserver": {
+=======
+        "bidder": {
+>>>>>>> 04d9d4a13 (Initial commit)
           "siteId": 1,
           "pageId": 2,
           "formatId": 3,

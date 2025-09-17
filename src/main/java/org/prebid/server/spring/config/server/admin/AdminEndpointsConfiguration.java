@@ -76,34 +76,58 @@ public class AdminEndpointsConfiguration {
     @ConditionalOnExpression("${settings.in-memory-cache.notification-endpoints-enabled:false}"
             + " and ${admin-endpoints.storedrequest.enabled} == true")
     AdminResource cacheNotificationEndpoint(
+<<<<<<< HEAD
             @Value("${admin-endpoints.storedrequest.path}") String path,
             @Value("${admin-endpoints.storedrequest.on-application-port}") boolean isOnApplicationPort,
             @Value("${admin-endpoints.storedrequest.protected}") boolean isProtected,
             SettingsCache<String> settingsCache,
             JacksonMapper mapper) {
+=======
+            SettingsCache settingsCache,
+            JacksonMapper mapper,
+            @Value("${admin-endpoints.storedrequest.path}") String path,
+            @Value("${admin-endpoints.storedrequest.on-application-port}") boolean isOnApplicationPort,
+            @Value("${admin-endpoints.storedrequest.protected}") boolean isProtected) {
+>>>>>>> 04d9d4a13 (Initial commit)
 
         return new AdminResourceWrapper(
                 path,
                 isOnApplicationPort,
                 isProtected,
+<<<<<<< HEAD
                 new SettingsCacheNotificationHandler(path, settingsCache, mapper));
+=======
+                new SettingsCacheNotificationHandler(settingsCache, mapper, path));
+>>>>>>> 04d9d4a13 (Initial commit)
     }
 
     @Bean
     @ConditionalOnExpression("${settings.in-memory-cache.notification-endpoints-enabled:false}"
             + " and ${admin-endpoints.storedrequest-amp.enabled} == true")
     AdminResource ampCacheNotificationEndpoint(
+<<<<<<< HEAD
             @Value("${admin-endpoints.storedrequest-amp.path}") String path,
             @Value("${admin-endpoints.storedrequest-amp.on-application-port}") boolean isOnApplicationPort,
             @Value("${admin-endpoints.storedrequest-amp.protected}") boolean isProtected,
             SettingsCache<String> ampSettingsCache,
             JacksonMapper mapper) {
+=======
+            SettingsCache ampSettingsCache,
+            JacksonMapper mapper,
+            @Value("${admin-endpoints.storedrequest-amp.path}") String path,
+            @Value("${admin-endpoints.storedrequest-amp.on-application-port}") boolean isOnApplicationPort,
+            @Value("${admin-endpoints.storedrequest-amp.protected}") boolean isProtected) {
+>>>>>>> 04d9d4a13 (Initial commit)
 
         return new AdminResourceWrapper(
                 path,
                 isOnApplicationPort,
                 isProtected,
+<<<<<<< HEAD
                 new SettingsCacheNotificationHandler(path, ampSettingsCache, mapper));
+=======
+                new SettingsCacheNotificationHandler(ampSettingsCache, mapper, path));
+>>>>>>> 04d9d4a13 (Initial commit)
     }
 
     @Bean

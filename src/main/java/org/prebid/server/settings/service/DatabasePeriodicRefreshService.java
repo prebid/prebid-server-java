@@ -69,7 +69,11 @@ public class DatabasePeriodicRefreshService implements Initializable {
     private final long refreshPeriod;
     private final long timeout;
     private final MetricName cacheType;
+<<<<<<< HEAD
     private final CacheNotificationListener<String> cacheNotificationListener;
+=======
+    private final CacheNotificationListener cacheNotificationListener;
+>>>>>>> 04d9d4a13 (Initial commit)
     private final Vertx vertx;
     private final DatabaseClient databaseClient;
     private final TimeoutFactory timeoutFactory;
@@ -83,7 +87,11 @@ public class DatabasePeriodicRefreshService implements Initializable {
                                           long refreshPeriod,
                                           long timeout,
                                           MetricName cacheType,
+<<<<<<< HEAD
                                           CacheNotificationListener<String> cacheNotificationListener,
+=======
+                                          CacheNotificationListener cacheNotificationListener,
+>>>>>>> 04d9d4a13 (Initial commit)
                                           Vertx vertx,
                                           DatabaseClient databaseClient,
                                           TimeoutFactory timeoutFactory,
@@ -125,7 +133,11 @@ public class DatabasePeriodicRefreshService implements Initializable {
                 .recover(exception -> handleFailure(exception, startTime, MetricName.initialize));
     }
 
+<<<<<<< HEAD
     private Void handleResult(StoredDataResult<String> storedDataResult,
+=======
+    private Void handleResult(StoredDataResult storedDataResult,
+>>>>>>> 04d9d4a13 (Initial commit)
                               Instant updateTime,
                               long startTime,
                               MetricName refreshType) {
@@ -161,7 +173,11 @@ public class DatabasePeriodicRefreshService implements Initializable {
                 .recover(exception -> handleFailure(exception, startTime, MetricName.update));
     }
 
+<<<<<<< HEAD
     private StoredDataResult<String> invalidate(StoredDataResult<String> storedDataResult) {
+=======
+    private StoredDataResult invalidate(StoredDataResult storedDataResult) {
+>>>>>>> 04d9d4a13 (Initial commit)
         final List<String> invalidatedRequests = getInvalidatedKeys(storedDataResult.getStoredIdToRequest());
         final List<String> invalidatedImps = getInvalidatedKeys(storedDataResult.getStoredIdToImp());
 

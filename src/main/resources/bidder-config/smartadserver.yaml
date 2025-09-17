@@ -1,7 +1,10 @@
 adapters:
   smartadserver:
     endpoint: https://ssb-global.smartadserver.com
+<<<<<<< HEAD
     secondary-endpoint: https://prebid-global.smartadserver.com
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
     endpoint-compression: gzip
     aliases:
       equativ:

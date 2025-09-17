@@ -23,7 +23,10 @@ import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+<<<<<<< HEAD
 import org.apache.commons.lang3.tuple.Pair;
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
@@ -32,7 +35,10 @@ import org.prebid.server.activity.infrastructure.payload.impl.ActivityInvocation
 import org.prebid.server.activity.infrastructure.payload.impl.BidRequestActivityInvocationPayload;
 import org.prebid.server.auction.aliases.AlternateBidderCodesConfig;
 import org.prebid.server.auction.aliases.BidderAliases;
+<<<<<<< HEAD
 import org.prebid.server.auction.externalortb.StoredResponseProcessor;
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
 import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessingResult;
 import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessor;
 import org.prebid.server.auction.model.AuctionContext;
@@ -103,6 +109,10 @@ import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ListUtil;
 import org.prebid.server.util.PbsUtil;
 import org.prebid.server.util.StreamUtil;
+<<<<<<< HEAD
+=======
+import org.apache.commons.lang3.tuple.Pair;
+>>>>>>> 04d9d4a13 (Initial commit)
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -571,10 +581,17 @@ public class ExchangeService {
     }
 
     private Map<String, Pair<User, Device>> prepareUsersAndDevices(List<String> bidders,
+<<<<<<< HEAD
                                                                    AuctionContext context,
                                                                    BidderAliases aliases,
                                                                    Map<String, ExtBidderConfigOrtb> biddersToConfigs,
                                                                    Map<String, List<String>> eidPermissions) {
+=======
+                                           AuctionContext context,
+                                           BidderAliases aliases,
+                                           Map<String, ExtBidderConfigOrtb> biddersToConfigs,
+                                           Map<String, List<String>> eidPermissions) {
+>>>>>>> 04d9d4a13 (Initial commit)
 
         final BidRequest bidRequest = context.getBidRequest();
         final List<String> firstPartyDataBidders = firstPartyDataBidders(bidRequest.getExt());

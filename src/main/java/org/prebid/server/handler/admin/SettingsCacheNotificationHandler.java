@@ -19,6 +19,7 @@ import java.util.Objects;
  */
 public class SettingsCacheNotificationHandler implements Handler<RoutingContext> {
 
+<<<<<<< HEAD
     private final String endpoint;
     private final CacheNotificationListener<String> cacheNotificationListener;
     private final JacksonMapper mapper;
@@ -30,6 +31,17 @@ public class SettingsCacheNotificationHandler implements Handler<RoutingContext>
         this.endpoint = Objects.requireNonNull(endpoint);
         this.cacheNotificationListener = Objects.requireNonNull(cacheNotificationListener);
         this.mapper = Objects.requireNonNull(mapper);
+=======
+    private final CacheNotificationListener cacheNotificationListener;
+    private final JacksonMapper mapper;
+    private final String endpoint;
+
+    public SettingsCacheNotificationHandler(CacheNotificationListener cacheNotificationListener, JacksonMapper mapper,
+                                            String endpoint) {
+        this.cacheNotificationListener = Objects.requireNonNull(cacheNotificationListener);
+        this.mapper = Objects.requireNonNull(mapper);
+        this.endpoint = Objects.requireNonNull(endpoint);
+>>>>>>> 04d9d4a13 (Initial commit)
     }
 
     @Override
@@ -96,18 +108,26 @@ public class SettingsCacheNotificationHandler implements Handler<RoutingContext>
     }
 
     private void respondWithBadRequest(RoutingContext routingContext, String body) {
+<<<<<<< HEAD
         HttpUtil.executeSafely(
                 routingContext,
                 endpoint,
+=======
+        HttpUtil.executeSafely(routingContext, endpoint,
+>>>>>>> 04d9d4a13 (Initial commit)
                 response -> response
                         .setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
                         .end(body));
     }
 
     private void respondWith(RoutingContext routingContext, HttpResponseStatus status) {
+<<<<<<< HEAD
         HttpUtil.executeSafely(
                 routingContext,
                 endpoint,
+=======
+        HttpUtil.executeSafely(routingContext, endpoint,
+>>>>>>> 04d9d4a13 (Initial commit)
                 response -> response
                         .setStatusCode(status.code())
                         .end());

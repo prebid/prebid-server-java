@@ -1,0 +1,14 @@
+adapters:
+  alvads:
+    endpoint: https://helios-ads-qa-core.ssidevops.com/decision/openrtb
+    meta-info:
+      maintainer-email: alvads@oyealva.com
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 0
+

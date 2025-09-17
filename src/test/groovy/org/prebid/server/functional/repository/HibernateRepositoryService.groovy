@@ -3,14 +3,20 @@ package org.prebid.server.functional.repository
 import org.hibernate.SessionFactory
 import org.hibernate.cfg.Configuration
 import org.prebid.server.functional.model.db.Account
+<<<<<<< HEAD
 import org.prebid.server.functional.model.db.StoredProfileImp
 import org.prebid.server.functional.model.db.StoredProfileRequest
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
 import org.prebid.server.functional.model.db.StoredImp
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.db.StoredResponse
 import org.prebid.server.functional.repository.dao.AccountDao
+<<<<<<< HEAD
 import org.prebid.server.functional.repository.dao.ProfileImpDao
 import org.prebid.server.functional.repository.dao.ProfileRequestDao
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
 import org.prebid.server.functional.repository.dao.StoredImpDao
 import org.prebid.server.functional.repository.dao.StoredRequestDao
 import org.prebid.server.functional.repository.dao.StoredResponseDao
@@ -27,8 +33,11 @@ class HibernateRepositoryService {
     StoredImpDao storedImpDao
     StoredRequestDao storedRequestDao
     StoredResponseDao storedResponseDao
+<<<<<<< HEAD
     ProfileImpDao profileImpDao
     ProfileRequestDao profileRequestDao
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
 
     HibernateRepositoryService(JdbcDatabaseContainer container) {
         def jdbcUrl = container.jdbcUrl
@@ -44,8 +53,11 @@ class HibernateRepositoryService {
         storedImpDao = new StoredImpDao(entityManagerUtil)
         storedRequestDao = new StoredRequestDao(entityManagerUtil)
         storedResponseDao = new StoredResponseDao(entityManagerUtil)
+<<<<<<< HEAD
         profileImpDao = new ProfileImpDao(entityManagerUtil)
         profileRequestDao = new ProfileRequestDao(entityManagerUtil)
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
     }
 
     private static SessionFactory configureHibernate(String jdbcUrl,
@@ -67,8 +79,11 @@ class HibernateRepositoryService {
         configuration.addAnnotatedClass(StoredImp)
         configuration.addAnnotatedClass(StoredRequest)
         configuration.addAnnotatedClass(StoredResponse)
+<<<<<<< HEAD
         configuration.addAnnotatedClass(StoredProfileImp)
         configuration.addAnnotatedClass(StoredProfileRequest)
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
 
         SessionFactory sessionFactory = configuration.addProperties(properties).buildSessionFactory()
         sessionFactory
@@ -79,7 +94,10 @@ class HibernateRepositoryService {
         storedImpDao.removeAll()
         storedRequestDao.removeAll()
         storedResponseDao.removeAll()
+<<<<<<< HEAD
         profileImpDao.removeAll()
         profileRequestDao.removeAll()
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
     }
 }

@@ -16,7 +16,11 @@ class Video {
     Integer poddur
     List<Integer> protocols
     @JsonProperty("w")
+<<<<<<< HEAD
     Integer width
+=======
+    Integer weight
+>>>>>>> 04d9d4a13 (Initial commit)
     @JsonProperty("h")
     Integer height
     Integer podid
@@ -47,6 +51,10 @@ class Video {
     List<Integer> podDeduplication
 
     static Video getDefaultVideo() {
+<<<<<<< HEAD
         new Video(mimes: ["video/mp4"], width: 300, height: 200)
+=======
+        new Video(mimes: ["video/mp4"], weight: 300, height: 200)
+>>>>>>> 04d9d4a13 (Initial commit)
     }
 }

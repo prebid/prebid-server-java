@@ -7,6 +7,7 @@ adapters:
         endpoint: http://rtb.connektai.live/?pid={{SourceId}}&host={{Host}}&s=pbs
         meta-info:
           maintainer-email: adops@connekt.ai
+<<<<<<< HEAD
       adipolo:
         enabled: false
         endpoint: http://rtb.adipolo.live?pid={{SourceId}}&host={{Host}}&pbs=1
@@ -23,6 +24,8 @@ adapters:
             url: https://sync.adipolo.live/static/adisync.html?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&cb={{redirect_url}}
             support-cors: false
             uid-macro: '$UID'
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
     meta-info:
       maintainer-email: team@xe.works
       app-media-types:

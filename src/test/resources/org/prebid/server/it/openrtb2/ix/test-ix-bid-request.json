@@ -62,6 +62,7 @@
       }
     },
     "ixdiag": {
+<<<<<<< HEAD
       "pbsv": "{{ pbs.java.version }}",
       "pbsp": "java",
       "msd": 2,
@@ -69,6 +70,9 @@
       "mfu": 0,
       "ren": false,
       "version": "6.29.1"
+=======
+      "pbsv": "{{ pbs.java.version }}"
+>>>>>>> 04d9d4a13 (Initial commit)
     }
   }
 }

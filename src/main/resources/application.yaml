@@ -111,9 +111,12 @@ auction:
     percent: 100
   tmax-upstream-response-time: 30
   stored-requests-timeout-ms: 100
+<<<<<<< HEAD
   profiles:
     limit: 4
     timeout-ms: 100
+=======
+>>>>>>> 04d9d4a13 (Initial commit)
   timeout-notification:
     timeout-ms: 200
     log-result: false
