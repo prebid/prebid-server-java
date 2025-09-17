@@ -6,7 +6,6 @@ import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
-import com.iab.openrtb.request.Video;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
@@ -204,7 +203,7 @@ public class ShowheroesBidderTest extends VertxTest {
     public void makeHttpRequestsShouldCreateSingleRequestForAllImps() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .site(Site.builder().page("https://example.com").build())
+                .site(Site.builder().page("https://test-example.com").build())
                 .imp(List.of(
                         givenImp(impBuilder -> impBuilder.id("imp1")),
                         givenImp(impBuilder -> impBuilder.id("imp2"))))
@@ -242,23 +241,9 @@ public class ShowheroesBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
-        // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null);
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -271,8 +256,7 @@ public class ShowheroesBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
-                mapper.writeValueAsString(BidResponse.builder().build()));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(BidResponse.builder().build());
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -285,8 +269,7 @@ public class ShowheroesBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsEmpty() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
-                mapper.writeValueAsString(BidResponse.builder().seatbid(List.of()).build()));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(BidResponse.builder().seatbid(List.of()).build());
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -300,14 +283,7 @@ public class ShowheroesBidderTest extends VertxTest {
     public void makeBidsShouldReturnBannerBidIfBannerIsPresentInImp() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder()
-                                .id("123")
-                                .banner(Banner.builder().build())
-                                .build()))
-                        .build(),
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123").mtype(1))));
+                givenBidResponse(bidBuilder -> bidBuilder.impid("123").mtype(1)));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -315,22 +291,15 @@ public class ShowheroesBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .extracting(BidderBid::getType)
-                .containsExactly(banner);
+                .extracting(BidderBid::getBid, BidderBid::getType)
+                .containsExactly(tuple(Bid.builder().impid("123").mtype(1).build(), banner));
     }
 
     @Test
     public void makeBidsShouldReturnVideoBidIfVideoIsPresentInImp() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder()
-                                .id("123")
-                                .video(Video.builder().build())
-                                .build()))
-                        .build(),
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123").mtype(2))));
+                givenBidResponse(bidBuilder -> bidBuilder.impid("123").mtype(2)));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -338,22 +307,15 @@ public class ShowheroesBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .extracting(BidderBid::getType)
-                .containsExactly(video);
+                .extracting(BidderBid::getBid, BidderBid::getType)
+                .containsExactly(tuple(Bid.builder().impid("123").mtype(2).build(), video));
     }
 
     @Test
     public void makeBidsShouldReturnVideoBidByDefaultWhenMtypeIsUnknown() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder()
-                                .id("123")
-                                .video(Video.builder().build())
-                                .build()))
-                        .build(),
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123").mtype(99))));
+                givenBidResponse(bidBuilder -> bidBuilder.impid("123").mtype(99)));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -361,22 +323,15 @@ public class ShowheroesBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .extracting(BidderBid::getType)
-                .containsExactly(video);
+                .extracting(BidderBid::getBid, BidderBid::getType)
+                .containsExactly(tuple(Bid.builder().impid("123").mtype(99).build(), video));
     }
 
     @Test
     public void makeBidsShouldReturnCorrectBidderBid() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder()
-                                .id("123")
-                                .banner(Banner.builder().build())
-                                .build()))
-                        .build(),
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123").price(BigDecimal.ONE))));
+                givenBidResponse(bidBuilder -> bidBuilder.impid("123").price(BigDecimal.ONE)));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -393,18 +348,13 @@ public class ShowheroesBidderTest extends VertxTest {
     public void makeBidsShouldReturnMultipleBids() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(List.of(
-                                Imp.builder().id("123").banner(Banner.builder().build()).build(),
-                                Imp.builder().id("456").video(Video.builder().build()).build()))
-                        .build(),
-                mapper.writeValueAsString(BidResponse.builder()
+                BidResponse.builder()
                         .seatbid(singletonList(SeatBid.builder()
                                 .bid(List.of(
                                         Bid.builder().impid("123").mtype(1).price(BigDecimal.ONE).build(),
                                         Bid.builder().impid("456").mtype(2).price(BigDecimal.TEN).build()))
                                 .build()))
-                        .build()));
+                        .build());
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -420,7 +370,7 @@ public class ShowheroesBidderTest extends VertxTest {
 
     private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return BidRequest.builder()
-                .site(Site.builder().page("https://example.com").build())
+                .site(Site.builder().page("https://test-example.com").build())
                 .imp(singletonList(givenImp(impCustomizer)))
                 .build();
     }
@@ -441,10 +391,12 @@ public class ShowheroesBidderTest extends VertxTest {
                 .build();
     }
 
-    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+    private static BidderCall<BidRequest> givenHttpCall(BidResponse bidResponse)
+            throws JsonProcessingException {
+
         return BidderCall.succeededHttp(
-                HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
-                HttpResponse.of(200, null, body),
+                null,
+                HttpResponse.of(200, null, mapper.writeValueAsString(bidResponse)),
                 null);
     }
 }
