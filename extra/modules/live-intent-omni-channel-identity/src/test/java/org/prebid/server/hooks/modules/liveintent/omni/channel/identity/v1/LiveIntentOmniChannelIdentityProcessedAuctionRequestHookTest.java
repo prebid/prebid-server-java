@@ -14,9 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.activity.Activity;
-import org.prebid.server.activity.infrastructure.ActivityController;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
-import org.prebid.server.activity.infrastructure.debug.ActivityInfrastructureDebug;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
 import org.prebid.server.hooks.execution.v1.auction.AuctionInvocationContextImpl;
@@ -35,7 +33,6 @@ import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
 import static java.util.Collections.singletonList;
@@ -60,11 +57,17 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
     @Mock
     private HttpClient httpClient;
 
-    @Mock
-    private ActivityInfrastructureDebug activityInfrastructureDebug;
-
     @Mock(strictness = LENIENT)
     private LiveIntentOmniChannelProperties properties;
+
+    @Mock
+    private ActivityInfrastructure activityInfrastructure;
+
+    @Mock
+    private AuctionInvocationContext auctionInvocationContext;
+
+    @Mock
+    private AuctionContext auctionContext;
 
     private LiveIntentOmniChannelIdentityProcessedAuctionRequestHook target;
 
@@ -74,6 +77,10 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
         given(properties.getIdentityResolutionEndpoint()).willReturn("https://test.com/idres");
         given(properties.getAuthToken()).willReturn("auth_token");
         given(properties.getTreatmentRate()).willReturn(1.0f);
+
+        given(auctionInvocationContext.auctionContext()).willReturn(auctionContext);
+        given(auctionContext.getActivityInfrastructure()).willReturn(activityInfrastructure);
+        given(activityInfrastructure.isAllowed(any(), any())).willReturn(true);
 
         target = new LiveIntentOmniChannelIdentityProcessedAuctionRequestHook(
                 properties, userFpdActivityMask, MAPPER, httpClient, 0.01d);
@@ -134,20 +141,8 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
         given(httpClient.post(any(), any(), any(), anyLong()))
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, responseBody)));
 
-        final ActivityController activityController = ActivityController.of(
-                false, List.of(), activityInfrastructureDebug);
-
-        final ActivityInfrastructure givenActivityInfrastructure = new ActivityInfrastructure(
-                Map.of(Activity.TRANSMIT_TID, activityController,
-                        Activity.TRANSMIT_UFPD, activityController),
-                activityInfrastructureDebug);
-
-        final AuctionInvocationContext auctionInvocationContext = AuctionInvocationContextImpl.of(
-                null,
-                AuctionContext.builder().activityInfrastructure(givenActivityInfrastructure).build(),
-                false,
-                null,
-                null);
+        given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_GEO), any())).willReturn(false);
+        given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_UFPD), any())).willReturn(false);
 
         // when
         final InvocationResult<AuctionRequestPayload> result =
@@ -177,20 +172,8 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
         given(httpClient.post(any(), any(), any(), anyLong()))
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, responseBody)));
 
-        final ActivityController activityController = ActivityController.of(
-                false, List.of(), activityInfrastructureDebug);
-
-        final ActivityInfrastructure givenActivityInfrastructure = new ActivityInfrastructure(
-                Map.of(Activity.TRANSMIT_TID, activityController,
-                        Activity.TRANSMIT_UFPD, activityController),
-                activityInfrastructureDebug);
-
-        final AuctionInvocationContext auctionInvocationContext = AuctionInvocationContextImpl.of(
-                null,
-                AuctionContext.builder().activityInfrastructure(givenActivityInfrastructure).build(),
-                false,
-                null,
-                null);
+        given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_TID), any())).willReturn(false);
+        given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_UFPD), any())).willReturn(false);
 
         // when
         final InvocationResult<AuctionRequestPayload> result =
@@ -222,20 +205,8 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
         given(httpClient.post(any(), any(), any(), anyLong()))
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, responseBody)));
 
-        final ActivityController activityController = ActivityController.of(
-                false, List.of(), activityInfrastructureDebug);
-
-        final ActivityInfrastructure givenActivityInfrastructure = new ActivityInfrastructure(
-                Map.of(Activity.TRANSMIT_EIDS, activityController,
-                        Activity.TRANSMIT_UFPD, activityController),
-                activityInfrastructureDebug);
-
-        final AuctionInvocationContext auctionInvocationContext = AuctionInvocationContextImpl.of(
-                null,
-                AuctionContext.builder().activityInfrastructure(givenActivityInfrastructure).build(),
-                false,
-                null,
-                null);
+        given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_EIDS), any())).willReturn(false);
+        given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_UFPD), any())).willReturn(false);
 
         // when
         final InvocationResult<AuctionRequestPayload> result =
