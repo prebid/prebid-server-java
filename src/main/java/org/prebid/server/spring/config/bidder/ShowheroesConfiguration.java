@@ -31,10 +31,10 @@ public class ShowheroesConfiguration {
 
     @Bean
     BidderDeps showheroesBidderDeps(BidderConfigurationProperties showheroesConfigurationProperties,
-                                      @NotBlank @Value("${external-url}") String externalUrl,
-                                      CurrencyConversionService currencyConversionService,
-                                      PrebidVersionProvider prebidVersionProvider,
-                                      JacksonMapper mapper) {
+                                    @NotBlank @Value("${external-url}") String externalUrl,
+                                    CurrencyConversionService currencyConversionService,
+                                    PrebidVersionProvider prebidVersionProvider,
+                                    JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(showheroesConfigurationProperties)
