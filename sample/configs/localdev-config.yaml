@@ -14,6 +14,7 @@ settings:
     settings-filename: sample/configs/sample-app-settings.yaml
     stored-requests-dir: sample/stored
     stored-imps-dir: sample/stored
+    profiles-dir: sample/profiles
     stored-responses-dir: sample/stored
     categories-dir:
 gdpr:
