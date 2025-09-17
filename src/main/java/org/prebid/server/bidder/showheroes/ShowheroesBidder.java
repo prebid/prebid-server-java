@@ -2,15 +2,18 @@ package org.prebid.server.bidder.showheroes;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -43,7 +46,6 @@ import java.util.Optional;
 public class ShowheroesBidder implements Bidder<BidRequest> {
 
     private static final String BID_CURRENCY = "EUR";
-    private static final String DEFAULT_ORTB_CURRENCY = "USD";
     private static final String PBSP_JAVA = "java";
     private static final TypeReference<ExtPrebid<?, ExtImpShowheroes>> SHOWHEROES_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
@@ -55,9 +57,9 @@ public class ShowheroesBidder implements Bidder<BidRequest> {
     private final String pbsVersion;
 
     public ShowheroesBidder(String endpointUrl,
-            CurrencyConversionService currencyConversionService,
-            PrebidVersionProvider prebidVersionProvider,
-            JacksonMapper mapper) {
+                            CurrencyConversionService currencyConversionService,
+                            PrebidVersionProvider prebidVersionProvider,
+                            JacksonMapper mapper) {
 
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
@@ -66,151 +68,123 @@ public class ShowheroesBidder implements Bidder<BidRequest> {
         this.pbsVersion = prebidVersionProvider.getNameVersionRecord();
     }
 
-    private BidderError validate(BidRequest bidRequest) {
-        // request must contain site object with page or app object with bundle
-        if (bidRequest.getSite() == null && bidRequest.getApp() == null) {
-            return BidderError.badInput("BidRequest must contain one of site or app");
-        }
-        if (bidRequest.getSite() != null && bidRequest.getSite().getPage() == null) {
-            return BidderError.badInput("BidRequest.site.page is required");
-        }
-        if (bidRequest.getApp() != null && bidRequest.getApp().getBundle() == null) {
-            return BidderError.badInput("BidRequest.app.bundle is required");
-        }
-        return null;
-    }
-
-    private ExtRequestPrebidChannel getPrebidChannel(BidRequest bidRequest) {
-        return Optional.ofNullable(bidRequest.getExt())
-                .map(ExtRequest::getPrebid)
-                .map(ExtRequestPrebid::getChannel)
-                .orElse(null);
-    }
-
-    private Imp processImpression(BidRequest bidRequest, Imp imp, ExtRequestPrebidChannel prebidChannel) {
-        if (imp.getBanner() == null && imp.getVideo() == null) {
-            throw new PreBidException("Impression must contain one of banner or video");
-        }
-
-        final ExtImpShowheroes extImpShowheroes = mapper.mapper()
-                .convertValue(imp.getExt(), SHOWHEROES_EXT_TYPE_REFERENCE).getBidder();
-        if (extImpShowheroes == null || extImpShowheroes.getUnitId() == null
-                || extImpShowheroes.getUnitId().isBlank()) {
-            throw new PreBidException("unitId is required");
-        }
-
-        String channelName = null;
-        String channelVersion = null;
-        if (prebidChannel != null) {
-            channelName = prebidChannel.getName();
-            channelVersion = prebidChannel.getVersion();
-        }
-
-        final ObjectNode impExt = imp.getExt();
-
-        final Imp.ImpBuilder impBuilder = imp.toBuilder();
-
-        // copy unitId from ext.bidder to ext.params
-        impExt.set("params", JsonNodeFactory.instance.objectNode()
-                .put("unitId", extImpShowheroes.getUnitId()));
-
-        impBuilder.ext(impExt);
-        if (imp.getDisplaymanager() == null && channelName != null) {
-            impBuilder.displaymanager(channelName);
-            impBuilder.displaymanagerver(channelVersion);
-        }
-
-        String currency = imp.getBidfloorcur();
-        // if floor price is 0, or currency is EUR - no need to convert
-        if (imp.getBidfloor() == null || imp.getBidfloor().compareTo(BigDecimal.ZERO) == 0
-                || currency == BID_CURRENCY) {
-            return impBuilder.build();
-        }
-        if (currency != null && !currency.isBlank()) {
-            // if not provided default currency is USD
-            currency = DEFAULT_ORTB_CURRENCY;
-        }
-
-        final BigDecimal eurFloor = currencyConversionService.convertCurrency(
-                imp.getBidfloor(), bidRequest, currency, BID_CURRENCY);
-        return impBuilder
-                .bidfloorcur(BID_CURRENCY)
-                .bidfloor(eurFloor)
-                .build();
-    }
-
-    private Source getPBSSource(BidRequest bidRequest) {
-        Source source = bidRequest.getSource();
-        if (source == null) {
-            source = Source.builder().build();
-        }
-
-        ExtSource extSource = source.getExt();
-        if (extSource == null) {
-            extSource = ExtSource.of(null);
-        }
-
-        JsonNode prebidExt = extSource.getProperty("pbs");
-        if (prebidExt == null || !prebidExt.isObject()) {
-            prebidExt = mapper.mapper().createObjectNode();
-        }
-
-        ((ObjectNode) prebidExt).put("pbsv", pbsVersion).put("pbsp", PBSP_JAVA);
-
-        extSource.addProperty("pbs", prebidExt);
-
-        return source.toBuilder().ext(extSource).build();
-    }
-
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final BidderError validationError = validate(request);
+        final BidderError validationError = validate(request.getSite(), request.getApp());
         if (validationError != null) {
-            return Result.of(Collections.emptyList(), List.of(validationError));
+            return Result.withError(validationError);
         }
 
         final List<BidderError> errors = new ArrayList<>();
-        final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
 
         final ExtRequestPrebidChannel prebidChannel = getPrebidChannel(request);
         final List<Imp> modifiedImps = new ArrayList<>(request.getImp().size());
 
         for (Imp impression : request.getImp()) {
             try {
-                modifiedImps.add(processImpression(request, impression, prebidChannel));
+                modifiedImps.add(modifyImp(request, impression, prebidChannel));
             } catch (Exception e) {
                 errors.add(BidderError.badInput(e.getMessage()));
-                continue;
             }
         }
 
         if (modifiedImps.isEmpty()) {
-            return Result.of(httpRequests, errors);
-        }
-        Source source = request.getSource();
-        if (pbsVersion != null) {
-            source = getPBSSource(request);
+            return Result.withErrors(errors);
         }
 
-        httpRequests.add(makeHttpRequest(request.toBuilder().imp(modifiedImps).source(source).build()));
-        return Result.of(httpRequests, errors);
+        final Source source = modifySource(request);
+        final BidRequest modifiedRequest = request.toBuilder().imp(modifiedImps).source(source).build();
+        final HttpRequest<BidRequest> httpRequest = BidderUtil.defaultRequest(modifiedRequest, endpointUrl, mapper);
+
+        return Result.of(Collections.singletonList(httpRequest), errors);
     }
 
-    private HttpRequest<BidRequest> makeHttpRequest(BidRequest request) {
-        return BidderUtil.defaultRequest(request, endpointUrl, mapper);
+    private static BidderError validate(Site site, App app) {
+        if (site == null && app == null) {
+            return BidderError.badInput("BidRequest must contain one of site or app");
+        }
+        if (site != null && site.getPage() == null) {
+            return BidderError.badInput("BidRequest.site.page is required");
+        }
+        if (app != null && app.getBundle() == null) {
+            return BidderError.badInput("BidRequest.app.bundle is required");
+        }
+        return null;
+    }
+
+    private static ExtRequestPrebidChannel getPrebidChannel(BidRequest bidRequest) {
+        return Optional.ofNullable(bidRequest.getExt())
+                .map(ExtRequest::getPrebid)
+                .map(ExtRequestPrebid::getChannel)
+                .orElse(null);
+    }
+
+    private Imp modifyImp(BidRequest bidRequest, Imp imp, ExtRequestPrebidChannel prebidChannel) {
+        final ExtImpShowheroes extImpShowheroes = parseImpExt(imp);
+
+        final Imp.ImpBuilder impBuilder = imp.toBuilder();
+
+        if (prebidChannel != null && imp.getDisplaymanager() == null) {
+            impBuilder.displaymanager(prebidChannel.getName());
+            impBuilder.displaymanagerver(prebidChannel.getVersion());
+        }
+
+        impBuilder.ext(modifyImpExt(imp, extImpShowheroes));
+
+        if (!shouldConvertFloor(imp)) {
+            return impBuilder.build();
+        }
+
+        return impBuilder
+                .bidfloorcur(BID_CURRENCY)
+                .bidfloor(resolveBidFloor(bidRequest, imp))
+                .build();
+    }
+
+    private ExtImpShowheroes parseImpExt(Imp imp) {
+        try {
+            return mapper.mapper().convertValue(imp.getExt(), SHOWHEROES_EXT_TYPE_REFERENCE).getBidder();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(e.getMessage());
+        }
+    }
+
+    private ObjectNode modifyImpExt(Imp imp, ExtImpShowheroes shImpExt) {
+        final ObjectNode impExt = ObjectUtils.defaultIfNull(imp.getExt(), mapper.mapper().createObjectNode());
+        impExt.set("params", mapper.mapper().createObjectNode().put("unitId", shImpExt.getUnitId()));
+        return impExt;
+    }
+
+    private static boolean shouldConvertFloor(Imp imp) {
+        return BidderUtil.isValidPrice(imp.getBidfloor())
+                && !StringUtils.equalsIgnoreCase(imp.getBidfloorcur(), BID_CURRENCY);
+    }
+
+    private BigDecimal resolveBidFloor(BidRequest bidRequest, Imp imp) {
+        return currencyConversionService.convertCurrency(
+                imp.getBidfloor(), bidRequest, imp.getBidfloorcur(), BID_CURRENCY);
+    }
+
+    private Source modifySource(BidRequest bidRequest) {
+        if (pbsVersion == null) {
+            return bidRequest.getSource();
+        }
+        final Source source = ObjectUtils.defaultIfNull(bidRequest.getSource(), Source.builder().build());
+        final ExtSource extSource = ObjectUtils.defaultIfNull(source.getExt(), ExtSource.of(null));
+        final ObjectNode prebidExtSource = Optional.ofNullable(extSource.getProperty("pbs"))
+                .filter(JsonNode::isObject)
+                .map(ObjectNode.class::cast)
+                .orElseGet(() -> mapper.mapper().createObjectNode())
+                .put("pbsv", pbsVersion)
+                .put("pbsp", PBSP_JAVA);
+
+        extSource.addProperty("pbs", prebidExtSource);
+        return source.toBuilder().ext(extSource).build();
     }
 
     @Override
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         final BidResponse bidResponse;
-        final int statusCode = httpCall.getResponse().getStatusCode();
-        if (statusCode == 204) {
-            return Result.of(Collections.emptyList(), Collections.emptyList());
-        }
-        if (statusCode != 200) {
-            return Result.withError(BidderError.badServerResponse(
-                    "Unexpected status code: " + statusCode));
-        }
 
         try {
             bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
@@ -241,7 +215,7 @@ public class ShowheroesBidder implements Bidder<BidRequest> {
         return switch (bid.getMtype()) {
             case 1 -> BidType.banner;
             case 2 -> BidType.video;
-            case null, default -> BidType.video; // if not provided video is assumed
+            case null, default -> BidType.video;
         };
     }
 }
