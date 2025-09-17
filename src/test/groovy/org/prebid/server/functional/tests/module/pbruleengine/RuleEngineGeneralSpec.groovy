@@ -1,7 +1,6 @@
 package org.prebid.server.functional.tests.module.pbruleengine
 
 import org.prebid.server.functional.model.ChannelType
-import org.prebid.server.functional.model.UidsCookie
 import org.prebid.server.functional.model.bidder.Openx
 import org.prebid.server.functional.model.config.RuleEngineFunctionArgs
 import org.prebid.server.functional.model.config.RuleEngineModelDefault
@@ -37,7 +36,6 @@ import org.prebid.server.functional.model.response.auction.BidRejectionReason
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.TcfConsent
-import spock.lang.RepeatUntilFailure
 
 import java.time.Instant
 
