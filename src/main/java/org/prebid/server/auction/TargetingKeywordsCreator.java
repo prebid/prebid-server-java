@@ -14,7 +14,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Used throughout Prebid to create targeting keys as keys which can be used in an ad server like DFP.
@@ -267,33 +266,36 @@ public class TargetingKeywordsCreator {
     private Map<String, String> truncateKeys(Map<String, String> keyValues,
                                              Map<String, List<ExtBidderError>> bidWarnings) {
 
-        if (truncateAttrChars > 0) {
-            final List<String> truncatedKeys = new ArrayList<>();
-            final Map<String, String> keys = keyValues.entrySet().stream().collect(Collectors.toMap(
-                    keyValue -> truncateKey(keyValue.getKey(), truncatedKeys),
-                    Map.Entry::getValue,
-                    (key1, key2) -> key1));
-
-            if (!truncatedKeys.isEmpty()) {
-                final String errorMessage = "The following keys have been truncated: %s"
-                        .formatted(String.join(", ", truncatedKeys));
-                bidWarnings.computeIfAbsent("targeting", ignored -> new ArrayList<>())
-                        .add(ExtBidderError.of(BidderError.Type.bad_input.getCode(), errorMessage));
-            }
-
-            return keys;
+        if (truncateAttrChars <= 0) {
+            return keyValues;
         }
 
-        return keyValues;
+        final Map<String, String> keys = new HashMap<>();
+        final List<String> truncatedKeys = new ArrayList<>();
+        for (Map.Entry<String, String> entry : keyValues.entrySet()) {
+            final String key = entry.getKey();
+            final String truncatedKey = truncateKey(key);
+            keys.putIfAbsent(truncatedKey, entry.getValue());
+
+            if (truncatedKey.length() != key.length()) {
+                truncatedKeys.add(key);
+            }
+        }
+
+        if (!truncatedKeys.isEmpty()) {
+            final String errorMessage = "The following keys have been truncated: %s"
+                    .formatted(String.join(", ", truncatedKeys));
+            bidWarnings.computeIfAbsent("targeting", ignored -> new ArrayList<>())
+                    .add(ExtBidderError.of(BidderError.Type.bad_input.getCode(), errorMessage));
+        }
+
+        return keys;
     }
 
-    private String truncateKey(String key, List<String> truncatedKeys) {
-        if (key.length() > truncateAttrChars) {
-            truncatedKeys.add(key);
-            return key.substring(0, truncateAttrChars);
-        }
-
-        return key;
+    private String truncateKey(String key) {
+        return key.length() > truncateAttrChars
+                ? key.substring(0, truncateAttrChars)
+                : key;
     }
 
     /**
