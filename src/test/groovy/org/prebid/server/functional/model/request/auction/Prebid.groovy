@@ -45,6 +45,7 @@ class Prebid {
     PaaFormat paaFormat
     @JsonProperty("alternatebiddercodes")
     AlternateBidderCodes alternateBidderCodes
+    Map kvps
 
     static class Channel {
 
