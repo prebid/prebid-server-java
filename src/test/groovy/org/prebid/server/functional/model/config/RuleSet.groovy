@@ -3,7 +3,7 @@ package org.prebid.server.functional.model.config
 import static org.prebid.server.functional.model.config.Stage.PROCESSED_AUCTION_REQUEST
 import static org.prebid.server.functional.util.PBSUtils.randomString
 
-class RuleSets {
+class RuleSet {
 
     Boolean enabled
     Stage stage
@@ -11,8 +11,8 @@ class RuleSets {
     String version
     List<RulesEngineModelGroups> modelGroups
 
-    static RuleSets createRuleSets() {
-        new RuleSets().tap {
+    static RuleSet createRuleSets() {
+        new RuleSet().tap {
             it.enabled = true
             it.stage = PROCESSED_AUCTION_REQUEST
             it.name = randomString

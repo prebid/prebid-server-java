@@ -4,13 +4,13 @@ class PbRulesEngine {
 
     Boolean enabled
     Boolean generateRulesFromBidderConfig
-    List<RuleSets> ruleSets
+    List<RuleSet> ruleSets
 
     static PbRulesEngine createRulesEngineWithRule(Boolean enabled = true) {
         new PbRulesEngine().tap {
             it.enabled = enabled
             it.generateRulesFromBidderConfig = false
-            it.ruleSets = [RuleSets.createRuleSets()]
+            it.ruleSets = [RuleSet.createRuleSets()]
         }
     }
 }

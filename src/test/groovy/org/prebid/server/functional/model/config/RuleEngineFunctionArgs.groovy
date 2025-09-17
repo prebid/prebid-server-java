@@ -1,5 +1,6 @@
 package org.prebid.server.functional.model.config
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import org.prebid.server.functional.util.PBSUtils
 
 class RuleEngineFunctionArgs {
@@ -8,7 +9,8 @@ class RuleEngineFunctionArgs {
     List<Object> datacenters
     List<Object> sources
     List<Object> sids
-    Object pct
+    @JsonProperty("pct")
+    Object percent
     Object key
     List<Object> domains
     List<Object> bundles
@@ -24,7 +26,7 @@ class RuleEngineFunctionArgs {
             datacenters = [PBSUtils.randomString]
             sources = [PBSUtils.randomString]
             sids = [PBSUtils.randomNumber]
-            pct = PBSUtils.getRandomNumber(1, 100)
+            percent = PBSUtils.getRandomNumber(1, 100)
             key = PBSUtils.randomString
             domains = [PBSUtils.randomString]
             bundles = [PBSUtils.randomString]
