@@ -25,6 +25,7 @@ import org.prebid.server.hooks.v1.analytics.Tags;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.vertx.httpclient.HttpClient;
 
@@ -81,7 +82,7 @@ public class LiveIntentAnalyticsReporter implements AnalyticsReporter {
         final boolean isEnriched = isEnriched(activity);
         final Float treatmentRate = getTreatmentRate(activity);
         final Long timestamp = Optional.ofNullable(bidRequest.getExt())
-                .flatMap(ext -> Optional.of(ext.getPrebid()))
+                .map(ExtRequest::getPrebid)
                 .map(ExtRequestPrebid::getAuctiontimestamp)
                 .orElse(0L);
 
