@@ -132,7 +132,7 @@ class ImpRequestSpec extends BaseSpec {
         ALIAS_CAMEL_CASE | GENERIC_CAMEL_CASE
     }
 
-    def "PBS should update imp fields when imp.ext.prebid.imp contain bidder alias information2"() {
+    def "PBS should update imp fields only for specific alias when request has multiple aliases"() {
         given: "Default basic BidRequest"
         def storedPmp = Pmp.defaultPmp
         def originalPmp = Pmp.defaultPmp
@@ -159,7 +159,6 @@ class ImpRequestSpec extends BaseSpec {
 
         and: "Left original information for other"
         assert bidderRequests[GENER_X.value].imp.pmp.flatten() == [originalPmp]
-
 
         where:
         aliasName        | bidderName
