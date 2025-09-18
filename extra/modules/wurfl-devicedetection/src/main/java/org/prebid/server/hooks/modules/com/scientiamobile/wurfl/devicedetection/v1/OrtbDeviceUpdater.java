@@ -110,8 +110,7 @@ public class OrtbDeviceUpdater implements PayloadUpdate<AuctionRequestPayload> {
             return 7;
         }
 
-        final Boolean isConsole = getWurflIsConsole();
-        if (isConsole) {
+        if (getWurflIsConsole()) {
             return 6;
         }
 

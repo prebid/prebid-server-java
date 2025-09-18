@@ -185,10 +185,6 @@ public class OrtbDeviceUpdaterTest {
         final Device device = Device.builder().build();
         final BidRequest bidRequest = BidRequest.builder().device(device).build();
         given(wurflDevice.getCapabilityAsBool("is_ott")).willReturn(true);
-        //given(wurflDevice.getVirtualCapabilityAsBool("is_full_desktop")).willReturn(false);
-        //given(wurflDevice.getVirtualCapabilityAsBool("is_mobile")).willReturn(false);
-        //given(wurflDevice.getVirtualCapabilityAsBool("is_phone")).willReturn(false);
-        //given(wurflDevice.getCapabilityAsBool("is_tablet")).willReturn(false);
         final OrtbDeviceUpdater target = new OrtbDeviceUpdater(wurflDevice, staticCaps, virtualCaps, true, mapper);
         given(payload.bidRequest()).willReturn(bidRequest);
         // when
@@ -205,8 +201,6 @@ public class OrtbDeviceUpdaterTest {
         final Device device = Device.builder().build();
         final BidRequest bidRequest = BidRequest.builder().device(device).build();
         given(wurflDevice.getCapability("physical_form_factor")).willReturn("out_of_home_device");
-        //given(wurflDevice.getCapabilityAsBool("is_tablet")).willReturn(false);
-        //given(wurflDevice.getCapabilityAsBool("is_wireless_device")).willReturn(false);
         final OrtbDeviceUpdater target = new OrtbDeviceUpdater(wurflDevice, staticCaps, virtualCaps, true, mapper);
         given(payload.bidRequest()).willReturn(bidRequest);
         // when
