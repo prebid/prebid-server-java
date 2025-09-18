@@ -1613,7 +1613,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
 
         and: "Logs should contain error"
         def logs = pbsServiceWithRulesEngineModule.getLogsByTime(startTime)
-        assert getLogsByText(logs, "Function 'dataCenterIn' configuration is invalid: " +
+        assert getLogsByText(logs, "Function '${DATA_CENTER_IN}' configuration is invalid: " +
                 "Field 'datacenters' is required and has to be an array of strings")
     }
 
