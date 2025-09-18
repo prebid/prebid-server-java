@@ -1,12 +1,10 @@
 package org.prebid.server.hooks.modules.liveintent.omni.channel.identity.v1.hooks;
 
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
-import lombok.Value;
 import org.apache.commons.collections4.ListUtils;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.execution.v1.analytics.ActivityImpl;
@@ -106,7 +104,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
                                 List.of(
                                     ResultImpl.of(
                                             "",
-                                            JsonNodeFactory.instance.objectNode()
+                                            mapper.mapper().createObjectNode()
                                                     .put("treatmentRate", config.getTreatmentRate()),
                                             null))))))
                 .build();

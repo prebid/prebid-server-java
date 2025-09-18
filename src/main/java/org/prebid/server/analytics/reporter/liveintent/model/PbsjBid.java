@@ -24,5 +24,4 @@ public class PbsjBid {
     Long timestamp;
 
     String partnerId;
-
 }

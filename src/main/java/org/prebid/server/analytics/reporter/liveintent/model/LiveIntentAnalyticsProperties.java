@@ -12,5 +12,4 @@ public class LiveIntentAnalyticsProperties {
     String analyticsEndpoint;
 
     long timeoutMs;
-
 }

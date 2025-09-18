@@ -313,8 +313,8 @@ public class AnalyticsConfiguration {
         LiveIntentAnalyticsReporter liveIntentAnalyticsReporter(
                 LiveIntentAnalyticsConfigurationProperties properties,
                 HttpClient httpClient,
-                JacksonMapper jacksonMapper
-        ) {
+                JacksonMapper jacksonMapper) {
+
             return new LiveIntentAnalyticsReporter(
                     properties.toComponentProperties(),
                     httpClient,
@@ -334,7 +334,9 @@ public class AnalyticsConfiguration {
         private static class LiveIntentAnalyticsConfigurationProperties {
 
             String partnerId;
+
             String analyticsEndpoint;
+
             long timeoutMs;
 
             public LiveIntentAnalyticsProperties toComponentProperties() {
