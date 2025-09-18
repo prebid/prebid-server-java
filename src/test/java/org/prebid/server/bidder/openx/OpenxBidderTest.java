@@ -2,7 +2,6 @@ package org.prebid.server.bidder.openx;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
@@ -1022,12 +1021,12 @@ public class OpenxBidderTest extends VertxTest {
         final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
 
         // then
-        final ObjectNode expectedExtWithBidMeta = JsonNodeFactory.instance.objectNode()
+        final ObjectNode expectedExtWithBidMeta = mapper.createObjectNode()
                 .put("dsp_id", "1")
                 .put("buyer_id", "2")
                 .put("brand_id", "3")
-                .set("prebid", JsonNodeFactory.instance.objectNode()
-                        .set("meta", JsonNodeFactory.instance.objectNode()
+                .set("prebid", mapper.createObjectNode()
+                        .set("meta", mapper.createObjectNode()
                                 .put("advertiserId", 2)
                                 .put("brandId", 3)
                                 .put("networkId", 1)));
@@ -1073,10 +1072,10 @@ public class OpenxBidderTest extends VertxTest {
         final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
 
         // then
-        final ObjectNode expectedExtWithBidMeta = JsonNodeFactory.instance.objectNode()
+        final ObjectNode expectedExtWithBidMeta = mapper.createObjectNode()
                 .put("brand_id", "4")
-                .set("prebid", JsonNodeFactory.instance.objectNode()
-                        .set("meta", JsonNodeFactory.instance.objectNode()
+                .set("prebid", mapper.createObjectNode()
+                        .set("meta", mapper.createObjectNode()
                                 .put("brandId", 4)));
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getBids()).hasSize(1)
@@ -1123,7 +1122,7 @@ public class OpenxBidderTest extends VertxTest {
         final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
 
         // then
-        final ObjectNode expectedExtWithBidMeta = JsonNodeFactory.instance.objectNode()
+        final ObjectNode expectedExtWithBidMeta = mapper.createObjectNode()
                 .put("dsp_id", "abc")
                 .put("buyer_id", "xyz")
                 .put("brand_id", "cba");

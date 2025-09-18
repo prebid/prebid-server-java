@@ -8,6 +8,8 @@ import lombok.Value;
 public class OpenxBidExt {
 
     String dspId;
+
     String buyerId;
+
     String brandId;
 }
