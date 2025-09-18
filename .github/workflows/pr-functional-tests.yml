@@ -32,46 +32,25 @@ jobs:
       - name: Build with Maven
         id: build
         run: |
-          set +e
           mvn -B verify \
           -DskipUnitTests=true \
           -DskipModuleFunctionalTests=true \
           -Dtests.max-container-count=5 \
           -DdockerfileName=Dockerfile \
           -Dcheckstyle.skip \
-          --file extra/pom.xml | tee build_output.txt
-          result=${PIPESTATUS[0]}
-          echo "exit_code=$result" >> "$GITHUB_OUTPUT"
+          --file extra/pom.xml 
 
-      - name: Format build output for PR comment
-        if: steps.build.outputs.exit_code != '0'
-        run: |
-          author="@${{ github.event.pull_request.user.login }}"
-          sed -n '/\[ERROR\] Failures:/,/\[ERROR\] Tests run:/p' build_output.txt > test_failures.txt
-          summary=$(grep 'Tests run:' build_output.txt | tail -1)
-          cat <<EOF > comment.txt
-          ${author}, could you please take a look at the functional test failures?
-          ❌ **Functional Test Failures**
-          
-          ${summary}
-          
-          <details>
-          <summary>Show failed tests details</summary>
-          
-          \`\`\`
-          $(cat test_failures.txt)
-          \`\`\`
-          </details>
-          EOF
-
-      - name: Comment on PR with build failure output
-        if: steps.build.outputs.exit_code != '0'
-        uses: peter-evans/create-or-update-comment@v4
+      - name: Emitting run result of functional test
+        if: always()
+        uses: dorny/test-reporter@v2.1.0
         with:
+          name: 'Functional tests'
+          working-directory: 'target/failsafe-reports'
+          path: 'TEST-*.xml'
+          reporter: java-junit
+          use-actions-summary: 'true'
+          list-suites: 'failed'
+          list-tests: 'failed'
+          fail-on-error: true
+          fail-on-empty: true
           token: ${{ secrets.GITHUB_TOKEN }}
-          issue-number: ${{ github.event.pull_request.number }}
-          body-path: comment.txt
-
-      - name: Fail if error is found in logs
-        if: steps.build.outputs.exit_code != '0'
-        run: exit 1

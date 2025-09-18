@@ -35,7 +35,6 @@ jobs:
       - name: Run module tests
         id: build
         run: |
-          set +e
           mvn -B verify \
           -DskipUnitTests=true \
           -DskipFunctionalTests=true \
@@ -43,11 +42,9 @@ jobs:
           -Dtests.max-container-count=5 \
           -DdockerfileName=Dockerfile-modules \
           -Dcheckstyle.skip \
-          --file extra/pom.xml | tee build_output.txt
-          result=${PIPESTATUS[0]}
-          echo "exit_code=$result" >> "$GITHUB_OUTPUT"
+          --file extra/pom.xml
 
-      - name: Format build output for PR comment
+      - name: Emitting run result of functional test
         if: always()
         uses: dorny/test-reporter@v2.1.0
         with:
