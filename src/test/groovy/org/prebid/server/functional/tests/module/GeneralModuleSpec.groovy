@@ -31,7 +31,7 @@ import static org.prebid.server.functional.model.response.auction.ResponseAction
 
 class GeneralModuleSpec extends ModuleBaseSpec {
 
-    private final static String CALL_METRIC = "modules.test.%s.stage.%s.hook.%s.call"
+    private final static String CALL_METRIC = "modules.module.%s.stage.%s.hook.%s.call"
     private final static String NOOP_METRIC = "modules.module.%s.stage.%s.hook.%s.success.noop"
 
     private final static Map<String, String> DISABLED_INVOKE_CONFIG = ['settings.modules.require-config-to-invoke': 'false']
@@ -74,7 +74,7 @@ class GeneralModuleSpec extends ModuleBaseSpec {
         verifyAll(response?.ext?.prebid?.modules?.trace?.stages?.outcomes?.groups?.invocationResults?.flatten() as List<InvocationResult>) {
             it.status == [SUCCESS, SUCCESS, SUCCESS]
             it.action == [NO_ACTION, NO_ACTION, NO_ACTION]
-            it.hookId.moduleCode.sort() != [ORTB2_BLOCKING, ORTB2_BLOCKING, PB_RICHMEDIA_FILTER].code.sort()
+            it.hookId.moduleCode.sort() == [ORTB2_BLOCKING, ORTB2_BLOCKING, PB_RICHMEDIA_FILTER].code.sort()
         }
 
         and: "Ortb2blocking module call metrics should be updated"
