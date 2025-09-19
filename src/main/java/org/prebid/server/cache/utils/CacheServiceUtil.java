@@ -1,9 +1,12 @@
 package org.prebid.server.cache.utils;
 
 import io.vertx.core.MultiMap;
+import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.client.utils.URLEncodedUtils;
 import org.prebid.server.util.HttpUtil;
 
 import java.net.MalformedURLException;
+import java.net.URISyntaxException;
 import java.net.URL;
 
 public class CacheServiceUtil {
@@ -17,15 +20,11 @@ public class CacheServiceUtil {
 
     public static URL getCacheEndpointUrl(String cacheSchema, String cacheHost, String path) {
         try {
-            final URL baseUrl = getCacheBaseUrl(cacheSchema, cacheHost);
-            return new URL(baseUrl, path);
-        } catch (MalformedURLException e) {
+            final URIBuilder uriBuilder = cacheBaseUriBuilder(cacheSchema, cacheHost);
+            return uriBuilder.setPath(path).build().toURL();
+        } catch (MalformedURLException | URISyntaxException | IllegalArgumentException e) {
             throw new IllegalArgumentException("Could not get cache endpoint for prebid cache service", e);
         }
-    }
-
-    private static URL getCacheBaseUrl(String cacheSchema, String cacheHost) throws MalformedURLException {
-        return new URL(cacheSchema + "://" + cacheHost);
     }
 
     public static String getCachedAssetUrlTemplate(String cacheSchema,
@@ -34,11 +33,18 @@ public class CacheServiceUtil {
                                                    String cacheQuery) {
 
         try {
-            final URL baseUrl = getCacheBaseUrl(cacheSchema, cacheHost);
-            return new URL(baseUrl, path + "?" + cacheQuery).toString();
-        } catch (MalformedURLException e) {
+            return HttpUtil.validateUrl(cacheBaseUriBuilder(cacheSchema, cacheHost)
+                    .setPath(path)
+                    .setParameters(URLEncodedUtils.parse(cacheQuery, null))
+                    .build()
+                    .toString());
+        } catch (URISyntaxException e) {
             throw new IllegalArgumentException("Could not get cached asset url template for prebid cache service", e);
         }
+    }
+
+    private static URIBuilder cacheBaseUriBuilder(String cacheSchema, String cacheHost) {
+        return new URIBuilder().setScheme(cacheSchema).setHost(cacheHost);
     }
 
 }
