@@ -1566,7 +1566,15 @@ public class BidResponseCreator {
             final String categoryDuration = bidInfo.getCategory();
             targetingKeywords = keywordsCreator != null
                     ? keywordsCreator.makeFor(
-                    bid, seat, isWinningBid, cacheId, bidType.getName(), videoCacheId, categoryDuration, account)
+                    bid,
+                    seat,
+                    isWinningBid,
+                    cacheId,
+                    bidType.getName(),
+                    videoCacheId,
+                    categoryDuration,
+                    account,
+                    bidWarnings)
                     : null;
         } else {
             targetingKeywords = null;

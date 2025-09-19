@@ -1,14 +1,18 @@
 package org.prebid.server.auction;
 
 import com.iab.openrtb.response.Bid;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
 import org.prebid.server.settings.model.Account;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static java.util.Collections.singletonList;
@@ -46,7 +50,7 @@ public class TargetingKeywordsCreatorTest {
                         null,
                         null,
                         defaultKeyPrefix)
-                .makeFor(bid, "bidder1", false, null, null, null, null, Account.empty("accountId"));
+                .makeFor(bid, "bidder1", false, null, null, null, null, Account.empty("accountId"), new HashMap<>());
 
         // then
         assertThat(keywords).containsOnly(
@@ -77,7 +81,8 @@ public class TargetingKeywordsCreatorTest {
                         null,
                         null,
                         defaultKeyPrefix)
-                .makeFor(bid, "veryververyverylongbidder1", false, null, null, null, null, Account.empty("accountId"));
+                .makeFor(bid, "veryververyverylongbidder1", false, null, null,
+                        null, null, Account.empty("accountId"), new HashMap<>());
 
         // then
         assertThat(keywords).containsOnly(
@@ -113,7 +118,7 @@ public class TargetingKeywordsCreatorTest {
                         null,
                         defaultKeyPrefix)
                 .makeFor(bid, "bidder1", true, "cacheId1", "banner",
-                        "videoCacheId1", "categoryDuration", Account.empty("accountId"));
+                        "videoCacheId1", "categoryDuration", Account.empty("accountId"), new HashMap<>());
 
         // then
         assertThat(keywords).containsOnly(
@@ -156,7 +161,7 @@ public class TargetingKeywordsCreatorTest {
                         null,
                         null,
                         defaultKeyPrefix)
-                .makeFor(bid, "", true, null, "banner", null, null, Account.empty("accountId"));
+                .makeFor(bid, "", true, null, "banner", null, null, Account.empty("accountId"), new HashMap<>());
 
         // then
         assertThat(keywords).contains(entry("hb_format", "banner"));
@@ -182,7 +187,7 @@ public class TargetingKeywordsCreatorTest {
                         null,
                         null,
                         defaultKeyPrefix)
-                .makeFor(bid, "bidder", true, null, null, null, null, Account.empty("accountId"));
+                .makeFor(bid, "bidder", true, null, null, null, null, Account.empty("accountId"), new HashMap<>());
 
         // then
         assertThat(keywords).doesNotContainKeys("hb_cache_id_bidder", "hb_deal_bidder", "hb_size_bidder",
@@ -209,7 +214,7 @@ public class TargetingKeywordsCreatorTest {
                         null,
                         null,
                         defaultKeyPrefix)
-                .makeFor(bid, "bidder", true, null, null, null, null, Account.empty("accountId"));
+                .makeFor(bid, "bidder", true, null, null, null, null, Account.empty("accountId"), new HashMap<>());
 
         // then
         assertThat(keywords).contains(
@@ -237,7 +242,7 @@ public class TargetingKeywordsCreatorTest {
                         null,
                         null,
                         defaultKeyPrefix)
-                .makeFor(bid, "bidder1", true, null, null, null, null, Account.empty("accountId"));
+                .makeFor(bid, "bidder1", true, null, null, null, null, Account.empty("accountId"), new HashMap<>());
 
         // then
         assertThat(keywords).doesNotContainKeys("hb_bidder", "hb_pb");
@@ -263,7 +268,7 @@ public class TargetingKeywordsCreatorTest {
                         null,
                         null,
                         defaultKeyPrefix)
-                .makeFor(bid, "bidder1", true, null, null, null, null, Account.empty("accountId"));
+                .makeFor(bid, "bidder1", true, null, null, null, null, Account.empty("accountId"), new HashMap<>());
 
         // then
         assertThat(keywords).containsKeys("hb_bidder", "hb_pb");
@@ -289,7 +294,7 @@ public class TargetingKeywordsCreatorTest {
                         null,
                         null,
                         defaultKeyPrefix)
-                .makeFor(bid, "bidder1", true, null, null, null, null, Account.empty("accountId"));
+                .makeFor(bid, "bidder1", true, null, null, null, null, Account.empty("accountId"), new HashMap<>());
 
         // then
         assertThat(keywords).doesNotContainKeys("hb_bidder_bidder1", "hb_pb_bidder1");
@@ -315,7 +320,7 @@ public class TargetingKeywordsCreatorTest {
                         null,
                         null,
                         defaultKeyPrefix)
-                .makeFor(bid, "bidder1", true, null, null, null, null, Account.empty("accountId"));
+                .makeFor(bid, "bidder1", true, null, null, null, null, Account.empty("accountId"), new HashMap<>());
 
         // then
         assertThat(keywords).containsKeys("hb_bidder_bidder1", "hb_pb_bidder1");
@@ -325,6 +330,7 @@ public class TargetingKeywordsCreatorTest {
     public void shouldTruncateTargetingBidderKeywordsIfTruncateAttrCharsIsDefined() {
         // given
         final Bid bid = Bid.builder().price(BigDecimal.ONE).build();
+        final Map<String, List<ExtBidderError>> bidWarnings = new HashMap<>();
 
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.create(
@@ -341,17 +347,24 @@ public class TargetingKeywordsCreatorTest {
                         null,
                         null,
                         defaultKeyPrefix)
-                .makeFor(bid, "someVeryLongBidderName", true, null, null, null, null, Account.empty("accountId"));
+                .makeFor(bid, "someVeryLongBidderName", true, null, null,
+                        null, null, Account.empty("accountId"), bidWarnings);
 
         // then
         assertThat(keywords).hasSize(2)
                 .containsKeys("hb_bidder_someVeryLo", "hb_pb_someVeryLongBi");
+        assertThat(bidWarnings)
+                .extracting(warnings -> warnings.get("targeting"))
+                .asInstanceOf(InstanceOfAssertFactories.LIST)
+                .containsOnly(ExtBidderError.of(2, "The following keys have been truncated: "
+                        + "hb_pb_someVeryLongBidderName, hb_bidder_someVeryLongBidderName"));
     }
 
     @Test
     public void shouldTruncateTargetingWithoutBidderSuffixKeywordsIfTruncateAttrCharsIsDefined() {
         // given
         final Bid bid = Bid.builder().price(BigDecimal.ONE).build();
+        final Map<String, List<ExtBidderError>> bidWarnings = new HashMap<>();
 
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.create(
@@ -368,17 +381,23 @@ public class TargetingKeywordsCreatorTest {
                         null,
                         null,
                         defaultKeyPrefix)
-                .makeFor(bid, "bidder", true, null, null, null, null, Account.empty("accountId"));
+                .makeFor(bid, "bidder", true, null, null, null, null, Account.empty("accountId"), bidWarnings);
 
         // then
         assertThat(keywords).hasSize(2)
                 .containsKeys("hb_bidd", "hb_pb");
+
+        assertThat(bidWarnings)
+                .extracting(warnings -> warnings.get("targeting"))
+                .asInstanceOf(InstanceOfAssertFactories.LIST)
+                .containsOnly(ExtBidderError.of(2, "The following keys have been truncated: hb_bidder"));
     }
 
     @Test
     public void shouldTruncateTargetingAndDropDuplicatedWhenTruncateIsTooShort() {
         // given
         final Bid bid = Bid.builder().price(BigDecimal.ONE).build();
+        final Map<String, List<ExtBidderError>> bidWarnings = new HashMap<>();
 
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.create(
@@ -395,18 +414,24 @@ public class TargetingKeywordsCreatorTest {
                         null,
                         null,
                         defaultKeyPrefix)
-                .makeFor(bid, "bidder", true, null, null, null, null, Account.empty("accountId"));
+                .makeFor(bid, "bidder", true, null, null, null, null, Account.empty("accountId"), bidWarnings);
 
         // then
-        // Without truncating: "hb_bidder", "hb_bidder_bidder", "hb_env", "hb_env_bidder", "hb_pb", "hb_pb_bidder"
         assertThat(keywords).hasSize(4)
                 .containsKeys("hb_bid", "hb_env", "hb_pb", "hb_pb_");
+
+        assertThat(bidWarnings)
+                .extracting(warnings -> warnings.get("targeting"))
+                .asInstanceOf(InstanceOfAssertFactories.LIST)
+                .containsOnly(ExtBidderError.of(2, "The following keys have been truncated: "
+                        + "hb_pb_bidder, hb_bidder, hb_bidder_bidder, hb_env_bidder"));
     }
 
     @Test
     public void shouldNotTruncateTargetingKeywordsIfTruncateAttrCharsIsNotDefined() {
         // given
         final Bid bid = Bid.builder().price(BigDecimal.ONE).build();
+        final Map<String, List<ExtBidderError>> bidWarnings = new HashMap<>();
 
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.create(
@@ -423,11 +448,13 @@ public class TargetingKeywordsCreatorTest {
                         null,
                         null,
                         defaultKeyPrefix)
-                .makeFor(bid, "someVeryLongBidderName", true, null, null, null, null, Account.empty("accountId"));
+                .makeFor(bid, "someVeryLongBidderName", true, null, null,
+                        null, null, Account.empty("accountId"), bidWarnings);
 
         // then
         assertThat(keywords).hasSize(2)
                 .containsKeys("hb_bidder_someVeryLongBidderName", "hb_pb_someVeryLongBidderName");
+        assertThat(bidWarnings).isEmpty();
     }
 
     @Test
@@ -440,6 +467,7 @@ public class TargetingKeywordsCreatorTest {
 
         final TargetingKeywordsResolver resolver = mock(TargetingKeywordsResolver.class);
         given(resolver.resolve(any(), anyString())).willReturn(singletonMap("key_longer_than_twenty", "value1"));
+        final Map<String, List<ExtBidderError>> bidWarnings = new HashMap<>();
 
         // when
         final Map<String, String> keywords = TargetingKeywordsCreator.create(
@@ -456,10 +484,15 @@ public class TargetingKeywordsCreatorTest {
                         null,
                         resolver,
                         defaultKeyPrefix)
-                .makeFor(bid, "bidder1", true, null, null, null, null, Account.empty("accountId"));
+                .makeFor(bid, "bidder1", true, null, null, null, null, Account.empty("accountId"), bidWarnings);
 
         // then
         assertThat(keywords).contains(entry("key_longer_than_twen", "value1"));
+
+        assertThat(bidWarnings)
+                .extracting(warnings -> warnings.get("targeting"))
+                .asInstanceOf(InstanceOfAssertFactories.LIST)
+                .containsOnly(ExtBidderError.of(2, "The following keys have been truncated: key_longer_than_twenty"));
     }
 
     @Test
@@ -488,7 +521,7 @@ public class TargetingKeywordsCreatorTest {
                         null,
                         resolver,
                         defaultKeyPrefix)
-                .makeFor(bid, "bidder1", true, null, null, null, null, Account.empty("accountId"));
+                .makeFor(bid, "bidder1", true, null, null, null, null, Account.empty("accountId"), new HashMap<>());
 
         // then
         assertThat(keywords).contains(entry("keyword1", "value1"));
@@ -514,7 +547,7 @@ public class TargetingKeywordsCreatorTest {
                         null,
                         null,
                         defaultKeyPrefix)
-                .makeFor(bid, "bidder1", false, null, null, null, null, Account.empty("accountId"));
+                .makeFor(bid, "bidder1", false, null, null, null, null, Account.empty("accountId"), new HashMap<>());
 
         // then
         assertThat(keywords).containsOnlyKeys("hb_bidder_bidder1", "hb_deal_bidder1", "hb_pb_bidder1");
@@ -540,7 +573,7 @@ public class TargetingKeywordsCreatorTest {
                         null,
                         null,
                         defaultKeyPrefix)
-                .makeFor(bid, "bidder1", false, null, null, null, null, Account.empty("accountId"));
+                .makeFor(bid, "bidder1", false, null, null, null, null, Account.empty("accountId"), new HashMap<>());
 
         // then
         assertThat(keywords).doesNotContainKeys("hb_bidder_bidder1", "hb_deal_bidder1", "hb_pb_bidder1");
