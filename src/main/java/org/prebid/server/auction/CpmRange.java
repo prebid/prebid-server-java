@@ -1,7 +1,6 @@
 package org.prebid.server.auction;
 
 import org.apache.commons.lang3.ObjectUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
@@ -19,6 +18,8 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 public class CpmRange {
 
+    public static final String DEFAULT_CPM = "0.0";
+
     private static final Locale LOCALE = Locale.US;
     private static final int DEFAULT_PRECISION = 2;
 
@@ -30,7 +31,7 @@ public class CpmRange {
      */
     public static String fromCpm(BigDecimal cpm, PriceGranularity priceGranularity, Account account) {
         final BigDecimal value = fromCpmAsNumber(cpm, priceGranularity, account);
-        return value != null ? format(value, priceGranularity.getPrecision()) : StringUtils.EMPTY;
+        return value != null ? format(value, priceGranularity.getPrecision()) : DEFAULT_CPM;
     }
 
     /**
