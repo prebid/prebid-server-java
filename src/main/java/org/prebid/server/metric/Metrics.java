@@ -59,6 +59,7 @@ public class Metrics extends UpdatableMetrics {
     private final CurrencyRatesMetrics currencyRatesMetrics;
     private final Map<MetricName, SettingsCacheMetrics> settingsCacheMetrics;
     private final HooksMetrics hooksMetrics;
+    private final ProfileMetrics profileMetrics;
 
     public Metrics(MetricRegistry metricRegistry,
                    CounterType counterType,
@@ -97,6 +98,7 @@ public class Metrics extends UpdatableMetrics {
         currencyRatesMetrics = new CurrencyRatesMetrics(metricRegistry, counterType);
         settingsCacheMetrics = new HashMap<>();
         hooksMetrics = new HooksMetrics(metricRegistry, counterType);
+        profileMetrics = new ProfileMetrics(metricRegistry, counterType);
     }
 
     RequestsMetrics requests() {
@@ -739,6 +741,14 @@ public class Metrics extends UpdatableMetrics {
 
     public void updateAccountActivityProcessedRulesCount(String account) {
         forAccount(account).activities().incCounter(MetricName.processed_rules_count);
+    }
+
+    public void updateProfileMetric(MetricName metricName) {
+        profileMetrics.incCounter(metricName);
+    }
+
+    public void updateAccountProfileMetric(String account, MetricName metricName) {
+        forAccount(account).profiles().incCounter(metricName);
     }
 
     private static class HookMetricMapper {

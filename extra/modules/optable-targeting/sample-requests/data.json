@@ -46,7 +46,7 @@
     {
       "optable":
       {
-        "email": "fd911bd8cac2e603a80efafca2210b7a917c97410f0c29d9f2bfb99867e5a589"
+        "email": "5837d278eabede28e37b5766399ed0d1a4cdc36acee8d35710a255032f45beda"
       },
       "eids":
       [
@@ -75,16 +75,6 @@
           [
             {
               "id": "dd1b31e65f5e45548c11a0275ba3a8072c00e3a2a0493e8f5a8f54f8067e8b00",
-              "atype": 1
-            }
-          ]
-        },
-        {
-          "source": "id5-sync.com",
-          "uids":
-          [
-            {
-              "id": "ID5*dd1b31e65f5e45548c11a0275ba3a8072c00e3a2a0493e8f5a8f54f8067e8b00",
               "atype": 1
             }
           ]

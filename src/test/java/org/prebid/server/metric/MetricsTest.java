@@ -1628,6 +1628,26 @@ public class MetricsTest {
                 .isEqualTo(1);
     }
 
+    @Test
+    public void shouldIncrementUpdateProfileMetric() {
+        // when
+        metrics.updateProfileMetric(MetricName.limit_exceeded);
+
+        // then
+        assertThat(metricRegistry.counter("profiles.limit_exceeded").getCount())
+                .isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementUpdateAccountProfileMetric() {
+        // when
+        metrics.updateAccountProfileMetric("accountId", MetricName.limit_exceeded);
+
+        // then
+        assertThat(metricRegistry.counter("account.accountId.profiles.limit_exceeded").getCount())
+                .isEqualTo(1);
+    }
+
     private void verifyCreatesConfiguredCounterType(Consumer<Metrics> metricsConsumer) {
         final EnumMap<CounterType, Class<? extends Metric>> counterTypeClasses = new EnumMap<>(CounterType.class);
         counterTypeClasses.put(CounterType.counter, Counter.class);

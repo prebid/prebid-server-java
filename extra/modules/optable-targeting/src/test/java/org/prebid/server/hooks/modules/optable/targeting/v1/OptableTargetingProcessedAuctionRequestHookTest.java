@@ -14,6 +14,8 @@ import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
 import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
+import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
+import org.prebid.server.hooks.modules.optable.targeting.model.Status;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargeting;
 import org.prebid.server.hooks.v1.InvocationAction;
@@ -61,7 +63,8 @@ public class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptable
         target = new OptableTargetingProcessedAuctionRequestHook(
                 configResolver,
                 optableTargeting,
-                userFpdActivityMask);
+                userFpdActivityMask,
+                0.01);
 
         when(invocationContext.accountConfig()).thenReturn(givenAccountConfig(true));
         when(invocationContext.auctionContext()).thenReturn(givenAuctionContext(activityInfrastructure, timeout));
@@ -129,6 +132,70 @@ public class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptable
     }
 
     @Test
+    public void shouldReturnFailWhenOriginIsAbsentInAccountConfiguration() {
+        // given
+        configResolver = new ConfigResolver(
+                mapper,
+                jsonMerger,
+                givenOptableTargetingProperties("key", "tenant", null, false));
+        target = new OptableTargetingProcessedAuctionRequestHook(
+                configResolver,
+                optableTargeting,
+                userFpdActivityMask,
+                0.01);
+        when(invocationContext.accountConfig())
+                .thenReturn(givenAccountConfig("key", "tenant", null, true));
+
+        // when
+        final Future<InvocationResult<AuctionRequestPayload>> future = target.call(auctionRequestPayload,
+                invocationContext);
+
+        // then
+        assertThat(future).isNotNull();
+        assertThat(future.succeeded()).isTrue();
+
+        final InvocationResult<AuctionRequestPayload> result = future.result();
+        assertThat(result).isNotNull();
+        assertThat(result.status()).isEqualTo(InvocationStatus.success);
+        assertThat(result.action()).isEqualTo(InvocationAction.update);
+        assertThat((ModuleContext) result.moduleContext())
+                .extracting(it -> it.getEnrichRequestStatus().getStatus())
+                .isEqualTo(Status.FAIL);
+    }
+
+    @Test
+    public void shouldReturnFailWhenTenantIsAbsentInAccountConfiguration() {
+        // given
+        configResolver = new ConfigResolver(
+                mapper,
+                jsonMerger,
+                givenOptableTargetingProperties("key", null, "origin", false));
+        target = new OptableTargetingProcessedAuctionRequestHook(
+                configResolver,
+                optableTargeting,
+                userFpdActivityMask,
+                0.01);
+        when(invocationContext.accountConfig())
+                .thenReturn(givenAccountConfig("key", null, null, true));
+
+        // when
+        final Future<InvocationResult<AuctionRequestPayload>> future = target.call(auctionRequestPayload,
+                invocationContext);
+
+        // then
+        assertThat(future).isNotNull();
+        assertThat(future.succeeded()).isTrue();
+
+        final InvocationResult<AuctionRequestPayload> result = future.result();
+        assertThat(result).isNotNull();
+        assertThat(result.status()).isEqualTo(InvocationStatus.success);
+        assertThat(result.action()).isEqualTo(InvocationAction.update);
+        assertThat((ModuleContext) result.moduleContext())
+                .extracting(it -> it.getEnrichRequestStatus().getStatus())
+                .isEqualTo(Status.FAIL);
+    }
+
+    @Test
     public void shouldReturnResultWithCleanedUpUserExtOptableTag() {
         // given
         when(invocationContext.timeout()).thenReturn(timeout);
@@ -180,6 +247,10 @@ public class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptable
     }
 
     private ObjectNode givenAccountConfig(boolean cacheEnabled) {
-        return mapper.valueToTree(givenOptableTargetingProperties(cacheEnabled));
+        return givenAccountConfig("key", "tenant", "origin", cacheEnabled);
+    }
+
+    private ObjectNode givenAccountConfig(String key, String tenant, String origin, boolean cacheEnabled) {
+        return mapper.valueToTree(givenOptableTargetingProperties(key, tenant, origin, cacheEnabled));
     }
 }

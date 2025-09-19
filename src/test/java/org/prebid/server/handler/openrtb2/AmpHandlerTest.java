@@ -179,8 +179,7 @@ public class AmpHandlerTest extends VertxTest {
         given(prebidVersionProvider.getNameVersionRecord()).willReturn("pbs-java/1.00");
 
         given(hookStageExecutor.executeExitpointStage(any(), any(), any()))
-                .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
-                        false,
+                .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.success(
                         ExitpointPayloadImpl.of(invocation.getArgument(0), invocation.getArgument(1)))));
 
         given(hooksMetricsService.updateHooksMetrics(any())).willAnswer(invocation -> invocation.getArgument(0));
