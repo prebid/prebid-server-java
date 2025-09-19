@@ -12,10 +12,10 @@
       "ext": {
         "tid": "${json-unit.any-string}",
         "bidder": {
-          "unitId": "12345"
+          "unitId": "12345678"
         },
         "params": {
-          "unitId": "12345"
+          "unitId": "12345678"
         }
       }
     }
