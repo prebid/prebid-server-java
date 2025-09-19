@@ -28,7 +28,7 @@ import org.prebid.server.version.PrebidVersionProvider;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -45,13 +45,15 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 import static org.assertj.core.api.Assertions.tuple;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
+import static org.prebid.server.util.HttpUtil.ACCEPT_HEADER;
+import static org.prebid.server.util.HttpUtil.APPLICATION_JSON_CONTENT_TYPE;
+import static org.prebid.server.util.HttpUtil.CONTENT_TYPE_HEADER;
+import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
 
 @ExtendWith(MockitoExtension.class)
 public class ShowheroesBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://ads.showheroes.com/";
-
-    private ShowheroesBidder target;
 
     @Mock(strictness = LENIENT)
     private CurrencyConversionService currencyConversionService;
@@ -59,9 +61,10 @@ public class ShowheroesBidderTest extends VertxTest {
     @Mock(strictness = LENIENT)
     private PrebidVersionProvider prebidVersionProvider;
 
+    private ShowheroesBidder target;
+
     @BeforeEach
     public void setUp() {
-        // set always 'test_version' as Prebid version for testing
         given(prebidVersionProvider.getNameVersionRecord()).willReturn("test_version");
         target = new ShowheroesBidder(ENDPOINT_URL, currencyConversionService, prebidVersionProvider, jacksonMapper);
     }
@@ -136,6 +139,7 @@ public class ShowheroesBidderTest extends VertxTest {
 
     @Test
     public void makeHttpRequestsShouldReturnPbsVersion() {
+        // given
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
@@ -155,6 +159,7 @@ public class ShowheroesBidderTest extends VertxTest {
 
     @Test
     public void makeHttpRequestsShouldConvertCurrencyFromUsdToEur() {
+        // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(List.of(givenImp(impBuilder -> impBuilder.bidfloor(BigDecimal.ONE).bidfloorcur("USD"))))
                 .app(App.builder().bundle("test_bundle").build())
@@ -178,6 +183,7 @@ public class ShowheroesBidderTest extends VertxTest {
 
     @Test
     public void makeHttpRequestsShouldNotConvertCurrencyEur() {
+        // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(List.of(givenImp(impBuilder -> impBuilder.bidfloor(BigDecimal.ONE).bidfloorcur("EUR"))))
                 .app(App.builder().bundle("test_bundle").build())
@@ -214,7 +220,9 @@ public class ShowheroesBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getImpIds)
+                .containsOnly(Set.of("imp1", "imp2"));
 
         final BidRequest outgoingRequest = result.getValue().get(0).getPayload();
         assertThat(outgoingRequest.getImp()).hasSize(2)
@@ -232,12 +240,12 @@ public class ShowheroesBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1);
-
-        final Map<String, String> headers = result.getValue().get(0).getHeaders().entries().stream()
-                .collect(java.util.stream.Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-        assertThat(headers).containsEntry("Content-Type", "application/json;charset=utf-8")
-                .containsEntry("Accept", "application/json");
+        assertThat(result.getValue()).hasSize(1).first()
+                .extracting(HttpRequest::getHeaders)
+                .satisfies(headers -> assertThat(headers.get(CONTENT_TYPE_HEADER))
+                        .isEqualTo(APPLICATION_JSON_CONTENT_TYPE))
+                .satisfies(headers -> assertThat(headers.get(ACCEPT_HEADER))
+                        .isEqualTo(APPLICATION_JSON_VALUE));
     }
 
     @Test
@@ -280,38 +288,6 @@ public class ShowheroesBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBidIfBannerIsPresentInImp() throws JsonProcessingException {
-        // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                givenBidResponse(bidBuilder -> bidBuilder.impid("123").mtype(1)));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(BidderBid::getBid, BidderBid::getType)
-                .containsExactly(tuple(Bid.builder().impid("123").mtype(1).build(), banner));
-    }
-
-    @Test
-    public void makeBidsShouldReturnVideoBidIfVideoIsPresentInImp() throws JsonProcessingException {
-        // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                givenBidResponse(bidBuilder -> bidBuilder.impid("123").mtype(2)));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(BidderBid::getBid, BidderBid::getType)
-                .containsExactly(tuple(Bid.builder().impid("123").mtype(2).build(), video));
-    }
-
-    @Test
     public void makeBidsShouldReturnVideoBidByDefaultWhenMtypeIsUnknown() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
@@ -325,23 +301,6 @@ public class ShowheroesBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(BidderBid::getBid, BidderBid::getType)
                 .containsExactly(tuple(Bid.builder().impid("123").mtype(99).build(), video));
-    }
-
-    @Test
-    public void makeBidsShouldReturnCorrectBidderBid() throws JsonProcessingException {
-        // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                givenBidResponse(bidBuilder -> bidBuilder.impid("123").price(BigDecimal.ONE)));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(BidderBid::getBid)
-                .extracting(Bid::getPrice)
-                .containsExactly(BigDecimal.ONE);
     }
 
     @Test

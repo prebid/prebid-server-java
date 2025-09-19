@@ -184,15 +184,13 @@ public class ShowheroesBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
-        final BidResponse bidResponse;
-
         try {
-            bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            return Result.of(extractBids(bidResponse), Collections.emptyList());
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
 
-        return Result.of(extractBids(bidResponse), Collections.emptyList());
     }
 
     private List<BidderBid> extractBids(BidResponse bidResponse) {

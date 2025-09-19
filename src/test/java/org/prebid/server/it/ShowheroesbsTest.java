@@ -15,26 +15,26 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static java.util.Collections.singletonList;
 
-public class ShowheroesBSTest extends IntegrationTest {
+public class ShowheroesbsTest extends IntegrationTest {
 
     @Autowired
     private PrebidVersionProvider prebidVersionProvider;
 
     @Test
-    public void openrtb2AuctionShouldRespondWithBidsFromShowheroesBS() throws IOException, JSONException {
+    public void openrtb2AuctionShouldRespondWithBidsFromShowheroesbs() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/showheroes-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/showheroesBs/test-showheroes-bid-request.json",
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/showheroes_bs/test-showheroes-bid-request.json",
                         prebidVersionProvider)))
                 .willReturn(
-                        aResponse().withBody(jsonFrom("openrtb2/showheroesBs/test-showheroes-bid-response.json"))));
+                        aResponse().withBody(jsonFrom("openrtb2/showheroes_bs/test-showheroes-bid-response.json"))));
 
         // when
-        final Response response = responseFor("openrtb2/showheroesBs/test-auction-showheroes-request.json",
+        final Response response = responseFor("openrtb2/showheroes_bs/test-auction-showheroes-request.json",
                 Endpoint.openrtb2_auction);
 
         // then
-        assertJsonEquals("openrtb2/showheroesBs/test-auction-showheroes-response.json", response,
-                singletonList("showheroesBs"));
+        assertJsonEquals("openrtb2/showheroes_bs/test-auction-showheroes-response.json", response,
+                singletonList("showheroes-bs"));
     }
 }
