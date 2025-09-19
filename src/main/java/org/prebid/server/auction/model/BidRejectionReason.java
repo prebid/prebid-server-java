@@ -1,6 +1,9 @@
 package org.prebid.server.auction.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
+
+import java.util.Arrays;
 
 /**
  * The list of the Seat Non Bid codes:
@@ -52,6 +55,8 @@ public enum BidRejectionReason {
      * This impression not sent to the bid adapter because it doesn’t support the requested mediatype.
      */
     REQUEST_BLOCKED_UNSUPPORTED_MEDIA_TYPE(202),
+
+    REQUEST_BLOCKED_OPTIMIZED(203),
 
     /**
      * This impression not sent to the bid adapter because the impression or the bidder was removed from the request.
@@ -117,9 +122,16 @@ public enum BidRejectionReason {
         this.code = code;
     }
 
+    @JsonCreator
+    public static BidRejectionReason fromStatusCode(int code) {
+        return Arrays.stream(values())
+                .filter(e -> e.code == code)
+                .findAny()
+                .orElseThrow(() -> new IllegalArgumentException("Invalid bid rejection reason: " + code));
+    }
+
     @JsonValue
     public int getValue() {
         return code;
     }
-
 }
