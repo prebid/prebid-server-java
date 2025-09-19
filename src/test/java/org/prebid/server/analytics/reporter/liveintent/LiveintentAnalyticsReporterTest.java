@@ -1,6 +1,5 @@
 package org.prebid.server.analytics.reporter.liveintent;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
@@ -29,14 +28,13 @@ import org.prebid.server.hooks.execution.model.Stage;
 import org.prebid.server.hooks.execution.model.StageExecutionOutcome;
 import org.prebid.server.hooks.execution.v1.analytics.ActivityImpl;
 import org.prebid.server.hooks.execution.v1.analytics.TagsImpl;
-import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.util.ListUtil;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
+import com.fasterxml.jackson.core.type.TypeReference;
 
 import java.math.BigDecimal;
-import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.List;
 
@@ -61,12 +59,12 @@ public class LiveintentAnalyticsReporterTest extends VertxTest {
 
     private LiveIntentAnalyticsProperties properties;
 
-    private JacksonMapper jacksonMapper;
+    private TypeReference<List<PbsjBid>> pbjsCollectionType;
+
 
     @BeforeEach
     public void setUp() {
-        final ObjectMapper mapper = new ObjectMapper();
-        jacksonMapper = new JacksonMapper(mapper);
+        pbjsCollectionType = new TypeReference<>() {};
 
         properties = LiveIntentAnalyticsProperties.builder()
                 .analyticsEndpoint("https://localhost:8080")
@@ -112,7 +110,7 @@ public class LiveintentAnalyticsReporterTest extends VertxTest {
                 eq(properties.getTimeoutMs()));
 
         final String capturedJson = jsonCaptor.getValue();
-        final List<PbsjBid> pbsjBids = Arrays.stream(jacksonMapper.decodeValue(capturedJson, PbsjBid[].class)).toList();
+        final List<PbsjBid> pbsjBids = jacksonMapper.decodeValue(capturedJson, pbjsCollectionType);
         assertThat(pbsjBids).isEqualTo(List.of(
                 PbsjBid.builder()
                         .bidId("bid-id")
@@ -123,8 +121,7 @@ public class LiveintentAnalyticsReporterTest extends VertxTest {
                         .treatmentRate(0.5f)
                         .timestamp(0L)
                         .partnerId("pbsj")
-                        .build()
-        ));
+                        .build()));
     }
 
     @Test
@@ -144,7 +141,7 @@ public class LiveintentAnalyticsReporterTest extends VertxTest {
                 eq(properties.getTimeoutMs()));
 
         final String capturedJson = jsonCaptor.getValue();
-        final List<PbsjBid> pbsjBids = Arrays.stream(jacksonMapper.decodeValue(capturedJson, PbsjBid[].class)).toList();
+        final List<PbsjBid> pbsjBids = jacksonMapper.decodeValue(capturedJson, pbjsCollectionType);
         assertThat(pbsjBids).isEqualTo(List.of(
                 PbsjBid.builder()
                         .bidId("bid-id")
@@ -155,8 +152,7 @@ public class LiveintentAnalyticsReporterTest extends VertxTest {
                         .treatmentRate(0.5f)
                         .timestamp(0L)
                         .partnerId("pbsj")
-                        .build()
-        ));
+                        .build()));
     }
 
     @Test
@@ -176,7 +172,7 @@ public class LiveintentAnalyticsReporterTest extends VertxTest {
                 eq(properties.getTimeoutMs()));
 
         final String capturedJson = jsonCaptor.getValue();
-        final List<PbsjBid> pbsjBids = Arrays.stream(jacksonMapper.decodeValue(capturedJson, PbsjBid[].class)).toList();
+        final List<PbsjBid> pbsjBids = jacksonMapper.decodeValue(capturedJson, pbjsCollectionType);
         assertThat(pbsjBids).isEqualTo(List.of(
                 PbsjBid.builder()
                         .bidId("bid-id")
@@ -187,8 +183,7 @@ public class LiveintentAnalyticsReporterTest extends VertxTest {
                         .timestamp(0L)
                         .treatmentRate(null)
                         .partnerId("pbsj")
-                        .build()
-        ));
+                        .build()));
     }
 
     private AuctionEvent buildEvent(Boolean isEnriched) {
@@ -212,19 +207,14 @@ public class LiveintentAnalyticsReporterTest extends VertxTest {
                 .status(ExecutionStatus.success)
                 .analyticsTags(TagsImpl.of(
                         withTags
-                                ? ListUtil.union(
-                                        List.of(enrichmentRate),
-                                        enriched
-                                )
-                                : List.of()
-                ))
+                                ? ListUtil.union(List.of(enrichmentRate), enriched)
+                                : List.of()))
                 .action(null)
                 .build();
 
         final StageExecutionOutcome stageExecutionOutcome = StageExecutionOutcome.of(
                 "auction-request",
-                List.of(GroupExecutionOutcome.of(List.of(hookExecutionOutcome)))
-        );
+                List.of(GroupExecutionOutcome.of(List.of(hookExecutionOutcome))));
 
         final EnumMap<Stage, List<StageExecutionOutcome>> stageOutcomes = new EnumMap<>(Stage.class);
         stageOutcomes.put(Stage.processed_auction_request, List.of(stageExecutionOutcome));
