@@ -4,7 +4,7 @@ import jakarta.persistence.AttributeConverter
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.util.ObjectMapperWrapper
 
-class StoredRequestConfigTypeConverter implements AttributeConverter<BidRequest, String>, ObjectMapperWrapper {
+class BidRequestConfigTypeConverter implements AttributeConverter<BidRequest, String>, ObjectMapperWrapper {
 
     @Override
     String convertToDatabaseColumn(BidRequest bidRequest) {

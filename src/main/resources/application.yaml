@@ -111,6 +111,9 @@ auction:
     percent: 100
   tmax-upstream-response-time: 30
   stored-requests-timeout-ms: 100
+  profiles:
+    limit: 4
+    timeout-ms: 100
   timeout-notification:
     timeout-ms: 200
     log-result: false

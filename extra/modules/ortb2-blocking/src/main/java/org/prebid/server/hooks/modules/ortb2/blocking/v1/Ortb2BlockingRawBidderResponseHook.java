@@ -59,7 +59,6 @@ public class Ortb2BlockingRawBidderResponseHook implements RawBidderResponseHook
                         ObjectUtils.defaultIfNull(moduleContext.ortbVersionOf(bidder), OrtbVersion.ORTB_2_5),
                         invocationContext.accountConfig(),
                         moduleContext.blockedAttributesFor(bidder),
-                        invocationContext.auctionContext().getBidRejectionTrackers().get(bidder),
                         invocationContext.debugEnabled())
                 .block();
 
@@ -73,7 +72,10 @@ public class Ortb2BlockingRawBidderResponseHook implements RawBidderResponseHook
                         .errors(blockedBidsResult.getErrors())
                         .warnings(blockedBidsResult.getWarnings())
                         .debugMessages(blockedBidsResult.getDebugMessages())
-                        .analyticsTags(toAnalyticsTags(blockedBidsResult.getAnalyticsResults()));
+                        .analyticsTags(toAnalyticsTags(blockedBidsResult.getAnalyticsResults()))
+                        .rejections(CollectionUtils.isEmpty(blockedBidsResult.getRejections())
+                                ? null
+                                : Map.of(bidder, blockedBidsResult.getRejections()));
 
         if (blockedBidsResult.hasValue()) {
             final ResponseUpdater responseUpdater = ResponseUpdater.create(blockedBidsResult.getValue());

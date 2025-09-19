@@ -1,0 +1,33 @@
+adapters:
+  teqblaze:
+    endpoint: http://
+    aliases:
+      pinkLion:
+        enabled: false
+        endpoint: https://us-east-ep.pinklion.io/pserver
+        meta-info:
+          maintainer-email: prebid@pinklion.io
+      rocketlab:
+        enabled: false
+        endpoint: https://traffic1.rocketlab.ai/pserver
+        meta-info:
+          maintainer-email: support@rocketlab.ai
+        usersync:
+          enabled: true
+          cookie-family-name: rocketlab
+          redirect:
+            url: https://usync.rocketlab.ai/pbserver?gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redirect={{redirect_url}}
+            support-cors: false
+            uid-macro: '[UID]'
+    meta-info:
+      maintainer-email: github@teqblaze.com
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 0

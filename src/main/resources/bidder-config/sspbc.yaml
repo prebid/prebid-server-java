@@ -1,6 +1,6 @@
 adapters:
   sspbc:
-    endpoint: https://ssp.wp.pl/v1/bidder/prebidserver
+    endpoint: https://ssp.wp.pl/v2/bidder/prebidserver
     meta-info:
       maintainer-email: prebid-dev@grupawp.pl
       app-media-types:
@@ -12,5 +12,9 @@ adapters:
       cookie-family-name: sspbc
       iframe:
         url: https://ssp.wp.pl/bidder/usersync?tcf=2&redirect={{redirect_url}}
+        support-cors: false
+        uid-macro: '$UID'
+      redirect:
+        url: https://ssp.wp.pl/v1/sync/prebid-server/pixel?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&redirect={{redirect_url}}
         support-cors: false
         uid-macro: '$UID'
