@@ -164,11 +164,11 @@ abstract class PrivacyBaseSpec extends BaseSpec {
                 customdata = PBSUtils.randomString
                 eids = [Eid.defaultEid]
                 data = [new Data(name: PBSUtils.randomString)]
-                buyeruid = PBSUtils.randomString
+                buyerUid = PBSUtils.randomString
                 yob = PBSUtils.randomNumber
                 gender = PBSUtils.randomString
                 geo = Geo.FPDGeo
-                ext = new UserExt(data: new UserExtData(buyeruid: PBSUtils.randomString))
+                ext = new UserExt(data: new UserExtData(buyerUid: PBSUtils.randomString))
             }
         }
     }

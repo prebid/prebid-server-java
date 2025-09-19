@@ -565,7 +565,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         and: "Bidder request should mask user personal data"
         verifyAll(bidderRequest.user) {
             !id
-            !buyeruid
+            !buyerUid
             !yob
             !gender
             !eids
@@ -640,14 +640,14 @@ class GdprAmpSpec extends PrivacyBaseSpec {
             bidderRequest.device.geo.ext == ampStoredRequest.device.geo.ext
 
             bidderRequest.user.id == ampStoredRequest.user.id
-            bidderRequest.user.buyeruid == ampStoredRequest.user.buyeruid
+            bidderRequest.user.buyerUid == ampStoredRequest.user.buyerUid
             bidderRequest.user.yob == ampStoredRequest.user.yob
             bidderRequest.user.gender == ampStoredRequest.user.gender
             bidderRequest.user.eids[0].source == ampStoredRequest.user.eids[0].source
             bidderRequest.user.data == ampStoredRequest.user.data
             bidderRequest.user.geo.lat == ampStoredRequest.user.geo.lat
             bidderRequest.user.geo.lon == ampStoredRequest.user.geo.lon
-            bidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == ampStoredRequest.user.ext.data.buyerUid
         }
 
         and: "Metrics processed across activities shouldn't be updated"

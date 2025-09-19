@@ -4,6 +4,7 @@ import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountPriceFloorsConfig
+import org.prebid.server.functional.model.config.ModuleName
 import org.prebid.server.functional.model.config.PriceFloorsFetch
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.pricefloors.Country
@@ -68,6 +69,10 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
     def setupSpec() {
         currencyConversion.setCurrencyConversionRatesResponse()
         floorsProvider.setResponse()
+    }
+
+    def cleanupSpec() {
+        pbsServiceFactory.removeContainer(FLOORS_CONFIG + GENERIC_ALIAS_CONFIG)
     }
 
     protected static AccountConfig getDefaultAccountConfigSettings() {
