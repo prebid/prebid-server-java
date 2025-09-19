@@ -36,6 +36,7 @@ import org.prebid.server.auction.model.CachedDebugLog;
 import org.prebid.server.auction.model.CategoryMappingResult;
 import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.PaaFormat;
+import org.prebid.server.auction.model.Rejection;
 import org.prebid.server.auction.model.TargetingInfo;
 import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.auction.requestfactory.Ortb2ImplicitParametersResolver;
@@ -1950,12 +1951,10 @@ public class BidResponseCreator {
         }
 
         final List<SeatNonBid> seatNonBids = auctionContext.getBidRejectionTrackers().values().stream()
-                .flatMap(bidRejectionTracker -> bidRejectionTracker.getRejectedImps().entrySet().stream())
+                .flatMap(bidRejectionTracker -> bidRejectionTracker.getRejected().stream())
                 .collect(Collectors.groupingBy(
-                        entry -> entry.getValue().getLeft(),
-                        Collectors.mapping(
-                                entry -> NonBid.of(entry.getKey(), entry.getValue().getRight()),
-                                Collectors.toList())))
+                        Rejection::seat,
+                        Collectors.mapping(entry -> NonBid.of(entry.impId(), entry.reason()), Collectors.toList())))
                 .entrySet().stream()
                 .filter(entry -> !entry.getValue().isEmpty())
                 .map(entry -> SeatNonBid.of(entry.getKey(), entry.getValue()))
