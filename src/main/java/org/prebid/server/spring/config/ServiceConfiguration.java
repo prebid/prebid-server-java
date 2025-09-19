@@ -120,6 +120,7 @@ import org.prebid.server.util.system.CpuLoadAverageStats;
 import org.prebid.server.validation.BidderParamValidator;
 import org.prebid.server.validation.ImpValidator;
 import org.prebid.server.validation.RequestValidator;
+import org.prebid.server.validation.ResponseBidAdmValidator;
 import org.prebid.server.validation.ResponseBidValidator;
 import org.prebid.server.validation.VideoRequestValidator;
 import org.prebid.server.vast.VastModifier;
@@ -1145,15 +1146,24 @@ public class ServiceConfiguration {
 
     @Bean
     ResponseBidValidator responseValidator(
+            ResponseBidAdmValidator responseBidAdmValidator,
             @Value("${auction.validations.banner-creative-max-size}") BidValidationEnforcement bannerMaxSizeEnforcement,
             @Value("${auction.validations.secure-markup}") BidValidationEnforcement secureMarkupEnforcement,
             Metrics metrics) {
 
         return new ResponseBidValidator(
+                responseBidAdmValidator,
                 bannerMaxSizeEnforcement,
                 secureMarkupEnforcement,
                 metrics,
                 logSamplingRate);
+    }
+
+    @Bean
+    ResponseBidAdmValidator responseBidAdmValidator(
+            @Value("${auction.validations.secure-markup-allowed-paths:null}") Set<String> allowedPaths) {
+
+        return new ResponseBidAdmValidator(allowedPaths);
     }
 
     @Bean
