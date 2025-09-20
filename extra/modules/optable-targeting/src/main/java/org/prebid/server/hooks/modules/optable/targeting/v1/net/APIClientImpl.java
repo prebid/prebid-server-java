@@ -49,11 +49,12 @@ public class APIClientImpl implements APIClient {
     public Future<TargetingResult> getTargeting(OptableTargetingProperties properties,
                                                 Query query,
                                                 List<String> ips,
+                                                String userAgent,
                                                 Timeout timeout) {
 
         final String uri = resolveEndpoint(properties.getTenant(), properties.getOrigin());
         final String queryAsString = query.toQueryString();
-        final MultiMap headers = headers(properties, ips);
+        final MultiMap headers = headers(properties, ips, userAgent);
 
         return httpClient.get(uri + queryAsString, headers, timeout.remaining())
                 .compose(this::validateResponse)
@@ -67,10 +68,13 @@ public class APIClientImpl implements APIClient {
                 .replace(ORIGIN, origin);
     }
 
-    private static MultiMap headers(OptableTargetingProperties properties, List<String> ips) {
+    private static MultiMap headers(OptableTargetingProperties properties, List<String> ips, String userAgent) {
         final MultiMap headers = HeadersMultiMap.headers()
                 .add(HttpUtil.ACCEPT_HEADER, "application/json");
 
+        if (userAgent != null) {
+            headers.add(HttpUtil.USER_AGENT_HEADER, userAgent);
+        }
         final String apiKey = properties.getApiKey();
         if (StringUtils.isNotEmpty(apiKey)) {
             headers.add(HttpUtil.AUTHORIZATION_HEADER, "Bearer %s".formatted(apiKey));
