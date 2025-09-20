@@ -10,6 +10,8 @@ import java.util.Set;
 @Builder(toBuilder = true)
 public class OptableAttributes {
 
+    private static final String REQUEST_SOURCE = "prebid-server";
+
     String gpp;
 
     Set<Integer> gppSid;
@@ -23,4 +25,8 @@ public class OptableAttributes {
     String userAgent;
 
     Long timeout;
+
+    public String getRequestSource() {
+        return REQUEST_SOURCE;
+    }
 }

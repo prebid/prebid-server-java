@@ -81,6 +81,8 @@ public class QueryBuilder {
         Optional.ofNullable(optableAttributes.getTimeout())
                 .ifPresent(timeout -> sb.append("&timeout=").append(timeout).append("ms"));
 
+        sb.append("&osdk=").append(optableAttributes.getRequestSource());
+
         return sb.toString();
     }
 }
