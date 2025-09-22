@@ -23,8 +23,7 @@
           "tagid": "tag_id",
           "adunitcode": "sovrn_auc_bidder"
         },
-        "gpid": "test_gpid",
-        "adunitcode": "sovrn_auc_passthrough"
+        "gpid": "test_gpid"
       }
     }
   ],
