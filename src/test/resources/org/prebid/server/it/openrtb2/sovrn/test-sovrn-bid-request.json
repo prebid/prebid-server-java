@@ -22,7 +22,8 @@
         "bidder": {
           "tagid": "tag_id",
           "adunitcode": "sovrn_auc_bidder"
-        }
+        },
+        "gpid": "test_gpid"
       }
     }
   ],
