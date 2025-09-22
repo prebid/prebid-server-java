@@ -38,6 +38,7 @@
   },
   "ext": {
     "authentication_id": "48b7d18b921be9887a5351f31cc85f1326e3da1d8c402dec2bd338cf10bd6b43",
-    "platformid": "101"
+    "platformid": "101",
+    "security_app_id": "101"
   }
 }
