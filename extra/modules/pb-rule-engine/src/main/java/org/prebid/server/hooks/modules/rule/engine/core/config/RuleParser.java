@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import lombok.experimental.Accessors;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.retry.RetryPolicy;
 import org.prebid.server.execution.retry.Retryable;
@@ -140,11 +139,9 @@ public class RuleParser {
 
         RetryPolicy retryPolicy();
 
-        @Accessors(fluent = true)
         record Failed(Instant timestamp, RetryPolicy retryPolicy) implements ParsingAttempt {
         }
 
-        @Accessors(fluent = true)
         record InProgress(Instant timestamp, RetryPolicy retryPolicy) implements ParsingAttempt {
 
             public Failed failed() {
