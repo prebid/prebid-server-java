@@ -21,9 +21,8 @@
         "tid": "${json-unit.any-string}",
         "bidder": {
           "tagid": "tag_id",
-          "adunitcode": "sovrn_auc"
-        },
-        "adunitcode": "sovrn_auc"
+          "adunitcode": "sovrn_auc_bidder"
+        }
       }
     }
   ],
