@@ -1,5 +1,6 @@
 package org.prebid.server.settings;
 
+import com.fasterxml.jackson.databind.node.TextNode;
 import io.vertx.core.Future;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,6 +13,7 @@ import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.settings.helper.ParametrizedQueryHelper;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.Profile;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 import org.prebid.server.vertx.database.DatabaseClient;
@@ -38,15 +40,25 @@ public class DatabaseApplicationSettingsTest extends VertxTest {
     private static final String SELECT_ACCOUNT_QUERY =
             "SELECT config FROM accounts_account where uuid = %ACCOUNT_ID% LIMIT 1";
 
-    private static final String SELECT_QUERY =
-            "SELECT accountId, reqid, requestData, 'request' as dataType FROM stored_requests "
-                    + "WHERE reqid IN (%REQUEST_ID_LIST%) "
-                    + "UNION ALL "
-                    + "SELECT accountId, impid, impData, 'imp' as dataType FROM stored_imps "
-                    + "WHERE impid IN (%IMP_ID_LIST%)";
+    private static final String SELECT_QUERY = """
+            SELECT accountId, reqid, requestData, 'request' as dataType FROM stored_requests \
+            WHERE reqid IN (%REQUEST_ID_LIST%) \
+            UNION ALL \
+            SELECT accountId, impid, impData, 'imp' as dataType FROM stored_imps \
+            WHERE impid IN (%IMP_ID_LIST%)
+            """;
 
-    private static final String SELECT_RESPONSE_QUERY = "SELECT responseId, responseData FROM stored_responses "
-            + "WHERE responseId IN (%RESPONSE_ID_LIST%)";
+    private static final String SELECT_PROFILES_QUERY = """
+               SELECT accountId, profileId, profile, mergePrecedence, type \
+               FROM profiles \
+               WHERE profileId in (%REQUEST_ID_LIST%, %IMP_ID_LIST%)
+            """;
+
+    private static final String SELECT_RESPONSE_QUERY = """
+            SELECT responseId, responseData \
+            FROM stored_responses \
+            WHERE responseId IN (%RESPONSE_ID_LIST%)
+            """;
 
     @Mock
     private ParametrizedQueryHelper parametrizedQueryHelper;
@@ -69,6 +81,7 @@ public class DatabaseApplicationSettingsTest extends VertxTest {
                 SELECT_ACCOUNT_QUERY,
                 SELECT_QUERY,
                 SELECT_QUERY,
+                SELECT_PROFILES_QUERY,
                 SELECT_RESPONSE_QUERY);
     }
 
@@ -115,7 +128,7 @@ public class DatabaseApplicationSettingsTest extends VertxTest {
         given(parametrizedQueryHelper.replaceRequestAndImpIdPlaceholders(SELECT_QUERY, 2, 2))
                 .willReturn("query");
 
-        final StoredDataResult givenStoredDataResult = StoredDataResult.of(
+        final StoredDataResult<String> givenStoredDataResult = StoredDataResult.of(
                 Map.of("1", "value1", "2", "value2"),
                 Map.of("4", "value4", "5", "value5"),
                 emptyList());
@@ -123,7 +136,7 @@ public class DatabaseApplicationSettingsTest extends VertxTest {
                 .willReturn(Future.succeededFuture(givenStoredDataResult));
 
         // when
-        final Future<StoredDataResult> future = target.getStoredData(
+        final Future<StoredDataResult<String>> future = target.getStoredData(
                 "1001", new HashSet<>(asList("1", "2")), new HashSet<>(asList("4", "5")), timeout);
 
         // then
@@ -137,7 +150,7 @@ public class DatabaseApplicationSettingsTest extends VertxTest {
         given(parametrizedQueryHelper.replaceRequestAndImpIdPlaceholders(SELECT_QUERY, 2, 0))
                 .willReturn("query");
 
-        final StoredDataResult givenStoredDataResult = StoredDataResult.of(
+        final StoredDataResult<String> givenStoredDataResult = StoredDataResult.of(
                 Map.of("1", "value1", "2", "value2"),
                 Map.of(),
                 emptyList());
@@ -145,7 +158,7 @@ public class DatabaseApplicationSettingsTest extends VertxTest {
                 .willReturn(Future.succeededFuture(givenStoredDataResult));
 
         // when
-        final Future<StoredDataResult> future = target.getAmpStoredData(
+        final Future<StoredDataResult<String>> future = target.getAmpStoredData(
                 "1001", new HashSet<>(asList("1", "2")), new HashSet<>(asList("4", "5")), timeout);
 
         // then
@@ -159,7 +172,7 @@ public class DatabaseApplicationSettingsTest extends VertxTest {
         given(parametrizedQueryHelper.replaceRequestAndImpIdPlaceholders(SELECT_QUERY, 2, 2))
                 .willReturn("query");
 
-        final StoredDataResult givenStoredDataResult = StoredDataResult.of(
+        final StoredDataResult<String> givenStoredDataResult = StoredDataResult.of(
                 Map.of("1", "value1", "2", "value2"),
                 Map.of("4", "value4", "5", "value5"),
                 emptyList());
@@ -167,7 +180,7 @@ public class DatabaseApplicationSettingsTest extends VertxTest {
                 .willReturn(Future.succeededFuture(givenStoredDataResult));
 
         // when
-        final Future<StoredDataResult> future = target.getVideoStoredData("1001",
+        final Future<StoredDataResult<String>> future = target.getVideoStoredData("1001",
                 new HashSet<>(asList("1", "2")), new HashSet<>(asList("4", "5")), timeout);
 
         // then
@@ -176,12 +189,34 @@ public class DatabaseApplicationSettingsTest extends VertxTest {
     }
 
     @Test
+    public void getProfilesShouldReturnExpectedResult() {
+        // given
+        given(parametrizedQueryHelper.replaceRequestAndImpIdPlaceholders(SELECT_PROFILES_QUERY, 2, 2))
+                .willReturn("query");
+
+        final StoredDataResult<Profile> givenProfilesResult = StoredDataResult.of(
+                Map.of("1", givenProfile("value1"), "2", givenProfile("value2")),
+                Map.of("4", givenProfile("value4"), "5", givenProfile("value5")),
+                emptyList());
+        given(databaseClient.executeQuery(eq("query"), eq(List.of("1", "2", "4", "5")), any(), eq(timeout)))
+                .willReturn(Future.succeededFuture(givenProfilesResult));
+
+        // when
+        final Future<StoredDataResult<Profile>> future = target.getProfiles(
+                "1001", new HashSet<>(asList("1", "2")), new HashSet<>(asList("4", "5")), timeout);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+        assertThat(future.result()).isEqualTo(givenProfilesResult);
+    }
+
+    @Test
     public void getStoredDataShouldReturnResultWithError() {
         // given
         given(parametrizedQueryHelper.replaceRequestAndImpIdPlaceholders(SELECT_QUERY, 2, 0))
                 .willReturn("query");
 
-        final StoredDataResult givenStoredDataResult = StoredDataResult.of(
+        final StoredDataResult<String> givenStoredDataResult = StoredDataResult.of(
                 Map.of("1", "value1"),
                 Map.of(),
                 List.of("No stored request found for id: 3"));
@@ -189,7 +224,7 @@ public class DatabaseApplicationSettingsTest extends VertxTest {
                 .willReturn(Future.succeededFuture(givenStoredDataResult));
 
         // when
-        final Future<StoredDataResult> future =
+        final Future<StoredDataResult<String>> future =
                 target.getStoredData("1001", new HashSet<>(asList("1", "3")), emptySet(), timeout);
 
         // then
@@ -203,7 +238,7 @@ public class DatabaseApplicationSettingsTest extends VertxTest {
         given(parametrizedQueryHelper.replaceRequestAndImpIdPlaceholders(SELECT_QUERY, 2, 0))
                 .willReturn("query");
 
-        final StoredDataResult givenStoredDataResult = StoredDataResult.of(
+        final StoredDataResult<String> givenStoredDataResult = StoredDataResult.of(
                 Map.of("1", "value1"),
                 Map.of(),
                 List.of("No stored request found for id: 3"));
@@ -211,7 +246,7 @@ public class DatabaseApplicationSettingsTest extends VertxTest {
                 .willReturn(Future.succeededFuture(givenStoredDataResult));
 
         // when
-        final Future<StoredDataResult> future =
+        final Future<StoredDataResult<String>> future =
                 target.getAmpStoredData("1001", new HashSet<>(asList("1", "3")), emptySet(), timeout);
 
         // then
@@ -225,7 +260,7 @@ public class DatabaseApplicationSettingsTest extends VertxTest {
         given(parametrizedQueryHelper.replaceRequestAndImpIdPlaceholders(SELECT_QUERY, 2, 0))
                 .willReturn("query");
 
-        final StoredDataResult givenStoredDataResult = StoredDataResult.of(
+        final StoredDataResult<String> givenStoredDataResult = StoredDataResult.of(
                 Map.of("1", "value1"),
                 Map.of(),
                 List.of("No stored request found for id: 3"));
@@ -233,12 +268,34 @@ public class DatabaseApplicationSettingsTest extends VertxTest {
                 .willReturn(Future.succeededFuture(givenStoredDataResult));
 
         // when
-        final Future<StoredDataResult> future =
+        final Future<StoredDataResult<String>> future =
                 target.getVideoStoredData("1001", new HashSet<>(asList("1", "3")), emptySet(), timeout);
 
         // then
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result()).isEqualTo(givenStoredDataResult);
+    }
+
+    @Test
+    public void getProfilesShouldReturnResultWithError() {
+        // given
+        given(parametrizedQueryHelper.replaceRequestAndImpIdPlaceholders(SELECT_PROFILES_QUERY, 2, 0))
+                .willReturn("query");
+
+        final StoredDataResult<Profile> givenProfilesResult = StoredDataResult.of(
+                Map.of("1", givenProfile("value1")),
+                Map.of(),
+                List.of("No stored request found for id: 3"));
+        given(databaseClient.executeQuery(eq("query"), eq(List.of("1", "3")), any(), eq(timeout)))
+                .willReturn(Future.succeededFuture(givenProfilesResult));
+
+        // when
+        final Future<StoredDataResult<Profile>> future =
+                target.getProfiles("1001", new HashSet<>(asList("1", "3")), emptySet(), timeout);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+        assertThat(future.result()).isEqualTo(givenProfilesResult);
     }
 
     @Test
@@ -265,12 +322,18 @@ public class DatabaseApplicationSettingsTest extends VertxTest {
     @Test
     public void getCategoriesShouldReturnFailedFutureWithUnsupportedPrebidException() {
         // given and when
-        final Future<Map<String, String>> result = target.getCategories("adServer", "publisher",
-                timeout);
+        final Future<Map<String, String>> result = target.getCategories("adServer", "publisher", timeout);
 
         // then
         assertThat(result.failed()).isTrue();
         assertThat(result.cause()).isInstanceOf(PreBidException.class)
                 .hasMessage("Not supported");
+    }
+
+    private static Profile givenProfile(String value) {
+        return Profile.of(
+                Profile.Type.REQUEST,
+                Profile.MergePrecedence.PROFILE,
+                TextNode.valueOf(value));
     }
 }

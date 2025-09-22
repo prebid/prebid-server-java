@@ -1,6 +1,6 @@
 adapters:
   zmaticoo:
-    endpoint: https://bid.zmaticoo.com/prebid/bid
+    endpoint: https://rtbbid.zmaticoo.com/prebid/bid
     meta-info:
       maintainer-email: adam.li@eclicktech.com.cn
       app-media-types:

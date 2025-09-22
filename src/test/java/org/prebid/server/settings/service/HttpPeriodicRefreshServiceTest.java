@@ -42,7 +42,7 @@ public class HttpPeriodicRefreshServiceTest extends VertxTest {
     private static final String ENDPOINT_URL = "http://stored-requests.prebid.com";
 
     @Mock
-    private CacheNotificationListener cacheNotificationListener;
+    private CacheNotificationListener<String> cacheNotificationListener;
     @Mock(strictness = LENIENT)
     private HttpClient httpClient;
     @Mock
@@ -165,9 +165,13 @@ public class HttpPeriodicRefreshServiceTest extends VertxTest {
         verify(httpClient).get(startsWith("http://stored-requests.prebid.com?amp=true&last-modified="), anyLong());
     }
 
-    private static void createAndInitService(CacheNotificationListener notificationListener,
-                                             String url, long refreshPeriod, long timeout,
-                                             Vertx vertx, HttpClient httpClient) {
+    private static void createAndInitService(CacheNotificationListener<String> notificationListener,
+                                             String url,
+                                             long refreshPeriod,
+                                             long timeout,
+                                             Vertx vertx,
+                                             HttpClient httpClient) {
+
         final HttpPeriodicRefreshService httpPeriodicRefreshService = new HttpPeriodicRefreshService(
                 url, refreshPeriod, timeout, notificationListener, vertx, httpClient, jacksonMapper);
         httpPeriodicRefreshService.initialize(Promise.promise());
