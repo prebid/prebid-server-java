@@ -13,11 +13,11 @@ adapters:
     usersync:
       cookie-family-name: connatix
       iframe:
-        url: "https://capi.connatix.com/us/pixel?pId=53&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&callback={{redirect_url}}"
+        url: "https://capi.connatix.com/us/pixel?pId=53&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&callback={{redirect_url}}"
         uid-macro: '[UID]'
         support-cors: false
       redirect:
-        url: "https://capi.connatix.com/us/pixel?pId=52&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&callback={{redirect_url}}"
+        url: "https://capi.connatix.com/us/pixel?pId=52&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&callback={{redirect_url}}"
         uid-macro: '[UID]'
         support-cors: false
 

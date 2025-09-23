@@ -1,0 +1,41 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "exp": 300,
+          "price": 3.33,
+          "crid": "creativeId",
+          "adm": "adm_3.33",
+          "nurl": "nurl_3.33",
+          "burl": "burl_3.33",
+          "mtype": 1,
+          "ext": {
+            "origbidcpm": 3.33,
+            "prebid": {
+              "type": "banner",
+              "meta": {
+                "adaptercode": "blis"
+              }
+            }
+          }
+        }
+      ],
+      "seat": "blis",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "blis": "{{ blis.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}

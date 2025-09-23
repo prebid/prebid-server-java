@@ -40,11 +40,11 @@ class Bid implements ObjectMapperWrapper {
     String langb
     String dealid
     @JsonProperty("w")
-    Integer weight
+    Integer width
     @JsonProperty("h")
     Integer height
     @JsonProperty("wratio")
-    Integer weightRatio
+    Integer widthRatio
     @JsonProperty("hratio")
     Integer heightRatio
     Integer exp
@@ -65,7 +65,7 @@ class Bid implements ObjectMapperWrapper {
             price = imp.bidFloor != null ? imp.bidFloor : PBSUtils.getRandomPrice()
             crid = 1
             height = imp.banner && imp.banner.format ? imp.banner.format.first().height : null
-            weight = imp.banner && imp.banner.format ? imp.banner.format.first().weight : null
+            width = imp.banner && imp.banner.format ? imp.banner.format.first().width : null
             if (imp.nativeObj || imp.video) {
                 adm = new Adm(assets: [Asset.defaultAsset])
             }

@@ -58,9 +58,10 @@ public class CachingApplicationSettingsTest {
 
         target = new CachingApplicationSettings(
                 delegateSettings,
-                new SettingsCache(360, 100, 0),
-                new SettingsCache(360, 100, 0),
-                new SettingsCache(360, 100, 0),
+                new SettingsCache<>(360, 100, 0),
+                new SettingsCache<>(360, 100, 0),
+                new SettingsCache<>(360, 100, 0),
+                new SettingsCache<>(360, 100, 0),
                 metrics,
                 360,
                 100,
@@ -357,7 +358,7 @@ public class CachingApplicationSettingsTest {
                         singletonMap("reqid", "json"), singletonMap("impid", "json2"), emptyList())));
 
         // when
-        final Future<StoredDataResult> future =
+        final Future<StoredDataResult<String>> future =
                 target.getStoredData("1001", singleton("reqid"), singleton("impid"), timeout);
         // second call
         target.getStoredData("1001", singleton("reqid"), singleton("impid"), timeout);
@@ -378,7 +379,7 @@ public class CachingApplicationSettingsTest {
                 .willReturn(Future.failedFuture(new InvalidRequestException("error")));
 
         // when
-        final Future<StoredDataResult> future =
+        final Future<StoredDataResult<String>> future =
                 target.getStoredData(null, singleton("id"), emptySet(), timeout);
 
         // then
@@ -396,7 +397,7 @@ public class CachingApplicationSettingsTest {
                         emptyMap(), emptyMap(), singletonList("error"))));
 
         // when
-        final Future<StoredDataResult> future =
+        final Future<StoredDataResult<String>> future =
                 target.getStoredData(null, singleton("id"), emptySet(), timeout);
 
         // then
@@ -416,7 +417,7 @@ public class CachingApplicationSettingsTest {
         // when
         target.getStoredData("1001", singleton("reqid"), emptySet(), timeout);
         // second call
-        final Future<StoredDataResult> future =
+        final Future<StoredDataResult<String>> future =
                 target.getStoredData("1002", singleton("reqid"), emptySet(), timeout);
 
         // then

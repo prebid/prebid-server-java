@@ -53,6 +53,7 @@ public class ConnatixBidder implements Bidder<BidRequest> {
 
     private static final String BIDDER_CURRENCY = "USD";
     private static final String FORMATTING = "%s-%s";
+    private static final String GPID_KEY = "gpid";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -170,8 +171,12 @@ public class ConnatixBidder implements Bidder<BidRequest> {
     private Imp modifyImp(Imp imp, ExtImpConnatix extImpConnatix, String displayManagerVer, BidRequest request) {
         final Price bidFloorPrice = resolveBidFloor(imp, request);
 
-        final ObjectNode impExt = mapper.mapper()
-                .createObjectNode().set("connatix", mapper.mapper().valueToTree(extImpConnatix));
+        final ObjectNode impExt = imp.getExt() != null
+                ? imp.getExt().deepCopy()
+                : mapper.mapper().createObjectNode();
+
+        impExt.remove("bidder");
+        impExt.set("connatix", mapper.mapper().valueToTree(extImpConnatix));
 
         return imp.toBuilder()
                 .ext(impExt)
