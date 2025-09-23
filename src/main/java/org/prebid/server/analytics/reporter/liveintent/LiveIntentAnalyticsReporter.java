@@ -67,11 +67,11 @@ public class LiveIntentAnalyticsReporter implements AnalyticsReporter {
     }
 
     private Future<Void> processAuctionEvent(AuctionContext auctionContext) {
-        if(auctionContext.getBidRequest() == null) {
+        if (auctionContext.getBidRequest() == null) {
             return Future.failedFuture(new PreBidException("Bid request should not be empty"));
         }
 
-        if(auctionContext.getBidResponse() == null) {
+        if (auctionContext.getBidResponse() == null) {
             return Future.succeededFuture();
         }
 

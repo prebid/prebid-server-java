@@ -61,10 +61,9 @@ public class LiveintentAnalyticsReporterTest extends VertxTest {
 
     private TypeReference<List<PbsjBid>> pbjsCollectionType;
 
-
     @BeforeEach
     public void setUp() {
-        pbjsCollectionType = new TypeReference<>() {};
+        pbjsCollectionType = new TypeReference<>() { };
 
         properties = LiveIntentAnalyticsProperties.builder()
                 .analyticsEndpoint("https://localhost:8080")
