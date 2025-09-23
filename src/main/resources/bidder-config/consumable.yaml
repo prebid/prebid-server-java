@@ -13,6 +13,7 @@ adapters:
         - banner
         - audio
         - video
+      supported-vendors:
       vendor-id: 591
     usersync:
       cookie-family-name: consumable
