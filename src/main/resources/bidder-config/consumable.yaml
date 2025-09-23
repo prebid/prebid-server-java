@@ -2,12 +2,9 @@ adapters:
   consumable:
     endpoint: https://e.serverbid.com
     endpoint-compression: gzip
-    geoscope:
-      - USA
-      - CAN
-      - MEX
     meta-info:
       maintainer-email: prebid@consumable.com
+      currency-accepted: ["USD"]
       app-media-types:
         - banner
         - audio
@@ -16,11 +13,9 @@ adapters:
         - banner
         - audio
         - video
-      supported-vendors:
       vendor-id: 591
     usersync:
       cookie-family-name: consumable
       redirect:
         url: https://e.serverbid.com/udb/9969/match?gdpr={{gdpr}}&euconsent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redir={{redirect_url}}
         support-cors: false
-    target-currency: "USD"
