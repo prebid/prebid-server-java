@@ -91,7 +91,9 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
 
     private BidRequest applyActivityRestrictions(BidRequest bidRequest, AuctionContext auctionContext) {
         final ActivityInvocationPayload activityInvocationPayload = BidRequestActivityInvocationPayload.of(
-                ActivityInvocationPayloadImpl.of(ComponentType.GENERAL_MODULE, LiveIntentOmniChannelIdentityModule.CODE),
+                ActivityInvocationPayloadImpl.of(
+                        ComponentType.GENERAL_MODULE,
+                        LiveIntentOmniChannelIdentityModule.CODE),
                 bidRequest);
         final ActivityInfrastructure activityInfrastructure = auctionContext.getActivityInfrastructure();
 
