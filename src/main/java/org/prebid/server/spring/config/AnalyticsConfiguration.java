@@ -318,8 +318,7 @@ public class AnalyticsConfiguration {
             return new LiveIntentAnalyticsReporter(
                     properties.toComponentProperties(),
                     httpClient,
-                    jacksonMapper
-            );
+                    jacksonMapper);
         }
 
         @Bean
