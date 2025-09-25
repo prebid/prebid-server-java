@@ -8,7 +8,6 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
@@ -30,7 +29,6 @@ import org.prebid.server.util.HttpUtil;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -98,7 +96,6 @@ public class AlvadsBidder implements Bidder<AlvadsRequestOrtb> {
                 .impIds(alvadsRequest.getImp().stream().map(AlvaAdsImp::getId).collect(Collectors.toSet()))
                 .build();
     }
-
 
     private String makeUrl(AlvadsImpExt impExt) {
         final String resolvedUrl = impExt.getEndpointUrl() != null ? impExt.getEndpointUrl() : endpointUrl;
