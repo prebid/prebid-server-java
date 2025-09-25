@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
@@ -20,6 +21,7 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.alvads.AlvadsImpExt;
@@ -37,7 +39,6 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class AlvadsBidder implements Bidder<AlvadsRequestOrtb> {
-
     private static final TypeReference<ExtPrebid<?, AlvadsImpExt>>
             ALVADS_EXT_TYPE_REFERENCE = new TypeReference<>() { };
 
@@ -64,18 +65,21 @@ public class AlvadsBidder implements Bidder<AlvadsRequestOrtb> {
             }
         }
 
-        if (httpRequests.isEmpty()) {
-            errors.add(BidderError.badInput("found no valid impressions"));
-            return Result.withErrors(errors);
-        }
+        return httpRequests.isEmpty() ? Result.withErrors(errors) : Result.of(httpRequests, errors);
+    }
 
-        return Result.of(httpRequests, errors);
+    private AlvadsImpExt parseImpExt(Imp imp) {
+        try {
+            return mapper.mapper().convertValue(imp.getExt(), ALVADS_EXT_TYPE_REFERENCE).getBidder();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException("Missing or invalid bidder ext in impression with id: " + imp.getId());
+        }
     }
 
     private HttpRequest<AlvadsRequestOrtb> makeHttpRequest(BidRequest request, Imp imp, AlvadsImpExt impExt) {
         final String resolvedUrl = makeUrl(impExt);
         final AlvaAdsImp impObj = makeImp(imp);
-        final AlvaAdsSite siteObj = makeSite(request, impExt);
+        final AlvaAdsSite siteObj = makeSite(request.getSite(), impExt.getPublisherUniqueId());
         final AlvadsRequestOrtb alvadsRequest = AlvadsRequestOrtb.builder()
                 .id(request.getId())
                 .imp(List.of(impObj))
@@ -95,13 +99,6 @@ public class AlvadsBidder implements Bidder<AlvadsRequestOrtb> {
                 .build();
     }
 
-    private AlvadsImpExt parseImpExt(Imp imp) {
-        try {
-            return mapper.mapper().convertValue(imp.getExt(), ALVADS_EXT_TYPE_REFERENCE).getBidder();
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException("Missing or invalid bidder ext in impression with id: " + imp.getId());
-        }
-    }
 
     private String makeUrl(AlvadsImpExt impExt) {
         final String resolvedUrl = impExt.getEndpointUrl() != null ? impExt.getEndpointUrl() : endpointUrl;
@@ -113,7 +110,7 @@ public class AlvadsBidder implements Bidder<AlvadsRequestOrtb> {
         }
     }
 
-    private AlvaAdsImp makeImp(Imp imp) {
+    private static AlvaAdsImp makeImp(Imp imp) {
         final Banner banner = imp.getBanner();
         Map<String, Object> bannerMap = null;
         if (banner != null) {
@@ -147,12 +144,12 @@ public class AlvadsBidder implements Bidder<AlvadsRequestOrtb> {
                 .build();
     }
 
-    private AlvaAdsSite makeSite(BidRequest request, AlvadsImpExt impExt) {
-        final String page = request.getSite() != null ? request.getSite().getPage() : null;
+    private static AlvaAdsSite makeSite(Site site, String publisherUniqueId) {
+        final String page = site != null ? site.getPage() : null;
         return AlvaAdsSite.builder()
                 .page(page)
                 .ref(page)
-                .publisher(Map.of("id", impExt.getPublisherUniqueId()))
+                .publisher(Map.of("id", publisherUniqueId))
                 .build();
     }
 
@@ -161,7 +158,7 @@ public class AlvadsBidder implements Bidder<AlvadsRequestOrtb> {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.withValues(extractBids(bidResponse, httpCall.getRequest().getPayload()));
-        } catch (org.prebid.server.json.DecodeException e) {
+        } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse("Failed to decode BidResponse: " + e.getMessage()));
         }
     }
@@ -175,21 +172,18 @@ public class AlvadsBidder implements Bidder<AlvadsRequestOrtb> {
 
     private List<BidderBid> bidsFromResponse(BidResponse bidResponse, AlvadsRequestOrtb request) {
         return bidResponse.getSeatbid().stream()
-                .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .filter(Objects::nonNull)
-                .map(bid -> {
-                    final AlvaAdsImp imp = request.getImp().stream()
-                            .filter(i -> i.getId().equals(bid.getImpid()))
-                            .findFirst()
-                            .orElse(null);
-
-                    return BidderBid.of(bid, getBidType(bid, imp), bidResponse.getCur());
-                })
-                .filter(Objects::nonNull)
+                .flatMap(seatBid -> seatBid.getBid().stream())
+                .map(bid -> makeBid(bid, request, bidResponse.getCur()))
                 .toList();
+    }
+
+    private BidderBid makeBid(Bid bid, AlvadsRequestOrtb request, String currency) {
+        final AlvaAdsImp imp = request.getImp().stream()
+                .filter(i -> i.getId().equals(bid.getImpid()))
+                .findFirst()
+                .orElse(null);
+
+        return BidderBid.of(bid, getBidType(bid, imp), currency);
     }
 
     private BidType getBidType(Bid bid, AlvaAdsImp imp) {

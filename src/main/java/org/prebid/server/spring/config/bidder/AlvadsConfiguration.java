@@ -28,9 +28,10 @@ public class AlvadsConfiguration {
     }
 
     @Bean
-    BidderDeps alvadsBidderDeps(BidderConfigurationProperties alvadsConfigurationProperties,
-                                 @NotBlank @Value("${external-url}") String externalUrl,
-                                 JacksonMapper mapper) {
+    BidderDeps alvadsBidderDeps(
+            BidderConfigurationProperties alvadsConfigurationProperties,
+            @NotBlank @Value("${external-url}") String externalUrl,
+            JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(alvadsConfigurationProperties)
