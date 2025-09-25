@@ -170,7 +170,6 @@ class AlvadsBidderTest extends VertxTest {
                 .build();
     }
 
-    // ---- makeBids tests ----
     @Test
     void makeBidsShouldReturnEmptyListForEmptyResponse() {
         // given
