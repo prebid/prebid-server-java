@@ -4,7 +4,9 @@ import org.prebid.server.functional.model.config.Endpoint
 import org.prebid.server.functional.model.config.ExecutionPlan
 import org.prebid.server.functional.model.config.Stage
 import org.prebid.server.functional.tests.BaseSpec
+import org.prebid.server.functional.util.PBSUtils
 
+import static org.prebid.server.functional.model.ModuleName.OPTABLE_TARGETING
 import static org.prebid.server.functional.model.ModuleName.ORTB2_BLOCKING
 import static org.prebid.server.functional.model.ModuleName.PB_REQUEST_CORRECTION
 import static org.prebid.server.functional.model.ModuleName.PB_RESPONSE_CORRECTION
@@ -12,6 +14,7 @@ import static org.prebid.server.functional.model.ModuleName.PB_RICHMEDIA_FILTER
 import static org.prebid.server.functional.model.config.Endpoint.OPENRTB2_AUCTION
 import static org.prebid.server.functional.model.config.Stage.ALL_PROCESSED_BID_RESPONSES
 import static org.prebid.server.functional.model.config.Stage.PROCESSED_AUCTION_REQUEST
+import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 
 class ModuleBaseSpec extends BaseSpec {
 
@@ -49,6 +52,15 @@ class ModuleBaseSpec extends BaseSpec {
         ["hooks.${PB_RICHMEDIA_FILTER.code}.enabled"                     : false,
          "hooks.modules.${PB_RICHMEDIA_FILTER.code}.mraid-script-pattern": scriptPattern,
          "hooks.modules.${PB_RICHMEDIA_FILTER.code}.filter-mraid"        : filterMraidEnabled]
+                .collectEntries { key, value -> [(key.toString()): value.toString()] }
+    }
+
+    protected static Map<String, String> getOptableTargetingSettings(boolean isEnabled = true, Endpoint endpoint = OPENRTB2_AUCTION) {
+        ["hooks.${OPTABLE_TARGETING.code}.enabled": isEnabled as String,
+         "hooks.modules.${OPTABLE_TARGETING.code}.api-endpoint" : "$networkServiceContainer.rootUri/stored-cache".toString(),
+         "hooks.modules.${OPTABLE_TARGETING.code}.tenant" : PBSUtils.randomString,
+         "hooks.modules.${OPTABLE_TARGETING.code}.origin" : PBSUtils.randomString,
+         "hooks.host-execution-plan"              : encode(ExecutionPlan.getSingleEndpointExecutionPlan(endpoint, [(PROCESSED_AUCTION_REQUEST): [OPTABLE_TARGETING]]))]
                 .collectEntries { key, value -> [(key.toString()): value.toString()] }
     }
 
