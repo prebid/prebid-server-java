@@ -27,7 +27,6 @@ enum RuleEngineFunction {
     AD_UNIT_CODE_IN("adUnitCodeIn"),
     DEVICE_TYPE("deviceType"),
     DEVICE_TYPE_IN("deviceTypeIn"),
-    BID_PRICE("bidPrice")
 
     private String value
 

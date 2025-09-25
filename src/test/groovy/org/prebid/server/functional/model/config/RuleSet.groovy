@@ -9,7 +9,7 @@ class RuleSet {
     Stage stage
     String name
     String version
-    List<RulesEngineModelGroups> modelGroups
+    List<RulesEngineModelGroup> modelGroups
 
     static RuleSet createRuleSets() {
         new RuleSet().tap {
@@ -17,7 +17,7 @@ class RuleSet {
             it.stage = PROCESSED_AUCTION_REQUEST
             it.name = randomString
             it.version = randomString
-            it.modelGroups = [RulesEngineModelGroups.createRulesModuleGroup()]
+            it.modelGroups = [RulesEngineModelGroup.createRulesModuleGroup()]
         }
     }
 }

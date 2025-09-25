@@ -1,13 +1,14 @@
 package org.prebid.server.functional.tests.module.pbruleengine
 
 import org.prebid.server.functional.model.ChannelType
+import org.prebid.server.functional.model.ModuleName
 import org.prebid.server.functional.model.bidder.Openx
 import org.prebid.server.functional.model.config.RuleEngineFunctionArgs
 import org.prebid.server.functional.model.config.RuleEngineModelDefault
 import org.prebid.server.functional.model.config.RuleEngineModelDefaultArgs
 import org.prebid.server.functional.model.config.RuleEngineModelSchema
 import org.prebid.server.functional.model.config.RuleSet
-import org.prebid.server.functional.model.config.RulesEngineModelGroups
+import org.prebid.server.functional.model.config.RulesEngineModelGroup
 import org.prebid.server.functional.model.config.Stage
 import org.prebid.server.functional.model.db.StoredImp
 import org.prebid.server.functional.model.pricefloors.Country
@@ -16,12 +17,13 @@ import org.prebid.server.functional.model.request.GppSectionId
 import org.prebid.server.functional.model.request.auction.Amx
 import org.prebid.server.functional.model.request.auction.AppExt
 import org.prebid.server.functional.model.request.auction.AppExtData
+import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Content
 import org.prebid.server.functional.model.request.auction.Data
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.DeviceType
+import org.prebid.server.functional.model.request.auction.DistributionChannel
 import org.prebid.server.functional.model.request.auction.Eid
-import org.prebid.server.functional.model.request.auction.Geo
 import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.ImpExtContextData
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
@@ -42,12 +44,10 @@ import java.time.Instant
 import static java.lang.Boolean.FALSE
 import static java.lang.Boolean.TRUE
 import static org.prebid.server.functional.model.ChannelType.WEB
-import static org.prebid.server.functional.model.ModuleName.PB_RULE_ENGINE
 import static org.prebid.server.functional.model.bidder.BidderName.AMX
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.bidder.BidderName.UNKNOWN
-import static org.prebid.server.functional.model.config.ModuleHookImplementation.PB_RULES_ENGINE_PROCESSED_AUCTION_REQUEST
 import static org.prebid.server.functional.model.config.PbRulesEngine.createRulesEngineWithRule
 import static org.prebid.server.functional.model.config.ResultFunction.LOG_A_TAG
 import static org.prebid.server.functional.model.config.RuleEngineFunction.AD_UNIT_CODE
@@ -90,338 +90,12 @@ import static org.prebid.server.functional.model.response.auction.BidRejectionRe
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
 
-class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
-
-    def "PBS shouldn't remove bidder when rule engine not fully configured in account"() {
-        given: "Bid request with multiply bidders"
-        def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            updateBidRequestWithGeoCountry(it)
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
-        }
-
-        and: "Account with enabled rules engine"
-        def accountWithRulesEngine = getAccountWithRulesEngine(bidRequest.getAccountId(), pbRulesEngine)
-        accountDao.save(accountWithRulesEngine)
-
-        and: "Cache account"
-        pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
-
-        and: "Flush metrics"
-        flushMetrics(pbsServiceWithRulesEngineModule)
-
-        when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
-
-        then: "PBs should perform bidder request"
-        assert bidder.getBidderRequests(bidRequest.id)
-
-        and: "PBS response shouldn't contain seatNonBid"
-        assert !bidResponse.ext.seatnonbid
-
-        and: "PBS should not contain errors, warnings"
-        assert !bidResponse.ext?.warnings
-        assert !bidResponse.ext?.errors
-
-        then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED
-        assert bidResponse.seatbid.seat.sort() == [GENERIC, OPENX, AMX].sort()
-
-        and: "Analytics result shouldn't contain info about rule engine"
-        assert !getAnalyticResults(bidResponse)
-
-        and: "PBs should populate call and noop metrics"
-        def metrics = pbsServiceWithRulesEngineModule.sendCollectedMetricsRequest()
-        assert metrics[CALL_METRIC.formatted(PB_RULE_ENGINE.code, PROCESSED_AUCTION_REQUEST.metricValue, PB_RULES_ENGINE_PROCESSED_AUCTION_REQUEST.code)] == 1
-        assert metrics[NOOP_METRIC.formatted(PB_RULE_ENGINE.code, PROCESSED_AUCTION_REQUEST.metricValue, PB_RULES_ENGINE_PROCESSED_AUCTION_REQUEST.code)] == 1
-
-        and: "PBs should populate update metrics"
-        assert !metrics[UPDATE_METRIC.formatted(PB_RULE_ENGINE.code, PROCESSED_AUCTION_REQUEST.metricValue, PB_RULES_ENGINE_PROCESSED_AUCTION_REQUEST.code)]
-
-        where:
-        pbRulesEngine << [
-                createRulesEngineWithRule().tap { it.ruleSets = [] },
-                createRulesEngineWithRule().tap { it.ruleSets[0].stage = null },
-                createRulesEngineWithRule().tap { it.ruleSets[0].modelGroups[0].schema = [] },
-                createRulesEngineWithRule().tap { it.ruleSets[0].modelGroups[0].rules = [] },
-                createRulesEngineWithRule().tap { it.ruleSets[0].modelGroups[0].rules[0].results = [] }
-        ]
-    }
-
-    def "PBS shouldn't remove bidder when rule engine not fully configured in account wihout rule conditions"() {
-        given: "Bid request with multiply bidders"
-        def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            updateBidRequestWithGeoCountry(it)
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
-        }
-
-        and: "Account with enabled rules engine"
-        def pbRuleEngine = createRulesEngineWithRule().tap { it.ruleSets[0].modelGroups[0].rules[0].conditions = [] }
-        def accountWithRulesEngine = getAccountWithRulesEngine(bidRequest.getAccountId(), pbRuleEngine)
-        accountDao.save(accountWithRulesEngine)
-
-        and: "Cache account"
-        pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
-
-        and: "Flush metrics"
-        flushMetrics(pbsServiceWithRulesEngineModule)
-
-        when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
-
-        then: "PBs should perform bidder request"
-        assert bidder.getBidderRequests(bidRequest.id)
-
-        and: "PBS response shouldn't contain seatNonBid"
-        assert !bidResponse.ext.seatnonbid
-
-        and: "PBS should not contain errors, warnings"
-        assert !bidResponse.ext?.warnings
-        assert !bidResponse.ext?.errors
-
-        then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED
-        assert bidResponse.seatbid.seat.sort() == [GENERIC, OPENX, AMX].sort()
-
-        and: "Analytics result shouldn't contain info about rule engine"
-        assert !getAnalyticResults(bidResponse)
-
-        and: "PBs should populate failer metrics"
-        def metrics = pbsServiceWithRulesEngineModule.sendCollectedMetricsRequest()
-        assert metrics[FAILER_METRIC.formatted(PB_RULE_ENGINE.code, PROCESSED_AUCTION_REQUEST.metricValue, PB_RULES_ENGINE_PROCESSED_AUCTION_REQUEST.code)] == 1
-
-        and: "PBs shouldn't contain noop and call metrics"
-        assert !metrics[CALL_METRIC.formatted(PB_RULE_ENGINE.code, PROCESSED_AUCTION_REQUEST.metricValue, PB_RULES_ENGINE_PROCESSED_AUCTION_REQUEST.code)]
-        assert !metrics[NOOP_METRIC.formatted(PB_RULE_ENGINE.code, PROCESSED_AUCTION_REQUEST.metricValue, PB_RULES_ENGINE_PROCESSED_AUCTION_REQUEST.code)]
-        assert !metrics[UPDATE_METRIC.formatted(PB_RULE_ENGINE.code, PROCESSED_AUCTION_REQUEST.metricValue, PB_RULES_ENGINE_PROCESSED_AUCTION_REQUEST.code)]
-
-        and: "Invocation result should contain warning of rule engine"
-        assert getInvocationResult(bidResponse)[0].message == "No matching rule found"
-    }
-
-    def "PBS shouldn't remove bidder and emit a warning when args rule engine not fully configured in account"() {
-        given: "Bid request with multiply bidders"
-        def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            updateBidRequestWithGeoCountry(it)
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
-        }
-
-        and: "Account with enabled rules engine"
-        def accountWithRulesEngine = getAccountWithRulesEngine(bidRequest.getAccountId(),
-                createRulesEngineWithRule().tap { it.ruleSets[0].modelGroups[0].rules[0].results[0].args = null })
-        accountDao.save(accountWithRulesEngine)
-
-        and: "Cache account"
-        pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
-
-        and: "Flush metrics"
-        flushMetrics(pbsServiceWithRulesEngineModule)
-
-        when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
-
-        then: "PBs should perform bidder request"
-        assert bidder.getBidderRequests(bidRequest.id)
-
-        and: "PBS response shouldn't contain seatNonBid"
-        assert !bidResponse.ext.seatnonbid
-
-        and: "PBS should not contain errors, warnings"
-        assert !bidResponse.ext?.warnings
-        assert !bidResponse.ext?.errors
-
-        then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED
-        assert bidResponse.seatbid.seat.sort() == [GENERIC, OPENX, AMX].sort()
-
-        and: "PBs should populate failer metrics"
-        def metrics = pbsServiceWithRulesEngineModule.sendCollectedMetricsRequest()
-        assert metrics[FAILER_METRIC.formatted(PB_RULE_ENGINE.code, PROCESSED_AUCTION_REQUEST.metricValue, PB_RULES_ENGINE_PROCESSED_AUCTION_REQUEST.code)] == 1
-
-        and: "PBs shouldn't contain noop and call metrics"
-        assert !metrics[CALL_METRIC.formatted(PB_RULE_ENGINE.code, PROCESSED_AUCTION_REQUEST.metricValue, PB_RULES_ENGINE_PROCESSED_AUCTION_REQUEST.code)]
-        assert !metrics[NOOP_METRIC.formatted(PB_RULE_ENGINE.code, PROCESSED_AUCTION_REQUEST.metricValue, PB_RULES_ENGINE_PROCESSED_AUCTION_REQUEST.code)]
-        assert !metrics[UPDATE_METRIC.formatted(PB_RULE_ENGINE.code, PROCESSED_AUCTION_REQUEST.metricValue, PB_RULES_ENGINE_PROCESSED_AUCTION_REQUEST.code)]
-    }
-
-    def "PBS shouldn't remove bidder and emit a warning when model group rule engine not fully configured in account"() {
-        given: "Bid request with multiply bidders"
-        def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            updateBidRequestWithGeoCountry(it)
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
-        }
-
-        and: "Account with enabled rules engine"
-        def accountWithRulesEngine = getAccountWithRulesEngine(bidRequest.getAccountId(),
-                createRulesEngineWithRule().tap { it.ruleSets[0].modelGroups = [] })
-        accountDao.save(accountWithRulesEngine)
-
-        and: "Cache account"
-        pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
-
-        when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
-
-        then: "PBs should perform bidder request"
-        assert bidder.getBidderRequests(bidRequest.id)
-
-        and: "PBS response shouldn't contain seatNonBid"
-        assert !bidResponse.ext.seatnonbid
-
-        and: "PBS should not contain errors, warnings"
-        assert !bidResponse.ext?.warnings
-        assert !bidResponse.ext?.errors
-
-        then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED
-        assert bidResponse.seatbid.seat.sort() == [GENERIC, OPENX, AMX].sort()
-
-        and: "Invocation result should contain warning of rule engine"
-        assert getInvocationResult(bidResponse)[0].message == "Rule for account ${bidRequest.accountId} is not ready"
-    }
-
-    def "PBS shouldn't log default model when rule does not fired and empty model default"() {
-        given: "Bid request with multiply bidders"
-        def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            it.device = new Device(geo: new Geo(country: BULGARIA))
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
-        }
-
-        and: "Account with rule engine config"
-        def pbRuleEngine = createRulesEngineWithRule().tap {
-            it.ruleSets[0].modelGroups[0].modelDefault = null
-        }
-        def accountWithRulesEngine = getAccountWithRulesEngine(bidRequest.accountId, pbRuleEngine)
-        accountDao.save(accountWithRulesEngine)
-
-        and: "Cache account"
-        pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
-
-        when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
-
-        then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED
-        assert bidResponse.seatbid.seat.sort() == [GENERIC, OPENX, AMX].sort()
-
-        and: "PBs should perform bidder requests"
-        assert bidder.getBidderRequests(bidRequest.id)
-
-        and: "PBS should not contain errors, warnings"
-        assert !bidResponse.ext?.warnings
-        assert !bidResponse.ext?.errors
-
-        and: "PBS response shouldn't contain seatNonBid"
-        assert !bidResponse.ext.seatnonbid
-
-        and: "Analytics result shouldn't contain info about module exclude"
-        assert !getAnalyticResults(bidResponse)
-    }
-
-    def "PBS shouldn't remove bidder when rule engine disabled or absent in account"() {
-        given: "Bid request with multiply bidders"
-        def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            updateBidRequestWithGeoCountry(it)
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
-        }
-
-        and: "Account with disabled or without rules engine "
-        def accountWithRulesEngine = getAccountWithRulesEngine(bidRequest.accountId, pbRuleEngine)
-        accountDao.save(accountWithRulesEngine)
-
-        when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
-
-        then: "PBs should perform bidder request"
-        assert bidder.getBidderRequests(bidRequest.id)
-
-        and: "Bid response should contain all requested bidders"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED
-
-        and: "Analytics result shouldn't contain info about rule engine"
-        assert !getAnalyticResults(bidResponse)
-
-        and: "PBS response shouldn't contain seatNonBid"
-        assert !bidResponse.ext.seatnonbid
-
-        and: "PBS should not contain errors, warnings"
-        assert !bidResponse.ext?.warnings
-        assert !bidResponse.ext?.errors
-
-        where:
-        pbRuleEngine << [createRulesEngineWithRule(false), null]
-    }
-
-    def "PBS shouldn't remove bidder when rule sets disabled in account"() {
-        given: "Bid request with multiply bidders"
-        def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            updateBidRequestWithGeoCountry(it)
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
-        }
-
-        and: "Account with disabled rules sets"
-        def pbRuleEngine = createRulesEngineWithRule().tap {
-            it.ruleSets.first.enabled = false
-        }
-        def accountWithRulesEngine = getAccountWithRulesEngine(bidRequest.accountId, pbRuleEngine)
-        accountDao.save(accountWithRulesEngine)
-
-        when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
-
-        then: "PBs should perform bidder request"
-        assert bidder.getBidderRequests(bidRequest.id)
-
-        and: "Bid response should contain all requested bidders"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED
-
-        and: "Analytics result shouldn't contain info about module exclude"
-        assert !getAnalyticResults(bidResponse)
-
-        and: "PBS should not contain errors, warnings"
-        assert !bidResponse.ext?.warnings
-        assert !bidResponse.ext?.errors
-
-        and: "PBS response shouldn't contain seatNonBid"
-        assert !bidResponse.ext.seatnonbid
-    }
-
-    def "PBS shouldn't remove any bidder without cache request"() {
-        given: "Bid request with multiply bidders"
-        def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            updateBidRequestWithGeoCountry(it)
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
-        }
-
-        and: "Account with rules sets"
-        def pbRuleEngine = createRulesEngineWithRule()
-        def accountWithRulesEngine = getAccountWithRulesEngine(bidRequest.accountId, pbRuleEngine)
-        accountDao.save(accountWithRulesEngine)
-
-        when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
-
-        then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED
-
-        and: "PBs should perform bidder request"
-        assert bidder.getBidderRequests(bidRequest.id)
-
-        and: "PBS should not contain errors, warnings"
-        assert !bidResponse.ext?.warnings
-        assert !bidResponse.ext?.errors
-
-        and: "PBS response shouldn't contain seatNonBid"
-        assert !bidResponse.ext.seatnonbid
-
-        and: "Analytics result shouldn't contain info about module exclude"
-        assert !getAnalyticResults(bidResponse)
-    }
+class RuleEngineCoreSpec extends RuleEngineBaseSpec {
 
     def "PBS should remove bidder and not update analytics when bidder matched with conditions and without analytics key"() {
         given: "Bid request with multiply bidders"
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
             updateBidRequestWithGeoCountry(it)
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
         }
 
         and: "Account with rules sets without analytics value"
@@ -440,10 +114,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         when: "PBS processes auction request"
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
-        then: "Bid response should contain two seat"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED - 1
-
-        and: "Response should contain seat bid"
+        then: "Response should contain seat bid"
         assert bidResponse.seatbid.seat.sort() == [GENERIC, AMX].sort()
 
         and: "PBs should perform bidder request"
@@ -458,8 +129,8 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
 
         and: "PBs should populate call and update metrics"
         def metrics = pbsServiceWithRulesEngineModule.sendCollectedMetricsRequest()
-        assert metrics[CALL_METRIC.formatted(PB_RULE_ENGINE.code, PROCESSED_AUCTION_REQUEST.metricValue, PB_RULES_ENGINE_PROCESSED_AUCTION_REQUEST.code)] == 1
-        assert metrics[UPDATE_METRIC.formatted(PB_RULE_ENGINE.code, PROCESSED_AUCTION_REQUEST.metricValue, PB_RULES_ENGINE_PROCESSED_AUCTION_REQUEST.code)] == 1
+        assert metrics[CALL_METRIC] == 1
+        assert metrics[UPDATE_METRIC] == 1
 
         and: "Response should seatNon bid with code 203"
         assert bidResponse.ext.seatnonbid.size() == 1
@@ -478,7 +149,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
                 amx = new Amx()
             }
             updateBidRequestWithGeoCountry(it)
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
         }
 
         and: "Account with rules sets"
@@ -508,22 +178,21 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         and: "Analytics result should contain info about name and status"
         def analyticsResult = getAnalyticResults(bidResponse)
         def result = analyticsResult[0]
-        assert result.name == PB_RULE_ENGINE_MODULE_NAME_CODE
+        assert result.name == ModuleName.PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
         and: "Analytics result detail info"
-        def impResult = result.results[0]
         def groups = pbRuleEngine.ruleSets[0].modelGroups[0]
-        verifyAll {
-            impResult.status == SUCCESS
-            impResult.values.analyticsKey == groups.analyticsKey
-            impResult.values.modelVersion == groups.version
-            impResult.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
-            impResult.values.resultFunction == groups.rules.first.results.first.function.value
-            impResult.values.conditionFired == groups.rules.first.conditions.first
-            impResult.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
-            impResult.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
-            impResult.appliedTo.impIds == bidRequest.imp.id
+        verifyAll(result.results[0]) {
+            it.status == SUCCESS
+            it.values.analyticsKey == groups.analyticsKey
+            it.values.modelVersion == groups.version
+            it.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
+            it.values.resultFunction == groups.rules.first.results.first.function.value
+            it.values.conditionFired == groups.rules.first.conditions.first
+            it.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
+            it.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
+            it.appliedTo.impIds == bidRequest.imp.id
         }
 
         and: "Response should populate seatNon bid with code 203"
@@ -543,7 +212,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
                 amx = new Amx()
             }
             updateBidRequestWithGeoCountry(it)
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
         }
 
         and: "Account with rules sets"
@@ -574,22 +242,21 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         and: "Analytics result should contain info about name and status"
         def analyticsResult = getAnalyticResults(bidResponse)
         def result = analyticsResult[0]
-        assert result.name == PB_RULE_ENGINE_MODULE_NAME_CODE
+        assert result.name == ModuleName.PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
         and: "Analytics result detail info"
-        def impResult = result.results[0]
         def groups = pbRuleEngine.ruleSets[0].modelGroups[0]
-        verifyAll {
-            impResult.status == SUCCESS
-            impResult.values.analyticsKey == groups.analyticsKey
-            impResult.values.modelVersion == groups.version
-            impResult.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
-            impResult.values.resultFunction == groups.rules.first.results.first.function.value
-            impResult.values.conditionFired == groups.rules.first.conditions.first
-            impResult.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
-            impResult.values.seatNonBid == bidRejectionReason
-            impResult.appliedTo.impIds == bidRequest.imp.id
+        verifyAll(result.results[0]) {
+            it.status == SUCCESS
+            it.values.analyticsKey == groups.analyticsKey
+            it.values.modelVersion == groups.version
+            it.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
+            it.values.resultFunction == groups.rules.first.results.first.function.value
+            it.values.conditionFired == groups.rules.first.conditions.first
+            it.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
+            it.values.seatNonBid == bidRejectionReason
+            it.appliedTo.impIds == bidRequest.imp.id
         }
 
         and: "Response should populate seatNon bid"
@@ -645,22 +312,21 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         and: "Analytics result should contain info about name and status"
         def analyticsResult = getAnalyticResults(bidResponse)
         def result = analyticsResult[0]
-        assert result.name == PB_RULE_ENGINE_MODULE_NAME_CODE
+        assert result.name == ModuleName.PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
         and: "Analytics result detail info"
-        def impResult = result.results[0]
         def groups = pbRuleEngine.ruleSets[0].modelGroups[0]
-        verifyAll {
-            impResult.status == SUCCESS
-            impResult.values.analyticsKey == groups.analyticsKey
-            impResult.values.modelVersion == groups.version
-            impResult.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
-            impResult.values.resultFunction == groups.rules.first.results.first.function.value
-            impResult.values.conditionFired == groups.rules.first.conditions.first
-            impResult.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
-            impResult.values.seatNonBid == ERROR_NO_BID
-            impResult.appliedTo.impIds == bidRequest.imp.id
+        verifyAll(result.results[0]) {
+            it.status == SUCCESS
+            it.values.analyticsKey == groups.analyticsKey
+            it.values.modelVersion == groups.version
+            it.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
+            it.values.resultFunction == groups.rules.first.results.first.function.value
+            it.values.conditionFired == groups.rules.first.conditions.first
+            it.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
+            it.values.seatNonBid == ERROR_NO_BID
+            it.appliedTo.impIds == bidRequest.imp.id
         }
     }
 
@@ -668,7 +334,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         given: "Bid request with multiply bidders"
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
             updateBidRequestWithGeoCountry(it)
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
         }
 
         and: "Account with rules sets"
@@ -702,7 +367,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         given: "Bid request with multiply bidders"
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
             updateBidRequestWithGeoCountry(it)
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
         }
 
         and: "Account with rules sets"
@@ -719,7 +383,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == 3
+        assert bidResponse.seatbid.seat == MULTI_BID_ADAPTERS
 
         and: "PBs should perform bidder request"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -736,7 +400,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         given: "Bid request with multiply bidders"
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
             updateBidRequestWithGeoCountry(it)
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
         }
 
         and: "Account with rules sets"
@@ -753,7 +416,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == ONE_BIDDER_REQUESTED
+        assert bidResponse.seatbid.seat == [OPENX]
 
         and: "PBs should perform bidder request"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -765,22 +428,21 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         and: "Analytics result should contain info about name and status"
         def analyticsResult = getAnalyticResults(bidResponse)
         def result = analyticsResult[0]
-        assert result.name == PB_RULE_ENGINE_MODULE_NAME_CODE
+        assert result.name == ModuleName.PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
         and: "Analytics result detail info"
-        def impResult = result.results[0]
         def groups = pbRuleEngine.ruleSets[0].modelGroups[0]
-        verifyAll {
-            impResult.status == SUCCESS
-            impResult.values.analyticsKey == groups.analyticsKey
-            impResult.values.modelVersion == groups.version
-            impResult.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
-            impResult.values.resultFunction == groups.rules.first.results.first.function.value
-            impResult.values.conditionFired == groups.rules.first.conditions.first
-            impResult.values.biddersRemoved.sort() == [GENERIC, AMX].sort()
-            impResult.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
-            impResult.appliedTo.impIds == bidRequest.imp.id
+        verifyAll(result.results[0]) {
+            it.status == SUCCESS
+            it.values.analyticsKey == groups.analyticsKey
+            it.values.modelVersion == groups.version
+            it.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
+            it.values.resultFunction == groups.rules.first.results.first.function.value
+            it.values.conditionFired == groups.rules.first.conditions.first
+            it.values.biddersRemoved.sort() == [GENERIC, AMX].sort()
+            it.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
+            it.appliedTo.impIds == bidRequest.imp.id
         }
 
         and: "Response should populate seatNon bid with code 203"
@@ -796,7 +458,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
             it.imp.add(Imp.defaultImpression)
             updateBidRequestWithGeoCountry(it)
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
         }
 
         and: "Account with rules sets"
@@ -812,10 +473,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         when: "PBS processes auction request"
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
-        then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == 2
-
-        and: "Bid response should contain seatBids"
+        then: "Bid response should contain seatBids"
         assert bidResponse.seatbid.seat.sort() == [OPENX, AMX].sort()
 
         and: "PBs should perform bidder request"
@@ -828,22 +486,21 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         and: "Analytics result should contain info about name and status"
         def analyticsResult = getAnalyticResults(bidResponse)
         def result = analyticsResult[0]
-        assert result.name == PB_RULE_ENGINE_MODULE_NAME_CODE
+        assert result.name == ModuleName.PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
         and: "Analytics result detail info"
-        def impResult = result.results[0]
         def groups = pbRuleEngine.ruleSets[0].modelGroups[0]
-        verifyAll {
-            impResult.status == SUCCESS
-            impResult.values.analyticsKey == groups.analyticsKey
-            impResult.values.modelVersion == groups.version
-            impResult.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
-            impResult.values.resultFunction == groups.rules.first.results.first.function.value
-            impResult.values.conditionFired == groups.rules.first.conditions.first
-            impResult.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
-            impResult.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
-            impResult.appliedTo.impIds == bidRequest.imp.id
+        verifyAll(result.results[0]) {
+            it.status == SUCCESS
+            it.values.analyticsKey == groups.analyticsKey
+            it.values.modelVersion == groups.version
+            it.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
+            it.values.resultFunction == groups.rules.first.results.first.function.value
+            it.values.conditionFired == groups.rules.first.conditions.first
+            it.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
+            it.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
+            it.appliedTo.impIds == bidRequest.imp.id
         }
 
         and: "Response should populate seatNon bid with code 203"
@@ -863,7 +520,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
                 amx = new Amx()
             }
             updateBidRequestWithGeoCountry(it)
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
         }
 
         and: "Account with rules sets"
@@ -880,7 +536,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == ONE_BIDDER_REQUESTED
         assert bidResponse.seatbid.seat == [GENERIC]
 
         and: "PBs should perform bidder request"
@@ -893,22 +548,21 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         and: "Analytics result should contain info about name and status"
         def analyticsResult = getAnalyticResults(bidResponse)
         def result = analyticsResult[0]
-        assert result.name == PB_RULE_ENGINE_MODULE_NAME_CODE
+        assert result.name == ModuleName.PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
         and: "Analytics result detail info"
-        def impResult = result.results[0]
         def groups = pbRuleEngine.ruleSets[0].modelGroups[0]
-        verifyAll {
-            impResult.status == SUCCESS
-            impResult.values.analyticsKey == groups.analyticsKey
-            impResult.values.modelVersion == groups.version
-            impResult.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
-            impResult.values.resultFunction == groups.rules.first.results.first.function.value
-            impResult.values.conditionFired == groups.rules.first.conditions.first
-            impResult.values.biddersRemoved == [AMX, OPENX]
-            impResult.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
-            impResult.appliedTo.impIds == bidRequest.imp.id
+        verifyAll(result.results[0]) {
+            it.status == SUCCESS
+            it.values.analyticsKey == groups.analyticsKey
+            it.values.modelVersion == groups.version
+            it.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
+            it.values.resultFunction == groups.rules.first.results.first.function.value
+            it.values.conditionFired == groups.rules.first.conditions.first
+            it.values.biddersRemoved == [AMX, OPENX]
+            it.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
+            it.appliedTo.impIds == bidRequest.imp.id
         }
 
         and: "Response should populate seatNon bid with code 203"
@@ -928,7 +582,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
                 amx = new Amx()
             }
             updateBidRequestWithGeoCountry(it)
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
         }
 
         and: "Account with rules sets"
@@ -945,7 +598,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == 3
+        assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
 
         and: "PBs should perform bidder request"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -960,22 +613,21 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         and: "Analytics result should contain info about name and status"
         def analyticsResult = getAnalyticResults(bidResponse)
         def result = analyticsResult[0]
-        assert result.name == PB_RULE_ENGINE_MODULE_NAME_CODE
+        assert result.name == ModuleName.PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
         and: "Analytics result detail info"
-        def impResult = result.results[0]
         def groups = pbRuleEngine.ruleSets[0].modelGroups[0]
-        verifyAll {
-            impResult.status == SUCCESS
-            impResult.values.analyticsKey == groups.analyticsKey
-            impResult.values.modelVersion == groups.version
-            impResult.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
-            impResult.values.resultFunction == groups.rules.first.results.first.function.value
-            impResult.values.conditionFired == groups.rules.first.conditions.first
-            !impResult.values.biddersRemoved
-            !impResult.values.seatNonBid
-            impResult.appliedTo.impIds == [APPLIED_FOR_ALL_IMPS]
+        verifyAll(result.results[0]) {
+            it.status == SUCCESS
+            it.values.analyticsKey == groups.analyticsKey
+            it.values.modelVersion == groups.version
+            it.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
+            it.values.resultFunction == groups.rules.first.results.first.function.value
+            it.values.conditionFired == groups.rules.first.conditions.first
+            !it.values.biddersRemoved
+            !it.values.seatNonBid
+            it.appliedTo.impIds == [APPLIED_FOR_ALL_IMPS]
         }
     }
 
@@ -983,7 +635,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         given: "Bid request with multiply bidders"
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
             updateBidRequestWithGeoCountry(it)
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
         }
 
         and: "Account with rules sets"
@@ -1000,10 +651,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         when: "PBS processes auction request"
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
-        then: "Bid response should contain two seat"
-        assert bidResponse.seatbid.size() == 2
-
-        and: "Response should contain seat bid"
+        then: "Response should contain seat bid"
         assert bidResponse.seatbid.seat.sort() == [GENERIC, AMX].sort()
 
         and: "PBs should perform bidder request"
@@ -1016,22 +664,21 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         and: "Analytics result should contain info about name and status"
         def analyticsResult = getAnalyticResults(bidResponse)
         def result = analyticsResult[0]
-        assert result.name == PB_RULE_ENGINE_MODULE_NAME_CODE
+        assert result.name == ModuleName.PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
         and: "Analytics result detail info"
-        def impResult = result.results[0]
         def groups = pbRuleEngine.ruleSets[1].modelGroups[0]
-        verifyAll {
-            impResult.status == SUCCESS
-            impResult.values.analyticsKey == groups.analyticsKey
-            impResult.values.modelVersion == groups.version
-            impResult.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
-            impResult.values.resultFunction == groups.rules.first.results.first.function.value
-            impResult.values.conditionFired == groups.rules.first.conditions.first
-            impResult.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
-            impResult.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
-            impResult.appliedTo.impIds == bidRequest.imp.id
+        verifyAll(result.results[0]) {
+            it.status == SUCCESS
+            it.values.analyticsKey == groups.analyticsKey
+            it.values.modelVersion == groups.version
+            it.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
+            it.values.resultFunction == groups.rules.first.results.first.function.value
+            it.values.conditionFired == groups.rules.first.conditions.first
+            it.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
+            it.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
+            it.appliedTo.impIds == bidRequest.imp.id
         }
 
         and: "Response should seatNon bid with code 203"
@@ -1046,17 +693,18 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         given: "Bid request with multiply bidders"
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
             updateBidRequestWithGeoCountry(it)
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
         }
 
         and: "Account with rules engine and several rule sets"
+        def firstResults = [createRuleEngineModelRuleWithExcludeResult(GENERIC),
+                            createRuleEngineModelRuleWithExcludeResult(AMX),
+                            createRuleEngineModelRuleWithExcludeResult(OPENX)]
+        def secondResult = [createRuleEngineModelRuleWithExcludeResult(AMX)]
         def pbRuleEngine = createRulesEngineWithRule().tap {
-            it.ruleSets[0].modelGroups[0].rules[0].results = [createRuleEngineModelRuleWithExcludeResult(GENERIC),
-                                                              createRuleEngineModelRuleWithExcludeResult(AMX),
-                                                              createRuleEngineModelRuleWithExcludeResult(OPENX)]
+            it.ruleSets[0].modelGroups[0].rules[0].results = firstResults
             it.ruleSets[0].stage = stage as Stage
             it.ruleSets.add(RuleSet.createRuleSets())
-            it.ruleSets[1].modelGroups[0].rules[0].results = [createRuleEngineModelRuleWithExcludeResult(AMX)]
+            it.ruleSets[1].modelGroups[0].rules[0].results = secondResult
         }
         def accountWithRulesEngine = getAccountWithRulesEngine(bidRequest.accountId, pbRuleEngine)
         accountDao.save(accountWithRulesEngine)
@@ -1067,10 +715,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         when: "PBS processes auction request"
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
-        then: "Bid response should contain two seat"
-        assert bidResponse.seatbid.size() == 2
-
-        and: "Response should contain seat bid"
+        then: "Response should contain seat bid"
         assert bidResponse.seatbid.seat.sort() == [GENERIC, OPENX].sort()
 
         and: "PBs should perform bidder request"
@@ -1083,22 +728,21 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         and: "Analytics result should contain info about name and status"
         def analyticsResult = getAnalyticResults(bidResponse)
         def result = analyticsResult[0]
-        assert result.name == PB_RULE_ENGINE_MODULE_NAME_CODE
+        assert result.name == ModuleName.PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
         and: "Analytics result detail info"
-        def impResult = result.results[0]
         def groups = pbRuleEngine.ruleSets[1].modelGroups[0]
-        verifyAll {
-            impResult.status == SUCCESS
-            impResult.values.analyticsKey == groups.analyticsKey
-            impResult.values.modelVersion == groups.version
-            impResult.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
-            impResult.values.resultFunction == groups.rules.first.results.first.function.value
-            impResult.values.conditionFired == groups.rules.first.conditions.first
-            impResult.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
-            impResult.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
-            impResult.appliedTo.impIds == bidRequest.imp.id
+        verifyAll(result.results[0]) {
+            it.status == SUCCESS
+            it.values.analyticsKey == groups.analyticsKey
+            it.values.modelVersion == groups.version
+            it.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
+            it.values.resultFunction == groups.rules.first.results.first.function.value
+            it.values.conditionFired == groups.rules.first.conditions.first
+            it.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
+            it.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
+            it.appliedTo.impIds == bidRequest.imp.id
         }
 
         and: "Response should seatNon bid with code 203"
@@ -1116,7 +760,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         given: "Bid request with multiply bidders"
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
             updateBidRequestWithGeoCountry(it)
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
         }
 
         and: "Account with few model group"
@@ -1135,8 +778,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED
-        assert bidResponse.seatbid.seat.sort() == [GENERIC, OPENX, AMX].sort()
+        assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
 
         and: "PBs should perform bidder requests"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -1159,7 +801,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         given: "Bid request with multiply bidders"
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
             updateBidRequestWithGeoCountry(it)
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
         }
 
         and: "Account with few model group"
@@ -1168,7 +809,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
                 it.weight = 1
                 it.rules[0].results = [createRuleEngineModelRuleWithIncludeResult(GENERIC)]
             }
-            it.ruleSets[0].modelGroups.add(RulesEngineModelGroups.createRulesModuleGroup())
+            it.ruleSets[0].modelGroups.add(RulesEngineModelGroup.createRulesModuleGroup())
             it.ruleSets[0].modelGroups[1].tap {
                 it.weight = 100
                 it.rules[0].results = [createRuleEngineModelRuleWithExcludeResult(GENERIC)]
@@ -1184,7 +825,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED - 1
         assert bidResponse.seatbid.seat.sort() == [OPENX, AMX].sort()
 
         and: "PBs should perform bidder requests"
@@ -1197,22 +837,21 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         and: "Analytics result should contain info about name and status"
         def analyticsResult = getAnalyticResults(bidResponse)
         def result = analyticsResult[0]
-        assert result.name == PB_RULE_ENGINE_MODULE_NAME_CODE
+        assert result.name == ModuleName.PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
         and: "Analytics result detail info"
-        def impResult = result.results[0]
         def groups = pbRuleEngine.ruleSets[0].modelGroups[1]
-        verifyAll {
-            impResult.status == SUCCESS
-            impResult.values.analyticsKey == groups.analyticsKey
-            impResult.values.modelVersion == groups.version
-            impResult.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
-            impResult.values.resultFunction == groups.rules.first.results.first.function.value
-            impResult.values.conditionFired == groups.rules.first.conditions.first
-            impResult.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
-            impResult.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
-            impResult.appliedTo.impIds == bidRequest.imp.id
+        verifyAll(result.results[0]) {
+            it.status == SUCCESS
+            it.values.analyticsKey == groups.analyticsKey
+            it.values.modelVersion == groups.version
+            it.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
+            it.values.resultFunction == groups.rules.first.results.first.function.value
+            it.values.conditionFired == groups.rules.first.conditions.first
+            it.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
+            it.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
+            it.appliedTo.impIds == bidRequest.imp.id
         }
 
         and: "Response should seatNon bid with code 203"
@@ -1227,7 +866,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         given: "Bid request with multiply bidders"
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
             updateBidRequestWithGeoCountry(it)
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
         }
 
         and: "Account with default model"
@@ -1247,7 +885,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED - 1
         assert bidResponse.seatbid.seat.sort() == [GENERIC, AMX].sort()
 
         and: "PBs should perform bidder requests"
@@ -1263,30 +900,28 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         and: "Analytics result should contain info about name and status"
         def analyticsResult = getAnalyticResults(bidResponse)
         def result = analyticsResult[0]
-        assert result.name == PB_RULE_ENGINE_MODULE_NAME_CODE
+        assert result.name == ModuleName.PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
         and: "Analytics result detail info"
-        def impResult = result.results[0]
         def groups = pbRuleEngine.ruleSets[0].modelGroups[0]
-        verifyAll {
-            impResult.status == SUCCESS
-            impResult.values.analyticsKey == groups.analyticsKey
-            impResult.values.modelVersion == groups.version
-            impResult.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
-            impResult.values.resultFunction == groups.rules.first.results.first.function.value
-            impResult.values.conditionFired == groups.rules.first.conditions.first
-            impResult.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
-            impResult.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
-            impResult.appliedTo.impIds == bidRequest.imp.id
+        verifyAll(result.results[0]) {
+            it.status == SUCCESS
+            it.values.analyticsKey == groups.analyticsKey
+            it.values.modelVersion == groups.version
+            it.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
+            it.values.resultFunction == groups.rules.first.results.first.function.value
+            it.values.conditionFired == groups.rules.first.conditions.first
+            it.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
+            it.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
+            it.appliedTo.impIds == bidRequest.imp.id
         }
     }
 
     def "PBS should log the default model group and shouldn't modify response when other rules not fire"() {
         given: "Bid request with multiply bidders"
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            it.device = new Device(geo: new Geo(country: BULGARIA))
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
+            updateBidRequestWithGeoCountry(it, BULGARIA)
         }
 
         and: "Account with default model"
@@ -1306,8 +941,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED
-        assert bidResponse.seatbid.seat.sort() == [GENERIC, OPENX, AMX].sort()
+        assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
 
         and: "PBs should perform bidder requests"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -1322,23 +956,22 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         and: "Analytics result should contain info about name and status"
         def analyticsResult = getAnalyticResults(bidResponse)
         def result = analyticsResult[0]
-        assert result.name == PB_RULE_ENGINE_MODULE_NAME_CODE
+        assert result.name == ModuleName.PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
         and: "Analytics result detail info"
-        def impResult = result.results[0]
         def groups = pbRuleEngine.ruleSets[0].modelGroups[0]
-        verifyAll {
-            impResult.status == SUCCESS
-            impResult.values.analyticsKey == groups.analyticsKey
-            impResult.values.modelVersion == groups.version
-            impResult.values.analyticsValue == analyticsValue
-            impResult.values.resultFunction == LOG_A_TAG.value
-            impResult.values.conditionFired == DEFAULT_CONDITIONS
-            impResult.appliedTo.impIds == [APPLIED_FOR_ALL_IMPS]
+        verifyAll(result.results[0]) {
+            it.status == SUCCESS
+            it.values.analyticsKey == groups.analyticsKey
+            it.values.modelVersion == groups.version
+            it.values.analyticsValue == analyticsValue
+            it.values.resultFunction == LOG_A_TAG.value
+            it.values.conditionFired == DEFAULT_CONDITIONS
+            it.appliedTo.impIds == [APPLIED_FOR_ALL_IMPS]
 
-            !impResult.values.biddersRemoved
-            !impResult.values.seatNonBid
+            !it.values.biddersRemoved
+            !it.values.seatNonBid
         }
     }
 
@@ -1346,7 +979,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         given: "Bid request with multiply bidders"
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
             updateBidRequestWithGeoCountry(it)
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
         }
 
         and: "Account with default model"
@@ -1380,22 +1012,21 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         and: "Analytics result should contain info about name and status"
         def analyticsResult = getAnalyticResults(bidResponse)
         def result = analyticsResult[0]
-        assert result.name == PB_RULE_ENGINE_MODULE_NAME_CODE
+        assert result.name == ModuleName.PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
         and: "Analytics result detail info"
-        def impResult = result.results[0]
         def groups = pbRuleEngine.ruleSets[0].modelGroups[0]
-        verifyAll {
-            impResult.status == SUCCESS
-            impResult.values.analyticsKey == groups.analyticsKey
-            impResult.values.modelVersion == groups.version
-            impResult.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
-            impResult.values.resultFunction == groups.rules.first.results.first.function.value
-            impResult.values.conditionFired == groups.rules.first.conditions.first
-            impResult.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
-            impResult.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
-            impResult.appliedTo.impIds == bidRequest.imp.id
+        verifyAll(result.results[0]) {
+            it.status == SUCCESS
+            it.values.analyticsKey == groups.analyticsKey
+            it.values.modelVersion == groups.version
+            it.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
+            it.values.resultFunction == groups.rules.first.results.first.function.value
+            it.values.conditionFired == groups.rules.first.conditions.first
+            it.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
+            it.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
+            it.appliedTo.impIds == bidRequest.imp.id
         }
 
         and: "Response should seatNon bid with code 203"
@@ -1411,9 +1042,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def startTime = Instant.now()
 
         and: "Default bid request with multiply bidders"
-        def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
-        }
+        def bidRequest = getDefaultBidRequestWithMultiplyBidders()
 
         and: "Create account with rule engine config"
         def pbRuleEngine = createRulesEngineWithRule().tap {
@@ -1437,7 +1066,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         assert bidder.getBidderRequests(bidRequest.id)
 
         and: "Bid response should contain all requested bidders"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED
+        assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
 
         and: "Analytics result shouldn't contain info about rule engine"
         assert !getAnalyticResults(bidResponse)
@@ -1463,7 +1092,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         given: "Bid request with multiply bidders"
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
             updateBidRequestWithGeoCountry(it)
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
         }
 
         and: "Account with rule engine config"
@@ -1485,7 +1113,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED - 1
         assert bidResponse.seatbid.seat.sort() == [GENERIC, AMX].sort()
 
         and: "PBs should perform bidder requests"
@@ -1498,22 +1125,21 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         and: "Analytics result should contain info about name and status"
         def analyticsResult = getAnalyticResults(bidResponse)
         def result = analyticsResult[0]
-        assert result.name == PB_RULE_ENGINE_MODULE_NAME_CODE
+        assert result.name == ModuleName.PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
         and: "Analytics result detail info"
-        def impResult = result.results[0]
         def groups = pbRuleEngine.ruleSets[0].modelGroups[0]
-        verifyAll {
-            impResult.status == SUCCESS
-            impResult.values.analyticsKey == groups.analyticsKey
-            impResult.values.modelVersion == groups.version
-            impResult.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
-            impResult.values.resultFunction == groups.rules.first.results.first.function.value
-            impResult.values.conditionFired == groups.rules.first.conditions.first
-            impResult.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
-            impResult.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
-            impResult.appliedTo.impIds == bidRequest.imp.id
+        verifyAll(result.results[0]) {
+            it.status == SUCCESS
+            it.values.analyticsKey == groups.analyticsKey
+            it.values.modelVersion == groups.version
+            it.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
+            it.values.resultFunction == groups.rules.first.results.first.function.value
+            it.values.conditionFired == groups.rules.first.conditions.first
+            it.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
+            it.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
+            it.appliedTo.impIds == bidRequest.imp.id
         }
 
         and: "Response should seatNon bid with code 203"
@@ -1528,7 +1154,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         given: "Bid request with multiply bidders"
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
             updateBidRequestWithGeoCountry(it)
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
         }
 
         and: "Account with rule engine config"
@@ -1550,8 +1175,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED
-        assert bidResponse.seatbid.seat.sort() == [GENERIC, OPENX, AMX].sort()
+        assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
 
         and: "PBs should perform bidder requests"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -1572,9 +1196,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def startTime = Instant.now()
 
         and: "Bid request with multiply bidders"
-        def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
-        }
+        def bidRequest = getDefaultBidRequestWithMultiplyBidders()
 
         and: "Account with rule engine config"
         def pbRuleEngine = createRulesEngineWithRule().tap {
@@ -1595,8 +1217,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED
-        assert bidResponse.seatbid.seat.sort() == [GENERIC, OPENX, AMX].sort()
+        assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
 
         and: "PBs should perform bidder requests"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -1619,9 +1240,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
 
     def "PBS should exclude bidder when dataCenterIn match with condition"() {
         given: "Bid request with multiply bidders"
-        def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
-        }
+        def bidRequest = getDefaultBidRequestWithMultiplyBidders()
 
         and: "Account with rule engine config"
         def pbRuleEngine = createRulesEngineWithRule().tap {
@@ -1642,7 +1261,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED - 1
         assert bidResponse.seatbid.seat.sort() == [GENERIC, AMX].sort()
 
         and: "PBs should perform bidder requests"
@@ -1655,22 +1273,21 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         and: "Analytics result should contain info about name and status"
         def analyticsResult = getAnalyticResults(bidResponse)
         def result = analyticsResult[0]
-        assert result.name == PB_RULE_ENGINE_MODULE_NAME_CODE
+        assert result.name == ModuleName.PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
         and: "Analytics result detail info"
-        def impResult = result.results[0]
         def groups = pbRuleEngine.ruleSets[0].modelGroups[0]
-        verifyAll {
-            impResult.status == SUCCESS
-            impResult.values.analyticsKey == groups.analyticsKey
-            impResult.values.modelVersion == groups.version
-            impResult.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
-            impResult.values.resultFunction == groups.rules.first.results.first.function.value
-            impResult.values.conditionFired == groups.rules.first.conditions.first
-            impResult.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
-            impResult.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
-            impResult.appliedTo.impIds == bidRequest.imp.id
+        verifyAll(result.results[0]) {
+            it.status == SUCCESS
+            it.values.analyticsKey == groups.analyticsKey
+            it.values.modelVersion == groups.version
+            it.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
+            it.values.resultFunction == groups.rules.first.results.first.function.value
+            it.values.conditionFired == groups.rules.first.conditions.first
+            it.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
+            it.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
+            it.appliedTo.impIds == bidRequest.imp.id
         }
 
         and: "Response should seatNon bid with code 203"
@@ -1683,9 +1300,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
 
     def "PBS shouldn't exclude bidder when dataCentersIn not match with condition"() {
         given: "Bid request with multiply bidders"
-        def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
-        }
+        def bidRequest = getDefaultBidRequestWithMultiplyBidders()
 
         and: "Account with rule engine config"
         def pbRuleEngine = createRulesEngineWithRule().tap {
@@ -1706,8 +1321,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED
-        assert bidResponse.seatbid.seat.sort() == [GENERIC, OPENX, AMX].sort()
+        assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
 
         and: "PBs should perform bidder requests"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -1725,9 +1339,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
 
     def "PBS should exclude bidder when dataCenter match with condition"() {
         given: "Bid request with multiply bidders"
-        def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
-        }
+        def bidRequest = getDefaultBidRequestWithMultiplyBidders()
 
         and: "Account with rule engine config"
         def pbRuleEngine = createRulesEngineWithRule().tap {
@@ -1748,7 +1360,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED - 1
         assert bidResponse.seatbid.seat.sort() == [GENERIC, AMX].sort()
 
         and: "PBs should perform bidder requests"
@@ -1761,22 +1372,21 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         and: "Analytics result should contain info about name and status"
         def analyticsResult = getAnalyticResults(bidResponse)
         def result = analyticsResult[0]
-        assert result.name == PB_RULE_ENGINE_MODULE_NAME_CODE
+        assert result.name == ModuleName.PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
         and: "Analytics result detail info"
-        def impResult = result.results[0]
         def groups = pbRuleEngine.ruleSets[0].modelGroups[0]
-        verifyAll {
-            impResult.status == SUCCESS
-            impResult.values.analyticsKey == groups.analyticsKey
-            impResult.values.modelVersion == groups.version
-            impResult.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
-            impResult.values.resultFunction == groups.rules.first.results.first.function.value
-            impResult.values.conditionFired == groups.rules.first.conditions.first
-            impResult.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
-            impResult.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
-            impResult.appliedTo.impIds == bidRequest.imp.id
+        verifyAll(result.results[0]) {
+            it.status == SUCCESS
+            it.values.analyticsKey == groups.analyticsKey
+            it.values.modelVersion == groups.version
+            it.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
+            it.values.resultFunction == groups.rules.first.results.first.function.value
+            it.values.conditionFired == groups.rules.first.conditions.first
+            it.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
+            it.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
+            it.appliedTo.impIds == bidRequest.imp.id
         }
 
         and: "Response should seatNon bid with code 203"
@@ -1789,9 +1399,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
 
     def "PBS shouldn't exclude bidder when dataCenter not match with condition"() {
         given: "Bid request with multiply bidders"
-        def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
-        }
+        def bidRequest = getDefaultBidRequestWithMultiplyBidders()
 
         and: "Account with rule engine config"
         def pbRuleEngine = createRulesEngineWithRule().tap {
@@ -1812,8 +1420,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED
-        assert bidResponse.seatbid.seat.sort() == [GENERIC, OPENX, AMX].sort()
+        assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
 
         and: "PBs should perform bidder requests"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -1831,9 +1438,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
 
     def "PBS should exclude bidder when channel match with condition"() {
         given: "Bid request with multiply bidders"
-        def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
-        }
+        def bidRequest = getDefaultBidRequestWithMultiplyBidders()
 
         and: "Account with rule engine config"
         def pbRuleEngine = createRulesEngineWithRule().tap {
@@ -1854,7 +1459,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED - 1
         assert bidResponse.seatbid.seat.sort() == [GENERIC, AMX].sort()
 
         and: "PBs should perform bidder requests"
@@ -1867,22 +1471,21 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         and: "Analytics result should contain info about name and status"
         def analyticsResult = getAnalyticResults(bidResponse)
         def result = analyticsResult[0]
-        assert result.name == PB_RULE_ENGINE_MODULE_NAME_CODE
+        assert result.name == ModuleName.PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
         and: "Analytics result detail info"
-        def impResult = result.results[0]
         def groups = pbRuleEngine.ruleSets[0].modelGroups[0]
-        verifyAll {
-            impResult.status == SUCCESS
-            impResult.values.analyticsKey == groups.analyticsKey
-            impResult.values.modelVersion == groups.version
-            impResult.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
-            impResult.values.resultFunction == groups.rules.first.results.first.function.value
-            impResult.values.conditionFired == groups.rules.first.conditions.first
-            impResult.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
-            impResult.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
-            impResult.appliedTo.impIds == bidRequest.imp.id
+        verifyAll(result.results[0]) {
+            it.status == SUCCESS
+            it.values.analyticsKey == groups.analyticsKey
+            it.values.modelVersion == groups.version
+            it.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
+            it.values.resultFunction == groups.rules.first.results.first.function.value
+            it.values.conditionFired == groups.rules.first.conditions.first
+            it.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
+            it.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
+            it.appliedTo.impIds == bidRequest.imp.id
         }
 
         and: "Response should seatNon bid with code 203"
@@ -1895,9 +1498,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
 
     def "PBS shouldn't exclude bidder when channel not match with condition"() {
         given: "Bid request with multiply bidders"
-        def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
-        }
+        def bidRequest = getDefaultBidRequestWithMultiplyBidders()
 
         and: "Account with rule engine config"
         def pbRuleEngine = createRulesEngineWithRule().tap {
@@ -1918,8 +1519,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED
-        assert bidResponse.seatbid.seat.sort() == [GENERIC, OPENX, AMX].sort()
+        assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
 
         and: "PBs should perform bidder requests"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -1938,7 +1538,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
     def "PBS should exclude bidder when eidAvailable match with condition"() {
         given: "Bid request with multiply bidders"
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
             user = new User(eids: [Eid.getDefaultEid()])
         }
 
@@ -1958,7 +1557,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED - 1
         assert bidResponse.seatbid.seat.sort() == [GENERIC, AMX].sort()
 
         and: "PBs should perform bidder requests"
@@ -1971,22 +1569,21 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         and: "Analytics result should contain info about name and status"
         def analyticsResult = getAnalyticResults(bidResponse)
         def result = analyticsResult[0]
-        assert result.name == PB_RULE_ENGINE_MODULE_NAME_CODE
+        assert result.name == ModuleName.PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
         and: "Analytics result detail info"
-        def impResult = result.results[0]
         def groups = pbRuleEngine.ruleSets[0].modelGroups[0]
-        verifyAll {
-            impResult.status == SUCCESS
-            impResult.values.analyticsKey == groups.analyticsKey
-            impResult.values.modelVersion == groups.version
-            impResult.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
-            impResult.values.resultFunction == groups.rules.first.results.first.function.value
-            impResult.values.conditionFired == groups.rules.first.conditions.first
-            impResult.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
-            impResult.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
-            impResult.appliedTo.impIds == bidRequest.imp.id
+        verifyAll(result.results[0]) {
+            it.status == SUCCESS
+            it.values.analyticsKey == groups.analyticsKey
+            it.values.modelVersion == groups.version
+            it.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
+            it.values.resultFunction == groups.rules.first.results.first.function.value
+            it.values.conditionFired == groups.rules.first.conditions.first
+            it.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
+            it.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
+            it.appliedTo.impIds == bidRequest.imp.id
         }
 
         and: "Response should seatNon bid with code 203"
@@ -2000,7 +1597,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
     def "PBS shouldn't exclude bidder when eidAvailable not match with condition"() {
         given: "Bid request with multiply bidders"
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
             user = new User(eids: eids)
         }
 
@@ -2023,8 +1619,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED
-        assert bidResponse.seatbid.seat.sort() == [GENERIC, OPENX, AMX].sort()
+        assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
 
         and: "PBs should perform bidder requests"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -2050,7 +1645,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         and: "Bid request with multiply bidders"
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
             updateBidRequestWithGeoCountry(it)
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
         }
 
         and: "Account with rule engine config"
@@ -2072,7 +1666,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         assert bidder.getBidderRequests(bidRequest.id)
 
         and: "Bid response should contain all requested bidders"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED
+        assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
 
         and: "PBS response shouldn't contain seatNonBid"
         assert !bidResponse.ext.seatnonbid
@@ -2094,7 +1688,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         given: "Bid request with multiply bidders"
         def eid = Eid.getDefaultEid()
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
             user = new User(eids: [eid])
         }
 
@@ -2117,7 +1710,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED - 1
         assert bidResponse.seatbid.seat.sort() == [GENERIC, AMX].sort()
 
         and: "PBs should perform bidder requests"
@@ -2130,22 +1722,21 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         and: "Analytics result should contain info about name and status"
         def analyticsResult = getAnalyticResults(bidResponse)
         def result = analyticsResult[0]
-        assert result.name == PB_RULE_ENGINE_MODULE_NAME_CODE
+        assert result.name == ModuleName.PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
         and: "Analytics result detail info"
-        def impResult = result.results[0]
         def groups = pbRuleEngine.ruleSets[0].modelGroups[0]
-        verifyAll {
-            impResult.status == SUCCESS
-            impResult.values.analyticsKey == groups.analyticsKey
-            impResult.values.modelVersion == groups.version
-            impResult.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
-            impResult.values.resultFunction == groups.rules.first.results.first.function.value
-            impResult.values.conditionFired == groups.rules.first.conditions.first
-            impResult.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
-            impResult.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
-            impResult.appliedTo.impIds == bidRequest.imp.id
+        verifyAll(result.results[0]) {
+            it.status == SUCCESS
+            it.values.analyticsKey == groups.analyticsKey
+            it.values.modelVersion == groups.version
+            it.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
+            it.values.resultFunction == groups.rules.first.results.first.function.value
+            it.values.conditionFired == groups.rules.first.conditions.first
+            it.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
+            it.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
+            it.appliedTo.impIds == bidRequest.imp.id
         }
 
         and: "Response should seatNon bid with code 203"
@@ -2159,7 +1750,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
     def "PBS shouldn't exclude bidder when eidIn match with condition"() {
         given: "Bid request with multiply bidders"
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
             user = new User(eids: [Eid.getDefaultEid()])
         }
 
@@ -2182,8 +1772,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED
-        assert bidResponse.seatbid.seat.sort() == [GENERIC, OPENX, AMX].sort()
+        assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
 
         and: "PBs should perform bidder requests"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -2202,7 +1791,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
     def "PBS should exclude bidder when userFpdAvailable match with condition"() {
         given: "Bid request with multiply bidders"
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
             user = requestedUfpUser
         }
 
@@ -2222,7 +1810,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED - 1
         assert bidResponse.seatbid.seat.sort() == [GENERIC, AMX].sort()
 
         and: "PBs should perform bidder requests"
@@ -2235,23 +1822,23 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         and: "Analytics result should contain info about name and status"
         def analyticsResult = getAnalyticResults(bidResponse)
         def result = analyticsResult[0]
-        assert result.name == PB_RULE_ENGINE_MODULE_NAME_CODE
+        assert result.name == ModuleName.PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
         and: "Analytics result detail info"
-        def impResult = result.results[0]
         def groups = pbRuleEngine.ruleSets[0].modelGroups[0]
-        verifyAll {
-            impResult.status == SUCCESS
-            impResult.values.analyticsKey == groups.analyticsKey
-            impResult.values.modelVersion == groups.version
-            impResult.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
-            impResult.values.resultFunction == groups.rules.first.results.first.function.value
-            impResult.values.conditionFired == groups.rules.first.conditions.first
-            impResult.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
-            impResult.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
-            impResult.appliedTo.impIds == bidRequest.imp.id
+        verifyAll(result.results[0]) {
+            it.status == SUCCESS
+            it.values.analyticsKey == groups.analyticsKey
+            it.values.modelVersion == groups.version
+            it.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
+            it.values.resultFunction == groups.rules.first.results.first.function.value
+            it.values.conditionFired == groups.rules.first.conditions.first
+            it.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
+            it.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
+            it.appliedTo.impIds == bidRequest.imp.id
         }
+
         and: "Response should seatNon bid with code 203"
         assert bidResponse.ext.seatnonbid.size() == 1
         def seatNonBid = bidResponse.ext.seatnonbid[0]
@@ -2268,7 +1855,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
     def "PBS shouldn't exclude bidder when userFpdAvailable not match with condition"() {
         given: "Bid request with multiply bidders"
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
             user = requestedUfpUser
         }
 
@@ -2288,8 +1874,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED
-        assert bidResponse.seatbid.seat.sort() == [GENERIC, OPENX, AMX].sort()
+        assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
 
         and: "PBs should perform bidder requests"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -2328,7 +1913,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED - 1
         assert bidResponse.seatbid.seat.sort() == [GENERIC, AMX].sort()
 
         and: "PBs should perform bidder requests"
@@ -2341,22 +1925,21 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         and: "Analytics result should contain info about name and status"
         def analyticsResult = getAnalyticResults(bidResponse)
         def result = analyticsResult[0]
-        assert result.name == PB_RULE_ENGINE_MODULE_NAME_CODE
+        assert result.name == ModuleName.PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
         and: "Analytics result detail info"
-        def impResult = result.results[0]
         def groups = pbRuleEngine.ruleSets[0].modelGroups[0]
-        verifyAll {
-            impResult.status == SUCCESS
-            impResult.values.analyticsKey == groups.analyticsKey
-            impResult.values.modelVersion == groups.version
-            impResult.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
-            impResult.values.resultFunction == groups.rules.first.results.first.function.value
-            impResult.values.conditionFired == groups.rules.first.conditions.first
-            impResult.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
-            impResult.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
-            impResult.appliedTo.impIds == bidRequest.imp.id
+        verifyAll(result.results[0]) {
+            it.status == SUCCESS
+            it.values.analyticsKey == groups.analyticsKey
+            it.values.modelVersion == groups.version
+            it.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
+            it.values.resultFunction == groups.rules.first.results.first.function.value
+            it.values.conditionFired == groups.rules.first.conditions.first
+            it.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
+            it.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
+            it.appliedTo.impIds == bidRequest.imp.id
         }
 
         and: "Response should seatNon bid with code 203"
@@ -2369,27 +1952,21 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         where:
         bidRequest << [
                 getDefaultBidRequestWithMultiplyBidders().tap {
-                    updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
                     user = new User(data: [Data.defaultData])
                 },
                 getDefaultBidRequestWithMultiplyBidders().tap {
-                    updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
                     user = new User(ext: new UserExt(data: UserExtData.FPDUserExtData))
                 },
                 getDefaultBidRequestWithMultiplyBidders().tap {
-                    updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
                     site.content = new Content(data: [Data.defaultData])
                 },
                 getDefaultBidRequestWithMultiplyBidders().tap {
-                    updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
                     site.ext = new SiteExt(data: SiteExtData.FPDSiteExtData)
                 },
                 getDefaultBidRequestWithMultiplyBidders(APP).tap {
-                    updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
                     app.content = new Content(data: [Data.defaultData])
                 },
                 getDefaultBidRequestWithMultiplyBidders(APP).tap {
-                    updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
                     app.ext = new AppExt(data: new AppExtData(language: PBSUtils.randomString))
                 },
         ]
@@ -2412,8 +1989,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED
-        assert bidResponse.seatbid.seat.sort() == [GENERIC, OPENX, AMX].sort()
+        assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
 
         and: "PBs should perform bidder requests"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -2431,29 +2007,23 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         where:
         bidRequest << [
                 getDefaultBidRequestWithMultiplyBidders().tap {
-                    updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
                     user = new User(data: null, ext: new UserExt(data: null))
                 },
                 getDefaultBidRequestWithMultiplyBidders().tap {
-                    updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
                     user = new User(ext: new UserExt(data: null))
                 },
                 getDefaultBidRequestWithMultiplyBidders().tap {
-                    updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
                     site.content = new Content(data: [null])
                     site.ext = new SiteExt(data: null)
                 },
                 getDefaultBidRequestWithMultiplyBidders().tap {
-                    updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
                     site.ext = new SiteExt(data: null)
                 },
                 getDefaultBidRequestWithMultiplyBidders(APP).tap {
-                    updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
                     app.content = new Content(data: [null])
                     app.ext = new AppExt(data: null)
                 },
                 getDefaultBidRequestWithMultiplyBidders(APP).tap {
-                    updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
                     app.ext = new AppExt(data: null)
                 },
         ]
@@ -2462,7 +2032,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
     def "PBS should exclude bidder when gppSidAvailable match with condition"() {
         given: "Default bid request with multiply bidder"
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
             regs = new Regs(gppSid: [PBSUtils.getRandomEnum(GppSectionId).getIntValue()])
         }
 
@@ -2482,7 +2051,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED - 1
         assert bidResponse.seatbid.seat.sort() == [GENERIC, AMX].sort()
 
         and: "PBs should perform bidder requests"
@@ -2495,22 +2063,21 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         and: "Analytics result should contain info about name and status"
         def analyticsResult = getAnalyticResults(bidResponse)
         def result = analyticsResult[0]
-        assert result.name == PB_RULE_ENGINE_MODULE_NAME_CODE
+        assert result.name == ModuleName.PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
         and: "Analytics result detail info"
-        def impResult = result.results[0]
         def groups = pbRuleEngine.ruleSets[0].modelGroups[0]
-        verifyAll {
-            impResult.status == SUCCESS
-            impResult.values.analyticsKey == groups.analyticsKey
-            impResult.values.modelVersion == groups.version
-            impResult.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
-            impResult.values.resultFunction == groups.rules.first.results.first.function.value
-            impResult.values.conditionFired == groups.rules.first.conditions.first
-            impResult.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
-            impResult.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
-            impResult.appliedTo.impIds == bidRequest.imp.id
+        verifyAll(result.results[0]) {
+            it.status == SUCCESS
+            it.values.analyticsKey == groups.analyticsKey
+            it.values.modelVersion == groups.version
+            it.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
+            it.values.resultFunction == groups.rules.first.results.first.function.value
+            it.values.conditionFired == groups.rules.first.conditions.first
+            it.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
+            it.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
+            it.appliedTo.impIds == bidRequest.imp.id
         }
 
         and: "Response should seatNon bid with code 203"
@@ -2524,7 +2091,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
     def "PBS shouldn't exclude bidder when gppSidAvailable not match with condition"() {
         given: "Default bid request with multiply bidder"
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
             regs = new Regs(gppSid: gppSid)
         }
 
@@ -2544,8 +2110,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED
-        assert bidResponse.seatbid.seat.sort() == [GENERIC, OPENX, AMX].sort()
+        assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
 
         and: "PBs should perform bidder requests"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -2570,7 +2135,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
 
         and: "Default bid request with multiply bidders"
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
             regs = new Regs(gdpr: 0, gppSid: [PBSUtils.getRandomEnum(GppSectionId, [GppSectionId.TCF_EU_V2]).getIntValue()])
         }
 
@@ -2593,7 +2157,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         assert bidder.getBidderRequests(bidRequest.id)
 
         and: "Bid response should contain all requested bidders"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED
+        assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
 
         and: "PBS response shouldn't contain seatNonBid"
         assert !bidResponse.ext.seatnonbid
@@ -2616,7 +2180,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         given: "Default bid request with multiply bidder"
         def gppSectionId = PBSUtils.getRandomEnum(GppSectionId).getIntValue()
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
             regs = new Regs(gppSid: [gppSectionId])
         }
 
@@ -2639,7 +2202,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED - 1
         assert bidResponse.seatbid.seat.sort() == [GENERIC, AMX].sort()
 
         and: "PBs should perform bidder requests"
@@ -2652,22 +2214,21 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         and: "Analytics result should contain info about name and status"
         def analyticsResult = getAnalyticResults(bidResponse)
         def result = analyticsResult[0]
-        assert result.name == PB_RULE_ENGINE_MODULE_NAME_CODE
+        assert result.name == ModuleName.PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
         and: "Analytics result detail info"
-        def impResult = result.results[0]
         def groups = pbRuleEngine.ruleSets[0].modelGroups[0]
-        verifyAll {
-            impResult.status == SUCCESS
-            impResult.values.analyticsKey == groups.analyticsKey
-            impResult.values.modelVersion == groups.version
-            impResult.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
-            impResult.values.resultFunction == groups.rules.first.results.first.function.value
-            impResult.values.conditionFired == groups.rules.first.conditions.first
-            impResult.values.biddersRemoved == groups.rules.first.results.first.args.bidders
-            impResult.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
-            impResult.appliedTo.impIds == bidRequest.imp.id
+        verifyAll(result.results[0]) {
+            it.status == SUCCESS
+            it.values.analyticsKey == groups.analyticsKey
+            it.values.modelVersion == groups.version
+            it.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
+            it.values.resultFunction == groups.rules.first.results.first.function.value
+            it.values.conditionFired == groups.rules.first.conditions.first
+            it.values.biddersRemoved == groups.rules.first.results.first.args.bidders
+            it.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
+            it.appliedTo.impIds == bidRequest.imp.id
         }
 
         and: "Response should seatNon bid with code 203"
@@ -2682,7 +2243,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         given: "Default bid request with multiply bidder"
         def gppSectionId = PBSUtils.getRandomEnum(GppSectionId)
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
             regs = new Regs(gppSid: [gppSectionId.getIntValue()])
         }
 
@@ -2705,8 +2265,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED
-        assert bidResponse.seatbid.seat.sort() == [GENERIC, OPENX, AMX].sort()
+        assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
 
         and: "PBs should perform bidder requests"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -2725,7 +2284,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
     def "PBS should exclude bidder when tcfInScope match with condition"() {
         given: "Default bid request with multiply bidder"
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
             regs = new Regs(gdpr: gdpr)
             user = new User(ext: new UserExt(consent: new TcfConsent.Builder()
                     .setPurposesLITransparency(BASIC_ADS)
@@ -2752,7 +2310,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED - 1
         assert bidResponse.seatbid.seat.sort() == [GENERIC, AMX].sort()
 
         and: "PBs should perform bidder requests"
@@ -2765,22 +2322,21 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         and: "Analytics result should contain info about name and status"
         def analyticsResult = getAnalyticResults(bidResponse)
         def result = analyticsResult[0]
-        assert result.name == PB_RULE_ENGINE_MODULE_NAME_CODE
+        assert result.name == ModuleName.PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
         and: "Analytics result detail info"
-        def impResult = result.results[0]
         def groups = pbRuleEngine.ruleSets[0].modelGroups[0]
-        verifyAll {
-            impResult.status == SUCCESS
-            impResult.values.analyticsKey == groups.analyticsKey
-            impResult.values.modelVersion == groups.version
-            impResult.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
-            impResult.values.resultFunction == groups.rules.first.results.first.function.value
-            impResult.values.conditionFired == groups.rules.first.conditions.first
-            impResult.values.biddersRemoved == groups.rules.first.results.first.args.bidders
-            impResult.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
-            impResult.appliedTo.impIds == bidRequest.imp.id
+        verifyAll(result.results[0]) {
+            it.status == SUCCESS
+            it.values.analyticsKey == groups.analyticsKey
+            it.values.modelVersion == groups.version
+            it.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
+            it.values.resultFunction == groups.rules.first.results.first.function.value
+            it.values.conditionFired == groups.rules.first.conditions.first
+            it.values.biddersRemoved == groups.rules.first.results.first.args.bidders
+            it.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
+            it.appliedTo.impIds == bidRequest.imp.id
         }
 
         and: "Response should seatNon bid with code 203"
@@ -2792,14 +2348,13 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
 
         where:
         gdpr | condition
-        1    | TRUE as String
-        0    | FALSE as String
+        1    | 'true'
+        0    | 'false'
     }
 
     def "PBS shouldn't exclude bidder when tcfInScope not match with condition"() {
         given: "Default bid request with multiply bidder"
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
             regs = new Regs(gdpr: gdpr)
             user = new User(ext: new UserExt(consent: new TcfConsent.Builder()
                     .setPurposesLITransparency(BASIC_ADS)
@@ -2826,8 +2381,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED
-        assert bidResponse.seatbid.seat.sort() == [GENERIC, OPENX, AMX].sort()
+        assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
 
         and: "PBs should perform bidder requests"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -2853,9 +2407,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def startTime = Instant.now()
 
         and: "Default bid request with multiply bidders"
-        def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
-        }
+        def bidRequest = getDefaultBidRequestWithMultiplyBidders()
 
         and: "Create account with rule engine config"
         def pbRuleEngine = createRulesEngineWithRule().tap {
@@ -2879,7 +2431,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         assert bidder.getBidderRequests(bidRequest.id)
 
         and: "Bid response should contain all requested bidders"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED
+        assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
 
         and: "Analytics result should contain info about rule engine"
         assert !getAnalyticResults(bidResponse)
@@ -2899,15 +2451,13 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
 
     def "PBS should exclude bidder when percent match with condition"() {
         given: "Default bid request with multiply bidder"
-        def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
-        }
+        def bidRequest = getDefaultBidRequestWithMultiplyBidders()
 
         and: "Create rule engine config"
         def pbRuleEngine = createRulesEngineWithRule().tap {
             it.ruleSets[0].modelGroups[0].schema[0].tap {
                 it.function = PERCENT
-                it.args = new RuleEngineFunctionArgs(percent: percent as Integer)
+                it.args = new RuleEngineFunctionArgs(percent: PBSUtils.getRandomNumber(100))
             }
         }
 
@@ -2922,7 +2472,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED - 1
         assert bidResponse.seatbid.seat.sort() == [GENERIC, AMX].sort()
 
         and: "PBs should perform bidder requests"
@@ -2935,22 +2484,21 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         and: "Analytics result should contain info about name and status"
         def analyticsResult = getAnalyticResults(bidResponse)
         def result = analyticsResult[0]
-        assert result.name == PB_RULE_ENGINE_MODULE_NAME_CODE
+        assert result.name == ModuleName.PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
         and: "Analytics result detail info"
-        def impResult = result.results[0]
         def groups = pbRuleEngine.ruleSets[0].modelGroups[0]
-        verifyAll {
-            impResult.status == SUCCESS
-            impResult.values.analyticsKey == groups.analyticsKey
-            impResult.values.modelVersion == groups.version
-            impResult.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
-            impResult.values.resultFunction == groups.rules.first.results.first.function.value
-            impResult.values.conditionFired == groups.rules.first.conditions.first
-            impResult.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
-            impResult.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
-            impResult.appliedTo.impIds == bidRequest.imp.id
+        verifyAll(result.results[0]) {
+            it.status == SUCCESS
+            it.values.analyticsKey == groups.analyticsKey
+            it.values.modelVersion == groups.version
+            it.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
+            it.values.resultFunction == groups.rules.first.results.first.function.value
+            it.values.conditionFired == groups.rules.first.conditions.first
+            it.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
+            it.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
+            it.appliedTo.impIds == bidRequest.imp.id
         }
 
         and: "Response should seatNon bid with code 203"
@@ -2959,16 +2507,11 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         assert seatNonBid.seat == OPENX
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
-
-        where:
-        percent << [100, PBSUtils.getRandomNumber(100)]
     }
 
     def "PBS shouldn't exclude bidder when percent not match with condition"() {
         given: "Default bid request with multiply bidder"
-        def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
-        }
+        def bidRequest = getDefaultBidRequestWithMultiplyBidders()
 
         and: "Create account with rule engine config"
         def pbRuleEngine = createRulesEngineWithRule().tap {
@@ -2989,8 +2532,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED
-        assert bidResponse.seatbid.seat.sort() == [GENERIC, OPENX, AMX].sort()
+        assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
 
         and: "PBs should perform bidder requests"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -3014,9 +2556,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def startTime = Instant.now()
 
         and: "Default bid request with multiply bidders"
-        def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
-        }
+        def bidRequest = getDefaultBidRequestWithMultiplyBidders()
 
         and: "Create account with rule engine config"
         def pbRuleEngine = createRulesEngineWithRule().tap {
@@ -3040,7 +2580,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         assert bidder.getBidderRequests(bidRequest.id)
 
         and: "Bid response should contain all requested bidders"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED
+        assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
 
         and: "PBS response should not contain seatNonBid"
         assert !bidResponse.ext.seatnonbid
@@ -3063,8 +2603,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def keyField = "key"
         def keyString = PBSUtils.randomString
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
-            ext.prebid.kvps = [(keyString): keyField]
+            ext.prebid.keyValuePairs = [(keyString): keyField]
         }
 
         and: "Create rule engine config"
@@ -3087,7 +2626,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED - 1
         assert bidResponse.seatbid.seat.sort() == [GENERIC, AMX].sort()
 
         and: "PBs should perform bidder requests"
@@ -3100,22 +2638,21 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         and: "Analytics result should contain info about name and status"
         def analyticsResult = getAnalyticResults(bidResponse)
         def result = analyticsResult[0]
-        assert result.name == PB_RULE_ENGINE_MODULE_NAME_CODE
+        assert result.name == ModuleName.PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
         and: "Analytics result detail info"
-        def impResult = result.results[0]
         def groups = pbRuleEngine.ruleSets[0].modelGroups[0]
-        verifyAll {
-            impResult.status == SUCCESS
-            impResult.values.analyticsKey == groups.analyticsKey
-            impResult.values.modelVersion == groups.version
-            impResult.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
-            impResult.values.resultFunction == groups.rules.first.results.first.function.value
-            impResult.values.conditionFired == groups.rules.first.conditions.first
-            impResult.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
-            impResult.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
-            impResult.appliedTo.impIds == bidRequest.imp.id
+        verifyAll(result.results[0]) {
+            it.status == SUCCESS
+            it.values.analyticsKey == groups.analyticsKey
+            it.values.modelVersion == groups.version
+            it.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
+            it.values.resultFunction == groups.rules.first.results.first.function.value
+            it.values.conditionFired == groups.rules.first.conditions.first
+            it.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
+            it.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
+            it.appliedTo.impIds == bidRequest.imp.id
         }
 
         and: "Response should seatNon bid with code 203"
@@ -3130,8 +2667,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         given: "Default bid request with multiply bidder"
         def key = PBSUtils.randomString
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
-            ext.prebid.kvps = [(key): PBSUtils.randomString]
+            ext.prebid.keyValuePairs = [(key): PBSUtils.randomString]
         }
 
         and: "Create rule engine config"
@@ -3151,8 +2687,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED
-        assert bidResponse.seatbid.seat.sort() == [GENERIC, OPENX, AMX].sort()
+        assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
 
         and: "PBs should perform bidder requests"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -3171,7 +2706,9 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
     def "PBS should exclude bidder when domain match with condition"() {
         given: "Default bid request with multiply bidder"
         def randomDomain = PBSUtils.randomString
-        def bidRequest = bidRequestClosure(randomDomain)
+        def bidRequest = getDefaultBidRequestWithMultiplyBidders(distributionChannel).tap {
+            updatePublisherDomain(it, distributionChannel, randomDomain)
+        }
 
         and: "Create account with rule engine config"
         def pbRuleEngine = createRulesEngineWithRule().tap {
@@ -3192,7 +2729,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED - 1
         assert bidResponse.seatbid.seat.sort() == [GENERIC, AMX].sort()
 
         and: "PBs should perform bidder requests"
@@ -3205,22 +2741,21 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         and: "Analytics result should contain info about name and status"
         def analyticsResult = getAnalyticResults(bidResponse)
         def result = analyticsResult[0]
-        assert result.name == PB_RULE_ENGINE_MODULE_NAME_CODE
+        assert result.name == ModuleName.PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
         and: "Analytics result detail info"
-        def impResult = result.results[0]
         def groups = pbRuleEngine.ruleSets[0].modelGroups[0]
-        verifyAll {
-            impResult.status == SUCCESS
-            impResult.values.analyticsKey == groups.analyticsKey
-            impResult.values.modelVersion == groups.version
-            impResult.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
-            impResult.values.resultFunction == groups.rules.first.results.first.function.value
-            impResult.values.conditionFired == groups.rules.first.conditions.first
-            impResult.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
-            impResult.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
-            impResult.appliedTo.impIds == bidRequest.imp.id
+        verifyAll(result.results[0]) {
+            it.status == SUCCESS
+            it.values.analyticsKey == groups.analyticsKey
+            it.values.modelVersion == groups.version
+            it.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
+            it.values.resultFunction == groups.rules.first.results.first.function.value
+            it.values.conditionFired == groups.rules.first.conditions.first
+            it.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
+            it.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
+            it.appliedTo.impIds == bidRequest.imp.id
         }
 
         and: "Response should seatNon bid with code 203"
@@ -3231,29 +2766,16 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         assert seatNonBid.nonBid[0].statusCode == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
 
         where:
-        distributionChannel | bidRequestClosure
-        SITE                | { String domain ->
-            getDefaultBidRequestWithMultiplyBidders(distributionChannel).tap {
-                it.site.publisher = new Publisher(id: PBSUtils.randomString, domain: domain)
-                updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
-            }
-        }
-        APP                 | { String domain ->
-            getDefaultBidRequestWithMultiplyBidders(distributionChannel).tap {
-                it.app.publisher = new Publisher(id: PBSUtils.randomString, domain: domain)
-                updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
-            }
-        }
-        DOOH                | { String domain ->
-            getDefaultBidRequestWithMultiplyBidders(distributionChannel).tap {
-                it.dooh.publisher = new Publisher(id: PBSUtils.randomString, domain: domain)
-                updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
-            }
-        }
+        distributionChannel << [SITE, APP, DOOH]
     }
 
     def "PBS shouldn't exclude bidder when domain not match with condition"() {
-        given: "Create account with rule engine config"
+        given: "Default bid request with random domain"
+        def bidRequest = getDefaultBidRequestWithMultiplyBidders(distributionCahannel).tap {
+            updatePublisherDomain(it, distributionCahannel, PBSUtils.randomString)
+        }
+
+        and: "Create account with rule engine config"
         def pbRuleEngine = createRulesEngineWithRule().tap {
             it.ruleSets[0].modelGroups[0].tap {
                 schema = [new RuleEngineModelSchema(function: DOMAIN)]
@@ -3272,8 +2794,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED
-        assert bidResponse.seatbid.seat.sort() == [GENERIC, OPENX, AMX].sort()
+        assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
 
         and: "PBs should perform bidder requests"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -3289,20 +2810,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         assert !getAnalyticResults(bidResponse)
 
         where:
-        bidRequest << [
-                getDefaultBidRequestWithMultiplyBidders().tap {
-                    it.site.publisher = new Publisher(id: PBSUtils.randomString, domain: PBSUtils.randomString)
-                    updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
-                },
-                getDefaultBidRequestWithMultiplyBidders(APP).tap {
-                    it.app.publisher = new Publisher(id: PBSUtils.randomString, domain: PBSUtils.randomString)
-                    updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
-                },
-                getDefaultBidRequestWithMultiplyBidders(DOOH).tap {
-                    it.dooh.publisher = new Publisher(id: PBSUtils.randomString, domain: PBSUtils.randomString)
-                    updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
-                }]
-
+        distributionCahannel << [SITE, APP, DOOH]
     }
 
     def "PBS should reject processing the rule engine when the domainIn schema function contains incompatible arguments"() {
@@ -3335,7 +2843,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         assert bidder.getBidderRequests(bidRequest.id)
 
         and: "Bid response should contain all requested bidders"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED
+        assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
 
         and: "PBS response shouldn't contain seatNonBid"
         assert !bidResponse.ext.seatnonbid
@@ -3353,43 +2861,38 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
                 "Field 'domains' is required and has to be an array of strings")
 
         where:
-        distributionChannel | bidRequestClosure
-        SITE                | { String domain ->
-            getDefaultBidRequestWithMultiplyBidders(distributionChannel).tap {
-                it.site.publisher = new Publisher(id: PBSUtils.randomString, domain: PBSUtils.randomString)
-                updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
-            }
-        }
-        SITE                | { String domain ->
-            getDefaultBidRequestWithMultiplyBidders(distributionChannel).tap {
-                it.site.domain = domain
-                updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
-            }
-        }
-        APP                 | { String domain ->
-            getDefaultBidRequestWithMultiplyBidders(distributionChannel).tap {
-                it.app.publisher = new Publisher(id: PBSUtils.randomString, domain: PBSUtils.randomString)
-                updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
-            }
-        }
-        APP                 | { String domain ->
-            getDefaultBidRequestWithMultiplyBidders(distributionChannel).tap {
-                it.app.domain = domain
-                updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
-            }
-        }
-        DOOH                | { String domain ->
-            getDefaultBidRequestWithMultiplyBidders(distributionChannel).tap {
-                it.dooh.publisher = new Publisher(id: PBSUtils.randomString, domain: PBSUtils.randomString)
-                updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
-            }
-        }
-        DOOH                | { String domain ->
-            getDefaultBidRequestWithMultiplyBidders(distributionChannel).tap {
-                it.dooh.domain = domain
-                updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
-            }
-        }
+        bidRequestClosure << [
+                { String domain ->
+                    getDefaultBidRequestWithMultiplyBidders(SITE).tap {
+                        it.site.publisher = new Publisher(id: PBSUtils.randomString, domain: PBSUtils.randomString)
+                    }
+                },
+                { String domain ->
+                    getDefaultBidRequestWithMultiplyBidders(SITE).tap {
+                        it.site.domain = domain
+                    }
+                },
+                { String domain ->
+                    getDefaultBidRequestWithMultiplyBidders(APP).tap {
+                        it.app.publisher = new Publisher(id: PBSUtils.randomString, domain: PBSUtils.randomString)
+                    }
+                },
+                { String domain ->
+                    getDefaultBidRequestWithMultiplyBidders(APP).tap {
+                        it.app.domain = domain
+                    }
+                },
+                { String domain ->
+                    getDefaultBidRequestWithMultiplyBidders(DOOH).tap {
+                        it.dooh.publisher = new Publisher(id: PBSUtils.randomString, domain: PBSUtils.randomString)
+                    }
+                },
+                { String domain ->
+                    getDefaultBidRequestWithMultiplyBidders(DOOH).tap {
+                        it.dooh.domain = domain
+                    }
+                }
+        ]
     }
 
     def "PBS should exclude bidder when domainIn match with condition"() {
@@ -3416,7 +2919,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED - 1
         assert bidResponse.seatbid.seat.sort() == [GENERIC, AMX].sort()
 
         and: "PBs should perform bidder requests"
@@ -3429,22 +2931,21 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         and: "Analytics result should contain info about name and status"
         def analyticsResult = getAnalyticResults(bidResponse)
         def result = analyticsResult[0]
-        assert result.name == PB_RULE_ENGINE_MODULE_NAME_CODE
+        assert result.name == ModuleName.PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
         and: "Analytics result detail info"
-        def impResult = result.results[0]
         def groups = pbRuleEngine.ruleSets[0].modelGroups[0]
-        verifyAll {
-            impResult.status == SUCCESS
-            impResult.values.analyticsKey == groups.analyticsKey
-            impResult.values.modelVersion == groups.version
-            impResult.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
-            impResult.values.resultFunction == groups.rules.first.results.first.function.value
-            impResult.values.conditionFired == groups.rules.first.conditions.first
-            impResult.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
-            impResult.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
-            impResult.appliedTo.impIds == bidRequest.imp.id
+        verifyAll(result.results[0]) {
+            it.status == SUCCESS
+            it.values.analyticsKey == groups.analyticsKey
+            it.values.modelVersion == groups.version
+            it.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
+            it.values.resultFunction == groups.rules.first.results.first.function.value
+            it.values.conditionFired == groups.rules.first.conditions.first
+            it.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
+            it.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
+            it.appliedTo.impIds == bidRequest.imp.id
         }
 
         and: "Response should seatNon bid with code 203"
@@ -3455,43 +2956,38 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         assert seatNonBid.nonBid[0].statusCode == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
 
         where:
-        distributionChannel | bidRequestClosure
-        SITE                | { String domain ->
-            getDefaultBidRequestWithMultiplyBidders(distributionChannel).tap {
-                it.site.publisher = new Publisher(id: PBSUtils.randomString, domain: domain)
-                updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
-            }
-        }
-        SITE                | { String domain ->
-            getDefaultBidRequestWithMultiplyBidders(distributionChannel).tap {
-                it.site.domain = domain
-                updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
-            }
-        }
-        APP                 | { String domain ->
-            getDefaultBidRequestWithMultiplyBidders(distributionChannel).tap {
-                it.app.publisher = new Publisher(id: PBSUtils.randomString, domain: domain)
-                updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
-            }
-        }
-        APP                 | { String domain ->
-            getDefaultBidRequestWithMultiplyBidders(distributionChannel).tap {
-                it.app.domain = domain
-                updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
-            }
-        }
-        DOOH                | { String domain ->
-            getDefaultBidRequestWithMultiplyBidders(distributionChannel).tap {
-                it.dooh.publisher = new Publisher(id: PBSUtils.randomString, domain: domain)
-                updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
-            }
-        }
-        DOOH                | { String domain ->
-            getDefaultBidRequestWithMultiplyBidders(distributionChannel).tap {
-                it.dooh.domain = domain
-                updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
-            }
-        }
+        bidRequestClosure << [
+                { String domain ->
+                    getDefaultBidRequestWithMultiplyBidders(SITE).tap {
+                        it.site.publisher = new Publisher(id: PBSUtils.randomString, domain: domain)
+                    }
+                },
+                { String domain ->
+                    getDefaultBidRequestWithMultiplyBidders(SITE).tap {
+                        it.site.domain = domain
+                    }
+                },
+                { String domain ->
+                    getDefaultBidRequestWithMultiplyBidders(APP).tap {
+                        it.app.publisher = new Publisher(id: PBSUtils.randomString, domain: domain)
+                    }
+                },
+                { String domain ->
+                    getDefaultBidRequestWithMultiplyBidders(APP).tap {
+                        it.app.domain = domain
+                    }
+                },
+                { String domain ->
+                    getDefaultBidRequestWithMultiplyBidders(DOOH).tap {
+                        it.dooh.publisher = new Publisher(id: PBSUtils.randomString, domain: domain)
+                    }
+                },
+                { String domain ->
+                    getDefaultBidRequestWithMultiplyBidders(DOOH).tap {
+                        it.dooh.domain = domain
+                    }
+                }
+        ]
     }
 
     def "PBS shouldn't exclude bidder when domainIn not match with condition"() {
@@ -3514,8 +3010,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED
-        assert bidResponse.seatbid.seat.sort() == [GENERIC, OPENX, AMX].sort()
+        assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
 
         and: "PBs should perform bidder requests"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -3532,28 +3027,22 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
 
         where:
         bidRequest << [
-                getDefaultBidRequestWithMultiplyBidders().tap {
-                    updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
+                getDefaultBidRequestWithMultiplyBidders(SITE).tap {
                     it.site.publisher = new Publisher(id: PBSUtils.randomString, domain: PBSUtils.randomString)
                 },
-                getDefaultBidRequestWithMultiplyBidders().tap {
-                    updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
+                getDefaultBidRequestWithMultiplyBidders(SITE).tap {
                     it.site.domain = PBSUtils.randomString
                 },
                 getDefaultBidRequestWithMultiplyBidders(APP).tap {
-                    updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
                     it.app.publisher = new Publisher(id: PBSUtils.randomString, domain: PBSUtils.randomString)
                 },
                 getDefaultBidRequestWithMultiplyBidders(APP).tap {
-                    updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
                     it.app.domain = PBSUtils.randomString
                 },
                 getDefaultBidRequestWithMultiplyBidders(DOOH).tap {
-                    updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
                     it.dooh.publisher = new Publisher(id: PBSUtils.randomString, domain: PBSUtils.randomString)
                 },
                 getDefaultBidRequestWithMultiplyBidders(DOOH).tap {
-                    updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
                     it.dooh.domain = PBSUtils.randomString
                 }]
 
@@ -3563,7 +3052,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         given: "Default bid request with multiply bidder"
         def bundle = PBSUtils.randomString
         def bidRequest = getDefaultBidRequestWithMultiplyBidders(APP).tap {
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
             app.bundle = bundle
         }
 
@@ -3586,7 +3074,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED - 1
         assert bidResponse.seatbid.seat.sort() == [GENERIC, AMX].sort()
 
         and: "PBs should perform bidder requests"
@@ -3599,22 +3086,21 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         and: "Analytics result should contain info about name and status"
         def analyticsResult = getAnalyticResults(bidResponse)
         def result = analyticsResult[0]
-        assert result.name == PB_RULE_ENGINE_MODULE_NAME_CODE
+        assert result.name == ModuleName.PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
         and: "Analytics result detail info"
-        def impResult = result.results[0]
         def groups = pbRuleEngine.ruleSets[0].modelGroups[0]
-        verifyAll {
-            impResult.status == SUCCESS
-            impResult.values.analyticsKey == groups.analyticsKey
-            impResult.values.modelVersion == groups.version
-            impResult.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
-            impResult.values.resultFunction == groups.rules.first.results.first.function.value
-            impResult.values.conditionFired == groups.rules.first.conditions.first
-            impResult.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
-            impResult.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
-            impResult.appliedTo.impIds == bidRequest.imp.id
+        verifyAll(result.results[0]) {
+            it.status == SUCCESS
+            it.values.analyticsKey == groups.analyticsKey
+            it.values.modelVersion == groups.version
+            it.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
+            it.values.resultFunction == groups.rules.first.results.first.function.value
+            it.values.conditionFired == groups.rules.first.conditions.first
+            it.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
+            it.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
+            it.appliedTo.impIds == bidRequest.imp.id
         }
 
         and: "Response should seatNon bid with code 203"
@@ -3628,7 +3114,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
     def "PBS shouldn't exclude bidder when bundle not match with condition"() {
         given: "Default bid request with multiply bidder"
         def bidRequest = getDefaultBidRequestWithMultiplyBidders(APP).tap {
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
             app.bundle = PBSUtils.randomString
         }
 
@@ -3651,8 +3136,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED
-        assert bidResponse.seatbid.seat.sort() == [GENERIC, OPENX, AMX].sort()
+        assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
 
         and: "PBs should perform bidder requests"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -3674,7 +3158,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
 
         and: "Default bid request with multiply bidders"
         def bidRequest = getDefaultBidRequestWithMultiplyBidders(APP).tap {
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
             app.bundle = PBSUtils.randomString
         }
 
@@ -3697,7 +3180,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         assert bidder.getBidderRequests(bidRequest.id)
 
         and: "Bid response should contain all requested bidders"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED
+        assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
 
         and: "Analytics result shouldn't contain info about rule engine"
         assert !getAnalyticResults(bidResponse)
@@ -3712,14 +3195,14 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         then: "Logs should contain error"
         def logs = pbsServiceWithRulesEngineModule.getLogsByTime(startTime)
         assert getLogsByText(logs, "Failed to parse rule-engine config for account ${bidRequest.accountId}: " +
-                "Function '${BUNDLE_IN}' configuration is invalid: Field 'bundles' is required and has to be an array of strings").size() == 1
+                "Function '${BUNDLE_IN}' configuration is invalid: " +
+                "Field 'bundles' is required and has to be an array of strings").size() == 1
     }
 
     def "PBS should exclude bidder when bundleIn match with condition"() {
         given: "Default bid request with multiply bidders"
         def bundle = PBSUtils.randomString
         def bidRequest = getDefaultBidRequestWithMultiplyBidders(APP).tap {
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
             app.bundle = bundle
         }
 
@@ -3742,7 +3225,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED - 1
         assert bidResponse.seatbid.seat.sort() == [GENERIC, AMX].sort()
 
         and: "PBs should perform bidder requests"
@@ -3755,22 +3237,21 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         and: "Analytics result should contain info about name and status"
         def analyticsResult = getAnalyticResults(bidResponse)
         def result = analyticsResult[0]
-        assert result.name == PB_RULE_ENGINE_MODULE_NAME_CODE
+        assert result.name == ModuleName.PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
         and: "Analytics result detail info"
-        def impResult = result.results[0]
         def groups = pbRuleEngine.ruleSets[0].modelGroups[0]
-        verifyAll {
-            impResult.status == SUCCESS
-            impResult.values.analyticsKey == groups.analyticsKey
-            impResult.values.modelVersion == groups.version
-            impResult.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
-            impResult.values.resultFunction == groups.rules.first.results.first.function.value
-            impResult.values.conditionFired == groups.rules.first.conditions.first
-            impResult.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
-            impResult.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
-            impResult.appliedTo.impIds == bidRequest.imp.id
+        verifyAll(result.results[0]) {
+            it.status == SUCCESS
+            it.values.analyticsKey == groups.analyticsKey
+            it.values.modelVersion == groups.version
+            it.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
+            it.values.resultFunction == groups.rules.first.results.first.function.value
+            it.values.conditionFired == groups.rules.first.conditions.first
+            it.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
+            it.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
+            it.appliedTo.impIds == bidRequest.imp.id
         }
 
         and: "Response should seatNon bid with code 203"
@@ -3784,7 +3265,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
     def "PBS shouldn't exclude bidder when bundleIn not match with condition"() {
         given: "Default bid request with multiply bidders"
         def bidRequest = getDefaultBidRequestWithMultiplyBidders(APP).tap {
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
             app.bundle = PBSUtils.randomString
         }
 
@@ -3807,8 +3287,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED
-        assert bidResponse.seatbid.seat.sort() == [GENERIC, OPENX, AMX].sort()
+        assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
 
         and: "PBs should perform bidder requests"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -3829,9 +3308,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def startTime = Instant.now()
 
         and: "Default bid request with multiply bidders"
-        def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
-        }
+        def bidRequest = getDefaultBidRequestWithMultiplyBidders()
 
         and: "Create account with rule engine config"
         def pbRuleEngine = createRulesEngineWithRule().tap {
@@ -3852,7 +3329,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         assert bidder.getBidderRequests(bidRequest.id)
 
         and: "Bid response should contain all requested bidders"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED
+        assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
 
         and: "PBS response shouldn't contain seatNonBid"
         assert !bidResponse.ext.seatnonbid
@@ -3867,7 +3344,8 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         then: "Logs should contain error"
         def logs = pbsServiceWithRulesEngineModule.getLogsByTime(startTime)
         assert getLogsByText(logs, "Failed to parse rule-engine config for account ${bidRequest.accountId}: " +
-                "Function '${MEDIA_TYPE_IN}' configuration is invalid: Field 'types' is required and has to be an array of strings").size() == 1
+                "Function '${MEDIA_TYPE_IN}' configuration is invalid:" +
+                " Field 'types' is required and has to be an array of strings").size() == 1
 
         where:
         mediaTypeInArgs << [null, PBSUtils.randomNumber]
@@ -3875,9 +3353,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
 
     def "PBS should exclude bidder when mediaTypeIn match with condition"() {
         given: "Default bid request with multiply bidders"
-        def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
-        }
+        def bidRequest = getDefaultBidRequestWithMultiplyBidders()
 
         and: "Setup bidder response"
         def bidderResponse = BidResponse.getDefaultBidResponse(bidRequest)
@@ -3902,7 +3378,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED - 1
         assert bidResponse.seatbid.seat.sort() == [GENERIC, AMX].sort()
 
         and: "PBs should perform bidder requests"
@@ -3915,22 +3390,21 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         and: "Analytics result should contain info about name and status"
         def analyticsResult = getAnalyticResults(bidResponse)
         def result = analyticsResult[0]
-        assert result.name == PB_RULE_ENGINE_MODULE_NAME_CODE
+        assert result.name == ModuleName.PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
         and: "Analytics result detail info"
-        def impResult = result.results[0]
         def groups = pbRuleEngine.ruleSets[0].modelGroups[0]
-        verifyAll {
-            impResult.status == SUCCESS
-            impResult.values.analyticsKey == groups.analyticsKey
-            impResult.values.modelVersion == groups.version
-            impResult.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
-            impResult.values.resultFunction == groups.rules.first.results.first.function.value
-            impResult.values.conditionFired == groups.rules.first.conditions.first
-            impResult.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
-            impResult.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
-            impResult.appliedTo.impIds == bidRequest.imp.id
+        verifyAll(result.results[0]) {
+            it.status == SUCCESS
+            it.values.analyticsKey == groups.analyticsKey
+            it.values.modelVersion == groups.version
+            it.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
+            it.values.resultFunction == groups.rules.first.results.first.function.value
+            it.values.conditionFired == groups.rules.first.conditions.first
+            it.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
+            it.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
+            it.appliedTo.impIds == bidRequest.imp.id
         }
 
         and: "Response should seatNon bid with code 203"
@@ -3943,9 +3417,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
 
     def "PBS shouldn't exclude bidder when mediaTypeIn not match with condition"() {
         given: "Default bid request with multiply bidders"
-        def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
-        }
+        def bidRequest = getDefaultBidRequestWithMultiplyBidders()
 
         and: "Create account with rule engine config"
         def pbRuleEngine = createRulesEngineWithRule().tap {
@@ -3966,8 +3438,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED
-        assert bidResponse.seatbid.seat.sort() == [GENERIC, OPENX, AMX].sort()
+        assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
 
         and: "PBs should perform bidder requests"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -4011,7 +3482,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED - 1
         assert bidResponse.seatbid.seat.sort() == [GENERIC, AMX].sort()
 
         and: "PBs should perform bidder requests"
@@ -4024,22 +3494,21 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         and: "Analytics result should contain info about name and status"
         def analyticsResult = getAnalyticResults(bidResponse)
         def result = analyticsResult[0]
-        assert result.name == PB_RULE_ENGINE_MODULE_NAME_CODE
+        assert result.name == ModuleName.PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
         and: "Analytics result detail info"
-        def impResult = result.results[0]
         def groups = pbRuleEngine.ruleSets[0].modelGroups[0]
-        verifyAll {
-            impResult.status == SUCCESS
-            impResult.values.analyticsKey == groups.analyticsKey
-            impResult.values.modelVersion == groups.version
-            impResult.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
-            impResult.values.resultFunction == groups.rules.first.results.first.function.value
-            impResult.values.conditionFired == groups.rules.first.conditions.first
-            impResult.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
-            impResult.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
-            impResult.appliedTo.impIds == bidRequest.imp.id
+        verifyAll(result.results[0]) {
+            it.status == SUCCESS
+            it.values.analyticsKey == groups.analyticsKey
+            it.values.modelVersion == groups.version
+            it.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
+            it.values.resultFunction == groups.rules.first.results.first.function.value
+            it.values.conditionFired == groups.rules.first.conditions.first
+            it.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
+            it.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
+            it.appliedTo.impIds == bidRequest.imp.id
         }
 
         and: "Response should seatNon bid with code 203"
@@ -4053,25 +3522,21 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         bidRequestClosure << [
                 { tagId ->
                     getDefaultBidRequestWithMultiplyBidders().tap {
-                        updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
                         imp[0].tagId = tagId
                     }
                 },
                 { gpid ->
                     getDefaultBidRequestWithMultiplyBidders().tap {
-                        updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
                         imp[0].ext.gpid = gpid
                     }
                 },
                 { pbAdSlot ->
                     getDefaultBidRequestWithMultiplyBidders().tap {
-                        updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
                         imp[0].ext.data = new ImpExtContextData(pbAdSlot: pbAdSlot)
                     }
                 },
                 { storedRequestId ->
                     getDefaultBidRequestWithMultiplyBidders().tap {
-                        updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
                         imp[0].ext.prebid.storedRequest = new PrebidStoredRequest(id: storedRequestId)
                     }
                 }
@@ -4080,9 +3545,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
 
     def "PBS shouldn't exclude bidder when adUnitCode not match with condition"() {
         given: "Default bid request with multiply bidders"
-        def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
-        }
+        def bidRequest = getDefaultBidRequestWithMultiplyBidders()
 
         and: "Create account with rule engine config"
         def pbRuleEngine = createRulesEngineWithRule().tap {
@@ -4103,8 +3566,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED
-        assert bidResponse.seatbid.seat.sort() == [GENERIC, OPENX, AMX].sort()
+        assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
 
         and: "PBs should perform bidder requests"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -4126,7 +3588,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
 
         and: "Default bid request with multiply bidders"
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
             imp[0].tagId = PBSUtils.randomString
             imp[0].ext.gpid = PBSUtils.randomString
             imp[0].ext.data = new ImpExtContextData(pbAdSlot: PBSUtils.randomString)
@@ -4158,7 +3619,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         assert bidder.getBidderRequests(bidRequest.id)
 
         and: "Bid response should contain all requested bidders"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED
+        assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
 
         and: "PBS response shouldn't contain seatNonBid"
         assert !bidResponse.ext.seatnonbid
@@ -4207,7 +3668,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED - 1
         assert bidResponse.seatbid.seat.sort() == [GENERIC, AMX].sort()
 
         and: "PBs should perform bidder requests"
@@ -4220,22 +3680,21 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         and: "Analytics result should contain info about name and status"
         def analyticsResult = getAnalyticResults(bidResponse)
         def result = analyticsResult[0]
-        assert result.name == PB_RULE_ENGINE_MODULE_NAME_CODE
+        assert result.name == ModuleName.PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
         and: "Analytics result detail info"
-        def impResult = result.results[0]
         def groups = pbRuleEngine.ruleSets[0].modelGroups[0]
-        verifyAll {
-            impResult.status == SUCCESS
-            impResult.values.analyticsKey == groups.analyticsKey
-            impResult.values.modelVersion == groups.version
-            impResult.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
-            impResult.values.resultFunction == groups.rules.first.results.first.function.value
-            impResult.values.conditionFired == groups.rules.first.conditions.first
-            impResult.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
-            impResult.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
-            impResult.appliedTo.impIds == bidRequest.imp.id
+        verifyAll(result.results[0]) {
+            it.status == SUCCESS
+            it.values.analyticsKey == groups.analyticsKey
+            it.values.modelVersion == groups.version
+            it.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
+            it.values.resultFunction == groups.rules.first.results.first.function.value
+            it.values.conditionFired == groups.rules.first.conditions.first
+            it.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
+            it.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
+            it.appliedTo.impIds == bidRequest.imp.id
         }
 
         and: "Response should seatNon bid with code 203"
@@ -4249,7 +3708,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         bidRequestClosure << [
                 { storedRequestId ->
                     getDefaultBidRequestWithMultiplyBidders().tap {
-                        updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
                         imp[0].tagId = PBSUtils.randomString
                         imp[0].ext.gpid = PBSUtils.randomString
                         imp[0].ext.data = new ImpExtContextData(pbAdSlot: PBSUtils.randomString)
@@ -4258,8 +3716,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
                 },
                 { pbAdSlot ->
                     getDefaultBidRequestWithMultiplyBidders().tap {
-                        updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
-                        imp[0].tagId = PBSUtils.randomString
                         imp[0].ext.gpid = PBSUtils.randomString
                         imp[0].ext.data = new ImpExtContextData(pbAdSlot: pbAdSlot)
                         imp[0].ext.prebid.storedRequest = new PrebidStoredRequest(id: PBSUtils.randomString)
@@ -4267,7 +3723,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
                 },
                 { gpid ->
                     getDefaultBidRequestWithMultiplyBidders().tap {
-                        updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
                         imp[0].tagId = PBSUtils.randomString
                         imp[0].ext.gpid = gpid
                         imp[0].ext.data = new ImpExtContextData(pbAdSlot: PBSUtils.randomString)
@@ -4276,7 +3731,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
                 },
                 { tagId ->
                     getDefaultBidRequestWithMultiplyBidders().tap {
-                        updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
                         imp[0].tagId = tagId
                         imp[0].ext.gpid = PBSUtils.randomString
                         imp[0].ext.data = new ImpExtContextData(pbAdSlot: PBSUtils.randomString)
@@ -4288,9 +3742,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
 
     def "PBS shouldn't exclude bidder when adUnitCodeIn not match with condition"() {
         given: "Default bid request with multiply bidders"
-        def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
-        }
+        def bidRequest = getDefaultBidRequestWithMultiplyBidders()
 
         and: "Create account with rule engine config"
         def pbRuleEngine = createRulesEngineWithRule().tap {
@@ -4308,8 +3760,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED
-        assert bidResponse.seatbid.seat.sort() == [GENERIC, OPENX, AMX].sort()
+        assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
 
         and: "PBs should perform bidder requests"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -4329,7 +3780,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         given: "Default bid request with multiply bidders"
         def deviceType = PBSUtils.getRandomEnum(DeviceType)
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
             device = new Device(devicetype: deviceType)
         }
 
@@ -4352,7 +3802,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED - 1
         assert bidResponse.seatbid.seat.sort() == [GENERIC, AMX].sort()
 
         and: "PBs should perform bidder requests"
@@ -4365,22 +3814,21 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         and: "Analytics result should contain info about name and status"
         def analyticsResult = getAnalyticResults(bidResponse)
         def result = analyticsResult[0]
-        assert result.name == PB_RULE_ENGINE_MODULE_NAME_CODE
+        assert result.name == ModuleName.PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
         and: "Analytics result detail info"
-        def impResult = result.results[0]
         def groups = pbRuleEngine.ruleSets[0].modelGroups[0]
-        verifyAll {
-            impResult.status == SUCCESS
-            impResult.values.analyticsKey == groups.analyticsKey
-            impResult.values.modelVersion == groups.version
-            impResult.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
-            impResult.values.resultFunction == groups.rules.first.results.first.function.value
-            impResult.values.conditionFired == groups.rules.first.conditions.first
-            impResult.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
-            impResult.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
-            impResult.appliedTo.impIds == bidRequest.imp.id
+        verifyAll(result.results[0]) {
+            it.status == SUCCESS
+            it.values.analyticsKey == groups.analyticsKey
+            it.values.modelVersion == groups.version
+            it.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
+            it.values.resultFunction == groups.rules.first.results.first.function.value
+            it.values.conditionFired == groups.rules.first.conditions.first
+            it.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
+            it.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
+            it.appliedTo.impIds == bidRequest.imp.id
         }
 
         and: "Response should seatNon bid with code 203"
@@ -4395,7 +3843,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         given: "Default bid request with multiply bidders"
         def requestDeviceType = PBSUtils.getRandomEnum(DeviceType)
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
             device = new Device(devicetype: requestDeviceType)
         }
 
@@ -4418,8 +3865,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED
-        assert bidResponse.seatbid.seat.sort() == [GENERIC, OPENX, AMX].sort()
+        assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
 
         and: "PBs should perform bidder requests"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -4441,7 +3887,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
 
         and: "Default bid request with multiply bidders"
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
             device = new Device(devicetype: PBSUtils.getRandomEnum(DeviceType))
         }
 
@@ -4467,7 +3912,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         assert bidder.getBidderRequests(bidRequest.id)
 
         and: "Bid response should contain all requested bidders"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED
+        assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
 
         and: "PBS response shouldn't contain seatNonBid"
         assert !bidResponse.ext.seatnonbid
@@ -4489,7 +3934,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         given: "Default bid request with multiply bidders"
         def deviceType = PBSUtils.getRandomEnum(DeviceType)
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
             device = new Device(devicetype: deviceType)
         }
 
@@ -4512,7 +3956,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED - 1
         assert bidResponse.seatbid.seat.sort() == [GENERIC, AMX].sort()
 
         and: "PBs should perform bidder requests"
@@ -4525,22 +3968,21 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         and: "Analytics result should contain info about name and status"
         def analyticsResult = getAnalyticResults(bidResponse)
         def result = analyticsResult[0]
-        assert result.name == PB_RULE_ENGINE_MODULE_NAME_CODE
+        assert result.name == ModuleName.PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
         and: "Analytics result detail info"
-        def impResult = result.results[0]
         def groups = pbRuleEngine.ruleSets[0].modelGroups[0]
-        verifyAll {
-            impResult.status == SUCCESS
-            impResult.values.analyticsKey == groups.analyticsKey
-            impResult.values.modelVersion == groups.version
-            impResult.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
-            impResult.values.resultFunction == groups.rules.first.results.first.function.value
-            impResult.values.conditionFired == groups.rules.first.conditions.first
-            impResult.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
-            impResult.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
-            impResult.appliedTo.impIds == bidRequest.imp.id
+        verifyAll(result.results[0]) {
+            it.status == SUCCESS
+            it.values.analyticsKey == groups.analyticsKey
+            it.values.modelVersion == groups.version
+            it.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
+            it.values.resultFunction == groups.rules.first.results.first.function.value
+            it.values.conditionFired == groups.rules.first.conditions.first
+            it.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
+            it.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
+            it.appliedTo.impIds == bidRequest.imp.id
         }
 
         and: "Response should seatNon bid with code 203"
@@ -4554,7 +3996,6 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
     def "PBS shouldn't exclude bidder when deviceTypeIn not match with condition"() {
         given: "Default bid request with multiply bidders"
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            updateBidRequestWithTraceVerboseAndReturnAllBidStatus(it)
             device = new Device(devicetype: PBSUtils.getRandomEnum(DeviceType))
         }
 
@@ -4577,8 +4018,7 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.size() == BIDDERS_REQUESTED
-        assert bidResponse.seatbid.seat.sort() == [GENERIC, OPENX, AMX].sort()
+        assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
 
         and: "PBs should perform bidder requests"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -4592,5 +4032,23 @@ class RuleEngineGeneralSpec extends RuleEngineBaseSpec {
 
         and: "Analytics result shouldn't contain info about module exclude"
         assert !getAnalyticResults(bidResponse)
+    }
+
+    private static BidRequest updatePublisherDomain(BidRequest bidRequest, DistributionChannel distributionChannel, String domain) {
+        if (distributionChannel == SITE) {
+            bidRequest.tap {
+                it.site.publisher.domain = domain
+            }
+        }
+        if (distributionChannel == APP) {
+            bidRequest.tap {
+                it.app.publisher.domain = domain
+            }
+        }
+        if (distributionChannel == DOOH) {
+            bidRequest.tap {
+                it.dooh.publisher.domain = domain
+            }
+        }
     }
 }

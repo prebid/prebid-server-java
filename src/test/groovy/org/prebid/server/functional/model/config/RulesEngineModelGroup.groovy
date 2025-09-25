@@ -6,7 +6,7 @@ import org.prebid.server.functional.util.PBSUtils
 import static org.prebid.server.functional.model.config.RuleEngineModelRule.createRuleEngineModelRule
 import static org.prebid.server.functional.model.config.RuleEngineModelSchema.createDeviceCountryInSchema
 
-class RulesEngineModelGroups {
+class RulesEngineModelGroup {
 
     Integer weight
     String version
@@ -16,8 +16,8 @@ class RulesEngineModelGroups {
     List<RuleEngineModelDefault> modelDefault
     List<RuleEngineModelRule> rules
 
-    static RulesEngineModelGroups createRulesModuleGroup() {
-        new RulesEngineModelGroups().tap {
+    static RulesEngineModelGroup createRulesModuleGroup() {
+        new RulesEngineModelGroup().tap {
             it.weight = PBSUtils.getRandomNumber(0, 100)
             it.version = PBSUtils.randomString
             it.analyticsKey = PBSUtils.randomString
