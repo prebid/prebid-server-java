@@ -122,22 +122,15 @@ public class ShowheroesBidder implements Bidder<BidRequest> {
     private Imp modifyImp(BidRequest bidRequest, Imp imp, ExtRequestPrebidChannel prebidChannel) {
         final ExtImpShowheroes extImpShowheroes = parseImpExt(imp);
 
-        final Imp.ImpBuilder impBuilder = imp.toBuilder();
+        final boolean shouldSetDisplayManager = prebidChannel != null && imp.getDisplaymanager() == null;
+        final boolean shouldConvertFloor = shouldConvertFloor(imp);
 
-        if (prebidChannel != null && imp.getDisplaymanager() == null) {
-            impBuilder.displaymanager(prebidChannel.getName());
-            impBuilder.displaymanagerver(prebidChannel.getVersion());
-        }
-
-        impBuilder.ext(modifyImpExt(imp, extImpShowheroes));
-
-        if (!shouldConvertFloor(imp)) {
-            return impBuilder.build();
-        }
-
-        return impBuilder
-                .bidfloorcur(BID_CURRENCY)
-                .bidfloor(resolveBidFloor(bidRequest, imp))
+        return imp.toBuilder()
+                .displaymanager(shouldSetDisplayManager ? prebidChannel.getName() : imp.getDisplaymanager())
+                .displaymanagerver(shouldSetDisplayManager ? prebidChannel.getVersion() : imp.getDisplaymanagerver())
+                .bidfloorcur(shouldConvertFloor ? BID_CURRENCY : imp.getBidfloorcur())
+                .bidfloor(shouldConvertFloor ? resolveBidFloor(bidRequest, imp) : imp.getBidfloor())
+                .ext(modifyImpExt(imp, extImpShowheroes))
                 .build();
     }
 
@@ -187,7 +180,7 @@ public class ShowheroesBidder implements Bidder<BidRequest> {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(bidResponse), Collections.emptyList());
-        } catch (DecodeException | PreBidException e) {
+        } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
 
@@ -209,7 +202,7 @@ public class ShowheroesBidder implements Bidder<BidRequest> {
                 .toList();
     }
 
-    private BidType getBidType(Bid bid) {
+    private static BidType getBidType(Bid bid) {
         return switch (bid.getMtype()) {
             case 1 -> BidType.banner;
             case 2 -> BidType.video;
