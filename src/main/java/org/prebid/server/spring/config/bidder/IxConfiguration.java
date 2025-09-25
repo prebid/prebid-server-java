@@ -37,7 +37,11 @@ public class IxConfiguration {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(ixConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new IxBidder(config.getEndpoint(), prebidVersionProvider, mapper))
+                .bidderCreator(config -> new IxBidder(
+                    config.getEndpoint(),
+                    config.getDefaultAccountId(),
+                    prebidVersionProvider,
+                    mapper))
                 .assemble();
     }
 }
