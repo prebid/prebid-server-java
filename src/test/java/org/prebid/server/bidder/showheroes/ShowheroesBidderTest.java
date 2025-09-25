@@ -28,7 +28,6 @@ import org.prebid.server.version.PrebidVersionProvider;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Set;
 import java.util.function.Function;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -78,9 +77,12 @@ public class ShowheroesBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+        final BidRequest bidRequest = BidRequest.builder()
+                .site(Site.builder().page("https://test-example.com").build())
+                .imp(singletonList(Imp.builder()
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
+                                .build()))
+                .build();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -104,6 +106,7 @@ public class ShowheroesBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors().get(0).getMessage()).isEqualTo("BidRequest.site.page is required");
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -120,13 +123,14 @@ public class ShowheroesBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors().get(0).getMessage()).isEqualTo("BidRequest.app.bundle is required");
         assertThat(result.getValue()).isEmpty();
     }
 
     @Test
     public void makeHttpRequestsShouldCreateCorrectURL() {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity());
+        final BidRequest bidRequest = givenBidRequest();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -140,7 +144,7 @@ public class ShowheroesBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnPbsVersion() {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity());
+        final BidRequest bidRequest = givenBidRequest();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -221,11 +225,8 @@ public class ShowheroesBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                .extracting(HttpRequest::getImpIds)
-                .containsOnly(Set.of("imp1", "imp2"));
-
-        final BidRequest outgoingRequest = result.getValue().get(0).getPayload();
-        assertThat(outgoingRequest.getImp()).hasSize(2)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getId)
                 .containsExactly("imp1", "imp2");
     }
@@ -233,7 +234,7 @@ public class ShowheroesBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldSetCorrectHeaders() {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity());
+        final BidRequest bidRequest = givenBidRequest();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -299,8 +300,7 @@ public class ShowheroesBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .extracting(BidderBid::getBid, BidderBid::getType)
-                .containsExactly(tuple(Bid.builder().impid("123").mtype(99).build(), video));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").mtype(99).build(), video, null));
     }
 
     @Test
@@ -327,10 +327,10 @@ public class ShowheroesBidderTest extends VertxTest {
                         tuple(Bid.builder().impid("456").mtype(2).price(BigDecimal.TEN).build(), video));
     }
 
-    private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+    private static BidRequest givenBidRequest() {
         return BidRequest.builder()
                 .site(Site.builder().page("https://test-example.com").build())
-                .imp(singletonList(givenImp(impCustomizer)))
+                .imp(singletonList(givenImp(identity())))
                 .build();
     }
 
@@ -359,4 +359,3 @@ public class ShowheroesBidderTest extends VertxTest {
                 null);
     }
 }
-
