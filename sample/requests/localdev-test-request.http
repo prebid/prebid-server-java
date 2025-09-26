@@ -1,0 +1,36 @@
+POST http://localhost:8080/openrtb2/auction
+Content-Type: application/json
+
+{
+    "id": "test-bid-request-id",
+    "site": {
+        "id": "test-site-id",
+        "name": "Test site",
+        "domain": "test.com",
+        "publisher": {
+            "id": "1001"
+        }
+    },
+    "regs": {
+        "gdpr": 0
+    },
+    "imp": [
+        {
+            "id": "test-imp-id",
+            "banner": {
+                "w": 300,
+                "h": 250
+            },
+            "ext": {
+                "prebid": {
+                    "bidder": {
+                        "generic": {}
+                    }
+                }
+            }
+        }
+    ],
+    "test": 1
+}
+
+###
