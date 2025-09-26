@@ -16,4 +16,8 @@ public class ExtImpIx {
     List<Integer> size;
 
     String sid;
+
+    @JsonProperty("accountId")
+    @JsonAlias({"accountid", "ixAccountId"})
+    String accountId;
 }
