@@ -612,19 +612,38 @@ public class Metrics extends UpdatableMetrics {
         }
     }
 
-    public void updateCacheRequestSuccessTime(String accountId, long timeElapsed) {
-        cache().requests().updateTimer(MetricName.ok, timeElapsed);
-        forAccount(accountId).cache().requests().updateTimer(MetricName.ok, timeElapsed);
+    public void updateVtrackCacheReadRequestTime(long timeElapsed, MetricName metricName) {
+        cache().vtrack().read().updateTimer(metricName, timeElapsed);
     }
 
-    public void updateCacheRequestFailedTime(String accountId, long timeElapsed) {
-        cache().requests().updateTimer(MetricName.err, timeElapsed);
-        forAccount(accountId).cache().requests().updateTimer(MetricName.err, timeElapsed);
+    public void updateVtrackCacheWriteRequestTime(String accountId, long timeElapsed, MetricName metricName) {
+        cache().vtrack().write().updateTimer(metricName, timeElapsed);
+        forAccount(accountId).cache().vtrack().write().updateTimer(metricName, timeElapsed);
+    }
+
+    public void updateVtrackCacheCreativeSize(String accountId, int creativeSize, MetricName creativeType) {
+        cache().vtrack().creativeSize().updateHistogram(creativeType, creativeSize);
+        forAccount(accountId).cache().vtrack().creativeSize().updateHistogram(creativeType, creativeSize);
+    }
+
+    public void updateVtrackCacheCreativeTtl(String accountId, Integer creativeTtl, MetricName creativeType) {
+        cache().vtrack().creativeTtl().updateHistogram(creativeType, creativeTtl);
+        forAccount(accountId).cache().vtrack().creativeTtl().updateHistogram(creativeType, creativeTtl);
+    }
+
+    public void updateAuctionCacheRequestTime(String accountId, long timeElapsed, MetricName metricName) {
+        cache().requests().updateTimer(metricName, timeElapsed);
+        forAccount(accountId).cache().requests().updateTimer(metricName, timeElapsed);
     }
 
     public void updateCacheCreativeSize(String accountId, int creativeSize, MetricName creativeType) {
         cache().creativeSize().updateHistogram(creativeType, creativeSize);
         forAccount(accountId).cache().creativeSize().updateHistogram(creativeType, creativeSize);
+    }
+
+    public void updateCacheCreativeTtl(String accountId, Integer creativeTtl, MetricName creativeType) {
+        cache().creativeTtl().updateHistogram(creativeType, creativeTtl);
+        forAccount(accountId).cache().creativeTtl().updateHistogram(creativeType, creativeTtl);
     }
 
     public void updateTimeoutNotificationMetric(boolean success) {
@@ -702,11 +721,6 @@ public class Metrics extends UpdatableMetrics {
         if (accountMetricsVerbosityResolver.forAccount(account).isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
             forAccount(account.getId()).hooks().module(moduleCode).updateTimer(MetricName.duration, executionTime);
         }
-    }
-
-    public void updateCacheCreativeTtl(String accountId, Integer creativeTtl, MetricName creativeType) {
-        cache().creativeTtl().updateHistogram(creativeType, creativeTtl);
-        forAccount(accountId).cache().creativeTtl().updateHistogram(creativeType, creativeTtl);
     }
 
     public void updateRequestsActivityDisallowedCount(Activity activity) {
