@@ -37,7 +37,7 @@ class FloorsProvider extends NetworkScaffolding {
                                 : HttpResponse.notFoundResponse()}
     }
 
-    private String getDefaultResponse() {
+    private static String getDefaultResponse() {
         encode(PriceFloorData.priceFloorData)
     }
 }

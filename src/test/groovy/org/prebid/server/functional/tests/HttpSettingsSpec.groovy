@@ -1,6 +1,7 @@
 package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.model.UidsCookie
+import org.prebid.server.functional.model.config.ModuleName
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.mock.services.httpsettings.HttpAccountsResponse
 import org.prebid.server.functional.model.request.amp.AmpRequest
@@ -40,6 +41,10 @@ class HttpSettingsSpec extends BaseSpec {
     def cleanupSpec() {
         prebidServerService = pbsServiceFactory.removeContainer(PbsConfig.httpSettingsConfig)
         prebidServerService = pbsServiceFactory.removeContainer(PBS_CONFIG_WITH_RFC)
+    }
+
+    def cleanupSpec() {
+        pbsServiceFactory.removeContainer(PbsConfig.httpSettingsConfig)
     }
 
     def "PBS should take account information from http data source on auction request"() {

@@ -109,8 +109,8 @@ class BidderInsensitiveCaseSpec extends BaseSpec {
             ortb2.user.gender == user.gender
             ortb2.user.keywords == user.keywords
             ortb2.user.ext.data.keywords == user.ext.data.keywords
-            ortb2.user.ext.data.buyeruid == user.ext.data.buyeruid
-            ortb2.user.ext.data.buyeruids == user.ext.data.buyeruids
+            ortb2.user.ext.data.buyerUid == user.ext.data.buyerUid
+            ortb2.user.ext.data.buyerUids == user.ext.data.buyerUids
         }
 
         and: "Bidder request shouldn't contain imp[0].ext.rp"
@@ -217,7 +217,7 @@ class BidderInsensitiveCaseSpec extends BaseSpec {
 
         then: "Bidder request should contain buyeruid from the user.ext.prebid.buyeruids"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest?.user?.buyeruid == buyeruid
+        assert bidderRequest?.user?.buyerUid == buyeruid
     }
 
     def "PBS should be able to match requested bidder with original bidder name in ext.prebid.aliase"() {
@@ -282,9 +282,9 @@ class BidderInsensitiveCaseSpec extends BaseSpec {
 
     def "PBS should respond errors with same bidder name which bidder name came in request with another case strategy"() {
         given: "PBS with adapter configuration"
-        def pbsService = pbsServiceFactory.getService(
-                ["adapter-defaults.enabled": "false",
-                 "adapters.generic.enabled": "false"])
+        def pbsConfig = ["adapter-defaults.enabled": "false",
+                        "adapters.generic.enabled": "false"]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -299,13 +299,15 @@ class BidderInsensitiveCaseSpec extends BaseSpec {
 
         then: "Response should contain error"
         assert response.ext?.errors[ErrorType.GENERIC_CAMEL_CASE]*.code == [2]
+
+
     }
 
     def "PBS should respond warnings with same bidder name which bidder name came in request with another case strategy"() {
         given: "Pbs config"
-        def pbsService = pbsServiceFactory.getService(
-                ["auction.filter-imp-media-type.enabled"     : "true",
-                 "adapters.generic.meta-info.app-media-types": ""])
+        def pbsConfig = ["auction.filter-imp-media-type.enabled"     : "true",
+                        "adapters.generic.meta-info.app-media-types": ""]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
             imp[0].ext.prebid.bidder.tap {
@@ -324,6 +326,9 @@ class BidderInsensitiveCaseSpec extends BaseSpec {
         assert response.ext?.warnings[ErrorType.GENERIC_CAMEL_CASE]*.code == [2]
         assert response.ext?.warnings[ErrorType.GENERIC_CAMEL_CASE]*.message ==
                 ["Bidder does not support any media types."]
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS should respond responsetimemillis with same bidder name which bidder name came in request with another case strategy"() {
