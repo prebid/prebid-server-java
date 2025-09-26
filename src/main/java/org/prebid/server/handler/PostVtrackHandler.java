@@ -29,6 +29,7 @@ import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountEventsConfig;
+import org.prebid.server.settings.model.AccountVtrackConfig;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.verticles.server.HttpEndpoint;
 import org.prebid.server.vertx.verticles.server.application.ApplicationResource;
@@ -36,6 +37,7 @@ import org.prebid.server.vertx.verticles.server.application.ApplicationResource;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -180,10 +182,12 @@ public class PostVtrackHandler implements ApplicationResource {
             respondWithServerError(routingContext, "Error occurred while fetching account", asyncAccount.cause());
         } else {
             // insert impression tracking if account allows events and bidder allows VAST modification
-            final Boolean isEventEnabled = accountEventsEnabled(asyncAccount.result());
+            final Account account = asyncAccount.result();
+            final Boolean isEventEnabled = accountEventsEnabled(account);
+            final Integer accountTtl = accountVtrackTtl(account);
             final Set<String> allowedBidders = biddersAllowingVastUpdate(vtrackPuts);
             coreCacheService.cachePutObjects(
-                    vtrackPuts, isEventEnabled, allowedBidders, accountId, integration, timeout)
+                    vtrackPuts, isEventEnabled, allowedBidders, accountId, accountTtl, integration, timeout)
                     .onComplete(asyncCache -> handleCacheResult(asyncCache, routingContext));
         }
     }
@@ -194,6 +198,12 @@ public class PostVtrackHandler implements ApplicationResource {
                 accountAuctionConfig != null ? accountAuctionConfig.getEvents() : null;
 
         return accountEventsConfig != null ? accountEventsConfig.getEnabled() : null;
+    }
+
+    private static Integer accountVtrackTtl(Account account) {
+        return Optional.ofNullable(account.getVtrack())
+                .map(AccountVtrackConfig::getTtl)
+                .orElse(null);
     }
 
     /**
