@@ -4,6 +4,7 @@ import com.scientiamobile.wurfl.core.GeneralWURFLEngine;
 import com.scientiamobile.wurfl.core.WURFLEngine;
 import com.scientiamobile.wurfl.core.cache.LRUMapCacheProvider;
 import com.scientiamobile.wurfl.core.cache.NullCacheProvider;
+import org.apache.hc.core5.net.URIBuilder;
 import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.config.WURFLDeviceDetectionConfigProperties;
 import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.exc.WURFLDeviceDetectionException;
 
@@ -56,7 +57,7 @@ public class WURFLEngineUtils {
 
     public static String extractWURFLFileName(String wurflSnapshotUrl) {
         try {
-            final URI uri = new URI(wurflSnapshotUrl);
+            final URI uri = new URIBuilder(wurflSnapshotUrl).build();
             final String path = uri.getPath();
             return path.substring(path.lastIndexOf('/') + 1);
         } catch (Exception e) {

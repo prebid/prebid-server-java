@@ -40,7 +40,7 @@
         <commons.compress.version>1.27.1</commons.compress.version>
         <commons-math3.version>3.6.1</commons-math3.version>
         <scram.version>2.1</scram.version>
-        <httpclient.version>4.5.14</httpclient.version>
+        <httpclient.version>5.5</httpclient.version>
         <ipaddress.version>5.5.1</ipaddress.version>
         <oshi.version>6.8.0</oshi.version>
         <json-schema-validator.version>1.5.6</json-schema-validator.version>
@@ -135,17 +135,10 @@
                 <artifactId>commons-math3</artifactId>
                 <version>${commons-math3.version}</version>
             </dependency>
-            <!-- TODO: refactor code to replace URIBuilder with something else so that this dep can be removed -->
             <dependency>
-                <groupId>org.apache.httpcomponents</groupId>
-                <artifactId>httpclient</artifactId>
+                <groupId>org.apache.httpcomponents.client5</groupId>
+                <artifactId>httpclient5</artifactId>
                 <version>${httpclient.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>commons-logging</groupId>
-                        <artifactId>commons-logging</artifactId>
-                    </exclusion>
-                </exclusions>
             </dependency>
             <dependency>
                 <groupId>com.github.seancfoley</groupId>

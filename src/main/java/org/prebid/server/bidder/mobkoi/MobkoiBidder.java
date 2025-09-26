@@ -8,6 +8,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.hc.core5.net.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -24,7 +25,6 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -97,8 +97,10 @@ public class MobkoiBidder implements Bidder<BidRequest> {
             return endpointUrl;
         }
         try {
-            final URI uri = new URI(customUri);
-            return uri.resolve("/bid").toString();
+            return new URIBuilder(customUri)
+                    .setPath("/bid")
+                    .clearParameters()
+                    .toString();
         } catch (IllegalArgumentException | URISyntaxException e) {
             return endpointUrl;
         }

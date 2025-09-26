@@ -93,7 +93,7 @@ public final class HttpUtil {
      * Checks the input string for using as URL.
      */
     public static String validateUrl(String url) {
-        if (containsMacrosses(url)) {
+        if (containsMacros(url)) {
             return url;
         }
 
@@ -116,28 +116,32 @@ public final class HttpUtil {
         }
     }
 
-    // TODO: We need our own way to work with url macrosses
-    private static boolean containsMacrosses(String url) {
+    // TODO: We need our own way to work with url macros
+    private static boolean containsMacros(String url) {
         return StringUtils.contains(url, MACROS_OPEN) && StringUtils.contains(url, MACROS_CLOSE);
     }
 
     /**
-     * Returns encoded URL for the given value.
+     * Returns encoded URL for the given value. The result is RFC 3986 compliant.
      * <p>
      * The result can be safety used as the query string.
      */
     public static String encodeUrl(String value) {
-        return URLEncoder.encode(value, StandardCharsets.UTF_8);
+        return URLEncoder.encode(value, StandardCharsets.UTF_8)
+                .replace("+", "%20")
+                .replace("%7E", "~")
+                .replace("*", "%2A");
     }
 
     /**
-     * Returns decoded value if supplied is not null, otherwise returns null.
+     * Returns decoded value if supplied is not null, otherwise returns null. The result is RFC 3986 compliant.
      */
     public static String decodeUrl(String value) {
         if (StringUtils.isBlank(value)) {
             return null;
         }
-        return URLDecoder.decode(value, StandardCharsets.UTF_8);
+
+        return URLDecoder.decode(value.replace("+", "%2B"), StandardCharsets.UTF_8);
     }
 
     /**

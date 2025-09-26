@@ -149,7 +149,7 @@ public class YieldlabBidderTest extends VertxTest {
                     assertThat(uri).startsWith("https://test.endpoint.com/1?content=json&pvid=true&ts=");
                     assertThat(uri).endsWith("&t=key1%3Dvalue1%26key2%3Dvalue2&sizes=1%3A1x1%7C2x2&"
                             + "ids=ylid%3Abuyeruid&yl_rtb_ifa&yl_rtb_devicetype=1&gdpr=1&gdpr_consent=consent&"
-                            + "schain=1.0%2C1%21exchange1.com%2C1234%2521abcd%2C1%2Cbid%2Brequest%2526%25251%2C"
+                            + "schain=1.0%2C1%21exchange1.com%2C1234%2521abcd%2C1%2Cbid%2520request%2526%25251%2C"
                             + "publisher%2Cpublisher.com%2C%257B%2522freeFormData%2522%253A1%252C%2522"
                             + "nested%2522%253A%257B%2522isTrue%2522%253Atrue%257D%257D");
                     final String ts = uri.substring(54, uri.indexOf("&t="));
@@ -356,7 +356,7 @@ public class YieldlabBidderTest extends VertxTest {
                 "&dsarequired=1",
                 "&dsapubrender=2",
                 "&dsadatatopub=3",
-                "&dsatransparency=testDomain%7E1_2_3"
+                "&dsatransparency=testDomain~1_2_3"
         );
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue().getFirst().getUri())
@@ -393,7 +393,7 @@ public class YieldlabBidderTest extends VertxTest {
                 "&dsarequired=1",
                 "&dsapubrender=2",
                 "&dsadatatopub=3",
-                "&dsatransparency=testDomain%7E1_2_3%7E%7EtestDomain2%7E4_5_6"
+                "&dsatransparency=testDomain~1_2_3~~testDomain2~4_5_6"
         );
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue().getFirst().getUri())

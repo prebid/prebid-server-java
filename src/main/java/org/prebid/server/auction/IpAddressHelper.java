@@ -5,7 +5,7 @@ import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddressString;
 import inet.ipaddr.IPAddressStringParameters;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.conn.util.InetAddressUtils;
+import org.apache.hc.core5.net.InetAddressUtils;
 import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;

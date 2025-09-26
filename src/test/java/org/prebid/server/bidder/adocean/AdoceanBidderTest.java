@@ -182,9 +182,9 @@ public class AdoceanBidderTest extends VertxTest {
                 .containsExactly("https://myao.adocean.pl/_10000000/ad.json?pbsrv_v=1.3.0&id=masterId&nc=1"
                         + "&nosecure=1&aid=adoceanmyaozpniqismex%3Aao-test&gdpr_consent=consent&gdpr=1"
                         + "&hcuserid=testBuyerUid&aosspsizes=myaozpniqismex"
-                        + "%7E300x250_600x320", "https://em.dom/_10000000/ad.json?pbsrv_v=1.3.0&id="
+                        + "~300x250_600x320", "https://em.dom/_10000000/ad.json?pbsrv_v=1.3.0&id="
                         + "masterId2&nc=1&nosecure=1&aid=slaveId%3Ai2-test&gdpr_consent=consent&gdpr=1"
-                        + "&hcuserid=testBuyerUid&aosspsizes=slaveId%7E577x333");
+                        + "&hcuserid=testBuyerUid&aosspsizes=slaveId~577x333");
     }
 
     @Test
@@ -280,7 +280,7 @@ public class AdoceanBidderTest extends VertxTest {
                 .extracting(HttpRequest::getUri)
                 .containsExactlyInAnyOrder("https://myao.adocean.pl/_10000000/ad.json?pbsrv_v=1.3.0&id=masterId&nc=1"
                         + "&nosecure=1&aid=slaveId%3Aao-test&gdpr_consent=consent&gdpr=1&hcuserid=testBuyerUid"
-                        + "&aosspsizes=slaveId%7E300x250_600x320&aid=slaveId2%3Ai2-test&aosspsizes=slaveId2%7E577x333");
+                        + "&aosspsizes=slaveId~300x250_600x320&aid=slaveId2%3Ai2-test&aosspsizes=slaveId2~577x333");
     }
 
     @Test
