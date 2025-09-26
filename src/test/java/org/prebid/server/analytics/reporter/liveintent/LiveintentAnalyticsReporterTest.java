@@ -59,7 +59,7 @@ public class LiveintentAnalyticsReporterTest extends VertxTest {
 
     private LiveIntentAnalyticsProperties properties;
 
-    private final static TypeReference<List<PbsjBid>> pbjsCollectionType = new TypeReference<>() { };
+    private static final TypeReference<List<PbsjBid>> PBJS_COLLECTION_TYPE = new TypeReference<>() { };
 
     @BeforeEach
     public void setUp() {
@@ -108,7 +108,7 @@ public class LiveintentAnalyticsReporterTest extends VertxTest {
                 eq(properties.getTimeoutMs()));
 
         final String capturedJson = jsonCaptor.getValue();
-        final List<PbsjBid> pbsjBids = jacksonMapper.decodeValue(capturedJson, pbjsCollectionType);
+        final List<PbsjBid> pbsjBids = jacksonMapper.decodeValue(capturedJson, PBJS_COLLECTION_TYPE);
         assertThat(pbsjBids).isEqualTo(List.of(
                 PbsjBid.builder()
                         .bidId("bid-id")
@@ -139,7 +139,7 @@ public class LiveintentAnalyticsReporterTest extends VertxTest {
                 eq(properties.getTimeoutMs()));
 
         final String capturedJson = jsonCaptor.getValue();
-        final List<PbsjBid> pbsjBids = jacksonMapper.decodeValue(capturedJson, pbjsCollectionType);
+        final List<PbsjBid> pbsjBids = jacksonMapper.decodeValue(capturedJson, PBJS_COLLECTION_TYPE);
         assertThat(pbsjBids).isEqualTo(List.of(
                 PbsjBid.builder()
                         .bidId("bid-id")
@@ -170,7 +170,7 @@ public class LiveintentAnalyticsReporterTest extends VertxTest {
                 eq(properties.getTimeoutMs()));
 
         final String capturedJson = jsonCaptor.getValue();
-        final List<PbsjBid> pbsjBids = jacksonMapper.decodeValue(capturedJson, pbjsCollectionType);
+        final List<PbsjBid> pbsjBids = jacksonMapper.decodeValue(capturedJson, PBJS_COLLECTION_TYPE);
         assertThat(pbsjBids).isEqualTo(List.of(
                 PbsjBid.builder()
                         .bidId("bid-id")
