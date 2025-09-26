@@ -34,6 +34,6 @@ public class OptableTargeting {
             return Future.failedFuture("Can't get targeting");
         }
 
-        return apiClient.getTargeting(properties, query, attributes.getIps(), timeout);
+        return apiClient.getTargeting(properties, query, attributes.getIps(), attributes.getUserAgent(), timeout);
     }
 }

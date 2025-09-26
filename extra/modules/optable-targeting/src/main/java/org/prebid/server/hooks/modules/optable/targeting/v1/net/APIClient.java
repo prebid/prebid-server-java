@@ -13,5 +13,6 @@ public interface APIClient {
     Future<TargetingResult> getTargeting(OptableTargetingProperties properties,
                                          Query query,
                                          List<String> ips,
+                                         String userAgent,
                                          Timeout timeout);
 }

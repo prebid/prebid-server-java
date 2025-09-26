@@ -89,7 +89,7 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
                 .compose(targetingResult -> {
                     moduleContext.setOptableTargetingExecutionTime(
                             System.currentTimeMillis() - callTargetingAPITimestamp);
-                    return enrichedPayload(targetingResult, moduleContext);
+                    return enrichedPayload(targetingResult, moduleContext, properties);
                 })
                 .recover(throwable -> {
                     moduleContext.setOptableTargetingExecutionTime(
@@ -143,13 +143,14 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
     }
 
     private Future<InvocationResult<AuctionRequestPayload>> enrichedPayload(TargetingResult targetingResult,
-                                                                            ModuleContext moduleContext) {
+                                                                            ModuleContext moduleContext,
+                                                                            OptableTargetingProperties properties) {
 
         moduleContext.setTargeting(targetingResult.getAudience());
         moduleContext.setEnrichRequestStatus(EnrichmentStatus.success());
         return update(
                 BidRequestCleaner.instance()
-                        .andThen(BidRequestEnricher.of(targetingResult))
+                        .andThen(BidRequestEnricher.of(targetingResult, properties))
                         ::apply,
                 moduleContext);
     }

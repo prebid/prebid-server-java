@@ -7,8 +7,10 @@ import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Segment;
 import com.iab.openrtb.request.Uid;
 import com.iab.openrtb.request.User;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
+import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
 import org.prebid.server.hooks.modules.optable.targeting.v1.BaseOptableTest;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
@@ -16,9 +18,12 @@ import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import java.util.Collections;
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.as;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class BidRequestEnricherTest extends BaseOptableTest {
+
+    private final OptableTargetingProperties targetingProperties = new OptableTargetingProperties();
 
     @Test
     public void shouldReturnOriginBidRequestWhenNoTargetingResults() {
@@ -26,7 +31,7 @@ public class BidRequestEnricherTest extends BaseOptableTest {
         final AuctionRequestPayload auctionRequestPayload = AuctionRequestPayloadImpl.of(givenBidRequest());
 
         // when
-        final AuctionRequestPayload result = BidRequestEnricher.of(null)
+        final AuctionRequestPayload result = BidRequestEnricher.of(null, targetingProperties)
                 .apply(auctionRequestPayload);
 
         // then
@@ -44,7 +49,7 @@ public class BidRequestEnricherTest extends BaseOptableTest {
         final TargetingResult targetingResult = givenTargetingResult();
 
         // when
-        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult)
+        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult, targetingProperties)
                 .apply(auctionRequestPayload);
 
         // then
@@ -58,7 +63,7 @@ public class BidRequestEnricherTest extends BaseOptableTest {
         final TargetingResult targetingResult = givenTargetingResult();
 
         // when
-        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult)
+        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult, targetingProperties)
                 .apply(auctionRequestPayload);
 
         // then
@@ -73,15 +78,15 @@ public class BidRequestEnricherTest extends BaseOptableTest {
     public void shouldNotAddEidWhenSourceAlreadyPresent() {
         // given
         final TargetingResult targetingResult = givenTargetingResultWithEids(List.of(
-                givenEid("source", List.of(givenUid("id2", 3, null)), null)));
+                givenEid("inserter", "source", List.of(givenUid("id2", 3, null)), null)));
 
         final BidRequest bidRequest = givenBidRequestWithUserEids(List.of(
-                givenEid("source", List.of(givenUid("id", null, null)), null),
-                givenEid("source1", List.of(givenUid("id", null, null)), null)));
+                givenEid("inserter", "source", List.of(givenUid("id", null, null)), null),
+                givenEid("inserter", "source1", List.of(givenUid("id", null, null)), null)));
         final AuctionRequestPayload auctionRequestPayload = AuctionRequestPayloadImpl.of(bidRequest);
 
         // when
-        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult)
+        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult, targetingProperties)
                 .apply(auctionRequestPayload);
 
         // then
@@ -95,15 +100,15 @@ public class BidRequestEnricherTest extends BaseOptableTest {
     public void shouldAddEidWhenSourceIsNotAlreadyPresent() {
         // given
         final TargetingResult targetingResult = givenTargetingResultWithEids(List.of(
-                givenEid("source3", List.of(givenUid("id2", 3, null)), null)));
+                givenEid("inserter", "source3", List.of(givenUid("id2", 3, null)), null)));
 
         final BidRequest bidRequest = givenBidRequestWithUserEids(List.of(
-                givenEid("source1", List.of(givenUid("id", null, null)), null),
-                givenEid("source2", List.of(givenUid("id", null, null)), null)));
+                givenEid("inserter", "source1", List.of(givenUid("id", null, null)), null),
+                givenEid("inserter", "source2", List.of(givenUid("id", null, null)), null)));
         final AuctionRequestPayload auctionRequestPayload = AuctionRequestPayloadImpl.of(bidRequest);
 
         // when
-        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult)
+        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult, targetingProperties)
                 .apply(auctionRequestPayload);
 
         // then
@@ -114,18 +119,137 @@ public class BidRequestEnricherTest extends BaseOptableTest {
     }
 
     @Test
-    public void shouldNotMergeOriginEidsWithTheSameSource() {
+    public void shouldSkipEidWhenOptableSourceIsAlreadyPresent() {
         // given
         final TargetingResult targetingResult = givenTargetingResultWithEids(List.of(
-                givenEid("source3", List.of(givenUid("id2", 3, null)), null)));
+                givenEid("optable.co", "source2", List.of(givenUid("id2", 3, null)), null)));
 
         final BidRequest bidRequest = givenBidRequestWithUserEids(List.of(
-                givenEid("source", List.of(givenUid("id", null, null)), null),
-                givenEid("source", List.of(givenUid("id", null, null)), null)));
+                givenEid("optable.co", "source1", List.of(givenUid("id", null, null)), null),
+                givenEid("optable.co", "source2", List.of(givenUid("id", null, null)), null)));
         final AuctionRequestPayload auctionRequestPayload = AuctionRequestPayloadImpl.of(bidRequest);
 
         // when
-        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult)
+        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult, targetingProperties)
+                .apply(auctionRequestPayload);
+
+        // then
+        assertThat(result.bidRequest()).isNotNull();
+        final List<Eid> eids = result.bidRequest().getUser().getEids();
+        assertThat(eids.size()).isEqualTo(2);
+        assertThat(eids.stream()).extracting(Eid::getSource).containsExactly("source1", "source2");
+        assertThat(eids)
+                .filteredOn(eid -> "source2".equals(eid.getSource()))
+                .singleElement()
+                .extracting(Eid::getUids, as(InstanceOfAssertFactories.list(Uid.class)))
+                .extracting(Uid::getId)
+                .containsExactly("id");
+    }
+
+    @Test
+    public void shouldMergeEidWhenOptableSourceIsAlreadyPresent() {
+        // given
+        final TargetingResult targetingResult = givenTargetingResultWithEids(List.of(
+                givenEid("optable.co", "source2", List.of(givenUid("id2", 3, null)), null)));
+
+        final BidRequest bidRequest = givenBidRequestWithUserEids(List.of(
+                givenEid("optable.co", "source1", List.of(givenUid("id", null, null)), null),
+                givenEid("optable.co", "source2", List.of(givenUid("id", null, null)), null)));
+        final AuctionRequestPayload auctionRequestPayload = AuctionRequestPayloadImpl.of(bidRequest);
+        final OptableTargetingProperties properties = new OptableTargetingProperties();
+        properties.setOptableInserterEidsMerge(List.of("source2"));
+
+        // when
+        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult, properties)
+                .apply(auctionRequestPayload);
+
+        // then
+        assertThat(result.bidRequest()).isNotNull();
+        final List<Eid> eids = result.bidRequest().getUser().getEids();
+        assertThat(eids.size()).isEqualTo(2);
+        assertThat(eids.stream()).extracting(Eid::getSource).containsExactly("source1", "source2");
+        assertThat(eids)
+                .filteredOn(eid -> "source2".equals(eid.getSource()))
+                .singleElement()
+                .extracting(Eid::getUids, as(InstanceOfAssertFactories.list(Uid.class)))
+                .extracting(Uid::getId)
+                .contains("id", "id2");
+    }
+
+    @Test
+    public void shouldReplaceEidWhenOptableSourceIsAlreadyPresent() {
+        // given
+        final TargetingResult targetingResult = givenTargetingResultWithEids(List.of(
+                givenEid("optable.co", "source2", List.of(givenUid("id2", 3, null)), null)));
+
+        final BidRequest bidRequest = givenBidRequestWithUserEids(List.of(
+                givenEid("optable.co", "source1", List.of(givenUid("id", null, null)), null),
+                givenEid("optable.co", "source2", List.of(givenUid("id", null, null)), null)));
+        final AuctionRequestPayload auctionRequestPayload = AuctionRequestPayloadImpl.of(bidRequest);
+        final OptableTargetingProperties properties = new OptableTargetingProperties();
+        properties.setOptableInserterEidsReplace(List.of("source2"));
+
+        // when
+        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult, properties)
+                .apply(auctionRequestPayload);
+
+        // then
+        assertThat(result.bidRequest()).isNotNull();
+        final List<Eid> eids = result.bidRequest().getUser().getEids();
+        assertThat(eids.size()).isEqualTo(2);
+        assertThat(eids.stream()).extracting(Eid::getSource).containsExactly("source1", "source2");
+        assertThat(eids)
+                .filteredOn(eid -> "source2".equals(eid.getSource()))
+                .singleElement()
+                .extracting(Eid::getUids, as(InstanceOfAssertFactories.list(Uid.class)))
+                .extracting(Uid::getId)
+                .containsExactly("id2");
+    }
+
+    @Test
+    public void shouldReplaceEidWhenOptableSourceIsPresentInBothMergeAndReplaceLists() {
+        // given
+        final TargetingResult targetingResult = givenTargetingResultWithEids(List.of(
+                givenEid("optable.co", "source2", List.of(givenUid("id2", 3, null)), null)));
+
+        final BidRequest bidRequest = givenBidRequestWithUserEids(List.of(
+                givenEid("optable.co", "source1", List.of(givenUid("id", null, null)), null),
+                givenEid("optable.co", "source2", List.of(givenUid("id", null, null)), null)));
+        final AuctionRequestPayload auctionRequestPayload = AuctionRequestPayloadImpl.of(bidRequest);
+        final OptableTargetingProperties properties = new OptableTargetingProperties();
+        properties.setOptableInserterEidsReplace(List.of("source2"));
+        properties.setOptableInserterEidsMerge(List.of("source2"));
+
+        // when
+        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult, properties)
+                .apply(auctionRequestPayload);
+
+        // then
+        assertThat(result.bidRequest()).isNotNull();
+        final List<Eid> eids = result.bidRequest().getUser().getEids();
+        assertThat(eids.size()).isEqualTo(2);
+        assertThat(eids.stream()).extracting(Eid::getSource).containsExactly("source1", "source2");
+        assertThat(eids)
+                .filteredOn(eid -> "source2".equals(eid.getSource()))
+                .singleElement()
+                .extracting(Eid::getUids, as(InstanceOfAssertFactories.list(Uid.class)))
+                .extracting(Uid::getId)
+                .containsExactly("id2");
+    }
+
+    @Test
+    public void shouldNotMergeOriginEidsWithTheSameSource() {
+        // given
+        final TargetingResult targetingResult = givenTargetingResultWithEids(List.of(
+                givenEid("inserter", "source3", List.of(givenUid("id2", 3, null)), null)));
+
+        final BidRequest bidRequest = givenBidRequestWithUserEids(List.of(
+                givenEid("inserter", "source", List.of(givenUid("id", null, null)), null),
+                givenEid("inserter", "source", List.of(givenUid("id", null, null)), null)));
+        final AuctionRequestPayload auctionRequestPayload = AuctionRequestPayloadImpl.of(bidRequest);
+
+        // when
+        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult, targetingProperties)
                 .apply(auctionRequestPayload);
 
         // then
@@ -139,13 +263,13 @@ public class BidRequestEnricherTest extends BaseOptableTest {
     public void shouldApplyOriginEidsWhenTargetingIsEmpty() {
         // given
         final TargetingResult targetingResult = givenTargetingResultWithEids(List.of(
-                givenEid("source3", List.of(givenUid("id2", 3, null)), null)));
+                givenEid("inserter", "source3", List.of(givenUid("id2", 3, null)), null)));
 
         final BidRequest bidRequest = givenBidRequestWithUserEids(Collections.emptyList());
         final AuctionRequestPayload auctionRequestPayload = AuctionRequestPayloadImpl.of(bidRequest);
 
         // when
-        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult)
+        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult, targetingProperties)
                 .apply(auctionRequestPayload);
 
         // then
@@ -161,12 +285,12 @@ public class BidRequestEnricherTest extends BaseOptableTest {
         final TargetingResult targetingResult = givenTargetingResultWithEids(Collections.emptyList());
 
         final BidRequest bidRequest = givenBidRequestWithUserEids(List.of(
-                givenEid("source", List.of(givenUid("id", null, null)), null),
-                givenEid("source1", List.of(givenUid("id", null, null)), null)));
+                givenEid("inserter", "source", List.of(givenUid("id", null, null)), null),
+                givenEid("inserter", "source1", List.of(givenUid("id", null, null)), null)));
         final AuctionRequestPayload auctionRequestPayload = AuctionRequestPayloadImpl.of(bidRequest);
 
         // when
-        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult)
+        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult, targetingProperties)
                 .apply(auctionRequestPayload);
 
         // then
@@ -184,7 +308,7 @@ public class BidRequestEnricherTest extends BaseOptableTest {
         final TargetingResult targetingResult = givenTargetingResultWithEids(Collections.emptyList());
 
         // when
-        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult)
+        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult, targetingProperties)
                 .apply(auctionRequestPayload);
 
         // then
@@ -203,7 +327,7 @@ public class BidRequestEnricherTest extends BaseOptableTest {
                 givenData("id", List.of(givenSegment("id3", "value3")))));
 
         // when
-        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult)
+        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult, targetingProperties)
                 .apply(auctionRequestPayload);
 
         // then
@@ -228,7 +352,7 @@ public class BidRequestEnricherTest extends BaseOptableTest {
                 givenData("id", List.of(givenSegment("id4", "value4")))));
 
         // when
-        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult)
+        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult, targetingProperties)
                 .apply(auctionRequestPayload);
 
         // then
@@ -254,7 +378,7 @@ public class BidRequestEnricherTest extends BaseOptableTest {
                 givenData("id1", List.of(givenSegment("id3", "value3")))));
 
         // when
-        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult)
+        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult, targetingProperties)
                 .apply(auctionRequestPayload);
 
         // then
@@ -278,7 +402,7 @@ public class BidRequestEnricherTest extends BaseOptableTest {
         final TargetingResult targetingResult = givenTargetingResultWithData(Collections.emptyList());
 
         // when
-        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult)
+        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult, targetingProperties)
                 .apply(auctionRequestPayload);
 
         // then
@@ -299,7 +423,7 @@ public class BidRequestEnricherTest extends BaseOptableTest {
                 givenData("id", List.of(givenSegment("id1", "value1")))));
 
         // when
-        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult)
+        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult, targetingProperties)
                 .apply(auctionRequestPayload);
 
         // then
@@ -316,7 +440,7 @@ public class BidRequestEnricherTest extends BaseOptableTest {
         final TargetingResult targetingResult = givenTargetingResultWithData(Collections.emptyList());
 
         // when
-        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult)
+        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult, targetingProperties)
                 .apply(auctionRequestPayload);
 
         // then
@@ -331,7 +455,7 @@ public class BidRequestEnricherTest extends BaseOptableTest {
         final TargetingResult targetingResult = givenEmptyTargetingResult();
 
         // when
-        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult)
+        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult, targetingProperties)
                 .apply(auctionRequestPayload);
 
         // then
@@ -342,8 +466,9 @@ public class BidRequestEnricherTest extends BaseOptableTest {
         assertThat(user.getData()).isNull();
     }
 
-    private Eid givenEid(String source, List<Uid> uids, ObjectNode ext) {
+    private Eid givenEid(String inserter, String source, List<Uid> uids, ObjectNode ext) {
         return Eid.builder()
+                .inserter(inserter)
                 .source(source)
                 .uids(uids)
                 .ext(ext)
