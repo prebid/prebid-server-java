@@ -6,7 +6,6 @@ enum ErrorType {
 
     GENERAL("general"),
     GENERIC("generic"),
-    GENER_X("gener_x"),
     GENERIC_CAMEL_CASE("GeNerIc"),
     RUBICON("rubicon"),
     APPNEXUS("appnexus"),

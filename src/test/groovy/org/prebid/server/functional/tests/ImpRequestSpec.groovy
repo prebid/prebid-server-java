@@ -19,7 +19,7 @@ import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.bidder.BidderName.RUBICON
 import static org.prebid.server.functional.model.bidder.BidderName.UNKNOWN
 import static org.prebid.server.functional.model.bidder.BidderName.WILDCARD
-import static org.prebid.server.functional.model.response.auction.ErrorType.GENER_X
+import static org.prebid.server.functional.model.bidder.BidderName.GENER_X
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 
@@ -138,14 +138,13 @@ class ImpRequestSpec extends BaseSpec {
         def originalPmp = Pmp.defaultPmp
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp.first.tap {
-                bidFloor = 15
                 pmp = originalPmp
                 ext.prebid.imp = [(aliasName): new Imp(pmp: storedPmp)]
                 ext.prebid.bidder.generic = null
                 ext.prebid.bidder.generX = new Generic()
                 ext.prebid.bidder.alias = new Generic()
             }
-            ext.prebid.aliases = [(GENER_X.value): bidderName,
+            ext.prebid.aliases = [(GENER_X.value)  : bidderName,
                                   (aliasName.value): bidderName,
             ]
         }
@@ -155,6 +154,7 @@ class ImpRequestSpec extends BaseSpec {
 
         then: "BidderRequest should update imp information for specific alias"
         def bidderRequests = getRequests(response)
+        assert bidderRequests.size() == 2
         assert bidderRequests[ALIAS.value].imp.pmp.flatten() == [storedPmp]
 
         and: "Left original information for other"
