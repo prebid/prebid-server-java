@@ -27,6 +27,7 @@
         <module>optable-targeting</module>
         <module>wurfl-devicedetection</module>
         <module>live-intent-omni-channel-identity</module>
+        <module>pb-rule-engine</module>
     </modules>
 
     <dependencyManagement>
