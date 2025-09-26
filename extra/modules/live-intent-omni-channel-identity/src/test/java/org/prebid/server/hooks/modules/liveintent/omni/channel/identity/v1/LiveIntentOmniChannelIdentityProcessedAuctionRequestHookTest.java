@@ -78,10 +78,6 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
         given(properties.getAuthToken()).willReturn("auth_token");
         given(properties.getTreatmentRate()).willReturn(1.0f);
 
-        given(auctionInvocationContext.auctionContext()).willReturn(auctionContext);
-        given(auctionContext.getActivityInfrastructure()).willReturn(activityInfrastructure);
-        given(activityInfrastructure.isAllowed(any(), any())).willReturn(true);
-
         target = new LiveIntentOmniChannelIdentityProcessedAuctionRequestHook(
                 properties, userFpdActivityMask, MAPPER, httpClient, 0.01d);
     }
@@ -172,6 +168,10 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
         given(httpClient.post(any(), any(), any(), anyLong()))
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, responseBody)));
 
+        given(auctionInvocationContext.auctionContext()).willReturn(auctionContext);
+        given(auctionContext.getActivityInfrastructure()).willReturn(activityInfrastructure);
+        given(activityInfrastructure.isAllowed(any(), any())).willReturn(true);
+
         given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_TID), any())).willReturn(false);
         given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_UFPD), any())).willReturn(false);
 
@@ -205,6 +205,9 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
         given(httpClient.post(any(), any(), any(), anyLong()))
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, responseBody)));
 
+        given(auctionInvocationContext.auctionContext()).willReturn(auctionContext);
+        given(auctionContext.getActivityInfrastructure()).willReturn(activityInfrastructure);
+        given(activityInfrastructure.isAllowed(any(), any())).willReturn(true);
         given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_EIDS), any())).willReturn(false);
         given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_UFPD), any())).willReturn(false);
 
