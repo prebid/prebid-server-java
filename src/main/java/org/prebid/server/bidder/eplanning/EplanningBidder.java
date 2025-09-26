@@ -18,7 +18,7 @@ import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.client.utils.URIBuilder;
+import org.apache.hc.core5.net.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.eplanning.model.CleanStepName;
 import org.prebid.server.bidder.eplanning.model.HbResponse;
@@ -286,7 +286,7 @@ public class EplanningBidder implements Bidder<Void> {
 
     private static URL parseUrl(String url) {
         try {
-            return new URL(url);
+            return HttpUtil.parseUrl(url);
         } catch (MalformedURLException e) {
             throw new PreBidException("Invalid url: " + url, e);
         }

@@ -10,7 +10,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.client.utils.URIBuilder;
+import org.apache.hc.core5.net.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -122,7 +122,7 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
     private String makeUrl(boolean isProgrammaticGuaranteed) {
         final String url = isProgrammaticGuaranteed ? secondaryEndpointUrl : endpointUrl;
         try {
-            final URI uri = new URI(url);
+            final URI uri = new URIBuilder(url).build();
             final String path = isProgrammaticGuaranteed ? "/ortb" : "/api/bid";
             final URIBuilder uriBuilder = new URIBuilder(uri)
                     .setPath(StringUtils.removeEnd(uri.getPath(), "/") + path);
