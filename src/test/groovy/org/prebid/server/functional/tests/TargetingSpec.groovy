@@ -62,6 +62,7 @@ class TargetingSpec extends BaseSpec {
     private static final String HB_ENV_AMP = "amp"
     private static final Integer MAIN_RANK = 1
     private static final Integer SUBORDINATE_RANK = 2
+    private static final String EMPTY_CPM = "0.0"
 
     def "PBS should include targeting bidder specific keys when alwaysIncludeDeals is true and deal bid wins"() {
         given: "Bid request with alwaysIncludeDeals = true"
@@ -543,29 +544,28 @@ class TargetingSpec extends BaseSpec {
         assert targetingKeyMap["hb_pb"] == String.format("%,.2f", max.setScale(precision, RoundingMode.DOWN))
     }
 
-    def "PBS auction shouldn't delete bid and update targeting if price equal zero and dealId it present"() {
+    def "PBS auction shouldn't delete bid and update targeting if price equal zero and dealId present"() {
         given: "Default bid request with stored response"
-        def storedBidResponseId = PBSUtils.randomString
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp[0].ext.prebid.storedBidResponse = [new StoredBidResponse(id: storedBidResponseId, bidder: GENERIC)]
             ext.prebid.targeting = Targeting.createWithAllValuesSetTo(true)
         }
 
-        and: "Create and save stored response with zero prise into DB"
-        def storedBidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+        and: "Bid response with zero price"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
             seatbid[0].bid[0].price = 0
-            seatbid[0].bid[0].dealid = PBSUtils.randomNumber
+            seatbid[0].bid[0].dealid = PBSUtils.randomString
         }
-        def storedResponse = new StoredResponse(responseId: storedBidResponseId, storedBidResponse: storedBidResponse)
-        storedResponseDao.save(storedResponse)
+
+        and: "Set bidder response"
+        bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should contain proper targeting hb_pb"
         def targetingKeyMap = response.seatbid?.first()?.bid?.first()?.ext?.prebid?.targeting
-        assert targetingKeyMap["hb_pb"] == '0.0'
-        assert targetingKeyMap["hb_pb_generic"] == '0.0'
+        assert targetingKeyMap["hb_pb"] == EMPTY_CPM
+        assert targetingKeyMap["hb_pb_generic"] == EMPTY_CPM
     }
 
     def "PBS auction should use default targeting prefix when ext.prebid.targeting.prefix is biggest that twenty"() {
