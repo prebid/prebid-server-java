@@ -22,6 +22,20 @@ import static org.prebid.server.settings.model.AccountAuctionBidRoundingMode.UP;
 public class CpmRangeTest {
 
     @Test
+    public void fromCpmShouldReturnZeroValueIfPriceDoesNotFitToRange() {
+        // given
+        final PriceGranularity priceGranularity = createFromExtPriceGranularity(
+                ExtPriceGranularity.of(null, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(3),
+                        BigDecimal.valueOf(0.01)))));
+
+        // when
+        final String result = CpmRange.fromCpm(BigDecimal.valueOf(-2.0), priceGranularity, givenAccount());
+
+        // then
+        assertThat(result).isEqualTo("0.0");
+    }
+
+    @Test
     public void fromCpmShouldReturnMaxRangeIfCpmExceedsIt() {
         assertThat(CpmRange.fromCpm(BigDecimal.valueOf(21), createFromString("auto"), givenAccount()))
                 .isEqualTo("20.00");
