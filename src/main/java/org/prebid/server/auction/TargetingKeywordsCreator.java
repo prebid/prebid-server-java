@@ -78,8 +78,6 @@ public class TargetingKeywordsCreator {
      */
     private static final String FORMAT_KEY = "_format";
 
-    private static final String DEFAULT_CPM = "0.0";
-
     private final PriceGranularity priceGranularity;
     private final boolean includeWinners;
     private final boolean includeBidderKeys;
@@ -206,7 +204,7 @@ public class TargetingKeywordsCreator {
 
         final String roundedCpm = isPriceGranularityValid()
                 ? CpmRange.fromCpm(price, priceGranularity, account)
-                : DEFAULT_CPM;
+                : CpmRange.DEFAULT_CPM;
 
         keywordMap.put(this.keyPrefix + PB_KEY, roundedCpm);
 
