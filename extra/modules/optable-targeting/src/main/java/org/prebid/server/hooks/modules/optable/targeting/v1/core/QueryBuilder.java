@@ -21,6 +21,8 @@ import java.util.stream.IntStream;
 
 public class QueryBuilder {
 
+    private static final String REQUEST_SOURCE = "prebid-server";
+
     private QueryBuilder() {
     }
 
@@ -81,7 +83,7 @@ public class QueryBuilder {
         Optional.ofNullable(optableAttributes.getTimeout())
                 .ifPresent(timeout -> sb.append("&timeout=").append(timeout).append("ms"));
 
-        sb.append("&osdk=").append(optableAttributes.getRequestSource());
+        sb.append("&osdk=").append(REQUEST_SOURCE);
 
         return sb.toString();
     }

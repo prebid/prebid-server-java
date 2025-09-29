@@ -13,7 +13,6 @@ import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Targeting
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.User;
 import org.prebid.server.hooks.v1.PayloadUpdate;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
-import org.prebid.server.util.ObjectUtil;
 
 import java.util.HashMap;
 import java.util.List;
@@ -63,23 +62,19 @@ public class BidRequestEnricher implements PayloadUpdate<AuctionRequestPayload> 
                 .orElseGet(() -> com.iab.openrtb.request.User.builder().build());
 
         return bidRequest.toBuilder()
-                .user(mergeUserData(bidRequestUser, optableUser, targetingProperties))
+                .user(mergeUserData(bidRequestUser, optableUser))
                 .build();
     }
 
-    private static com.iab.openrtb.request.User mergeUserData(com.iab.openrtb.request.User user,
-                                                              User optableUser,
-                                                              OptableTargetingProperties targetingProperties) {
+    private com.iab.openrtb.request.User mergeUserData(com.iab.openrtb.request.User user, User optableUser) {
 
         return user.toBuilder()
-                .eids(mergeEids(user.getEids(), optableUser.getEids(), targetingProperties))
+                .eids(mergeEids(user.getEids(), optableUser.getEids()))
                 .data(mergeData(user.getData(), optableUser.getData()))
                 .build();
     }
 
-    private static List<Eid> mergeEids(List<Eid> destination,
-                                       List<Eid> source,
-                                       OptableTargetingProperties targetingProperties) {
+    private List<Eid> mergeEids(List<Eid> destination, List<Eid> source) {
 
         if (CollectionUtils.isEmpty(destination)) {
             return source;
@@ -95,14 +90,14 @@ public class BidRequestEnricher implements PayloadUpdate<AuctionRequestPayload> 
                 (a, b) -> b,
                 HashMap::new));
 
-        final List<String> sourceToReplace = targetingProperties.getOptableInserterEidsReplace();
-        final List<String> sourceToMerge = targetingProperties.getOptableInserterEidsMerge()
+        final Set<String> sourceToReplace = targetingProperties.getOptableInserterEidsReplace();
+        final Set<String> sourceToMerge = targetingProperties.getOptableInserterEidsMerge()
                 .stream()
-                .filter(it -> !sourceToReplace.contains(it)).toList();
+                .filter(it -> !sourceToReplace.contains(it)).collect(Collectors.toSet());
 
         final List<Eid> mergedEid = destination.stream()
                 .map(destinationEid -> idToSourceEid.containsKey(eidIdExtractor(destinationEid))
-                        && destinationEid.getInserter().equals(OPTABLE_CO_INSERTER)
+                        && OPTABLE_CO_INSERTER.equals(destinationEid.getInserter())
                         ? resolveEidConflict(
                                 destinationEid,
                                 idToSourceEid.get(eidIdExtractor(destinationEid)),
@@ -114,8 +109,10 @@ public class BidRequestEnricher implements PayloadUpdate<AuctionRequestPayload> 
         return merge(mergedEid, source, BidRequestEnricher::eidIdExtractor);
     }
 
-    private static Eid resolveEidConflict(Eid destinationEid, Eid sourceEid, List<String> sourceToMerge,
-                                          List<String> sourceToReplace) {
+    private static Eid resolveEidConflict(Eid destinationEid,
+                                          Eid sourceEid,
+                                          Set<String> sourceToMerge,
+                                          Set<String> sourceToReplace) {
 
         final String eidSource = sourceEid.getSource();
 
@@ -136,9 +133,8 @@ public class BidRequestEnricher implements PayloadUpdate<AuctionRequestPayload> 
     }
 
     private static String eidIdExtractor(Eid eid) {
-        return "%s_%s".formatted(
-                ObjectUtil.getIfNotNullOrDefault(eid, Eid::getInserter, () -> ""),
-                eid.getSource());
+        final String inserter = Optional.ofNullable(eid.getInserter()).orElse("");
+        return "%s_%s".formatted(inserter, eid.getSource());
     }
 
     private static List<Data> mergeData(List<Data> destination, List<Data> source) {

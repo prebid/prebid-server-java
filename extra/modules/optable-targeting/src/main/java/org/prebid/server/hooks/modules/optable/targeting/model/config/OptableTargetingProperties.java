@@ -4,8 +4,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Data
 @NoArgsConstructor
@@ -32,14 +32,11 @@ public final class OptableTargetingProperties {
     @JsonProperty("id-prefix-order")
     String idPrefixOrder;
 
-    @JsonProperty("no-skip")
-    List<String> noSkip;
-
     @JsonProperty("optable-inserter-eids-merge")
-    List<String> optableInserterEidsMerge = List.of();
+    Set<String> optableInserterEidsMerge = Set.of();
 
     @JsonProperty("optable-inserter-eids-replace")
-    List<String> optableInserterEidsReplace = List.of();
+    Set<String> optableInserterEidsReplace = Set.of();
 
     CacheProperties cache = new CacheProperties();
 }

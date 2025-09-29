@@ -17,6 +17,7 @@ import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.as;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -157,7 +158,7 @@ public class BidRequestEnricherTest extends BaseOptableTest {
                 givenEid("optable.co", "source2", List.of(givenUid("id", null, null)), null)));
         final AuctionRequestPayload auctionRequestPayload = AuctionRequestPayloadImpl.of(bidRequest);
         final OptableTargetingProperties properties = new OptableTargetingProperties();
-        properties.setOptableInserterEidsMerge(List.of("source2"));
+        properties.setOptableInserterEidsMerge(Set.of("source2"));
 
         // when
         final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult, properties)
@@ -187,7 +188,7 @@ public class BidRequestEnricherTest extends BaseOptableTest {
                 givenEid("optable.co", "source2", List.of(givenUid("id", null, null)), null)));
         final AuctionRequestPayload auctionRequestPayload = AuctionRequestPayloadImpl.of(bidRequest);
         final OptableTargetingProperties properties = new OptableTargetingProperties();
-        properties.setOptableInserterEidsReplace(List.of("source2"));
+        properties.setOptableInserterEidsReplace(Set.of("source2"));
 
         // when
         final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult, properties)
@@ -217,8 +218,8 @@ public class BidRequestEnricherTest extends BaseOptableTest {
                 givenEid("optable.co", "source2", List.of(givenUid("id", null, null)), null)));
         final AuctionRequestPayload auctionRequestPayload = AuctionRequestPayloadImpl.of(bidRequest);
         final OptableTargetingProperties properties = new OptableTargetingProperties();
-        properties.setOptableInserterEidsReplace(List.of("source2"));
-        properties.setOptableInserterEidsMerge(List.of("source2"));
+        properties.setOptableInserterEidsReplace(Set.of("source2"));
+        properties.setOptableInserterEidsMerge(Set.of("source2"));
 
         // when
         final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult, properties)
