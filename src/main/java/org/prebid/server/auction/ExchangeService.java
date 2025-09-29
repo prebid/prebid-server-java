@@ -782,7 +782,6 @@ public class ExchangeService {
                 bidderToMultiBid,
                 biddersToConfigs,
                 bidderToPrebidBidders,
-                bidderAliases,
                 context);
 
         final Map<String, Price> originalPriceFloors = enrichedWithPriceFloors.getImp().stream()
@@ -815,7 +814,6 @@ public class ExchangeService {
                                          Map<String, MultiBidConfig> bidderToMultiBid,
                                          Map<String, ExtBidderConfigOrtb> biddersToConfigs,
                                          Map<String, JsonNode> bidderToPrebidBidders,
-                                         BidderAliases bidderAliases,
                                          AuctionContext context) {
 
         final String bidder = bidderPrivacyResult.getRequestBidder();
@@ -869,7 +867,6 @@ public class ExchangeService {
                 transmitTid,
                 useFirstPartyData,
                 context.getAccount(),
-                bidderAliases,
                 context.getDebugWarnings());
 
         return bidRequest.toBuilder()
@@ -907,13 +904,12 @@ public class ExchangeService {
                                   boolean transmitTid,
                                   boolean useFirstPartyData,
                                   Account account,
-                                  BidderAliases bidderAliases,
                                   List<String> debugWarnings) {
 
         return bidRequest.getImp().stream()
                 .filter(imp -> bidderParamsFromImpExt(imp.getExt()).hasNonNull(bidder))
                 .map(imp -> imp.toBuilder().ext(imp.getExt().deepCopy()).build())
-                .map(imp -> impAdjuster.adjust(imp, bidder, bidderAliases, debugWarnings))
+                .map(imp -> impAdjuster.adjust(imp, bidder, debugWarnings))
                 .map(imp -> prepareImp(imp, bidder, bidRequest, transmitTid, useFirstPartyData, account, debugWarnings))
                 .toList();
     }

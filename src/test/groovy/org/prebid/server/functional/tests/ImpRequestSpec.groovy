@@ -19,6 +19,7 @@ import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.bidder.BidderName.RUBICON
 import static org.prebid.server.functional.model.bidder.BidderName.UNKNOWN
 import static org.prebid.server.functional.model.bidder.BidderName.WILDCARD
+import static org.prebid.server.functional.model.bidder.BidderName.GENER_X
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 
@@ -122,6 +123,42 @@ class ImpRequestSpec extends BaseSpec {
 
         and: "PBS should remove imp.ext.prebid.bidder from bidderRequest"
         assert !bidderRequest?.imp?.first?.ext?.prebid?.bidder
+
+        where:
+        aliasName        | bidderName
+        ALIAS            | GENERIC
+        ALIAS_CAMEL_CASE | GENERIC
+        ALIAS            | GENERIC_CAMEL_CASE
+        ALIAS_CAMEL_CASE | GENERIC_CAMEL_CASE
+    }
+
+    def "PBS should update imp fields only for specific alias when request has multiple aliases"() {
+        given: "Default basic BidRequest"
+        def storedPmp = Pmp.defaultPmp
+        def originalPmp = Pmp.defaultPmp
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp.first.tap {
+                pmp = originalPmp
+                ext.prebid.imp = [(aliasName): new Imp(pmp: storedPmp)]
+                ext.prebid.bidder.generic = null
+                ext.prebid.bidder.generX = new Generic()
+                ext.prebid.bidder.alias = new Generic()
+            }
+            ext.prebid.aliases = [(GENER_X.value)  : bidderName,
+                                  (aliasName.value): bidderName,
+            ]
+        }
+
+        when: "Requesting PBS auction"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "BidderRequest should update imp information for specific alias"
+        def bidderRequests = getRequests(response)
+        assert bidderRequests.size() == 2
+        assert bidderRequests[ALIAS.value].imp.pmp.flatten() == [storedPmp]
+
+        and: "Left original information for other"
+        assert bidderRequests[GENER_X.value].imp.pmp.flatten() == [originalPmp]
 
         where:
         aliasName        | bidderName
