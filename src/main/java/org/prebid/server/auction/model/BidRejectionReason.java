@@ -56,6 +56,9 @@ public enum BidRejectionReason {
      */
     REQUEST_BLOCKED_UNSUPPORTED_MEDIA_TYPE(202),
 
+    /**
+     * This impression not sent to the bid adapter because the impression or the bidder was removed from the request.
+     */
     REQUEST_BLOCKED_OPTIMIZED(203),
 
     /**

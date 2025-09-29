@@ -9,6 +9,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.BidRejectionReason;
+import org.prebid.server.auction.model.ImpRejection;
+import org.prebid.server.auction.model.Rejection;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.hooks.modules.rule.engine.core.config.RuleParser;
 import org.prebid.server.hooks.modules.rule.engine.core.request.Granularity;
@@ -22,10 +25,14 @@ import org.prebid.server.hooks.v1.InvocationStatus;
 import org.prebid.server.hooks.v1.analytics.Tags;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
+import org.prebid.server.proto.openrtb.ext.response.seatnonbid.NonBid;
+import org.prebid.server.proto.openrtb.ext.response.seatnonbid.SeatNonBid;
 import org.prebid.server.settings.model.Account;
 
 import java.time.Instant;
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -104,16 +111,23 @@ class PbRuleEngineProcessedAuctionRequestHookTest {
     @Test
     public void callShouldReturnPayloadUpdateWhenRuleActionIsUpdate() {
         // given
+        final SeatNonBid seatNonBid = SeatNonBid.of(
+                "bidder", Collections.singletonList(NonBid.of("impId", BidRejectionReason.NO_BID)));
+
         given(invocationContext.accountConfig()).willReturn(MAPPER.createObjectNode());
         given(processedAuctionRequestRule.process(
                 bidRequest,
                 RequestRuleContext.of(auctionContext, Granularity.Request.instance(), "datacenter")))
-                .willReturn(RuleResult.of(bidRequest, RuleAction.UPDATE, tags, Collections.emptyList()));
+                .willReturn(RuleResult.of(bidRequest, RuleAction.UPDATE, tags, Collections.singletonList(seatNonBid)));
 
         // when and then
+        final Map<String, List<Rejection>> rejections = Map.of(
+                "bidder", List.of(ImpRejection.of("impId", BidRejectionReason.NO_BID)));
+
         assertThat(target.call(payload, invocationContext).result()).satisfies(invocationResult -> {
             assertThat(invocationResult.status()).isEqualTo(InvocationStatus.success);
             assertThat(invocationResult.action()).isEqualTo(InvocationAction.update);
+            assertThat(invocationResult.rejections()).containsExactlyEntriesOf(rejections);
             assertThat(invocationResult.payloadUpdate()).isNotNull();
             assertThat(invocationResult.analyticsTags()).isEqualTo(tags);
         });

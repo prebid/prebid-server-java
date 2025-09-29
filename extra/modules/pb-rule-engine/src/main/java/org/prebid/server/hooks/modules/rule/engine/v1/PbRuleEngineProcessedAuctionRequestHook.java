@@ -5,6 +5,8 @@ import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Future;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.ImpRejection;
+import org.prebid.server.auction.model.Rejection;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.rule.engine.core.config.RuleParser;
@@ -19,8 +21,12 @@ import org.prebid.server.hooks.v1.InvocationStatus;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.ProcessedAuctionRequestHook;
+import org.prebid.server.proto.openrtb.ext.response.seatnonbid.SeatNonBid;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class PbRuleEngineProcessedAuctionRequestHook implements ProcessedAuctionRequestHook {
 
@@ -60,6 +66,7 @@ public class PbRuleEngineProcessedAuctionRequestHook implements ProcessedAuction
                 InvocationResultImpl.<AuctionRequestPayload>builder()
                         .status(InvocationStatus.success)
                         .action(toInvocationAction(result.getAction()))
+                        .rejections(toRejections(result.getSeatNonBid()))
                         .analyticsTags(result.getAnalyticsTags());
 
         if (result.isUpdate()) {
@@ -69,6 +76,25 @@ public class PbRuleEngineProcessedAuctionRequestHook implements ProcessedAuction
         return Future.succeededFuture(resultBuilder.build());
     }
 
+    private static InvocationAction toInvocationAction(RuleAction ruleAction) {
+        return switch (ruleAction) {
+            case NO_ACTION -> InvocationAction.no_action;
+            case UPDATE -> InvocationAction.update;
+            case REJECT -> InvocationAction.reject;
+        };
+    }
+
+    private static List<Rejection> toRejections(SeatNonBid seatNonBid) {
+        return seatNonBid.getNonBid().stream()
+                .map(nonBid -> (Rejection) ImpRejection.of(nonBid.getImpId(), nonBid.getStatusCode()))
+                .toList();
+    }
+
+    private static Map<String, List<Rejection>> toRejections(List<SeatNonBid> seatNonBids) {
+        return seatNonBids.stream()
+                .collect(Collectors.toMap(SeatNonBid::getSeat, PbRuleEngineProcessedAuctionRequestHook::toRejections));
+    }
+
     private static Future<InvocationResult<AuctionRequestPayload>> failure(Throwable error) {
         return Future.succeededFuture(
                 InvocationResultImpl.<AuctionRequestPayload>builder()
@@ -76,14 +102,6 @@ public class PbRuleEngineProcessedAuctionRequestHook implements ProcessedAuction
                         .action(InvocationAction.no_invocation)
                         .message(error.getMessage())
                         .build());
-    }
-
-    private static InvocationAction toInvocationAction(RuleAction ruleAction) {
-        return switch (ruleAction) {
-            case NO_ACTION -> InvocationAction.no_action;
-            case UPDATE -> InvocationAction.update;
-            case REJECT -> InvocationAction.reject;
-        };
     }
 
     @Override

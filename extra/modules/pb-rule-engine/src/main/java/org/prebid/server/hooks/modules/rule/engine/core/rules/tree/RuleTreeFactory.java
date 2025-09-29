@@ -17,11 +17,31 @@ public class RuleTreeFactory {
         final List<ParsingContext<RuleConfig<T, C>>> parsingContexts = toParsingContexts(rules);
         final int depth = getDepth(parsingContexts);
 
+        if (depth == 0) {
+            throw new InvalidMatcherConfiguration("Rule with no matchers");
+        }
+
         if (!parsingContexts.stream().allMatch(context -> context.argumentMatchers().size() == depth)) {
             throw new InvalidMatcherConfiguration("Mismatched arguments count");
         }
 
+        validateRules(parsingContexts);
+
         return new RuleTree<>(parseRuleNode(parsingContexts), depth);
+    }
+
+    private static <T, C> void validateRules(List<ParsingContext<RuleConfig<T, C>>> parsingContexts) {
+        final List<String> ambiguousRules = parsingContexts.stream()
+                .collect(Collectors.groupingBy(context -> context.value().getCondition(), Collectors.counting()))
+                .entrySet()
+                .stream()
+                .filter(entry -> entry.getValue() > 1)
+                .map(Map.Entry::getKey)
+                .toList();
+
+        if (!ambiguousRules.isEmpty()) {
+            throw new InvalidMatcherConfiguration("Ambiguous matchers: " + String.join(", ", ambiguousRules));
+        }
     }
 
     private static <T, C> List<ParsingContext<RuleConfig<T, C>>> toParsingContexts(List<RuleConfig<T, C>> rules) {

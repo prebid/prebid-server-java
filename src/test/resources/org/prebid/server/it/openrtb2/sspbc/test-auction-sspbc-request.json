@@ -2,8 +2,8 @@
   "id": "request_id",
   "imp": [
     {
-      "id": "imp_id",
-      "tagid": "imp_id",
+      "id": "anyId",
+      "tagid": "tagid",
       "banner": {
         "format": [
           {
@@ -25,8 +25,6 @@
   ],
   "tmax": 5000,
   "regs": {
-    "ext": {
-      "gdpr": 0
-    }
+    "gdpr": 0
   }
 }
