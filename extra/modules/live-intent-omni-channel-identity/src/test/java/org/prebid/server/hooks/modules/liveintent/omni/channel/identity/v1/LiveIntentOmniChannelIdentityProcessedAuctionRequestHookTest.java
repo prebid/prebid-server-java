@@ -17,7 +17,6 @@ import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
-import org.prebid.server.hooks.execution.v1.auction.AuctionInvocationContextImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.liveintent.omni.channel.identity.model.IdResResponse;
 import org.prebid.server.hooks.modules.liveintent.omni.channel.identity.model.config.LiveIntentOmniChannelProperties;
@@ -51,7 +50,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
 
     private static final JacksonMapper MAPPER = new JacksonMapper(ObjectMapperProvider.mapper());
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private UserFpdActivityMask userFpdActivityMask;
 
     @Mock
@@ -112,22 +111,13 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
                 .build();
         final BidRequest givenBidRequest = BidRequest.builder().id("request").device(givenDevice).build();
 
-        final Geo expectedGeo = givenGeo.toBuilder()
-                .country(null)
-                .city(null)
+        final Geo expectedGeo = Geo.builder()
                 .lat(52.52f)
                 .lon(13.38f)
                 .build();
-        final Device expectedDevice = givenDevice.toBuilder()
+        final Device expectedDevice = Device.builder()
                 .geo(expectedGeo)
                 .ip("192.168.127.0")
-                .ifa(null)
-                .macsha1(null)
-                .macmd5(null)
-                .dpidsha1(null)
-                .dpidmd5(null)
-                .didsha1(null)
-                .didmd5(null)
                 .build();
         final BidRequest expectedBidRequest = givenBidRequest.toBuilder().device(expectedDevice).build();
 
@@ -137,8 +127,15 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
         given(httpClient.post(any(), any(), any(), anyLong()))
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, responseBody)));
 
+        given(auctionInvocationContext.auctionContext()).willReturn(auctionContext);
+        given(auctionContext.getActivityInfrastructure()).willReturn(activityInfrastructure);
+        given(activityInfrastructure.isAllowed(any(), any())).willReturn(true);
         given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_GEO), any())).willReturn(false);
         given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_UFPD), any())).willReturn(false);
+        given(userFpdActivityMask.maskUser(any(), eq(true), eq(false)))
+                .will(invocation -> invocation.getArgument(0));
+        given(userFpdActivityMask.maskDevice(any(), eq(true), eq(true)))
+                .will(invocation -> expectedDevice);
 
         // when
         final InvocationResult<AuctionRequestPayload> result =
@@ -174,6 +171,10 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
 
         given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_TID), any())).willReturn(false);
         given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_UFPD), any())).willReturn(false);
+        given(userFpdActivityMask.maskUser(any(), eq(false), eq(false)))
+                .willAnswer(invocation -> invocation.getArgument(0));
+        given(userFpdActivityMask.maskDevice(any(), eq(false), eq(false)))
+                .willAnswer(invocation -> invocation.getArgument(0));
 
         // when
         final InvocationResult<AuctionRequestPayload> result =
@@ -196,8 +197,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
         final User givenUser = User.builder().eids(singletonList(givenEid)).build();
         final BidRequest givenBidRequest = BidRequest.builder().id("request").user(givenUser).build();
 
-        final User expectedUser = givenUser.toBuilder().eids(null).build();
-        final BidRequest expectedBidRequest = givenBidRequest.toBuilder().user(expectedUser).build();
+        final BidRequest expectedBidRequest = givenBidRequest.toBuilder().user(null).build();
 
         final Eid expectedEid = Eid.builder().source("liveintent.com").build();
 
@@ -210,6 +210,10 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
         given(activityInfrastructure.isAllowed(any(), any())).willReturn(true);
         given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_EIDS), any())).willReturn(false);
         given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_UFPD), any())).willReturn(false);
+        given(userFpdActivityMask.maskUser(any(), eq(true), eq(true)))
+                .willReturn(null);
+        given(userFpdActivityMask.maskDevice(any(), eq(false), eq(false)))
+                .willAnswer(invocation -> invocation.getArgument(0));
 
         // when
         final InvocationResult<AuctionRequestPayload> result =
@@ -241,8 +245,13 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
         given(httpClient.post(any(), any(), any(), anyLong()))
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, responseBody)));
 
-        final AuctionInvocationContext auctionInvocationContext = AuctionInvocationContextImpl.of(
-                null, null, false, null, null);
+        given(auctionInvocationContext.auctionContext()).willReturn(auctionContext);
+        given(auctionContext.getActivityInfrastructure()).willReturn(activityInfrastructure);
+        given(activityInfrastructure.isAllowed(any(), any())).willReturn(true);
+        given(userFpdActivityMask.maskUser(any(), eq(false), eq(false)))
+                .willAnswer(invocation -> invocation.getArgument(0));
+        given(userFpdActivityMask.maskDevice(any(), eq(false), eq(false)))
+                .willAnswer(invocation -> invocation.getArgument(0));
 
         // when
         final InvocationResult<AuctionRequestPayload> result =
@@ -278,8 +287,13 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
         given(httpClient.post(any(), any(), any(), anyLong()))
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, responseBody)));
 
-        final AuctionInvocationContext auctionInvocationContext = AuctionInvocationContextImpl.of(
-                null, null, false, null, null);
+        given(auctionInvocationContext.auctionContext()).willReturn(auctionContext);
+        given(auctionContext.getActivityInfrastructure()).willReturn(activityInfrastructure);
+        given(activityInfrastructure.isAllowed(any(), any())).willReturn(true);
+        given(userFpdActivityMask.maskUser(any(), eq(false), eq(false)))
+                .willAnswer(invocation -> invocation.getArgument(0));
+        given(userFpdActivityMask.maskDevice(any(), eq(false), eq(false)))
+                .willAnswer(invocation -> invocation.getArgument(0));
 
         // when
         final InvocationResult<AuctionRequestPayload> result =
@@ -304,13 +318,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
     @Test
     public void callShouldReturnNoActionSuccessfullyWhenTreatmentRateIsLowerThanThreshold() {
         // given
-        final Uid givenUid = Uid.builder().id("id1").atype(2).build();
-        final Eid givebEid = Eid.builder().source("some.source.com").uids(singletonList(givenUid)).build();
-        final User givenUser = User.builder().eids(singletonList(givebEid)).build();
-        final BidRequest givenBidRequest = BidRequest.builder().id("request").user(givenUser).build();
-
-        final AuctionInvocationContext auctionInvocationContext = AuctionInvocationContextImpl.of(
-                null, null, false, null, null);
+        final BidRequest givenBidRequest = BidRequest.builder().build();
 
         given(properties.getTreatmentRate()).willReturn(0.0f);
 
@@ -334,8 +342,13 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
         final User givenUser = User.builder().eids(singletonList(givebEid)).build();
         final BidRequest givenBidRequest = BidRequest.builder().id("request").user(givenUser).build();
 
-        final AuctionInvocationContext auctionInvocationContext = AuctionInvocationContextImpl.of(
-                null, null, false, null, null);
+        given(auctionInvocationContext.auctionContext()).willReturn(auctionContext);
+        given(auctionContext.getActivityInfrastructure()).willReturn(activityInfrastructure);
+        given(activityInfrastructure.isAllowed(any(), any())).willReturn(true);
+        given(userFpdActivityMask.maskUser(any(), eq(false), eq(false)))
+                .willAnswer(invocation -> invocation.getArgument(0));
+        given(userFpdActivityMask.maskDevice(any(), eq(false), eq(false)))
+                .willAnswer(invocation -> invocation.getArgument(0));
 
         given(httpClient.post(any(), any(), any(), anyLong()))
                 .willReturn(Future.failedFuture(new TimeoutException("Timeout exceeded")));
