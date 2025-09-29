@@ -58,25 +58,27 @@ class TargetingSpec extends BaseSpec {
     private static final Integer MAX_AMP_TARGETING_TRUNCATION_LENGTH = 11
     private static final String DEFAULT_TARGETING_PREFIX = "hb"
     private static final Integer TARGETING_PREFIX_LENGTH = 11
-    private static final Integer MAX_TRUNCATE_ATTR_CHARS = 255
     private static final Integer MAX_BIDS_RANKING = 3
     private static final String HB_ENV_AMP = "amp"
     private static final Integer MAIN_RANK = 1
     private static final Integer SUBORDINATE_RANK = 2
     private static final Integer DEFAULT_TRUNCATE_CHARS = 20
     private static final Integer EXTENDED_TRUNCATE_CHARS = PbsConfig.targetingConfig.get('settings.targeting.truncate-attr-chars').toInteger()
-    private static final Map<String, String> DEFAULT_TARGETING_CONFIG = ['settings.targeting.truncate-attr-chars': null] as Map
+    private static final Map<String, String> EMPTY_TARGETING_CONFIG = ['settings.targeting.truncate-attr-chars': null] as Map
     private static final Map<String, String> ONLY_WINNING_BIDS_CONFIG = ["auction.cache.only-winning-bids": "true"]
     private static final Map<String, String> DISABLED_ONLY_WINNING_BIDS_CONFIG = ["auction.cache.only-winning-bids": "false"]
+    private static final String DROP_PREFIX_WARNING = "Key prefix value is dropped to default. " +
+            "Decrease custom prefix length or increase truncateattrchars by %s"
+    private static final String TRUNCATED_WARNING = "The following keys have been truncated:"
 
-    private static final PrebidServerService pbsWithDefaultTargetingLength = pbsServiceFactory.getService(DEFAULT_TARGETING_CONFIG)
-    private static final PrebidServerService pbsWithOnlyWinningBids = pbsServiceFactory.getService(DEFAULT_TARGETING_CONFIG + ONLY_WINNING_BIDS_CONFIG)
-    private static final PrebidServerService pbsWithDisabledOnlyWinningBids = pbsServiceFactory.getService(DEFAULT_TARGETING_CONFIG + DISABLED_ONLY_WINNING_BIDS_CONFIG)
+    private static final PrebidServerService pbsWithDefaultTargetingLength = pbsServiceFactory.getService(EMPTY_TARGETING_CONFIG)
+    private static final PrebidServerService pbsWithOnlyWinningBids = pbsServiceFactory.getService(EMPTY_TARGETING_CONFIG + ONLY_WINNING_BIDS_CONFIG)
+    private static final PrebidServerService pbsWithDisabledOnlyWinningBids = pbsServiceFactory.getService(EMPTY_TARGETING_CONFIG + DISABLED_ONLY_WINNING_BIDS_CONFIG)
 
     def cleanupSpec() {
-        pbsServiceFactory.removeContainer(DEFAULT_TARGETING_CONFIG + ONLY_WINNING_BIDS_CONFIG)
-        pbsServiceFactory.removeContainer(DEFAULT_TARGETING_CONFIG + DISABLED_ONLY_WINNING_BIDS_CONFIG)
-        pbsServiceFactory.removeContainer(DEFAULT_TARGETING_CONFIG)
+        pbsServiceFactory.removeContainer(EMPTY_TARGETING_CONFIG + ONLY_WINNING_BIDS_CONFIG)
+        pbsServiceFactory.removeContainer(EMPTY_TARGETING_CONFIG + DISABLED_ONLY_WINNING_BIDS_CONFIG)
+        pbsServiceFactory.removeContainer(EMPTY_TARGETING_CONFIG)
     }
 
     def "PBS should include targeting bidder specific keys when alwaysIncludeDeals is true and deal bid wins"() {
@@ -1011,10 +1013,8 @@ class TargetingSpec extends BaseSpec {
         def ampResponse = pbsWithDefaultTargetingLength.sendAmpRequest(ampRequest)
 
         then: "Amp response should contain warning"
-        assert ampResponse.ext?.warnings[TARGETING]*.message == ["Key prefix value is dropped to default. " +
-                                                                         "Decrease custom prefix length or increase truncateattrchars by " +
-                                                                         "${prefix.length() + TARGETING_PREFIX_LENGTH - DEFAULT_TRUNCATE_CHARS}",
-        "The following keys have been truncated: hb_cache_host_${GENERIC}, hb_cache_path_${GENERIC}"]
+        def decreasePrefixLength = prefix.length() + TARGETING_PREFIX_LENGTH - DEFAULT_TRUNCATE_CHARS
+        assert ampResponse.ext?.warnings[TARGETING]*.message == [DROP_PREFIX_WARNING.formatted(decreasePrefixLength), truncatedMessage()]
 
     }
 
@@ -1036,10 +1036,8 @@ class TargetingSpec extends BaseSpec {
         def ampResponse = pbsWithDefaultTargetingLength.sendAmpRequest(ampRequest)
 
         then: "Amp response should contain warning"
-        assert ampResponse.ext?.warnings[TARGETING]*.message == ["Key prefix value is dropped to default. " +
-                                                                         "Decrease custom prefix length or increase truncateattrchars by " +
-                                                                         "${prefix.length() + TARGETING_PREFIX_LENGTH - DEFAULT_TRUNCATE_CHARS}",
-                                                                 "The following keys have been truncated: hb_cache_host_${GENERIC}, hb_cache_path_${GENERIC}"]
+        def decreasePrefixLength = prefix.length() + TARGETING_PREFIX_LENGTH - DEFAULT_TRUNCATE_CHARS
+        assert ampResponse.ext?.warnings[TARGETING]*.message == [DROP_PREFIX_WARNING.formatted(decreasePrefixLength), truncatedMessage()]
     }
 
     def "PBS auction should ignore and add a warning to ext.warnings when value of the request prefix is longer then settings.targeting.truncate-attr-chars"() {
@@ -1057,9 +1055,7 @@ class TargetingSpec extends BaseSpec {
         def targeting = bidResponse.seatbid?.first()?.bid?.first()?.ext?.prebid?.targeting
         assert !targeting.isEmpty()
         assert targeting.keySet().every { it -> it.startsWith(DEFAULT_TARGETING_PREFIX) }
-        assert bidResponse.ext?.warnings[TARGETING]*.message == ["Key prefix value is dropped to default. " +
-                                                                         "Decrease custom prefix length or increase truncateattrchars by " +
-                                                                         "${prefix.length() + TARGETING_PREFIX_LENGTH - DEFAULT_TRUNCATE_CHARS}"]
+        assert bidResponse.ext?.warnings[TARGETING]*.message == [DROP_PREFIX_WARNING.formatted(prefix.length() + TARGETING_PREFIX_LENGTH - DEFAULT_TRUNCATE_CHARS)]
     }
 
     def "PBS auction should ignore and add a warning to ext.warnings when value of the account prefix is longer then settings.targeting.truncate-attr-chars"() {
@@ -1081,9 +1077,7 @@ class TargetingSpec extends BaseSpec {
         def targeting = bidResponse.seatbid?.first()?.bid?.first()?.ext?.prebid?.targeting
         assert !targeting.isEmpty()
         assert targeting.keySet().every { it -> it.startsWith(DEFAULT_TARGETING_PREFIX) }
-        assert bidResponse.ext?.warnings[TARGETING]*.message == ["Key prefix value is dropped to default. " +
-                                                                         "Decrease custom prefix length or increase truncateattrchars by " +
-                                                                         "${prefix.length() + TARGETING_PREFIX_LENGTH - DEFAULT_TRUNCATE_CHARS}"]
+        assert bidResponse.ext?.warnings[TARGETING]*.message == [DROP_PREFIX_WARNING.formatted(prefix.length() + TARGETING_PREFIX_LENGTH - DEFAULT_TRUNCATE_CHARS)]
     }
 
     def "PBS amp should apply data from query to ext.prebid.amp.data"() {
@@ -1101,7 +1095,7 @@ class TargetingSpec extends BaseSpec {
         def unknownValue = PBSUtils.randomString
         def secondUnknownValue = PBSUtils.randomNumber
         pbsWithDefaultTargetingLength.sendAmpRequestWithAdditionalQueries(ampRequest, ["unknown_field"       : unknownValue,
-                                                                           "second_unknown_field": secondUnknownValue])
+                                                                                       "second_unknown_field": secondUnknownValue])
 
         then: "Amp should contain data from query request"
         def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
@@ -1245,10 +1239,12 @@ class TargetingSpec extends BaseSpec {
     }
 
     def "PBS auction should include price granularity from default account config when original request doesn't contain price granularity"() {
-        given: "Pbs with default account that include privacySandbox configuration"
+        given: "Default account that include privacySandbox configuration"
         def priceGranularity = PBSUtils.getRandomEnum(PriceGranularityType, [UNKNOWN])
         def accountAuctionConfig = new AccountAuctionConfig(priceGranularity: priceGranularity)
         def accountConfig = new AccountConfig(status: ACTIVE, auction: accountAuctionConfig)
+
+        and: "PBS with default account"
         def pbsConfig = ["settings.default-account-config": encode(accountConfig)]
         def pbsService = pbsServiceFactory.getService(pbsConfig)
 
@@ -1885,15 +1881,19 @@ class TargetingSpec extends BaseSpec {
         ]
     }
 
-    Account createAccountWithPriceGranularity(String accountId, PriceGranularityType priceGranularity) {
+    private static Account createAccountWithPriceGranularity(String accountId, PriceGranularityType priceGranularity) {
         def accountAuctionConfig = new AccountAuctionConfig(priceGranularity: priceGranularity)
         def accountConfig = new AccountConfig(status: ACTIVE, auction: accountAuctionConfig)
         new Account(uuid: accountId, config: accountConfig)
     }
 
-    Account getAccountConfigWithAuctionRanking(String accountId, Boolean auctionRankingEnablement = true) {
+    private static Account getAccountConfigWithAuctionRanking(String accountId, Boolean auctionRankingEnablement = true) {
         def accountAuctionConfig = new AccountAuctionConfig(ranking: new AccountRankingConfig(enabled: auctionRankingEnablement))
         def accountConfig = new AccountConfig(status: ACTIVE, auction: accountAuctionConfig)
         new Account(uuid: accountId, config: accountConfig)
+    }
+
+    private static def truncatedMessage(List<GString> keys = ["hb_cache_host_${GENERIC}", "hb_cache_path_${GENERIC}"]) {
+        "$TRUNCATED_WARNING ${keys.join(', ')}"
     }
 }

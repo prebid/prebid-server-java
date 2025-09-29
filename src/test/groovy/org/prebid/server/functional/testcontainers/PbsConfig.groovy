@@ -146,7 +146,7 @@ LIMIT 1
     }
 
     static Map<String,String> getTargetingConfig() {
-        ["settings.targeting.truncate-attr-chars": '100']
+        ["settings.targeting.truncate-attr-chars": '255']
     }
 
     private PbsConfig() {}
