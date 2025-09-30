@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import org.prebid.server.exception.PreBidException;
+import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.execution.retry.RetryPolicy;
 import org.prebid.server.execution.retry.Retryable;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.PerStageRule;
@@ -67,9 +67,7 @@ public class RuleParser {
         }
 
         parseConfig(accountId, config);
-        return cachedRule == null
-                ? Future.failedFuture(new PreBidException("Rule for account " + accountId + " is not ready"))
-                : Future.succeededFuture(cachedRule);
+        return Future.succeededFuture(ObjectUtils.defaultIfNull(cachedRule, PerStageRule.noOp()));
     }
 
     private Instant getConfigTimestamp(ObjectNode config) {

@@ -92,7 +92,10 @@ public class PbRuleEngineProcessedAuctionRequestHook implements ProcessedAuction
 
     private static Map<String, List<Rejection>> toRejections(List<SeatNonBid> seatNonBids) {
         return seatNonBids.stream()
-                .collect(Collectors.toMap(SeatNonBid::getSeat, PbRuleEngineProcessedAuctionRequestHook::toRejections));
+                .collect(Collectors.groupingBy(SeatNonBid::getSeat,
+                        Collectors.flatMapping(
+                                seatNonBid -> toRejections(seatNonBid).stream(),
+                                Collectors.toList())));
     }
 
     private static Future<InvocationResult<AuctionRequestPayload>> failure(Throwable error) {
