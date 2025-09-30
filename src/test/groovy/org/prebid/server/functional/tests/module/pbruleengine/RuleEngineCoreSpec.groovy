@@ -383,7 +383,7 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
-        assert bidResponse.seatbid.seat == MULTI_BID_ADAPTERS
+        assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
 
         and: "PBs should perform bidder request"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -446,11 +446,13 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
         }
 
         and: "Response should populate seatNon bid with code 203"
-        assert bidResponse.ext.seatnonbid.size() == 1
-        def seatNonBid = bidResponse.ext.seatnonbid[0]
-        assert seatNonBid.seat == GENERIC
-        assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
-        assert seatNonBid.nonBid[0].statusCode == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
+        assert bidResponse.ext.seatnonbid.size() == 2
+        def seatNonBid = bidResponse.ext.seatnonbid
+        assert seatNonBid.seat.sort() == [GENERIC, AMX].sort()
+        assert seatNonBid.nonBid.impId.flatten() == [bidRequest.imp[0].id, bidRequest.imp[0].id]
+        assert seatNonBid.nonBid.statusCode.flatten() ==
+                [REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE,
+                                                REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE]
     }
 
     def "PBS should remove bidder by device geo from imps when bidder excluded in account config"() {
@@ -684,7 +686,7 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
         and: "Response should seatNon bid with code 203"
         assert bidResponse.ext.seatnonbid.size() == 1
         def seatNonBid = bidResponse.ext.seatnonbid[0]
-        assert seatNonBid.seat == GENERIC
+        assert seatNonBid.seat == OPENX
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
     }
@@ -748,7 +750,7 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
         and: "Response should seatNon bid with code 203"
         assert bidResponse.ext.seatnonbid.size() == 1
         def seatNonBid = bidResponse.ext.seatnonbid[0]
-        assert seatNonBid.seat == GENERIC
+        assert seatNonBid.seat == AMX
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
 
@@ -894,9 +896,6 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
         assert !bidResponse.ext?.warnings
         assert !bidResponse.ext?.errors
 
-        and: "PBS response shouldn't contain seatNonBid"
-        assert !bidResponse.ext.seatnonbid
-
         and: "Analytics result should contain info about name and status"
         def analyticsResult = getAnalyticResults(bidResponse)
         def result = analyticsResult[0]
@@ -916,6 +915,13 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
             it.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
             it.appliedTo.impIds == bidRequest.imp.id
         }
+
+        and: "Response should seatNon bid with code 203"
+        assert bidResponse.ext.seatnonbid.size() == 1
+        def seatNonBid = bidResponse.ext.seatnonbid[0]
+        assert seatNonBid.seat == OPENX
+        assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
+        assert seatNonBid.nonBid[0].statusCode == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
     }
 
     def "PBS should log the default model group and shouldn't modify response when other rules not fire"() {
@@ -1145,7 +1151,7 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
         and: "Response should seatNon bid with code 203"
         assert bidResponse.ext.seatnonbid.size() == 1
         def seatNonBid = bidResponse.ext.seatnonbid[0]
-        assert seatNonBid.seat == GENERIC
+        assert seatNonBid.seat == OPENX
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
     }
@@ -1293,7 +1299,7 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
         and: "Response should seatNon bid with code 203"
         assert bidResponse.ext.seatnonbid.size() == 1
         def seatNonBid = bidResponse.ext.seatnonbid[0]
-        assert seatNonBid.seat == GENERIC
+        assert seatNonBid.seat == OPENX
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
     }

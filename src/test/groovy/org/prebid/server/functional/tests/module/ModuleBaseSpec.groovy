@@ -62,9 +62,9 @@ class ModuleBaseSpec extends BaseSpec {
     protected static Map<String, String> getRulesEngineSettings(Endpoint endpoint = OPENRTB2_AUCTION, Stage stage = PROCESSED_AUCTION_REQUEST) {
         ["hooks.${PB_RULE_ENGINE.code}.enabled"                                : "true",
          "hooks.${PB_RULE_ENGINE.code}.rule-cache.expire-after-minutes"        : "10000",
-         "hooks.${PB_RULE_ENGINE.code}.rule-cache.max-size"                    : "200",
-         "hooks.${PB_RULE_ENGINE.code}.rule-parsing.retry-initial-delay-millis": "1",
-         "hooks.${PB_RULE_ENGINE.code}.rule-parsing.retry-max-delay-millis"    : "1",
+         "hooks.${PB_RULE_ENGINE.code}.rule-cache.max-size"                    : "20000",
+         "hooks.${PB_RULE_ENGINE.code}.rule-parsing.retry-initial-delay-millis": "10000",
+         "hooks.${PB_RULE_ENGINE.code}.rule-parsing.retry-max-delay-millis"    : "10000",
          "hooks.${PB_RULE_ENGINE.code}.rule-parsing.retry-exponential-factor"  : "1.2",
          "hooks.${PB_RULE_ENGINE.code}.rule-parsing.retry-exponential-jitter"  : "1.2",
          "hooks.host-execution-plan"                                           : encode(ExecutionPlan.getSingleEndpointExecutionPlan(endpoint, PB_RULE_ENGINE, [stage]))]
