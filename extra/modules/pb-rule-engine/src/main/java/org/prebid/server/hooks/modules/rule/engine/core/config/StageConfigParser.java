@@ -167,9 +167,9 @@ public class StageConfigParser<T, C> {
         } else if (left != null && right != null) {
             return AlternativeActionRule.of(left, right);
         } else if (left != null) {
-            return left;
+            return AlternativeActionRule.of(left, NoOpRule.create());
         }
 
-        return right;
+        return AlternativeActionRule.of(right, NoOpRule.create());
     }
 }

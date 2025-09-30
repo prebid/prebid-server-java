@@ -14,8 +14,8 @@ import org.prebid.server.hooks.modules.rule.engine.core.config.model.RuleSetConf
 import org.prebid.server.hooks.modules.rule.engine.core.config.model.SchemaFunctionConfig;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.AlternativeActionRule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.CompositeRule;
-import org.prebid.server.hooks.modules.rule.engine.core.rules.DefaultActionRule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.ConditionalRuleFactory;
+import org.prebid.server.hooks.modules.rule.engine.core.rules.DefaultActionRule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.NoOpRule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.RandomWeightedRule;
 import org.prebid.server.hooks.modules.rule.engine.core.rules.Rule;
@@ -126,8 +126,9 @@ public class StageConfigParserTest {
         // when and then
         final RandomWeightedRule<Object, Object> weightedRule = RandomWeightedRule.of(
                 randomGenerator,
-                new WeightedList<>(
-                        List.of(WeightedEntry.of(1, matchingRule), WeightedEntry.of(2, matchingRule))));
+                new WeightedList<>(List.of(
+                        WeightedEntry.of(1, AlternativeActionRule.of(matchingRule, NoOpRule.create())),
+                        WeightedEntry.of(2, AlternativeActionRule.of(matchingRule, NoOpRule.create())))));
 
         assertThat(target.parse(accountConfig)).isEqualTo(
                 CompositeRule.of(Collections.singletonList(weightedRule)));
@@ -196,8 +197,10 @@ public class StageConfigParserTest {
         final AccountConfig accountConfig = givenAccountConfig(modelGroupConfig);
 
         // when and then
+        final AlternativeActionRule<Object, Object> alternativeRule = AlternativeActionRule.of(
+                matchingRule, NoOpRule.create());
         final RandomWeightedRule<Object, Object> weightedRule = RandomWeightedRule.of(
-                randomGenerator, new WeightedList<>(List.of(WeightedEntry.of(1, matchingRule))));
+                randomGenerator, new WeightedList<>(List.of(WeightedEntry.of(1, alternativeRule))));
 
         assertThat(target.parse(accountConfig)).isEqualTo(
                 CompositeRule.of(Collections.singletonList(weightedRule)));

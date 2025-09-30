@@ -13,8 +13,16 @@ import java.time.Instant;
 @Value(staticConstructor = "of")
 public class PerStageRule {
 
+    private static final PerStageRule NO_OP = PerStageRule.builder()
+            .processedAuctionRequestRule(NoOpRule.create())
+            .build();
+
     Instant timestamp;
 
     Rule<BidRequest, RequestRuleContext> processedAuctionRequestRule;
+
+    public static PerStageRule noOp() {
+        return NO_OP;
+    }
 }
 
