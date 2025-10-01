@@ -39,7 +39,7 @@ import static org.assertj.core.api.Assertions.tuple;
 
 public class SparteoBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.sparteo.com/endpoint";
+    private static final String ENDPOINT_URL = "https://test.sparteo.com/endpoint?network_id={{NetworkId}}&domain={{Domain}}";
     private final SparteoBidder sparteoBidder = new SparteoBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
@@ -121,7 +121,7 @@ public class SparteoBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getMethod, HttpRequest::getUri)
-                .containsExactly(tuple(HttpMethod.POST, ENDPOINT_URL));
+                .containsExactly(tuple(HttpMethod.POST, "https://test.sparteo.com/endpoint?network_id=testNetworkId&domain={{Domain}}"));
 
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
@@ -855,6 +855,55 @@ public class SparteoBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldAppendDomainAndNetworkIdAsQueryParams() {
+        // given
+        final ObjectNode impExt = mapper.createObjectNode();
+        impExt.set("bidder", mapper.createObjectNode()
+                .put("networkId", "testNetworkId"));
+
+        final BidRequest bidRequest = givenBidRequest(
+                request -> request.site(Site.builder()
+                        .publisher(Publisher.builder().domain("dev.sparteo.com").build())
+                        .build()),
+                givenImp(imp -> imp.ext(impExt)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = sparteoBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+
+        final String uri = result.getValue().get(0).getUri();
+
+        assertThat(uri).isEqualTo("https://test.sparteo.com/endpoint?network_id=testNetworkId&domain=dev.sparteo.com");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUseSiteDomainWhenPublisherDomainIsMissing() {
+        // given
+        final ObjectNode impExt = mapper.createObjectNode();
+        impExt.set("bidder", mapper.createObjectNode()
+                .put("networkId", "testNetworkId"));
+
+        final BidRequest bidRequest = givenBidRequest(
+                request -> request.site(Site.builder()
+                        .domain("dev.sparteo.com")
+                        .publisher(Publisher.builder().build())
+                        .build()),
+                givenImp(imp -> imp.ext(impExt)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = sparteoBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://test.sparteo.com/endpoint?network_id=testNetworkId&domain=dev.sparteo.com");
     }
 
     private BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> customizer, Imp... imps) {

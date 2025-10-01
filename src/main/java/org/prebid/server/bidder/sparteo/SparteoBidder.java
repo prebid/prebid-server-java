@@ -38,6 +38,8 @@ import java.util.Optional;
 
 public class SparteoBidder implements Bidder<BidRequest> {
 
+    private static final String NETWORK_ID_MACRO = "{{NetworkId}}";
+    private static final String DOMAIN_MACRO = "{{Domain}}";
     private static final TypeReference<ExtPrebid<?, ExtImpSparteo>> TYPE_REFERENCE =
             new TypeReference<>() { };
 
@@ -45,7 +47,7 @@ public class SparteoBidder implements Bidder<BidRequest> {
     private final JacksonMapper mapper;
 
     public SparteoBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = HttpUtil.validateUrlSyntax(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -79,7 +81,8 @@ public class SparteoBidder implements Bidder<BidRequest> {
                 .site(modifySite(request.getSite(), siteNetworkId, mapper))
                 .build();
 
-        final HttpRequest<BidRequest> call = BidderUtil.defaultRequest(outgoingRequest, endpointUrl, mapper);
+        final String finalEndpointUrl = replaceMacros(request.getSite(), siteNetworkId);
+        final HttpRequest<BidRequest> call = BidderUtil.defaultRequest(outgoingRequest, finalEndpointUrl, mapper);
 
         return Result.of(Collections.singletonList(call), errors);
     }
@@ -92,7 +95,7 @@ public class SparteoBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static ObjectNode modifyImpExt(Imp imp) {
+    private ObjectNode modifyImpExt(Imp imp) {
         final ObjectNode modifiedImpExt = imp.getExt().deepCopy();
         final ObjectNode sparteoNode = modifiedImpExt.putObject("sparteo");
         final JsonNode bidderJsonNode = modifiedImpExt.remove("bidder");
@@ -136,6 +139,28 @@ public class SparteoBidder implements Bidder<BidRequest> {
         return site.toBuilder()
                 .publisher(modifiedPublisher)
                 .build();
+    }
+
+    private String replaceMacros(Site site, String siteNetworkId) {
+        final String domain = Optional.ofNullable(site)
+                .map(s -> Optional.ofNullable(s.getPublisher()).map(Publisher::getDomain).orElse(s.getDomain()))
+                .orElse(null);
+
+        return resolveEndpoint(domain, siteNetworkId);
+    }
+
+    private String resolveEndpoint(String domain, String networkId) {
+        if (networkId == null) {
+            return endpointUrl;
+        }
+
+        final String uri = endpointUrl.replace(NETWORK_ID_MACRO, HttpUtil.encodeUrl(networkId));
+
+        if (domain == null) {
+            return uri;
+        }
+
+        return uri.replace(DOMAIN_MACRO, HttpUtil.encodeUrl(domain));
     }
 
     @Override
