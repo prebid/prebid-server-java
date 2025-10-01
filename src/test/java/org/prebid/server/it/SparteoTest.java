@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.prebid.server.model.Endpoint;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
@@ -15,6 +16,8 @@ public class SparteoTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromSparteoBanner() throws Exception {
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/sparteo-exchange"))
+                .withQueryParam("network_id", equalTo("networkId"))
+                .withQueryParam("site_domain", equalTo("dev.sparteo.com"))
                 .withRequestBody(equalToJson(
                     jsonFrom("openrtb2/sparteo/test-sparteo-bid-request.json")))
                 .willReturn(aResponse().withBody(
