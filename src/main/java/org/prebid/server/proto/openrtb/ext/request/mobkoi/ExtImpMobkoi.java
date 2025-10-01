@@ -8,7 +8,4 @@ public class ExtImpMobkoi {
 
     @JsonProperty("placementId")
     String placementId;
-
-    @JsonProperty("adServerBaseUrl")
-    String adServerBaseUrl;
 }
