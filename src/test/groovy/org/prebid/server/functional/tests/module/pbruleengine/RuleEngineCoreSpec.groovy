@@ -2122,9 +2122,8 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
 
     def "PBS should exclude bidder when gppSidIn match with condition"() {
         given: "Default bid request with multiply bidder"
-        def gppSectionId = PBSUtils.getRandomEnum(GppSectionId).getIntValue()
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            regs = new Regs(gppSid: [gppSectionId])
+            regs = new Regs(gppSid: [gppSectionId.getIntValue()])
         }
 
         and: "Create rule engine config"
@@ -2181,11 +2180,13 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
         assert seatNonBid.seat == OPENX
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
+
+        where:
+        gppSectionId << GppSectionId.values() - GppSectionId.TCF_EU_V2
     }
 
     def "PBS shouldn't exclude bidder when gppSidIn not match with condition"() {
         given: "Default bid request with multiply bidder"
-        def gppSectionId = PBSUtils.getRandomEnum(GppSectionId)
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
             regs = new Regs(gppSid: [gppSectionId.getIntValue()])
         }
@@ -2223,6 +2224,9 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
 
         and: "Analytics result shouldn't contain info about module exclude"
         assert !getAnalyticResults(bidResponse)
+
+        where:
+        gppSectionId << GppSectionId.values() - GppSectionId.TCF_EU_V2
     }
 
     def "PBS should exclude bidder when tcfInScope match with condition"() {
