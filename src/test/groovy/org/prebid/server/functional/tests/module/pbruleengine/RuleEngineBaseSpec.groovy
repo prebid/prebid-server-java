@@ -29,6 +29,7 @@ import static org.prebid.server.functional.model.pricefloors.Country.USA
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
+import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 
 abstract class RuleEngineBaseSpec extends ModuleBaseSpec {
 
@@ -36,7 +37,6 @@ abstract class RuleEngineBaseSpec extends ModuleBaseSpec {
     protected static final String APPLIED_FOR_ALL_IMPS = "*"
     protected static final String DEFAULT_CONDITIONS = "default"
     protected final static String CALL_METRIC = "modules.module.${PB_RULE_ENGINE.code}.stage.${PROCESSED_AUCTION_REQUEST.metricValue}.hook.${PB_RULES_ENGINE_PROCESSED_AUCTION_REQUEST.code}.call"
-    protected final static String FAILER_METRIC = "modules.module.${PB_RULE_ENGINE.code}.stage.${PROCESSED_AUCTION_REQUEST.metricValue}.hook.${PB_RULES_ENGINE_PROCESSED_AUCTION_REQUEST.code}.failure"
     protected final static String NOOP_METRIC = "modules.module.${PB_RULE_ENGINE.code}.stage.${PROCESSED_AUCTION_REQUEST.metricValue}.hook.${PB_RULES_ENGINE_PROCESSED_AUCTION_REQUEST.code}.success.noop"
     protected final static String UPDATE_METRIC = "modules.module.${PB_RULE_ENGINE.code}.stage.${PROCESSED_AUCTION_REQUEST.metricValue}.hook.${PB_RULES_ENGINE_PROCESSED_AUCTION_REQUEST.code}.success.update"
     protected static final Map<String, String> OPENX_CONFIG = ["adapters.${OPENX}.enabled" : "true",
@@ -46,7 +46,12 @@ abstract class RuleEngineBaseSpec extends ModuleBaseSpec {
     protected static final Map<String, String> OPENX_ALIAS_CONFIG = ["adapters.${OPENX}.aliases.${OPENX_ALIAS}.enabled" : "true",
                                                                      "adapters.${OPENX}.aliases.${OPENX_ALIAS}.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
     protected static final String CONFIG_DATA_CENTER = PBSUtils.randomString
-    protected static final PrebidServerService pbsServiceWithRulesEngineModule = pbsServiceFactory.getService(
+    private static final String USER_SYNC_URL = "$networkServiceContainer.rootUri/generic-usersync"
+    private static final Map<String, String> GENERIC_CONFIG = [
+            "adapters.${GENERIC.value}.usersync.redirect.url"         : USER_SYNC_URL,
+            "adapters.${GENERIC.value}.usersync.redirect.support-cors": false as String,
+            "adapters.${GENERIC.value}.meta-info.vendor-id"           : GENERIC_VENDOR_ID as String]
+    protected static final PrebidServerService pbsServiceWithRulesEngineModule = pbsServiceFactory.getService(GENERIC_CONFIG +
             getRulesEngineSettings() + AMX_CONFIG + OPENX_CONFIG + OPENX_ALIAS_CONFIG + ['datacenter-region': CONFIG_DATA_CENTER])
 
     protected static BidRequest getDefaultBidRequestWithMultiplyBidders(DistributionChannel distributionChannel = SITE) {

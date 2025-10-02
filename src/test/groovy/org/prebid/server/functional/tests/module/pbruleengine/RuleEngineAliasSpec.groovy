@@ -78,11 +78,12 @@ class RuleEngineAliasSpec extends RuleEngineBaseSpec {
         }
 
         and: "Response should populate seatNon bid with code 203"
-        assert bidResponse.ext.seatnonbid.size() == 1
-        def seatNonBid = bidResponse.ext.seatnonbid[0]
-        assert seatNonBid.seat == [OPENX, AMX, GENERIC].sort()
-        assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
-        assert seatNonBid.nonBid[0].statusCode == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
+        assert bidResponse.ext.seatnonbid.size() == 3
+        def seatNonBid = bidResponse.ext.seatnonbid
+        assert seatNonBid.seat.sort() == [OPENX, AMX, GENERIC].sort()
+        assert seatNonBid.nonBid.impId.flatten().unique().sort() == bidRequest.imp.id.sort()
+        assert seatNonBid.nonBid.statusCode.unique().flatten() == [REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE,
+                                                                   REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE]
     }
 
     def "PBS should remove hard alias bidder from imps when hard alias bidder excluded in account config"() {
@@ -139,11 +140,11 @@ class RuleEngineAliasSpec extends RuleEngineBaseSpec {
             impResult.appliedTo.impIds == [bidRequest.imp[1].id]
         }
 
-        and: "Response should seatNon bid with code 203"
+        and: "Response should populate seatNon bid with code 203"
         assert bidResponse.ext.seatnonbid.size() == 1
         def seatNonBid = bidResponse.ext.seatnonbid[0]
         assert seatNonBid.seat == OPENX_ALIAS
-        assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
+        assert seatNonBid.nonBid[0].impId == bidRequest.imp[1].id
         assert seatNonBid.nonBid[0].statusCode == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
     }
 
@@ -202,12 +203,14 @@ class RuleEngineAliasSpec extends RuleEngineBaseSpec {
             impResult.appliedTo.impIds == bidRequest.imp.id
         }
 
-        and: "Response should seatNon bid with code 203"
-        assert bidResponse.ext.seatnonbid.size() == 1
-        def seatNonBid = bidResponse.ext.seatnonbid[0]
-        assert seatNonBid.seat == ALIAS
-        assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
-        assert seatNonBid.nonBid[0].statusCode == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
+        and: "Response should populate seatNon bid with code 203"
+        assert bidResponse.ext.seatnonbid.size() == 3
+        def seatNonBid = bidResponse.ext.seatnonbid
+        assert seatNonBid.seat.sort() == [OPENX, GENERIC, AMX].sort()
+        assert seatNonBid.nonBid.impId.flatten().unique().sort() == bidRequest.imp.id.sort()
+        assert seatNonBid.nonBid.statusCode.unique().flatten() == [REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE,
+                                                                   REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE,
+                                                                   REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE]
     }
 
     def "PBS should remove soft alias bidder from imps when soft alias bidder excluded in account config"() {
@@ -265,11 +268,11 @@ class RuleEngineAliasSpec extends RuleEngineBaseSpec {
             impResult.appliedTo.impIds == [bidRequest.imp[1].id]
         }
 
-        and: "Response should seatNon bid with code 203"
+        and: "Response should populate seatNon bid with code 203"
         assert bidResponse.ext.seatnonbid.size() == 1
         def seatNonBid = bidResponse.ext.seatnonbid[0]
         assert seatNonBid.seat == ALIAS
-        assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
+        assert seatNonBid.nonBid[0].impId == bidRequest.imp[1].id
         assert seatNonBid.nonBid[0].statusCode == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
     }
 

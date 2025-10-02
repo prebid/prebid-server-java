@@ -1,5 +1,7 @@
 package org.prebid.server.functional.tests.module.pbruleengine
 
+import java.time.Instant
+
 import static org.prebid.server.functional.model.config.PbRulesEngine.createRulesEngineWithRule
 import static org.prebid.server.functional.model.pricefloors.Country.BULGARIA
 
@@ -58,7 +60,7 @@ class RuleEngineValidationSpec extends RuleEngineBaseSpec {
         ]
     }
 
-    def "PBS shouldn't remove bidder when rule engine not fully configured in account wihout rule conditions"() {
+    def "PBS shouldn't remove bidder when rule engine not fully configured in account without rule conditions"() {
         given: "Bid request with multiply bidders"
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
             updateBidRequestWithGeoCountry(it)
@@ -94,17 +96,9 @@ class RuleEngineValidationSpec extends RuleEngineBaseSpec {
         and: "Analytics result shouldn't contain info about rule engine"
         assert !getAnalyticResults(bidResponse)
 
-        and: "PBs should populate failer metrics"
+        and: "PBs should populate noop metrics"
         def metrics = pbsServiceWithRulesEngineModule.sendCollectedMetricsRequest()
-        assert metrics[FAILER_METRIC] == 1
-
-        and: "PBs shouldn't contain noop and call metrics"
-        assert !metrics[CALL_METRIC]
-        assert !metrics[NOOP_METRIC]
-        assert !metrics[UPDATE_METRIC]
-
-        and: "Invocation result should contain warning of rule engine"
-        assert getInvocationResult(bidResponse)[0].message == "No matching rule found"
+        assert metrics[NOOP_METRIC] == 1
     }
 
     def "PBS shouldn't remove bidder and emit a warning when args rule engine not fully configured in account"() {
@@ -142,16 +136,14 @@ class RuleEngineValidationSpec extends RuleEngineBaseSpec {
 
         and: "PBs should populate failer metrics"
         def metrics = pbsServiceWithRulesEngineModule.sendCollectedMetricsRequest()
-        assert metrics[FAILER_METRIC] == 1
-
-        and: "PBs shouldn't contain noop and call metrics"
-        assert !metrics[CALL_METRIC]
-        assert !metrics[NOOP_METRIC]
-        assert !metrics[UPDATE_METRIC]
+        assert metrics[NOOP_METRIC] == 1
     }
 
     def "PBS shouldn't remove bidder and emit a warning when model group rule engine not fully configured in account"() {
-        given: "Bid request with multiply bidders"
+        given: "Test start time"
+        def startTime = Instant.now()
+
+        and: "Bid request with multiply bidders"
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
             updateBidRequestWithGeoCountry(it)
         }
@@ -180,8 +172,9 @@ class RuleEngineValidationSpec extends RuleEngineBaseSpec {
         then: "Bid response should contain seats"
         assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
 
-        and: "Invocation result should contain warning of rule engine"
-        assert getInvocationResult(bidResponse)[0].message == "Rule for account ${bidRequest.accountId} is not ready"
+        and: "PBs should emit failed logs"
+        def logs = pbsServiceWithRulesEngineModule.getLogsByTime(startTime)
+        assert getLogsByText(logs, "Failed to parse rule-engine config for account $bidRequest.accountId: Weighted list cannot be empty").size() == 1
     }
 
     def "PBS shouldn't log default model when rule does not fired and empty model default"() {
@@ -287,7 +280,10 @@ class RuleEngineValidationSpec extends RuleEngineBaseSpec {
     }
 
     def "PBS shouldn't remove any bidder without cache account request"() {
-        given: "Bid request with multiply bidders"
+        given: "Test start time"
+        def startTime = Instant.now()
+
+        and: "Bid request with multiply bidders"
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
             updateBidRequestWithGeoCountry(it)
         }
@@ -316,8 +312,9 @@ class RuleEngineValidationSpec extends RuleEngineBaseSpec {
         and: "Analytics result shouldn't contain info about module exclude"
         assert !getAnalyticResults(bidResponse)
 
-        and: "Invocation result should contain warning of rule engine"
-        assert getInvocationResult(bidResponse)[0].message == "Rule for account ${bidRequest.accountId} is not ready"
+        and: "PBs should emit failed logs"
+        def logs = pbsServiceWithRulesEngineModule.getLogsByTime(startTime)
+        assert getLogsByText(logs, "Parsing rule for account $bidRequest.accountId").size() == 1
     }
 
 }

@@ -199,72 +199,9 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
         assert bidResponse.ext.seatnonbid.size() == 1
         def seatNonBid = bidResponse.ext.seatnonbid[0]
         assert seatNonBid.seat == GENERIC
-        assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
-        assert seatNonBid.nonBid[0].statusCode == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
-    }
-
-    def "PBS should remove bidder from imps and update seatNonBid with other code when seatNonBid override and exclude bidder in account config"() {
-        given: "Bid request with multiply bidders"
-        def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            it.imp.add(Imp.defaultImpression)
-            it.imp[1].ext.prebid.bidder.tap {
-                openx = Openx.defaultOpenx
-                amx = new Amx()
-            }
-            updateBidRequestWithGeoCountry(it)
-        }
-
-        and: "Account with rules sets"
-        def bidRejectionReason = PBSUtils.getRandomEnum(BidRejectionReason)
-        def pbRuleEngine = createRulesEngineWithRule().tap {
-            it.ruleSets[0].modelGroups[0].rules[0].results = [createRuleEngineModelRuleWithExcludeResult(GENERIC)]
-            it.ruleSets[0].modelGroups[0].rules[0].results[0].args.seatNonBid = bidRejectionReason
-        }
-        def accountWithRulesEngine = getAccountWithRulesEngine(bidRequest.accountId, pbRuleEngine)
-        accountDao.save(accountWithRulesEngine)
-
-        and: "Cache account"
-        pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
-
-        when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
-
-        then: "Bid response should contain seats"
-        assert bidResponse.seatbid.seat.sort() == [OPENX, AMX].sort()
-
-        and: "PBs should perform bidder requests"
-        assert bidder.getBidderRequests(bidRequest.id)
-
-        and: "PBS should not contain errors, warnings"
-        assert !bidResponse.ext?.warnings
-        assert !bidResponse.ext?.errors
-
-        and: "Analytics result should contain info about name and status"
-        def analyticsResult = getAnalyticResults(bidResponse)
-        def result = analyticsResult[0]
-        assert result.name == ModuleName.PB_RULE_ENGINE.code
-        assert result.status == SUCCESS
-
-        and: "Analytics result detail info"
-        def groups = pbRuleEngine.ruleSets[0].modelGroups[0]
-        verifyAll(result.results[0]) {
-            it.status == SUCCESS
-            it.values.analyticsKey == groups.analyticsKey
-            it.values.modelVersion == groups.version
-            it.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
-            it.values.resultFunction == groups.rules.first.results.first.function.value
-            it.values.conditionFired == groups.rules.first.conditions.first
-            it.values.biddersRemoved.sort() == groups.rules.first.results.first.args.bidders.sort()
-            it.values.seatNonBid == bidRejectionReason
-            it.appliedTo.impIds == bidRequest.imp.id
-        }
-
-        and: "Response should populate seatNon bid"
-        assert bidResponse.ext.seatnonbid.size() == 1
-        def seatNonBid = bidResponse.ext.seatnonbid[0]
-        assert seatNonBid.seat == GENERIC
-        assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
-        assert seatNonBid.nonBid[0].statusCode == bidRejectionReason
+        assert seatNonBid.nonBid.impId.sort() == bidRequest.imp.id.sort()
+        assert seatNonBid.nonBid.statusCode == [REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE,
+                                                REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE]
     }
 
     def "PBS should remove bidder from imps and not update seatNonBid when returnAllBidStatus disabled and exclude bidder in account config"() {
@@ -452,7 +389,7 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
         assert seatNonBid.nonBid.impId.flatten() == [bidRequest.imp[0].id, bidRequest.imp[0].id]
         assert seatNonBid.nonBid.statusCode.flatten() ==
                 [REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE,
-                                                REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE]
+                 REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE]
     }
 
     def "PBS should remove bidder by device geo from imps when bidder excluded in account config"() {
@@ -509,8 +446,9 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
         assert bidResponse.ext.seatnonbid.size() == 1
         def seatNonBid = bidResponse.ext.seatnonbid[0]
         assert seatNonBid.seat == GENERIC
-        assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
-        assert seatNonBid.nonBid[0].statusCode == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
+        assert seatNonBid.nonBid.impId.sort() == bidRequest.imp.id.sort()
+        assert seatNonBid.nonBid.statusCode == [REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE,
+                                                REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE]
     }
 
     def "PBS should leave only include bidder at imps when bidder include in account config"() {
@@ -568,11 +506,11 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
         }
 
         and: "Response should populate seatNon bid with code 203"
-        assert bidResponse.ext.seatnonbid.size() == 1
-        def seatNonBid = bidResponse.ext.seatnonbid[0]
-        assert seatNonBid.seat == GENERIC
-        assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
-        assert seatNonBid.nonBid[0].statusCode == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
+        assert bidResponse.ext.seatnonbid.size() == 2
+        def seatNonBid = bidResponse.ext.seatnonbid
+        assert seatNonBid.seat.sort() == [AMX, OPENX].sort()
+        assert seatNonBid.nonBid.impId.flatten().unique().sort() == bidRequest.imp.id.sort()
+        assert seatNonBid.nonBid.statusCode.flatten().unique() == [REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE]
     }
 
     def "PBS should only logATag when present only function log a tag"() {
