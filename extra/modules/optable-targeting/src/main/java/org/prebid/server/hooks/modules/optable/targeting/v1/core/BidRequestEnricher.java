@@ -67,15 +67,13 @@ public class BidRequestEnricher implements PayloadUpdate<AuctionRequestPayload> 
     }
 
     private com.iab.openrtb.request.User mergeUserData(com.iab.openrtb.request.User user, User optableUser) {
-
         return user.toBuilder()
-                .eids(mergeEids(user.getEids(), optableUser.getEids()))
+                .eids(filterOptableEids(mergeEids(user.getEids(), optableUser.getEids())))
                 .data(mergeData(user.getData(), optableUser.getData()))
                 .build();
     }
 
     private List<Eid> mergeEids(List<Eid> destination, List<Eid> source) {
-
         if (CollectionUtils.isEmpty(destination)) {
             return source;
         }
@@ -107,6 +105,22 @@ public class BidRequestEnricher implements PayloadUpdate<AuctionRequestPayload> 
                 .toList();
 
         return merge(mergedEid, source, BidRequestEnricher::eidIdExtractor);
+    }
+
+    private List<Eid> filterOptableEids(List<Eid> eids) {
+        if (CollectionUtils.isEmpty(eids)) {
+            return eids;
+        }
+
+        final Set<String> optableIdsToIgnore = targetingProperties.getOptableInserterEidsIgnore();
+        if (CollectionUtils.isEmpty(optableIdsToIgnore)) {
+            return eids;
+        }
+
+        return eids.stream()
+                .filter(eid -> !OPTABLE_CO_INSERTER.equals(eid.getInserter())
+                        || !optableIdsToIgnore.contains(eid.getSource()))
+                .toList();
     }
 
     private static Eid resolveEidConflict(Eid destinationEid,

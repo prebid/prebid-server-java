@@ -178,6 +178,53 @@ public class BidRequestEnricherTest extends BaseOptableTest {
     }
 
     @Test
+    public void shouldRemoveEidWhenOptableSourceIsAlreadyPresent() {
+        // given
+        final TargetingResult targetingResult = givenTargetingResultWithEids(List.of(
+                givenEid("optable.co", "source2", List.of(givenUid("id2", 3, null)), null)));
+
+        final BidRequest bidRequest = givenBidRequestWithUserEids(List.of(
+                givenEid("optable.co", "source1", List.of(givenUid("id", null, null)), null),
+                givenEid("optable.co", "source2", List.of(givenUid("id", null, null)), null)));
+        final AuctionRequestPayload auctionRequestPayload = AuctionRequestPayloadImpl.of(bidRequest);
+        final OptableTargetingProperties properties = new OptableTargetingProperties();
+        properties.setOptableInserterEidsIgnore(Set.of("source2"));
+
+        // when
+        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult, properties)
+                .apply(auctionRequestPayload);
+
+        // then
+        assertThat(result.bidRequest()).isNotNull();
+        final List<Eid> eids = result.bidRequest().getUser().getEids();
+        assertThat(eids.size()).isEqualTo(1);
+        assertThat(eids.stream()).extracting(Eid::getSource).containsExactly("source1");
+    }
+
+    @Test
+    public void shouldRemoveEidWhenOptableSourceIsAlreadyPresentAndEmptyTargeting() {
+        // given
+        final TargetingResult targetingResult = givenTargetingResultWithEids(List.of());
+
+        final BidRequest bidRequest = givenBidRequestWithUserEids(List.of(
+                givenEid("optable.co", "source1", List.of(givenUid("id", null, null)), null),
+                givenEid("optable.co", "source2", List.of(givenUid("id", null, null)), null)));
+        final AuctionRequestPayload auctionRequestPayload = AuctionRequestPayloadImpl.of(bidRequest);
+        final OptableTargetingProperties properties = new OptableTargetingProperties();
+        properties.setOptableInserterEidsIgnore(Set.of("source2"));
+
+        // when
+        final AuctionRequestPayload result = BidRequestEnricher.of(targetingResult, properties)
+                .apply(auctionRequestPayload);
+
+        // then
+        assertThat(result.bidRequest()).isNotNull();
+        final List<Eid> eids = result.bidRequest().getUser().getEids();
+        assertThat(eids.size()).isEqualTo(1);
+        assertThat(eids.stream()).extracting(Eid::getSource).containsExactly("source1");
+    }
+
+    @Test
     public void shouldReplaceEidWhenOptableSourceIsAlreadyPresent() {
         // given
         final TargetingResult targetingResult = givenTargetingResultWithEids(List.of(

@@ -38,5 +38,8 @@ public final class OptableTargetingProperties {
     @JsonProperty("optable-inserter-eids-replace")
     Set<String> optableInserterEidsReplace = Set.of();
 
+    @JsonProperty("optable-inserter-eids-ignore")
+    Set<String> optableInserterEidsIgnore = Set.of();
+
     CacheProperties cache = new CacheProperties();
 }
