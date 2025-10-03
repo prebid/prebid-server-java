@@ -615,6 +615,7 @@ public class EplanningBidderTest extends VertxTest {
                                         .price("3.3")
                                         .adM("some-adm")
                                         .crId("CR-ID")
+                                        .adomain(List.of("test.com"))
                                         .width(500)
                                         .height(300)
                                         .build()))))));
@@ -632,6 +633,7 @@ public class EplanningBidderTest extends VertxTest {
                 .price(BigDecimal.valueOf(3.3))
                 .adm("some-adm")
                 .crid("CR-ID")
+                .adomain(List.of("test.com"))
                 .w(500)
                 .h(300)
                 .build();
@@ -653,6 +655,7 @@ public class EplanningBidderTest extends VertxTest {
                                         .price("3.3")
                                         .adM("some-adm")
                                         .crId("CR-ID")
+                                        .adomain(List.of("test.com"))
                                         .width(1)
                                         .height(1)
                                         .build()))))));
@@ -671,6 +674,7 @@ public class EplanningBidderTest extends VertxTest {
                 .price(BigDecimal.valueOf(3.3))
                 .adm("some-adm")
                 .crid("CR-ID")
+                .adomain(List.of("test.com"))
                 .w(1)
                 .h(1)
                 .build();
