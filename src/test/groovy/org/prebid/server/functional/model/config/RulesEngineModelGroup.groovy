@@ -18,7 +18,7 @@ class RulesEngineModelGroup {
 
     static RulesEngineModelGroup createRulesModuleGroup() {
         new RulesEngineModelGroup().tap {
-            it.weight = PBSUtils.getRandomNumber(0, 100)
+            it.weight = PBSUtils.getRandomNumber(1, 100)
             it.version = PBSUtils.randomString
             it.analyticsKey = PBSUtils.randomString
             it.schema = [createDeviceCountryInSchema()]

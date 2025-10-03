@@ -15,14 +15,15 @@ class RuleEngineModelRuleResultsArgs {
     @JsonProperty("ifSyncedId")
     Boolean ifSyncedId
 
-    static RuleEngineModelRuleResultsArgs createRuleEngineModelRuleResultsArgs(BidderName bidderName){
+    static RuleEngineModelRuleResultsArgs createRuleEngineModelRuleResultsArgs(BidderName bidderName, Boolean ifSyncedId) {
         new RuleEngineModelRuleResultsArgs().tap {
             it.bidders = [bidderName]
             it.analyticsValue = PBSUtils.randomString
+            it.ifSyncedId = ifSyncedId
         }
     }
 
-    static RuleEngineModelRuleResultsArgs createRuleEngineModelRuleResultsArgsOnlyATag(){
+    static RuleEngineModelRuleResultsArgs createRuleEngineModelRuleResultsArgsOnlyATag() {
         new RuleEngineModelRuleResultsArgs().tap {
             it.analyticsValue = PBSUtils.randomString
         }

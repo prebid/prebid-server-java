@@ -23,15 +23,13 @@ class RuleEngineSyncSpec extends RuleEngineBaseSpec {
 
         and: "Account with rules sets"
         def pbRuleEngine = createRulesEngineWithRule().tap {
-            it.ruleSets[0].modelGroups[0].rules[0].results = [createRuleEngineModelRuleWithExcludeResult(GENERIC)]
-            it.ruleSets[0].modelGroups[0].rules[0].results[0].args.ifSyncedId = true
+            it.ruleSets[0].modelGroups[0].rules[0].results = [createRuleEngineModelRuleWithExcludeResult(GENERIC, true)]
         }
         def accountWithRulesEngine = getAccountWithRulesEngine(bidRequest.accountId, pbRuleEngine)
         accountDao.save(accountWithRulesEngine)
 
         and: "Cookies headers"
-        def uidsCookie = UidsCookie.defaultUidsCookie
-        def cookieHeader = HttpUtil.getCookieHeader(uidsCookie)
+        def cookieHeader = HttpUtil.getCookieHeader(UidsCookie.defaultUidsCookie)
 
         and: "Cache account"
         pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
@@ -82,15 +80,13 @@ class RuleEngineSyncSpec extends RuleEngineBaseSpec {
 
         and: "Account with rules sets"
         def pbRuleEngine = createRulesEngineWithRule().tap {
-            it.ruleSets[0].modelGroups[0].rules[0].results = [createRuleEngineModelRuleWithExcludeResult(GENERIC)]
-            it.ruleSets[0].modelGroups[0].rules[0].results[0].args.ifSyncedId = false
+            it.ruleSets[0].modelGroups[0].rules[0].results = [createRuleEngineModelRuleWithExcludeResult(GENERIC, false)]
         }
         def accountWithRulesEngine = getAccountWithRulesEngine(bidRequest.accountId, pbRuleEngine)
         accountDao.save(accountWithRulesEngine)
 
         and: "Cookies headers"
-        def uidsCookie = UidsCookie.defaultUidsCookie
-        def cookieHeader = HttpUtil.getCookieHeader(uidsCookie)
+        def cookieHeader = HttpUtil.getCookieHeader(UidsCookie.defaultUidsCookie)
 
         and: "Cache account"
         pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
@@ -123,8 +119,7 @@ class RuleEngineSyncSpec extends RuleEngineBaseSpec {
 
         and: "Account with rules sets"
         def pbRuleEngine = createRulesEngineWithRule().tap {
-            it.ruleSets[0].modelGroups[0].rules[0].results = [createRuleEngineModelRuleWithExcludeResult(GENERIC)]
-            it.ruleSets[0].modelGroups[0].rules[0].results[0].args.ifSyncedId = true
+            it.ruleSets[0].modelGroups[0].rules[0].results = [createRuleEngineModelRuleWithExcludeResult(GENERIC, true)]
         }
         def accountWithRulesEngine = getAccountWithRulesEngine(bidRequest.accountId, pbRuleEngine)
         accountDao.save(accountWithRulesEngine)
@@ -160,15 +155,13 @@ class RuleEngineSyncSpec extends RuleEngineBaseSpec {
 
         and: "Account with rules sets"
         def pbRuleEngine = createRulesEngineWithRule().tap {
-            it.ruleSets[0].modelGroups[0].rules[0].results = [createRuleEngineModelRuleWithIncludeResult(GENERIC)]
-            it.ruleSets[0].modelGroups[0].rules[0].results[0].args.ifSyncedId = true
+            it.ruleSets[0].modelGroups[0].rules[0].results = [createRuleEngineModelRuleWithIncludeResult(GENERIC, true)]
         }
         def accountWithRulesEngine = getAccountWithRulesEngine(bidRequest.accountId, pbRuleEngine)
         accountDao.save(accountWithRulesEngine)
 
         and: "Cookies headers"
-        def uidsCookie = UidsCookie.defaultUidsCookie
-        def cookieHeader = HttpUtil.getCookieHeader(uidsCookie)
+        def cookieHeader = HttpUtil.getCookieHeader(UidsCookie.defaultUidsCookie)
 
         and: "Cache account"
         pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
@@ -222,15 +215,13 @@ class RuleEngineSyncSpec extends RuleEngineBaseSpec {
 
         and: "Account with rules sets"
         def pbRuleEngine = createRulesEngineWithRule().tap {
-            it.ruleSets[0].modelGroups[0].rules[0].results = [createRuleEngineModelRuleWithIncludeResult(GENERIC)]
-            it.ruleSets[0].modelGroups[0].rules[0].results[0].args.ifSyncedId = false
+            it.ruleSets[0].modelGroups[0].rules[0].results = [createRuleEngineModelRuleWithIncludeResult(GENERIC, false)]
         }
         def accountWithRulesEngine = getAccountWithRulesEngine(bidRequest.accountId, pbRuleEngine)
         accountDao.save(accountWithRulesEngine)
 
         and: "Cookies headers"
-        def uidsCookie = UidsCookie.defaultUidsCookie
-        def cookieHeader = HttpUtil.getCookieHeader(uidsCookie)
+        def cookieHeader = HttpUtil.getCookieHeader(UidsCookie.defaultUidsCookie)
 
         and: "Cache account"
         pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
@@ -280,8 +271,7 @@ class RuleEngineSyncSpec extends RuleEngineBaseSpec {
 
         and: "Account with rules sets"
         def pbRuleEngine = createRulesEngineWithRule().tap {
-            it.ruleSets[0].modelGroups[0].rules[0].results = [createRuleEngineModelRuleWithIncludeResult(GENERIC)]
-            it.ruleSets[0].modelGroups[0].rules[0].results[0].args.ifSyncedId = true
+            it.ruleSets[0].modelGroups[0].rules[0].results = [createRuleEngineModelRuleWithIncludeResult(GENERIC, true)]
         }
         def accountWithRulesEngine = getAccountWithRulesEngine(bidRequest.accountId, pbRuleEngine)
         accountDao.save(accountWithRulesEngine)

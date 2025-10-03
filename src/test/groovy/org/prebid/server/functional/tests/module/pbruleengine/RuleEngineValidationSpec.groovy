@@ -1,8 +1,22 @@
 package org.prebid.server.functional.tests.module.pbruleengine
 
+import org.prebid.server.functional.model.config.RuleEngineFunctionArgs
+import org.prebid.server.functional.util.PBSUtils
+
 import java.time.Instant
 
 import static org.prebid.server.functional.model.config.PbRulesEngine.createRulesEngineWithRule
+import static org.prebid.server.functional.model.config.RuleEngineFunction.AD_UNIT_CODE
+import static org.prebid.server.functional.model.config.RuleEngineFunction.BUNDLE
+import static org.prebid.server.functional.model.config.RuleEngineFunction.CHANNEL
+import static org.prebid.server.functional.model.config.RuleEngineFunction.DEVICE_COUNTRY
+import static org.prebid.server.functional.model.config.RuleEngineFunction.DEVICE_TYPE
+import static org.prebid.server.functional.model.config.RuleEngineFunction.DOMAIN
+import static org.prebid.server.functional.model.config.RuleEngineFunction.EID_AVAILABLE
+import static org.prebid.server.functional.model.config.RuleEngineFunction.FPD_AVAILABLE
+import static org.prebid.server.functional.model.config.RuleEngineFunction.GPP_SID_AVAILABLE
+import static org.prebid.server.functional.model.config.RuleEngineFunction.TCF_IN_SCOPE
+import static org.prebid.server.functional.model.config.RuleEngineFunction.USER_FPD_AVAILABLE
 import static org.prebid.server.functional.model.pricefloors.Country.BULGARIA
 
 class RuleEngineValidationSpec extends RuleEngineBaseSpec {
@@ -174,7 +188,8 @@ class RuleEngineValidationSpec extends RuleEngineBaseSpec {
 
         and: "PBs should emit failed logs"
         def logs = pbsServiceWithRulesEngineModule.getLogsByTime(startTime)
-        assert getLogsByText(logs, "Failed to parse rule-engine config for account $bidRequest.accountId: Weighted list cannot be empty").size() == 1
+        assert getLogsByText(logs, "Failed to parse rule-engine config for account $bidRequest.accountId:" +
+                " Weighted list cannot be empty")
     }
 
     def "PBS shouldn't log default model when rule does not fired and empty model default"() {
@@ -317,4 +332,103 @@ class RuleEngineValidationSpec extends RuleEngineBaseSpec {
         assert getLogsByText(logs, "Parsing rule for account $bidRequest.accountId").size() == 1
     }
 
+    def "PBS shouldn't take rule with higher weight and not remove bidder when weight negative or zero"() {
+        given: "Start up time"
+        def start = Instant.now()
+
+        and: "Bid request with multiply bidders"
+        def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
+            updateBidRequestWithGeoCountry(it)
+        }
+
+        and: "Account with few model group"
+        def pbRuleEngine = createRulesEngineWithRule().tap {
+            it.ruleSets[0].modelGroups[0].tap {
+                it.weight = weight
+            }
+        }
+        def accountWithRulesEngine = getAccountWithRulesEngine(bidRequest.accountId, pbRuleEngine)
+        accountDao.save(accountWithRulesEngine)
+
+        and: "Cache account"
+        pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+
+        when: "PBS processes auction request"
+        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+
+        then: "Bid response should contain seats"
+        assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
+
+        and: "PBs should perform bidder requests"
+        assert bidder.getBidderRequests(bidRequest.id)
+
+        and: "PBS should not contain errors, warnings"
+        assert !bidResponse.ext?.warnings
+        assert !bidResponse.ext?.errors
+
+        and: "PBS response shouldn't contain seatNonBid"
+        assert !bidResponse.ext.seatnonbid
+
+        and: "Analytics result shouldn't contain info about module exclude"
+        assert !getAnalyticResults(bidResponse)
+
+        and: "PBS should emit log"
+        def logsByTime = pbsServiceWithRulesEngineModule.getLogsByTime(start)
+        assert getLogsByText(logsByTime, "Failed to parse rule-engine config for account $bidRequest.accountId:" +
+                " Weight must be greater than zero")
+
+        where:
+        weight << [PBSUtils.randomNegativeNumber, 0]
+    }
+
+    def "PBS should reject processing rule engine when #function schema function contain args"() {
+        given: "Test start time"
+        def startTime = Instant.now()
+
+        and: "Default bid request with multiply bidders"
+        def bidRequest = getDefaultBidRequestWithMultiplyBidders()
+
+        and: "Create account with rule engine config"
+        def pbRuleEngine = createRulesEngineWithRule().tap {
+            it.ruleSets[0].modelGroups[0].schema[0].tap {
+                it.function = function
+                it.args = RuleEngineFunctionArgs.defaultFunctionArgs
+            }
+        }
+
+        and: "Save account with rule engine"
+        def accountWithRulesEngine = getAccountWithRulesEngine(bidRequest.accountId, pbRuleEngine)
+        accountDao.save(accountWithRulesEngine)
+
+        and: "Cache account"
+        pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+
+        when: "PBS processes auction request"
+        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+
+        then: "PBs should perform bidder request"
+        assert bidder.getBidderRequests(bidRequest.id)
+
+        and: "Bid response should contain all requested bidders"
+        assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
+
+        and: "Analytics result shouldn't contain info about rule engine"
+        assert !getAnalyticResults(bidResponse)
+
+        and: "PBS response shouldn't contain seatNonBid"
+        assert !bidResponse.ext.seatnonbid
+
+        and: "PBS should not contain errors, warnings"
+        assert !bidResponse.ext?.warnings
+        assert !bidResponse.ext?.errors
+
+        and: "Logs should contain error"
+        def logs = pbsServiceWithRulesEngineModule.getLogsByTime(startTime)
+        assert getLogsByText(logs, "Failed to parse rule-engine config for account ${bidRequest.accountId}: " +
+                "Function '${function.value}' configuration is invalid: No arguments allowed")
+
+        where:
+        function << [DEVICE_TYPE, AD_UNIT_CODE, BUNDLE, DOMAIN, TCF_IN_SCOPE, GPP_SID_AVAILABLE, FPD_AVAILABLE,
+                     USER_FPD_AVAILABLE, EID_AVAILABLE, CHANNEL, DEVICE_COUNTRY]
+    }
 }

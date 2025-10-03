@@ -1,12 +1,8 @@
 package org.prebid.server.functional.tests.module.pbruleengine
 
-import org.prebid.server.functional.model.ModuleName
-import org.prebid.server.functional.model.bidder.Generic
-import org.prebid.server.functional.model.bidder.Openx
-import org.prebid.server.functional.model.request.auction.Amx
-import org.prebid.server.functional.model.request.auction.Bidder
 import org.prebid.server.functional.model.request.auction.Imp
 
+import static org.prebid.server.functional.model.ModuleName.*
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.AMX
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
@@ -22,10 +18,11 @@ class RuleEngineAliasSpec extends RuleEngineBaseSpec {
 
     def "PBS should leave only hard alias bidder at imps when hard alias bidder include in account config"() {
         given: "Bid request with multiply imps bidders"
+        def bidders = [OPENX, AMX, OPENX_ALIAS, GENERIC]
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
             it.imp.add(Imp.defaultImpression)
-            it.imp[1].ext.prebid.bidder.tap {
-                updateImpWithOpenXAndAmxAndOpenXAliasBidder(it)
+            it.imp[1].tap {
+                updateBidderImp(it, bidders)
             }
             updateBidRequestWithGeoCountry(it)
         }
@@ -59,7 +56,7 @@ class RuleEngineAliasSpec extends RuleEngineBaseSpec {
         and: "Analytics result should contain info about name and status"
         def analyticsResult = getAnalyticResults(bidResponse)
         def result = analyticsResult[0]
-        assert result.name == ModuleName.PB_RULE_ENGINE.code
+        assert result.name == PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
         and: "Analytics result detail info"
@@ -72,7 +69,7 @@ class RuleEngineAliasSpec extends RuleEngineBaseSpec {
             impResult.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
             impResult.values.resultFunction == groups.rules.first.results.first.function.value
             impResult.values.conditionFired == groups.rules.first.conditions.first
-            impResult.values.biddersRemoved.sort() == [GENERIC, OPENX, AMX]
+            impResult.values.biddersRemoved.sort() == [OPENX, AMX, GENERIC].sort()
             impResult.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
             impResult.appliedTo.impIds == bidRequest.imp.id
         }
@@ -82,16 +79,15 @@ class RuleEngineAliasSpec extends RuleEngineBaseSpec {
         def seatNonBid = bidResponse.ext.seatnonbid
         assert seatNonBid.seat.sort() == [OPENX, AMX, GENERIC].sort()
         assert seatNonBid.nonBid.impId.flatten().unique().sort() == bidRequest.imp.id.sort()
-        assert seatNonBid.nonBid.statusCode.unique().flatten() == [REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE,
-                                                                   REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE]
+        assert seatNonBid.nonBid.statusCode.flatten().unique() == [REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE]
     }
 
     def "PBS should remove hard alias bidder from imps when hard alias bidder excluded in account config"() {
         given: "Bid request with multiply bidders"
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
             it.imp.add(Imp.defaultImpression)
-            it.imp[1].ext.prebid.bidder.tap {
-                updateImpWithOpenXAndAmxAndOpenXAliasBidder(it)
+            it.imp[1].tap {
+                updateBidderImp(it, [OPENX, OPENX_ALIAS, AMX])
             }
             updateBidRequestWithGeoCountry(it)
         }
@@ -122,7 +118,7 @@ class RuleEngineAliasSpec extends RuleEngineBaseSpec {
         and: "Analytics result should contain info about name and status"
         def analyticsResult = getAnalyticResults(bidResponse)
         def result = analyticsResult[0]
-        assert result.name == ModuleName.PB_RULE_ENGINE.code
+        assert result.name == PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
         and: "Analytics result detail info"
@@ -152,8 +148,8 @@ class RuleEngineAliasSpec extends RuleEngineBaseSpec {
         given: "Bid request with multiply imps bidders"
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
             it.imp.add(Imp.defaultImpression)
-            it.imp[1].ext.prebid.bidder.tap {
-                getAliasAndAmxAndOpenXAndWithoutGenericBidder(it)
+            it.imp[1].tap {
+                updateBidderImp(it, [ALIAS, AMX, OPENX])
             }
             ext.prebid.aliases = [(ALIAS.value): GENERIC]
             updateBidRequestWithGeoCountry(it)
@@ -185,7 +181,7 @@ class RuleEngineAliasSpec extends RuleEngineBaseSpec {
         and: "Analytics result should contain info about name and status"
         def analyticsResult = getAnalyticResults(bidResponse)
         def result = analyticsResult[0]
-        assert result.name == ModuleName.PB_RULE_ENGINE.code
+        assert result.name == PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
         and: "Analytics result detail info"
@@ -217,8 +213,8 @@ class RuleEngineAliasSpec extends RuleEngineBaseSpec {
         given: "Bid request with multiply bidders"
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
             it.imp.add(Imp.defaultImpression)
-            it.imp[1].ext.prebid.bidder.tap {
-                getAliasAndAmxAndOpenXAndWithoutGenericBidder(it)
+            it.imp[1].tap {
+                updateBidderImp(it, [ALIAS, AMX, OPENX])
             }
             ext.prebid.aliases = [(ALIAS.value): GENERIC]
             updateBidRequestWithGeoCountry(it)
@@ -250,7 +246,7 @@ class RuleEngineAliasSpec extends RuleEngineBaseSpec {
         and: "Analytics result should contain info about name and status"
         def analyticsResult = getAnalyticResults(bidResponse)
         def result = analyticsResult[0]
-        assert result.name == ModuleName.PB_RULE_ENGINE.code
+        assert result.name == PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
         and: "Analytics result detail info"
@@ -274,22 +270,5 @@ class RuleEngineAliasSpec extends RuleEngineBaseSpec {
         assert seatNonBid.seat == ALIAS
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[1].id
         assert seatNonBid.nonBid[0].statusCode == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
-    }
-
-    private static void updateImpWithOpenXAndAmxAndOpenXAliasBidder(Bidder bidder) {
-        bidder.tap {
-            openx = Openx.defaultOpenx
-            amx = new Amx()
-            openxAlias = Openx.defaultOpenx
-        }
-    }
-
-    private static void getAliasAndAmxAndOpenXAndWithoutGenericBidder(Bidder bidder) {
-        bidder.tap {
-            alias = new Generic()
-            generic = null
-            amx = new Amx()
-            openx = Openx.defaultOpenx
-        }
     }
 }
