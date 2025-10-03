@@ -32,6 +32,8 @@ public class BidderConfigurationProperties {
     @NotBlank
     private String endpoint;
 
+    private String defaultAccountId;
+
     private Boolean pbsEnforcesCcpa;
 
     private Boolean modifyingVastXmlAllowed;
