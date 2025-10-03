@@ -63,7 +63,7 @@ public class MobkoiBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorWhenRequestHasMissingTagIdAndPlacementId() {
         // given
-        final ObjectNode mobkoiExt = impExt(null, null);
+        final ObjectNode mobkoiExt = impExt(null);
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(mobkoiExt));
 
         // when
@@ -79,7 +79,7 @@ public class MobkoiBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldAddPlacementIdOnlyInFirstImpressionTagId() {
         // given
-        final ObjectNode mobkoiExt = impExt("pid", null);
+        final ObjectNode mobkoiExt = impExt("pid");
         final Imp givenImp1 = givenImp(impBuilder -> impBuilder.ext(mobkoiExt));
         final Imp givenImp2 = givenImp(identity());
         final BidRequest bidRequest = BidRequest.builder().imp(asList(givenImp1, givenImp2)).build();
@@ -93,48 +93,6 @@ public class MobkoiBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .extracting(imp -> imp.getTagid())
                 .containsExactly("pid", null);
-    }
-
-    @Test
-    public void makeHttpRequestsShouldUseConstructorEndpointWhenNoCustomEndpointIsDefinedInMobkoiExtension() {
-        // given
-        final ObjectNode mobkoiExt = impExt("pid", null);
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(mobkoiExt));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> results = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(results.getValue()).extracting(HttpRequest::getUri).containsExactly("https://test.endpoint.com/bid");
-        assertThat(results.getErrors()).isEmpty();
-    }
-
-    @Test
-    public void makeHttpRequestsShouldConstructWithDefaultEndpointWhenTheCustomURLIsInvalidInMobkoiExtension() {
-        // given
-        final ObjectNode mobkoiExt = impExt("pid", "invalid URI");
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(mobkoiExt));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).extracting(HttpRequest::getUri).containsExactly("https://test.endpoint.com/bid");
-        assertThat(result.getErrors()).isEmpty();
-    }
-
-    @Test
-    public void makeHttpRequestsShouldUseCustomEndpointWhenDefinedInMobkoiExtension() {
-        // given
-        final ObjectNode mobkoiExt = impExt("pid", "https://custom.endpoint.com");
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(mobkoiExt));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).extracting(HttpRequest::getUri).containsExactly("https://custom.endpoint.com/bid");
-        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -235,11 +193,11 @@ public class MobkoiBidderTest extends VertxTest {
     }
 
     private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
-        return impCustomizer.apply(Imp.builder().id("imp_id").ext(impExt("placementIdValue", null))).build();
+        return impCustomizer.apply(Imp.builder().id("imp_id").ext(impExt("placementIdValue"))).build();
     }
 
-    private static ObjectNode impExt(String placementId, String adServerBaseUrl) {
-        return mapper.valueToTree(ExtPrebid.of(null, ExtImpMobkoi.of(placementId, adServerBaseUrl)));
+    private static ObjectNode impExt(String placementId) {
+        return mapper.valueToTree(ExtPrebid.of(null, ExtImpMobkoi.of(placementId)));
     }
 
     private static BidResponse givenBidResponse(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
