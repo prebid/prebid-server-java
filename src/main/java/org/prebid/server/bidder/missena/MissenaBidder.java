@@ -169,7 +169,7 @@ public class MissenaBidder implements Bidder<MissenaAdRequest> {
         if (site != null && StringUtils.isNotBlank(site.getPage())) {
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.REFERER_HEADER, site.getPage());
             try {
-                final URL url = new URL(site.getPage());
+                final URL url = HttpUtil.parseUrl(site.getPage());
                 final String origin = url.getProtocol() + "://" + url.getHost();
                 HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ORIGIN_HEADER, origin);
             } catch (MalformedURLException e) {

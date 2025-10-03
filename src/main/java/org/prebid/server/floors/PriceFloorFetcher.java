@@ -11,7 +11,7 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.apache.http.HttpStatus;
+import org.apache.hc.core5.http.HttpStatus;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.floors.model.PriceFloorData;

@@ -8,7 +8,7 @@ import io.vertx.core.Future;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.client.utils.URIBuilder;
+import org.apache.hc.core5.net.URIBuilder;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.json.DecodeException;
@@ -95,10 +95,10 @@ public class HttpApplicationSettings implements ApplicationSettings {
                                    JacksonMapper mapper) {
 
         this.isRfc3986Compatible = isRfc3986Compatible;
-        this.endpoint = HttpUtil.validateUrlSyntax(Objects.requireNonNull(endpoint));
-        this.ampEndpoint = HttpUtil.validateUrlSyntax(Objects.requireNonNull(ampEndpoint));
-        this.videoEndpoint = HttpUtil.validateUrlSyntax(Objects.requireNonNull(videoEndpoint));
-        this.categoryEndpoint = HttpUtil.validateUrlSyntax(Objects.requireNonNull(categoryEndpoint));
+        this.endpoint = HttpUtil.validateUrl(Objects.requireNonNull(endpoint));
+        this.ampEndpoint = HttpUtil.validateUrl(Objects.requireNonNull(ampEndpoint));
+        this.videoEndpoint = HttpUtil.validateUrl(Objects.requireNonNull(videoEndpoint));
+        this.categoryEndpoint = HttpUtil.validateUrl(Objects.requireNonNull(categoryEndpoint));
         this.httpClient = Objects.requireNonNull(httpClient);
         this.mapper = Objects.requireNonNull(mapper);
     }

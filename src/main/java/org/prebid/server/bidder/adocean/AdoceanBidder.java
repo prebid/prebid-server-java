@@ -16,10 +16,9 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.utils.URIBuilder;
-import org.apache.http.client.utils.URLEncodedUtils;
-import org.apache.http.message.BasicNameValuePair;
+import org.apache.hc.core5.http.NameValuePair;
+import org.apache.hc.core5.http.message.BasicNameValuePair;
+import org.apache.hc.core5.net.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.adocean.model.AdoceanResponseAdUnit;
 import org.prebid.server.bidder.model.BidderBid;
@@ -37,9 +36,7 @@ import org.prebid.server.util.HttpUtil;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -300,7 +297,7 @@ public class AdoceanBidder implements Bidder<Void> {
     public Result<List<BidderBid>> makeBids(BidderCall<Void> httpCall, BidRequest bidRequest) {
         final List<NameValuePair> params;
         try {
-            params = URLEncodedUtils.parse(new URI(httpCall.getRequest().getUri()), StandardCharsets.UTF_8);
+            params = new URIBuilder(httpCall.getRequest().getUri()).getQueryParams();
         } catch (URISyntaxException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }

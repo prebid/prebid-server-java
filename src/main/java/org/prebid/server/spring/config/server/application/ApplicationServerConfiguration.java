@@ -402,7 +402,7 @@ public class ApplicationServerConfiguration {
         return new OptoutHandler(
                 googleRecaptchaVerifier,
                 uidsCookieService,
-                OptoutHandler.getOptoutRedirectUrl(externalUrl),
+                OptoutHandler.getOptoutRedirectUrl(HttpUtil.validateUrl(externalUrl)),
                 HttpUtil.validateUrl(optoutUrl),
                 HttpUtil.validateUrl(optinUrl));
     }
