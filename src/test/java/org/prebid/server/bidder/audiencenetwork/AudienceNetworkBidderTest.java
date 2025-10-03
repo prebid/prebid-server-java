@@ -483,7 +483,8 @@ public class AudienceNetworkBidderTest extends VertxTest {
                 .containsOnly(
                         AudienceNetworkExt.of(
                                 "101",
-                                "bd49902da11ce0fe6258e56baa0a69c2f1395b2ff1efb30d4879ed9e2343a3f6"));
+                                "bd49902da11ce0fe6258e56baa0a69c2f1395b2ff1efb30d4879ed9e2343a3f6",
+                                "101"));
     }
 
     @Test
