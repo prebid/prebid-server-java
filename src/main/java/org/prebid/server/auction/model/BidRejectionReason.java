@@ -1,6 +1,9 @@
 package org.prebid.server.auction.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
+
+import java.util.Arrays;
 
 /**
  * The list of the Seat Non Bid codes:
@@ -117,9 +120,16 @@ public enum BidRejectionReason {
         this.code = code;
     }
 
+    @JsonCreator
+    public static BidRejectionReason fromStatusCode(int code) {
+        return Arrays.stream(values())
+                .filter(e -> e.code == code)
+                .findAny()
+                .orElseThrow(() -> new IllegalArgumentException("Invalid bid rejection reason: " + code));
+    }
+
     @JsonValue
     public int getValue() {
         return code;
     }
-
 }
