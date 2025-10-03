@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.Map;
+import java.util.Set;
 
 @Data
 @NoArgsConstructor
@@ -30,6 +31,15 @@ public final class OptableTargetingProperties {
 
     @JsonProperty("id-prefix-order")
     String idPrefixOrder;
+
+    @JsonProperty("optable-inserter-eids-merge")
+    Set<String> optableInserterEidsMerge = Set.of();
+
+    @JsonProperty("optable-inserter-eids-replace")
+    Set<String> optableInserterEidsReplace = Set.of();
+
+    @JsonProperty("optable-inserter-eids-ignore")
+    Set<String> optableInserterEidsIgnore = Set.of();
 
     CacheProperties cache = new CacheProperties();
 }

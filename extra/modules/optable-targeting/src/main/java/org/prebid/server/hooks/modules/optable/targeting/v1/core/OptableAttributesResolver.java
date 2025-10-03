@@ -22,6 +22,7 @@ public class OptableAttributesResolver {
 
         final OptableAttributes.OptableAttributesBuilder builder = OptableAttributes.builder()
                 .ips(resolveIp(auctionContext))
+                .userAgent(resolveUserAgent(auctionContext))
                 .timeout(timeout);
 
         if (tcfContext.isConsentValid()) {
@@ -39,7 +40,12 @@ public class OptableAttributesResolver {
         return builder.build();
     }
 
-    public static List<String> resolveIp(AuctionContext auctionContext) {
+    public static String resolveUserAgent(AuctionContext auctionContext) {
+        final Device device = auctionContext.getBidRequest().getDevice();
+        return device != null ? device.getUa() : null;
+    }
+
+    private static List<String> resolveIp(AuctionContext auctionContext) {
         final List<String> result = new ArrayList<>();
 
         final Optional<Device> deviceOpt = Optional.ofNullable(auctionContext.getBidRequest().getDevice());

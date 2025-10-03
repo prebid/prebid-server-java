@@ -28,18 +28,19 @@ public class CachedAPIClient implements APIClient {
     public Future<TargetingResult> getTargeting(OptableTargetingProperties properties,
                                                 Query query,
                                                 List<String> ips,
+                                                String userAgent,
                                                 Timeout timeout) {
 
         final CacheProperties cacheProperties = properties.getCache();
         if (!cacheProperties.isEnabled()) {
-            return apiClient.getTargeting(properties, query, ips, timeout);
+            return apiClient.getTargeting(properties, query, ips, userAgent, timeout);
         }
 
         final String tenant = properties.getTenant();
         final String origin = properties.getOrigin();
 
         return cache.get(createCachingKey(tenant, origin, ips, query, true))
-                .recover(ignore -> apiClient.getTargeting(properties, query, ips, timeout)
+                .recover(ignore -> apiClient.getTargeting(properties, query, ips, userAgent, timeout)
                         .recover(throwable -> isCircuitBreakerEnabled
                                 ? Future.succeededFuture(new TargetingResult(null, null))
                                 : Future.failedFuture(throwable))
