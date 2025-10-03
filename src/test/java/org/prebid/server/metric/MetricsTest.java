@@ -1227,23 +1227,42 @@ public class MetricsTest {
     }
 
     @Test
-    public void shouldIncrementPrebidCacheRequestSuccessTimer() {
+    public void shouldIncrementAuctionPrebidCacheRequestTimer() {
         // when
-        metrics.updateCacheRequestSuccessTime("accountId", 1424L);
+        metrics.updateAuctionCacheRequestTime("accountId", 1424L, MetricName.ok);
+        metrics.updateAuctionCacheRequestTime("accountId", 1424L, MetricName.err);
 
         // then
         assertThat(metricRegistry.timer("prebid_cache.requests.ok").getCount()).isEqualTo(1);
         assertThat(metricRegistry.timer("account.accountId.prebid_cache.requests.ok").getCount()).isOne();
+
+        assertThat(metricRegistry.timer("prebid_cache.requests.err").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.timer("account.accountId.prebid_cache.requests.err").getCount()).isOne();
     }
 
     @Test
-    public void shouldIncrementPrebidCacheRequestFailedTimer() {
+    public void shouldIncrementVtrackReadPrebidCacheRequestTimer() {
         // when
-        metrics.updateCacheRequestFailedTime("accountId", 1424L);
+        metrics.updateVtrackCacheReadRequestTime(1424L, MetricName.ok);
+        metrics.updateVtrackCacheReadRequestTime(1424L, MetricName.err);
 
         // then
-        assertThat(metricRegistry.timer("prebid_cache.requests.err").getCount()).isEqualTo(1);
-        assertThat(metricRegistry.timer("account.accountId.prebid_cache.requests.err").getCount()).isOne();
+        assertThat(metricRegistry.timer("prebid_cache.vtrack.read.ok").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.timer("prebid_cache.vtrack.read.err").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementVtrackWritePrebidCacheRequestTimer() {
+        // when
+        metrics.updateVtrackCacheWriteRequestTime("accountId", 1424L, MetricName.ok);
+        metrics.updateVtrackCacheWriteRequestTime("accountId", 1424L, MetricName.err);
+
+        // then
+        assertThat(metricRegistry.timer("prebid_cache.vtrack.write.ok").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.timer("account.accountId.prebid_cache.vtrack.write.ok").getCount()).isOne();
+
+        assertThat(metricRegistry.timer("prebid_cache.vtrack.write.err").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.timer("account.accountId.prebid_cache.vtrack.write.err").getCount()).isOne();
     }
 
     @Test
@@ -1262,6 +1281,63 @@ public class MetricsTest {
                 .isEqualTo(1);
         assertThat(metricRegistry.histogram("prebid_cache.creative_size.unknown").getCount()).isEqualTo(1);
         assertThat(metricRegistry.histogram("account.accountId.prebid_cache.creative_size.unknown").getCount())
+                .isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementPrebidCacheVtrackCreativeSizeHistogram() {
+        // when
+        metrics.updateVtrackCacheCreativeSize("accountId", 123, MetricName.json);
+        metrics.updateVtrackCacheCreativeSize("accountId", 456, MetricName.xml);
+        metrics.updateVtrackCacheCreativeSize("accountId", 789, MetricName.unknown);
+
+        // then
+        assertThat(metricRegistry.histogram("prebid_cache.vtrack.creative_size.json").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.histogram("account.accountId.prebid_cache.vtrack.creative_size.json").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.histogram("prebid_cache.vtrack.creative_size.xml").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.histogram("account.accountId.prebid_cache.vtrack.creative_size.xml").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.histogram("prebid_cache.vtrack.creative_size.unknown").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.histogram("account.accountId.prebid_cache.vtrack.creative_size.unknown").getCount())
+                .isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementPrebidCacheCreativeTtlHistogram() {
+        // when
+        metrics.updateCacheCreativeTtl("accountId", 123, MetricName.json);
+        metrics.updateCacheCreativeTtl("accountId", 456, MetricName.xml);
+        metrics.updateCacheCreativeTtl("accountId", 789, MetricName.unknown);
+
+        // then
+        assertThat(metricRegistry.histogram("prebid_cache.creative_ttl.json").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.histogram("account.accountId.prebid_cache.creative_ttl.json").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.histogram("prebid_cache.creative_ttl.xml").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.histogram("account.accountId.prebid_cache.creative_ttl.xml").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.histogram("prebid_cache.creative_ttl.unknown").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.histogram("account.accountId.prebid_cache.creative_ttl.unknown").getCount())
+                .isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementPrebidCacheVtrackCreativeTtlHistogram() {
+        // when
+        metrics.updateVtrackCacheCreativeTtl("accountId", 123, MetricName.json);
+        metrics.updateVtrackCacheCreativeTtl("accountId", 456, MetricName.xml);
+        metrics.updateVtrackCacheCreativeTtl("accountId", 789, MetricName.unknown);
+
+        // then
+        assertThat(metricRegistry.histogram("prebid_cache.vtrack.creative_ttl.json").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.histogram("account.accountId.prebid_cache.vtrack.creative_ttl.json").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.histogram("prebid_cache.vtrack.creative_ttl.xml").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.histogram("account.accountId.prebid_cache.vtrack.creative_ttl.xml").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.histogram("prebid_cache.vtrack.creative_ttl.unknown").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.histogram("account.accountId.prebid_cache.vtrack.creative_ttl.unknown").getCount())
                 .isEqualTo(1);
     }
 
@@ -1549,25 +1625,6 @@ public class MetricsTest {
 
         // then
         assertThat(metricRegistry.counter("account.account_id.requests.rejected.account-fetch-failed").getCount())
-                .isEqualTo(1);
-    }
-
-    @Test
-    public void shouldIncrementPrebidCacheCreativeTtlHistogram() {
-        // when
-        metrics.updateCacheCreativeTtl("accountId", 123, MetricName.json);
-        metrics.updateCacheCreativeTtl("accountId", 456, MetricName.xml);
-        metrics.updateCacheCreativeTtl("accountId", 789, MetricName.unknown);
-
-        // then
-        assertThat(metricRegistry.histogram("prebid_cache.creative_ttl.json").getCount()).isEqualTo(1);
-        assertThat(metricRegistry.histogram("account.accountId.prebid_cache.creative_ttl.json").getCount())
-                .isEqualTo(1);
-        assertThat(metricRegistry.histogram("prebid_cache.creative_ttl.xml").getCount()).isEqualTo(1);
-        assertThat(metricRegistry.histogram("account.accountId.prebid_cache.creative_ttl.xml").getCount())
-                .isEqualTo(1);
-        assertThat(metricRegistry.histogram("prebid_cache.creative_ttl.unknown").getCount()).isEqualTo(1);
-        assertThat(metricRegistry.histogram("account.accountId.prebid_cache.creative_ttl.unknown").getCount())
                 .isEqualTo(1);
     }
 
