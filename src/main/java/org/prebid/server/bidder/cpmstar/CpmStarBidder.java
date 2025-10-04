@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.cpmstar;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
@@ -26,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 public class CpmStarBidder implements Bidder<BidRequest> {
@@ -79,7 +81,14 @@ public class CpmStarBidder implements Bidder<BidRequest> {
         if (extImpCpmStar == null) {
             throw new PreBidException("imp id=%s: bidder.ext is null".formatted(imp.getId()));
         }
-        return imp.toBuilder().ext(mapper.mapper().valueToTree(extImpCpmStar)).build();
+        final Map<String, Object> extMap = mapper.mapper().convertValue(imp.getExt(), new TypeReference<>() {
+        });
+        final Map<String, Object> bidderMap = (Map<String, Object>) extMap.remove("bidder");
+        if (bidderMap != null) {
+            extMap.putAll(bidderMap);
+        }
+        final ObjectNode newExt = mapper.mapper().valueToTree(extMap);
+        return imp.toBuilder().ext(newExt).build();
     }
 
     @Override

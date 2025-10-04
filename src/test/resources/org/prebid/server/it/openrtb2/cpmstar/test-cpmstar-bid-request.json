@@ -9,14 +9,12 @@
         "h": 250
       },
       "ext": {
+        "tid" : "${json-unit.any-string}",
         "placementId": 1234,
         "subpoolId": 1234
       }
     }
   ],
-  "source": {
-    "tid": "${json-unit.any-string}"
-  },
   "site": {
     "domain": "www.example.com",
     "page": "http://www.example.com",
@@ -36,6 +34,8 @@
   "cur": [
     "USD"
   ],
+  "source" :
+  {"tid" : "${json-unit.any-string}"},
   "regs": {
     "ext": {
       "gdpr": 0
@@ -52,3 +52,4 @@
     }
   }
 }
+
