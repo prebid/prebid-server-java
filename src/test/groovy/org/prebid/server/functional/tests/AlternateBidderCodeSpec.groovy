@@ -274,7 +274,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
         assert response.ext.seatnonbid.size() == 1
 
         def seatNonBid = response.ext.seatnonbid[0]
-        assert seatNonBid.seat == bidderName.value
+        assert seatNonBid.seat == bidderName
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == RESPONSE_REJECTED_GENERAL
 
@@ -329,7 +329,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
         assert response.ext.seatnonbid.size() == 1
 
         def seatNonBid = response.ext.seatnonbid[0]
-        assert seatNonBid.seat == bidderName.value
+        assert seatNonBid.seat == bidderName
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == RESPONSE_REJECTED_GENERAL
 
@@ -787,7 +787,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
         assert response.ext.seatnonbid.size() == 1
 
         def seatNonBid = response.ext.seatnonbid[0]
-        assert seatNonBid.seat == UNKNOWN.value
+        assert seatNonBid.seat == UNKNOWN
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == RESPONSE_REJECTED_GENERAL
 
@@ -843,7 +843,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
         assert response.ext.seatnonbid.size() == 1
 
         def seatNonBid = response.ext.seatnonbid[0]
-        assert seatNonBid.seat == UNKNOWN.value
+        assert seatNonBid.seat == UNKNOWN
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == RESPONSE_REJECTED_GENERAL
 
@@ -1187,7 +1187,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
         assert response.ext.seatnonbid.size() == 1
 
         def seatNonBid = response.ext.seatnonbid[0]
-        assert seatNonBid.seat == requestedAllowedBidderCode.value
+        assert seatNonBid.seat == requestedAllowedBidderCode
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == RESPONSE_REJECTED_GENERAL
 
@@ -1242,7 +1242,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
         assert response.ext.seatnonbid.size() == 1
 
         def seatNonBid = response.ext.seatnonbid[0]
-        assert seatNonBid.seat == requestedAllowedBidderCode.value
+        assert seatNonBid.seat == requestedAllowedBidderCode
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == RESPONSE_REJECTED_GENERAL
 
@@ -1303,7 +1303,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
         assert response.ext.seatnonbid.size() == 1
 
         def seatNonBid = response.ext.seatnonbid[0]
-        assert seatNonBid.seat == allowedBidderCodes.value
+        assert seatNonBid.seat == allowedBidderCodes
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == RESPONSE_REJECTED_GENERAL
 
