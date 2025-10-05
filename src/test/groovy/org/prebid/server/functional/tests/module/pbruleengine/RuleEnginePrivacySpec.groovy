@@ -471,7 +471,7 @@ class RuleEnginePrivacySpec extends RuleEngineBaseSpec {
                 },
                 getDefaultBidRequestWithMultiplyBidders(APP).tap {
                     app.ext = new AppExt(data: new AppExtData(language: PBSUtils.randomString))
-                },
+                }
         ]
     }
 
@@ -528,7 +528,7 @@ class RuleEnginePrivacySpec extends RuleEngineBaseSpec {
                 },
                 getDefaultBidRequestWithMultiplyBidders(APP).tap {
                     app.ext = new AppExt(data: null)
-                },
+                }
         ]
     }
 
@@ -903,7 +903,7 @@ class RuleEnginePrivacySpec extends RuleEngineBaseSpec {
 
         where:
         gdpr | condition
-        0    | "TRUE"
-        1    | "FALSE"
+        0    | 'true'
+        1    | 'false'
     }
 }

@@ -81,8 +81,4 @@ class ModuleBaseSpec extends BaseSpec {
                 ?.outcomes?.first()?.groups?.first()
                 ?.invocationResults?.first()?.analyticsTags?.activities
     }
-
-    protected static List<InvocationResult> getInvocationResult(BidResponse response) {
-        response.ext.prebid.modules?.trace?.stages?.first()?.outcomes?.first()?.groups?.first()?.invocationResults
-    }
 }

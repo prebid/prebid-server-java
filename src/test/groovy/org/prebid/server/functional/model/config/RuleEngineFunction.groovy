@@ -23,10 +23,10 @@ enum RuleEngineFunction {
     BUNDLE("bundle", null),
     BUNDLE_IN("bundleIn", "bundles"),
     MEDIA_TYPE_IN("mediaTypeIn", "types"),
-    AD_UNIT_CODE("adUnitCode",null),
-    AD_UNIT_CODE_IN("adUnitCodeIn","codes"),
-    DEVICE_TYPE("deviceType",null),
-    DEVICE_TYPE_IN("deviceTypeIn","types"),
+    AD_UNIT_CODE("adUnitCode", null),
+    AD_UNIT_CODE_IN("adUnitCodeIn", "codes"),
+    DEVICE_TYPE("deviceType", null),
+    DEVICE_TYPE_IN("deviceTypeIn", "types")
 
     private String value
     private String fieldName

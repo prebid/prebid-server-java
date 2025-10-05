@@ -2,7 +2,7 @@ package org.prebid.server.functional.tests.module.pbruleengine
 
 import org.prebid.server.functional.model.request.auction.Imp
 
-import static org.prebid.server.functional.model.ModuleName.*
+import static org.prebid.server.functional.model.ModuleName.PB_RULE_ENGINE
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.AMX
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
@@ -20,10 +20,7 @@ class RuleEngineAliasSpec extends RuleEngineBaseSpec {
         given: "Bid request with multiply imps bidders"
         def bidders = [OPENX, AMX, OPENX_ALIAS, GENERIC]
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            it.imp.add(Imp.defaultImpression)
-            it.imp[1].tap {
-                updateBidderImp(it, bidders)
-            }
+            it.imp.add(updateBidderImp(Imp.defaultImpression, bidders))
             updateBidRequestWithGeoCountry(it)
         }
 
@@ -69,7 +66,7 @@ class RuleEngineAliasSpec extends RuleEngineBaseSpec {
             impResult.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
             impResult.values.resultFunction == groups.rules.first.results.first.function.value
             impResult.values.conditionFired == groups.rules.first.conditions.first
-            impResult.values.biddersRemoved.sort() == [OPENX, AMX, GENERIC].sort()
+            impResult.values.biddersRemoved.sort() == MULTI_BID_ADAPTERS.sort()
             impResult.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
             impResult.appliedTo.impIds == bidRequest.imp.id
         }
@@ -77,7 +74,7 @@ class RuleEngineAliasSpec extends RuleEngineBaseSpec {
         and: "Response should populate seatNon bid with code 203"
         assert bidResponse.ext.seatnonbid.size() == 3
         def seatNonBid = bidResponse.ext.seatnonbid
-        assert seatNonBid.seat.sort() == [OPENX, AMX, GENERIC].sort()
+        assert seatNonBid.seat.sort() == MULTI_BID_ADAPTERS.sort()
         assert seatNonBid.nonBid.impId.flatten().unique().sort() == bidRequest.imp.id.sort()
         assert seatNonBid.nonBid.statusCode.flatten().unique() == [REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE]
     }
@@ -85,10 +82,7 @@ class RuleEngineAliasSpec extends RuleEngineBaseSpec {
     def "PBS should remove hard alias bidder from imps when hard alias bidder excluded in account config"() {
         given: "Bid request with multiply bidders"
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            it.imp.add(Imp.defaultImpression)
-            it.imp[1].tap {
-                updateBidderImp(it, [OPENX, OPENX_ALIAS, AMX])
-            }
+            it.imp.add(updateBidderImp(Imp.defaultImpression, [OPENX, OPENX_ALIAS, AMX]))
             updateBidRequestWithGeoCountry(it)
         }
 
@@ -147,10 +141,7 @@ class RuleEngineAliasSpec extends RuleEngineBaseSpec {
     def "PBS should leave only soft alias bidder at imps when soft alias bidder include in account config"() {
         given: "Bid request with multiply imps bidders"
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            it.imp.add(Imp.defaultImpression)
-            it.imp[1].tap {
-                updateBidderImp(it, [ALIAS, AMX, OPENX])
-            }
+            it.imp.add(updateBidderImp(Imp.defaultImpression, [ALIAS, AMX, OPENX]))
             ext.prebid.aliases = [(ALIAS.value): GENERIC]
             updateBidRequestWithGeoCountry(it)
         }
@@ -194,7 +185,7 @@ class RuleEngineAliasSpec extends RuleEngineBaseSpec {
             impResult.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
             impResult.values.resultFunction == groups.rules.first.results.first.function.value
             impResult.values.conditionFired == groups.rules.first.conditions.first
-            impResult.values.biddersRemoved.sort() == [OPENX, GENERIC, AMX].sort()
+            impResult.values.biddersRemoved.sort() == MULTI_BID_ADAPTERS.sort()
             impResult.values.seatNonBid == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
             impResult.appliedTo.impIds == bidRequest.imp.id
         }
@@ -202,7 +193,7 @@ class RuleEngineAliasSpec extends RuleEngineBaseSpec {
         and: "Response should populate seatNon bid with code 203"
         assert bidResponse.ext.seatnonbid.size() == 3
         def seatNonBid = bidResponse.ext.seatnonbid
-        assert seatNonBid.seat.sort() == [OPENX, GENERIC, AMX].sort()
+        assert seatNonBid.seat.sort() == MULTI_BID_ADAPTERS.sort()
         assert seatNonBid.nonBid.impId.flatten().unique().sort() == bidRequest.imp.id.sort()
         assert seatNonBid.nonBid.statusCode.unique().flatten() == [REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE,
                                                                    REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE,
@@ -212,10 +203,7 @@ class RuleEngineAliasSpec extends RuleEngineBaseSpec {
     def "PBS should remove soft alias bidder from imps when soft alias bidder excluded in account config"() {
         given: "Bid request with multiply bidders"
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            it.imp.add(Imp.defaultImpression)
-            it.imp[1].tap {
-                updateBidderImp(it, [ALIAS, AMX, OPENX])
-            }
+            it.imp.add(updateBidderImp(Imp.defaultImpression, [ALIAS, AMX, OPENX]))
             ext.prebid.aliases = [(ALIAS.value): GENERIC]
             updateBidRequestWithGeoCountry(it)
         }

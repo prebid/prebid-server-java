@@ -256,8 +256,7 @@ class RuleEngineContextSpec extends RuleEngineBaseSpec {
         def startTime = Instant.now()
 
         and: "Default bid request with multiplyB bidders"
-        def randomDomain = PBSUtils.randomString
-        def bidRequest = bidRequestClosure(randomDomain)
+        def bidRequest = bidRequestWithDomaint
 
         and: "Create account with rule engine config"
         def pbRuleEngine = createRulesEngineWithRule().tap {
@@ -298,38 +297,25 @@ class RuleEngineContextSpec extends RuleEngineBaseSpec {
         assert getLogsByText(logs, INVALID_CONFIGURATION_FOR_STRINGS_LOG_WARNING(bidRequest.accountId, DOMAIN_IN))
 
         where:
-        bidRequestClosure << [
-                { String domain ->
-                    getDefaultBidRequestWithMultiplyBidders(SITE).tap {
-                        it.site.publisher = new Publisher(id: PBSUtils.randomString, domain: PBSUtils.randomString)
-                    }
+        bidRequestWithDomaint << [
+                getDefaultBidRequestWithMultiplyBidders(SITE).tap {
+                    it.site.publisher = new Publisher(id: PBSUtils.randomString, domain: PBSUtils.randomString)
                 },
-                { String domain ->
-                    getDefaultBidRequestWithMultiplyBidders(SITE).tap {
-                        it.site.domain = domain
-                    }
+                getDefaultBidRequestWithMultiplyBidders(SITE).tap {
+                    it.site.domain = PBSUtils.randomString
                 },
-                { String domain ->
-                    getDefaultBidRequestWithMultiplyBidders(APP).tap {
-                        it.app.publisher = new Publisher(id: PBSUtils.randomString, domain: PBSUtils.randomString)
-                    }
+                getDefaultBidRequestWithMultiplyBidders(APP).tap {
+                    it.app.publisher = new Publisher(id: PBSUtils.randomString, domain: PBSUtils.randomString)
                 },
-                { String domain ->
-                    getDefaultBidRequestWithMultiplyBidders(APP).tap {
-                        it.app.domain = domain
-                    }
+                getDefaultBidRequestWithMultiplyBidders(APP).tap {
+                    it.app.domain = PBSUtils.randomString
                 },
-                { String domain ->
-                    getDefaultBidRequestWithMultiplyBidders(DOOH).tap {
-                        it.dooh.publisher = new Publisher(id: PBSUtils.randomString, domain: PBSUtils.randomString)
-                    }
+                getDefaultBidRequestWithMultiplyBidders(DOOH).tap {
+                    it.dooh.publisher = new Publisher(id: PBSUtils.randomString, domain: PBSUtils.randomString)
                 },
-                { String domain ->
-                    getDefaultBidRequestWithMultiplyBidders(DOOH).tap {
-                        it.dooh.domain = domain
-                    }
-                }
-        ]
+                getDefaultBidRequestWithMultiplyBidders(DOOH).tap {
+                    it.dooh.domain = PBSUtils.randomString
+                }]
     }
 
     def "PBS should exclude bidder when domainIn match with condition"() {
@@ -457,7 +443,6 @@ class RuleEngineContextSpec extends RuleEngineBaseSpec {
                 getDefaultBidRequestWithMultiplyBidders(DOOH).tap {
                     it.dooh.domain = PBSUtils.randomString
                 }]
-
     }
 
     def "PBS should exclude bidder when bundle match with condition"() {
@@ -671,7 +656,6 @@ class RuleEngineContextSpec extends RuleEngineBaseSpec {
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
     }
-
 
     def "PBS shouldn't exclude bidder when bundleIn not match with condition"() {
         given: "Default bid request with multiply bidders"
@@ -938,10 +922,9 @@ class RuleEngineContextSpec extends RuleEngineBaseSpec {
         null                       | null                       | PBSUtils.getRandomString() | null
         null                       | null                       | null                       | new PrebidStoredRequest(id: PBSUtils.getRandomString())
         PBSUtils.getRandomString() | PBSUtils.getRandomString() | PBSUtils.getRandomString() | new PrebidStoredRequest(id: PBSUtils.getRandomString())
+        null                       | PBSUtils.getRandomString() | PBSUtils.getRandomString() | new PrebidStoredRequest(id: PBSUtils.getRandomString())
+        null                       | null                       | PBSUtils.getRandomString() | new PrebidStoredRequest(id: PBSUtils.getRandomString())
         null                       | null                       | null                       | new PrebidStoredRequest(id: PBSUtils.getRandomString())
-        null                       | null                       | PBSUtils.getRandomString() | null
-        null                       | PBSUtils.getRandomString() | null                       | null
-        PBSUtils.getRandomString() | null                       | null                       | null
     }
 
     def "PBS shouldn't exclude bidder when adUnitCode not match with condition"() {

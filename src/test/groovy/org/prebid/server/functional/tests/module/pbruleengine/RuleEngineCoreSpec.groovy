@@ -1,12 +1,10 @@
 package org.prebid.server.functional.tests.module.pbruleengine
 
-import org.prebid.server.functional.model.bidder.Openx
 import org.prebid.server.functional.model.config.RuleEngineModelDefault
 import org.prebid.server.functional.model.config.RuleEngineModelDefaultArgs
 import org.prebid.server.functional.model.config.RuleSet
 import org.prebid.server.functional.model.config.RulesEngineModelGroup
 import org.prebid.server.functional.model.config.Stage
-import org.prebid.server.functional.model.request.auction.Amx
 import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.util.PBSUtils
 
@@ -80,11 +78,7 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
     def "PBS should remove bidder from imps and use default 203 value for seatNonBid when seatNonBid null and exclude bidder in account config"() {
         given: "Bid request with multiply bidders"
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            it.imp.add(Imp.defaultImpression)
-            it.imp[1].ext.prebid.bidder.tap {
-                openx = Openx.defaultOpenx
-                amx = new Amx()
-            }
+            it.imp.add(updateBidderImp(Imp.defaultImpression))
             updateBidRequestWithGeoCountry(it)
         }
 
@@ -118,7 +112,7 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
         assert result.name == PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
-        and: "Analytics result detail info"
+        and: "Analytics result should contain detail info"
         def groups = pbRuleEngine.ruleSets[0].modelGroups[0]
         verifyAll(result.results[0]) {
             it.status == SUCCESS
@@ -144,11 +138,7 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
     def "PBS should remove bidder from imps and not update seatNonBid when returnAllBidStatus disabled and exclude bidder in account config"() {
         given: "Bid request with multiply bidders"
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            it.imp.add(Imp.defaultImpression)
-            it.imp[1].ext.prebid.bidder.tap {
-                openx = Openx.defaultOpenx
-                amx = new Amx()
-            }
+            it.imp.add(updateBidderImp(Imp.defaultImpression))
             updateBidRequestWithGeoCountry(it)
             ext.prebid.tap {
                 returnAllBidStatus = false
@@ -189,7 +179,7 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
         assert result.name == PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
-        and: "Analytics result detail info"
+        and: "Analytics result should contain detail info"
         def groups = pbRuleEngine.ruleSets[0].modelGroups[0]
         verifyAll(result.results[0]) {
             it.status == SUCCESS
@@ -305,7 +295,7 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
         assert result.name == PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
-        and: "Analytics result detail info"
+        and: "Analytics result should contain detail info"
         def groups = pbRuleEngine.ruleSets[0].modelGroups[0]
         verifyAll(result.results[0]) {
             it.status == SUCCESS
@@ -365,7 +355,7 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
         assert result.name == PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
-        and: "Analytics result detail info"
+        and: "Analytics result should contain detail info"
         def groups = pbRuleEngine.ruleSets[0].modelGroups[0]
         verifyAll(result.results[0]) {
             it.status == SUCCESS
@@ -391,11 +381,7 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
     def "PBS should leave only include bidder at imps when bidder include in account config"() {
         given: "Bid request with multiply imps bidders"
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            it.imp.add(Imp.defaultImpression)
-            it.imp[1].ext.prebid.bidder.tap {
-                openx = Openx.defaultOpenx
-                amx = new Amx()
-            }
+            it.imp.add(updateBidderImp(Imp.defaultImpression, [OPENX, AMX]))
             updateBidRequestWithGeoCountry(it)
         }
 
@@ -428,7 +414,7 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
         assert result.name == PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
-        and: "Analytics result detail info"
+        and: "Analytics result should contain detail info"
         def groups = pbRuleEngine.ruleSets[0].modelGroups[0]
         verifyAll(result.results[0]) {
             it.status == SUCCESS
@@ -453,11 +439,7 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
     def "PBS should only logATag when present only function log a tag"() {
         given: "Bid request with multiply imps bidders"
         def bidRequest = getDefaultBidRequestWithMultiplyBidders().tap {
-            it.imp.add(Imp.defaultImpression)
-            it.imp[1].ext.prebid.bidder.tap {
-                openx = Openx.defaultOpenx
-                amx = new Amx()
-            }
+            it.imp.add(updateBidderImp(Imp.defaultImpression, [OPENX, AMX]))
             updateBidRequestWithGeoCountry(it)
         }
 
@@ -493,18 +475,23 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
         assert result.name == PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
-        and: "Analytics result detail info"
+        and: "Analytics result should contain detail info"
         def groups = pbRuleEngine.ruleSets[0].modelGroups[0]
-        verifyAll(result.results[0]) {
+        def impResult = result.results[0]
+        verifyAll(impResult) {
             it.status == SUCCESS
             it.values.analyticsKey == groups.analyticsKey
             it.values.modelVersion == groups.version
             it.values.analyticsValue == groups.rules.first.results.first.args.analyticsValue
             it.values.resultFunction == groups.rules.first.results.first.function.value
             it.values.conditionFired == groups.rules.first.conditions.first
+
+            it.appliedTo.impIds == [APPLIED_FOR_ALL_IMPS]
+        }
+
+        verifyAll(impResult) {
             !it.values.biddersRemoved
             !it.values.seatNonBid
-            it.appliedTo.impIds == [APPLIED_FOR_ALL_IMPS]
         }
     }
 
@@ -544,7 +531,7 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
         assert result.name == PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
-        and: "Analytics result detail info"
+        and: "Analytics result should contain detail info"
         def groups = pbRuleEngine.ruleSets[1].modelGroups[0]
         verifyAll(result.results[0]) {
             it.status == SUCCESS
@@ -608,7 +595,7 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
         assert result.name == PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
-        and: "Analytics result detail info"
+        and: "Analytics result should contain detail info"
         def groups = pbRuleEngine.ruleSets[1].modelGroups[0]
         verifyAll(result.results[0]) {
             it.status == SUCCESS
@@ -632,7 +619,6 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
         where:
         stage << Stage.values() - PROCESSED_AUCTION_REQUEST
     }
-
 
     def "PBS should take rule with higher weight and remove bidder when two model group with different weight"() {
         given: "Bid request with multiply bidders"
@@ -677,7 +663,7 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
         assert result.name == PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
-        and: "Analytics result detail info"
+        and: "Analytics result should contain detail info"
         def groups = pbRuleEngine.ruleSets[0].modelGroups[1]
         verifyAll(result.results[0]) {
             it.status == SUCCESS
@@ -737,7 +723,7 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
         assert result.name == PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
-        and: "Analytics result detail info"
+        and: "Analytics result should contain detail info"
         def groups = pbRuleEngine.ruleSets[0].modelGroups[0]
         verifyAll(result.results[0]) {
             it.status == SUCCESS
@@ -800,9 +786,10 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
         assert result.name == PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
-        and: "Analytics result detail info"
+        and: "Analytics result should contain detail info"
         def groups = pbRuleEngine.ruleSets[0].modelGroups[0]
-        verifyAll(result.results[0]) {
+        def impResult = result.results[0]
+        verifyAll(impResult) {
             it.status == SUCCESS
             it.values.analyticsKey == groups.analyticsKey
             it.values.modelVersion == groups.version
@@ -810,7 +797,10 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
             it.values.resultFunction == LOG_A_TAG.value
             it.values.conditionFired == DEFAULT_CONDITIONS
             it.appliedTo.impIds == [APPLIED_FOR_ALL_IMPS]
+        }
 
+        and: "Analytics imp result shouldn't contain remove info"
+        verifyAll(impResult) {
             !it.values.biddersRemoved
             !it.values.seatNonBid
         }
@@ -856,7 +846,7 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
         assert result.name == PB_RULE_ENGINE.code
         assert result.status == SUCCESS
 
-        and: "Analytics result detail info"
+        and: "Analytics result should contain detail info"
         def groups = pbRuleEngine.ruleSets[0].modelGroups[0]
         verifyAll(result.results[0]) {
             it.status == SUCCESS
@@ -877,6 +867,4 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
     }
-
-
 }

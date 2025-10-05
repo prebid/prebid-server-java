@@ -97,7 +97,7 @@ abstract class RuleEngineBaseSpec extends ModuleBaseSpec {
         }
     }
 
-    protected static void updateBidderImp(Imp imp, List<BidderName> bidders = MULTI_BID_ADAPTERS) {
+    protected static Imp updateBidderImp(Imp imp, List<BidderName> bidders = MULTI_BID_ADAPTERS) {
         imp.ext.prebid.bidder.tap {
             openx = bidders.contains(OPENX) ? Openx.defaultOpenx : null
             openxAlias = bidders.contains(OPENX_ALIAS) ? Openx.defaultOpenx : null
@@ -105,13 +105,14 @@ abstract class RuleEngineBaseSpec extends ModuleBaseSpec {
             generic = bidders.contains(GENERIC) ? new Generic() : null
             alias = bidders.contains(ALIAS) ? new Generic() : null
         }
+        imp
     }
 
     protected static void updateBidRequestWithGeoCountry(BidRequest bidRequest, Country country = USA) {
         bidRequest.device = new Device(geo: new Geo(country: country))
     }
 
-    protected static getAccountWithRulesEngine(String accountId, PbRulesEngine ruleEngine) {
+    protected static Account getAccountWithRulesEngine(String accountId, PbRulesEngine ruleEngine) {
         def accountHooksConfiguration = new AccountHooksConfiguration(modules: new PbsModulesConfig(pbRuleEngine: ruleEngine))
         new Account(uuid: accountId, config: new AccountConfig(hooks: accountHooksConfiguration))
     }
@@ -137,52 +138,41 @@ abstract class RuleEngineBaseSpec extends ModuleBaseSpec {
     }
 
     protected static BidRequest updatePublisherDomain(BidRequest bidRequest, DistributionChannel distributionChannel, String domain) {
-        if (distributionChannel == SITE) {
-            bidRequest.tap {
-                it.site.publisher.domain = domain
-            }
+        switch (distributionChannel) {
+            case SITE:
+                bidRequest.site.publisher.domain = domain
+                break
+            case APP:
+                bidRequest.app.publisher.domain = domain
+                break
+            case DOOH:
+                bidRequest.dooh.publisher.domain = domain
+                break
         }
-        if (distributionChannel == APP) {
-            bidRequest.tap {
-                it.app.publisher.domain = domain
-            }
-        }
-        if (distributionChannel == DOOH) {
-            bidRequest.tap {
-                it.dooh.publisher.domain = domain
-            }
-        }
+        bidRequest
     }
 
-    protected static String getImpAdUnitCodeByCode(Imp imp, ImpUnitCode impUnitCode) {
-        if (TAG_ID == impUnitCode) {
-            return imp.tagId
+    protected static String getImpAdUnitCodeByCode(Imp imp, ImpUnitCode code) {
+        switch (code) {
+            case TAG_ID:
+                return imp.tagId
+            case GPID:
+                return imp.ext.gpid
+            case PB_AD_SLOT:
+                return imp.ext.data.pbAdSlot
+            case STORED_REQUEST:
+                return imp.ext.prebid.storedRequest.id
+            default:
+                return null
         }
-        if (GPID == impUnitCode) {
-            return imp.ext.gpid
-        }
-        if (PB_AD_SLOT == impUnitCode) {
-            return imp.ext.data.pbAdSlot
-        }
-        if (STORED_REQUEST == impUnitCode) {
-            return imp.ext.prebid.storedRequest.id
-        }
-        return null
     }
 
     protected static String getImpAdUnitCode(Imp imp) {
-        if (imp.ext.gpid) {
-            return imp.ext.gpid
-        }
-        if (imp.tagId) {
-            return imp.tagId
-        }
-        if (imp.ext.data.pbAdSlot) {
-            return imp.ext.data.pbAdSlot
-        }
-        if (imp.ext.prebid.storedRequest.id) {
-            return imp.ext.prebid.storedRequest.id
-        }
-        return null
+        [
+                imp?.ext?.gpid,
+                imp?.tagId,
+                imp?.ext?.data?.pbAdSlot,
+                imp?.ext?.prebid?.storedRequest?.id
+        ].findResult { it }
     }
 }
