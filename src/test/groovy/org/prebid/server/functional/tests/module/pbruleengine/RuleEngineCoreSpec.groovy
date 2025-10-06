@@ -41,7 +41,7 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
         accountDao.save(accountWithRulesEngine)
 
         and: "Cache account"
-        pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        waitUntilSuccessfullyParsedAndCacheAccount(bidRequest)
 
         and: "Flush metric"
         flushMetrics(pbsServiceWithRulesEngineModule)
@@ -91,7 +91,7 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
         accountDao.save(accountWithRulesEngine)
 
         and: "Cache account"
-        pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        waitUntilSuccessfullyParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
@@ -155,7 +155,7 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
         accountDao.save(accountWithRulesEngine)
 
         and: "Cache account"
-        pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        waitUntilSuccessfullyParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
@@ -208,7 +208,7 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
         accountDao.save(accountWithRulesEngine)
 
         and: "Cache account"
-        pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        waitUntilSuccessfullyParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
@@ -241,7 +241,7 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
         accountDao.save(accountWithRulesEngine)
 
         and: "Cache account"
-        pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        waitUntilSuccessfullyParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
@@ -274,7 +274,7 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
         accountDao.save(accountWithRulesEngine)
 
         and: "Cache account"
-        pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        waitUntilSuccessfullyParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
@@ -334,7 +334,7 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
         accountDao.save(accountWithRulesEngine)
 
         and: "Cache account"
-        pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        waitUntilSuccessfullyParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
@@ -393,7 +393,7 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
         accountDao.save(accountWithRulesEngine)
 
         and: "Cache account"
-        pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        waitUntilSuccessfullyParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
@@ -451,7 +451,7 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
         accountDao.save(accountWithRulesEngine)
 
         and: "Cache account"
-        pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        waitUntilSuccessfullyParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
@@ -510,7 +510,7 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
         accountDao.save(accountWithRulesEngine)
 
         and: "Cache account"
-        pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        waitUntilSuccessfullyParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
@@ -574,7 +574,7 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
         accountDao.save(accountWithRulesEngine)
 
         and: "Cache account"
-        pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        waitUntilSuccessfullyParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
@@ -642,7 +642,7 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
         accountDao.save(accountWithRulesEngine)
 
         and: "Cache account"
-        pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        waitUntilSuccessfullyParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
@@ -702,7 +702,7 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
         accountDao.save(accountWithRulesEngine)
 
         and: "Cache account"
-        pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        waitUntilSuccessfullyParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
@@ -762,7 +762,7 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
         accountDao.save(accountWithRulesEngine)
 
         and: "Cache account"
-        pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        waitUntilSuccessfullyParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
@@ -822,7 +822,7 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
         accountDao.save(accountWithRulesEngine)
 
         and: "Cache account"
-        pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        waitUntilSuccessfullyParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
         def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)

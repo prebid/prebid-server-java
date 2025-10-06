@@ -72,6 +72,7 @@ abstract class RuleEngineBaseSpec extends ModuleBaseSpec {
                 "Field '$functionType.fieldName' is required and has to be an array of integers"
     }
 
+    protected static final Map<String, String> ENABLED_DEBUG_LOG_MODE = ["logging.level.root": "debug"]
     protected static final Map<String, String> OPENX_CONFIG = ["adapters.${OPENX}.enabled" : "true",
                                                                "adapters.${OPENX}.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
     protected static final Map<String, String> AMX_CONFIG = ["adapters.${AMX}.enabled" : "true",
@@ -85,19 +86,11 @@ abstract class RuleEngineBaseSpec extends ModuleBaseSpec {
             "adapters.${GENERIC.value}.usersync.redirect.support-cors": false as String,
             "adapters.${GENERIC.value}.meta-info.vendor-id"           : GENERIC_VENDOR_ID as String]
     protected static final PrebidServerService pbsServiceWithRulesEngineModule = pbsServiceFactory.getService(GENERIC_CONFIG +
-            getRulesEngineSettings() + AMX_CONFIG + OPENX_CONFIG + OPENX_ALIAS_CONFIG + ['datacenter-region': CONFIG_DATA_CENTER])
-
-    def setup() {
-        bidder.setResponse()
-    }
-
-    def cleanup() {
-        bidder.reset()
-    }
+            getRulesEngineSettings() + AMX_CONFIG + OPENX_CONFIG + OPENX_ALIAS_CONFIG + ['datacenter-region': CONFIG_DATA_CENTER] +
+            ENABLED_DEBUG_LOG_MODE)
 
     protected static BidRequest getDefaultBidRequestWithMultiplyBidders(DistributionChannel distributionChannel = SITE) {
         BidRequest.getDefaultBidRequest(distributionChannel).tap {
-            it.tmax = 5_000 // prevents timeout issues on slow pipelines
             it.imp[0].ext.prebid.bidder.amx = new Amx()
             it.imp[0].ext.prebid.bidder.openx = Openx.defaultOpenx
             it.imp[0].ext.prebid.bidder.generic = new Generic()
@@ -177,11 +170,21 @@ abstract class RuleEngineBaseSpec extends ModuleBaseSpec {
     }
 
     protected static String getImpAdUnitCode(Imp imp) {
-        [
-                imp?.ext?.gpid,
-                imp?.tagId,
-                imp?.ext?.data?.pbAdSlot,
-                imp?.ext?.prebid?.storedRequest?.id
-        ].findResult { it }
+        [imp?.ext?.gpid, imp?.tagId, imp?.ext?.data?.pbAdSlot, imp?.ext?.prebid?.storedRequest?.id]
+                .findResult { it }
+    }
+
+    protected static waitUntilSuccessfullyParsedAndCacheAccount(bidRequest) {
+        PBSUtils.waitUntil({
+            pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+            pbsServiceWithRulesEngineModule.isContainLogsByValue("Successfully parsed rule-engine config for account $bidRequest.accountId")
+        })
+    }
+
+    protected static waitUntilFailedParsedAndCacheAccount(bidRequest) {
+        PBSUtils.waitUntil({
+            pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+            pbsServiceWithRulesEngineModule.isContainLogsByValue("Failed to parse rule-engine config for account $bidRequest.accountId")
+        })
     }
 }
