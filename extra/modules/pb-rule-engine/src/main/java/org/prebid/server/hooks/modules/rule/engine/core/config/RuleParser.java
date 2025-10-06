@@ -121,6 +121,8 @@ public class RuleParser {
     private void succeedParsingAttempt(String accountId, PerStageRule result) {
         accountIdToRules.put(accountId, result);
         accountIdToParsingAttempt.remove(accountId);
+
+        logger.debug("Successfully parsed rule-engine config for account {}", accountId);
     }
 
     private void failParsingAttempt(String accountId, ParsingAttempt attempt, Throwable cause) {
