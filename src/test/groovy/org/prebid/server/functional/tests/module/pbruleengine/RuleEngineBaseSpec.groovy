@@ -41,7 +41,7 @@ import static org.prebid.server.functional.model.request.auction.TraceLevel.VERB
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 
-@Retry
+@Retry //TODO remove in 3.34+
 abstract class RuleEngineBaseSpec extends ModuleBaseSpec {
 
     protected static final List<BidderName> MULTI_BID_ADAPTERS = [GENERIC, OPENX, AMX].sort()
@@ -172,7 +172,10 @@ abstract class RuleEngineBaseSpec extends ModuleBaseSpec {
     }
 
     protected static String getImpAdUnitCode(Imp imp) {
-        [imp?.ext?.gpid, imp?.tagId, imp?.ext?.data?.pbAdSlot, imp?.ext?.prebid?.storedRequest?.id]
+        [imp?.ext?.gpid,
+         imp?.tagId,
+         imp?.ext?.data?.pbAdSlot,
+         imp?.ext?.prebid?.storedRequest?.id]
                 .findResult { it }
     }
 
