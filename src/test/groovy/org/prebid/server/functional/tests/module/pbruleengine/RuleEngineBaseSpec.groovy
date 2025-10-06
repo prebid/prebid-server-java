@@ -93,6 +93,7 @@ abstract class RuleEngineBaseSpec extends ModuleBaseSpec {
 
     protected static BidRequest getDefaultBidRequestWithMultiplyBidders(DistributionChannel distributionChannel = SITE) {
         BidRequest.getDefaultBidRequest(distributionChannel).tap {
+            it.tmax = 5_000 // prevents timeout issues on slow pipelines
             it.imp[0].ext.prebid.bidder.amx = new Amx()
             it.imp[0].ext.prebid.bidder.openx = Openx.defaultOpenx
             it.imp[0].ext.prebid.bidder.generic = new Generic()
