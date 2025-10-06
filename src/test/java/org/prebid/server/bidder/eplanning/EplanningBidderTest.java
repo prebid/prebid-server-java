@@ -615,7 +615,7 @@ public class EplanningBidderTest extends VertxTest {
                                         .price("3.3")
                                         .adM("some-adm")
                                         .crId("CR-ID")
-                                        .adomain(List.of("test.com"))
+                                        .adom("test.com")
                                         .width(500)
                                         .height(300)
                                         .build()))))));
@@ -655,7 +655,7 @@ public class EplanningBidderTest extends VertxTest {
                                         .price("3.3")
                                         .adM("some-adm")
                                         .crId("CR-ID")
-                                        .adomain(List.of("test.com"))
+                                        .adom("test.com")
                                         .width(1)
                                         .height(1)
                                         .build()))))));

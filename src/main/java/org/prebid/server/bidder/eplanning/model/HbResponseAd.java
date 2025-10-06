@@ -4,8 +4,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Value;
 
-import java.util.List;
-
 @Builder
 @Value
 public class HbResponseAd {
@@ -25,8 +23,8 @@ public class HbResponseAd {
     @JsonProperty("crid")
     String crId;
 
-    @JsonProperty("adomain")
-    List<String> adomain;
+    @JsonProperty()
+    String adom;
 
     @JsonProperty("w")
     Integer width;

@@ -9,9 +9,7 @@
           "adm": "<div>test</div>",
           "crid": "crid",
           "id": "imp_id",
-          "adomain": [
-            "test.com"
-          ],
+          "adom": "test.com",
           "w": 600,
           "h": 300
         }
