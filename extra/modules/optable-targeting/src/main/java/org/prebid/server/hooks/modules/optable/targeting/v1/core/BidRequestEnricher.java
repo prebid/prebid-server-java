@@ -6,6 +6,7 @@ import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Segment;
 import com.iab.openrtb.request.Uid;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Ortb2;
@@ -147,8 +148,7 @@ public class BidRequestEnricher implements PayloadUpdate<AuctionRequestPayload> 
     }
 
     private static String eidIdExtractor(Eid eid) {
-        final String inserter = Optional.ofNullable(eid.getInserter()).orElse("");
-        return "%s_%s".formatted(inserter, eid.getSource());
+        return "%s_%s".formatted(StringUtils.defaultString(eid.getInserter()), eid.getSource());
     }
 
     private static List<Data> mergeData(List<Data> destination, List<Data> source) {
