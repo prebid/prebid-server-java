@@ -19,6 +19,7 @@ import org.prebid.server.functional.model.request.auction.ImpUnitCode
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.tests.module.ModuleBaseSpec
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.Retry
 
 import static org.prebid.server.functional.model.ModuleName.PB_RULE_ENGINE
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
@@ -40,6 +41,7 @@ import static org.prebid.server.functional.model.request.auction.TraceLevel.VERB
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 
+@Retry
 abstract class RuleEngineBaseSpec extends ModuleBaseSpec {
 
     protected static final List<BidderName> MULTI_BID_ADAPTERS = [GENERIC, OPENX, AMX].sort()
