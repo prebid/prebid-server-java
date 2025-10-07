@@ -12,7 +12,11 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -24,7 +28,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.emxdigital.ExtImpEmxDigital;
 
 import java.math.BigDecimal;
-import java.time.Instant;
+import java.time.Clock;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -35,19 +39,31 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
-import static org.assertj.core.api.Assertions.within;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
+@ExtendWith(MockitoExtension.class)
 public class EmxDigitalBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.endpoint.com";
+    private static final String ENDPOINT_URL = "https://test.com?t={{URL_TIMEOUT}}&ts={{TIMESTAMP}}&src=pbserver";
 
-    private final EmxDigitalBidder target = new EmxDigitalBidder(ENDPOINT_URL, jacksonMapper);
+    @Mock(strictness = LENIENT)
+    private Clock clock;
+
+    private EmxDigitalBidder target;
+
+    @BeforeEach
+    public void before() {
+        given(clock.millis()).willReturn(200L);
+        target = new EmxDigitalBidder(ENDPOINT_URL, clock, jacksonMapper);
+    }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new EmxDigitalBidder("invalid_url", jacksonMapper));
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> new EmxDigitalBidder("invalid_url", clock, jacksonMapper));
     }
 
     @Test
@@ -465,17 +481,10 @@ public class EmxDigitalBidderTest extends VertxTest {
                 .makeHttpRequests(bidRequest);
 
         // then
-        final int expectedTime = (int) Instant.now().getEpochSecond();
-
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .allSatisfy(uri -> {
-                    assertThat(uri).startsWith("https://test.endpoint.com?t=1000&ts=");
-                    assertThat(uri).endsWith("&src=pbserver");
-                    final String ts = uri.substring(36, uri.indexOf("&src"));
-                    assertThat(Integer.parseInt(ts)).isCloseTo(expectedTime, within(10));
-                });
+                .containsExactly("https://test.com?t=1000&ts=200&src=pbserver");
 
         assertThat(result.getValue()).hasSize(1)
                 .flatExtracting(r -> r.getHeaders().entries())

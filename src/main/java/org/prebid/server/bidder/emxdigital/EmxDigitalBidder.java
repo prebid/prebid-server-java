@@ -31,7 +31,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
-import java.time.Instant;
+import java.time.Clock;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -41,16 +41,20 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
 
     private static final String USD_CURRENCY = "USD";
     private static final Integer PROTOCOL_VAST_40 = 7;
+    private static final String URL_TIMEOUT_MACRO = "{{URL_TIMEOUT}}";
+    private static final String TIMESTAMP_MACRO = "{{TIMESTAMP}}";
 
     private static final TypeReference<ExtPrebid<?, ExtImpEmxDigital>> EMXDIGITAL_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
 
     private final String endpointUrl;
+    private final Clock clock;
     private final JacksonMapper mapper;
 
-    public EmxDigitalBidder(String endpointUrl, JacksonMapper mapper) {
+    public EmxDigitalBidder(String endpointUrl, Clock clock, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.clock = Objects.requireNonNull(clock);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -231,8 +235,9 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
         final Long tmax = bidRequest.getTmax();
         final int urlTimeout = tmax == 0 ? 1000 : tmax.intValue();
 
-        return "%s?t=%s&ts=%s&src=pbserver"
-                .formatted(endpointUrl, urlTimeout, (int) Instant.now().getEpochSecond());
+        return endpointUrl
+                .replace(URL_TIMEOUT_MACRO, String.valueOf(urlTimeout))
+                .replace(TIMESTAMP_MACRO, String.valueOf((int) clock.millis()));
     }
 
     @Override
