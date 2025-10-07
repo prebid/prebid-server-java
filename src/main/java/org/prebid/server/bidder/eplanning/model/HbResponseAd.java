@@ -23,7 +23,6 @@ public class HbResponseAd {
     @JsonProperty("crid")
     String crId;
 
-    @JsonProperty()
     String adom;
 
     @JsonProperty("w")
