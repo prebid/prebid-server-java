@@ -1,15 +1,26 @@
 package org.prebid.server.hooks.modules.liveintent.omni.channel.identity.v1.hooks;
 
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Eid;
+import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import org.apache.commons.collections4.ListUtils;
+import org.prebid.server.activity.Activity;
+import org.prebid.server.activity.ComponentType;
+import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
+import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
+import org.prebid.server.activity.infrastructure.payload.impl.ActivityInvocationPayloadImpl;
+import org.prebid.server.activity.infrastructure.payload.impl.BidRequestActivityInvocationPayload;
+import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.liveintent.omni.channel.identity.model.IdResResponse;
 import org.prebid.server.hooks.modules.liveintent.omni.channel.identity.model.config.LiveIntentOmniChannelProperties;
+import org.prebid.server.hooks.modules.liveintent.omni.channel.identity.v1.LiveIntentOmniChannelIdentityModule;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
@@ -39,9 +50,11 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
     private final LiveIntentOmniChannelProperties config;
     private final JacksonMapper mapper;
     private final HttpClient httpClient;
+    private final UserFpdActivityMask userFpdActivityMask;
     private final double logSamplingRate;
 
     public LiveIntentOmniChannelIdentityProcessedAuctionRequestHook(LiveIntentOmniChannelProperties config,
+                                                                    UserFpdActivityMask userFpdActivityMask,
                                                                     JacksonMapper mapper,
                                                                     HttpClient httpClient,
                                                                     double logSamplingRate) {
@@ -51,6 +64,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
         this.mapper = Objects.requireNonNull(mapper);
         this.httpClient = Objects.requireNonNull(httpClient);
         this.logSamplingRate = logSamplingRate;
+        this.userFpdActivityMask = Objects.requireNonNull(userFpdActivityMask);
     }
 
     @Override
@@ -58,20 +72,74 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
                                                                 AuctionInvocationContext invocationContext) {
 
         return config.getTreatmentRate() > ThreadLocalRandom.current().nextFloat()
-                ? requestIdentities(auctionRequestPayload.bidRequest())
+                ? requestIdentities(auctionRequestPayload.bidRequest(), invocationContext.auctionContext())
                 .<InvocationResult<AuctionRequestPayload>>map(this::update)
                 .onFailure(throwable -> conditionalLogger.error(
                         "Failed enrichment: %s".formatted(throwable.getMessage()), logSamplingRate))
                 : noAction();
     }
 
-    private Future<IdResResponse> requestIdentities(BidRequest bidRequest) {
+    private Future<IdResResponse> requestIdentities(BidRequest bidRequest, AuctionContext auctionContext) {
+        final BidRequest restrictedBidRequest = applyActivityRestrictions(bidRequest, auctionContext);
         return httpClient.post(
                         config.getIdentityResolutionEndpoint(),
                         headers(),
-                        mapper.encodeToString(bidRequest),
+                        mapper.encodeToString(restrictedBidRequest),
                         config.getRequestTimeoutMs())
                 .map(this::processResponse);
+    }
+
+    private BidRequest applyActivityRestrictions(BidRequest bidRequest, AuctionContext auctionContext) {
+        final ActivityInvocationPayload activityInvocationPayload = BidRequestActivityInvocationPayload.of(
+                ActivityInvocationPayloadImpl.of(
+                        ComponentType.GENERAL_MODULE,
+                        LiveIntentOmniChannelIdentityModule.CODE),
+                bidRequest);
+        final ActivityInfrastructure activityInfrastructure = auctionContext.getActivityInfrastructure();
+
+        final boolean disallowTransmitUfpd = !activityInfrastructure.isAllowed(
+                Activity.TRANSMIT_UFPD, activityInvocationPayload);
+        final boolean disallowTransmitEids = !activityInfrastructure.isAllowed(
+                Activity.TRANSMIT_EIDS, activityInvocationPayload);
+        final boolean disallowTransmitGeo = !activityInfrastructure.isAllowed(
+                Activity.TRANSMIT_GEO, activityInvocationPayload);
+        final boolean disallowTransmitTid = !activityInfrastructure.isAllowed(
+                Activity.TRANSMIT_TID, activityInvocationPayload);
+
+        return maskUserPersonalInfo(
+                bidRequest,
+                disallowTransmitUfpd,
+                disallowTransmitEids,
+                disallowTransmitGeo,
+                disallowTransmitTid);
+    }
+
+    private BidRequest maskUserPersonalInfo(BidRequest bidRequest,
+                                            boolean disallowTransmitUfpd,
+                                            boolean disallowTransmitEids,
+                                            boolean disallowTransmitGeo,
+                                            boolean disallowTransmitTid) {
+
+        final User maskedUser = userFpdActivityMask.maskUser(
+                bidRequest.getUser(), disallowTransmitUfpd, disallowTransmitEids);
+        final Device maskedDevice = userFpdActivityMask.maskDevice(
+                bidRequest.getDevice(), disallowTransmitUfpd, disallowTransmitGeo);
+
+        final Source maskedSource = maskSource(bidRequest.getSource(), disallowTransmitUfpd, disallowTransmitTid);
+
+        return bidRequest.toBuilder()
+                .user(maskedUser)
+                .device(maskedDevice)
+                .source(maskedSource)
+                .build();
+    }
+
+    private Source maskSource(Source source, boolean mastUfpd, boolean maskTid) {
+        if (source == null || !(mastUfpd || maskTid)) {
+            return source;
+        }
+
+        return source.toBuilder().tid(null).build();
     }
 
     private MultiMap headers() {
