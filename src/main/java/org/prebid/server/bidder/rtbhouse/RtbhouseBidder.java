@@ -5,6 +5,9 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.Publisher;
+import com.iab.openrtb.request.Publisher.PublisherBuilder;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -60,6 +63,7 @@ public class RtbhouseBidder implements Bidder<BidRequest> {
 
         final List<Imp> modifiedImps = new ArrayList<>();
         final List<BidderError> errors = new ArrayList<>();
+        String publisherId = null;
 
         for (Imp imp : bidRequest.getImp()) {
             try {
@@ -67,6 +71,10 @@ public class RtbhouseBidder implements Bidder<BidRequest> {
                 final Price bidFloorPrice = resolveBidFloor(imp, impExt, bidRequest);
 
                 modifiedImps.add(modifyImp(imp, bidFloorPrice));
+                // Get publisherId from first valid impExt
+                if (publisherId == null && impExt.getPublisherId() != null) {
+                    publisherId = impExt.getPublisherId();
+                }
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -76,10 +84,12 @@ public class RtbhouseBidder implements Bidder<BidRequest> {
             return Result.withErrors(errors);
         }
 
-        final BidRequest outgoingRequest = bidRequest.toBuilder()
+        BidRequest outgoingRequest = bidRequest.toBuilder()
                 .cur(Collections.singletonList(BIDDER_CURRENCY))
                 .imp(modifiedImps)
                 .build();
+
+        outgoingRequest = updateSitePublisherId(outgoingRequest, publisherId);
 
         return Result.withValue(BidderUtil.defaultRequest(outgoingRequest, endpointUrl, mapper));
     }
@@ -175,10 +185,10 @@ public class RtbhouseBidder implements Bidder<BidRequest> {
     }
 
     private static Imp modifyImp(Imp imp, Price bidFloorPrice) {
-
         return imp.toBuilder()
                 .bidfloorcur(ObjectUtil.getIfNotNull(bidFloorPrice, Price::getCurrency))
                 .bidfloor(ObjectUtil.getIfNotNull(bidFloorPrice, Price::getValue))
+                .pmp(null)
                 .build();
     }
 
@@ -223,4 +233,25 @@ public class RtbhouseBidder implements Bidder<BidRequest> {
                 .build();
     }
 
+    static BidRequest updateSitePublisherId(BidRequest bidRequest, String publisherId) {
+        if (bidRequest == null || publisherId == null) {
+            return bidRequest;
+        }
+
+        final Site site = bidRequest.getSite();
+        Publisher publisher = (site != null) ? site.getPublisher() : null;
+
+        final PublisherBuilder publisherBuilder = (publisher != null)
+                ? publisher.toBuilder()
+                : Publisher.builder();
+
+        publisherBuilder.id(publisherId);
+        publisher = publisherBuilder.build();
+
+        final Site updatedSite = (site != null)
+                ? site.toBuilder().publisher(publisher).build()
+                : Site.builder().publisher(publisher).build();
+
+        return bidRequest.toBuilder().site(updatedSite).build();
+    }
 }
