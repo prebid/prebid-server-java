@@ -23,7 +23,8 @@ import org.prebid.server.auction.GeoLocationServiceWrapper;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.OrtbTypesResolver;
 import org.prebid.server.auction.PriceGranularity;
-import org.prebid.server.auction.StoredRequestProcessor;
+import org.prebid.server.auction.externalortb.ProfilesProcessor;
+import org.prebid.server.auction.externalortb.StoredRequestProcessor;
 import org.prebid.server.auction.gpp.AmpGppService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.ConsentType;
@@ -90,6 +91,7 @@ public class AmpRequestFactory {
 
     private final Ortb2RequestFactory ortb2RequestFactory;
     private final StoredRequestProcessor storedRequestProcessor;
+    private final ProfilesProcessor profilesProcessor;
     private final BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
     private final AmpGppService gppService;
     private final OrtbTypesResolver ortbTypesResolver;
@@ -103,6 +105,7 @@ public class AmpRequestFactory {
 
     public AmpRequestFactory(Ortb2RequestFactory ortb2RequestFactory,
                              StoredRequestProcessor storedRequestProcessor,
+                             ProfilesProcessor profilesProcessor,
                              BidRequestOrtbVersionConversionManager ortbVersionConversionManager,
                              AmpGppService gppService,
                              OrtbTypesResolver ortbTypesResolver,
@@ -116,6 +119,7 @@ public class AmpRequestFactory {
 
         this.ortb2RequestFactory = Objects.requireNonNull(ortb2RequestFactory);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
+        this.profilesProcessor = Objects.requireNonNull(profilesProcessor);
         this.ortbVersionConversionManager = Objects.requireNonNull(ortbVersionConversionManager);
         this.gppService = Objects.requireNonNull(gppService);
         this.ortbTypesResolver = Objects.requireNonNull(ortbTypesResolver);
@@ -407,6 +411,7 @@ public class AmpRequestFactory {
         final HttpRequestContext httpRequest = auctionContext.getHttpRequest();
 
         return storedRequestProcessor.processAmpRequest(accountId, storedRequestId, receivedBidRequest)
+                .compose(bidRequest -> profilesProcessor.process(auctionContext, bidRequest))
                 .map(ortbVersionConversionManager::convertToAuctionSupportedVersion)
                 .map(bidRequest -> gppService.updateBidRequest(bidRequest, auctionContext))
                 .map(bidRequest -> validateStoredBidRequest(storedRequestId, bidRequest))
@@ -414,6 +419,10 @@ public class AmpRequestFactory {
                 .map(bidRequest -> overrideParameters(bidRequest, httpRequest, auctionContext.getPrebidErrors()))
                 .map(bidRequest -> paramsResolver.resolve(bidRequest, auctionContext, ENDPOINT, true))
                 .map(bidRequest -> ortb2RequestFactory.removeEmptyEids(bidRequest, auctionContext.getDebugWarnings()))
+                .compose(resolvedBidRequest -> ortb2RequestFactory.limitImpressions(
+                        account,
+                        resolvedBidRequest,
+                        auctionContext.getDebugWarnings()))
                 .compose(resolvedBidRequest -> ortb2RequestFactory.validateRequest(
                         account,
                         resolvedBidRequest,

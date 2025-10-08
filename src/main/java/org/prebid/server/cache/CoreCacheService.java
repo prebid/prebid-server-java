@@ -58,6 +58,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -207,6 +208,13 @@ public class CoreCacheService {
         return bidCacheResponse;
     }
 
+    private <T> Future<T> failVtrackCacheWriteResponse(Throwable exception, String accountId, long startTime) {
+        if (exception instanceof PreBidException) {
+            metrics.updateVtrackCacheWriteRequestTime(accountId, clock.millis() - startTime, MetricName.err);
+        }
+        return failResponse(exception);
+    }
+
     public Future<BidCacheResponse> cachePutObjects(List<BidPutObject> bidPutObjects,
                                                     Boolean isEventsEnabled,
                                                     Set<String> biddersAllowingVastUpdate,
@@ -217,7 +225,10 @@ public class CoreCacheService {
         final List<CachedCreative> cachedCreatives =
                 updatePutObjects(bidPutObjects, isEventsEnabled, biddersAllowingVastUpdate, accountId, integration);
 
-        updateCreativeMetrics(accountId, cachedCreatives);
+        updateCreativeMetrics(
+                cachedCreatives,
+                (ttl, type) -> metrics.updateVtrackCacheCreativeTtl(accountId, ttl, type),
+                (size, type) -> metrics.updateVtrackCacheCreativeSize(accountId, size, type));
 
         return makeRequest(toBidCacheRequest(cachedCreatives), cachedCreatives.size(), timeout, accountId);
     }
@@ -316,7 +327,10 @@ public class CoreCacheService {
 
         final BidCacheRequest bidCacheRequest = toBidCacheRequest(cachedCreatives);
 
-        updateCreativeMetrics(accountId, cachedCreatives);
+        updateCreativeMetrics(
+                cachedCreatives,
+                (ttl, type) -> metrics.updateCacheCreativeTtl(accountId, ttl, type),
+                (size, type) -> metrics.updateCacheCreativeSize(accountId, size, type));
 
         final String url = ObjectUtils.firstNonNull(internalEndpointUrl, externalEndpointUrl).toString();
         final String body = mapper.encodeToString(bidCacheRequest);
@@ -542,17 +556,20 @@ public class CoreCacheService {
         return hbCacheId != null && uuid.endsWith(hbCacheId) ? hbCacheId : uuid;
     }
 
-    private void updateCreativeMetrics(String accountId, List<CachedCreative> cachedCreatives) {
+    private void updateCreativeMetrics(List<CachedCreative> cachedCreatives,
+                                       BiConsumer<Integer, MetricName> updateCreativeTtlMetric,
+                                       BiConsumer<Integer, MetricName> updateCreativeSiseMetric) {
+
         for (CachedCreative cachedCreative : cachedCreatives) {
             final BidPutObject payload = cachedCreative.getPayload();
             final MetricName creativeType = resolveCreativeTypeName(payload);
             final Integer creativeTtl = ObjectUtils.defaultIfNull(payload.getTtlseconds(), payload.getExpiry());
 
             if (creativeTtl != null) {
-                metrics.updateCacheCreativeTtl(accountId, creativeTtl, creativeType);
+                updateCreativeTtlMetric.accept(creativeTtl, creativeType);
             }
 
-            metrics.updateCacheCreativeSize(accountId, cachedCreative.getSize(), creativeType);
+            updateCreativeSiseMetric.accept(cachedCreative.getSize(), creativeType);
         }
     }
 
@@ -654,7 +671,7 @@ public class CoreCacheService {
         final long startTime = clock.millis();
         return httpClient.get(url, cacheHeaders, remainingTimeout)
                 .map(response -> processVtrackReadResponse(response, startTime))
-                .recover(exception -> failVtrackCacheReadResponse(exception, startTime));
+                .recover(CoreCacheService::failResponse);
     }
 
     private HttpClientResponse processVtrackReadResponse(HttpClientResponse response, long startTime) {
@@ -666,27 +683,14 @@ public class CoreCacheService {
             return response;
         }
 
+        metrics.updateVtrackCacheReadRequestTime(clock.millis() - startTime, MetricName.err);
+
         try {
             final CacheErrorResponse errorResponse = mapper.decodeValue(body, CacheErrorResponse.class);
-            metrics.updateVtrackCacheReadRequestTime(clock.millis() - startTime, MetricName.err);
             return HttpClientResponse.of(statusCode, response.getHeaders(), errorResponse.getMessage());
         } catch (DecodeException e) {
             throw new PreBidException("Cannot parse response: " + body, e);
         }
-    }
-
-    private <T> Future<T> failVtrackCacheWriteResponse(Throwable exception, String accountId, long startTime) {
-        if (exception instanceof PreBidException) {
-            metrics.updateVtrackCacheWriteRequestTime(accountId, clock.millis() - startTime, MetricName.err);
-        }
-        return failResponse(exception);
-    }
-
-    private <T> Future<T> failVtrackCacheReadResponse(Throwable exception, long startTime) {
-        if (exception instanceof PreBidException) {
-            metrics.updateVtrackCacheReadRequestTime(clock.millis() - startTime, MetricName.err);
-        }
-        return failResponse(exception);
     }
 
     private static <T> Future<T> failResponse(Throwable exception) {

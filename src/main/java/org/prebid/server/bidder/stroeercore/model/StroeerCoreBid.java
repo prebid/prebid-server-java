@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Value;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Value
 @Builder
@@ -14,7 +15,7 @@ public class StroeerCoreBid {
     String id;
 
     @JsonProperty("bidId")
-    String impId;
+    String bidId;
 
     BigDecimal cpm;
 
@@ -29,4 +30,8 @@ public class StroeerCoreBid {
     String creativeId;
 
     ObjectNode dsa;
+
+    String mtype;
+
+    List<String> adomain;
 }

@@ -59,6 +59,7 @@ public class Metrics extends UpdatableMetrics {
     private final CurrencyRatesMetrics currencyRatesMetrics;
     private final Map<MetricName, SettingsCacheMetrics> settingsCacheMetrics;
     private final HooksMetrics hooksMetrics;
+    private final ProfileMetrics profileMetrics;
 
     public Metrics(MetricRegistry metricRegistry,
                    CounterType counterType,
@@ -97,6 +98,7 @@ public class Metrics extends UpdatableMetrics {
         currencyRatesMetrics = new CurrencyRatesMetrics(metricRegistry, counterType);
         settingsCacheMetrics = new HashMap<>();
         hooksMetrics = new HooksMetrics(metricRegistry, counterType);
+        profileMetrics = new ProfileMetrics(metricRegistry, counterType);
     }
 
     RequestsMetrics requests() {
@@ -180,6 +182,10 @@ public class Metrics extends UpdatableMetrics {
             incCounter(MetricName.no_cookie_requests);
         }
         incCounter(MetricName.imps_requested, numImps);
+    }
+
+    public void updateImpsDroppedMetric(int numImps) {
+        incCounter(MetricName.imps_dropped, numImps);
     }
 
     public void updateImpTypesMetrics(List<Imp> imps) {
@@ -615,6 +621,16 @@ public class Metrics extends UpdatableMetrics {
         forAccount(accountId).cache().vtrack().write().updateTimer(metricName, timeElapsed);
     }
 
+    public void updateVtrackCacheCreativeSize(String accountId, int creativeSize, MetricName creativeType) {
+        cache().vtrack().creativeSize().updateHistogram(creativeType, creativeSize);
+        forAccount(accountId).cache().vtrack().creativeSize().updateHistogram(creativeType, creativeSize);
+    }
+
+    public void updateVtrackCacheCreativeTtl(String accountId, Integer creativeTtl, MetricName creativeType) {
+        cache().vtrack().creativeTtl().updateHistogram(creativeType, creativeTtl);
+        forAccount(accountId).cache().vtrack().creativeTtl().updateHistogram(creativeType, creativeTtl);
+    }
+
     public void updateAuctionCacheRequestTime(String accountId, long timeElapsed, MetricName metricName) {
         cache().requests().updateTimer(metricName, timeElapsed);
         forAccount(accountId).cache().requests().updateTimer(metricName, timeElapsed);
@@ -623,6 +639,11 @@ public class Metrics extends UpdatableMetrics {
     public void updateCacheCreativeSize(String accountId, int creativeSize, MetricName creativeType) {
         cache().creativeSize().updateHistogram(creativeType, creativeSize);
         forAccount(accountId).cache().creativeSize().updateHistogram(creativeType, creativeSize);
+    }
+
+    public void updateCacheCreativeTtl(String accountId, Integer creativeTtl, MetricName creativeType) {
+        cache().creativeTtl().updateHistogram(creativeType, creativeTtl);
+        forAccount(accountId).cache().creativeTtl().updateHistogram(creativeType, creativeTtl);
     }
 
     public void updateTimeoutNotificationMetric(boolean success) {
@@ -702,11 +723,6 @@ public class Metrics extends UpdatableMetrics {
         }
     }
 
-    public void updateCacheCreativeTtl(String accountId, Integer creativeTtl, MetricName creativeType) {
-        cache().creativeTtl().updateHistogram(creativeType, creativeTtl);
-        forAccount(accountId).cache().creativeTtl().updateHistogram(creativeType, creativeTtl);
-    }
-
     public void updateRequestsActivityDisallowedCount(Activity activity) {
         requests().activities().forActivity(activity).incCounter(MetricName.disallowed_count);
     }
@@ -725,6 +741,14 @@ public class Metrics extends UpdatableMetrics {
 
     public void updateAccountActivityProcessedRulesCount(String account) {
         forAccount(account).activities().incCounter(MetricName.processed_rules_count);
+    }
+
+    public void updateProfileMetric(MetricName metricName) {
+        profileMetrics.incCounter(metricName);
+    }
+
+    public void updateAccountProfileMetric(String account, MetricName metricName) {
+        forAccount(account).profiles().incCounter(metricName);
     }
 
     private static class HookMetricMapper {
