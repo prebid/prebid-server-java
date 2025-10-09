@@ -3,7 +3,6 @@ package org.prebid.server.bidder.consumable;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.common.base.Strings;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -13,6 +12,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -65,7 +65,7 @@ public class ConsumableBidder implements Bidder<BidRequest> {
                 if (!isImpValid(bidRequest.getSite(), bidRequest.getApp(), impExt)) {
                     continue;
                 }
-                if (Strings.isNullOrEmpty(placementId) && !Strings.isNullOrEmpty(impExt.getPlacementId())) {
+                if (StringUtils.isBlank(placementId) && StringUtils.isNotBlank(impExt.getPlacementId())) {
                     placementId = impExt.getPlacementId();
                 }
 
@@ -93,7 +93,7 @@ public class ConsumableBidder implements Bidder<BidRequest> {
     }
 
     private boolean isImpValid(Site site, App app, ExtImpConsumable impExt) {
-        return (app != null && !Strings.isNullOrEmpty(impExt.getPlacementId()))
+        return (app != null && StringUtils.isNotBlank(impExt.getPlacementId()))
                 || (site != null && impExt.getSiteId() != 0 && impExt.getNetworkId() != 0 && impExt.getUnitId() != 0);
 
     }
@@ -103,7 +103,7 @@ public class ConsumableBidder implements Bidder<BidRequest> {
     }
 
     private String constructUri(String placementId) {
-        final String uri = Strings.isNullOrEmpty(placementId) ? SITE_URI_PATH : (APP_URI_PATH + placementId);
+        final String uri = StringUtils.isBlank(placementId) ? SITE_URI_PATH : (APP_URI_PATH + placementId);
         return this.endpointUrl + uri;
     }
 

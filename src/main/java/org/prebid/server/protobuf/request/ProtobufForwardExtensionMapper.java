@@ -1,6 +1,6 @@
 package org.prebid.server.protobuf.request;
 
-import com.google.protobuf.Extension;
+import com.google.protobuf.ExtensionLite;
 import com.google.protobuf.Message;
 
 /**
@@ -10,5 +10,5 @@ public interface ProtobufForwardExtensionMapper<ContainingType extends Message, 
 
     ToType map(FromType fromType);
 
-    Extension<ContainingType, ToType> extensionDescriptor();
+    ExtensionLite<ContainingType, ToType> extensionDescriptor();
 }

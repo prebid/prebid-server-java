@@ -35,7 +35,6 @@
         <!-- Project production dependency versions -->
         <spring.boot.version>3.5.5</spring.boot.version>
         <vertx.version>4.5.20</vertx.version>
-        <validation-api.version>2.0.1.Final</validation-api.version>
         <commons.collections.version>4.4</commons.collections.version>
         <commons.compress.version>1.27.1</commons.compress.version>
         <commons-math3.version>3.6.1</commons-math3.version>
@@ -52,7 +51,7 @@
         <iabtcf.version>2.0.10</iabtcf.version>
         <gpp-encoder.version>3.2.4</gpp-encoder.version>
         <maxmind-client.version>4.2.1</maxmind-client.version>
-        <protobuf.version>3.25.6</protobuf.version>
+        <protobuf.version>4.32.1</protobuf.version>
         <protoc.version>${protobuf.version}</protoc.version>
         <json-logic.version>1.0.9</json-logic.version>
         <aws.awssdk.version>2.31.22</aws.awssdk.version>
@@ -110,11 +109,6 @@
                 <groupId>org.wiremock</groupId>
                 <artifactId>wiremock-jetty12</artifactId>
                 <version>${wiremock.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>javax.validation</groupId>
-                <artifactId>validation-api</artifactId>
-                <version>${validation-api.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.ongres.scram</groupId>
