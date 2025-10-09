@@ -14,6 +14,7 @@ import org.prebid.server.functional.model.request.vtrack.VtrackRequest
 import org.prebid.server.functional.model.request.vtrack.xml.Vast
 import org.prebid.server.functional.model.response.auction.Adm
 import org.prebid.server.functional.model.response.auction.BidResponse
+import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.IgnoreRest
 
@@ -31,16 +32,18 @@ class CacheSpec extends BaseSpec {
     private static final Integer DEFAULT_UUID_LENGTH = 36
     private static final Integer TARGETING_PARAM_NAME_MAX_LENGTH = 20
 
-    private static final String XML_CREATIVE_SIZE_ACCOUNT_METRIC = "account.%s.prebid_cache.creative_size.xml"
+    private static final String XML_CREATIVE_SIZE_ACCOUNT_METRIC = "account.%s.prebid_cache.vtrack.creative_size.xml"
     private static final String JSON_CREATIVE_SIZE_ACCOUNT_METRIC = "account.%s.prebid_cache.creative_size.json"
     private static final String XML_CREATIVE_TTL_ACCOUNT_METRIC = "account.%s.prebid_cache.creative_ttl.xml"
     private static final String JSON_CREATIVE_TTL_ACCOUNT_METRIC = "account.%s.prebid_cache.creative_ttl.json"
     private static final String ACCOUNT_PREBID_CACHE_VTRACK_WRITE_OK_METRIC = "account.%s.prebid_cache.vtrack.write.ok"
+    private static final String ACCOUNT_PREBID_CACHE_VTRACK_WRITE_ERR_METRIC = "account.%s.prebid_cache.vtrack.write.err"
     private static final String ACCOUNT_PREBID_CACHE_REQUEST_OK_METRIC = "account.%s.prebid_cache.requests.ok"
 
-    private static final String XML_CREATIVE_SIZE_GLOBAL_METRIC = "prebid_cache.creative_size.xml"
+    private static final String PREBID_CACHE_XML_CREATIVE_SIZE_GLOBAL_METRIC = "prebid_cache.vtrack.creative_size.xml"
     private static final String JSON_CREATIVE_SIZE_GLOBAL_METRIC = "prebid_cache.creative_size.json"
     private static final String PREBID_CACHE_VTRACK_WRITE_OK_METRIC = "prebid_cache.vtrack.write.ok"
+    private static final String PREBID_CACHE_VTRACK_WRITE_ERROR_METRIC = "prebid_cache.vtrack.write.err"
     private static final String PREBID_CACHE_VTRACK_READ_OK_METRIC = "prebid_cache.vtrack.read.ok"
     private static final String PREBID_CACHE_VTRACK_READ_ERROR_METRIC = "prebid_cache.vtrack.read.err"
     private static final String PREBID_CACHE_REQUEST_OK_METRIC = "prebid_cache.requests.ok"
@@ -67,11 +70,11 @@ class CacheSpec extends BaseSpec {
         when: "PBS processes vtrack request"
         defaultPbsService.sendPostVtrackRequest(request, accountId)
 
-        then: "prebid_cache.creative_size.xml metric should be updated"
+        then: "prebid_cache.vtrack.creative_size.xml metric should be updated"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
         def creativeSize = creative.bytes.length
         assert metrics[PREBID_CACHE_VTRACK_WRITE_OK_METRIC] == initialValue + 1
-        assert metrics[XML_CREATIVE_SIZE_GLOBAL_METRIC] == creativeSize
+        assert metrics[PREBID_CACHE_XML_CREATIVE_SIZE_GLOBAL_METRIC] == creativeSize
 
         and: "account.<account-id>.prebid_cache.creative_size.xml should be updated"
         assert metrics[ACCOUNT_PREBID_CACHE_VTRACK_WRITE_OK_METRIC.formatted(accountId)] == 1
@@ -793,6 +796,50 @@ class CacheSpec extends BaseSpec {
         enabledCacheConcfig << [null, false, true]
     }
 
+    def "PBS should failed cache and update prebid_cache.vtrack.write.err metric andwhen cache service respond with invalid status code"() {
+        given: "Current value of metric prebid_cache.requests.ok"
+        def okInitialValue = getCurrentMetricValue(defaultPbsService, PREBID_CACHE_VTRACK_WRITE_ERROR_METRIC)
+
+        and: "Default VtrackRequest"
+        def accountId = PBSUtils.randomNumber.toString()
+        def creative = encodeXml(Vast.getDefaultVastModel(PBSUtils.randomString))
+        def request = VtrackRequest.getDefaultVtrackRequest(creative)
+
+        and: "Create and save enabled events config in account"
+        def account = new Account().tap {
+            it.uuid = accountId
+            it.config = new AccountConfig().tap {
+                it.auction = new AccountAuctionConfig(cache: new AccountCacheConfig(enabled: true))
+            }
+        }
+        accountDao.save(account)
+
+        and: "Flush metrics"
+        flushMetrics(defaultPbsService)
+
+        and: "Resent cache and set up invalid response"
+        prebidCache.reset()
+        prebidCache.setInvalidPostResponse()
+
+        when: "PBS processes vtrack request"
+        defaultPbsService.sendPostVtrackRequest(request, accountId)
+
+        then: "PBS throws an exception"
+        def exception = thrown(PrebidServerException)
+        assert exception.statusCode == 500
+        assert exception.responseBody.contains("Error occurred while sending request to cache: HTTP status code 500")
+
+        then: "prebid_cache.vtrack.write.err metric should be updated"
+        def metrics = defaultPbsService.sendCollectedMetricsRequest()
+        assert metrics[PREBID_CACHE_VTRACK_WRITE_ERROR_METRIC] == okInitialValue + 1
+
+        and: "account.<account-id>.prebid_cache.vtrack.write.err should be updated"
+        assert metrics[ACCOUNT_PREBID_CACHE_VTRACK_WRITE_ERR_METRIC.formatted(accountId)] == 1
+
+        cleanup:
+        prebidCache.reset()
+    }
+
     def "PBS should return 400 status code when get vtrack request without uuid"() {
         given: "PBS processes get vtrack request"
         def response = defaultPbsService.sendGetVtrackRequest(null)
@@ -808,7 +855,7 @@ class CacheSpec extends BaseSpec {
         given: "Random uuid"
         def uuid = UUID.randomUUID().toString()
 
-        and: "Clean up and set up successful response"
+        and: "Cache set up successful response"
         prebidCache.setVtrackResponse(uuid)
 
         when: "PBS processes get vtrack request"
@@ -829,7 +876,7 @@ class CacheSpec extends BaseSpec {
         given: "Random uuid"
         def uuid = UUID.randomUUID().toString()
 
-        and: "Set up invalid response"
+        and: "Cache set up invalid response"
         prebidCache.setInvalidVtrackResponse(uuid)
 
         when: "PBS processes get vtrack request"

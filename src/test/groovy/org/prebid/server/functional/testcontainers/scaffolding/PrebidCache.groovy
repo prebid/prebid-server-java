@@ -44,8 +44,8 @@ class PrebidCache extends NetworkScaffolding {
     @Override
     protected HttpRequest getRequest(String impId) {
         request().withMethod("POST")
-                 .withPath(CACHE_ENDPOINT)
-                 .withBody(jsonPath("\$.puts[?(@.value.impid == '$impId')]"))
+                .withPath(CACHE_ENDPOINT)
+                .withBody(jsonPath("\$.puts[?(@.value.impid == '$impId')]"))
     }
 
     List<BidCacheRequest> getRecordedRequests(String impId) {
@@ -60,40 +60,49 @@ class PrebidCache extends NetworkScaffolding {
     @Override
     HttpRequest getRequest() {
         request().withMethod("POST")
-                   .withPath(CACHE_ENDPOINT)
+                .withPath(CACHE_ENDPOINT)
     }
 
     @Override
     void setResponse() {
         mockServerClient.when(request().withPath(endpoint), Times.unlimited(), TimeToLive.unlimited(), -10)
-                        .respond{request -> request.withPath(endpoint)
-                                ? response().withStatusCode(OK_200.code()).withBody(getBodyByRequest(request))
-                                : HttpResponse.notFoundResponse()}
+                .respond { request ->
+                    request.withPath(endpoint)
+                            ? response().withStatusCode(OK_200.code()).withBody(getBodyByRequest(request))
+                            : HttpResponse.notFoundResponse()
+                }
+    }
+
+    void setInvalidPostResponse() {
+        mockServerClient.when(request().withPath(endpoint), Times.unlimited(), TimeToLive.unlimited(), -10)
+                .respond { response().withStatusCode(INTERNAL_SERVER_ERROR_500.code()) }
     }
 
     void setVtrackResponse(String uuid) {
         mockServerClient.when(request()
                 .withMethod("GET")
                 .withPath(endpoint)
-                .withQueryStringParameter("uuid",uuid), Times.unlimited(), TimeToLive.unlimited(), -10)
-                .respond{request -> request.withPath(endpoint)
-                        ? response().withStatusCode(OK_200.code())
-                        : HttpResponse.notFoundResponse()}
+                .withQueryStringParameter("uuid", uuid), Times.unlimited(), TimeToLive.unlimited(), -10)
+                .respond { request ->
+                    request.withPath(endpoint)
+                            ? response().withStatusCode(OK_200.code())
+                            : HttpResponse.notFoundResponse()
+                }
     }
 
     void setInvalidVtrackResponse(String uuid) {
         mockServerClient.when(request()
                 .withMethod("GET")
                 .withPath(endpoint)
-                .withQueryStringParameter("uuid",uuid), Times.unlimited(), TimeToLive.unlimited(), -10)
-                .respond{response().withStatusCode(INTERNAL_SERVER_ERROR_500.code())}
+                .withQueryStringParameter("uuid", uuid), Times.unlimited(), TimeToLive.unlimited(), -10)
+                .respond { response().withStatusCode(INTERNAL_SERVER_ERROR_500.code()) }
 
     }
 
     private static HttpRequest getXmlCacheRequest(String payload) {
         request().withMethod("POST")
-                 .withPath(CACHE_ENDPOINT)
-                 .withBody(jsonPath("\$.puts[?(@.value =~/^.*$payload.*\$/)]"))
+                .withPath(CACHE_ENDPOINT)
+                .withBody(jsonPath("\$.puts[?(@.value =~/^.*$payload.*\$/)]"))
     }
 
     private String getBodyByRequest(HttpRequest request) {
