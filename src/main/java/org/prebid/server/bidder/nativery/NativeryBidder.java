@@ -22,7 +22,6 @@ import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.nativery.ExtImpNativery;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
@@ -70,7 +69,7 @@ public class NativeryBidder implements Bidder<BidRequest> {
         for (Imp imp : request.getImp()) {
             try {
                 final ExtImpNativery extImp = parseImpExt(imp);
-                if (widgetId == null && extImp != null && StringUtils.isNotBlank(extImp.getWidgetId())) {
+                if (widgetId == null && StringUtils.isNotBlank(extImp.getWidgetId())) {
                     widgetId = extImp.getWidgetId();
                 }
                 validImps.add(imp);
@@ -83,19 +82,34 @@ public class NativeryBidder implements Bidder<BidRequest> {
             return Result.of(Collections.emptyList(), errors);
         }
 
-        final ExtRequest updatedExt = buildRequestExtWithNativery(request.getExt(), isAmp, widgetId);
+        // 🟢 Zmienione — zamieniamy ExtRequest na ObjectNode
+        final ObjectNode originalExt = request.getExt() != null
+                ? mapper.mapper().convertValue(request.getExt(), ObjectNode.class)
+                : null;
+        final ExtRequest updatedExt = buildRequestExtWithNativery(originalExt, isAmp, widgetId);
 
         for (Imp imp : validImps) {
             final BidRequest singleImpRequest = request.toBuilder()
                     .imp(Collections.singletonList(imp))
-                    .ext(updatedExt)
-                    .cur(Collections.singletonList(DEFAULT_CURRENCY))
+                    .ext(updatedExt) // ✅ teraz typ się zgadza
                     .build();
 
             httpRequests.add(BidderUtil.defaultRequest(singleImpRequest, endpointUrl, mapper));
         }
 
         return Result.of(httpRequests, errors);
+    }
+
+    private boolean isAmpRequest(BidRequest request) {
+        if (request.getSite() != null && request.getSite().getExt() != null) {
+            final JsonNode siteExt = mapper.mapper().valueToTree(request.getSite().getExt());
+            final JsonNode ampNode = siteExt.get("amp");
+            if (ampNode != null && ampNode.asInt(0) == 1) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private ExtImpNativery parseImpExt(Imp imp) {
@@ -108,30 +122,19 @@ public class NativeryBidder implements Bidder<BidRequest> {
         }
     }
 
-    private ExtRequest buildRequestExtWithNativery(ExtRequest originalExt, boolean isAmp, String widgetId) {
-        final ObjectNode extNode = mapper.mapper().convertValue(originalExt, ObjectNode.class);
-        final ObjectNode root = extNode != null ? extNode : mapper.mapper().createObjectNode();
+    private ExtRequest buildRequestExtWithNativery(ObjectNode originalExt, boolean isAmp, String widgetId) {
+        final ObjectNode root = originalExt != null
+                ? originalExt.deepCopy()
+                : mapper.mapper().createObjectNode();
 
         final ObjectNode nativeryNode = root.with("nativery");
+
         nativeryNode.put("isAmp", isAmp);
         if (widgetId != null) {
             nativeryNode.put("widgetId", widgetId);
         }
 
         return mapper.mapper().convertValue(root, ExtRequest.class);
-    }
-
-    private boolean isAmpRequest(BidRequest request) {
-        if (request.getSite() == null || request.getSite().getExt() == null) {
-            return false;
-        }
-        try {
-            final ExtSite extSite = mapper.mapper().convertValue(request.getSite().getExt(), ExtSite.class);
-            final Integer amp = extSite != null ? extSite.getAmp() : null;
-            return amp != null && amp == 1;
-        } catch (Exception e) {
-            return false;
-        }
     }
 
     @Override

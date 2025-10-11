@@ -19,6 +19,7 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.nativery.ExtImpNativery;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -129,6 +130,37 @@ public class NativeryBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldPreserveOriginalExtFields() {
+        // given
+        final ObjectNode extNode = mapper.createObjectNode();
+        extNode.put("accountId", "acc-123");
+
+        final BidRequest bidRequest = givenBidRequest(
+                requestBuilder -> {
+                    try {
+                        return requestBuilder.ext(
+                                mapper.readValue(mapper.writeValueAsString(extNode), ExtRequest.class)
+                        );
+                    } catch (JsonProcessingException e) {
+                        throw new RuntimeException(e);
+                    }
+                },
+                UnaryOperator.identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+
+        final ObjectNode resultingExt = mapper.convertValue(
+                result.getValue().get(0).getPayload().getExt(), ObjectNode.class);
+
+        assertThat(resultingExt.path("accountId").asText()).isEqualTo("acc-123");
+        assertThat(resultingExt.path("nativery").path("widgetId").asText()).isEqualTo("widget1");
+    }
+
+    @Test
     public void makeHttpRequestsShouldSetExtWithAmpTrue() {
         // given
         final ExtSite extSite = ExtSite.of(1, null);
@@ -169,7 +201,7 @@ public class NativeryBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSetDefaultCurrency() {
+    public void makeHttpRequestsShouldNotSetCurrencyIfNotProvided() {
         // given
         final BidRequest bidRequest = givenBidRequest(UnaryOperator.identity());
 
@@ -181,8 +213,7 @@ public class NativeryBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getCur)
-                .extracting(currencies -> currencies.get(0))
-                .containsOnly(DEFAULT_CURRENCY);
+                .allSatisfy(cur -> assertThat(cur).isNull());
     }
 
     @Test
