@@ -15,10 +15,11 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.uritemplate.UriTemplate;
+import io.vertx.uritemplate.Variables;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.hc.core5.net.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.eplanning.model.CleanStepName;
 import org.prebid.server.bidder.eplanning.model.HbResponse;
@@ -40,7 +41,6 @@ import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
 import java.net.MalformedURLException;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -232,56 +232,51 @@ public class EplanningBidder implements Bidder<Void> {
                 ? app.getBundle()
                 : pageDomain;
 
-        final String uri = "%s/%s/%s/%s/%s".formatted(endpointUrl, clientId, DFP_CLIENT_ID, requestTarget, SEC);
+        final List<String> path = List.of(clientId, DFP_CLIENT_ID, requestTarget, SEC);
+        final UriTemplate uriTemplate = UriTemplate.of(endpointUrl + "{/path*}{?queryParams*}");
 
-        final URIBuilder uriBuilder;
-        try {
-            uriBuilder = new URIBuilder(uri);
-        } catch (URISyntaxException e) {
-            throw new PreBidException("Invalid url: %s, error: %s".formatted(uri, e.getMessage()));
-        }
+        final Map<String, String> queryParams = new HashMap<>();
 
-        uriBuilder
-                .addParameter("r", "pbs")
-                .addParameter("ncb", "1");
+        queryParams.put("r", "pbs");
+        queryParams.put("ncb", "1");
 
         if (app == null) {
-            uriBuilder.addParameter("ur", pageUrl);
+            queryParams.put("ur", pageUrl);
         }
-        uriBuilder.addParameter("e", String.join("+", requestsStrings));
+        queryParams.put("e", String.join("+", requestsStrings));
 
         final User user = request.getUser();
         final String buyeruid = user != null ? user.getBuyeruid() : null;
         if (StringUtils.isNotBlank(buyeruid)) {
-            uriBuilder.addParameter("uid", buyeruid);
+            queryParams.put("uid", buyeruid);
         }
 
         final Device device = request.getDevice();
         final String ip = device != null ? device.getIp() : null;
         if (StringUtils.isNotBlank(ip)) {
-            uriBuilder.addParameter("ip", ip);
+            queryParams.put("ip", ip);
         }
 
         if (app != null) {
             if (StringUtils.isNotBlank(app.getName())) {
-                uriBuilder.addParameter("appn", app.getName());
+                queryParams.put("appn", app.getName());
             }
             if (StringUtils.isNotBlank(app.getId())) {
-                uriBuilder.addParameter("appid", app.getId());
+                queryParams.put("appid", app.getId());
             }
             if (request.getDevice() != null && StringUtils.isNotBlank(request.getDevice().getIfa())) {
-                uriBuilder.addParameter("ifa", request.getDevice().getIfa());
+                queryParams.put("ifa", request.getDevice().getIfa());
             }
-            uriBuilder.addParameter("app", REQUEST_TARGET_INVENTORY);
+            queryParams.put("app", REQUEST_TARGET_INVENTORY);
         }
 
         String schain = getSchainParameter(request.getSource());
         if (schain != null) {
             schain = schain.replace(" ", "%20");
-            uriBuilder.addParameter("sch", schain);
+            queryParams.put("sch", schain);
         }
 
-        return uriBuilder.toString();
+        return uriTemplate.expandToString(Variables.variables().set("path", path).set("queryParams", queryParams));
     }
 
     private static URL parseUrl(String url) {

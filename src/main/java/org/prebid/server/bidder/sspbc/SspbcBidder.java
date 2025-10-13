@@ -5,8 +5,9 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.uritemplate.UriTemplate;
+import io.vertx.uritemplate.Variables;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.hc.core5.net.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -20,7 +21,6 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
-import java.net.URISyntaxException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -56,14 +56,8 @@ public class SspbcBidder implements Bidder<SspbcRequest> {
     }
 
     private static String makeUrl(String endpointUrl) {
-        try {
-            return new URIBuilder(endpointUrl)
-                    .addParameter("bdver", ADAPTER_VERSION)
-                    .build()
-                    .toString();
-        } catch (URISyntaxException e) {
-            throw new PreBidException("Malformed URL: %s.".formatted(endpointUrl));
-        }
+        return UriTemplate.of(endpointUrl + (endpointUrl.contains("?") ? "{&bdver}" : "{?bdver}"))
+                .expandToString(Variables.variables().set("bdver", ADAPTER_VERSION));
     }
 
     @Override

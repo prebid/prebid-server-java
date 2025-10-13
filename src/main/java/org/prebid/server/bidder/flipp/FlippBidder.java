@@ -16,8 +16,6 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.hc.core5.http.NameValuePair;
-import org.apache.hc.core5.net.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.flipp.model.request.CampaignRequestBody;
 import org.prebid.server.bidder.flipp.model.request.CampaignRequestBodyUser;
@@ -47,7 +45,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
 
-import java.net.URISyntaxException;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -172,17 +170,14 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
             return null;
         }
 
-        try {
-            return new URIBuilder(pageUrl)
-                    .getQueryParams()
-                    .stream()
-                    .filter(nameValuePair -> nameValuePair.getName().contains("flipp-content-code"))
-                    .map(NameValuePair::getValue)
-                    .findFirst()
-                    .orElse(null);
-        } catch (URISyntaxException e) {
-            return null;
-        }
+        return Optional.of(site)
+                .map(Site::getPage)
+                .map(URI::create)
+                .map(URI::getQuery)
+                .map(HttpUtil::parseQuery)
+                .map(params -> params.get("flipp-content-code"))
+                .flatMap(values -> values.stream().findFirst())
+                .orElse(null);
     }
 
     private static List<String> resolveKeywords(BidRequest bidRequest) {

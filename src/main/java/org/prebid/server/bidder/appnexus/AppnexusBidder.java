@@ -14,12 +14,13 @@ import com.iab.openrtb.request.SupplyChain;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.vertx.uritemplate.UriTemplate;
+import io.vertx.uritemplate.Variables;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.hc.core5.net.URIBuilder;
 import org.prebid.server.auction.model.Endpoint;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.appnexus.proto.AppnexusBidExt;
@@ -56,7 +57,6 @@ import org.prebid.server.util.ObjectUtil;
 
 import jakarta.validation.ValidationException;
 import java.math.BigDecimal;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -309,9 +309,10 @@ public class AppnexusBidder implements Bidder<BidRequest> {
     private String makeUrl(String member) {
         try {
             return member != null
-                    ? new URIBuilder(endpointUrl).addParameter("member_id", member).build().toString()
+                    ? UriTemplate.of(endpointUrl + (endpointUrl.contains("?") ? "{&member_id}" : "{?member_id}"))
+                    .expandToString(Variables.variables().set("member_id", member))
                     : endpointUrl;
-        } catch (URISyntaxException e) {
+        } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage());
         }
     }

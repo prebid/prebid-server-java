@@ -2,6 +2,7 @@ package org.prebid.server.floors;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.netty.channel.ConnectTimeoutException;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
@@ -11,7 +12,6 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.apache.hc.core5.http.HttpStatus;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.floors.model.PriceFloorData;
@@ -165,7 +165,7 @@ public class PriceFloorFetcher {
                                                  AccountPriceFloorsFetchConfig fetchConfig) {
 
         final int statusCode = httpClientResponse.getStatusCode();
-        if (statusCode != HttpStatus.SC_OK) {
+        if (statusCode != HttpResponseStatus.OK.code()) {
             throw new PreBidException("Failed to request, provider respond with status %s".formatted(statusCode));
         }
         final String body = httpClientResponse.getBody();

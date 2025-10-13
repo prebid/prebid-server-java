@@ -6,9 +6,10 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.vertx.uritemplate.UriTemplate;
+import io.vertx.uritemplate.Variables;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.hc.core5.net.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -26,11 +27,12 @@ import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.version.PrebidVersionProvider;
 
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -97,21 +99,18 @@ public class Nexx360Bidder implements Bidder<BidRequest> {
     }
 
     private String makeUrl(String tagId, String placement) {
-        final URIBuilder uriBuilder;
-        try {
-            uriBuilder = new URIBuilder(endpointUrl);
-        } catch (URISyntaxException e) {
-            throw new PreBidException("Invalid url: %s, error: %s".formatted(endpointUrl, e.getMessage()));
-        }
+        final UriTemplate uriTemplate = UriTemplate.of(endpointUrl
+                + (endpointUrl.contains("?") ? "{&queryParams*}" : "{?queryParams*}"));
+        final Map<String, String> queryParams = new HashMap<>();
 
         if (StringUtils.isNotBlank(placement)) {
-            uriBuilder.addParameter("placement", placement);
+            queryParams.put("placement", placement);
         }
         if (StringUtils.isNotBlank(tagId)) {
-            uriBuilder.addParameter("tag_id", tagId);
+            queryParams.put("tag_id", tagId);
         }
 
-        return uriBuilder.toString();
+        return uriTemplate.expandToString(Variables.variables().set("queryParams", queryParams));
     }
 
     @Override

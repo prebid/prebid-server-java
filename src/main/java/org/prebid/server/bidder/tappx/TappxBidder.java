@@ -5,9 +5,10 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.vertx.uritemplate.UriTemplate;
+import io.vertx.uritemplate.Variables;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.collections4.ListUtils;
-import org.apache.hc.core5.net.URIBuilder;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -25,12 +26,13 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 
 import java.math.BigDecimal;
-import java.net.URISyntaxException;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
@@ -92,27 +94,22 @@ public class TappxBidder implements Bidder<BidRequest> {
         final boolean isNewEndpoint = NEW_ENDPOINT_PATTERN.matcher(subdomain).matches();
 
         final String baseUri = isNewEndpoint ? resolveNewHost(subdomain) : resolveOldHost();
-        final URIBuilder uriBuilder;
-        try {
-            uriBuilder = new URIBuilder(baseUri);
-        } catch (URISyntaxException e) {
-            throw new PreBidException("Failed to build endpoint URL: " + e.getMessage());
-        }
+        final UriTemplate uriTemplate = UriTemplate.of(baseUri
+                + (isNewEndpoint ? StringUtils.EMPTY : "{/subdomain}")
+                + "{?queryParams*}");
+        final Map<String, String> queryParams = new HashMap<>();
 
-        if (!isNewEndpoint) {
-            final List<String> pathSegments = uriBuilder.getPathSegments();
-            uriBuilder.setPathSegments(ListUtils.union(pathSegments, Collections.singletonList(subdomain)));
-        }
-
-        uriBuilder.addParameter("tappxkey", extImpTappx.getTappxkey());
-        uriBuilder.addParameter("v", VERSION);
-        uriBuilder.addParameter("type_cnn", TYPE_CNN);
+        queryParams.put("tappxkey", extImpTappx.getTappxkey());
+        queryParams.put("v", VERSION);
+        queryParams.put("type_cnn", TYPE_CNN);
 
         if (!BidderUtil.isNullOrZero(test)) {
-            uriBuilder.addParameter("ts", String.valueOf(clock.millis()));
+            queryParams.put("ts", String.valueOf(clock.millis()));
         }
 
-        return uriBuilder.toString();
+        return uriTemplate.expandToString(Variables.variables()
+                .set("subdomain", subdomain)
+                .set("queryParams", queryParams));
     }
 
     private String resolveNewHost(String subdomain) {

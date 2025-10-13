@@ -8,9 +8,10 @@ import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.vertx.uritemplate.UriTemplate;
+import io.vertx.uritemplate.Variables;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.hc.core5.net.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -26,8 +27,8 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
-import java.net.URI;
-import java.net.URISyntaxException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -120,21 +121,19 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
     }
 
     private String makeUrl(boolean isProgrammaticGuaranteed) {
-        final String url = isProgrammaticGuaranteed ? secondaryEndpointUrl : endpointUrl;
+        final String endpoint = isProgrammaticGuaranteed ? secondaryEndpointUrl : endpointUrl;
+        final URL url;
+
         try {
-            final URI uri = new URIBuilder(url).build();
-            final String path = isProgrammaticGuaranteed ? "/ortb" : "/api/bid";
-            final URIBuilder uriBuilder = new URIBuilder(uri)
-                    .setPath(StringUtils.removeEnd(uri.getPath(), "/") + path);
-
-            if (!isProgrammaticGuaranteed) {
-                uriBuilder.addParameter("callerId", "5");
-            }
-
-            return uriBuilder.toString();
-        } catch (URISyntaxException e) {
-            throw new PreBidException("Malformed URL: %s.".formatted(url));
+            url = HttpUtil.parseUrl(endpoint);
+        } catch (MalformedURLException e) {
+            throw new PreBidException("Malformed URL: %s.".formatted(endpoint));
         }
+        final List<String> paths = isProgrammaticGuaranteed ? Collections.singletonList("ortb") : List.of("api", "bid");
+        final String query = isProgrammaticGuaranteed ? "?" + url.getQuery() : "{?callerId}";
+        final String baseUrl = url.getProtocol() + "://" + url.getAuthority() + StringUtils.removeEnd(url.getPath(), "/");
+        return UriTemplate.of(baseUrl + "{/path*}" + query).expandToString(
+                Variables.variables().set("path", paths).set("callerId", isProgrammaticGuaranteed ? null : "5"));
     }
 
     @Override

@@ -116,6 +116,20 @@ public final class HttpUtil {
         }
     }
 
+    public static Map<String, List<String>> parseQuery(String query) {
+        if (query == null || query.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        return Arrays.stream(query.split("&"))
+                .map(param -> param.split("=", 2))
+                .filter(parts -> StringUtils.isNotBlank(parts[0]) && StringUtils.isNotBlank(parts[1]))
+                .collect(Collectors.groupingBy(
+                        parts -> HttpUtil.decodeUrl(parts[0]),
+                        Collectors.mapping(
+                                parts -> HttpUtil.decodeUrl(parts[1]),
+                                Collectors.toList())));
+    }
+
     // TODO: We need our own way to work with url macros
     private static boolean containsMacros(String url) {
         return StringUtils.contains(url, MACROS_OPEN) && StringUtils.contains(url, MACROS_CLOSE);

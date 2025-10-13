@@ -14,10 +14,11 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
+import io.vertx.uritemplate.UriTemplate;
+import io.vertx.uritemplate.Variables;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.hc.core5.net.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -37,7 +38,6 @@ import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -112,14 +112,8 @@ public class ConnatixBidder implements Bidder<BidRequest> {
             return endpointUrl;
         }
 
-        try {
-            return new URIBuilder(endpointUrl)
-                    .addParameter("dc", dataCenterCode.get())
-                    .build()
-                    .toString();
-        } catch (URISyntaxException e) {
-            throw new PreBidException(e.getMessage());
-        }
+        return UriTemplate.of(endpointUrl + (endpointUrl.contains("?") ? "{&dc}" : "{?dc}"))
+                .expandToString(Variables.variables().set("dc", dataCenterCode.get()));
     }
 
     private static Optional<String> getUserId(BidRequest request) {

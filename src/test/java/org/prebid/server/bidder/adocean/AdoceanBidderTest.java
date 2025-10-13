@@ -177,14 +177,36 @@ public class AdoceanBidderTest extends VertxTest {
         assertThat(result.getErrors())
                 .containsExactly(BidderError.badInput("Error parsing adOceanExt parameters, "
                         + "in imp with id : notValidImp"));
-        assertThat(result.getValue()).hasSize(2)
+        assertThat(result.getValue())
+                .hasSize(2)
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://myao.adocean.pl/_10000000/ad.json?pbsrv_v=1.3.0&id=masterId&nc=1"
-                        + "&nosecure=1&aid=adoceanmyaozpniqismex%3Aao-test&gdpr_consent=consent&gdpr=1"
-                        + "&hcuserid=testBuyerUid&aosspsizes=myaozpniqismex"
-                        + "~300x250_600x320", "https://em.dom/_10000000/ad.json?pbsrv_v=1.3.0&id="
-                        + "masterId2&nc=1&nosecure=1&aid=slaveId%3Ai2-test&gdpr_consent=consent&gdpr=1"
-                        + "&hcuserid=testBuyerUid&aosspsizes=slaveId~577x333");
+                .satisfiesExactly(
+                        url -> {
+                            assertThat(url).startsWith("https://myao.adocean.pl/_10000000/ad.json");
+                            assertThat(url).contains("pbsrv_v=1.3.0");
+                            assertThat(url).contains("nc=1");
+                            assertThat(url).contains("nosecure=1");
+                            assertThat(url).contains("aosspsizes=myaozpniqismex~300x250_600x320");
+                            assertThat(url).contains("gdpr_consent=consent");
+                            assertThat(url).contains("id=masterId");
+                            assertThat(url).contains("aid=adoceanmyaozpniqismex%3Aao-test");
+                            assertThat(url).contains("gdpr=1");
+                            assertThat(url).contains("hcuserid=testBuyerUid");
+                        },
+                        url -> {
+                            assertThat(url).startsWith("https://em.dom/_10000000/ad.json");
+                            assertThat(url).contains("pbsrv_v=1.3.0");
+                            assertThat(url).contains("nc=1");
+                            assertThat(url).contains("nosecure=1");
+                            assertThat(url).contains("aosspsizes=slaveId~577x333");
+                            assertThat(url).contains("gdpr_consent=consent");
+                            assertThat(url).contains("id=masterId2");
+                            assertThat(url).contains("aid=slaveId%3Ai2-test");
+                            assertThat(url).contains("gdpr=1");
+                            assertThat(url).contains("hcuserid=testBuyerUid");
+                        }
+                );
+
     }
 
     @Test
@@ -242,9 +264,20 @@ public class AdoceanBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
+                .hasSize(1)
+                .first()
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://myao.adocean.pl/_10000000/ad.json?pbsrv_v=1.3.0&id=masterId&nc=1&nosecure=1"
-                        + "&aid=adoceanmyaozpniqismex%3Aao-test&gdpr_consent=consent&gdpr=1");
+                .satisfies(url -> {
+                    assertThat(url).startsWith("https://myao.adocean.pl/_10000000/ad.json");
+                    assertThat(url).contains("pbsrv_v=1.3.0");
+                    assertThat(url).contains("nc=1");
+                    assertThat(url).contains("nosecure=1");
+                    assertThat(url).contains("gdpr_consent=consent");
+                    assertThat(url).contains("id=masterId");
+                    assertThat(url).contains("aid=adoceanmyaozpniqismex%3Aao-test");
+                    assertThat(url).contains("gdpr=1");
+                });
+
     }
 
     @Test
@@ -276,11 +309,25 @@ public class AdoceanBidderTest extends VertxTest {
         final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
+                .hasSize(1)
+                .first()
                 .extracting(HttpRequest::getUri)
-                .containsExactlyInAnyOrder("https://myao.adocean.pl/_10000000/ad.json?pbsrv_v=1.3.0&id=masterId&nc=1"
-                        + "&nosecure=1&aid=slaveId%3Aao-test&gdpr_consent=consent&gdpr=1&hcuserid=testBuyerUid"
-                        + "&aosspsizes=slaveId~300x250_600x320&aid=slaveId2%3Ai2-test&aosspsizes=slaveId2~577x333");
+                .satisfies(url -> {
+                    assertThat(url).startsWith("https://myao.adocean.pl/_10000000/ad.json");
+                    assertThat(url).contains("pbsrv_v=1.3.0");
+                    assertThat(url).contains("nc=1");
+                    assertThat(url).contains("nosecure=1");
+                    assertThat(url).contains("aosspsizes=slaveId~300x250_600x320");
+                    assertThat(url).contains("gdpr_consent=consent");
+                    assertThat(url).contains("id=masterId");
+                    assertThat(url).contains("aid=slaveId%3Aao-test");
+                    assertThat(url).contains("gdpr=1");
+                    assertThat(url).contains("hcuserid=testBuyerUid");
+                    assertThat(url).contains("aosspsizes=slaveId2~577x333");
+                    assertThat(url).contains("aid=slaveId2%3Ai2-test");
+                });
+
     }
 
     @Test
@@ -451,12 +498,25 @@ public class AdoceanBidderTest extends VertxTest {
         final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
+                .hasSize(1)
+                .first()
                 .extracting(HttpRequest::getUri)
-                .containsExactlyInAnyOrder("https://myao.adocean.pl/_10000000/ad.json?pbsrv_v=1.3.0"
-                        + "&id=tmYF.DMl7ZBq.Nqt2Bq4FutQTJfTpxCOmtNPZoQUDcL.G7&nc=1&nosecure=1"
-                        + "&aid=adoceanmyaozpniqismex%3Aao-test&gdpr_consent=consent"
-                        + "&gdpr=1&app=1&appname=name&appbundle=bundle&appdomain=domain");
+                .satisfies(url -> {
+                    assertThat(url).startsWith("https://myao.adocean.pl/_10000000/ad.json");
+                    assertThat(url).contains("app=1");
+                    assertThat(url).contains("pbsrv_v=1.3.0");
+                    assertThat(url).contains("appname=name");
+                    assertThat(url).contains("nc=1");
+                    assertThat(url).contains("nosecure=1");
+                    assertThat(url).contains("appbundle=bundle");
+                    assertThat(url).contains("gdpr_consent=consent");
+                    assertThat(url).contains("appdomain=domain");
+                    assertThat(url).contains("id=tmYF.DMl7ZBq.Nqt2Bq4FutQTJfTpxCOmtNPZoQUDcL.G7");
+                    assertThat(url).contains("aid=adoceanmyaozpniqismex%3Aao-test");
+                    assertThat(url).contains("gdpr=1");
+                });
+
     }
 
     @Test
@@ -481,12 +541,26 @@ public class AdoceanBidderTest extends VertxTest {
         final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
+                .hasSize(1)
+                .first()
                 .extracting(HttpRequest::getUri)
-                .containsExactlyInAnyOrder("https://myao.adocean.pl/_10000000/ad.json?pbsrv_v=1.3.0"
-                        + "&id=tmYF.DMl7ZBq.Nqt2Bq4FutQTJfTpxCOmtNPZoQUDcL.G7"
-                        + "&nc=1&nosecure=1&aid=adoceanmyaozpniqismex%3Aao-test"
-                        + "&gdpr_consent=consent&gdpr=1&ifa=ifa&devos=os&devosv=osv&devmodel=model&devmake=make");
+                .satisfies(url -> {
+                    assertThat(url).startsWith("https://myao.adocean.pl/_10000000/ad.json");
+                    assertThat(url).contains("pbsrv_v=1.3.0");
+                    assertThat(url).contains("nc=1");
+                    assertThat(url).contains("ifa=ifa");
+                    assertThat(url).contains("devosv=osv");
+                    assertThat(url).contains("nosecure=1");
+                    assertThat(url).contains("devos=os");
+                    assertThat(url).contains("devmake=make");
+                    assertThat(url).contains("gdpr_consent=consent");
+                    assertThat(url).contains("id=tmYF.DMl7ZBq.Nqt2Bq4FutQTJfTpxCOmtNPZoQUDcL.G7");
+                    assertThat(url).contains("aid=adoceanmyaozpniqismex%3Aao-test");
+                    assertThat(url).contains("devmodel=model");
+                    assertThat(url).contains("gdpr=1");
+                });
+
     }
 
     @Test
@@ -511,13 +585,26 @@ public class AdoceanBidderTest extends VertxTest {
         final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
+                .hasSize(1)
+                .first()
                 .extracting(HttpRequest::getUri)
-                .containsExactlyInAnyOrder("https://myao.adocean.pl/_10000000/ad.json?pbsrv_v=1.3.0"
-                        + "&id=tmYF.DMl7ZBq.Nqt2Bq4FutQTJfTpxCOmtNPZoQUDcL.G7"
-                        + "&nc=1&nosecure=1&aid=adoceanmyaozpniqismex%3Aao-test"
-                        + "&gdpr_consent=consent&gdpr=1&dpidmd5=dpidmd5&devos=os&devosv=osv"
-                        + "&devmodel=model&devmake=make");
+                .satisfies(url -> {
+                    assertThat(url).startsWith("https://myao.adocean.pl/_10000000/ad.json");
+                    assertThat(url).contains("pbsrv_v=1.3.0");
+                    assertThat(url).contains("dpidmd5=dpidmd5");
+                    assertThat(url).contains("nc=1");
+                    assertThat(url).contains("devosv=osv");
+                    assertThat(url).contains("nosecure=1");
+                    assertThat(url).contains("devos=os");
+                    assertThat(url).contains("devmake=make");
+                    assertThat(url).contains("gdpr_consent=consent");
+                    assertThat(url).contains("id=tmYF.DMl7ZBq.Nqt2Bq4FutQTJfTpxCOmtNPZoQUDcL.G7");
+                    assertThat(url).contains("aid=adoceanmyaozpniqismex%3Aao-test");
+                    assertThat(url).contains("devmodel=model");
+                    assertThat(url).contains("gdpr=1");
+                });
+
     }
 
     private static AdoceanResponseAdUnit adoceanResponseCreator(

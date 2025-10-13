@@ -12,13 +12,12 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.uritemplate.UriTemplate;
+import io.vertx.uritemplate.Variables;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
-import org.apache.hc.core5.http.NameValuePair;
-import org.apache.hc.core5.http.message.BasicNameValuePair;
-import org.apache.hc.core5.net.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.adocean.model.AdoceanResponseAdUnit;
 import org.prebid.server.bidder.model.BidderBid;
@@ -36,7 +35,8 @@ import org.prebid.server.util.HttpUtil;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.net.URISyntaxException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -112,40 +112,41 @@ public class AdoceanBidder implements Bidder<Void> {
         }
     }
 
-    private boolean addRequestAndCheckIfDuplicates(List<HttpRequest<Void>> httpRequests, ExtImpAdocean extImpAdocean,
-                                                   String impid, Map<String, String> slaveSizes, Integer test) {
+    private boolean addRequestAndCheckIfDuplicates(List<HttpRequest<Void>> httpRequests,
+                                                   ExtImpAdocean extImpAdocean,
+                                                   String impid,
+                                                   Map<String, String> slaveSizes,
+                                                   Integer test) {
+
         for (HttpRequest<Void> request : httpRequests) {
             try {
-                final URIBuilder uriBuilder = new URIBuilder(request.getUri());
-                final List<NameValuePair> queryParams = uriBuilder.getQueryParams();
+                final URL url = HttpUtil.parseUrl(request.getUri());
+                final Map<String, List<String>> queryParams = HttpUtil.parseQuery(url.getQuery());
+                final String masterId = queryParams.get("id").stream().findFirst().orElse(null);
 
-                final String masterId = queryParams.stream()
-                        .filter(param -> "id".equals(param.getName()))
-                        .findFirst()
-                        .map(NameValuePair::getValue)
-                        .orElse(null);
+                final Map<String, String> params = new HashMap<>();
 
                 if (masterId != null && masterId.equals(extImpAdocean.getMasterId())) {
-                    final boolean isExistingSlaveId = queryParams.stream()
-                            .filter(param -> "aid".equals(param.getName()))
-                            .map(param -> param.getValue().split(":")[0])
+                    final boolean isExistingSlaveId = queryParams.get("aid").stream()
+                            .map(param -> param.split(":")[0])
                             .anyMatch(slaveId -> slaveId.equals(extImpAdocean.getSlaveId()));
+
                     if (isExistingSlaveId) {
                         continue;
                     }
 
-                    queryParams.add(new BasicNameValuePair("aid", extImpAdocean.getSlaveId() + ":" + impid));
+                    params.put("aid", extImpAdocean.getSlaveId() + ":" + impid);
                     final List<String> sizeValues = setSlaveSizesParam(slaveSizes, Objects.equals(test, 1));
                     if (CollectionUtils.isNotEmpty(sizeValues)) {
-                        queryParams.add(new BasicNameValuePair("aosspsizes", String.join("-", sizeValues)));
+                        params.put("aosspsizes", String.join("-", sizeValues));
                     }
-                    uriBuilder.setParameters(queryParams);
 
-                    final String url = uriBuilder.toString();
-                    if (url.length() < MAX_URI_LENGTH) {
+                    final String finalUrl = UriTemplate.of(url + "{?params*}")
+                            .expandToString(Variables.variables().set("params", params));
+                    if (finalUrl.length() < MAX_URI_LENGTH) {
                         final HttpRequest<Void> updatedRequest = HttpRequest.<Void>builder()
                                 .method(HttpMethod.GET)
-                                .uri(url)
+                                .uri(finalUrl)
                                 .headers(request.getHeaders())
                                 .build();
                         httpRequests.remove(request);
@@ -153,7 +154,7 @@ public class AdoceanBidder implements Bidder<Void> {
                         return true;
                     }
                 }
-            } catch (URISyntaxException e) {
+            } catch (MalformedURLException e) {
                 throw new PreBidException(e.getMessage());
             }
         }
@@ -203,59 +204,67 @@ public class AdoceanBidder implements Bidder<Void> {
         final Integer test = bidRequest.getTest();
         final String resolvedUrl = resolveEndpointUrl(extImpAdocean, test);
 
-        final URIBuilder uriBuilder;
+        final UriTemplate uriTemplate;
         try {
-            uriBuilder = new URIBuilder(resolvedUrl);
-        } catch (URISyntaxException e) {
+            final String paramsTemplate = resolvedUrl.contains("?") ? "{&queryParams*}" : "{?queryParams*}";
+            uriTemplate = UriTemplate.of(resolvedUrl + paramsTemplate);
+        } catch (IllegalArgumentException e) {
             throw new PreBidException("Invalid url: %s, error: %s".formatted(resolvedUrl, e.getMessage()));
         }
 
-        uriBuilder
-                .addParameter("pbsrv_v", VERSION)
-                .addParameter("id", extImpAdocean.getMasterId())
-                .addParameter("nc", "1")
-                .addParameter("nosecure", "1")
-                .addParameter("aid", extImpAdocean.getSlaveId() + ":" + impId);
+        final Map<String, String> queryParams = new HashMap<>();
+
+        queryParams.put("pbsrv_v", VERSION);
+        queryParams.put("id", extImpAdocean.getMasterId());
+        queryParams.put("nc", "1");
+        queryParams.put("nosecure", "1");
+        queryParams.put("aid", extImpAdocean.getSlaveId() + ":" + impId);
 
         if (StringUtils.isNotEmpty(consentString)) {
-            uriBuilder.addParameter("gdpr_consent", consentString);
-            uriBuilder.addParameter("gdpr", "1");
+            queryParams.put("gdpr_consent", consentString);
+            queryParams.put("gdpr", "1");
         }
 
         final User user = bidRequest.getUser();
         if (user != null && StringUtils.isNotEmpty(user.getBuyeruid())) {
-            uriBuilder.addParameter("hcuserid", user.getBuyeruid());
+            queryParams.put("hcuserid", user.getBuyeruid());
         }
 
         final App app = bidRequest.getApp();
         if (app != null) {
-            uriBuilder.addParameter("app", "1");
-            uriBuilder.addParameter("appname", app.getName());
-            uriBuilder.addParameter("appbundle", app.getBundle());
-            uriBuilder.addParameter("appdomain", app.getDomain());
+            addParameterIfNotEmpty(queryParams, "app", "1");
+            addParameterIfNotEmpty(queryParams, "appname", app.getName());
+            addParameterIfNotEmpty(queryParams, "appbundle", app.getBundle());
+            addParameterIfNotEmpty(queryParams, "appdomain", app.getDomain());
         }
 
         final Device device = bidRequest.getDevice();
         if (device != null) {
             if (StringUtils.isNotEmpty(device.getIfa())) {
-                uriBuilder.addParameter("ifa", device.getIfa());
-            } else {
-                uriBuilder.addParameter("dpidmd5", device.getDpidmd5());
+                queryParams.put("ifa", device.getIfa());
+            } else if (StringUtils.isNotEmpty(device.getDpidmd5())) {
+                queryParams.put("dpidmd5", device.getDpidmd5());
             }
 
-            uriBuilder.addParameter("devos", device.getOs());
-            uriBuilder.addParameter("devosv", device.getOsv());
-            uriBuilder.addParameter("devmodel", device.getModel());
-            uriBuilder.addParameter("devmake", device.getMake());
+            addParameterIfNotEmpty(queryParams, "devos", device.getOs());
+            addParameterIfNotEmpty(queryParams, "devosv", device.getOsv());
+            addParameterIfNotEmpty(queryParams, "devmodel", device.getModel());
+            addParameterIfNotEmpty(queryParams, "devmake", device.getMake());
         }
 
         final List<String> sizeValues = setSlaveSizesParam(slaveSizes, Objects.equals(test, 1));
 
         if (CollectionUtils.isNotEmpty(sizeValues)) {
-            uriBuilder.addParameter("aosspsizes", String.join("-", sizeValues));
+            queryParams.put("aosspsizes", String.join("-", sizeValues));
         }
 
-        return uriBuilder.toString();
+        return uriTemplate.expandToString(Variables.variables().set("queryParams", queryParams));
+    }
+
+    private static void addParameterIfNotEmpty(Map<String, String> queryParams, String parameter, String value) {
+        if (StringUtils.isNotEmpty(value)) {
+            queryParams.put(parameter, value);
+        }
     }
 
     private String resolveEndpointUrl(ExtImpAdocean extImpAdocean, Integer test) {
@@ -295,16 +304,15 @@ public class AdoceanBidder implements Bidder<Void> {
 
     @Override
     public Result<List<BidderBid>> makeBids(BidderCall<Void> httpCall, BidRequest bidRequest) {
-        final List<NameValuePair> params;
+        final Map<String, List<String>> params;
         try {
-            params = new URIBuilder(httpCall.getRequest().getUri()).getQueryParams();
-        } catch (URISyntaxException e) {
+            params = HttpUtil.parseQuery(HttpUtil.parseUrl(httpCall.getRequest().getUri()).getQuery());
+        } catch (MalformedURLException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
-        final Map<String, String> auctionIds = params != null ? params.stream()
-                .filter(param -> "aid".equals(param.getName()))
-                .map(param -> param.getValue().split(":"))
+        final Map<String, String> auctionIds = params != null ? params.get("aid").stream()
+                .map(value -> value.split(":"))
                 .collect(Collectors.toMap(name -> name[0], value -> value[1])) : null;
 
         final List<AdoceanResponseAdUnit> adoceanResponses;

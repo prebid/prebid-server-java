@@ -5,10 +5,11 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Future;
+import io.vertx.uritemplate.UriTemplate;
+import io.vertx.uritemplate.Variables;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.hc.core5.net.URIBuilder;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.json.DecodeException;
@@ -27,7 +28,6 @@ import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -127,19 +127,19 @@ public class HttpApplicationSettings implements ApplicationSettings {
     }
 
     private String accountsRequestUrlFrom(String endpoint, Set<String> accountIds) {
-        try {
-            final URIBuilder uriBuilder = new URIBuilder(endpoint);
-            if (!accountIds.isEmpty()) {
-                if (isRfc3986Compatible) {
-                    accountIds.forEach(accountId -> uriBuilder.addParameter("account-id", accountId));
-                } else {
-                    uriBuilder.addParameter("account-ids", "[\"%s\"]".formatted(joinIds(accountIds)));
-                }
-            }
-            return uriBuilder.build().toString();
-        } catch (URISyntaxException e) {
-            throw new PreBidException("URL %s has bad syntax".formatted(endpoint));
+        if (accountIds.isEmpty()) {
+            return endpoint;
         }
+
+        if (isRfc3986Compatible) {
+            String url = endpoint;
+            for (String id : accountIds) {
+                url = appendQuery(url, Map.of("account-id", id));
+            }
+            return url;
+        }
+
+        return appendQuery(endpoint, Map.of("account-ids", "[\"%s\"]".formatted(joinIds(accountIds))));
     }
 
     private Set<Account> processAccountsResponse(HttpClientResponse httpClientResponse, Set<String> accountIds) {
@@ -232,26 +232,33 @@ public class HttpApplicationSettings implements ApplicationSettings {
     }
 
     private String storeRequestUrlFrom(String endpoint, Set<String> requestIds, Set<String> impIds) {
-        try {
-            final URIBuilder uriBuilder = new URIBuilder(endpoint);
+        if (requestIds.isEmpty() && impIds.isEmpty()) {
+            return endpoint;
+        }
+
+        if (isRfc3986Compatible) {
+            String url = endpoint;
             if (!requestIds.isEmpty()) {
-                if (isRfc3986Compatible) {
-                    requestIds.forEach(requestId -> uriBuilder.addParameter("request-id", requestId));
-                } else {
-                    uriBuilder.addParameter("request-ids", "[\"%s\"]".formatted(joinIds(requestIds)));
+                for (String id : requestIds) {
+                    url = appendQuery(url, Map.of("request-id", id));
                 }
             }
             if (!impIds.isEmpty()) {
-                if (isRfc3986Compatible) {
-                    impIds.forEach(impId -> uriBuilder.addParameter("imp-id", impId));
-                } else {
-                    uriBuilder.addParameter("imp-ids", "[\"%s\"]".formatted(joinIds(impIds)));
+                for (String id : requestIds) {
+                    url = appendQuery(url, Map.of("imp-id", id));
                 }
             }
-            return uriBuilder.build().toString();
-        } catch (URISyntaxException e) {
-            throw new PreBidException("URL %s has bad syntax".formatted(endpoint));
+            return url;
         }
+
+        final Map<String, String> queryParams = new HashMap<>();
+        if (!requestIds.isEmpty()) {
+            queryParams.put("request-ids", "[\"%s\"]".formatted(joinIds(requestIds)));
+        }
+        if (!impIds.isEmpty()) {
+            queryParams.put("imp-ids", "[\"%s\"]".formatted(joinIds(impIds)));
+        }
+        return appendQuery(endpoint, queryParams);
     }
 
     private StoredDataResult<String> processStoredDataResponse(HttpClientResponse httpClientResponse,
@@ -389,5 +396,11 @@ public class HttpApplicationSettings implements ApplicationSettings {
 
     private static String joinIds(Set<String> ids) {
         return String.join("\",\"", ids);
+    }
+
+    private static String appendQuery(String url, Map<String, String> params) {
+        final String tpl = url + (url.contains("?") ? "{&queryParams*}" : "{?queryParams*}");
+        return UriTemplate.of(tpl)
+                .expandToString(Variables.variables().set("queryParams", params));
     }
 }

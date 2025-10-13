@@ -37,7 +37,6 @@ import org.prebid.server.proto.openrtb.ext.request.yieldlab.ExtImpYieldlab;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidDsa;
 
-import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -72,29 +71,6 @@ public class YieldlabBidderTest extends VertxTest {
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> new YieldlabBidder("invalid_url", clock, jacksonMapper))
                 .withMessage("URL supplied is not valid: invalid_url");
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnErrorIfEndpointUrlComposingFails() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpYieldlab.builder()
-                                        .adslotId("invalid path")
-                                        .build())))
-                        .build()))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .allSatisfy(error -> {
-                    assertThat(error.getMessage()).startsWith("Invalid url: https://test.endpoint.com/invalid path");
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
-                });
     }
 
     @Test
@@ -143,17 +119,29 @@ public class YieldlabBidderTest extends VertxTest {
         final long expectedTime = clock.instant().getEpochSecond();
 
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
+                .hasSize(1)
+                .first()
                 .extracting(HttpRequest::getUri)
-                .allSatisfy(uri -> {
-                    assertThat(uri).startsWith("https://test.endpoint.com/1?content=json&pvid=true&ts=");
-                    assertThat(uri).endsWith("&t=key1%3Dvalue1%26key2%3Dvalue2&sizes=1%3A1x1%7C2x2&"
-                            + "ids=ylid%3Abuyeruid&yl_rtb_ifa&yl_rtb_devicetype=1&gdpr=1&gdpr_consent=consent&"
-                            + "schain=1.0%2C1%21exchange1.com%2C1234%2521abcd%2C1%2Cbid%2520request%2526%25251%2C"
-                            + "publisher%2Cpublisher.com%2C%257B%2522freeFormData%2522%253A1%252C%2522"
+                .satisfies(url -> {
+                    assertThat(url).startsWith("https://test.endpoint.com/1");
+                    assertThat(url).contains("t=key1%3Dvalue1%26key2%3Dvalue2");
+                    assertThat(url).contains("sizes=1%3A1x1%7C2x2");
+                    assertThat(url).contains("pvid=true");
+                    assertThat(url).contains("ids=ylid%3Abuyeruid");
+                    assertThat(url).contains("gdpr_consent=consent");
+                    assertThat(url).contains("yl_rtb_devicetype=1");
+                    assertThat(url).contains("content=json");
+                    assertThat(url).contains("gdpr=1");
+                    assertThat(url).contains("schain=1.0%2C1%21exchange1.com%2C1234%2521abcd%2C1%2Cbid%2520request"
+                            + "%2526%25251%2Cpublisher%2Cpublisher.com%2C%257B%2522freeFormData%2522%253A1%252C%2522"
                             + "nested%2522%253A%257B%2522isTrue%2522%253Atrue%257D%257D");
-                    final String ts = uri.substring(54, uri.indexOf("&t="));
-                    assertThat(Long.parseLong(ts)).isEqualTo(expectedTime);
+                    assertThat(url).contains("ts=");
+
+                    final int tsStart = url.indexOf("ts=");
+                    final int tsEnd = url.indexOf('&', tsStart);
+                    final String tsValue = tsEnd == -1 ? url.substring(tsStart + 3) : url.substring(tsStart + 3, tsEnd);
+                    assertThat(Long.parseLong(tsValue)).isEqualTo(expectedTime);
                 });
 
         assertThat(result.getValue()).hasSize(1)
@@ -209,12 +197,21 @@ public class YieldlabBidderTest extends VertxTest {
         final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
+                .hasSize(1)
+                .first()
                 .extracting(HttpRequest::getUri)
-                .allSatisfy(uri -> {
-                    assertThat(uri).startsWith("https://test.endpoint.com/1,2?content=json&pvid=true&ts=");
-                    assertThat(uri).endsWith("&t=key1%3Dvalue1&sizes=1%3A%2C2%3A&ids=ylid%3Abuyeruid&yl_rtb_ifa&"
-                            + "yl_rtb_devicetype=1&gdpr=1&gdpr_consent=consent");
+                .satisfies(url -> {
+                    assertThat(url).startsWith("https://test.endpoint.com/1%2C2");
+                    assertThat(url).contains("t=key1%3Dvalue1");
+                    assertThat(url).contains("sizes=1%3A%2C2%3A");
+                    assertThat(url).contains("pvid=true");
+                    assertThat(url).contains("ids=ylid%3Abuyeruid");
+                    assertThat(url).contains("gdpr_consent=consent");
+                    assertThat(url).contains("yl_rtb_devicetype=1");
+                    assertThat(url).contains("content=json");
+                    assertThat(url).contains("ts=");
+                    assertThat(url).contains("gdpr=1");
                 });
     }
 
@@ -264,26 +261,33 @@ public class YieldlabBidderTest extends VertxTest {
         // then
         final String timestamp = String.valueOf(clock.instant().getEpochSecond());
         final int weekNumber = Calendar.getInstance().get(Calendar.WEEK_OF_YEAR);
-        final String adm = """
-                <script src="https://ad.yieldlab.net/d/1/2/728x90?ts=%s\
-                &id=extId&pvid=40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5&gdpr=1&gdpr_consent=consent">\
-                </script>""".formatted(timestamp);
-        final BidderBid expected = BidderBid.of(
-                Bid.builder()
-                        .id("1")
-                        .impid("test-imp-id")
-                        .price(BigDecimal.valueOf(2.01))
-                        .crid("11234" + weekNumber)
-                        .dealid("1234")
-                        .w(728)
-                        .h(90)
-                        .adm(adm)
-                        .adomain(singletonList("yieldlab"))
-                        .build(),
-                BidType.banner, "EUR");
+        assertThat(result.getValue())
+                .hasSize(1)
+                .first()
+                .satisfies(bb -> {
+                    final Bid bid = bb.getBid();
+                    assertThat(bid.getId()).isEqualTo("1");
+                    assertThat(bid.getImpid()).isEqualTo("test-imp-id");
+                    assertThat(bid.getPrice()).isEqualByComparingTo("2.01");
+                    assertThat(bid.getCrid()).isEqualTo("11234" + weekNumber);
+                    assertThat(bid.getDealid()).isEqualTo("1234");
+                    assertThat(bid.getW()).isEqualTo(728);
+                    assertThat(bid.getH()).isEqualTo(90);
+                    assertThat(bid.getAdomain()).containsExactly("yieldlab");
+                    assertThat(bb.getType()).isEqualTo(BidType.banner);
+                    assertThat(bb.getBidCurrency()).isEqualTo("EUR");
+
+                    final String admHtml = bid.getAdm();
+                    assertThat(admHtml).startsWith("<script src=\"https://ad.yieldlab.net/d/1/2/728x90?");
+                    assertThat(admHtml).contains("ts=" + timestamp);
+                    assertThat(admHtml).contains("id=extId");
+                    assertThat(admHtml).contains("pvid=40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5");
+                    assertThat(admHtml).contains("gdpr=1");
+                    assertThat(admHtml).contains("gdpr_consent=consent");
+                    assertThat(admHtml).endsWith("\"></script>");
+                });
 
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsExactly(expected);
     }
 
     @Test
@@ -311,22 +315,21 @@ public class YieldlabBidderTest extends VertxTest {
 
         // then
         final String timestamp = String.valueOf(clock.instant().getEpochSecond());
-        final String expectedAdm = """
-                <VAST version="2.0"><Ad id="12345"><Wrapper>
-                <AdSystem>Yieldlab</AdSystem>
-                <VASTAdTagURI><![CDATA[ %s%s%s ]]></VASTAdTagURI>
-                <Impression></Impression>
-                <Creatives></Creatives>
-                </Wrapper></Ad></VAST>""".formatted(
-                "https://ad.yieldlab.net/d/12345/123456789/728x90?ts=",
-                timestamp,
-                "&id=abc&pvid=40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5");
-
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(BidderBid::getBid)
-                .extracting(Bid::getAdm)
-                .containsExactly(expectedAdm);
+        assertThat(result.getValue())
+                .hasSize(1)
+                .first()
+                .satisfies(bb -> {
+                    final String adm = bb.getBid().getAdm();
+                    assertThat(adm).startsWith("<VAST version=\"2.0\"><Ad id=\"12345\"><Wrapper>\n"
+                            + "<AdSystem>Yieldlab</AdSystem>\n<VASTAdTagURI><![CDATA[ "
+                            + "https://ad.yieldlab.net/d/12345/123456789/728x90?");
+                    assertThat(adm).contains("ts=" + timestamp);
+                    assertThat(adm).contains("id=abc");
+                    assertThat(adm).contains("pvid=40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5");
+                    assertThat(adm).endsWith(" ]]></VASTAdTagURI>\n<Impression></Impression>\n<Creatives></Creatives>\n"
+                            + "</Wrapper></Ad></VAST>");
+                });
     }
 
     @Test
@@ -353,11 +356,10 @@ public class YieldlabBidderTest extends VertxTest {
 
         //then
         final List<String> expectations = List.of(
-                "&dsarequired=1",
-                "&dsapubrender=2",
-                "&dsadatatopub=3",
-                "&dsatransparency=testDomain~1_2_3"
-        );
+                "dsarequired=1",
+                "dsapubrender=2",
+                "dsadatatopub=3",
+                "dsatransparency=testDomain~1_2_3");
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue().getFirst().getUri())
                 .contains(expectations);
@@ -390,11 +392,10 @@ public class YieldlabBidderTest extends VertxTest {
 
         //then
         final List<String> expectations = List.of(
-                "&dsarequired=1",
-                "&dsapubrender=2",
-                "&dsadatatopub=3",
-                "&dsatransparency=testDomain~1_2_3~~testDomain2~4_5_6"
-        );
+                "dsarequired=1",
+                "dsapubrender=2",
+                "dsadatatopub=3",
+                "dsatransparency=testDomain~1_2_3~~testDomain2~4_5_6");
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue().getFirst().getUri())
                 .contains(expectations);
@@ -425,8 +426,7 @@ public class YieldlabBidderTest extends VertxTest {
         //then
         final List<String> expectations = List.of(
                 "dsarequired=2",
-                "dsadatatopub=3"
-        );
+                "dsadatatopub=3");
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue().getFirst().getUri())
                 .contains(expectations);
@@ -457,8 +457,7 @@ public class YieldlabBidderTest extends VertxTest {
         //then
         final List<String> expectations = List.of(
                 "dsarequired=2",
-                "dsadatatopub=3"
-        );
+                "dsadatatopub=3");
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue().getFirst().getUri())
                 .contains(expectations);

@@ -9,8 +9,9 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
+import io.vertx.uritemplate.UriTemplate;
+import io.vertx.uritemplate.Variables;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.hc.core5.net.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -27,11 +28,11 @@ import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
 
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 public class DxKultureBidder implements Bidder<BidRequest> {
@@ -78,18 +79,14 @@ public class DxKultureBidder implements Bidder<BidRequest> {
     }
 
     private String getUri(ExtImpDxKulture extImpDxKulture) {
-        final URIBuilder uriBuilder;
-        try {
-            uriBuilder = new URIBuilder(endpointUrl);
-        } catch (URISyntaxException e) {
-            throw new PreBidException("Invalid url: %s, error: %s".formatted(endpointUrl, e.getMessage()));
-        }
+        final UriTemplate uriTemplate = UriTemplate.of(endpointUrl
+                + (endpointUrl.contains("?") ? "{&queryParams*}" : "{?queryParams*}"));
 
-        uriBuilder
-                .addParameter("publisher_id", extImpDxKulture.getPublisherId())
-                .addParameter("placement_id", extImpDxKulture.getPlacementId());
+        final Map<String, String> queryParams = Map.of(
+                "publisher_id", extImpDxKulture.getPublisherId(),
+                "placement_id", extImpDxKulture.getPlacementId());
 
-        return uriBuilder.toString();
+        return uriTemplate.expandToString(Variables.variables().set("queryParams", queryParams));
     }
 
     private static MultiMap resolveHeaders(BidRequest bidRequest) {

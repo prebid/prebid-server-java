@@ -17,12 +17,13 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.uritemplate.UriTemplate;
+import io.vertx.uritemplate.Variables;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.hc.core5.net.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.adnuntius.model.request.AdnuntiusMetaData;
 import org.prebid.server.bidder.adnuntius.model.request.AdnuntiusNativeRequest;
@@ -59,7 +60,6 @@ import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
 
 import java.math.BigDecimal;
-import java.net.URISyntaxException;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -248,35 +248,33 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
     }
 
     private String makeEndpoint(BidRequest bidRequest, Boolean noCookies) {
-        try {
-            final String gdpr = extractGdpr(bidRequest.getRegs());
-            final String url = StringUtils.isNotBlank(gdpr) ? euEndpoint : endpointUrl;
+        final String gdpr = extractGdpr(bidRequest.getRegs());
+        final String url = StringUtils.isNotBlank(gdpr) ? euEndpoint : endpointUrl;
 
-            if (url == null) {
-                throw new PreBidException("an EU endpoint is required but invalid");
-            }
-
-            final URIBuilder uriBuilder = new URIBuilder(url)
-                    .addParameter("format", "prebidServer")
-                    .addParameter("tzo", getTimeZoneOffset());
-
-            if (StringUtils.isNotEmpty(gdpr)) {
-                uriBuilder.addParameter("gdpr", gdpr);
-            }
-
-            final String consent = extractConsent(bidRequest.getUser());
-            if (StringUtils.isNotEmpty(consent)) {
-                uriBuilder.addParameter("consentString", consent);
-            }
-
-            if (noCookies || extractNoCookies(bidRequest.getDevice())) {
-                uriBuilder.addParameter("noCookies", "true");
-            }
-
-            return uriBuilder.build().toString();
-        } catch (URISyntaxException | IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage());
+        if (url == null) {
+            throw new PreBidException("an EU endpoint is required but invalid");
         }
+
+        final Map<String, String> queryParams = new HashMap<>();
+
+        queryParams.put("format", "prebidServer");
+        queryParams.put("tzo", getTimeZoneOffset());
+
+        if (StringUtils.isNotEmpty(gdpr)) {
+            queryParams.put("gdpr", gdpr);
+        }
+
+        final String consent = extractConsent(bidRequest.getUser());
+        if (StringUtils.isNotEmpty(consent)) {
+            queryParams.put("consentString", consent);
+        }
+
+        if (noCookies || extractNoCookies(bidRequest.getDevice())) {
+            queryParams.put("noCookies", "true");
+        }
+
+        return UriTemplate.of(url + (url.contains("?") ? "{&queryParams*}" : "{?queryParams*}"))
+                .expandToString(Variables.variables().set("queryParams", queryParams));
     }
 
     private String getTimeZoneOffset() {
