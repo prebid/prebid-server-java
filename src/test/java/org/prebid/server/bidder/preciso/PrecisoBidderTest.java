@@ -54,10 +54,8 @@ public class PrecisoBidderTest extends VertxTest {
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new PrecisoBidder(
-                "invalid_url", currencyConversionService, jacksonMapper));
+                .isThrownBy(() -> new PrecisoBidder("invalid_url", currencyConversionService, jacksonMapper));
 
     }
 
