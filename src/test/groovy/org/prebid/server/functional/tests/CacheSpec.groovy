@@ -67,13 +67,12 @@ class CacheSpec extends BaseSpec {
     private static final String HTTPS_SCHEME = 'https'
     private static final String CACHE_ENDPOINT = "/cache"
 
-    static Map<String, String> getInternalPrebidCacheConfig(String host = networkServiceContainer.hostAndPort) {
+    private static final Map<String, String> getInternalPrebidCacheConfig(String host = networkServiceContainer.hostAndPort) {
         ["cache.internal.scheme": "http",
          "cache.internal.host"  : "$host".toString(),
          "cache.internal.path"  : "/cache"
         ].asImmutable()
     }
-
     private static PrebidServerService pbsServiceWithInternalCache
 
     def setupSpec() {
