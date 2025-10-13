@@ -224,11 +224,12 @@ class PrebidServerService implements ObjectMapperWrapper {
 
     int sendGetVtrackRequest(String uuid, String cacheHost = null) {
         def requestSpecification = given(requestSpecification)
-
         setUpUuidIfPresent(uuid, requestSpecification)
         setUpCacheHostIfPresent(cacheHost, requestSpecification)
 
-        requestSpecification.get(VTRACK_ENDPOINT).statusCode()
+        def response = requestSpecification.get(VTRACK_ENDPOINT)
+        checkResponseStatusCode(response)
+        response.statusCode()
     }
 
     private static void setUpUuidIfPresent(String uuid, RequestSpecification requestSpecification) {
