@@ -49,8 +49,6 @@ public class YandexBidderTest extends VertxTest {
         assertThatIllegalArgumentException().isThrownBy(() -> new YandexBidder("invalid_url", jacksonMapper));
     }
 
-    // ========== makeHttpRequest* tests ==========
-
     @Test
     public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
@@ -416,8 +414,6 @@ public class YandexBidderTest extends VertxTest {
                         tuple("prebid.java", "1.1"));
     }
 
-    // ========== makeBids* tests ==========
-
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
@@ -612,8 +608,6 @@ public class YandexBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1);
         assertThat(result.getValue().getFirst().getType()).isEqualTo(video); // Video has highest priority
     }
-
-    // ========== Helper methods ==========
 
     private static BidRequest givenBidRequest(
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
