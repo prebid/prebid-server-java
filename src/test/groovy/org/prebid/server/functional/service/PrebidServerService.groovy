@@ -13,6 +13,7 @@ import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.cookiesync.CookieSyncRequest
 import org.prebid.server.functional.model.request.event.EventRequest
+import org.prebid.server.functional.model.request.get.GeneralGetRequest
 import org.prebid.server.functional.model.request.logging.httpinteraction.HttpInteractionRequest
 import org.prebid.server.functional.model.request.setuid.SetuidRequest
 import org.prebid.server.functional.model.request.vtrack.VtrackRequest
@@ -24,6 +25,7 @@ import org.prebid.server.functional.model.response.biddersparams.BiddersParamsRe
 import org.prebid.server.functional.model.response.cookiesync.CookieSyncResponse
 import org.prebid.server.functional.model.response.cookiesync.RawCookieSyncResponse
 import org.prebid.server.functional.model.response.currencyrates.CurrencyRatesResponse
+import org.prebid.server.functional.model.response.get.GeneralGetResponse
 import org.prebid.server.functional.model.response.getuids.GetuidResponse
 import org.prebid.server.functional.model.response.infobidders.BidderInfoResponse
 import org.prebid.server.functional.model.response.setuid.SetuidResponse
@@ -45,6 +47,7 @@ import static java.time.ZoneOffset.UTC
 class PrebidServerService implements ObjectMapperWrapper {
 
     static final String AUCTION_ENDPOINT = "/openrtb2/auction"
+    static final String GENERAL_GET_ENDPOINT = "/openrtb2/auction"
     static final String AMP_ENDPOINT = "/openrtb2/amp"
     static final String COOKIE_SYNC_ENDPOINT = "/cookie_sync"
     static final String SET_UID_ENDPOINT = "/setuid"
@@ -94,11 +97,11 @@ class PrebidServerService implements ObjectMapperWrapper {
         }
     }
 
-    AmpResponse sendAmpRequestWithAdditionalQueries(AmpRequest ampRequest, Map<String, Object> queries = [:]) {
-        def response = getAmp(ampRequest, [:], queries)
+    GeneralGetResponse sendGeneralGetRequest(GeneralGetRequest request, Map<String, String> headers = [:]) {
+        def response = getAuction(request, headers)
 
         checkResponseStatusCode(response)
-        decode(response.body.asString(), AmpResponse)
+        decode(response.body.asString(), GeneralGetResponse)
     }
 
     AmpResponse sendAmpRequest(AmpRequest ampRequest, Map<String, String> headers = [:]) {
@@ -331,18 +334,20 @@ class PrebidServerService implements ObjectMapperWrapper {
         requestSpecification.post(COOKIE_SYNC_ENDPOINT)
     }
 
-    private Response getAmp(AmpRequest ampRequest,
-                            Map<String, String> headers = [:],
-                            Map<String, Object> queries = [:]) {
+    private Response getAmp(AmpRequest ampRequest, Map<String, String> headers = [:]) {
         def map = toMap(ampRequest)
-
-        if (!queries.isEmpty()) {
-            map.putAll(queries)
-        }
 
         given(requestSpecification).headers(headers)
                 .queryParams(map)
                 .get(AMP_ENDPOINT)
+    }
+
+    private Response getAuction(GeneralGetRequest request, Map<String, String> headers = [:]) {
+        def map = toMap(request)
+
+        given(requestSpecification).headers(headers)
+                .queryParams(map)
+                .get(GENERAL_GET_ENDPOINT)
     }
 
     private void checkResponseStatusCode(Response response, int statusCode = 200) {
