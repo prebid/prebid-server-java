@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.cpmstar;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -85,6 +86,39 @@ public class CpmStarBidderTest extends VertxTest {
                 .containsOnly(BidderError.badInput(
                         "Only Banner and Video bid-types are supported at this time"));
         assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldPreserveExistingExtFieldsWhenFlatteningBidder() throws JsonProcessingException {
+        // given:
+        final ObjectNode ext = mapper.createObjectNode();
+        ext.set("bidder", mapper.valueToTree(ExtImpCpmStar.of(12, 123)));
+        ext.put("gpid", "abc-123");
+
+        final Imp imp = Imp.builder()
+                .id("123")
+                .banner(Banner.builder().w(300).h(250).build())
+                .ext(ext)
+                .build();
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(imp))
+                .build();
+
+        final CpmStarBidder target = new CpmStarBidder("https://test.endpoint.com", jacksonMapper);
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+
+        final BidRequest outgoing = result.getValue().getFirst().getPayload();
+        final ObjectNode outgoingExt = (ObjectNode) outgoing.getImp().getFirst().getExt();
+
+        assertThat(outgoingExt.has("gpid")).isTrue();
+        assertThat(outgoingExt.get("gpid").asText()).isEqualTo("abc-123");
+        assertThat(outgoingExt.has("bidder")).isFalse();
     }
 
     @Test
