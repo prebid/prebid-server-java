@@ -25,6 +25,11 @@ class PrebidCache extends NetworkScaffolding {
         super(mockServerContainer, CACHE_ENDPOINT)
     }
 
+    int getVTracGetRequestCount() {
+        getRequestCount(request().withMethod("GET")
+                .withPath(CACHE_ENDPOINT))
+    }
+
     void setXmlCacheResponse(String payload, PrebidCacheResponse prebidCacheResponse) {
         setResponse(getXmlCacheRequest(payload), prebidCacheResponse)
     }

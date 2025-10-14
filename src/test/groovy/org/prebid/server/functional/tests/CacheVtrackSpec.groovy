@@ -31,22 +31,29 @@ class CacheVtrackSpec extends BaseSpec {
     private static final String VTRACK_READ_ERROR_METRIC = "prebid_cache.vtrack.read.err"
 
     private static final String CACHE_ENDPOINT = "/cache"
+    private static final String CACHE_PATH = "/${PBSUtils.randomString}".toString()
+    private static final String CACHE_HOST = "${PBSUtils.randomString}:${PBSUtils.getRandomNumber(0, 65535)}".toString()
+    private static final String HTTP_SCHEME = 'http'
+
+    private static final Map<String, String> INVALID_PREBID_CACHE_CONFIG = ["cache.path"  : CACHE_PATH,
+                                                                            "cache.scheme": HTTP_SCHEME,
+                                                                            "cache.host"  : CACHE_HOST]
     private static final Map<String, String> VALID_INTERNAL_CACHE = ["cache.internal.scheme": "http",
                                                                      "cache.internal.host"  : "$networkServiceContainer.hostAndPort".toString(),
                                                                      "cache.internal.path"  : "/cache"]
     private static PrebidServerService pbsServiceWithInternalCache
 
     def setupSpec() {
-        pbsServiceWithInternalCache = pbsServiceFactory.getService(VALID_INTERNAL_CACHE)
+        pbsServiceWithInternalCache = pbsServiceFactory.getService(VALID_INTERNAL_CACHE + INVALID_PREBID_CACHE_CONFIG)
     }
 
     def cleanupSpec() {
-        pbsServiceFactory.removeContainer(VALID_INTERNAL_CACHE)
+        pbsServiceFactory.removeContainer(VALID_INTERNAL_CACHE + INVALID_PREBID_CACHE_CONFIG)
     }
 
     def "PBS should return 400 status code when get vtrack request without uuid"() {
         when: "PBS processes get vtrack request"
-        defaultPbsService.sendGetVtrackRequest(null)
+        defaultPbsService.sendGetVtrackRequest(["uuid": null])
 
         then: "Request should fail with an error"
         def exception = thrown(PrebidServerException)
@@ -65,7 +72,7 @@ class CacheVtrackSpec extends BaseSpec {
         prebidCache.setVtrackResponse(uuid)
 
         when: "PBS processes get vtrack request"
-        def response = defaultPbsService.sendGetVtrackRequest(uuid)
+        def response = defaultPbsService.sendGetVtrackRequest(["uuid": uuid])
 
         then: "Response body should contain 200 status code"
         assert response == HttpStatusCode.OK_200.code()
@@ -86,7 +93,7 @@ class CacheVtrackSpec extends BaseSpec {
         prebidCache.setInvalidVtrackResponse(uuid)
 
         when: "PBS processes get vtrack request"
-        defaultPbsService.sendGetVtrackRequest(uuid)
+        defaultPbsService.sendGetVtrackRequest(["uuid": uuid])
 
         then: "Request should fail with an error"
         def exception = thrown(PrebidServerException)
@@ -116,7 +123,7 @@ class CacheVtrackSpec extends BaseSpec {
         prebidCache.setVtrackResponse(uuid)
 
         when: "PBS processes get vtrack request"
-        def response = defaultPbsService.sendGetVtrackRequest(uuid, cacheHost)
+        def response = defaultPbsService.sendGetVtrackRequest(["uuid": uuid, cacheHost: cacheHost])
 
         then: "Response body should contain 200 status code"
         assert response == HttpStatusCode.OK_200.code()
@@ -147,7 +154,7 @@ class CacheVtrackSpec extends BaseSpec {
         prebidCache.setVtrackResponse(uuid)
 
         when: "PBS processes get vtrack request"
-        def response = pbsServiceWithInternalCache.sendGetVtrackRequest(uuid, cacheHost)
+        def response = pbsServiceWithInternalCache.sendGetVtrackRequest(["uuid": uuid, "cacheHost": cacheHost])
 
         then: "Response body should contain 200 status code"
         assert response == HttpStatusCode.OK_200.code()
@@ -155,6 +162,9 @@ class CacheVtrackSpec extends BaseSpec {
         and: "Metrics should contain ok metrics"
         def metricsRequest = pbsServiceWithInternalCache.sendCollectedMetricsRequest()
         assert metricsRequest[VTRACK_READ_OK_METRIC] == initialValue + 1
+
+        and: "VTrack should call internal cache"
+        assert prebidCache.getVTracGetRequestCount() == 1
 
         cleanup: "Clean cache mock response"
         prebidCache.reset(CACHE_ENDPOINT)
@@ -174,7 +184,7 @@ class CacheVtrackSpec extends BaseSpec {
         flushMetrics(pbsServiceWithInternalCache)
 
         when: "PBS processes get vtrack request"
-        def response = pbsServiceWithInternalCache.sendGetVtrackRequest(uuid)
+        def response = pbsServiceWithInternalCache.sendGetVtrackRequest(["uuid": uuid])
 
         then: "Response body should contain 200 status code"
         assert response == HttpStatusCode.OK_200.code()
@@ -182,6 +192,9 @@ class CacheVtrackSpec extends BaseSpec {
         and: "Metrics should contain ok metrics"
         def metricsRequest = pbsServiceWithInternalCache.sendCollectedMetricsRequest()
         assert metricsRequest[VTRACK_READ_OK_METRIC] == initialValue + 1
+
+        and: "VTrack should call internal cache"
+        assert prebidCache.getVTracGetRequestCount() == 1
 
         cleanup:
         prebidCache.reset(CACHE_ENDPOINT)
@@ -198,7 +211,7 @@ class CacheVtrackSpec extends BaseSpec {
         flushMetrics(pbsServiceWithInternalCache)
 
         when: "PBS processes get vtrack request"
-        pbsServiceWithInternalCache.sendGetVtrackRequest(uuid)
+        pbsServiceWithInternalCache.sendGetVtrackRequest(["uuid": uuid])
 
         then: "Request should fail with an error"
         def exception = thrown(PrebidServerException)
@@ -209,13 +222,16 @@ class CacheVtrackSpec extends BaseSpec {
         def metricsRequest = pbsServiceWithInternalCache.sendCollectedMetricsRequest()
         assert metricsRequest[VTRACK_READ_ERROR_METRIC] == 1
 
+        and: "VTrack should call internal cache"
+        assert prebidCache.getVTracGetRequestCount() == 1
+
         cleanup: "Clean cache mock response"
         prebidCache.reset(CACHE_ENDPOINT)
     }
 
     def "PBS should return 400 status code when internal cache and get vtrack request without uuid"() {
         when: "PBS processes get vtrack request"
-        pbsServiceWithInternalCache.sendGetVtrackRequest(null)
+        pbsServiceWithInternalCache.sendGetVtrackRequest(["uuid": null])
 
         then: "Request should fail with an error"
         def exception = thrown(PrebidServerException)
@@ -365,7 +381,7 @@ class CacheVtrackSpec extends BaseSpec {
         and: "Flush metrics"
         flushMetrics(defaultPbsService)
 
-        and: "Resent cache and set up invalid response"
+        and: "Reset cache and set up invalid response"
         prebidCache.reset()
         prebidCache.setInvalidPostResponse()
 

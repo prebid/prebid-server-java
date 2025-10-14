@@ -10,7 +10,6 @@ import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.Targeting
 import org.prebid.server.functional.model.response.auction.Adm
 import org.prebid.server.functional.model.response.auction.BidResponse
-import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
 
 import static org.prebid.server.functional.model.response.auction.ErrorType.CACHE
@@ -486,13 +485,19 @@ class CacheSpec extends BaseSpec {
     }
 
     def "PBS shouldn't cache bids when targeting is specified and config cache is invalid"() {
-        given: "Default BidRequest with cache, targeting"
+        given: "Pbs config with cache"
+        def INVALID_PREBID_CACHE_CONFIG = ["cache.path"  : CACHE_PATH,
+                                           "cache.scheme": HTTP_SCHEME,
+                                           "cache.host"  : CACHE_HOST]
+        def pbsService = pbsServiceFactory.getService(INVALID_PREBID_CACHE_CONFIG)
+
+        and: "Default BidRequest with cache, targeting"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             it.enableCache()
         }
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithInvalidCache.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should contain error"
         assert bidResponse.ext?.errors[CACHE]*.code == [999]
@@ -506,13 +511,19 @@ class CacheSpec extends BaseSpec {
     }
 
     def "PBS should cache bids and emit error when targeting is specified and config cache is valid and internal is invalid"() {
-        given: "Default BidRequest with cache, targeting"
+        given: "Pbs config with cache"
+        def INVALID_PREBID_CACHE_CONFIG = ["cache.internal.path"  : CACHE_PATH,
+                                           "cache.internal.scheme": HTTP_SCHEME,
+                                           "cache.internal.host"  : CACHE_HOST]
+        def pbsService = pbsServiceFactory.getService(INVALID_PREBID_CACHE_CONFIG)
+
+        and: "Default BidRequest with cache, targeting"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             it.enableCache()
         }
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithInvalidCache.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS should call PBC"
         assert prebidCache.getRequestCount(bidRequest.imp[0].id) == 0
