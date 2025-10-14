@@ -12,7 +12,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -130,7 +129,7 @@ public class ShowheroesBidder implements Bidder<BidRequest> {
                 .displaymanagerver(shouldSetDisplayManager ? prebidChannel.getVersion() : imp.getDisplaymanagerver())
                 .bidfloorcur(shouldConvertFloor ? BID_CURRENCY : imp.getBidfloorcur())
                 .bidfloor(shouldConvertFloor ? resolveBidFloor(bidRequest, imp) : imp.getBidfloor())
-                .ext(modifyImpExt(imp, extImpShowheroes))
+                .ext(modifyImpExt(imp.getExt(), extImpShowheroes))
                 .build();
     }
 
@@ -142,8 +141,7 @@ public class ShowheroesBidder implements Bidder<BidRequest> {
         }
     }
 
-    private ObjectNode modifyImpExt(Imp imp, ExtImpShowheroes shImpExt) {
-        final ObjectNode impExt = ObjectUtils.defaultIfNull(imp.getExt(), mapper.mapper().createObjectNode());
+    private ObjectNode modifyImpExt(ObjectNode impExt, ExtImpShowheroes shImpExt) {
         impExt.set("params", mapper.mapper().createObjectNode().put("unitId", shImpExt.getUnitId()));
         return impExt;
     }
@@ -162,17 +160,25 @@ public class ShowheroesBidder implements Bidder<BidRequest> {
         if (pbsVersion == null) {
             return bidRequest.getSource();
         }
-        final Source source = ObjectUtils.defaultIfNull(bidRequest.getSource(), Source.builder().build());
-        final ExtSource extSource = ObjectUtils.defaultIfNull(source.getExt(), ExtSource.of(null));
+
+        final Source source = bidRequest.getSource();
+
+        final ExtSource extSource = Optional.ofNullable(source)
+                .map(Source::getExt)
+                .orElse(ExtSource.of(null));
         final ObjectNode prebidExtSource = Optional.ofNullable(extSource.getProperty("pbs"))
                 .filter(JsonNode::isObject)
                 .map(ObjectNode.class::cast)
-                .orElseGet(() -> mapper.mapper().createObjectNode())
+                .orElseGet(mapper.mapper()::createObjectNode)
                 .put("pbsv", pbsVersion)
                 .put("pbsp", PBSP_JAVA);
-
         extSource.addProperty("pbs", prebidExtSource);
-        return source.toBuilder().ext(extSource).build();
+
+        return Optional.ofNullable(source)
+                .map(Source::toBuilder)
+                .orElseGet(Source::builder)
+                .ext(extSource)
+                .build();
     }
 
     @Override
