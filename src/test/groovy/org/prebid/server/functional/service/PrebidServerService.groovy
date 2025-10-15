@@ -28,7 +28,7 @@ import org.prebid.server.functional.model.response.getuids.GetuidResponse
 import org.prebid.server.functional.model.response.infobidders.BidderInfoResponse
 import org.prebid.server.functional.model.response.setuid.SetuidResponse
 import org.prebid.server.functional.model.response.status.StatusResponse
-
+import org.prebid.server.functional.model.response.vtrack.VTrackResponse
 import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
 import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.prebid.server.functional.util.PBSUtils
@@ -224,7 +224,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         decode(response.body.asString(), PrebidCacheResponse)
     }
 
-    int sendGetVtrackRequest(Map<String, Object> parameters) {
+    VTrackResponse sendGetVtrackRequest(Map<String, Object> parameters) {
         def response = given(requestSpecification)
                 .queryParams(parameters)
                 .get(VTRACK_ENDPOINT)
@@ -235,7 +235,7 @@ class PrebidServerService implements ObjectMapperWrapper {
             log.error(responseBody)
             throw new PrebidServerException(responseStatusCode, responseBody, getHeaders(response))
         }
-        responseStatusCode
+        new VTrackResponse(statusCode: response.statusCode, responseBody: response.body.asString())
     }
 
     StatusResponse sendStatusRequest() {

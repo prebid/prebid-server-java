@@ -78,21 +78,18 @@ class PrebidCache extends NetworkScaffolding {
                 }
     }
 
+    void setResponse(String responseBody) {
+        mockServerClient.when(request().withPath(endpoint), Times.unlimited(), TimeToLive.unlimited(), -10)
+                .respond { request ->
+                    request.withPath(endpoint)
+                            ? response().withStatusCode(OK_200.code()).withBody(responseBody)
+                            : HttpResponse.notFoundResponse()
+                }
+    }
+
     void setInvalidPostResponse() {
         mockServerClient.when(request().withPath(endpoint), Times.unlimited(), TimeToLive.unlimited(), -10)
                 .respond { response().withStatusCode(INTERNAL_SERVER_ERROR_500.code()) }
-    }
-
-    void setVtrackResponse(String uuid) {
-        mockServerClient.when(request()
-                .withMethod("GET")
-                .withPath(endpoint)
-                .withQueryStringParameter("uuid", uuid), Times.unlimited(), TimeToLive.unlimited(), -10)
-                .respond { request ->
-                    request.withPath(endpoint)
-                            ? response().withStatusCode(OK_200.code()).withBody("{}")
-                            : HttpResponse.notFoundResponse()
-                }
     }
 
     void setInvalidVtrackResponse(String uuid) {
