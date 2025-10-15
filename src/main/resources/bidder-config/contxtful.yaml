@@ -1,0 +1,21 @@
+adapters:
+  contxtful:
+    endpoint: https://prebid.receptivity.io/v1/pbs/{{AccountId}}/bid
+    meta-info:
+      maintainer-email: contact@contxtful.com
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 0
+    usersync:
+      cookie-family-name: contxtful
+      iframe:
+        url: https://sync.receptivity.io/pbs/iframe?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redirect={{.redirect_url}}
+        support-cors: false
+        uid-macro: '$UID'
