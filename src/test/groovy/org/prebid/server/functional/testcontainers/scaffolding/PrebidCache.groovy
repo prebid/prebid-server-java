@@ -90,7 +90,7 @@ class PrebidCache extends NetworkScaffolding {
                 .withQueryStringParameter("uuid", uuid), Times.unlimited(), TimeToLive.unlimited(), -10)
                 .respond { request ->
                     request.withPath(endpoint)
-                            ? response().withStatusCode(OK_200.code())
+                            ? response().withStatusCode(OK_200.code()).withBody("{}")
                             : HttpResponse.notFoundResponse()
                 }
     }

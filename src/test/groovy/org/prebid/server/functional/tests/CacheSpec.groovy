@@ -508,6 +508,9 @@ class CacheSpec extends BaseSpec {
 
         and: "PBS shouldn't call PBC"
         assert prebidCache.getRequestCount(bidRequest.imp[0].id) == 0
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(INVALID_PREBID_CACHE_CONFIG)
     }
 
     def "PBS should cache bids and emit error when targeting is specified and config cache is valid and internal is invalid"() {
@@ -542,6 +545,9 @@ class CacheSpec extends BaseSpec {
         then: "Response should contain error"
         assert bidResponse.ext?.errors[CACHE]*.code == [999]
         assert bidResponse.ext?.errors[CACHE]*.message[0] == ("Failed to resolve '${CACHE_HOST.tokenize(":")[0]}' [A(1)]")
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(INVALID_PREBID_CACHE_CONFIG)
     }
 
     def "PBS should cache bids when targeting is specified and config cache is invalid and internal cache config valid"() {

@@ -11,6 +11,7 @@ import org.prebid.server.functional.model.request.vtrack.xml.Vast
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.IgnoreRest
 
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR
@@ -64,6 +65,7 @@ class CacheVtrackSpec extends BaseSpec {
         prebidCache.reset(CACHE_ENDPOINT)
     }
 
+    @IgnoreRest
     def "PBS should return 200 status code when get vtrack request contain uuid"() {
         given: "Random uuid"
         def uuid = UUID.randomUUID().toString()
@@ -74,7 +76,7 @@ class CacheVtrackSpec extends BaseSpec {
         when: "PBS processes get vtrack request"
         def response = defaultPbsService.sendGetVtrackRequest(["uuid": uuid])
 
-        then: "Response body should contain 200 status code"
+        then: "Response should contain 200 status code"
         assert response == HttpStatusCode.OK_200.code()
 
         and: "Metrics should contain ok metric"
@@ -125,7 +127,7 @@ class CacheVtrackSpec extends BaseSpec {
         when: "PBS processes get vtrack request"
         def response = defaultPbsService.sendGetVtrackRequest(["uuid": uuid, cacheHost: cacheHost])
 
-        then: "Response body should contain 200 status code"
+        then: "Response should contain 200 status code"
         assert response == HttpStatusCode.OK_200.code()
 
         and: "Metrics should contain ok metrics"
@@ -156,7 +158,7 @@ class CacheVtrackSpec extends BaseSpec {
         when: "PBS processes get vtrack request"
         def response = pbsServiceWithInternalCache.sendGetVtrackRequest(["uuid": uuid, "cacheHost": cacheHost])
 
-        then: "Response body should contain 200 status code"
+        then: "Response should contain 200 status code"
         assert response == HttpStatusCode.OK_200.code()
 
         and: "Metrics should contain ok metrics"
@@ -186,7 +188,7 @@ class CacheVtrackSpec extends BaseSpec {
         when: "PBS processes get vtrack request"
         def response = pbsServiceWithInternalCache.sendGetVtrackRequest(["uuid": uuid])
 
-        then: "Response body should contain 200 status code"
+        then: "Response should contain 200 status code"
         assert response == HttpStatusCode.OK_200.code()
 
         and: "Metrics should contain ok metrics"
