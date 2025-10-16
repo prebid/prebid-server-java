@@ -28,6 +28,7 @@ import org.prebid.server.functional.model.response.getuids.GetuidResponse
 import org.prebid.server.functional.model.response.infobidders.BidderInfoResponse
 import org.prebid.server.functional.model.response.setuid.SetuidResponse
 import org.prebid.server.functional.model.response.status.StatusResponse
+import org.prebid.server.functional.model.response.vtrack.TransferValue
 import org.prebid.server.functional.model.response.vtrack.VTrackResponse
 import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
 import org.prebid.server.functional.util.ObjectMapperWrapper
@@ -42,7 +43,6 @@ import java.time.format.DateTimeFormatter
 
 import static io.restassured.RestAssured.given
 import static java.time.ZoneOffset.UTC
-import static org.mockserver.model.HttpStatusCode.OK_200
 
 class PrebidServerService implements ObjectMapperWrapper {
 
@@ -229,13 +229,11 @@ class PrebidServerService implements ObjectMapperWrapper {
                 .queryParams(parameters)
                 .get(VTRACK_ENDPOINT)
 
-        def responseStatusCode = response.statusCode
-        if (responseStatusCode != OK_200.code()) {
-            def responseBody = response.body.asString()
-            log.error(responseBody)
-            throw new PrebidServerException(responseStatusCode, responseBody, getHeaders(response))
+        checkResponseStatusCode(response)
+        new VTrackResponse().tap {
+            statusCode = response.statusCode()
+            responseBody = decode(response.body.asString(), TransferValue)
         }
-        new VTrackResponse(statusCode: response.statusCode, responseBody: response.body.asString())
     }
 
     StatusResponse sendStatusRequest() {

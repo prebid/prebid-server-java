@@ -6,5 +6,5 @@ import groovy.transform.ToString
 class VTrackResponse {
 
     Integer statusCode
-    String responseBody
+    TransferValue responseBody
 }

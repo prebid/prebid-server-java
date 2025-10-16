@@ -7,6 +7,7 @@ import org.prebid.server.functional.model.config.AccountEventsConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.vtrack.VtrackRequest
 import org.prebid.server.functional.model.request.vtrack.xml.Vast
+import org.prebid.server.functional.model.response.vtrack.TransferValue
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
@@ -38,9 +39,9 @@ class CacheVtrackSpec extends BaseSpec {
     private static final Map<String, String> INVALID_PREBID_CACHE_CONFIG = ["cache.path"  : CACHE_PATH,
                                                                             "cache.scheme": HTTP_SCHEME,
                                                                             "cache.host"  : CACHE_HOST]
-    private static final Map<String, String> VALID_INTERNAL_CACHE = ["cache.internal.scheme": "http",
+    private static final Map<String, String> VALID_INTERNAL_CACHE = ["cache.internal.scheme": HTTP_SCHEME,
                                                                      "cache.internal.host"  : "$networkServiceContainer.hostAndPort".toString(),
-                                                                     "cache.internal.path"  : "/cache"]
+                                                                     "cache.internal.path"  : CACHE_ENDPOINT]
     private static PrebidServerService pbsServiceWithInternalCache
 
     def setupSpec() {
@@ -66,19 +67,16 @@ class CacheVtrackSpec extends BaseSpec {
     }
 
     def "PBS should return 200 status code when get vtrack request contain uuid"() {
-        given: "Random uuid"
-        def uuid = UUID.randomUUID().toString()
-
-        and: "Cache response with random body"
-        def randomBody = PBSUtils.randomString
-        prebidCache.setResponse(randomBody)
+        given: "Clean up and set up successful response"
+        def responseBody = TransferValue.getTransferValue()
+        prebidCache.setResponse(responseBody)
 
         when: "PBS processes get vtrack request"
-        def response = defaultPbsService.sendGetVtrackRequest(["uuid": uuid])
+        def response = defaultPbsService.sendGetVtrackRequest(["uuid": UUID.randomUUID().toString()])
 
         then: "Response should contain 200 status code and body"
         assert response.statusCode == OK_200.code()
-        assert response.responseBody == randomBody
+        assert response.responseBody == responseBody
 
         and: "Metrics should contain ok metric"
         def metricsRequest = defaultPbsService.sendCollectedMetricsRequest()
@@ -117,11 +115,11 @@ class CacheVtrackSpec extends BaseSpec {
         def cacheHost = PBSUtils.randomString
 
         and: "Clean up and set up successful response"
-        def responseBody = PBSUtils.getRandomString()
+        def responseBody = TransferValue.getTransferValue()
         prebidCache.setResponse(responseBody)
 
         when: "PBS processes get vtrack request"
-        def response = defaultPbsService.sendGetVtrackRequest(["uuid": uuid, cacheHost: cacheHost])
+        def response = defaultPbsService.sendGetVtrackRequest(["uuid": uuid, ch: cacheHost])
 
         then: "Response should contain 200 status code and body"
         assert response.statusCode == OK_200.code()
@@ -147,7 +145,7 @@ class CacheVtrackSpec extends BaseSpec {
         def cacheHost = PBSUtils.randomString
 
         and: "Clean up and set up successful response"
-        def responseBody = PBSUtils.getRandomString()
+        def responseBody = TransferValue.getTransferValue()
         prebidCache.setResponse(responseBody)
 
         when: "PBS processes get vtrack request"
@@ -172,9 +170,9 @@ class CacheVtrackSpec extends BaseSpec {
         and: "Random uuid"
         def uuid = UUID.randomUUID().toString()
 
-        and: "Cache set up successful response"
-        def randomBody = PBSUtils.getRandomString()
-        prebidCache.setResponse(randomBody)
+        and: "Clean up and set up successful response"
+        def responseBody = TransferValue.getTransferValue()
+        prebidCache.setResponse(responseBody)
 
         and: "Flush metric"
         flushMetrics(pbsServiceWithInternalCache)
@@ -184,7 +182,7 @@ class CacheVtrackSpec extends BaseSpec {
 
         then: "Response should contain 200 status code"
         assert response.statusCode == OK_200.code()
-        assert response.responseBody == randomBody
+        assert response.responseBody == responseBody
 
         and: "Metrics should contain ok metrics"
         def metricsRequest = pbsServiceWithInternalCache.sendCollectedMetricsRequest()

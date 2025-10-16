@@ -7,6 +7,7 @@ import org.mockserver.model.HttpResponse
 import org.prebid.server.functional.model.mock.services.prebidcache.response.CacheObject
 import org.prebid.server.functional.model.mock.services.prebidcache.response.PrebidCacheResponse
 import org.prebid.server.functional.model.request.cache.BidCacheRequest
+import org.prebid.server.functional.model.response.vtrack.TransferValue
 import org.testcontainers.containers.MockServerContainer
 
 import java.util.stream.Stream
@@ -78,17 +79,19 @@ class PrebidCache extends NetworkScaffolding {
                 }
     }
 
-    void setResponse(String responseBody) {
+    void setResponse(TransferValue vTrackResponse) {
         mockServerClient.when(request().withPath(endpoint), Times.unlimited(), TimeToLive.unlimited(), -10)
                 .respond { request ->
                     request.withPath(endpoint)
-                            ? response().withStatusCode(OK_200.code()).withBody(responseBody)
+                            ? response().withStatusCode(OK_200.code()).withBody(encode(vTrackResponse))
                             : HttpResponse.notFoundResponse()
                 }
     }
 
     void setInvalidPostResponse() {
-        mockServerClient.when(request().withPath(endpoint), Times.unlimited(), TimeToLive.unlimited(), -10)
+        mockServerClient.when(request()
+                .withMethod("POST")
+                .withPath(endpoint), Times.unlimited(), TimeToLive.unlimited(), -10)
                 .respond { response().withStatusCode(INTERNAL_SERVER_ERROR_500.code()) }
     }
 
