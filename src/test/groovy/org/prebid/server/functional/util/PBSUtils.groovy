@@ -167,4 +167,11 @@ class PBSUtils implements ObjectMapperWrapper {
             return false
         }
     }
+
+    static Integer getMinValue(Integer valueOne, Integer valueTwo) {
+        if (valueOne != null && valueTwo != null) {
+            return (valueOne > valueTwo) ? valueTwo : valueOne;
+        }
+        return (valueOne != null) ? valueOne : valueTwo;
+    }
 }
