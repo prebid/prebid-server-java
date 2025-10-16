@@ -18,7 +18,7 @@ public class AlvadsTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromAlvads() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/decision/openrtb"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/alvads-exchange"))
                 .withRequestBody(equalToJson(
                         jsonFrom("openrtb2/alvads/test-alvads-bid-request.json")))
                 .willReturn(aResponse().withBody(

@@ -1,20 +1,27 @@
 {
-  "id": "request_id",
+  "id": "tid",
   "seatbid": [
     {
       "bid": [
         {
-          "id": "bid_id",
-          "impid": "imp_id",
+          "id": "bid001",
+          "impid": "imp1",
           "price": 3.33,
           "adid": "adid001",
           "crid": "crid001",
           "cid": "cid001",
           "adm": "adm001",
           "h": 250,
-          "w": 250
+          "w": 300
         }
-      ]
+      ],
+      "seat": "alvads"
     }
-  ]
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "alvads": 250
+    }
+  }
 }

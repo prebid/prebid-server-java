@@ -1,29 +1,28 @@
 {
-  "id": "test-bid-request",
+  "id": "tid",
   "seatbid": [
     {
       "bid": [
         {
-          "id": "imp1",
+          "id": "bid001",
           "impid": "imp1",
-          "exp": 300,
-          "price": 0.2,
+          "price": 3.33,
           "adm": "adm001",
-          "adid": "adid",
-          "cid": "323",
-          "crid": "2142",
-          "w": 250,
+          "adid": "adid001",
+          "cid": "cid001",
+          "crid": "crid001",
+          "w": 300,
           "h": 250,
+          "exp": 300,
           "ext": {
-            "alva_format": "Display",
             "prebid": {
               "type": "banner",
               "meta": {
                 "adaptercode": "alvads"
               }
             },
-            "origbidcpm": 0.2,
-            "origbidcur":"USD"
+            "origbidcpm":  3.33,
+            "origbidcur": "USD"
           }
         }
       ],
@@ -37,7 +36,7 @@
       "alvads": "{{ alvads.response_time_ms }}"
     },
     "prebid": {
-      "auctiontimestamp": 0
+      "auctiontimestamp": 1000
     },
     "tmaxrequest": 5000
   }

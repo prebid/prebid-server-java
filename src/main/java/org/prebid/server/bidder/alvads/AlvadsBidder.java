@@ -44,7 +44,7 @@ public class AlvadsBidder implements Bidder<AlvadsRequestOrtb> {
     private final JacksonMapper mapper;
 
     public AlvadsBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrlSyntax(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
     }
 

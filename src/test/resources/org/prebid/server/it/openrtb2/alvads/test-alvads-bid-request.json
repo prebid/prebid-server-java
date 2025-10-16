@@ -1,41 +1,34 @@
 {
-  "id": "REQ-OPENRTB-1758805437433",
-  "site": {
-    "page": "https://facebooktest.com",
-    "ref": "https://facebooktest.com",
-    "publisher": {
-      "id": "D7DACCE3-C23D-4AB9-8FE6-9FF41BF32F8F"
-    }
-  },
+  "id": "tid",
   "imp": [
     {
-      "id": "4776dd98-33c9-4c87-859c-370ee434168c",
+      "id": "imp1",
       "banner": {
-        "w": 250,
+        "w": 300,
         "h": 250
       },
-      "bidfloor": 0,
-      "bidfloorcur": "USD",
-      "ext": {
-        "userId": "+59172893207"
-      }
+      "tagid": "123",
+      "bidfloor": 0
     }
   ],
   "device": {
-    "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+    "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+    "ip": "193.168.244.1"
   },
   "user": {
     "id": "+59172893207",
     "buyeruid": "79e917b5-8bb3-4e46-94dc-1053497311f8"
   },
   "regs": {
-    "gpp": "",
-    "gpp_sid": [],
     "ext": {
-      "gdpr": null
+      "gdpr": 0
     }
   },
-  "ext": {
-    "user_fingerprint": "e061375f-bba1-4a57-98f9-cc072d5a5ad8"
+  "site": {
+    "page": "https://facebooktest.com",
+    "ref": "https://facebooktest.com",
+    "publisher": {
+      "id": "D7DACCE3-C23D-4AB9-8FE6-9FF41BF32F8F"
+    }
   }
 }
