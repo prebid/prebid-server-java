@@ -114,11 +114,13 @@ public class CpmStarBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
 
         final BidRequest outgoing = result.getValue().getFirst().getPayload();
-        final ObjectNode outgoingExt = (ObjectNode) outgoing.getImp().getFirst().getExt();
+        final ObjectNode outgoingExt = outgoing.getImp().getFirst().getExt();
 
         assertThat(outgoingExt.has("gpid")).isTrue();
         assertThat(outgoingExt.get("gpid").asText()).isEqualTo("abc-123");
         assertThat(outgoingExt.has("bidder")).isFalse();
+        assertThat(outgoingExt.get("placementId").asInt()).isEqualTo(12);
+        assertThat(outgoingExt.get("subpoolId").asInt()).isEqualTo(123);
     }
 
     @Test
