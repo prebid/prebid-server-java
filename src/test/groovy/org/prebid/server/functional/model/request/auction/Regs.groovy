@@ -10,6 +10,7 @@ class Regs {
 
     Integer coppa
     Integer gdpr
+    Integer gpc
     String usPrivacy
     String gpp
     List<Integer> gppSid

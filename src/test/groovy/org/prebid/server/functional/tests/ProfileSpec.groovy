@@ -1693,7 +1693,7 @@ class ProfileSpec extends BaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getStoredRequest(fileImpProfile.id, request)
+        def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes general get request"
@@ -1945,7 +1945,7 @@ class ProfileSpec extends BaseSpec {
         profileRequestDao.save(StoredProfileRequest.getProfile(secondRequestProfile))
         profileImpDao.save(StoredProfileImp.getProfile(impProfile))
 
-        given: "Default GeneralGetRequest"
+        and: "Default GeneralGetRequest"
         def generalGetRequest = GeneralGetRequest.default.tap {
             it.requestProfiles = [firstRequestProfile, secondRequestProfile].id
             it.impProfiles = [impProfile.id]
@@ -2062,7 +2062,7 @@ class ProfileSpec extends BaseSpec {
         def impProfile = ImpProfile.getProfile(accountId)
         profileImpDao.save(StoredProfileImp.getProfile(impProfile))
 
-        given: "Default GeneralGetRequest"
+        and: "Default GeneralGetRequest"
         def generalGetRequest = GeneralGetRequest.default.tap {
             it.impProfiles = [impProfile.id]
         }

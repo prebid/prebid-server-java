@@ -3,6 +3,9 @@ package org.prebid.server.functional.model.request.get
 import com.fasterxml.jackson.annotation.JsonProperty
 import org.prebid.server.functional.model.request.amp.ConsentType
 import org.prebid.server.functional.model.request.auction.DebugCondition
+import org.prebid.server.functional.model.request.auction.DeviceType
+import org.prebid.server.functional.model.request.auction.VideoPlacementSubtypes
+import org.prebid.server.functional.model.request.auction.VideoPlcmtSubtype
 import org.prebid.server.functional.util.PBSUtils
 
 import static org.prebid.server.functional.model.request.auction.DebugCondition.ENABLED
@@ -82,7 +85,7 @@ class GeneralGetRequest {
     List<Integer> delivery
 
     @JsonProperty("linearity")
-    Integer linearityMode
+    Integer linearity
 
     @JsonProperty("minbr")
     Integer minBitrate
@@ -145,13 +148,13 @@ class GeneralGetRequest {
     Integer normalizedVolume
 
     @JsonProperty("placement")
-    Integer placement
+    VideoPlacementSubtypes placement
 
     @JsonProperty("plcmt")
-    Integer placementSubtype
+    VideoPlcmtSubtype placementSubtype
 
     @JsonProperty("playbackend")
-    Integer playbackEndMode
+    Integer playbackEnd
 
     @JsonProperty("playbackmethod")
     List<Integer> playbackMethods
@@ -172,19 +175,19 @@ class GeneralGetRequest {
     String targeting
 
     @JsonProperty("consent")
-    String gppConsent
+    String consent
 
     @JsonProperty("gdpr_consent")
-    String gppConsentLegacy
+    String consentLegacy
 
     @JsonProperty("consent_string")
-    String gppConsentStringLegacy
+    String consentStringLegacy
 
     @JsonProperty("gdpr")
     Integer gdpr
 
     @JsonProperty("privacy")
-    Integer privacy
+    Integer gdprPrivacy
 
     @JsonProperty("gdpr_applies")
     String gdprApplies
@@ -199,10 +202,10 @@ class GeneralGetRequest {
     ConsentType consentType
 
     @JsonProperty("gpp_sid")
-    Integer gppSid
+    List<Integer> gppSid
 
     @JsonProperty("coppa")
-    Integer coppaFlag
+    Integer coppa
 
     @JsonProperty("gpc")
     Integer globalPrivacyControl
@@ -244,7 +247,7 @@ class GeneralGetRequest {
     Integer contentCategory
 
     @JsonProperty("ccattax")
-    List<String> contentCategoryTaxonomy
+    List<Integer> contentCategoryTaxonomy
 
     @JsonProperty("cseries")
     String contentSeries
@@ -268,7 +271,7 @@ class GeneralGetRequest {
     String deviceUa
 
     @JsonProperty("dtype")
-    String deviceType
+    DeviceType deviceType
 
     @JsonProperty("ifa")
     String deviceIfa
@@ -287,6 +290,10 @@ class GeneralGetRequest {
     }
 
     String resolveStoredRequestId() {
-        storedRequestId != null ? storedRequestId : storedRequestIdLegacy
+        storedRequestId ?: storedRequestIdLegacy
+    }
+
+    String resolveAccountId() {
+        accountId ?: accountIdLegacy
     }
 }
