@@ -32,7 +32,7 @@ import static org.prebid.server.functional.model.response.auction.MediaType.VIDE
 
 class ResponseCorrectionSpec extends ModuleBaseSpec {
 
-    private final static int OPTIMAL_MAX_LENGTH = 20
+    private final static int OPTIMAL_MAX_LENGTH = 0
     private static final Map PBS_CONFIG = ["adapter-defaults.modifying-vast-xml-allowed": "false",
                                            "adapters.generic.modifying-vast-xml-allowed": "false"] +
             getResponseCorrectionConfig()

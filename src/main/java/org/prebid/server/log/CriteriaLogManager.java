@@ -11,6 +11,28 @@ import java.util.Set;
 
 public class CriteriaLogManager {
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     private static final Logger logger = LoggerFactory.getLogger(CriteriaLogManager.class);
 
     private final Set<Criteria> criterias = new ConcurrentHashSet<>();
