@@ -30,7 +30,7 @@
         <jacoco-maven-plugin.version>0.8.13</jacoco-maven-plugin.version>
         <docker-maven-plugin.version>0.46.0</docker-maven-plugin.version>
         <checkstyle-plugin.version>3.6.0</checkstyle-plugin.version>
-        <checkstyle.version>12.0.1</checkstyle.version>
+        <checkstyle.version>12.1.0</checkstyle.version>
 
         <!-- Project production dependency versions -->
         <spring.boot.version>3.5.5</spring.boot.version>
@@ -42,7 +42,7 @@
         <scram.version>2.1</scram.version>
         <httpclient.version>4.5.14</httpclient.version>
         <ipaddress.version>5.5.1</ipaddress.version>
-        <oshi.version>6.9.0</oshi.version>
+        <oshi.version>6.9.1</oshi.version>
         <json-schema-validator.version>1.5.9</json-schema-validator.version>
         <jsonpatch.version>1.13</jsonpatch.version>
         <psl.version>2.2.0</psl.version>
@@ -51,10 +51,10 @@
         <iabtcf.version>2.0.10</iabtcf.version>
         <gpp-encoder.version>3.2.4</gpp-encoder.version>
         <maxmind-client.version>4.4.0</maxmind-client.version>
-        <protobuf.version>4.32.1</protobuf.version>
+        <protobuf.version>4.33.0</protobuf.version>
         <protoc.version>${protobuf.version}</protoc.version>
         <json-logic.version>1.1.0</json-logic.version>
-        <aws.awssdk.version>2.35.5</aws.awssdk.version>
+        <aws.awssdk.version>2.35.10</aws.awssdk.version>
         <dropwizard-metrics.version>4.2.37</dropwizard-metrics.version>
 
         <!-- Project test dependency versions -->
