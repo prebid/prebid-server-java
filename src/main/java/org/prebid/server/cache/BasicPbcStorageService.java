@@ -47,7 +47,7 @@ public class BasicPbcStorageService implements PbcStorageService {
         this.callTimeoutMs = callTimeoutMs;
         this.mapper = Objects.requireNonNull(mapper);
         this.clock = Objects.requireNonNull(clock);
-        this.metrics = metrics;
+        this.metrics = Objects.requireNonNull(metrics);
     }
 
     @Override
