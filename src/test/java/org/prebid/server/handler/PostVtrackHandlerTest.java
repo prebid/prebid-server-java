@@ -312,8 +312,7 @@ public class PostVtrackHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldSendToCacheAccountTtlWhenAccountTtlIsPresent()
-            throws JsonProcessingException {
+    public void shouldSendToCacheAccountTtlWhenAccountTtlIsPresent() throws JsonProcessingException {
         // given
         final List<BidPutObject> bidPutObjects = singletonList(
                 BidPutObject.builder()
@@ -321,8 +320,7 @@ public class PostVtrackHandlerTest extends VertxTest {
                         .bidder("bidder")
                         .type("xml")
                         .value(new TextNode("<vast")).build());
-        given(requestBody.buffer())
-                .willReturn(givenVtrackRequest(bidPutObjects));
+        given(requestBody.buffer()).willReturn(givenVtrackRequest(bidPutObjects));
 
         given(applicationSettings.getAccountById(any(), any())).willReturn(Future.succeededFuture(
                 Account.builder().vtrack(AccountVtrackConfig.builder().ttl(100).build()).build()));

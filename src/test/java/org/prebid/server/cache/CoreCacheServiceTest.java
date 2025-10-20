@@ -76,6 +76,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
@@ -916,6 +917,22 @@ public class CoreCacheServiceTest extends VertxTest {
                 .value(new TextNode("VAST"))
                 .ttlseconds(101)
                 .build();
+        final BidPutObject fourthBidPutObject = BidPutObject.builder()
+                .type("json")
+                .bidid("bidId4")
+                .bidder("bidder4")
+                .timestamp(1L)
+                .value(new TextNode("VAST"))
+                .ttlseconds(-100)
+                .build();
+        final BidPutObject fifthBidPutObject = BidPutObject.builder()
+                .type("xml")
+                .bidid("bidId4")
+                .bidder("bidder4")
+                .timestamp(1L)
+                .value(new TextNode("VAST"))
+                .ttlseconds(0)
+                .build();
 
         given(vastModifier.modifyVastXml(any(), any(), any(), any(), anyString()))
                 .willReturn(new TextNode("modifiedVast"))
@@ -924,11 +941,16 @@ public class CoreCacheServiceTest extends VertxTest {
 
         given(httpClient.post(anyString(), any(), any(), anyLong())).willReturn(Future.succeededFuture(
                 HttpClientResponse.of(200, null, mapper.writeValueAsString(BidCacheResponse.of(
-                        List.of(CacheObject.of("uuid1"), CacheObject.of("uuid2"), CacheObject.of("uuid3")))))));
+                        List.of(
+                                CacheObject.of("uuid1"),
+                                CacheObject.of("uuid2"),
+                                CacheObject.of("uuid3"),
+                                CacheObject.of("uuid4"),
+                                CacheObject.of("uuid5")))))));
 
         // when
         target.cachePutObjects(
-                asList(firstBidPutObject, secondBidPutObject, thirdBidPutObject),
+                asList(firstBidPutObject, secondBidPutObject, thirdBidPutObject, fourthBidPutObject, fifthBidPutObject),
                 true,
                 singleton("bidder1"),
                 "account",
@@ -942,15 +964,21 @@ public class CoreCacheServiceTest extends VertxTest {
         verify(metrics).updateCacheCreativeSize(eq("account"), eq(12), eq(MetricName.json));
         verify(metrics).updateCacheCreativeSize(eq("account"), eq(4), eq(MetricName.xml));
         verify(metrics).updateCacheCreativeSize(eq("account"), eq(11), eq(MetricName.unknown));
+        verify(metrics).updateCacheCreativeSize(eq("account"), eq(12), eq(MetricName.json));
+        verify(metrics).updateCacheCreativeSize(eq("account"), eq(4), eq(MetricName.xml));
 
         verify(metrics).updateCacheCreativeTtl(eq("account"), eq(99), eq(MetricName.json));
-        verify(metrics).updateCacheCreativeTtl(eq("account"), eq(100), eq(MetricName.xml));
+        verify(metrics, times(2)).updateCacheCreativeTtl(eq("account"), eq(100), eq(MetricName.xml));
         verify(metrics).updateCacheCreativeTtl(eq("account"), eq(100), eq(MetricName.unknown));
+        verify(metrics).updateCacheCreativeTtl(eq("account"), eq(100), eq(MetricName.json));
 
         verify(metrics).updateVtrackCacheWriteRequestTime(eq("account"), anyLong(), eq(MetricName.ok));
 
         verify(vastModifier).modifyVastXml(true, singleton("bidder1"), firstBidPutObject, "account", "pbjs");
         verify(vastModifier).modifyVastXml(true, singleton("bidder1"), secondBidPutObject, "account", "pbjs");
+        verify(vastModifier).modifyVastXml(true, singleton("bidder1"), thirdBidPutObject, "account", "pbjs");
+        verify(vastModifier).modifyVastXml(true, singleton("bidder1"), fourthBidPutObject, "account", "pbjs");
+        verify(vastModifier).modifyVastXml(true, singleton("bidder1"), fifthBidPutObject, "account", "pbjs");
 
         final BidPutObject modifiedFirstBidPutObject = firstBidPutObject.toBuilder()
                 .bidid(null)
@@ -972,9 +1000,156 @@ public class CoreCacheServiceTest extends VertxTest {
                 .value(new TextNode("updatedVast"))
                 .ttlseconds(100)
                 .build();
+        final BidPutObject modifiedFourthBidPutObject = fourthBidPutObject.toBuilder()
+                .bidid(null)
+                .bidder(null)
+                .timestamp(null)
+                .value(new TextNode("updatedVast"))
+                .ttlseconds(100)
+                .build();
+        final BidPutObject modifiedFifthBidPutObject = fifthBidPutObject.toBuilder()
+                .bidid(null)
+                .bidder(null)
+                .timestamp(null)
+                .value(new TextNode("updatedVast"))
+                .ttlseconds(100)
+                .build();
 
-        assertThat(captureBidCacheRequest().getPuts())
-                .containsExactly(modifiedFirstBidPutObject, modifiedSecondBidPutObject, modifiedThirdBidPutObject);
+        assertThat(captureBidCacheRequest().getPuts()).containsExactly(
+                modifiedFirstBidPutObject,
+                modifiedSecondBidPutObject,
+                modifiedThirdBidPutObject,
+                modifiedFourthBidPutObject,
+                modifiedFifthBidPutObject);
+    }
+
+    @Test
+    public void cachePutObjectsShouldCacheObjectsWithTtlDefinedAsPutObjectTtlWhenAccountTtlIsNegative()
+            throws IOException {
+
+        // given
+        final BidPutObject bidObject = BidPutObject.builder()
+                .type("json")
+                .bidid("bidId1")
+                .bidder("bidder1")
+                .timestamp(1L)
+                .value(new TextNode("vast"))
+                .ttlseconds(100)
+                .build();
+
+        given(vastModifier.modifyVastXml(any(), any(), any(), any(), anyString()))
+                .willReturn(new TextNode("modifiedVast"));
+
+        given(httpClient.post(anyString(), any(), any(), anyLong())).willReturn(Future.succeededFuture(
+                HttpClientResponse.of(200, null, mapper.writeValueAsString(BidCacheResponse.of(
+                        List.of(CacheObject.of("uuid1")))))));
+
+        // when
+        target.cachePutObjects(
+                singletonList(bidObject),
+                true,
+                singleton("bidder1"),
+                "account",
+                -20,
+                "pbjs",
+                timeout);
+
+        // then
+        final BidPutObject expectedBidObject = bidObject.toBuilder()
+                .bidid(null)
+                .bidder(null)
+                .timestamp(null)
+                .value(new TextNode("modifiedVast"))
+                .ttlseconds(100)
+                .build();
+
+        assertThat(captureBidCacheRequest().getPuts()).containsExactly(expectedBidObject);
+    }
+
+    @Test
+    public void cachePutObjectsShouldCacheObjectsWithTtlDefinedAsPutObjectTtlWhenAccountTtlIsZero()
+            throws IOException {
+
+        // given
+        final BidPutObject bidObject = BidPutObject.builder()
+                .type("json")
+                .bidid("bidId1")
+                .bidder("bidder1")
+                .timestamp(1L)
+                .value(new TextNode("vast"))
+                .ttlseconds(100)
+                .build();
+
+        given(vastModifier.modifyVastXml(any(), any(), any(), any(), anyString()))
+                .willReturn(new TextNode("modifiedVast"));
+
+        given(httpClient.post(anyString(), any(), any(), anyLong())).willReturn(Future.succeededFuture(
+                HttpClientResponse.of(200, null, mapper.writeValueAsString(BidCacheResponse.of(
+                        List.of(CacheObject.of("uuid1")))))));
+
+        // when
+        target.cachePutObjects(
+                singletonList(bidObject),
+                true,
+                singleton("bidder1"),
+                "account",
+                0,
+                "pbjs",
+                timeout);
+
+        // then
+        final BidPutObject expectedBidObject = bidObject.toBuilder()
+                .bidid(null)
+                .bidder(null)
+                .timestamp(null)
+                .value(new TextNode("modifiedVast"))
+                .ttlseconds(100)
+                .build();
+
+        assertThat(captureBidCacheRequest().getPuts()).containsExactly(expectedBidObject);
+    }
+
+    @Test
+    public void cachePutObjectsShouldNotProvideTtlWhenAccountTtlIsNegativeAndPutObjectTtlIsZero()
+            throws IOException {
+
+        // given
+        final BidPutObject bidObject = BidPutObject.builder()
+                .type("json")
+                .bidid("bidId1")
+                .bidder("bidder1")
+                .timestamp(1L)
+                .value(new TextNode("vast"))
+                .ttlseconds(0)
+                .build();
+
+        given(vastModifier.modifyVastXml(any(), any(), any(), any(), anyString()))
+                .willReturn(new TextNode("modifiedVast"));
+
+        given(httpClient.post(anyString(), any(), any(), anyLong())).willReturn(Future.succeededFuture(
+                HttpClientResponse.of(200, null, mapper.writeValueAsString(BidCacheResponse.of(
+                        List.of(CacheObject.of("uuid1")))))));
+
+        // when
+        target.cachePutObjects(
+                singletonList(bidObject),
+                true,
+                singleton("bidder1"),
+                "account",
+                -10,
+                "pbjs",
+                timeout);
+
+        // then
+        final BidPutObject expectedBidObject = bidObject.toBuilder()
+                .bidid(null)
+                .bidder(null)
+                .timestamp(null)
+                .value(new TextNode("modifiedVast"))
+                .ttlseconds(null)
+                .build();
+
+        assertThat(captureBidCacheRequest().getPuts()).containsExactly(expectedBidObject);
     }
 
     @Test
