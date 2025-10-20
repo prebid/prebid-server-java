@@ -19,6 +19,6 @@ adapters:
     usersync:
       cookie-family-name: metax
       redirect:
-        url: https://cm.metaxads.com/pixel?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redir={{.redirect_url}}
+        url: https://cm.metaxads.com/pixel?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redir={{redirect_url}}
         support-cors: false
         uid-macro: '[UID]'
