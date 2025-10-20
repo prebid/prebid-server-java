@@ -27,7 +27,6 @@ class CacheSpec extends BaseSpec {
     private static final String PBS_API_HEADER = 'x-pbc-api-key'
     private static final Integer MAX_DATACENTER_REGION_LENGTH = 4
     private static final Integer DEFAULT_UUID_LENGTH = 36
-    private static final Integer TARGETING_PARAM_NAME_MAX_LENGTH = 20
 
     private static final String XML_CREATIVE_SIZE_ACCOUNT_METRIC = "account.%s.prebid_cache.creative_size.xml"
     private static final String JSON_CREATIVE_SIZE_ACCOUNT_METRIC = "account.%s.prebid_cache.creative_size.json"
@@ -612,8 +611,8 @@ class CacheSpec extends BaseSpec {
             it.get("hb_cache_id_generic")
             it.get("hb_cache_path") == CACHE_PATH
             it.get("hb_cache_host") == CACHE_HOST
-            it.get("hb_cache_path_generic".substring(0, TARGETING_PARAM_NAME_MAX_LENGTH)) == CACHE_PATH
-            it.get("hb_cache_host_generic".substring(0, TARGETING_PARAM_NAME_MAX_LENGTH)) == CACHE_HOST
+            it.get("hb_cache_path_generic") == CACHE_PATH
+            it.get("hb_cache_host_generic") == CACHE_HOST
         }
 
         and: "Debug should contain http call"
@@ -648,8 +647,8 @@ class CacheSpec extends BaseSpec {
             it.get("hb_cache_id_generic")
             it.get("hb_cache_path") == INTERNAL_CACHE_PATH
             it.get("hb_cache_host") == networkServiceContainer.hostAndPort.toString()
-            it.get("hb_cache_path_generic".substring(0, TARGETING_PARAM_NAME_MAX_LENGTH)) == INTERNAL_CACHE_PATH
-            it.get("hb_cache_host_generic".substring(0, TARGETING_PARAM_NAME_MAX_LENGTH)) == networkServiceContainer.hostAndPort.toString()
+            it.get("hb_cache_path_generic") == INTERNAL_CACHE_PATH
+            it.get("hb_cache_host_generic") == networkServiceContainer.hostAndPort.toString()
         }
 
         and: "Debug should contain http call"

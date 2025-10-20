@@ -14,4 +14,5 @@ class PbsModulesConfig {
     PbResponseCorrection pbResponseCorrection
     PbRequestCorrectionConfig pbRequestCorrection
     OptableTargetingConfig optableTargeting
+    PbRulesEngine pbRuleEngine
 }

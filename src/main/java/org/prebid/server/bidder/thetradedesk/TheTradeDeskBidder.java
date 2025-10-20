@@ -231,6 +231,7 @@ public class TheTradeDeskBidder implements Bidder<BidRequest> {
         return bid.toBuilder()
                 .nurl(StringUtils.replace(bid.getNurl(), PRICE_MACRO, priceAsString))
                 .adm(StringUtils.replace(bid.getAdm(), PRICE_MACRO, priceAsString))
+                .burl(StringUtils.replace(bid.getBurl(), PRICE_MACRO, priceAsString))
                 .build();
     }
 }

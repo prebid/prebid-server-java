@@ -10,15 +10,25 @@
     },
     "siteId": {
       "type": "string",
-      "description": "Site Id"
+      "description": "[Deprecated use zoneId instead] Site Id"
     },
     "zoneId": {
       "type": "string",
       "description": "Zone Id"
     }
   },
-  "required": [
-    "productId",
-    "siteId"
+  "anyOf": [
+    {
+      "required": [
+        "productId",
+        "zoneId"
+      ]
+    },
+    {
+      "required": [
+        "productId",
+        "siteId"
+      ]
+    }
   ]
 }

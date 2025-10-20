@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.smartadserver;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -37,12 +38,20 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 public class SmartadserverBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com/path?testParam=testVal";
+    private static final String SECONDARY_URL = "https://test.endpoint2.com/path?testParam=testVal";
 
-    private final SmartadserverBidder target = new SmartadserverBidder(ENDPOINT_URL, jacksonMapper);
+    private final SmartadserverBidder target = new SmartadserverBidder(ENDPOINT_URL, SECONDARY_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new SmartadserverBidder("invalid_url", jacksonMapper));
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> new SmartadserverBidder("invalid_url", SECONDARY_URL, jacksonMapper));
+    }
+
+    @Test
+    public void creationShouldFailOnInvalidSecondaryEndpointUrl() {
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> new SmartadserverBidder(ENDPOINT_URL, "invalid_url", jacksonMapper));
     }
 
     @Test
@@ -64,10 +73,50 @@ public class SmartadserverBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldCreateCorrectURL() {
+    public void makeHttpRequestsShouldCreateCorrectPrimaryURLWhenProgrammaticGuaranteedIsAbsent() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(givenImp(identity())))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getValue().getFirst().getUri())
+                .isEqualTo("https://test.endpoint.com/path/api/bid?testParam=testVal&callerId=5");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCreateCorrectSecondaryURLWhenProgrammaticGuaranteedIsTrue() {
+        // given
+        final ObjectNode givenImpExt = mapper.createObjectNode()
+                .set("bidder", mapper.createObjectNode().put("programmaticGuaranteed", true));
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(imp -> imp.ext(givenImpExt))))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getValue().getFirst().getUri())
+                .isEqualTo("https://test.endpoint2.com/path/ortb?testParam=testVal");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCreateCorrectPrimaryURLWhenProgrammaticGuaranteedIsFalse() {
+        // given
+        final ObjectNode givenImpExt = mapper.createObjectNode()
+                .set("bidder", mapper.createObjectNode().put("programmaticGuaranteed", false));
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(imp -> imp.ext(givenImpExt))))
                 .build();
 
         // when
@@ -108,12 +157,12 @@ public class SmartadserverBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldCreateRequestForEveryValidImp() {
+    public void makeHttpRequestsShouldCreateSingleRequest() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(Arrays.asList(givenImp(identity()),
-                        givenImp(impBuilder -> impBuilder.id("456"))
-                ))
+                .imp(Arrays.asList(
+                        givenImp(impBuilder -> impBuilder.id("123")),
+                        givenImp(impBuilder -> impBuilder.id("456"))))
                 .build();
 
         // when
@@ -121,23 +170,22 @@ public class SmartadserverBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
+        assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
-                .flatExtracting(Imp::getId)
+                .extracting(Imp::getId)
                 .containsExactly("123", "456");
     }
 
     @Test
-    public void makeHttpRequestsShouldCreateRequestForValidImpAndSaveErrorForInvalid() {
+    public void makeHttpRequestsShouldCreateSingleRequestWithValidImpsOnly() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(Arrays.asList(givenImp(impBuilder -> impBuilder.id("456")),
+                .imp(Arrays.asList(givenImp(impBuilder -> impBuilder.id("123")),
                         Imp.builder()
                                 .id("invalidImp")
                                 .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
-                                .build()
-                ))
+                                .build()))
                 .build();
 
         // when
@@ -146,11 +194,61 @@ public class SmartadserverBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors())
                 .containsExactly(BidderError.badInput("Error parsing smartadserverExt parameters"));
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getId)
+                .containsExactly("123");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldModifyImpWhenProgrammaticGuaranteedIsTrueAtLeastInOneValidImp() {
+        // given
+        final ObjectNode givenImpExt1 = mapper.createObjectNode()
+                .set("bidder", mapper.createObjectNode()
+                        .put("programmaticGuaranteed", false)
+                        .put("networkId", 1)
+                        .put("siteId", 2)
+                        .put("formatId", 3)
+                        .put("pageId", 4));
+        final ObjectNode givenImpExt2 = mapper.createObjectNode()
+                .set("bidder", mapper.createObjectNode()
+                        .put("programmaticGuaranteed", true)
+                        .put("networkId", 5)
+                        .put("siteId", 6)
+                        .put("formatId", 7)
+                        .put("pageId", 8));
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(List.of(
+                        givenImp(imp -> imp.id("impId1").ext(givenImpExt1)),
+                        givenImp(imp -> imp.id("impId2").ext(givenImpExt2))))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        final ObjectNode expectedImpExt1 = mapper.createObjectNode()
+                .set("smartadserver", mapper.createObjectNode()
+                        .put("networkId", 1)
+                        .put("siteId", 2)
+                        .put("formatId", 3)
+                        .put("pageId", 4));
+        final ObjectNode expectedImpExt2 = mapper.createObjectNode()
+                .set("smartadserver", mapper.createObjectNode()
+                        .put("networkId", 5)
+                        .put("siteId", 6)
+                        .put("formatId", 7)
+                        .put("pageId", 8));
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
-                .flatExtracting(Imp::getId)
-                .containsExactly("456");
+                .extracting(Imp::getExt)
+                .containsExactly(expectedImpExt1, expectedImpExt2);
     }
 
     @Test
@@ -300,10 +398,12 @@ public class SmartadserverBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                        .id("123"))
-                .banner(Banner.builder().build())
-                .video(Video.builder().build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSmartadserver.of(1, 2, 3, 4))))
+                        .id("123")
+                        .banner(Banner.builder().build())
+                        .video(Video.builder().build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(
+                                null,
+                                ExtImpSmartadserver.of(1, 2, 3, 4, false)))))
                 .build();
     }
 

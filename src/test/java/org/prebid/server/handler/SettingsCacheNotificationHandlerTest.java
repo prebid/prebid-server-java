@@ -31,7 +31,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 public class SettingsCacheNotificationHandlerTest extends VertxTest {
 
     @Mock
-    private CacheNotificationListener cacheNotificationListener;
+    private CacheNotificationListener<String> cacheNotificationListener;
 
     private SettingsCacheNotificationHandler handler;
     @Mock(strictness = LENIENT)
@@ -45,7 +45,7 @@ public class SettingsCacheNotificationHandlerTest extends VertxTest {
 
     @BeforeEach
     public void setUp() {
-        handler = new SettingsCacheNotificationHandler(cacheNotificationListener, jacksonMapper, "endpoint");
+        handler = new SettingsCacheNotificationHandler("endpoint", cacheNotificationListener, jacksonMapper);
 
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);

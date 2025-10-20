@@ -62,7 +62,13 @@
       }
     },
     "ixdiag": {
-      "pbsv": "{{ pbs.java.version }}"
+      "pbsv": "{{ pbs.java.version }}",
+      "pbsp": "java",
+      "msd": 2,
+      "msi": 2,
+      "mfu": 0,
+      "ren": false,
+      "version": "6.29.1"
     }
   }
 }

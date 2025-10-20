@@ -29,7 +29,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
     private static final String PATTERN_NAME_ACCOUNT = PBSUtils.randomString
     private static final Map<String, String> DISABLED_FILTER_SPECIFIC_PATTERN_NAME_CONFIG = getRichMediaFilterSettings(PATTERN_NAME, false)
     private static final Map<String, String> SPECIFIC_PATTERN_NAME_CONFIG = getRichMediaFilterSettings(PATTERN_NAME)
-    private static final Map<String, String> SNAKE_SPECIFIC_PATTERN_NAME_CONFIG =  (getRichMediaFilterSettings(PATTERN_NAME) +
+    private static final Map<String, String> SNAKE_SPECIFIC_PATTERN_NAME_CONFIG = (getRichMediaFilterSettings(PATTERN_NAME) +
             ["hooks.host-execution-plan": encode(ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, PB_RICHMEDIA_FILTER, [ALL_PROCESSED_BID_RESPONSES]).tap {
                 endpoints.values().first().stages.values().first().groups.first.hookSequenceSnakeCase = [new HookId(moduleCodeSnakeCase: PB_RICHMEDIA_FILTER.code, hookImplCodeSnakeCase: "${PB_RICHMEDIA_FILTER.code}-${ALL_PROCESSED_BID_RESPONSES.value}-hook")]
             })]).collectEntries { key, value -> [(key.toString()): value.toString()] }
@@ -155,7 +155,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         assert response.ext.seatnonbid.size() == 1
 
         def seatNonBid = response.ext.seatnonbid[0]
-        assert seatNonBid.seat == GENERIC.value
+        assert seatNonBid.seat == GENERIC
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == RESPONSE_REJECTED_INVALID_CREATIVE
 
@@ -239,7 +239,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         assert response.ext.seatnonbid.size() == 1
 
         def seatNonBid = response.ext.seatnonbid[0]
-        assert seatNonBid.seat == GENERIC.value
+        assert seatNonBid.seat == GENERIC
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == RESPONSE_REJECTED_INVALID_CREATIVE
 
@@ -323,7 +323,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         assert response.ext.seatnonbid.size() == 1
 
         def seatNonBid = response.ext.seatnonbid[0]
-        assert seatNonBid.seat == GENERIC.value
+        assert seatNonBid.seat == GENERIC
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == RESPONSE_REJECTED_INVALID_CREATIVE
 
@@ -440,7 +440,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         assert response.ext.seatnonbid.size() == 1
 
         def seatNonBid = response.ext.seatnonbid[0]
-        assert seatNonBid.seat == GENERIC.value
+        assert seatNonBid.seat == GENERIC
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == RESPONSE_REJECTED_INVALID_CREATIVE
 
@@ -452,11 +452,5 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
 
         where:
         admValue << [PATTERN_NAME, "${PBSUtils.randomString}-${PATTERN_NAME}", "${PATTERN_NAME}.${PBSUtils.randomString}"]
-    }
-
-    private static List<AnalyticResult> getAnalyticResults(BidResponse response) {
-        response.ext.prebid.modules?.trace?.stages?.first()
-                ?.outcomes?.first()?.groups?.first()
-                ?.invocationResults?.first()?.analyticsTags?.activities
     }
 }

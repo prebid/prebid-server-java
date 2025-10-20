@@ -145,5 +145,9 @@ LIMIT 1
          "currency-converter.external-rates.refresh-period-ms" : "900000"]
     }
 
+    static Map<String,String> getTargetingConfig() {
+        ["settings.targeting.truncate-attr-chars": '255']
+    }
+
     private PbsConfig() {}
 }
