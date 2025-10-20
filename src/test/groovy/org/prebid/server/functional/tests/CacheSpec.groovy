@@ -610,7 +610,7 @@ class CacheSpec extends BaseSpec {
         assert prebidCache.getRequestCount(bidRequest.imp[0].id) == 1
 
         and: "Bid response targeting should contain value"
-        verifyAll (bidResponse?.seatbid[0]?.bid[0]?.ext?.prebid?.targeting as Map) {
+        verifyAll(bidResponse?.seatbid[0]?.bid[0]?.ext?.prebid?.targeting as Map) {
             it.get("hb_cache_id")
             it.get("hb_cache_id_generic")
             it.get("hb_cache_path") == CACHE_PATH
@@ -646,7 +646,7 @@ class CacheSpec extends BaseSpec {
         assert prebidCache.getRequestCount(bidRequest.imp[0].id) == 1
 
         and: "Bid response targeting should contain value"
-        verifyAll (bidResponse.seatbid[0].bid[0].ext.prebid.targeting) {
+        verifyAll(bidResponse.seatbid[0].bid[0].ext.prebid.targeting) {
             it.get("hb_cache_id")
             it.get("hb_cache_id_generic")
             it.get("hb_cache_path") == INTERNAL_CACHE_PATH
@@ -806,6 +806,41 @@ class CacheSpec extends BaseSpec {
         assert exception.responseBody == "Account 'a' is required query parameter and can't be empty"
     }
 
+    def "PBS shouldn't negative value in tllSecond when account vtrack ttl is #accountTtl and request ttl second is #requestedTtl"() {
+        given: "Default VtrackRequest"
+        def creative = encodeXml(Vast.getDefaultVastModel(PBSUtils.randomString))
+        def request = VtrackRequest.getDefaultVtrackRequest(creative).tap {
+            puts[0].ttlseconds = requestedTtl
+        }
+
+        and: "Create and save vtrack in account"
+        def accountId = PBSUtils.randomNumber.toString()
+        def account = new Account().tap {
+            it.uuid = accountId
+            it.config = new AccountConfig().tap {
+                it.vtrack = new AccountVtrackConfig(ttl: accountTtl)
+            }
+        }
+        accountDao.save(account)
+
+        and: "Flush metrics"
+        flushMetrics(defaultPbsService)
+
+        when: "PBS processes vtrack request"
+        defaultPbsService.sendVtrackRequest(request, accountId)
+
+        then: "Pbs should emit creative_ttl.xml with lowest value"
+        def metrics = defaultPbsService.sendCollectedMetricsRequest()
+        assert metrics[XML_CREATIVE_TTL_ACCOUNT_METRIC.formatted(accountId)]
+                == [requestedTtl, accountTtl].findAll({ it -> it > 0 }).min()
+
+        where:
+        requestedTtl                                            | accountTtl
+        PBSUtils.getRandomNumber(300, 1500) as Integer          | PBSUtils.getRandomNegativeNumber(-1500, 300) as Integer
+        PBSUtils.getRandomNegativeNumber(-1500, 300) as Integer | PBSUtils.getRandomNumber(300, 1500) as Integer
+        PBSUtils.getRandomNegativeNumber(-1500, 300) as Integer | PBSUtils.getRandomNegativeNumber(-1500, 300) as Integer
+    }
+
     def "PBS should use lowest tllSecond when account vtrack ttl is #accountTtl and request ttl second is #requestedTtl"() {
         given: "Default VtrackRequest"
         def creative = encodeXml(Vast.getDefaultVastModel(PBSUtils.randomString))
@@ -831,18 +866,15 @@ class CacheSpec extends BaseSpec {
 
         then: "Pbs should emit creative_ttl.xml with lowest value"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        def minTllSecond = PBSUtils.getMinValue(requestedTtl, accountTtl)
-        assert metrics[XML_CREATIVE_TTL_ACCOUNT_METRIC.formatted(accountId)] == minTllSecond
+        assert metrics[XML_CREATIVE_TTL_ACCOUNT_METRIC.formatted(accountId)]
+                == [requestedTtl, accountTtl].findAll().min()
 
         where:
-        requestedTtl                                             | accountTtl
-        null                                                     | null
-        null                                                     | PBSUtils.getRandomNumber(300, 1500) as Integer
-        PBSUtils.getRandomNumber(300, 1500) as Integer           | null
-        PBSUtils.getRandomNumber(300, 1500) as Integer           | PBSUtils.getRandomNumber(300, 1500) as Integer
-        PBSUtils.getRandomNumber(300, 1500) as Integer           | PBSUtils.getRandomNegativeNumber(-300, -1500) as Integer
-        PBSUtils.getRandomNegativeNumber(-300, -1500) as Integer | PBSUtils.getRandomNumber(300, 1500) as Integer
-        PBSUtils.getRandomNegativeNumber(-300, -1500) as Integer | PBSUtils.getRandomNegativeNumber(-300, -1500) as Integer
+        requestedTtl                                   | accountTtl
+        null                                           | null
+        null                                           | PBSUtils.getRandomNumber(300, 1500) as Integer
+        PBSUtils.getRandomNumber(300, 1500) as Integer | null
+        PBSUtils.getRandomNumber(300, 1500) as Integer | PBSUtils.getRandomNumber(300, 1500) as Integer
     }
 
     def "PBS should proceed request when account ttl and request ttl second are empty"() {
