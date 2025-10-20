@@ -806,7 +806,7 @@ class CacheSpec extends BaseSpec {
         assert exception.responseBody == "Account 'a' is required query parameter and can't be empty"
     }
 
-    def "PBS shouldn't negative value in tllSecond when account vtrack ttl is #accountTtl and request ttl second is #requestedTtl"() {
+    def "PBS shouldn't use negative value in tllSecond when account vtrack ttl is #accountTtl and request ttl second is #requestedTtl"() {
         given: "Default VtrackRequest"
         def creative = encodeXml(Vast.getDefaultVastModel(PBSUtils.randomString))
         def request = VtrackRequest.getDefaultVtrackRequest(creative).tap {
@@ -832,7 +832,7 @@ class CacheSpec extends BaseSpec {
         then: "Pbs should emit creative_ttl.xml with lowest value"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
         assert metrics[XML_CREATIVE_TTL_ACCOUNT_METRIC.formatted(accountId)]
-                == [requestedTtl, accountTtl].findAll({ it -> it > 0 }).min()
+                == [requestedTtl, accountTtl].findAll { it -> it > 0 }.min()
 
         where:
         requestedTtl                                            | accountTtl
@@ -866,8 +866,7 @@ class CacheSpec extends BaseSpec {
 
         then: "Pbs should emit creative_ttl.xml with lowest value"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        assert metrics[XML_CREATIVE_TTL_ACCOUNT_METRIC.formatted(accountId)]
-                == [requestedTtl, accountTtl].findAll().min()
+        assert metrics[XML_CREATIVE_TTL_ACCOUNT_METRIC.formatted(accountId)] == [requestedTtl, accountTtl].min()
 
         where:
         requestedTtl                                   | accountTtl
