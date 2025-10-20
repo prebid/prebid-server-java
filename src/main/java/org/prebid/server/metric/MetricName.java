@@ -157,7 +157,10 @@ public enum MetricName {
 
     // activity
     disallowed_count("disallowed.count"),
-    processed_rules_count("processedrules.count");
+    processed_rules_count("processedrules.count"),
+
+    // profiles
+    limit_exceeded;
 
     private final String name;
 

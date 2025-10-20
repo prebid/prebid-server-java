@@ -1,6 +1,6 @@
 adapters:
   mobkoi:
-    endpoint: "https://pbs.maximus.mobkoi.com/bid"
+    endpoint: "https://pbs.mobkoi.com/bid/prebidserver"
     ortb-version: "2.6"
     meta-info:
       maintainer-email: platformteam@mobkoi.com

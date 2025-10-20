@@ -27,8 +27,8 @@ public class APIClientImpl implements APIClient {
     private static final Logger logger = LoggerFactory.getLogger(APIClientImpl.class);
     private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
 
-    private static final String TENANT = "{TENANT}";
-    private static final String ORIGIN = "{ORIGIN}";
+    private static final String TENANT = "{{TENANT}}";
+    private static final String ORIGIN = "{{ORIGIN}}";
 
     private final String endpoint;
     private final HttpClient httpClient;
