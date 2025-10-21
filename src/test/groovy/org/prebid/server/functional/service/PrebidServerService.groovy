@@ -29,7 +29,6 @@ import org.prebid.server.functional.model.response.infobidders.BidderInfoRespons
 import org.prebid.server.functional.model.response.setuid.SetuidResponse
 import org.prebid.server.functional.model.response.status.StatusResponse
 import org.prebid.server.functional.model.response.vtrack.TransferValue
-import org.prebid.server.functional.model.response.vtrack.VTrackResponse
 import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
 import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.prebid.server.functional.util.PBSUtils
@@ -224,16 +223,13 @@ class PrebidServerService implements ObjectMapperWrapper {
         decode(response.body.asString(), PrebidCacheResponse)
     }
 
-    VTrackResponse sendGetVtrackRequest(Map<String, Object> parameters) {
+    TransferValue sendGetVtrackRequest(Map<String, Object> parameters) {
         def response = given(requestSpecification)
                 .queryParams(parameters)
                 .get(VTRACK_ENDPOINT)
 
         checkResponseStatusCode(response)
-        new VTrackResponse().tap {
-            statusCode = response.statusCode()
-            responseBody = decode(response.body.asString(), TransferValue)
-        }
+        decode(response.body.asString(), TransferValue)
     }
 
     StatusResponse sendStatusRequest() {

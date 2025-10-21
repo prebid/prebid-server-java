@@ -8,6 +8,7 @@ import org.prebid.server.functional.model.mock.services.prebidcache.response.Cac
 import org.prebid.server.functional.model.mock.services.prebidcache.response.PrebidCacheResponse
 import org.prebid.server.functional.model.request.cache.BidCacheRequest
 import org.prebid.server.functional.model.response.vtrack.TransferValue
+import org.prebid.server.functional.util.PBSUtils
 import org.testcontainers.containers.MockServerContainer
 
 import java.util.stream.Stream
@@ -26,8 +27,8 @@ class PrebidCache extends NetworkScaffolding {
         super(mockServerContainer, CACHE_ENDPOINT)
     }
 
-    int getVTracGetRequestCount() {
-        getRequestCount(request().withMethod("GET")
+    String getVTracGetRequestParams() {
+        getRecordedRequestsQueryParameters(request().withMethod("GET")
                 .withPath(CACHE_ENDPOINT))
     }
 
@@ -71,7 +72,9 @@ class PrebidCache extends NetworkScaffolding {
 
     @Override
     void setResponse() {
-        mockServerClient.when(request().withPath(endpoint), Times.unlimited(), TimeToLive.unlimited(), -10)
+        mockServerClient.when(request()
+                .withMethod("POST")
+                .withPath(endpoint), Times.unlimited(), TimeToLive.unlimited(), -10)
                 .respond { request ->
                     request.withPath(endpoint)
                             ? response().withStatusCode(OK_200.code()).withBody(getBodyByRequest(request))
@@ -79,8 +82,10 @@ class PrebidCache extends NetworkScaffolding {
                 }
     }
 
-    void setResponse(TransferValue vTrackResponse) {
-        mockServerClient.when(request().withPath(endpoint), Times.unlimited(), TimeToLive.unlimited(), -10)
+    void setGetResponse(TransferValue vTrackResponse) {
+        mockServerClient.when(request()
+                .withMethod("GET")
+                .withPath(endpoint), Times.unlimited(), TimeToLive.unlimited(), -10)
                 .respond { request ->
                     request.withPath(endpoint)
                             ? response().withStatusCode(OK_200.code()).withBody(encode(vTrackResponse))
@@ -95,12 +100,12 @@ class PrebidCache extends NetworkScaffolding {
                 .respond { response().withStatusCode(INTERNAL_SERVER_ERROR_500.code()) }
     }
 
-    void setInvalidVtrackResponse(String uuid) {
+    void setInvalidGetResponse(String uuid, String errorMessage = PBSUtils.randomString) {
         mockServerClient.when(request()
                 .withMethod("GET")
                 .withPath(endpoint)
                 .withQueryStringParameter("uuid", uuid), Times.unlimited(), TimeToLive.unlimited(), -10)
-                .respond { response().withStatusCode(INTERNAL_SERVER_ERROR_500.code()) }
+                .respond { response().withBody(errorMessage).withStatusCode(INTERNAL_SERVER_ERROR_500.code()) }
 
     }
 

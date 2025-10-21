@@ -14,7 +14,6 @@ import org.prebid.server.functional.util.PBSUtils
 
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR
-import static org.mockserver.model.HttpStatusCode.OK_200
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 
 class CacheVtrackSpec extends BaseSpec {
@@ -69,16 +68,15 @@ class CacheVtrackSpec extends BaseSpec {
     def "PBS should return 200 status code when get vtrack request contain uuid"() {
         given: "Clean up and set up successful response"
         def responseBody = TransferValue.getTransferValue()
-        prebidCache.setResponse(responseBody)
+        prebidCache.setGetResponse(responseBody)
 
         when: "PBS processes get vtrack request"
         def response = defaultPbsService.sendGetVtrackRequest(["uuid": UUID.randomUUID().toString()])
 
-        then: "Response should contain 200 status code and body"
-        assert response.statusCode == OK_200.code()
-        assert response.responseBody == responseBody
+        then: "Response should contain response from pbc"
+        assert response == responseBody
 
-        and: "Metrics should contain ok metric"
+        then: "Metrics should contain ok metric"
         def metricsRequest = defaultPbsService.sendCollectedMetricsRequest()
         assert metricsRequest[VTRACK_READ_OK_METRIC] == 1
     }
@@ -88,7 +86,8 @@ class CacheVtrackSpec extends BaseSpec {
         def uuid = UUID.randomUUID().toString()
 
         and: "Cache set up invalid response"
-        prebidCache.setInvalidVtrackResponse(uuid)
+        def randomErrorMessage = PBSUtils.randomString
+        prebidCache.setInvalidGetResponse(uuid, randomErrorMessage)
 
         when: "PBS processes get vtrack request"
         defaultPbsService.sendGetVtrackRequest(["uuid": uuid])
@@ -96,7 +95,7 @@ class CacheVtrackSpec extends BaseSpec {
         then: "Request should fail with an error"
         def exception = thrown(PrebidServerException)
         assert exception.statusCode == INTERNAL_SERVER_ERROR.code()
-        assert exception.responseBody == "Error occurred while sending request to cache: Cannot parse response: "
+        assert exception.responseBody == "Error occurred while sending request to cache: Cannot parse response: $randomErrorMessage"
 
         and: "Metrics should contain error metric"
         def metricsRequest = defaultPbsService.sendCollectedMetricsRequest()
@@ -107,23 +106,19 @@ class CacheVtrackSpec extends BaseSpec {
         given: "Current value of metric prebid_cache.vtrack.read.ok"
         def initialValue = getCurrentMetricValue(defaultPbsService, VTRACK_READ_OK_METRIC)
 
-        and: "Clean cache mock response"
-        prebidCache.reset(CACHE_ENDPOINT)
-
         and: "Random uuid and cache host"
         def uuid = UUID.randomUUID().toString()
         def cacheHost = PBSUtils.randomString
 
-        and: "Clean up and set up successful response"
+        and: "Set up response body"
         def responseBody = TransferValue.getTransferValue()
-        prebidCache.setResponse(responseBody)
+        prebidCache.setGetResponse(responseBody)
 
         when: "PBS processes get vtrack request"
-        def response = defaultPbsService.sendGetVtrackRequest(["uuid": uuid, ch: cacheHost])
+        def response = defaultPbsService.sendGetVtrackRequest(["uuid": uuid, "ch": cacheHost])
 
-        then: "Response should contain 200 status code and body"
-        assert response.statusCode == OK_200.code()
-        assert response.responseBody == responseBody
+        then: "Response should contain response from pbc"
+        assert response == responseBody
 
         and: "Metrics should contain ok metrics"
         def metricsRequest = defaultPbsService.sendCollectedMetricsRequest()
@@ -134,9 +129,6 @@ class CacheVtrackSpec extends BaseSpec {
         given: "Current value of metric prebid_cache.vtrack.read.ok"
         def initialValue = getCurrentMetricValue(pbsServiceWithInternalCache, VTRACK_READ_OK_METRIC)
 
-        and: "Clean cache mock response"
-        prebidCache.reset(CACHE_ENDPOINT)
-
         and: "Flush metric"
         flushMetrics(pbsServiceWithInternalCache)
 
@@ -144,23 +136,23 @@ class CacheVtrackSpec extends BaseSpec {
         def uuid = UUID.randomUUID().toString()
         def cacheHost = PBSUtils.randomString
 
-        and: "Clean up and set up successful response"
+        and: "Mock set up successful response"
         def responseBody = TransferValue.getTransferValue()
-        prebidCache.setResponse(responseBody)
+        prebidCache.setGetResponse(responseBody)
 
         when: "PBS processes get vtrack request"
-        def response = pbsServiceWithInternalCache.sendGetVtrackRequest(["uuid": uuid, "cacheHost": cacheHost])
+        def response = pbsServiceWithInternalCache.sendGetVtrackRequest(["uuid": uuid, "ch": cacheHost])
 
-        then: "Response should contain 200 status code and body"
-        assert response.statusCode == OK_200.code()
-        assert response.responseBody == responseBody
+        then: "Response should contain response from pbc"
+        assert response == responseBody
 
         and: "Metrics should contain ok metrics"
         def metricsRequest = pbsServiceWithInternalCache.sendCollectedMetricsRequest()
         assert metricsRequest[VTRACK_READ_OK_METRIC] == initialValue + 1
 
-        and: "VTrack should call internal cache"
-        assert prebidCache.getVTracGetRequestCount() == 1
+        and: "Verify parameters that came to external cache services"
+        def requestParams = prebidCache.getVTracGetRequestParams()
+        assert requestParams == "[{ch=[$cacheHost], uuid=[$uuid]}]"
     }
 
     def "PBS should return 200 status code when internal cache and get vtrack request contain uuid"() {
@@ -170,9 +162,9 @@ class CacheVtrackSpec extends BaseSpec {
         and: "Random uuid"
         def uuid = UUID.randomUUID().toString()
 
-        and: "Clean up and set up successful response"
+        and: "Set up response body"
         def responseBody = TransferValue.getTransferValue()
-        prebidCache.setResponse(responseBody)
+        prebidCache.setGetResponse(responseBody)
 
         and: "Flush metric"
         flushMetrics(pbsServiceWithInternalCache)
@@ -180,16 +172,16 @@ class CacheVtrackSpec extends BaseSpec {
         when: "PBS processes get vtrack request"
         def response = pbsServiceWithInternalCache.sendGetVtrackRequest(["uuid": uuid])
 
-        then: "Response should contain 200 status code"
-        assert response.statusCode == OK_200.code()
-        assert response.responseBody == responseBody
+        then: "Response should contain response from pbc"
+        assert response == responseBody
 
         and: "Metrics should contain ok metrics"
         def metricsRequest = pbsServiceWithInternalCache.sendCollectedMetricsRequest()
         assert metricsRequest[VTRACK_READ_OK_METRIC] == initialValue + 1
 
-        and: "VTrack should call internal cache"
-        assert prebidCache.getVTracGetRequestCount() == 1
+        and: "Verify parameters that came to external cache services"
+        def requestParams = prebidCache.getVTracGetRequestParams()
+        assert requestParams == "[{uuid=[$uuid]}]"
     }
 
     def "PBS should return status code that came from pbc when internal cache and get vtrack request and response from pbc invalid"() {
@@ -197,7 +189,8 @@ class CacheVtrackSpec extends BaseSpec {
         def uuid = UUID.randomUUID().toString()
 
         and: "Cache set up invalid response"
-        prebidCache.setInvalidVtrackResponse(uuid)
+        def randomErrorMessage = PBSUtils.randomString
+        prebidCache.setInvalidGetResponse(uuid, randomErrorMessage)
 
         and: "Flush metric"
         flushMetrics(pbsServiceWithInternalCache)
@@ -208,14 +201,15 @@ class CacheVtrackSpec extends BaseSpec {
         then: "Request should fail with an error"
         def exception = thrown(PrebidServerException)
         assert exception.statusCode == INTERNAL_SERVER_ERROR.code()
-        assert exception.responseBody == "Error occurred while sending request to cache: Cannot parse response: "
+        assert exception.responseBody == "Error occurred while sending request to cache: Cannot parse response: $randomErrorMessage"
 
         and: "Metrics should contain error metric"
         def metricsRequest = pbsServiceWithInternalCache.sendCollectedMetricsRequest()
         assert metricsRequest[VTRACK_READ_ERROR_METRIC] == 1
 
-        and: "VTrack should call internal cache"
-        assert prebidCache.getVTracGetRequestCount() == 1
+        and: "Verify parameters that came to external cache services"
+        def requestParams = prebidCache.getVTracGetRequestParams()
+        assert requestParams == "[{uuid=[$uuid]}]"
     }
 
     def "PBS should return 400 status code when internal cache and get vtrack request without uuid"() {
