@@ -9,8 +9,8 @@ import org.prebid.server.functional.util.PBSUtils
 @JsonNaming(PropertyNamingStrategies.LowerCaseStrategy)
 class CacheProperties {
 
-    boolean enabled
-    int ttlSeconds
+    Boolean enabled
+    Integer ttlSeconds
 
     static CacheProperties getDefault() {
         new CacheProperties().tap {

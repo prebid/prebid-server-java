@@ -55,7 +55,7 @@ class StoredCache extends NetworkScaffolding {
         def targetingResult = getBodyByRequest(bidRequest)
         mockServerClient.when(request()
                 .withMethod("GET")
-                .withPath('/stored-cache'), Times.unlimited(), TimeToLive.unlimited(), -10)
+                .withPath(endpoint), Times.unlimited(), TimeToLive.unlimited(), -10)
                 .respond { response().withStatusCode(OK_200.code()).withBody(encode(targetingResult)) }
         targetingResult
     }

@@ -21,6 +21,9 @@ class OptableTargetingConfig {
 
     static OptableTargetingConfig getDefault(Map<IdentifierType, String> ppidMapping) {
         new OptableTargetingConfig().tap {
+            it.apiKey = PBSUtils.randomString
+            it.tenant = PBSUtils.randomString
+            it.origin = PBSUtils.randomString
             it.apiEndpoint = PBSUtils.randomString
             it.adserverTargeting = true
             it.ppidMapping = ppidMapping

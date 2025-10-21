@@ -4,8 +4,7 @@ import groovy.transform.ToString
 
 @ToString(includeNames = true, ignoreNulls = true)
 class Audience {
+
     String provider
     List<AudienceId> ids
-    String keyspace
-    Integer rtbSegtax
 }
