@@ -15,7 +15,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static java.util.Collections.singletonList;
 
-public class ShowheroesbsTest extends IntegrationTest {
+public class ShowheroesbsLowercaseTest extends IntegrationTest {
 
     @Autowired
     private PrebidVersionProvider prebidVersionProvider;
