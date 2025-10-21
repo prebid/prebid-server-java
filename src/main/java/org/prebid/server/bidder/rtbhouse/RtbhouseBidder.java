@@ -237,10 +237,8 @@ public class RtbhouseBidder implements Bidder<BidRequest> {
         final ObjectNode prebidNode = mapper.mapper().createObjectNode();
         prebidNode.put("publisherId", publisherId);
 
-        final ObjectNode publisherExtNode = mapper.mapper().createObjectNode();
-        publisherExtNode.set("prebid", prebidNode);
-
-        final ExtPublisher extPublisher = mapper.mapper().convertValue(publisherExtNode, ExtPublisher.class);
+        final ExtPublisher extPublisher = ExtPublisher.empty();
+        extPublisher.addProperty("prebid", prebidNode);
 
         final Publisher publisher = Optional.ofNullable(site)
                 .map(Site::getPublisher)
