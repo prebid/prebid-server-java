@@ -7,7 +7,7 @@
           "id": "bid_id",
           "impid": "imp_id",
           "price": 5.78,
-          "adm": "adm+13",
+          "adm": "adm%2013",
           "crid": "crid",
           "w": 300,
           "h": 250

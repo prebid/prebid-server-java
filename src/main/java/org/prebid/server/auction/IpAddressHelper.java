@@ -5,17 +5,19 @@ import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddressString;
 import inet.ipaddr.IPAddressStringParameters;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.conn.util.InetAddressUtils;
 import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
 
 import java.util.List;
+import java.util.regex.Pattern;
 
 public class IpAddressHelper {
 
     private static final Logger logger = LoggerFactory.getLogger(IpAddressHelper.class);
 
+    private static final Pattern IP_V4_PATTERN =
+            Pattern.compile("^(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])(\\.(?!$)|$)){4}$");
     private static final IPAddressStringParameters IP_ADDRESS_VALIDATION_OPTIONS =
             IPAddressString.DEFAULT_VALIDATION_OPTIONS.toBuilder()
                     .allowSingleSegment(false)
@@ -73,7 +75,7 @@ public class IpAddressHelper {
     }
 
     public String maskIpv4(String ip) {
-        if (StringUtils.isBlank(ip) || !InetAddressUtils.isIPv4Address(ip)) {
+        if (StringUtils.isBlank(ip) || !IP_V4_PATTERN.matcher(ip).matches()) {
             return ip;
         }
 

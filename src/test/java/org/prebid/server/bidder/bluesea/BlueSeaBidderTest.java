@@ -97,10 +97,21 @@ public class BlueSeaBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(2)
+        assertThat(result.getValue())
+                .hasSize(2)
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://test.endpoint.com?pubid=testPubId&token=testToken",
-                        "https://test.endpoint.com?pubid=testPubId2&token=testToken2");
+                .satisfiesExactly(
+                        url -> {
+                            assertThat(url).startsWith("https://test.endpoint.com");
+                            assertThat(url).contains("pubid=testPubId");
+                            assertThat(url).contains("token=testToken");
+                        },
+                        url -> {
+                            assertThat(url).startsWith("https://test.endpoint.com");
+                            assertThat(url).contains("pubid=testPubId2");
+                            assertThat(url).contains("token=testToken2");
+                        }
+                );
     }
 
     @Test

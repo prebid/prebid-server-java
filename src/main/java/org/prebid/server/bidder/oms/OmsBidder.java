@@ -34,6 +34,9 @@ public class OmsBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpOms>> EXT_TYPE_REFERENCE = new TypeReference<>() {
     };
+
+    private static final String PUBLISHER_ID_MACRO = "{{PublisherId}}";
+
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
@@ -47,8 +50,7 @@ public class OmsBidder implements Bidder<BidRequest> {
         try {
             final ExtImpOms impExt = parseImpExt(request.getImp().getFirst());
             final String publisherId = resolverPublisherId(impExt.getPid(), impExt.getPublisherId());
-            final String encodedPublisherId = HttpUtil.encodeUrl(publisherId);
-            final String url = "%s?publisherId=%s".formatted(endpointUrl, encodedPublisherId);
+            final String url = endpointUrl.replace(PUBLISHER_ID_MACRO, HttpUtil.encodeUrl(publisherId));
             return Result.withValue(BidderUtil.defaultRequest(request, url, mapper));
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
@@ -63,11 +65,8 @@ public class OmsBidder implements Bidder<BidRequest> {
         }
     }
 
-    private String resolverPublisherId(String pid, Integer publisherId) {
-        if (StringUtils.isEmpty(pid) && publisherId != null && publisherId > 0) {
-            return String.valueOf(publisherId);
-        }
-        return pid;
+    private static String resolverPublisherId(String pid, Integer publisherId) {
+        return StringUtils.isEmpty(pid) ? String.valueOf(publisherId) : pid;
     }
 
     @Override
@@ -93,6 +92,7 @@ public class OmsBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
                 .map(bid -> createBidderBid(bid, bidResponse.getCur()))
                 .toList();
     }

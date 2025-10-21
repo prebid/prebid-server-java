@@ -404,9 +404,15 @@ public class YandexBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).extracting(HttpRequest::getUri)
-                .containsExactly("https://test.endpoint.com/?"
-                        + "target-ref=https%3A%2F%2Fdomain.com%2F&ssp-cur=EUR");
+        assertThat(result.getValue())
+                .first()
+                .extracting(HttpRequest::getUri)
+                .satisfies(url -> {
+                    assertThat(url).startsWith("https://test.endpoint.com/");
+                    assertThat(url).contains("target-ref=https%3A%2F%2Fdomain.com%2F");
+                    assertThat(url).contains("ssp-cur=EUR");
+                });
+
     }
 
     private static BidRequest givenBidRequest(

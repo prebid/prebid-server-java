@@ -20,7 +20,8 @@ import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
+import java.net.URISyntaxException;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -39,10 +40,10 @@ public class BasicPbcStorageServiceTest extends VertxTest {
     private BasicPbcStorageService target;
 
     @BeforeEach
-    public void setUp() throws MalformedURLException, JsonProcessingException {
+    public void setUp() throws MalformedURLException, JsonProcessingException, URISyntaxException {
         target = new BasicPbcStorageService(
                 httpClient,
-                new URL("http://cache-service/cache"),
+                new URI("http://cache-service/cache").toURL(),
                 "pbc-api-key",
                 10,
                 jacksonMapper);
