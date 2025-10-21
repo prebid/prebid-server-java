@@ -2,6 +2,8 @@ package org.prebid.server.functional.tests.module.optabletargeting
 
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountHooksConfiguration
+import org.prebid.server.functional.model.config.IdentifierType
+import org.prebid.server.functional.model.config.OperatingSystem
 import org.prebid.server.functional.model.config.OptableTargetingConfig
 import org.prebid.server.functional.model.config.PbsModulesConfig
 import org.prebid.server.functional.model.db.Account
@@ -10,6 +12,7 @@ import org.prebid.server.functional.model.request.auction.Data
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.Eid
 import org.prebid.server.functional.model.request.auction.Geo
+import org.prebid.server.functional.model.request.auction.PublicCountryIp
 import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.scaffolding.StoredCache
@@ -19,9 +22,6 @@ import org.prebid.server.functional.util.PBSUtils
 import static org.apache.commons.codec.binary.Base64.encodeBase64
 import static org.mockserver.model.HttpStatusCode.NOT_FOUND_404
 import static org.prebid.server.functional.model.ModuleName.OPTABLE_TARGETING
-import static org.prebid.server.functional.model.config.IdentifierType.GOOGLE_GAID
-import static org.prebid.server.functional.model.config.OperatingSystem.ANDROID
-import static org.prebid.server.functional.model.request.auction.PublicCountryIp.USA_IP
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 
 class CacheStorageSpec extends ModuleBaseSpec {
@@ -56,10 +56,11 @@ class CacheStorageSpec extends ModuleBaseSpec {
     def "PBS should update error metrics when no cached requests present"() {
         given: "Default BidRequest with cache and device info"
         def randomIfa = PBSUtils.randomString
-        def bidRequest = getBidRequestForModuleCacheStorage(randomIfa)
+        def system = PBSUtils.getRandomEnum(OperatingSystem)
+        def bidRequest = getBidRequestForModuleCacheStorage(randomIfa, system)
 
         and: "Account with optable targeting module"
-        def targetingConfig = OptableTargetingConfig.getDefault([(GOOGLE_GAID): randomIfa])
+        def targetingConfig = OptableTargetingConfig.getDefault([(IdentifierType.fromOS(system)): randomIfa])
         def account = createAccountWithRequestCorrectionConfig(bidRequest, targetingConfig)
         accountDao.save(account)
 
@@ -82,10 +83,11 @@ class CacheStorageSpec extends ModuleBaseSpec {
     def "PBS should update error metrics when external service responded with invalid values"() {
         given: "Default BidRequest with cache and device info"
         def randomIfa = PBSUtils.randomString
-        def bidRequest = getBidRequestForModuleCacheStorage(randomIfa)
+        def system = PBSUtils.getRandomEnum(OperatingSystem)
+        def bidRequest = getBidRequestForModuleCacheStorage(randomIfa, system)
 
         and: "Account with optable targeting module"
-        def targetingConfig = OptableTargetingConfig.getDefault([(GOOGLE_GAID): randomIfa])
+        def targetingConfig = OptableTargetingConfig.getDefault([(IdentifierType.fromOS(system)): randomIfa])
         def account = createAccountWithRequestCorrectionConfig(bidRequest, targetingConfig)
         accountDao.save(account)
 
@@ -110,10 +112,11 @@ class CacheStorageSpec extends ModuleBaseSpec {
     def "PBS should update metrics for new saved text storage cache when no cached requests"() {
         given: "Default BidRequest with cache and device info"
         def randomIfa = PBSUtils.randomString
-        def bidRequest = getBidRequestForModuleCacheStorage(randomIfa)
+        def system = PBSUtils.getRandomEnum(OperatingSystem)
+        def bidRequest = getBidRequestForModuleCacheStorage(randomIfa, system)
 
         and: "Account with optable targeting module"
-        def targetingConfig = OptableTargetingConfig.getDefault([(GOOGLE_GAID): randomIfa])
+        def targetingConfig = OptableTargetingConfig.getDefault([(IdentifierType.fromOS(system)): randomIfa])
         def account = createAccountWithRequestCorrectionConfig(bidRequest, targetingConfig)
         accountDao.save(account)
 
@@ -144,10 +147,11 @@ class CacheStorageSpec extends ModuleBaseSpec {
 
         and: "Default BidRequest with cache and device info"
         def randomIfa = PBSUtils.randomString
-        def bidRequest = getBidRequestForModuleCacheStorage(randomIfa)
+        def system = PBSUtils.getRandomEnum(OperatingSystem)
+        def bidRequest = getBidRequestForModuleCacheStorage(randomIfa, system)
 
         and: "Account with optable targeting module"
-        def targetingConfig = OptableTargetingConfig.getDefault([(GOOGLE_GAID): randomIfa])
+        def targetingConfig = OptableTargetingConfig.getDefault([(IdentifierType.fromOS(system)): randomIfa])
         def account = createAccountWithRequestCorrectionConfig(bidRequest, targetingConfig)
         accountDao.save(account)
 
@@ -175,11 +179,14 @@ class CacheStorageSpec extends ModuleBaseSpec {
         assert metrics[METRIC_CREATIVE_WRITE_ERR] == writeErrorInitialValue
     }
 
-    private static BidRequest getBidRequestForModuleCacheStorage(String ifa) {
+    private static BidRequest getBidRequestForModuleCacheStorage(String ifa, OperatingSystem os) {
         BidRequest.defaultBidRequest.tap {
             it.enableCache()
             it.user = new User(id: PBSUtils.randomString, data: [Data.defaultData], eids: [Eid.defaultEid])
-            it.device = new Device(geo: Geo.getFPDGeo(), ip: USA_IP.v4, ifa: ifa, os: ANDROID.value)
+            it.device = new Device(geo: Geo.FPDGeo,
+                    ip: PBSUtils.getRandomEnum(PublicCountryIp.class).v4,
+                    ifa: ifa,
+                    os: os)
         }
     }
 
