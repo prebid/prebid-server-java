@@ -49,7 +49,7 @@ public class CachedAPIClientTest extends BaseOptableTest {
         when(cache.get(any())).thenReturn(Future.failedFuture("error"));
         when(cache.put(any(), any(), anyInt())).thenReturn(Future.succeededFuture());
         final Query query = givenQuery();
-        when(apiClient.getTargeting(any(), any(), any(), any()))
+        when(apiClient.getTargeting(any(), any(), any(), any(), any()))
                 .thenReturn(Future.succeededFuture(givenTargetingResult()));
 
         // when
@@ -57,6 +57,7 @@ public class CachedAPIClientTest extends BaseOptableTest {
                 givenOptableTargetingProperties(true),
                 query,
                 List.of("8.8.8.8"),
+                "user agent",
                 timeout);
 
         // then
@@ -75,7 +76,7 @@ public class CachedAPIClientTest extends BaseOptableTest {
         when(cache.get(any())).thenReturn(Future.failedFuture(new IllegalArgumentException("message")));
         when(cache.put(any(), any(), anyInt())).thenReturn(Future.succeededFuture());
         final Query query = givenQuery();
-        when(apiClient.getTargeting(any(), any(), any(), any()))
+        when(apiClient.getTargeting(any(), any(), any(), any(), any()))
                 .thenReturn(Future.succeededFuture(givenTargetingResult()));
 
         // when
@@ -83,6 +84,7 @@ public class CachedAPIClientTest extends BaseOptableTest {
                 givenOptableTargetingProperties(true),
                 query,
                 List.of("8.8.8.8"),
+                "user agent",
                 timeout);
 
         // then
@@ -92,7 +94,7 @@ public class CachedAPIClientTest extends BaseOptableTest {
                 .returns("id", it -> it.getEids().getFirst().getUids().getFirst().getId())
                 .returns("id", it -> it.getData().getFirst().getId())
                 .returns("id", it -> it.getData().getFirst().getSegment().getFirst().getId());
-        verify(apiClient, times(1)).getTargeting(any(), any(), any(), any());
+        verify(apiClient, times(1)).getTargeting(any(), any(), any(), any(), any());
         verify(cache).put(any(), eq(targetingResult.result()), anyInt());
     }
 
@@ -107,6 +109,7 @@ public class CachedAPIClientTest extends BaseOptableTest {
                 givenOptableTargetingProperties(true),
                 query,
                 List.of("8.8.8.8"),
+                "user agent",
                 timeout);
 
         // then
@@ -117,7 +120,7 @@ public class CachedAPIClientTest extends BaseOptableTest {
                 .returns("id", it -> it.getData().getFirst().getId())
                 .returns("id", it -> it.getData().getFirst().getSegment().getFirst().getId());
         verify(cache, times(1)).get(any());
-        verify(apiClient, times(0)).getTargeting(any(), any(), any(), any());
+        verify(apiClient, times(0)).getTargeting(any(), any(), any(), any(), any());
         verify(cache, times(0)).put(any(), eq(targetingResult.result()), anyInt());
     }
 
@@ -126,7 +129,7 @@ public class CachedAPIClientTest extends BaseOptableTest {
         // given
         final Query query = givenQuery();
         when(cache.get(any())).thenReturn(Future.failedFuture("empty"));
-        when(apiClient.getTargeting(any(), any(), any(), any()))
+        when(apiClient.getTargeting(any(), any(), any(), any(), any()))
                 .thenReturn(Future.failedFuture(new NullPointerException()));
 
         // when
@@ -134,6 +137,7 @@ public class CachedAPIClientTest extends BaseOptableTest {
                 givenOptableTargetingProperties(true),
                 query,
                 List.of("8.8.8.8"),
+                "user agent",
                 timeout);
 
         // then
@@ -146,7 +150,7 @@ public class CachedAPIClientTest extends BaseOptableTest {
         // given
         final Query query = givenQuery();
         when(cache.get(any())).thenReturn(Future.failedFuture("empty"));
-        when(apiClient.getTargeting(any(), any(), any(), any()))
+        when(apiClient.getTargeting(any(), any(), any(), any(), any()))
                 .thenReturn(Future.failedFuture(new NullPointerException()));
         when(cache.put(any(), any(), anyInt())).thenReturn(Future.succeededFuture());
 
@@ -156,6 +160,7 @@ public class CachedAPIClientTest extends BaseOptableTest {
                 givenOptableTargetingProperties(true),
                 query,
                 List.of("8.8.8.8"),
+                "user agent",
                 timeout);
 
         // then
