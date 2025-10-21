@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.rtbhouse;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -327,166 +328,168 @@ public class RtbhouseBidderTest extends VertxTest {
     }
 
     @Test
-    public void updateSitePublisherIdShouldReturnOriginalRequestWhenPublisherIdIsNull() {
+    public void makeHttpRequestsShouldCreateSiteAndPublisherWhenBidRequestHasNoSite() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                bidReq -> bidReq.id("request_id")
-                        .site(Site.builder().id("site_id").build()),
+                bidReq -> bidReq.site(null),
                 identity(),
                 identity());
 
         // when
-        final BidRequest result = RtbhouseBidder.updateSitePublisherId(bidRequest, null);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result).isSameAs(bidRequest);
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getSite)
+                .allSatisfy(site -> {
+                    assertThat(site).isNotNull();
+                    assertThat(site.getPublisher()).isNotNull();
+                    assertThat(site.getPublisher().getExt()).isNotNull();
+
+                    // The ext is a FlexibleExtension, so we need to access the properties
+                    final JsonNode prebidNode = site.getPublisher().getExt().getProperty("prebid");
+                    assertThat(prebidNode).isNotNull();
+                    assertThat(prebidNode.get("publisherId").asText()).isEqualTo("publisherId");
+                });
     }
 
     @Test
-    public void updateSitePublisherIdShouldReturnNullWhenBidRequestIsNull() {
-        // when
-        final BidRequest result = RtbhouseBidder.updateSitePublisherId(null, "publisherId");
-
-        // then
-        assertThat(result).isNull();
-    }
-
-    @Test
-    public void updateSitePublisherIdShouldReturnOriginalRequestWhenBothParametersAreNull() {
-        // when
-        final BidRequest result = RtbhouseBidder.updateSitePublisherId(null, null);
-
-        // then
-        assertThat(result).isNull();
-    }
-
-    @Test
-    public void updateSitePublisherIdShouldCreateSiteAndPublisherWhenBidRequestHasNoSite() {
+    public void makeHttpRequestsShouldAddPublisherToExistingSiteWhenNoPublisher() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                bidReq -> bidReq.id("request_id")
-                        .site(null),
+                bidReq -> bidReq.site(Site.builder()
+                        .id("site_id")
+                        .name("site_name")
+                        .domain("example.com")
+                        .page("https://example.com/page")
+                        .publisher(null)
+                        .build()),
                 identity(),
                 identity());
-        final String publisherId = "test_publisher_id";
 
         // when
-        final BidRequest result = RtbhouseBidder.updateSitePublisherId(bidRequest, publisherId);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getId()).isEqualTo("request_id");
-        assertThat(result.getSite()).isNotNull();
-        assertThat(result.getSite().getPublisher()).isNotNull();
-        assertThat(result.getSite().getPublisher().getId()).isEqualTo(publisherId);
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getSite)
+                .allSatisfy(site -> {
+                    assertThat(site.getId()).isEqualTo("site_id");
+                    assertThat(site.getName()).isEqualTo("site_name");
+                    assertThat(site.getDomain()).isEqualTo("example.com");
+                    assertThat(site.getPage()).isEqualTo("https://example.com/page");
+                    assertThat(site.getPublisher()).isNotNull();
+
+                    final JsonNode prebidNode = site.getPublisher().getExt().getProperty("prebid");
+                    assertThat(prebidNode).isNotNull();
+                    assertThat(prebidNode.get("publisherId").asText()).isEqualTo("publisherId");
+                });
     }
 
     @Test
-    public void updateSitePublisherIdShouldAddPublisherToExistingSiteWhenNoPublisher() {
+    public void makeHttpRequestsShouldUpdateExistingPublisherId() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                bidReq -> bidReq.id("request_id")
-                        .site(Site.builder()
-                                .id("site_id")
-                                .name("site_name")
-                                .domain("example.com")
-                                .page("https://example.com/page")
-                                .publisher(null)
-                                .build()),
+                bidReq -> bidReq.site(Site.builder()
+                        .id("site_id")
+                        .publisher(Publisher.builder()
+                                .id("old_publisher_id")
+                                .build())
+                        .build()),
                 identity(),
                 identity());
-        final String publisherId = "test_publisher_id";
 
         // when
-        final BidRequest result = RtbhouseBidder.updateSitePublisherId(bidRequest, publisherId);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getSite().getId()).isEqualTo("site_id");
-        assertThat(result.getSite().getName()).isEqualTo("site_name");
-        assertThat(result.getSite().getDomain()).isEqualTo("example.com");
-        assertThat(result.getSite().getPage()).isEqualTo("https://example.com/page");
-        assertThat(result.getSite().getPublisher()).isNotNull();
-        assertThat(result.getSite().getPublisher().getId()).isEqualTo(publisherId);
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getSite)
+                .allSatisfy(site -> {
+                    assertThat(site.getId()).isEqualTo("site_id");
+
+                    final JsonNode prebidNode = site.getPublisher().getExt().getProperty("prebid");
+                    assertThat(prebidNode).isNotNull();
+                    assertThat(prebidNode.get("publisherId").asText()).isEqualTo("publisherId");
+                });
     }
 
     @Test
-    public void updateSitePublisherIdShouldUpdateExistingPublisherId() {
+    public void makeHttpRequestsShouldPreserveOtherPublisherFieldsWhenUpdatingId() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                bidReq -> bidReq.id("request_id")
-                        .site(Site.builder()
-                                .id("site_id")
-                                .publisher(Publisher.builder()
-                                        .id("old_publisher_id")
-                                        .build())
-                                .build()),
+                bidReq -> bidReq.site(Site.builder()
+                        .id("site_id")
+                        .publisher(Publisher.builder()
+                                .id("old_publisher_id")
+                                .name("publisher_name")
+                                .domain("publisher.com")
+                                .build())
+                        .build()),
                 identity(),
                 identity());
-        final String publisherId = "new_publisher_id";
 
         // when
-        final BidRequest result = RtbhouseBidder.updateSitePublisherId(bidRequest, publisherId);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getSite().getId()).isEqualTo("site_id");
-        assertThat(result.getSite().getPublisher().getId()).isEqualTo(publisherId);
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getSite)
+                .allSatisfy(site -> {
+                    final JsonNode prebidNode = site.getPublisher().getExt().getProperty("prebid");
+                    assertThat(prebidNode).isNotNull();
+                    assertThat(prebidNode.get("publisherId").asText()).isEqualTo("publisherId");
+                    assertThat(site.getPublisher().getId()).isEqualTo("old_publisher_id");
+                    assertThat(site.getPublisher().getName()).isEqualTo("publisher_name");
+                    assertThat(site.getPublisher().getDomain()).isEqualTo("publisher.com");
+                });
     }
 
     @Test
-    public void updateSitePublisherIdShouldPreserveOtherPublisherFieldsWhenUpdatingId() {
+    public void makeHttpRequestsShouldPreserveOtherSiteFieldsWhenAddingPublisher() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                bidReq -> bidReq.id("request_id")
-                        .site(Site.builder()
-                                .id("site_id")
-                                .publisher(Publisher.builder()
-                                        .id("old_publisher_id")
-                                        .name("publisher_name")
-                                        .domain("publisher.com")
-                                        .build())
-                                .build()),
+                bidReq -> bidReq.site(Site.builder()
+                        .id("site_id")
+                        .name("site_name")
+                        .domain("site.com")
+                        .page("https://site.com/page")
+                        .ref("https://referrer.com")
+                        .build()),
                 identity(),
                 identity());
-        final String publisherId = "new_publisher_id";
 
         // when
-        final BidRequest result = RtbhouseBidder.updateSitePublisherId(bidRequest, publisherId);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getSite().getPublisher().getId()).isEqualTo(publisherId);
-        assertThat(result.getSite().getPublisher().getName()).isEqualTo("publisher_name");
-        assertThat(result.getSite().getPublisher().getDomain()).isEqualTo("publisher.com");
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getSite)
+                .allSatisfy(site -> {
+                    assertThat(site.getId()).isEqualTo("site_id");
+                    assertThat(site.getName()).isEqualTo("site_name");
+                    assertThat(site.getDomain()).isEqualTo("site.com");
+                    assertThat(site.getPage()).isEqualTo("https://site.com/page");
+                    assertThat(site.getRef()).isEqualTo("https://referrer.com");
+
+                    final JsonNode prebidNode = site.getPublisher().getExt().getProperty("prebid");
+                    assertThat(prebidNode).isNotNull();
+                    assertThat(prebidNode.get("publisherId").asText()).isEqualTo("publisherId");
+                });
     }
 
     @Test
-    public void updateSitePublisherIdShouldPreserveOtherSiteFieldsWhenAddingPublisher() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                bidReq -> bidReq.id("request_id")
-                        .site(Site.builder()
-                                .id("site_id")
-                                .name("site_name")
-                                .domain("site.com")
-                                .page("https://site.com/page")
-                                .ref("https://referrer.com")
-                                .build()),
-                identity(),
-                identity());
-        final String publisherId = "test_publisher_id";
-
-        // when
-        final BidRequest result = RtbhouseBidder.updateSitePublisherId(bidRequest, publisherId);
-
-        // then
-        assertThat(result.getSite().getId()).isEqualTo("site_id");
-        assertThat(result.getSite().getName()).isEqualTo("site_name");
-        assertThat(result.getSite().getDomain()).isEqualTo("site.com");
-        assertThat(result.getSite().getPage()).isEqualTo("https://site.com/page");
-        assertThat(result.getSite().getRef()).isEqualTo("https://referrer.com");
-        assertThat(result.getSite().getPublisher().getId()).isEqualTo(publisherId);
-    }
-
-    @Test
-    public void updateSitePublisherIdShouldPreserveOtherBidRequestFields() {
+    public void makeHttpRequestsShouldPreserveOtherBidRequestFields() {
         // given
         final List<Imp> imps = List.of(
                 givenImp(imp -> imp.id("imp1"), identity()),
@@ -501,81 +504,60 @@ public class RtbhouseBidderTest extends VertxTest {
                         .site(Site.builder().id("site_id").build()),
                 identity(),
                 identity());
-        final String publisherId = "test_publisher_id";
 
         // when
-        final BidRequest result = RtbhouseBidder.updateSitePublisherId(bidRequest, publisherId);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getId()).isEqualTo("request_id");
-        assertThat(result.getTest()).isEqualTo(1);
-        assertThat(result.getTmax()).isEqualTo(2000L);
-        assertThat(result.getImp()).hasSize(2);
-        assertThat(result.getImp().get(0).getId()).isEqualTo("imp1");
-        assertThat(result.getImp().get(1).getId()).isEqualTo("imp2");
-        assertThat(result.getCur()).containsExactly("USD", "EUR");
-        assertThat(result.getSite().getPublisher().getId()).isEqualTo(publisherId);
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .allSatisfy(request -> {
+                    assertThat(request.getId()).isEqualTo("request_id");
+                    assertThat(request.getTest()).isEqualTo(1);
+                    assertThat(request.getTmax()).isEqualTo(2000L);
+                    assertThat(request.getImp()).hasSize(2);
+                    assertThat(request.getImp().get(0).getId()).isEqualTo("imp1");
+                    assertThat(request.getImp().get(1).getId()).isEqualTo("imp2");
+                    assertThat(request.getCur()).containsExactly("USD");
+
+                    final JsonNode prebidNode = request.getSite().getPublisher().getExt()
+                            .getProperty("prebid");
+                    assertThat(prebidNode).isNotNull();
+                    assertThat(prebidNode.get("publisherId").asText()).isEqualTo("publisherId");
+                });
     }
 
     @Test
-    public void updateSitePublisherIdShouldHandleEmptyPublisherId() {
+    public void makeHttpRequestsShouldUsePublisherIdFromFirstImp() {
         // given
+        final List<Imp> imps = List.of(
+                givenImp(imp -> imp.id("imp1"),
+                        ext -> ext.publisherId("first_publisher_id")),
+                givenImp(imp -> imp.id("imp2"),
+                        ext -> ext.publisherId("second_publisher_id"))
+        );
         final BidRequest bidRequest = givenBidRequest(
                 bidReq -> bidReq.id("request_id")
+                        .imp(imps)
                         .site(Site.builder().id("site_id").build()),
                 identity(),
                 identity());
-        final String publisherId = "";
 
         // when
-        final BidRequest result = RtbhouseBidder.updateSitePublisherId(bidRequest, publisherId);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getSite().getPublisher().getId()).isEqualTo("");
-    }
-
-    @Test
-    public void updateSitePublisherIdShouldCreateNewBidRequestInstance() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                bidReq -> bidReq.id("request_id")
-                        .site(Site.builder().id("site_id").build()),
-                identity(),
-                identity());
-        final String publisherId = "test_publisher_id";
-
-        // when
-        final BidRequest result = RtbhouseBidder.updateSitePublisherId(bidRequest, publisherId);
-
-        // then
-        assertThat(result).isNotSameAs(bidRequest);
-        assertThat(result.getSite()).isNotSameAs(bidRequest.getSite());
-    }
-
-    @Test
-    public void updateSitePublisherIdShouldHandleComplexPublisherObject() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                bidReq -> bidReq.id("request_id")
-                        .site(Site.builder()
-                                .id("site_id")
-                                .publisher(Publisher.builder()
-                                        .id("old_id")
-                                        .name("Test Publisher")
-                                        .domain("testpub.com")
-                                        .build())
-                                .build()),
-                identity(),
-                identity());
-        final String publisherId = "complex_publisher_id_123";
-
-        // when
-        final BidRequest result = RtbhouseBidder.updateSitePublisherId(bidRequest, publisherId);
-
-        // then
-        assertThat(result.getSite().getPublisher().getId()).isEqualTo("complex_publisher_id_123");
-        assertThat(result.getSite().getPublisher().getName()).isEqualTo("Test Publisher");
-        assertThat(result.getSite().getPublisher().getDomain()).isEqualTo("testpub.com");
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getSite)
+                .allSatisfy(site -> {
+                    final JsonNode prebidNode = site.getPublisher().getExt().getProperty("prebid");
+                    assertThat(prebidNode).isNotNull();
+                    assertThat(prebidNode.get("publisherId").asText())
+                            .isEqualTo("first_publisher_id");
+                });
     }
 
     @Test

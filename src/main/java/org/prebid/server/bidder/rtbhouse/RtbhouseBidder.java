@@ -3,11 +3,11 @@ package org.prebid.server.bidder.rtbhouse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Publisher;
-import com.iab.openrtb.request.Publisher.PublisherBuilder;
+import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -25,6 +25,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.rtbhouse.ExtImpRtbhouse;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
@@ -37,6 +38,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 public class RtbhouseBidder implements Bidder<BidRequest> {
 
@@ -71,8 +73,7 @@ public class RtbhouseBidder implements Bidder<BidRequest> {
                 final Price bidFloorPrice = resolveBidFloor(imp, impExt, bidRequest);
 
                 modifiedImps.add(modifyImp(imp, bidFloorPrice));
-                // Get publisherId from first valid impExt
-                if (publisherId == null && impExt.getPublisherId() != null) {
+                if (publisherId == null) {
                     publisherId = impExt.getPublisherId();
                 }
             } catch (PreBidException e) {
@@ -84,12 +85,11 @@ public class RtbhouseBidder implements Bidder<BidRequest> {
             return Result.withErrors(errors);
         }
 
-        BidRequest outgoingRequest = bidRequest.toBuilder()
+        final BidRequest outgoingRequest = bidRequest.toBuilder()
                 .cur(Collections.singletonList(BIDDER_CURRENCY))
+                .site(modifySite(bidRequest.getSite(), publisherId))
                 .imp(modifiedImps)
                 .build();
-
-        outgoingRequest = updateSitePublisherId(outgoingRequest, publisherId);
 
         return Result.withValue(BidderUtil.defaultRequest(outgoingRequest, endpointUrl, mapper));
     }
@@ -233,25 +233,26 @@ public class RtbhouseBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    static BidRequest updateSitePublisherId(BidRequest bidRequest, String publisherId) {
-        if (bidRequest == null || publisherId == null) {
-            return bidRequest;
-        }
+    private Site modifySite(Site site, String publisherId) {
+        final ObjectNode prebidNode = mapper.mapper().createObjectNode();
+        prebidNode.put("publisherId", publisherId);
 
-        final Site site = bidRequest.getSite();
-        Publisher publisher = (site != null) ? site.getPublisher() : null;
+        final ObjectNode publisherExtNode = mapper.mapper().createObjectNode();
+        publisherExtNode.set("prebid", prebidNode);
 
-        final PublisherBuilder publisherBuilder = (publisher != null)
-                ? publisher.toBuilder()
-                : Publisher.builder();
+        final ExtPublisher extPublisher = mapper.mapper().convertValue(publisherExtNode, ExtPublisher.class);
 
-        publisherBuilder.id(publisherId);
-        publisher = publisherBuilder.build();
+        final Publisher publisher = Optional.ofNullable(site)
+                .map(Site::getPublisher)
+                .map(Publisher::toBuilder)
+                .orElseGet(Publisher::builder)
+                .ext(extPublisher)
+                .build();
 
-        final Site updatedSite = (site != null)
-                ? site.toBuilder().publisher(publisher).build()
-                : Site.builder().publisher(publisher).build();
-
-        return bidRequest.toBuilder().site(updatedSite).build();
+        return Optional.ofNullable(site)
+                .map(Site::toBuilder)
+                .orElseGet(Site::builder)
+                .publisher(publisher)
+                .build();
     }
 }
