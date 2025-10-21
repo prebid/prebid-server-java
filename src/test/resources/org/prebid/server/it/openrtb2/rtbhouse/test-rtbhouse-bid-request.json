@@ -23,8 +23,12 @@
     "domain": "www.example.com",
     "page": "http://www.example.com",
     "publisher": {
-      "id": "publisherId",
-      "domain": "example.com"
+      "domain": "example.com",
+      "ext": {
+        "prebid": {
+          "publisherId": "publisherId"
+        }
+      }
     },
     "ext": {
       "amp": 0
