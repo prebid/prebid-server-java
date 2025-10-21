@@ -73,7 +73,6 @@ class PrebidCache extends NetworkScaffolding {
     @Override
     void setResponse() {
         mockServerClient.when(request()
-                .withMethod("POST")
                 .withPath(endpoint), Times.unlimited(), TimeToLive.unlimited(), -10)
                 .respond { request ->
                     request.withPath(endpoint)
