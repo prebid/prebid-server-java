@@ -11,6 +11,7 @@ enum ModuleHookImplementation {
     ORTB2_BLOCKING_BIDDER_REQUEST("ortb2-blocking-bidder-request"),
     ORTB2_BLOCKING_RAW_BIDDER_RESPONSE("ortb2-blocking-raw-bidder-response"),
     PB_REQUEST_CORRECTION_PROCESSED_AUCTION_REQUEST("pb-request-correction-processed-auction-request"),
+    OPTABLE_TARGETING_PROCESSED_AUCTION_REQUEST("optable-targeting-processed-auction-request-hook"),
     PB_RULES_ENGINE_PROCESSED_AUCTION_REQUEST("pb-rule-engine-processed-auction-request")
 
     @JsonValue
