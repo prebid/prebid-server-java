@@ -73,16 +73,19 @@ public class GetVtrackHandler implements ApplicationResource {
                                     MultiMap headers,
                                     String body) {
 
-        HttpUtil.executeSafely(routingContext, Endpoint.vtrack,
+        HttpUtil.executeSafely(
+                routingContext,
+                Endpoint.vtrack,
                 response -> {
                     headers.forEach(response::putHeader);
-                    response.setStatusCode(status.code())
-                            .end(body);
+                    response.setStatusCode(status.code()) .end(body);
                 });
     }
 
     private static void respondWith(RoutingContext routingContext, HttpResponseStatus status, String body) {
-        HttpUtil.executeSafely(routingContext, Endpoint.vtrack,
+        HttpUtil.executeSafely(
+                routingContext,
+                Endpoint.vtrack,
                 response -> response
                         .putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON)
                         .setStatusCode(status.code())

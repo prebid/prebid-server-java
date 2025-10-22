@@ -5,6 +5,20 @@ adapters:
     aliases:
       rxnetwork: ~
       152media: ~
+      xapads:
+        enabled: false
+        vendor-id: 1320
+        usersync:
+          enabled: true
+          cookie-family-name: xapads
+          redirect:
+            url: https://sync.adkernel.com/user-sync?t=image&zone=284803&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&r={{redirect_url}}
+            support-cors: false
+            uid-macro: '{UID}'
+          iframe:
+            url: https://sync.adkernel.com/user-sync?t=iframe&zone=284803&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&r={{redirect_url}}
+            support-cors: false
+            uid-macro: '{UID}'
     meta-info:
       maintainer-email: prebid-dev@adkernel.com
       app-media-types:

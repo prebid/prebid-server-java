@@ -1,0 +1,17 @@
+adapters:
+  showheroes:
+    endpoint: https://ads.viralize.tv/openrtb2/auction/
+    aliases:
+      showheroes-bs: ~
+      showheroesBs: ~
+    ortb-version: '2.6'
+    meta-info:
+      maintainer-email: tech@showheroes.com
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 111

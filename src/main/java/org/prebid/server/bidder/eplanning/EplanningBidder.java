@@ -396,6 +396,7 @@ public class EplanningBidder implements Bidder<Void> {
                         .price(new BigDecimal(hbResponseAd.getPrice()))
                         .adm(hbResponseAd.getAdM())
                         .crid(hbResponseAd.getCrId())
+                        .adomain(Collections.singletonList(hbResponseAd.getAdom()))
                         .w(hbResponseAd.getWidth())
                         .h(hbResponseAd.getHeight())
                         .build(),
