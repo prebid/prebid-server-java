@@ -9,6 +9,7 @@ import io.vertx.core.MultiMap;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidInfo;
 import org.prebid.server.auction.model.CachedDebugLog;
@@ -22,6 +23,7 @@ import org.prebid.server.cache.model.CachedCreative;
 import org.prebid.server.cache.model.DebugHttpCall;
 import org.prebid.server.cache.proto.request.bid.BidCacheRequest;
 import org.prebid.server.cache.proto.request.bid.BidPutObject;
+import org.prebid.server.cache.proto.response.CacheErrorResponse;
 import org.prebid.server.cache.proto.response.bid.BidCacheResponse;
 import org.prebid.server.cache.proto.response.bid.CacheObject;
 import org.prebid.server.cache.utils.CacheServiceUtil;
@@ -45,6 +47,7 @@ import org.prebid.server.vast.VastModifier;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.time.Clock;
 import java.util.ArrayList;
@@ -55,6 +58,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -66,6 +70,8 @@ public class CoreCacheService {
     private static final String BID_WURL_ATTRIBUTE = "wurl";
     private static final String TRACE_INFO_SEPARATOR = "-";
     private static final int MAX_DATACENTER_REGION_LENGTH = 4;
+    private static final String UUID_QUERY_PARAMETER = "uuid";
+    private static final String CH_QUERY_PARAMETER = "ch";
 
     private final HttpClient httpClient;
     private final URL externalEndpointUrl;
@@ -186,18 +192,27 @@ public class CoreCacheService {
                         cacheHeaders,
                         mapper.encodeToString(bidCacheRequest),
                         remainingTimeout)
-                .map(response -> toBidCacheResponse(
+                .map(response -> processVtrackWriteCacheResponse(
                         response.getStatusCode(), response.getBody(), bidCount, accountId, startTime))
-                .recover(exception -> failResponse(exception, accountId, startTime));
+                .recover(exception -> failVtrackCacheWriteResponse(exception, accountId, startTime));
     }
 
-    private Future<BidCacheResponse> failResponse(Throwable exception, String accountId, long startTime) {
-        metrics.updateCacheRequestFailedTime(accountId, clock.millis() - startTime);
+    private BidCacheResponse processVtrackWriteCacheResponse(int statusCode,
+                                                             String responseBody,
+                                                             int bidCount,
+                                                             String accountId,
+                                                             long startTime) {
 
-        logger.warn("Error occurred while interacting with cache service: {}", exception.getMessage());
-        logger.debug("Error occurred while interacting with cache service", exception);
+        final BidCacheResponse bidCacheResponse = toBidCacheResponse(statusCode, responseBody, bidCount);
+        metrics.updateVtrackCacheWriteRequestTime(accountId, clock.millis() - startTime, MetricName.ok);
+        return bidCacheResponse;
+    }
 
-        return Future.failedFuture(exception);
+    private <T> Future<T> failVtrackCacheWriteResponse(Throwable exception, String accountId, long startTime) {
+        if (exception instanceof PreBidException) {
+            metrics.updateVtrackCacheWriteRequestTime(accountId, clock.millis() - startTime, MetricName.err);
+        }
+        return failResponse(exception);
     }
 
     public Future<BidCacheResponse> cachePutObjects(List<BidPutObject> bidPutObjects,
@@ -210,7 +225,10 @@ public class CoreCacheService {
         final List<CachedCreative> cachedCreatives =
                 updatePutObjects(bidPutObjects, isEventsEnabled, biddersAllowingVastUpdate, accountId, integration);
 
-        updateCreativeMetrics(accountId, cachedCreatives);
+        updateCreativeMetrics(
+                cachedCreatives,
+                (ttl, type) -> metrics.updateVtrackCacheCreativeTtl(accountId, ttl, type),
+                (size, type) -> metrics.updateVtrackCacheCreativeSize(accountId, size, type));
 
         return makeRequest(toBidCacheRequest(cachedCreatives), cachedCreatives.size(), timeout, accountId);
     }
@@ -309,7 +327,10 @@ public class CoreCacheService {
 
         final BidCacheRequest bidCacheRequest = toBidCacheRequest(cachedCreatives);
 
-        updateCreativeMetrics(accountId, cachedCreatives);
+        updateCreativeMetrics(
+                cachedCreatives,
+                (ttl, type) -> metrics.updateCacheCreativeTtl(accountId, ttl, type),
+                (size, type) -> metrics.updateCacheCreativeSize(accountId, size, type));
 
         final String url = ObjectUtils.firstNonNull(internalEndpointUrl, externalEndpointUrl).toString();
         final String body = mapper.encodeToString(bidCacheRequest);
@@ -343,8 +364,8 @@ public class CoreCacheService {
                 externalEndpointUrl.toString(), httpRequest, httpResponse, startTime);
         final BidCacheResponse bidCacheResponse;
         try {
-            bidCacheResponse = toBidCacheResponse(
-                    responseStatusCode, response.getBody(), bidCount, accountId, startTime);
+            bidCacheResponse = toBidCacheResponse(responseStatusCode, response.getBody(), bidCount);
+            metrics.updateAuctionCacheRequestTime(accountId, clock.millis() - startTime, MetricName.ok);
         } catch (PreBidException e) {
             return CacheServiceResult.of(httpCall, e, Collections.emptyMap());
         }
@@ -361,7 +382,7 @@ public class CoreCacheService {
         logger.warn("Error occurred while interacting with cache service: {}", exception.getMessage());
         logger.debug("Error occurred while interacting with cache service", exception);
 
-        metrics.updateCacheRequestFailedTime(accountId, clock.millis() - startTime);
+        metrics.updateAuctionCacheRequestTime(accountId, clock.millis() - startTime, MetricName.err);
 
         final DebugHttpCall httpCall = makeDebugHttpCall(externalEndpointUrl.toString(), request, null, startTime);
         return CacheServiceResult.of(httpCall, exception, Collections.emptyMap());
@@ -460,9 +481,7 @@ public class CoreCacheService {
 
     private BidCacheResponse toBidCacheResponse(int statusCode,
                                                 String responseBody,
-                                                int bidCount,
-                                                String accountId,
-                                                long startTime) {
+                                                int bidCount) {
 
         if (statusCode != 200) {
             throw new PreBidException("HTTP status code " + statusCode);
@@ -480,7 +499,6 @@ public class CoreCacheService {
             throw new PreBidException("The number of response cache objects doesn't match with bids");
         }
 
-        metrics.updateCacheRequestSuccessTime(accountId, clock.millis() - startTime);
         return bidCacheResponse;
     }
 
@@ -538,17 +556,20 @@ public class CoreCacheService {
         return hbCacheId != null && uuid.endsWith(hbCacheId) ? hbCacheId : uuid;
     }
 
-    private void updateCreativeMetrics(String accountId, List<CachedCreative> cachedCreatives) {
+    private void updateCreativeMetrics(List<CachedCreative> cachedCreatives,
+                                       BiConsumer<Integer, MetricName> updateCreativeTtlMetric,
+                                       BiConsumer<Integer, MetricName> updateCreativeSiseMetric) {
+
         for (CachedCreative cachedCreative : cachedCreatives) {
             final BidPutObject payload = cachedCreative.getPayload();
             final MetricName creativeType = resolveCreativeTypeName(payload);
             final Integer creativeTtl = ObjectUtils.defaultIfNull(payload.getTtlseconds(), payload.getExpiry());
 
             if (creativeTtl != null) {
-                metrics.updateCacheCreativeTtl(accountId, creativeTtl, creativeType);
+                updateCreativeTtlMetric.accept(creativeTtl, creativeType);
             }
 
-            metrics.updateCacheCreativeSize(accountId, cachedCreative.getSize(), creativeType);
+            updateCreativeSiseMetric.accept(cachedCreative.getSize(), creativeType);
         }
     }
 
@@ -626,5 +647,56 @@ public class CoreCacheService {
         return trimmedDatacenterRegion.length() > MAX_DATACENTER_REGION_LENGTH
                 ? trimmedDatacenterRegion.substring(0, MAX_DATACENTER_REGION_LENGTH)
                 : trimmedDatacenterRegion;
+    }
+
+    public Future<HttpClientResponse> getCachedObject(String key, String ch, Timeout timeout) {
+        final long remainingTimeout = timeout.remaining();
+        if (remainingTimeout <= 0) {
+            return Future.failedFuture(new TimeoutException("Timeout has been exceeded"));
+        }
+
+        final URL endpointUrl = ObjectUtils.firstNonNull(internalEndpointUrl, externalEndpointUrl);
+        final String url;
+        try {
+            final URIBuilder uriBuilder = new URIBuilder(endpointUrl.toString());
+            uriBuilder.addParameter(UUID_QUERY_PARAMETER, key);
+            if (StringUtils.isNotBlank(ch)) {
+                uriBuilder.addParameter(CH_QUERY_PARAMETER, ch);
+            }
+            url = uriBuilder.build().toString();
+        } catch (URISyntaxException e) {
+            return Future.failedFuture(new IllegalArgumentException("Configured cache url is malformed", e));
+        }
+
+        final long startTime = clock.millis();
+        return httpClient.get(url, cacheHeaders, remainingTimeout)
+                .map(response -> processVtrackReadResponse(response, startTime))
+                .recover(CoreCacheService::failResponse);
+    }
+
+    private HttpClientResponse processVtrackReadResponse(HttpClientResponse response, long startTime) {
+        final int statusCode = response.getStatusCode();
+        final String body = response.getBody();
+
+        if (statusCode == 200) {
+            metrics.updateVtrackCacheReadRequestTime(clock.millis() - startTime, MetricName.ok);
+            return response;
+        }
+
+        metrics.updateVtrackCacheReadRequestTime(clock.millis() - startTime, MetricName.err);
+
+        try {
+            final CacheErrorResponse errorResponse = mapper.decodeValue(body, CacheErrorResponse.class);
+            return HttpClientResponse.of(statusCode, response.getHeaders(), errorResponse.getMessage());
+        } catch (DecodeException e) {
+            throw new PreBidException("Cannot parse response: " + body, e);
+        }
+    }
+
+    private static <T> Future<T> failResponse(Throwable exception) {
+        logger.warn("Error occurred while interacting with cache service: {}", exception.getMessage());
+        logger.debug("Error occurred while interacting with cache service", exception);
+
+        return Future.failedFuture(exception);
     }
 }
