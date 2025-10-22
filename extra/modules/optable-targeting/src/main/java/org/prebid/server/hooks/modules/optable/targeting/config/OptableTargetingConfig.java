@@ -90,13 +90,15 @@ public class OptableTargetingConfig {
     OptableTargetingModule optableTargetingModule(ConfigResolver configResolver,
                                                   OptableTargeting optableTargeting,
                                                   UserFpdActivityMask userFpdActivityMask,
-                                                  JsonMerger jsonMerger) {
+                                                  JsonMerger jsonMerger,
+                                                  @Value("${logging.sampling-rate:0.01}") double logSamplingRate) {
 
         return new OptableTargetingModule(List.of(
                 new OptableTargetingProcessedAuctionRequestHook(
                         configResolver,
                         optableTargeting,
-                        userFpdActivityMask),
+                        userFpdActivityMask,
+                        logSamplingRate),
                 new OptableTargetingAuctionResponseHook(
                         configResolver,
                         ObjectMapperProvider.mapper(),

@@ -2,7 +2,6 @@ package org.prebid.server.bidder.yandex;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -36,7 +35,6 @@ import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.audio;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
@@ -144,7 +142,7 @@ public class YandexBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
         // then
         assertThat(result.getErrors()).containsExactly(
-                BidderError.badInput("Yandex only supports banner and native types. Ignoring imp id #blockA")
+                BidderError.badInput("Imp #blockA must contain at least one valid format (banner, video, or native)")
         );
     }
 
@@ -184,7 +182,6 @@ public class YandexBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder.id("blockA").banner(Banner.builder().build()),
                 identity());
-
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
@@ -213,6 +210,208 @@ public class YandexBidderTest extends VertxTest {
                 .extracting(Imp::getBanner)
                 .extracting(Banner::getW, Banner::getH)
                 .containsOnly(tuple(300, 600));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorWhenVideoWidthIsZero() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.id("blockA").banner(null).video(Video.builder().w(0).h(600).build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).containsExactly(BidderError.badInput("Invalid sizes provided for Video 0x600"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorWhenVideoHeightIsZero() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.id("blockA").banner(null).video(Video.builder().w(300).h(0).build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).containsExactly(BidderError.badInput("Invalid sizes provided for Video 300x0"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldModifyVideoParameters() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.id("blockA").banner(null)
+                        .video(Video.builder().w(300).h(600).build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getVideo)
+                .extracting(Video::getMinduration, Video::getMaxduration, Video::getProtocols)
+                .containsOnly(tuple(1, 120, singletonList(3)));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetExpectedHeaders() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity(),
+                requestBuilder -> requestBuilder.site(Site.builder().id("1").page("https://example.com/path?query=value").build())
+                        .device(Device.builder().ua("UA").language("EN").ip("127.0.0.1").build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue().getFirst().getHeaders())
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsOnly(tuple("Accept-Language", "EN"),
+                        tuple("User-Agent", "UA"),
+                        tuple("X-Forwarded-For", "127.0.0.1"),
+                        tuple("X-Real-Ip", "127.0.0.1"),
+                        tuple("Content-Type", "application/json;charset=utf-8"),
+                        tuple("Accept", "application/json"),
+                        tuple("x-openrtb-version", "2.5"),
+                        tuple("Referer", "https://example.com/path?query=value"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCreateCorrectURL() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(impBuilder -> impBuilder.id("blockA").ext(givenImpExt(1)))))
+                .site(Site.builder().id("1").page("https://example.com/path?query=value").build())
+                .cur(asList("EUR", "USD"))
+                .build();
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).extracting(HttpRequest::getUri)
+                .containsExactly("https://test.endpoint.com/?"
+                        + "target-ref=https%3A%2F%2Fexample.com%2Fpath%3Fquery%3Dvalue&ssp-cur=EUR");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSupportMultiFormatImpression() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .site(Site.builder().id("1").build())
+                .imp(singletonList(
+                        Imp.builder().id("multiFormatImp")
+                                .banner(Banner.builder().w(300).h(600).build())
+                                .video(Video.builder().w(300).h(600).build())
+                                .xNative(Native.builder().build())
+                                .ext(givenImpExt(1))
+                                .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+
+        final Imp modifiedImp = result.getValue().getFirst().getPayload().getImp().getFirst();
+        assertThat(modifiedImp.getBanner()).isNotNull();
+        assertThat(modifiedImp.getVideo()).isNotNull();
+        assertThat(modifiedImp.getXNative()).isNotNull();
+        assertThat(modifiedImp.getDisplaymanager()).isEqualTo("prebid.java");
+        assertThat(modifiedImp.getDisplaymanagerver()).isEqualTo("1.1");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSupportMultiFormatImpressionWithPartialErrors() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .site(Site.builder().id("1").build())
+                .imp(singletonList(
+                        Imp.builder().id("multiFormatImpWithErrors")
+                                .banner(Banner.builder().w(0).h(0).build()) // Invalid banner
+                                .video(Video.builder().w(300).h(600).build()) // Valid video
+                                .xNative(Native.builder().build()) // Valid native
+                                .ext(givenImpExt(1))
+                                .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).containsExactly(
+                BidderError.badInput("Invalid sizes provided for Banner 0x0"));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorWhenNoValidFormats() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .site(Site.builder().id("1").build())
+                .imp(singletonList(
+                        Imp.builder().id("noValidFormats")
+                                .banner(Banner.builder().w(0).h(0).build()) // Invalid banner
+                                .video(Video.builder().w(0).h(0).build()) // Invalid video
+                                .ext(givenImpExt(1))
+                                .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("Invalid sizes provided for Banner 0x0"));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetDisplayManagerAndVersionForAllImpTypes() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .site(Site.builder().id("1").build())
+                .imp(asList(
+                        Imp.builder().id("bannerImp")
+                                .banner(Banner.builder().w(300).h(600).build())
+                                .ext(givenImpExt(1))
+                                .build(),
+                        Imp.builder().id("videoImp")
+                                .video(Video.builder().w(300).h(600).build())
+                                .ext(givenImpExt(2))
+                                .build(),
+                        Imp.builder().id("nativeImp")
+                                .xNative(Native.builder().build())
+                                .ext(givenImpExt(3))
+                                .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(3)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getDisplaymanager, Imp::getDisplaymanagerver)
+                .containsOnly(
+                        tuple("prebid.java", "1.1"),
+                        tuple("prebid.java", "1.1"),
+                        tuple("prebid.java", "1.1"));
     }
 
     @Test
@@ -294,18 +493,16 @@ public class YandexBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBannerAndNative() throws JsonProcessingException {
+    public void makeBidsShouldReturnVideoBid() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> bidderCall = givenBidderCall(
                 BidRequest.builder()
-                        .imp(asList(Imp.builder().id("blockA").xNative(Native.builder().build()).build(),
-                                Imp.builder().id("blockB").banner(Banner.builder().build()).build()))
+                        .imp(singletonList(Imp.builder().id("blockA").video(Video.builder().build()).build()))
                         .build(),
                 mapper.writeValueAsString(BidResponse.builder()
                         .cur("USD")
                         .seatbid(singletonList(SeatBid.builder()
-                                .bid(asList(Bid.builder().impid("blockA").build(),
-                                        Bid.builder().impid("blockB").build()))
+                                .bid(singletonList(Bid.builder().impid("blockA").build()))
                                 .build()))
                         .build()));
 
@@ -315,23 +512,20 @@ public class YandexBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("blockA").build(), xNative, "USD"),
-                        BidderBid.of(Bid.builder().impid("blockB").build(), banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("blockA").build(), video, "USD"));
     }
 
     @Test
-    public void makeBidsShouldReturnVideoAndAudio() throws JsonProcessingException {
+    public void makeBidsShouldReturnBannerBid() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> bidderCall = givenBidderCall(
                 BidRequest.builder()
-                        .imp(asList(Imp.builder().id("blockA").video(Video.builder().build()).build(),
-                                Imp.builder().id("blockB").audio(Audio.builder().build()).build()))
+                        .imp(singletonList(Imp.builder().id("blockB").banner(Banner.builder().build()).build()))
                         .build(),
                 mapper.writeValueAsString(BidResponse.builder()
                         .cur("USD")
                         .seatbid(singletonList(SeatBid.builder()
-                                .bid(asList(Bid.builder().impid("blockA").build(),
-                                        Bid.builder().impid("blockB").build()))
+                                .bid(singletonList(Bid.builder().impid("blockB").build()))
                                 .build()))
                         .build()));
 
@@ -341,8 +535,30 @@ public class YandexBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("blockA").build(), video, "USD"),
-                        BidderBid.of(Bid.builder().impid("blockB").build(), audio, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("blockB").build(), banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnNativeBid() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> bidderCall = givenBidderCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("blockC").xNative(Native.builder().build()).build()))
+                        .build(),
+                mapper.writeValueAsString(BidResponse.builder()
+                        .cur("USD")
+                        .seatbid(singletonList(SeatBid.builder()
+                                .bid(singletonList(Bid.builder().impid("blockC").build()))
+                                .build()))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(bidderCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("blockC").build(), xNative, "USD"));
     }
 
     @Test
@@ -370,43 +586,27 @@ public class YandexBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSetExpectedHeaders() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(identity(),
-                requestBuilder -> requestBuilder.site(null)
-                        .device(Device.builder().ua("UA").language("EN").ip("127.0.0.1").build()));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue().getFirst().getHeaders())
-                .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(tuple("Accept-Language", "EN"),
-                        tuple("User-Agent", "UA"),
-                        tuple("X-Forwarded-For", "127.0.0.1"),
-                        tuple("X-Real-Ip", "127.0.0.1"),
-                        tuple("Content-Type", "application/json;charset=utf-8"),
-                        tuple("Accept", "application/json"));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldCreateCorrectURL() {
+    public void makeBidsShouldReturnCorrectBidTypeForMultiFormatImpression() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(givenImp(impBuilder -> impBuilder.id("blockA").ext(givenImpExt(1)))))
-                .site(Site.builder().id("1").page("https://domain.com/").build())
-                .cur(asList("EUR", "USD"))
+                .imp(singletonList(
+                        Imp.builder().id("multiFormatImp")
+                                .banner(Banner.builder().w(300).h(600).build())
+                                .video(Video.builder().w(300).h(600).build())
+                                .xNative(Native.builder().build())
+                                .build()))
                 .build();
+
+        final BidResponse bidResponse = givenBidResponse(bidBuilder -> bidBuilder.impid("multiFormatImp"));
+
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(
+                givenBidderCall(bidRequest, mapper.writeValueAsString(bidResponse)), bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).extracting(HttpRequest::getUri)
-                .containsExactly("https://test.endpoint.com/?"
-                        + "target-ref=https%3A%2F%2Fdomain.com%2F&ssp-cur=EUR");
+        assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getValue().getFirst().getType()).isEqualTo(video); // Video has highest priority
     }
 
     private static BidRequest givenBidRequest(

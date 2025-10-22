@@ -165,22 +165,11 @@ public class ThirtyThreeAcrossBidder implements Bidder<BidRequest> {
 
         return video.toBuilder()
                 .startdelay(resolveStartDelay(video.getStartdelay(), productId))
-                .placement(resolvePlacement(video.getPlacement(), productId))
                 .build();
     }
 
     private static Integer resolveStartDelay(Integer startDelay, String productId) {
         return Objects.equals(productId, "instream") ? Integer.valueOf(0) : startDelay;
-    }
-
-    private static Integer resolvePlacement(Integer videoPlacement, String productId) {
-        if (Objects.equals(productId, "instream")) {
-            return 1;
-        }
-        if (BidderUtil.isNullOrZero(videoPlacement)) {
-            return 2;
-        }
-        return videoPlacement;
     }
 
     private static String getImpGroupName(ThirtyThreeAcrossImpExt impExt) {

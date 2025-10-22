@@ -25,7 +25,7 @@ public class QueryBuilderTest {
 
         // then
         assertThat(query.getIds()).isEqualTo("&id=e%3Aemail&id=p%3A123");
-        assertThat(query.getAttributes()).isEqualTo("&gdpr_consent=tcf&gdpr=1&timeout=100ms");
+        assertThat(query.getAttributes()).isEqualTo("&gdpr_consent=tcf&gdpr=1&timeout=100ms&osdk=prebid-server");
     }
 
     @Test
@@ -38,7 +38,9 @@ public class QueryBuilderTest {
 
         // then
         assertThat(query.getIds()).isEqualTo("&id=e%3Aemail&id=p%3A123");
-        assertThat(query.getAttributes()).isEqualTo("&gdpr_consent=tcf&gdpr=1&timeout=100ms");
+        assertThat(query.getAttributes()).isEqualTo("&gdpr_consent=tcf&gdpr=1&timeout=100ms&osdk=prebid-server");
+        assertThat(query.toQueryString())
+                .isEqualTo("&id=e%3Aemail&id=p%3A123&gdpr_consent=tcf&gdpr=1&timeout=100ms&osdk=prebid-server");
     }
 
     @Test
@@ -94,7 +96,7 @@ public class QueryBuilderTest {
 
         // then
         assertThat(query).isNotNull();
-        assertThat(query.toQueryString()).isEqualTo("gdpr=0");
+        assertThat(query.toQueryString()).isEqualTo("&gdpr=0&osdk=prebid-server");
     }
 
     @Test

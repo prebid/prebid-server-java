@@ -2,7 +2,9 @@ package org.prebid.server.auction;
 
 import com.iab.openrtb.response.Bid;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
 import org.prebid.server.settings.model.Account;
 
 import java.math.BigDecimal;
@@ -12,7 +14,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Used throughout Prebid to create targeting keys as keys which can be used in an ad server like DFP.
@@ -76,8 +77,6 @@ public class TargetingKeywordsCreator {
      * Stores bid's format. For example "video" or "banner".
      */
     private static final String FORMAT_KEY = "_format";
-
-    private static final String DEFAULT_CPM = "0.0";
 
     private final PriceGranularity priceGranularity;
     private final boolean includeWinners;
@@ -154,7 +153,8 @@ public class TargetingKeywordsCreator {
                                 String format,
                                 String vastCacheId,
                                 String categoryDuration,
-                                Account account) {
+                                Account account,
+                                Map<String, List<ExtBidderError>> bidWarnings) {
 
         final Map<String, String> keywords = makeFor(
                 bidder,
@@ -170,13 +170,13 @@ public class TargetingKeywordsCreator {
                 account);
 
         if (resolver == null) {
-            return truncateKeys(keywords);
+            return truncateKeys(keywords, bidWarnings);
         }
 
         final Map<String, String> augmentedKeywords = new HashMap<>(keywords);
         augmentedKeywords.putAll(resolver.resolve(bid, bidder));
 
-        return truncateKeys(augmentedKeywords);
+        return truncateKeys(augmentedKeywords, bidWarnings);
     }
 
     /**
@@ -204,7 +204,7 @@ public class TargetingKeywordsCreator {
 
         final String roundedCpm = isPriceGranularityValid()
                 ? CpmRange.fromCpm(price, priceGranularity, account)
-                : DEFAULT_CPM;
+                : CpmRange.DEFAULT_CPM;
 
         keywordMap.put(this.keyPrefix + PB_KEY, roundedCpm);
 
@@ -261,12 +261,33 @@ public class TargetingKeywordsCreator {
                 : null;
     }
 
-    private Map<String, String> truncateKeys(Map<String, String> keyValues) {
-        return truncateAttrChars > 0
-                ? keyValues.entrySet().stream()
-                .collect(Collectors
-                        .toMap(keyValue -> truncateKey(keyValue.getKey()), Map.Entry::getValue, (key1, key2) -> key1))
-                : keyValues;
+    private Map<String, String> truncateKeys(Map<String, String> keyValues,
+                                             Map<String, List<ExtBidderError>> bidWarnings) {
+
+        if (truncateAttrChars <= 0) {
+            return keyValues;
+        }
+
+        final Map<String, String> keys = new HashMap<>();
+        final List<String> truncatedKeys = new ArrayList<>();
+        for (Map.Entry<String, String> entry : keyValues.entrySet()) {
+            final String key = entry.getKey();
+            final String truncatedKey = truncateKey(key);
+            keys.putIfAbsent(truncatedKey, entry.getValue());
+
+            if (truncatedKey.length() != key.length()) {
+                truncatedKeys.add(key);
+            }
+        }
+
+        if (!truncatedKeys.isEmpty()) {
+            final String errorMessage = "The following keys have been truncated: %s"
+                    .formatted(String.join(", ", truncatedKeys));
+            bidWarnings.computeIfAbsent("targeting", ignored -> new ArrayList<>())
+                    .add(ExtBidderError.of(BidderError.Type.bad_input.getCode(), errorMessage));
+        }
+
+        return keys;
     }
 
     private String truncateKey(String key) {

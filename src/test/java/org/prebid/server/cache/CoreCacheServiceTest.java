@@ -855,13 +855,15 @@ public class CoreCacheServiceTest extends VertxTest {
         // then
         verify(httpClient).post(eq("http://cache-service/cache"), any(), any(), anyLong());
 
-        verify(metrics).updateCacheCreativeSize(eq("account"), eq(12), eq(MetricName.json));
-        verify(metrics).updateCacheCreativeSize(eq("account"), eq(4), eq(MetricName.xml));
-        verify(metrics).updateCacheCreativeSize(eq("account"), eq(11), eq(MetricName.unknown));
+        verify(metrics).updateVtrackCacheCreativeSize(eq("account"), eq(12), eq(MetricName.json));
+        verify(metrics).updateVtrackCacheCreativeSize(eq("account"), eq(4), eq(MetricName.xml));
+        verify(metrics).updateVtrackCacheCreativeSize(eq("account"), eq(11), eq(MetricName.unknown));
 
-        verify(metrics).updateCacheCreativeTtl(eq("account"), eq(1), eq(MetricName.json));
-        verify(metrics).updateCacheCreativeTtl(eq("account"), eq(2), eq(MetricName.xml));
-        verify(metrics).updateCacheCreativeTtl(eq("account"), eq(3), eq(MetricName.unknown));
+        verify(metrics).updateVtrackCacheCreativeTtl(eq("account"), eq(1), eq(MetricName.json));
+        verify(metrics).updateVtrackCacheCreativeTtl(eq("account"), eq(2), eq(MetricName.xml));
+        verify(metrics).updateVtrackCacheCreativeTtl(eq("account"), eq(3), eq(MetricName.unknown));
+
+        verify(metrics).updateVtrackCacheWriteRequestTime(eq("account"), anyLong(), eq(MetricName.ok));
 
         verify(metrics).updateVtrackCacheWriteRequestTime(eq("account"), anyLong(), eq(MetricName.ok));
 
@@ -1227,6 +1229,78 @@ public class CoreCacheServiceTest extends VertxTest {
     }
 
     @Test
+    public void cachePutObjectsShouldLogErrorMetricsWhenStatusCodeIsNotOk() {
+        // given
+        final BidPutObject bidObject = BidPutObject.builder()
+                .type("json")
+                .bidid("bidId1")
+                .bidder("bidder1")
+                .timestamp(1L)
+                .value(new TextNode("vast"))
+                .ttlseconds(1)
+                .build();
+
+        given(vastModifier.modifyVastXml(any(), any(), any(), any(), anyString()))
+                .willReturn(new TextNode("modifiedVast"))
+                .willReturn(new TextNode("VAST"))
+                .willReturn(new TextNode("updatedVast"));
+
+        given(httpClient.post(eq("http://cache-service/cache"), any(), any(), anyLong()))
+                .willReturn(Future.succeededFuture(HttpClientResponse.of(404, null, null)));
+
+        // when
+        target.cachePutObjects(
+                singletonList(bidObject),
+                true,
+                singleton("bidder1"),
+                "account",
+                "pbjs",
+                timeout);
+
+        // then
+        verify(metrics).updateVtrackCacheCreativeSize(eq("account"), eq(12), eq(MetricName.json));
+        verify(metrics).updateVtrackCacheCreativeTtl(eq("account"), eq(1), eq(MetricName.json));
+        verify(metrics).updateVtrackCacheWriteRequestTime(eq("account"), anyLong(), eq(MetricName.err));
+        verify(vastModifier).modifyVastXml(true, singleton("bidder1"), bidObject, "account", "pbjs");
+    }
+
+    @Test
+    public void cachePutObjectsShouldNotLogErrorMetricsWhenCacheServiceIsNotConnected() {
+        // given
+        final BidPutObject bidObject = BidPutObject.builder()
+                .type("json")
+                .bidid("bidId1")
+                .bidder("bidder1")
+                .timestamp(1L)
+                .value(new TextNode("vast"))
+                .ttlseconds(1)
+                .build();
+
+        given(vastModifier.modifyVastXml(any(), any(), any(), any(), anyString()))
+                .willReturn(new TextNode("modifiedVast"))
+                .willReturn(new TextNode("VAST"))
+                .willReturn(new TextNode("updatedVast"));
+
+        given(httpClient.post(eq("http://cache-service/cache"), any(), any(), anyLong()))
+                .willReturn(Future.failedFuture(new TimeoutException("Timeout")));
+
+        // when
+        target.cachePutObjects(
+                singletonList(bidObject),
+                true,
+                singleton("bidder1"),
+                "account",
+                "pbjs",
+                timeout);
+
+        // then
+        verify(metrics, never()).updateVtrackCacheWriteRequestTime(eq("account"), anyLong(), any());
+        verify(metrics).updateVtrackCacheCreativeSize(eq("account"), eq(12), eq(MetricName.json));
+        verify(metrics).updateVtrackCacheCreativeTtl(eq("account"), eq(1), eq(MetricName.json));
+        verify(vastModifier).modifyVastXml(true, singleton("bidder1"), bidObject, "account", "pbjs");
+    }
+
+    @Test
     public void cachePutObjectsShouldCallInternalCacheEndpointWhenProvided() throws IOException {
         // given
         target = new CoreCacheService(
@@ -1263,8 +1337,8 @@ public class CoreCacheServiceTest extends VertxTest {
 
         // then
         verify(httpClient).post(eq("http://cache-service-internal/cache"), any(), any(), anyLong());
-        verify(metrics).updateCacheCreativeSize(eq("account"), eq(12), eq(MetricName.json));
-        verify(metrics).updateCacheCreativeTtl(eq("account"), eq(1), eq(MetricName.json));
+        verify(metrics).updateVtrackCacheCreativeSize(eq("account"), eq(12), eq(MetricName.json));
+        verify(metrics).updateVtrackCacheCreativeTtl(eq("account"), eq(1), eq(MetricName.json));
 
         verify(vastModifier).modifyVastXml(true, singleton("bidder1"), firstBidPutObject, "account", "pbjs");
 

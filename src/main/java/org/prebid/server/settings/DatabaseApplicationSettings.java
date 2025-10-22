@@ -10,10 +10,12 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.settings.helper.DatabaseProfilesResultMapper;
 import org.prebid.server.settings.helper.DatabaseStoredDataResultMapper;
 import org.prebid.server.settings.helper.DatabaseStoredResponseResultMapper;
 import org.prebid.server.settings.helper.ParametrizedQueryHelper;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.Profile;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 import org.prebid.server.util.ObjectUtil;
@@ -29,14 +31,6 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.IntStream;
 
-/**
- * Implementation of {@link ApplicationSettings}.
- * <p>
- * Reads an application settings from the database source.
- * <p>
- * In order to enable caching and reduce latency for read operations {@link DatabaseApplicationSettings}
- * can be decorated by {@link CachingApplicationSettings}.
- */
 public class DatabaseApplicationSettings implements ApplicationSettings {
 
     private final DatabaseClient databaseClient;
@@ -73,6 +67,16 @@ public class DatabaseApplicationSettings implements ApplicationSettings {
     private final String selectAmpStoredRequestsQuery;
 
     /**
+     * Query to select profiles by ids, for example:
+     * <pre>
+     * SELECT accountId, profileId, profile, mergePrecedence, type
+     *   FROM profiles
+     *   WHERE profileId in (%REQUEST_ID_LIST%, %IMP_ID_LIST%)
+     * </pre>
+     */
+    private final String selectProfilesQuery;
+
+    /**
      * Query to select stored responses by ids, for example:
      * <pre>
      * SELECT respid, responseData
@@ -88,6 +92,7 @@ public class DatabaseApplicationSettings implements ApplicationSettings {
                                        String selectAccountQuery,
                                        String selectStoredRequestsQuery,
                                        String selectAmpStoredRequestsQuery,
+                                       String selectProfilesQuery,
                                        String selectStoredResponsesQuery) {
 
         this.databaseClient = Objects.requireNonNull(databaseClient);
@@ -97,13 +102,10 @@ public class DatabaseApplicationSettings implements ApplicationSettings {
                 Objects.requireNonNull(selectAccountQuery));
         this.selectStoredRequestsQuery = Objects.requireNonNull(selectStoredRequestsQuery);
         this.selectAmpStoredRequestsQuery = Objects.requireNonNull(selectAmpStoredRequestsQuery);
+        this.selectProfilesQuery = selectProfilesQuery;
         this.selectStoredResponsesQuery = Objects.requireNonNull(selectStoredResponsesQuery);
     }
 
-    /**
-     * Runs a process to get account by id from database
-     * and returns {@link Future}&lt;{@link Account}&gt;.
-     */
     @Override
     public Future<Account> getAccountById(String accountId, Timeout timeout) {
         return databaseClient.executeQuery(
@@ -111,17 +113,12 @@ public class DatabaseApplicationSettings implements ApplicationSettings {
                         Collections.singletonList(accountId),
                         result -> mapToModelOrError(result, this::toAccount),
                         timeout)
-                .compose(result -> failedIfNull(result, accountId, "Account"));
-    }
-
-    @Override
-    public Future<Map<String, String>> getCategories(String primaryAdServer, String publisher, Timeout timeout) {
-        return Future.failedFuture(new PreBidException("Not supported"));
+                .compose(result -> result != null
+                        ? Future.succeededFuture(result)
+                        : Future.failedFuture(new PreBidException("Account not found: " + accountId)));
     }
 
     /**
-     * Transforms the first row of {@link RowSet<Row>} to required object or returns null.
-     * <p>
      * Note: mapper should never throw exception in case of using
      * {@link CircuitBreakerSecuredDatabaseClient}.
      */
@@ -130,16 +127,6 @@ public class DatabaseApplicationSettings implements ApplicationSettings {
         return rowIterator != null && rowIterator.hasNext()
                 ? mapper.apply(rowIterator.next())
                 : null;
-    }
-
-    /**
-     * Returns succeeded {@link Future} if given value is not equal to NULL,
-     * otherwise failed {@link Future} with {@link PreBidException}.
-     */
-    private static <T> Future<T> failedIfNull(T value, String id, String errorPrefix) {
-        return value != null
-                ? Future.succeededFuture(value)
-                : Future.failedFuture(new PreBidException("%s not found: %s".formatted(errorPrefix, id)));
     }
 
     private Account toAccount(Row row) {
@@ -151,45 +138,96 @@ public class DatabaseApplicationSettings implements ApplicationSettings {
         }
     }
 
-    /**
-     * Runs a process to get stored requests by a collection of ids from database
-     * and returns {@link Future}&lt;{@link StoredDataResult}&gt;.
-     */
     @Override
-    public Future<StoredDataResult> getStoredData(String accountId, Set<String> requestIds, Set<String> impIds,
-                                                  Timeout timeout) {
-        return fetchStoredData(selectStoredRequestsQuery, accountId, requestIds, impIds, timeout);
+    public Future<StoredDataResult<String>> getStoredData(String accountId,
+                                                          Set<String> requestIds,
+                                                          Set<String> impIds,
+                                                          Timeout timeout) {
+
+        return fetchStoredData(
+                selectStoredRequestsQuery,
+                requestIds,
+                impIds,
+                result -> DatabaseStoredDataResultMapper.map(result, accountId, requestIds, impIds),
+                timeout);
     }
 
-    /**
-     * Runs a process to get stored requests by a collection of amp ids from database
-     * and returns {@link Future}&lt;{@link StoredDataResult}&gt;.
-     */
     @Override
-    public Future<StoredDataResult> getAmpStoredData(String accountId, Set<String> requestIds, Set<String> impIds,
-                                                     Timeout timeout) {
-        return fetchStoredData(selectAmpStoredRequestsQuery, accountId, requestIds, Collections.emptySet(), timeout);
+    public Future<StoredDataResult<String>> getAmpStoredData(String accountId,
+                                                             Set<String> requestIds,
+                                                             Set<String> impIds,
+                                                             Timeout timeout) {
+
+        return fetchStoredData(
+                selectAmpStoredRequestsQuery,
+                requestIds,
+                Collections.emptySet(),
+                result -> DatabaseStoredDataResultMapper.map(result, accountId, requestIds, impIds),
+                timeout);
     }
 
-    /**
-     * Runs a process to get stored requests by a collection of video ids from database
-     * and returns {@link Future}&lt;{@link StoredDataResult}&gt;.
-     */
     @Override
-    public Future<StoredDataResult> getVideoStoredData(String accountId, Set<String> requestIds, Set<String> impIds,
-                                                       Timeout timeout) {
-        return fetchStoredData(selectStoredRequestsQuery, accountId, requestIds, impIds, timeout);
+    public Future<StoredDataResult<String>> getVideoStoredData(String accountId,
+                                                               Set<String> requestIds,
+                                                               Set<String> impIds,
+                                                               Timeout timeout) {
+
+        return fetchStoredData(
+                selectStoredRequestsQuery,
+                requestIds,
+                impIds,
+                result -> DatabaseStoredDataResultMapper.map(result, accountId, requestIds, impIds),
+                timeout);
     }
 
-    /**
-     * Runs a process to get stored responses by a collection of ids from database
-     * and returns {@link Future}&lt;{@link StoredResponseDataResult}&gt;.
-     */
+    @Override
+    public Future<StoredDataResult<Profile>> getProfiles(String accountId,
+                                                         Set<String> requestIds,
+                                                         Set<String> impIds,
+                                                         Timeout timeout) {
+
+        // TODO: remove in PBS 4.0
+        if (selectProfilesQuery == null) {
+            return Future.failedFuture("Profiles storage not configured.");
+        }
+
+        return fetchStoredData(
+                selectProfilesQuery,
+                requestIds,
+                impIds,
+                result -> DatabaseProfilesResultMapper.map(result, accountId, requestIds, impIds),
+                timeout);
+    }
+
+    private <T> Future<StoredDataResult<T>> fetchStoredData(String query,
+                                                            Set<String> requestIds,
+                                                            Set<String> impIds,
+                                                            Function<RowSet<Row>, StoredDataResult<T>> mapper,
+                                                            Timeout timeout) {
+
+        if (CollectionUtils.isEmpty(requestIds) && CollectionUtils.isEmpty(impIds)) {
+            return Future.succeededFuture(StoredDataResult.of(
+                    Collections.emptyMap(),
+                    Collections.emptyMap(),
+                    Collections.emptyList()));
+        }
+
+        final List<Object> idsQueryParameters = new ArrayList<>();
+        IntStream.rangeClosed(1, StringUtils.countMatches(query, ParametrizedQueryHelper.REQUEST_ID_PLACEHOLDER))
+                .forEach(i -> idsQueryParameters.addAll(requestIds));
+        IntStream.rangeClosed(1, StringUtils.countMatches(query, ParametrizedQueryHelper.IMP_ID_PLACEHOLDER))
+                .forEach(i -> idsQueryParameters.addAll(impIds));
+
+        final String parametrizedQuery = parametrizedQueryHelper
+                .replaceRequestAndImpIdPlaceholders(query, requestIds.size(), impIds.size());
+
+        return databaseClient.executeQuery(parametrizedQuery, idsQueryParameters, mapper, timeout);
+    }
+
     @Override
     public Future<StoredResponseDataResult> getStoredResponses(Set<String> responseIds, Timeout timeout) {
-        final String queryResolvedWithParameters = parametrizedQueryHelper.replaceStoredResponseIdPlaceholders(
-                selectStoredResponsesQuery,
-                responseIds.size());
+        final String queryResolvedWithParameters = parametrizedQueryHelper
+                .replaceStoredResponseIdPlaceholders(selectStoredResponsesQuery, responseIds.size());
 
         final List<Object> idsQueryParameters = new ArrayList<>();
         final int responseIdPlaceholderCount = StringUtils.countMatches(
@@ -198,37 +236,15 @@ public class DatabaseApplicationSettings implements ApplicationSettings {
         IntStream.rangeClosed(1, responseIdPlaceholderCount)
                 .forEach(i -> idsQueryParameters.addAll(responseIds));
 
-        return databaseClient.executeQuery(queryResolvedWithParameters, idsQueryParameters,
-                result -> DatabaseStoredResponseResultMapper.map(result, responseIds), timeout);
+        return databaseClient.executeQuery(
+                queryResolvedWithParameters,
+                idsQueryParameters,
+                result -> DatabaseStoredResponseResultMapper.map(result, responseIds),
+                timeout);
     }
 
-    /**
-     * Fetches stored requests from database for the given query.
-     */
-    private Future<StoredDataResult> fetchStoredData(String query, String accountId, Set<String> requestIds,
-                                                     Set<String> impIds, Timeout timeout) {
-        final Future<StoredDataResult> future;
-
-        if (CollectionUtils.isEmpty(requestIds) && CollectionUtils.isEmpty(impIds)) {
-            future = Future.succeededFuture(
-                    StoredDataResult.of(Collections.emptyMap(), Collections.emptyMap(), Collections.emptyList()));
-        } else {
-            final List<Object> idsQueryParameters = new ArrayList<>();
-            IntStream.rangeClosed(1, StringUtils.countMatches(query, ParametrizedQueryHelper.REQUEST_ID_PLACEHOLDER))
-                    .forEach(i -> idsQueryParameters.addAll(requestIds));
-            IntStream.rangeClosed(1, StringUtils.countMatches(query, ParametrizedQueryHelper.IMP_ID_PLACEHOLDER))
-                    .forEach(i -> idsQueryParameters.addAll(impIds));
-
-            final String parametrizedQuery = parametrizedQueryHelper.replaceRequestAndImpIdPlaceholders(
-                    query,
-                    requestIds.size(),
-                    impIds.size());
-
-            future = databaseClient.executeQuery(parametrizedQuery, idsQueryParameters,
-                    result -> DatabaseStoredDataResultMapper.map(result, accountId, requestIds, impIds),
-                    timeout);
-        }
-
-        return future;
+    @Override
+    public Future<Map<String, String>> getCategories(String primaryAdServer, String publisher, Timeout timeout) {
+        return Future.failedFuture(new PreBidException("Not supported"));
     }
 }

@@ -9,6 +9,8 @@ class CacheVtrackMetrics extends UpdatableMetrics {
 
     private final CacheReadMetrics readMetrics;
     private final CacheWriteMetrics writeMetrics;
+    private final CacheCreativeSizeMetrics creativeSizeMetrics;
+    private final CacheCreativeTtlMetrics creativeTtlMetrics;
 
     CacheVtrackMetrics(MetricRegistry metricRegistry, CounterType counterType, String prefix) {
         super(
@@ -18,6 +20,8 @@ class CacheVtrackMetrics extends UpdatableMetrics {
 
         readMetrics = new CacheReadMetrics(metricRegistry, counterType, createPrefix(prefix));
         writeMetrics = new CacheWriteMetrics(metricRegistry, counterType, createPrefix(prefix));
+        creativeSizeMetrics = new CacheCreativeSizeMetrics(metricRegistry, counterType, createPrefix(prefix));
+        creativeTtlMetrics = new CacheCreativeTtlMetrics(metricRegistry, counterType, createPrefix(prefix));
     }
 
     private static Function<MetricName, String> nameCreator(String prefix) {
@@ -34,6 +38,14 @@ class CacheVtrackMetrics extends UpdatableMetrics {
 
     CacheWriteMetrics write() {
         return writeMetrics;
+    }
+
+    CacheCreativeSizeMetrics creativeSize() {
+        return creativeSizeMetrics;
+    }
+
+    CacheCreativeTtlMetrics creativeTtl() {
+        return creativeTtlMetrics;
     }
 
 }

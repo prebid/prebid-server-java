@@ -21,7 +21,8 @@ class ImpExtPrebid {
     Map<BidderName, Imp> imp
     String adUnitCode
     PrebidOptions options
-
+    @JsonProperty("profiles")
+    List<String> profileNames
 
     static ImpExtPrebid getDefaultImpExtPrebid() {
         new ImpExtPrebid().tap {

@@ -51,7 +51,7 @@ public class OptableTargetingTest extends BaseOptableTest {
     public void shouldCallNonCachedAPIClient() {
         // given
         when(idsMapper.toIds(any(), any())).thenReturn(List.of(Id.of(Id.ID5, "id")));
-        when(apiClient.getTargeting(any(), any(), any(), any()))
+        when(apiClient.getTargeting(any(), any(), any(), any(), any()))
                 .thenReturn(Future.succeededFuture(givenTargetingResult()));
 
         final BidRequest bidRequest = givenBidRequest();
@@ -64,7 +64,7 @@ public class OptableTargetingTest extends BaseOptableTest {
 
         // then
         assertThat(targetingResult.result()).isNotNull();
-        verify(apiClient).getTargeting(any(), any(), any(), any());
+        verify(apiClient).getTargeting(any(), any(), any(), any(), any());
     }
 
     @Test
@@ -72,7 +72,7 @@ public class OptableTargetingTest extends BaseOptableTest {
         // given
         when(idsMapper.toIds(any(), any())).thenReturn(List.of(Id.of(Id.ID5, "id")));
         when(cache.get(any())).thenReturn(Future.failedFuture(new NullPointerException()));
-        when(apiClient.getTargeting(any(), any(), any(), any()))
+        when(apiClient.getTargeting(any(), any(), any(), any(), any()))
                 .thenReturn(Future.succeededFuture(givenTargetingResult()));
 
         final BidRequest bidRequest = givenBidRequest();
@@ -84,7 +84,7 @@ public class OptableTargetingTest extends BaseOptableTest {
 
         // then
         verify(cache).get(any());
-        verify(apiClient).getTargeting(any(), any(), any(), any());
+        verify(apiClient).getTargeting(any(), any(), any(), any(), any());
     }
 
     private OptableAttributes givenOptableAttributes() {

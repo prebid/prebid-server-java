@@ -54,6 +54,7 @@ public class APIClientImplTest extends BaseOptableTest {
                 givenOptableTargetingProperties(false),
                 givenQuery(),
                 List.of("8.8.8.8"),
+                "user agent",
                 timeout);
 
         // then
@@ -75,6 +76,7 @@ public class APIClientImplTest extends BaseOptableTest {
                 givenOptableTargetingProperties(false),
                 givenQuery(),
                 List.of("8.8.8.8"),
+                "user agent",
                 timeout);
 
         // then
@@ -92,6 +94,7 @@ public class APIClientImplTest extends BaseOptableTest {
                 givenOptableTargetingProperties(false),
                 givenQuery(),
                 List.of("8.8.8.8"),
+                "user agent",
                 timeout);
 
         // then
@@ -109,6 +112,7 @@ public class APIClientImplTest extends BaseOptableTest {
                 givenOptableTargetingProperties(false),
                 givenQuery(),
                 List.of("8.8.8.8"),
+                "user agent",
                 timeout);
 
         // then
@@ -126,6 +130,7 @@ public class APIClientImplTest extends BaseOptableTest {
                 givenOptableTargetingProperties(false),
                 givenQuery(),
                 List.of("8.8.8.8"),
+                "user agent",
                 timeout);
 
         // then
@@ -143,13 +148,38 @@ public class APIClientImplTest extends BaseOptableTest {
 
         // when
         final Future<TargetingResult> result = target.getTargeting(givenOptableTargetingProperties(false),
-                givenQuery(), List.of("8.8.8.8"), timeout);
+                givenQuery(), List.of("8.8.8.8"), "user agent", timeout);
 
         // then
         final ArgumentCaptor<MultiMap> headersCaptor = ArgumentCaptor.forClass(MultiMap.class);
         verify(httpClient).get(any(), headersCaptor.capture(), anyLong());
         assertThat(headersCaptor.getValue().get(HttpUtil.ACCEPT_HEADER)).isEqualTo("application/json");
         assertThat(headersCaptor.getValue().get(HttpUtil.AUTHORIZATION_HEADER)).isEqualTo("Bearer key");
+        assertThat(result.result()).isNull();
+    }
+
+    @Test
+    public void shouldBuildApiUrlByReplacingTenantAndOriginMacros() {
+        //  given
+        target = new APIClientImpl(
+                "http://endpoint.optable.com?t={{TENANT}}&o={{ORIGIN}}",
+                httpClient,
+                jacksonMapper,
+                10);
+
+        when(httpClient.get(any(), any(), anyLong()))
+                .thenReturn(Future.succeededFuture(givenFailHttpResponse(HttpStatus.SC_INTERNAL_SERVER_ERROR,
+                        "plain_text_response.json")));
+
+        // when
+        final Future<TargetingResult> result = target.getTargeting(givenOptableTargetingProperties(false),
+                givenQuery(), List.of("8.8.8.8"), "user agent", timeout);
+
+        // then
+        final ArgumentCaptor<String> endpointCaptor = ArgumentCaptor.forClass(String.class);
+        verify(httpClient).get(endpointCaptor.capture(), any(), anyLong());
+        assertThat(endpointCaptor.getValue())
+                .isEqualTo("http://endpoint.optable.com?t=accountId&o=origin?query");
         assertThat(result.result()).isNull();
     }
 
@@ -164,6 +194,7 @@ public class APIClientImplTest extends BaseOptableTest {
                 givenOptableTargetingProperties(null, false),
                 givenQuery(),
                 List.of("8.8.8.8"),
+                "user agent",
                 timeout);
 
         // then
@@ -175,7 +206,7 @@ public class APIClientImplTest extends BaseOptableTest {
     }
 
     @Test
-    public void shouldPassThroughIpAddresses() {
+    public void shouldPassThroughIpAddressesAndUserAgent() {
         //  given
         when(httpClient.get(any(), any(), anyLong())).thenReturn(Future.succeededFuture(
                 givenFailHttpResponse(HttpStatus.SC_INTERNAL_SERVER_ERROR, "plain_text_response.json")));
@@ -185,18 +216,21 @@ public class APIClientImplTest extends BaseOptableTest {
                 givenOptableTargetingProperties(false),
                 givenQuery(),
                 List.of("8.8.8.8", "2001:4860:4860::8888"),
+                "user agent",
                 timeout);
 
         // then
         final ArgumentCaptor<MultiMap> headersCaptor = ArgumentCaptor.forClass(MultiMap.class);
         verify(httpClient).get(any(), headersCaptor.capture(), anyLong());
-        assertThat(headersCaptor.getValue().getAll(HttpUtil.X_FORWARDED_FOR_HEADER))
+        final MultiMap headers = headersCaptor.getValue();
+        assertThat(headers.getAll(HttpUtil.X_FORWARDED_FOR_HEADER))
                 .contains("8.8.8.8", "2001:4860:4860::8888");
+        assertThat(headers.get(HttpUtil.USER_AGENT_HEADER)).isEqualTo("user agent");
         assertThat(result.result()).isNull();
     }
 
     @Test
-    public void shouldNotPassThroughIpAddressWhenNotSpecified() {
+    public void shouldNotPassThroughIpAddressAndUserAgentWhenNotSpecified() {
         //  given
         when(httpClient.get(any(), any(), anyLong())).thenReturn(Future.succeededFuture(
                 givenFailHttpResponse(HttpStatus.SC_INTERNAL_SERVER_ERROR, "plain_text_response.json")));
@@ -206,12 +240,15 @@ public class APIClientImplTest extends BaseOptableTest {
                 givenOptableTargetingProperties(false),
                 givenQuery(),
                 null,
+                null,
                 timeout);
 
         // then
         final ArgumentCaptor<MultiMap> headersCaptor = ArgumentCaptor.forClass(MultiMap.class);
         verify(httpClient).get(any(), headersCaptor.capture(), anyLong());
-        assertThat(headersCaptor.getValue().get(HttpUtil.X_FORWARDED_FOR_HEADER)).isNull();
+        final MultiMap headers = headersCaptor.getValue();
+        assertThat(headers.get(HttpUtil.X_FORWARDED_FOR_HEADER)).isNull();
+        assertThat(headers.get(HttpUtil.USER_AGENT_HEADER)).isNull();
         assertThat(result.result()).isNull();
     }
 }
