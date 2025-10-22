@@ -5,6 +5,7 @@ import io.github.jamsesso.jsonlogic.ast.JsonLogicParseException;
 import io.github.jamsesso.jsonlogic.ast.JsonLogicParser;
 import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException;
 import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluator;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.Map;
 import java.util.Objects;
@@ -26,11 +27,11 @@ public class JsonLogic {
     }
 
     public boolean evaluate(JsonLogicNode jsonLogicNode, Map<String, Object> data) throws JsonLogicEvaluationException {
-        final Object result = evaluator.evaluate(jsonLogicNode, data);
+        final Object result = evaluator.evaluate(jsonLogicNode, data, StringUtils.EMPTY);
 
         if (result instanceof Boolean booleanResult) {
             return booleanResult;
         }
-        throw new JsonLogicEvaluationException("Wrong type was returned.");
+        throw new JsonLogicEvaluationException("Wrong type was returned.", StringUtils.EMPTY);
     }
 }

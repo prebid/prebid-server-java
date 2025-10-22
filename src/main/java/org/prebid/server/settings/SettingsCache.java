@@ -4,9 +4,9 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Expiry;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ObjectUtils;
-import org.checkerframework.checker.index.qual.NonNegative;
 import org.prebid.server.settings.model.StoredItem;
 
+import jakarta.validation.constraints.PositiveOrZero;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -108,12 +108,12 @@ public class SettingsCache<T> implements CacheNotificationListener<T> {
         }
 
         @Override
-        public long expireAfterUpdate(K key, V value, long currentTime, @NonNegative long currentDuration) {
+        public long expireAfterUpdate(K key, V value, long currentTime, @PositiveOrZero long currentDuration) {
             return expireAfterNanos;
         }
 
         @Override
-        public long expireAfterRead(K key, V value, long currentTime, @NonNegative long currentDuration) {
+        public long expireAfterRead(K key, V value, long currentTime, @PositiveOrZero long currentDuration) {
             return currentDuration;
         }
     }
@@ -134,12 +134,12 @@ public class SettingsCache<T> implements CacheNotificationListener<T> {
         }
 
         @Override
-        public long expireAfterUpdate(K key, V value, long currentTime, @NonNegative long currentDuration) {
+        public long expireAfterUpdate(K key, V value, long currentTime, @PositiveOrZero long currentDuration) {
             return baseExpiry.expireAfterUpdate(key, value, currentTime, currentDuration) + jitter();
         }
 
         @Override
-        public long expireAfterRead(K key, V value, long currentTime, @NonNegative long currentDuration) {
+        public long expireAfterRead(K key, V value, long currentTime, @PositiveOrZero long currentDuration) {
             return baseExpiry.expireAfterRead(key, value, currentTime, currentDuration);
         }
 

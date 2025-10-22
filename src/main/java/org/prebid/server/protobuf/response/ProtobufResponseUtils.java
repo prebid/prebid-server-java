@@ -2,7 +2,7 @@ package org.prebid.server.protobuf.response;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.protobuf.GeneratedMessageV3;
+import com.google.protobuf.GeneratedMessage;
 import com.iab.openrtb.response.Asset;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
@@ -248,7 +248,7 @@ public class ProtobufResponseUtils {
                         .build();
     }
 
-    private static <ContainingType extends GeneratedMessageV3.ExtendableMessage<ContainingType>, FromType, ToType>
+    private static <ContainingType extends GeneratedMessage.ExtendableMessage<ContainingType>, FromType, ToType>
             ToType extractExtension(
             ProtobufBackwardExtensionMapper<ContainingType, FromType, ToType> mapper, ContainingType value) {
 

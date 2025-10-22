@@ -78,7 +78,7 @@ public class HuaweiDeviceBuilder {
 
         final String gaid = isGaidEmpty
                 ? deviceIfa.orElseThrow(() -> new PreBidException("getDeviceID: openRTBRequest.User.Ext is nil "
-                + "and device.Gaid is not specified."))
+                        + "and device.Gaid is not specified."))
                 : userData.getGaid().getFirst();
         final String oaid = isOaidEmpty ? null : userData.getOaid().getFirst();
         final String imei = isImeiEmpty ? null : userData.getImei().getFirst();
