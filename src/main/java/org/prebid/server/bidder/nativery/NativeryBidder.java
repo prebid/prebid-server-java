@@ -11,6 +11,7 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.model.Endpoint;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -22,6 +23,9 @@ import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidServer;
+import org.prebid.server.proto.openrtb.ext.request.nativery.BidExtNativery;
 import org.prebid.server.proto.openrtb.ext.request.nativery.ExtImpNativery;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
@@ -61,7 +65,8 @@ public class NativeryBidder implements Bidder<BidRequest> {
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
         final List<BidderError> errors = new ArrayList<>();
 
-        final boolean isAmp = isAmpRequest(request);
+        final String requestEndpointName = extractEndpointName(request);
+        final boolean isAmp = StringUtils.equals(requestEndpointName, Endpoint.openrtb2_amp.value());
 
         final List<Imp> validImps = new ArrayList<>();
         String widgetId = null;
@@ -79,19 +84,15 @@ public class NativeryBidder implements Bidder<BidRequest> {
         }
 
         if (validImps.isEmpty()) {
-            return Result.of(Collections.emptyList(), errors);
+            return Result.withErrors(errors);
         }
 
-        // 🟢 Zmienione — zamieniamy ExtRequest na ObjectNode
-        final ObjectNode originalExt = request.getExt() != null
-                ? mapper.mapper().convertValue(request.getExt(), ObjectNode.class)
-                : null;
-        final ExtRequest updatedExt = buildRequestExtWithNativery(originalExt, isAmp, widgetId);
+        final ExtRequest updatedExt = buildRequestExtWithNativery(request.getExt(), isAmp, widgetId);
 
         for (Imp imp : validImps) {
             final BidRequest singleImpRequest = request.toBuilder()
                     .imp(Collections.singletonList(imp))
-                    .ext(updatedExt) // ✅ teraz typ się zgadza
+                    .ext(updatedExt)
                     .build();
 
             httpRequests.add(BidderUtil.defaultRequest(singleImpRequest, endpointUrl, mapper));
@@ -100,41 +101,32 @@ public class NativeryBidder implements Bidder<BidRequest> {
         return Result.of(httpRequests, errors);
     }
 
-    private boolean isAmpRequest(BidRequest request) {
-        if (request.getSite() != null && request.getSite().getExt() != null) {
-            final JsonNode siteExt = mapper.mapper().valueToTree(request.getSite().getExt());
-            final JsonNode ampNode = siteExt.get("amp");
-            if (ampNode != null && ampNode.asInt(0) == 1) {
-                return true;
-            }
-        }
-
-        return false;
+    private static String extractEndpointName(BidRequest bidRequest) {
+        final ExtRequest requestExt = bidRequest.getExt();
+        final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
+        final ExtRequestPrebidServer server = prebid != null ? prebid.getServer() : null;
+        return server != null ? server.getEndpoint() : null;
     }
 
     private ExtImpNativery parseImpExt(Imp imp) {
         try {
-            final ExtPrebid<?, ExtImpNativery> ext =
-                    mapper.mapper().convertValue(imp.getExt(), NATIVERY_EXT_TYPE_REFERENCE);
-            return ext != null ? ext.getBidder() : null;
+            return mapper.mapper().convertValue(imp.getExt(), NATIVERY_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage());
+            throw new PreBidException("Failed to deserialize Nativery extension: " + e.getMessage());
         }
     }
 
-    private ExtRequest buildRequestExtWithNativery(ObjectNode originalExt, boolean isAmp, String widgetId) {
-        final ObjectNode root = originalExt != null
-                ? originalExt.deepCopy()
-                : mapper.mapper().createObjectNode();
+    private ExtRequest buildRequestExtWithNativery(ExtRequest originalExt, boolean isAmp, String widgetId) {
+        final ExtRequest ext = originalExt != null ? originalExt : ExtRequest.empty();
 
-        final ObjectNode nativeryNode = root.with("nativery");
-
+        final ObjectNode nativeryNode = mapper.mapper().createObjectNode();
         nativeryNode.put("isAmp", isAmp);
-        if (widgetId != null) {
+        if (StringUtils.isNotBlank(widgetId)) {
             nativeryNode.put("widgetId", widgetId);
         }
 
-        return mapper.mapper().convertValue(root, ExtRequest.class);
+        ext.addProperty("nativery", nativeryNode);
+        return ext;
     }
 
     @Override
@@ -179,11 +171,14 @@ public class NativeryBidder implements Bidder<BidRequest> {
 
     private BidderBid resolveBidderBid(Bid bid, String currency, List<BidderError> errors) {
         try {
-            final ObjectNode nativeryExt = extractNativeryExt(bid.getExt());
-            final String mediaTypeRaw = getText(nativeryExt, "bid_ad_media_type");
+            final BidExtNativery nativeryExt = parseNativeryExt(bid.getExt());
+            final String mediaTypeRaw = nativeryExt != null ? nativeryExt.getBidAdMediaType() : null;
             final BidType bidType = mapMediaType(mediaTypeRaw);
 
-            final List<String> advDomains = readStringArray(nativeryExt, "bid_adv_domains");
+            final List<String> advDomains = nativeryExt != null && nativeryExt.getBidAdvDomains() != null
+                    ? nativeryExt.getBidAdvDomains()
+                    : Collections.emptyList();
+
             final Bid updatedBid = addBidMeta(bid, mediaTypeString(bidType), advDomains);
 
             return BidderBid.of(updatedBid, bidType, currency);
@@ -193,7 +188,7 @@ public class NativeryBidder implements Bidder<BidRequest> {
         }
     }
 
-    private ObjectNode extractNativeryExt(ObjectNode bidExt) {
+    private BidExtNativery parseNativeryExt(ObjectNode bidExt) {
         if (bidExt == null) {
             throw new PreBidException("missing bid.ext");
         }
@@ -201,26 +196,11 @@ public class NativeryBidder implements Bidder<BidRequest> {
         if (!(node instanceof ObjectNode nativeryNode)) {
             throw new PreBidException("missing bid.ext.nativery");
         }
-        return nativeryNode;
-    }
-
-    private static String getText(ObjectNode node, String field) {
-        final JsonNode v = node.get(field);
-        return v != null && v.isTextual() ? v.asText() : null;
-    }
-
-    private static List<String> readStringArray(ObjectNode node, String field) {
-        final JsonNode arr = node.get(field);
-        if (arr == null || !arr.isArray()) {
-            return Collections.emptyList();
+        try {
+            return mapper.mapper().convertValue(nativeryNode, BidExtNativery.class);
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException("invalid bid.ext.nativery: " + e.getMessage());
         }
-        final List<String> out = new ArrayList<>();
-        arr.forEach(e -> {
-            if (e != null && e.isTextual()) {
-                out.add(e.asText());
-            }
-        });
-        return out;
     }
 
     private static BidType mapMediaType(String mediaType) {
@@ -239,7 +219,7 @@ public class NativeryBidder implements Bidder<BidRequest> {
             case banner -> "banner";
             case video -> "video";
             case xNative -> "native";
-            default -> throw new IllegalStateException("Unexpected value: " + type);
+            default -> throw new IllegalStateException("Unexpected value: " + type.getName());
         };
     }
 
@@ -268,7 +248,7 @@ public class NativeryBidder implements Bidder<BidRequest> {
                     .convertValue(bid.getExt(), EXT_PREBID_TYPE_REFERENCE)
                     .getPrebid();
         } catch (IllegalArgumentException e) {
-            return null;
+            throw new PreBidException("Failed to deserialize Prebid extension: " + e.getMessage());
         }
     }
 }

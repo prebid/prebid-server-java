@@ -5,13 +5,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
+import org.prebid.server.auction.model.Endpoint;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
@@ -20,7 +20,6 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.nativery.ExtImpNativery;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
@@ -124,8 +123,7 @@ public class NativeryBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getExt)
-                .extracting(ext -> mapper.convertValue(ext, ObjectNode.class)
-                        .path("nativery").path("widgetId").asText())
+                .extracting(ext -> ext.getProperty("nativery").path("widgetId").asText())
                 .containsOnly("widget1");
     }
 
@@ -163,9 +161,22 @@ public class NativeryBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldSetExtWithAmpTrue() {
         // given
-        final ExtSite extSite = ExtSite.of(1, null);
+        final ObjectNode extNode = mapper.createObjectNode();
+        final ObjectNode prebidNode = mapper.createObjectNode();
+        final ObjectNode serverNode = mapper.createObjectNode();
+        serverNode.put("endpoint", Endpoint.openrtb2_amp.value());
+        prebidNode.set("server", serverNode);
+        extNode.set("prebid", prebidNode);
         final BidRequest bidRequest = givenBidRequest(
-                requestBuilder -> requestBuilder.site(Site.builder().ext(extSite).build()),
+                requestBuilder -> {
+                    try {
+                        return requestBuilder.ext(
+                                mapper.readValue(mapper.writeValueAsString(extNode), ExtRequest.class)
+                        );
+                    } catch (JsonProcessingException e) {
+                        throw new RuntimeException(e);
+                    }
+                },
                 UnaryOperator.identity());
 
         // when
@@ -176,8 +187,7 @@ public class NativeryBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getExt)
-                .extracting(ext -> mapper.convertValue(ext, ObjectNode.class)
-                        .path("nativery").path("isAmp").asBoolean())
+                .extracting(ext -> ext.getProperty("nativery").path("isAmp").asBoolean())
                 .containsOnly(true);
     }
 
@@ -194,7 +204,8 @@ public class NativeryBidderTest extends VertxTest {
         assertThat(result.getErrors())
                 .hasSize(1)
                 .allSatisfy(error -> {
-                    assertThat(error.getMessage()).startsWith("Cannot deserialize");
+                    assertThat(error.getMessage())
+                            .startsWith("Failed to deserialize Nativery extension:");
                     assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
                 });
         assertThat(result.getValue()).isEmpty();
