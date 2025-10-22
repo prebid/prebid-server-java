@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.unruly;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
@@ -19,7 +20,7 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.bidder.unruly.proto.UnrulyExtImp;
 
 import java.util.List;
 import java.util.Map;
@@ -63,6 +64,27 @@ public class UnrulyBidderTest extends VertxTest {
                 .containsOnly(
                         tuple("Content-Type", "application/json;charset=utf-8"),
                         tuple("Accept", "application/json"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldPassThroughGPID() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(identity())))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .extracting(ext -> ext.get("gpid"))
+                .extracting(JsonNode::asText)
+                .first()
+                .isEqualTo("gpid");
     }
 
     @Test
@@ -288,7 +310,10 @@ public class UnrulyBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         final ObjectNode impExt = mapper.valueToTree(
-                ExtPrebid.of(null, mapper.createObjectNode().set("siteId", IntNode.valueOf(123))));
+                UnrulyExtImp.of(
+                        null,
+                        mapper.createObjectNode().set("siteId", IntNode.valueOf(123)),
+                        "gpid"));
 
         return impCustomizer.apply(
                         Imp.builder()

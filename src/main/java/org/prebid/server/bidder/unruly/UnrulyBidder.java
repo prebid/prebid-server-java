@@ -15,10 +15,10 @@ import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.bidder.unruly.proto.UnrulyExtImp;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.unruly.ExtImpUnruly;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
@@ -34,7 +34,7 @@ import java.util.Objects;
 
 public class UnrulyBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpUnruly>> UNRULY_EXT_TYPE_REFERENCE =
+    private static final TypeReference<UnrulyExtImp<?, ExtImpUnruly>> UNRULY_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
 
@@ -58,14 +58,18 @@ public class UnrulyBidder implements Bidder<BidRequest> {
 
     private Imp modifyImp(Imp imp) {
 
+        final UnrulyExtImp<?, ExtImpUnruly> unrulyExtImp = parseImpExt(imp);
         return imp.toBuilder()
-                .ext(mapper.mapper().valueToTree(ExtPrebid.of(null, parseImpExt(imp))))
+                .ext(mapper.mapper().valueToTree(UnrulyExtImp.of(
+                        null,
+                        unrulyExtImp.getBidder(),
+                        unrulyExtImp.getGpid())))
                 .build();
     }
 
-    private ExtImpUnruly parseImpExt(Imp imp) {
+    private UnrulyExtImp<?, ExtImpUnruly> parseImpExt(Imp imp) {
         try {
-            return mapper.mapper().convertValue(imp.getExt(), UNRULY_EXT_TYPE_REFERENCE).getBidder();
+            return mapper.mapper().convertValue(imp.getExt(), UNRULY_EXT_TYPE_REFERENCE);
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage());
         }
