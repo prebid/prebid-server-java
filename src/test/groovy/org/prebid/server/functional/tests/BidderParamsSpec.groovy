@@ -140,7 +140,7 @@ class BidderParamsSpec extends BaseSpec {
         accountDao.save(account)
 
         when: "PBS processes vtrack request"
-        pbsService.sendVtrackRequest(request, accountId.toString())
+        pbsService.sendPostVtrackRequest(request, accountId.toString())
 
         then: "vast xml is modified"
         def prebidCacheRequest = prebidCache.getXmlRecordedRequestsBody(payload)
@@ -172,7 +172,7 @@ class BidderParamsSpec extends BaseSpec {
         accountDao.save(account)
 
         when: "PBS processes vtrack request"
-        pbsService.sendVtrackRequest(request, accountId.toString())
+        pbsService.sendPostVtrackRequest(request, accountId.toString())
 
         then: "vast xml is not modified"
         def prebidCacheRequest = prebidCache.getXmlRecordedRequestsBody(payload)
