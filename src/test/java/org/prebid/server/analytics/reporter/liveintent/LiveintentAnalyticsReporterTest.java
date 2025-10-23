@@ -28,11 +28,15 @@ import org.prebid.server.hooks.execution.model.Stage;
 import org.prebid.server.hooks.execution.model.StageExecutionOutcome;
 import org.prebid.server.hooks.execution.v1.analytics.ActivityImpl;
 import org.prebid.server.hooks.execution.v1.analytics.TagsImpl;
+import org.prebid.server.hooks.execution.v1.analytics.AppliedToImpl;
+import org.prebid.server.hooks.execution.v1.analytics.ResultImpl;
+import org.prebid.server.json.ObjectMapperProvider;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.util.ListUtil;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.math.BigDecimal;
 import java.util.EnumMap;
@@ -49,201 +53,215 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 public class LiveintentAnalyticsReporterTest extends VertxTest {
 
-    @Mock
-    private HttpClient httpClient;
+        @Mock
+        private HttpClient httpClient;
 
-    @Captor
-    private ArgumentCaptor<String> jsonCaptor;
+        @Captor
+        private ArgumentCaptor<String> jsonCaptor;
 
-    private LiveIntentAnalyticsReporter target;
+        private LiveIntentAnalyticsReporter target;
 
-    private LiveIntentAnalyticsProperties properties;
+        private LiveIntentAnalyticsProperties properties;
 
-    private static final TypeReference<List<PbsjBid>> PBJS_COLLECTION_TYPE = new TypeReference<>() { };
+        private static final TypeReference<List<PbsjBid>> PBJS_COLLECTION_TYPE = new TypeReference<>() {
+        };
 
-    @BeforeEach
-    public void setUp() {
+        @BeforeEach
+        public void setUp() {
 
-        properties = LiveIntentAnalyticsProperties.builder()
-                .analyticsEndpoint("https://localhost:8080")
-                .partnerId("pbsj")
-                .timeoutMs(1000L)
-                .build();
+                properties = LiveIntentAnalyticsProperties.builder()
+                                .analyticsEndpoint("https://localhost:8080")
+                                .partnerId("pbsj")
+                                .timeoutMs(1000L)
+                                .build();
 
-        target = new LiveIntentAnalyticsReporter(
-                properties,
-                httpClient,
-                jacksonMapper);
-    }
+                target = new LiveIntentAnalyticsReporter(
+                                properties,
+                                httpClient,
+                                jacksonMapper);
+        }
 
-    @Test
-    public void shouldProcessNotificationEvent() {
-        // given
-        final HttpClientResponse mockResponse = mock(HttpClientResponse.class);
-        when(httpClient.get(anyString(), anyLong())).thenReturn(Future.succeededFuture(mockResponse));
+        @Test
+        public void shouldProcessNotificationEvent() {
+                // given
+                final HttpClientResponse mockResponse = mock(HttpClientResponse.class);
+                when(httpClient.get(anyString(), anyLong())).thenReturn(Future.succeededFuture(mockResponse));
 
-        // when
-        target.processEvent(NotificationEvent.builder().bidId("123").bidder("foo").build());
+                // when
+                target.processEvent(NotificationEvent.builder().bidId("123").bidder("foo").build());
 
-        // then
-        // Verify that the HTTP client was called with the expected parameters
-        verify(httpClient).get(eq(properties.getAnalyticsEndpoint() + "/analytic-events/pbsj-winning-bid"
-                + "?b=foo&bidId=123"), eq(properties.getTimeoutMs()));
-    }
+                // then
+                // Verify that the HTTP client was called with the expected parameters
+                verify(httpClient).get(eq(properties.getAnalyticsEndpoint() + "/analytic-events/pbsj-winning-bid"
+                                + "?b=foo&bidId=123"), eq(properties.getTimeoutMs()));
+        }
 
-    @Test
-    public void shouldSendAllBidsToLiveIntent() {
-        // given
-        final HttpClientResponse mockResponse = mock(HttpClientResponse.class);
-        when(httpClient.post(anyString(), anyString(), anyLong()))
-                .thenReturn(Future.succeededFuture(mockResponse));
+        @Test
+        public void shouldSendAllBidsToLiveIntent() {
+                // given
+                final HttpClientResponse mockResponse = mock(HttpClientResponse.class);
+                when(httpClient.post(anyString(), anyString(), anyLong()))
+                                .thenReturn(Future.succeededFuture(mockResponse));
 
-        // when
-        target.processEvent(buildEvent(true));
+                // when
+                target.processEvent(buildEvent(true));
 
-        // then
-        verify(httpClient).post(
-                eq(properties.getAnalyticsEndpoint() + "/analytic-events/pbsj-bids"),
-                jsonCaptor.capture(),
-                eq(properties.getTimeoutMs()));
+                // then
+                verify(httpClient).post(
+                                eq(properties.getAnalyticsEndpoint() + "/analytic-events/pbsj-bids"),
+                                jsonCaptor.capture(),
+                                eq(properties.getTimeoutMs()));
 
-        final String capturedJson = jsonCaptor.getValue();
-        final List<PbsjBid> pbsjBids = jacksonMapper.decodeValue(capturedJson, PBJS_COLLECTION_TYPE);
-        assertThat(pbsjBids).isEqualTo(List.of(
-                PbsjBid.builder()
-                        .bidId("bid-id")
-                        .price(BigDecimal.ONE)
-                        .adUnitId("ad-unit-id")
-                        .enriched(true)
-                        .currency("USD")
-                        .treatmentRate(0.5f)
-                        .timestamp(0L)
-                        .partnerId("pbsj")
-                        .build()));
-    }
+                final String capturedJson = jsonCaptor.getValue();
+                final List<PbsjBid> pbsjBids = jacksonMapper.decodeValue(capturedJson, PBJS_COLLECTION_TYPE);
+                assertThat(pbsjBids).isEqualTo(List.of(
+                                PbsjBid.builder()
+                                                .bidId("bid-id")
+                                                .price(BigDecimal.ONE)
+                                                .adUnitId("ad-unit-id")
+                                                .enriched(true)
+                                                .currency("USD")
+                                                .treatmentRate(0.5f)
+                                                .timestamp(0L)
+                                                .partnerId("pbsj")
+                                                .build()));
+        }
 
-    @Test
-    public void shouldSendAllBidsToLiveIntentNotEnriched() {
-        // given
-        final HttpClientResponse mockResponse = mock(HttpClientResponse.class);
-        when(httpClient.post(anyString(), anyString(), anyLong()))
-                .thenReturn(Future.succeededFuture(mockResponse));
+        @Test
+        public void shouldSendAllBidsToLiveIntentNotEnriched() {
+                // given
+                final HttpClientResponse mockResponse = mock(HttpClientResponse.class);
+                when(httpClient.post(anyString(), anyString(), anyLong()))
+                                .thenReturn(Future.succeededFuture(mockResponse));
 
-        // when
-        target.processEvent(buildEvent(false));
+                // when
+                target.processEvent(buildEvent(false));
 
-        // then
-        verify(httpClient).post(
-                eq(properties.getAnalyticsEndpoint() + "/analytic-events/pbsj-bids"),
-                jsonCaptor.capture(),
-                eq(properties.getTimeoutMs()));
+                // then
+                verify(httpClient).post(
+                                eq(properties.getAnalyticsEndpoint() + "/analytic-events/pbsj-bids"),
+                                jsonCaptor.capture(),
+                                eq(properties.getTimeoutMs()));
 
-        final String capturedJson = jsonCaptor.getValue();
-        final List<PbsjBid> pbsjBids = jacksonMapper.decodeValue(capturedJson, PBJS_COLLECTION_TYPE);
-        assertThat(pbsjBids).isEqualTo(List.of(
-                PbsjBid.builder()
-                        .bidId("bid-id")
-                        .price(BigDecimal.ONE)
-                        .adUnitId("ad-unit-id")
-                        .enriched(false)
-                        .currency("USD")
-                        .treatmentRate(0.5f)
-                        .timestamp(0L)
-                        .partnerId("pbsj")
-                        .build()));
-    }
+                final String capturedJson = jsonCaptor.getValue();
+                final List<PbsjBid> pbsjBids = jacksonMapper.decodeValue(capturedJson, PBJS_COLLECTION_TYPE);
+                assertThat(pbsjBids).isEqualTo(List.of(
+                                PbsjBid.builder()
+                                                .bidId("bid-id")
+                                                .price(BigDecimal.ONE)
+                                                .adUnitId("ad-unit-id")
+                                                .enriched(false)
+                                                .currency("USD")
+                                                .treatmentRate(0.5f)
+                                                .timestamp(0L)
+                                                .partnerId("pbsj")
+                                                .build()));
+        }
 
-    @Test
-    public void shouldSendAllBidsToLiveIntentNoTreatmentRate() {
-        // given
-        final HttpClientResponse mockResponse = mock(HttpClientResponse.class);
-        when(httpClient.post(anyString(), anyString(), anyLong()))
-                .thenReturn(Future.succeededFuture(mockResponse));
+        @Test
+        public void shouldSendAllBidsToLiveIntentNoTreatmentRate() {
+                // given
+                final HttpClientResponse mockResponse = mock(HttpClientResponse.class);
+                when(httpClient.post(anyString(), anyString(), anyLong()))
+                                .thenReturn(Future.succeededFuture(mockResponse));
 
-        // when
-        target.processEvent(buildEvent(false, false));
+                // when
+                target.processEvent(buildEvent(false, false));
 
-        // then
-        verify(httpClient).post(
-                eq(properties.getAnalyticsEndpoint() + "/analytic-events/pbsj-bids"),
-                jsonCaptor.capture(),
-                eq(properties.getTimeoutMs()));
+                // then
+                verify(httpClient).post(
+                                eq(properties.getAnalyticsEndpoint() + "/analytic-events/pbsj-bids"),
+                                jsonCaptor.capture(),
+                                eq(properties.getTimeoutMs()));
 
-        final String capturedJson = jsonCaptor.getValue();
-        final List<PbsjBid> pbsjBids = jacksonMapper.decodeValue(capturedJson, PBJS_COLLECTION_TYPE);
-        assertThat(pbsjBids).isEqualTo(List.of(
-                PbsjBid.builder()
-                        .bidId("bid-id")
-                        .price(BigDecimal.ONE)
-                        .adUnitId("ad-unit-id")
-                        .enriched(false)
-                        .currency("USD")
-                        .timestamp(0L)
-                        .treatmentRate(null)
-                        .partnerId("pbsj")
-                        .build()));
-    }
+                final String capturedJson = jsonCaptor.getValue();
+                final List<PbsjBid> pbsjBids = jacksonMapper.decodeValue(capturedJson, PBJS_COLLECTION_TYPE);
+                assertThat(pbsjBids).isEqualTo(List.of(
+                                PbsjBid.builder()
+                                                .bidId("bid-id")
+                                                .price(BigDecimal.ONE)
+                                                .adUnitId("ad-unit-id")
+                                                .enriched(false)
+                                                .currency("USD")
+                                                .timestamp(0L)
+                                                .treatmentRate(null)
+                                                .partnerId("pbsj")
+                                                .build()));
+        }
 
-    private AuctionEvent buildEvent(Boolean isEnriched) {
-        return buildEvent(isEnriched, true);
-    }
+        private AuctionEvent buildEvent(Boolean isEnriched) {
+                return buildEvent(isEnriched, true);
+        }
 
-    private AuctionEvent buildEvent(Boolean isEnriched, Boolean withTags) {
-        final HookId hookId = HookId.of(
-                "liveintent-omni-channel-identity-enrichment-hook",
-                "liveintent-omni-channel-identity-enrichment-hook");
+        private AuctionEvent buildEvent(Boolean isEnriched, Boolean withTags) {
+                final HookId hookId = HookId.of(
+                                "liveintent-omni-channel-identity-enrichment-hook",
+                                "liveintent-omni-channel-identity-enrichment-hook");
 
-        final ActivityImpl enrichmentRate = ActivityImpl.of("liveintent-treatment-rate", "0.5", List.of());
+                final ObjectNode treatmentRateNode = ObjectMapperProvider.mapper().createObjectNode()
+                                .put("treatmentRate", 0.5f);
 
-        final List<ActivityImpl> enriched = isEnriched
-                ? List.of(ActivityImpl.of("liveintent-enriched", "success", List.of()))
-                : List.of();
+                final AppliedToImpl appliedTo = AppliedToImpl.builder().bidIds(List.of("bid-id"))
+                                .impIds(List.of("imp-id"))
+                                .bidders(List.of("pbsj"))
+                                .request(true)
+                                .response(true)
+                                .build();
 
-        final HookExecutionOutcome hookExecutionOutcome = HookExecutionOutcome.builder()
-                .hookId(hookId)
-                .executionTime(100L)
-                .status(ExecutionStatus.success)
-                .analyticsTags(TagsImpl.of(
-                        withTags
-                                ? ListUtil.union(List.of(enrichmentRate), enriched)
-                                : List.of()))
-                .action(null)
-                .build();
+                final ResultImpl result = ResultImpl.of("treatmentRate", treatmentRateNode, appliedTo);
 
-        final StageExecutionOutcome stageExecutionOutcome = StageExecutionOutcome.of(
-                "auction-request",
-                List.of(GroupExecutionOutcome.of(List.of(hookExecutionOutcome))));
+                final ActivityImpl enrichmentRate = ActivityImpl.of("liveintent-treatment-rate", "0.5",
+                                List.of(result));
 
-        final EnumMap<Stage, List<StageExecutionOutcome>> stageOutcomes = new EnumMap<>(Stage.class);
-        stageOutcomes.put(Stage.processed_auction_request, List.of(stageExecutionOutcome));
-        return AuctionEvent.builder()
-                .auctionContext(
-                        AuctionContext.builder()
-                                .bidRequest(BidRequest.builder()
-                                        .id("request-id")
-                                        .imp(List.of(
-                                                Imp.builder()
-                                                        .id("imp-id")
-                                                        .tagid("ad-unit-id")
-                                                        .build()))
-                                        .build())
-                                .bidResponse(BidResponse.builder()
-                                        .bidid("bid-id")
-                                        .cur("USD")
-                                        .seatbid(List.of(
-                                                SeatBid.builder()
-                                                        .bid(List.of(
-                                                                Bid.builder()
-                                                                        .id("bid-id")
-                                                                        .impid("imp-id")
-                                                                        .price(BigDecimal.ONE)
-                                                                        .build()))
-                                                        .build()))
-                                        .build())
-                                .hookExecutionContext(HookExecutionContext.of(
-                                        Endpoint.openrtb2_auction,
-                                        stageOutcomes))
-                                .build())
-                .build();
-    }
+                final List<ActivityImpl> enriched = isEnriched
+                                ? List.of(ActivityImpl.of("liveintent-enriched", "success", List.of()))
+                                : List.of();
+
+                final HookExecutionOutcome hookExecutionOutcome = HookExecutionOutcome.builder()
+                                .hookId(hookId)
+                                .executionTime(100L)
+                                .status(ExecutionStatus.success)
+                                .analyticsTags(TagsImpl.of(
+                                                withTags
+                                                                ? ListUtil.union(List.of(enrichmentRate), enriched)
+                                                                : List.of()))
+                                .action(null)
+                                .build();
+
+                final StageExecutionOutcome stageExecutionOutcome = StageExecutionOutcome.of(
+                                "auction-request",
+                                List.of(GroupExecutionOutcome.of(List.of(hookExecutionOutcome))));
+
+                final EnumMap<Stage, List<StageExecutionOutcome>> stageOutcomes = new EnumMap<>(Stage.class);
+                stageOutcomes.put(Stage.processed_auction_request, List.of(stageExecutionOutcome));
+                return AuctionEvent.builder()
+                                .auctionContext(
+                                                AuctionContext.builder()
+                                                                .bidRequest(BidRequest.builder()
+                                                                                .id("request-id")
+                                                                                .imp(List.of(
+                                                                                                Imp.builder()
+                                                                                                                .id("imp-id")
+                                                                                                                .tagid("ad-unit-id")
+                                                                                                                .build()))
+                                                                                .build())
+                                                                .bidResponse(BidResponse.builder()
+                                                                                .bidid("bid-id")
+                                                                                .cur("USD")
+                                                                                .seatbid(List.of(
+                                                                                                SeatBid.builder()
+                                                                                                                .bid(List.of(
+                                                                                                                                Bid.builder()
+                                                                                                                                                .id("bid-id")
+                                                                                                                                                .impid("imp-id")
+                                                                                                                                                .price(BigDecimal.ONE)
+                                                                                                                                                .build()))
+                                                                                                                .build()))
+                                                                                .build())
+                                                                .hookExecutionContext(HookExecutionContext.of(
+                                                                                Endpoint.openrtb2_auction,
+                                                                                stageOutcomes))
+                                                                .build())
+                                .build();
+        }
 }

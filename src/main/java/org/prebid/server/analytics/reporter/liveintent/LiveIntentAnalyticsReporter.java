@@ -78,9 +78,9 @@ public class LiveIntentAnalyticsReporter implements AnalyticsReporter {
         final BidRequest bidRequest = auctionContext.getBidRequest();
         final BidResponse bidResponse = auctionContext.getBidResponse();
 
-        final Optional<Activity> activity = getActivities(auctionContext);
-        final boolean isEnriched = isEnriched(activity);
-        final Float treatmentRate = getTreatmentRate(activity);
+        final List<Activity> activities = getActivities(auctionContext);
+        final boolean isEnriched = isEnriched(activities);
+        final Float treatmentRate = getTreatmentRate(activities);
         final Long timestamp = Optional.ofNullable(bidRequest.getExt())
                 .map(ExtRequest::getPrebid)
                 .map(ExtRequestPrebid::getAuctiontimestamp)
@@ -109,7 +109,7 @@ public class LiveIntentAnalyticsReporter implements AnalyticsReporter {
         }
     }
 
-    private Optional<Activity> getActivities(AuctionContext auctionContext) {
+    private List<Activity> getActivities(AuctionContext auctionContext) {
         return Optional.ofNullable(auctionContext)
                 .map(AuctionContext::getHookExecutionContext)
                 .map(HookExecutionContext::getStageOutcomes)
@@ -121,28 +121,27 @@ public class LiveIntentAnalyticsReporter implements AnalyticsReporter {
                 .flatMap(Collection::stream)
                 .map(GroupExecutionOutcome::getHooks)
                 .flatMap(Collection::stream)
-                .filter(hook ->
-                        LIVEINTENT_HOOK_ID.equals(hook.getHookId().getModuleCode())
-                                && hook.getStatus() == ExecutionStatus.success)
+                .filter(hook -> LIVEINTENT_HOOK_ID.equals(hook.getHookId().getModuleCode())
+                        && hook.getStatus() == ExecutionStatus.success)
                 .map(HookExecutionOutcome::getAnalyticsTags)
                 .filter(Objects::nonNull)
                 .map(Tags::activities)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
-                .findFirst();
+                .toList();
     }
 
-    private boolean isEnriched(Optional<Activity> activity) {
+    private boolean isEnriched(List<Activity> activity) {
         return activity.stream().anyMatch(a -> "liveintent-enriched".equals(a.name()));
     }
 
-    private Float getTreatmentRate(Optional<Activity> activity) {
+    private Float getTreatmentRate(List<Activity> activity) {
         return activity.stream()
                 .flatMap(a -> a.results().stream())
                 .filter(a -> a.values().has("treatmentRate"))
                 .findFirst()
-                .map(a -> a.values().at("treatmentRate").floatValue())
+                .map(a -> a.values().get("treatmentRate").floatValue())
                 .orElse(null);
     }
 
@@ -157,15 +156,15 @@ public class LiveIntentAnalyticsReporter implements AnalyticsReporter {
         return bidRequest.getImp().stream()
                 .filter(impItem -> impItem.getId().equals(bid.getImpid()))
                 .map(imp -> PbsjBid.builder()
-                                    .bidId(bid.getId())
-                                    .price(bid.getPrice())
-                                    .adUnitId(imp.getTagid())
-                                    .enriched(isEnriched)
-                                    .currency(bidResponse.getCur())
-                                    .treatmentRate(treatmentRate)
-                                    .timestamp(timestamp)
-                                    .partnerId(properties.getPartnerId())
-                                    .build())
+                        .bidId(bid.getId())
+                        .price(bid.getPrice())
+                        .adUnitId(imp.getTagid())
+                        .enriched(isEnriched)
+                        .currency(bidResponse.getCur())
+                        .treatmentRate(treatmentRate)
+                        .timestamp(timestamp)
+                        .partnerId(properties.getPartnerId())
+                        .build())
                 .findFirst();
     }
 
