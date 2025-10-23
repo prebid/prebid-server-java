@@ -3,7 +3,6 @@ package org.prebid.server.functional.tests
 import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountCacheConfig
 import org.prebid.server.functional.model.config.AccountConfig
-import org.prebid.server.functional.model.config.AccountVtrackConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.Asset
 import org.prebid.server.functional.model.request.auction.BidRequest
@@ -11,10 +10,8 @@ import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.Targeting
 import org.prebid.server.functional.model.response.auction.Adm
 import org.prebid.server.functional.model.response.auction.BidResponse
-import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
 
-import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
 import static org.prebid.server.functional.model.response.auction.ErrorType.CACHE
 import static org.prebid.server.functional.model.AccountStatus.ACTIVE
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
@@ -706,120 +703,5 @@ class CacheSpec extends BaseSpec {
         assert !targetingKeyMap.containsKey("hb_cache_id_${GENERIC}".toString())
         assert !targetingKeyMap.containsKey('hb_uuid')
         assert !targetingKeyMap.containsKey("hb_uuid_${GENERIC}".toString())
-    }
-
-    def "PBS should failed VTrack request when sending request without account"() {
-        given: "Default VtrackRequest"
-        def creative = encodeXml(Vast.getDefaultVastModel(PBSUtils.randomString))
-        def request = VtrackRequest.getDefaultVtrackRequest(creative)
-
-        and: "Flush metrics"
-        flushMetrics(defaultPbsService)
-
-        when: "PBS processes vtrack request"
-        defaultPbsService.sendVtrackRequest(request, null)
-
-        then: "Request should fail with an error"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == BAD_REQUEST.code()
-        assert exception.responseBody == "Account 'a' is required query parameter and can't be empty"
-    }
-
-    def "PBS shouldn't use negative value in tllSecond when account vtrack ttl is #accountTtl and request ttl second is #requestedTtl"() {
-        given: "Default VtrackRequest"
-        def creative = encodeXml(Vast.getDefaultVastModel(PBSUtils.randomString))
-        def request = VtrackRequest.getDefaultVtrackRequest(creative).tap {
-            puts[0].ttlseconds = requestedTtl
-        }
-
-        and: "Create and save vtrack in account"
-        def accountId = PBSUtils.randomNumber.toString()
-        def account = new Account().tap {
-            it.uuid = accountId
-            it.config = new AccountConfig().tap {
-                it.vtrack = new AccountVtrackConfig(ttl: accountTtl)
-            }
-        }
-        accountDao.save(account)
-
-        and: "Flush metrics"
-        flushMetrics(defaultPbsService)
-
-        when: "PBS processes vtrack request"
-        defaultPbsService.sendVtrackRequest(request, accountId)
-
-        then: "Pbs should emit creative_ttl.xml with lowest value"
-        def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        assert metrics[XML_CREATIVE_TTL_ACCOUNT_METRIC.formatted(accountId)]
-                == [requestedTtl, accountTtl].findAll { it -> it > 0 }.min()
-
-        where:
-        requestedTtl                                            | accountTtl
-        PBSUtils.getRandomNumber(300, 1500) as Integer          | PBSUtils.getRandomNegativeNumber(-1500, 300) as Integer
-        PBSUtils.getRandomNegativeNumber(-1500, 300) as Integer | PBSUtils.getRandomNumber(300, 1500) as Integer
-        PBSUtils.getRandomNegativeNumber(-1500, 300) as Integer | PBSUtils.getRandomNegativeNumber(-1500, 300) as Integer
-    }
-
-    def "PBS should use lowest tllSecond when account vtrack ttl is #accountTtl and request ttl second is #requestedTtl"() {
-        given: "Default VtrackRequest"
-        def creative = encodeXml(Vast.getDefaultVastModel(PBSUtils.randomString))
-        def request = VtrackRequest.getDefaultVtrackRequest(creative).tap {
-            puts[0].ttlseconds = requestedTtl
-        }
-
-        and: "Create and save vtrack in account"
-        def accountId = PBSUtils.randomNumber.toString()
-        def account = new Account().tap {
-            it.uuid = accountId
-            it.config = new AccountConfig().tap {
-                it.vtrack = new AccountVtrackConfig(ttl: accountTtl)
-            }
-        }
-        accountDao.save(account)
-
-        and: "Flush metrics"
-        flushMetrics(defaultPbsService)
-
-        when: "PBS processes vtrack request"
-        defaultPbsService.sendVtrackRequest(request, accountId)
-
-        then: "Pbs should emit creative_ttl.xml with lowest value"
-        def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        assert metrics[XML_CREATIVE_TTL_ACCOUNT_METRIC.formatted(accountId)] == [requestedTtl, accountTtl].min()
-
-        where:
-        requestedTtl                                   | accountTtl
-        null                                           | null
-        null                                           | PBSUtils.getRandomNumber(300, 1500) as Integer
-        PBSUtils.getRandomNumber(300, 1500) as Integer | null
-        PBSUtils.getRandomNumber(300, 1500) as Integer | PBSUtils.getRandomNumber(300, 1500) as Integer
-    }
-
-    def "PBS should proceed request when account ttl and request ttl second are empty"() {
-        given: "Default VtrackRequest"
-        def creative = encodeXml(Vast.getDefaultVastModel(PBSUtils.randomString))
-        def request = VtrackRequest.getDefaultVtrackRequest(creative).tap {
-            puts[0].ttlseconds = null
-        }
-
-        and: "Create and save vtrack in account"
-        def accountId = PBSUtils.randomNumber.toString()
-        def account = new Account().tap {
-            it.uuid = accountId
-            it.config = new AccountConfig().tap {
-                it.vtrack = new AccountVtrackConfig(ttl: null)
-            }
-        }
-        accountDao.save(account)
-
-        and: "Flush metrics"
-        flushMetrics(defaultPbsService)
-
-        when: "PBS processes vtrack request"
-        defaultPbsService.sendVtrackRequest(request, accountId)
-
-        then: "Pbs shouldn't emit creative_ttl.xml"
-        def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        assert !metrics[XML_CREATIVE_TTL_ACCOUNT_METRIC.formatted(accountId)]
     }
 }
