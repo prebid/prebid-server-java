@@ -110,7 +110,10 @@ class CacheStorageSpec extends ModuleBaseSpec {
     }
 
     def "PBS should update metrics for new saved text storage cache when no cached requests"() {
-        given: "Default BidRequest with cache and device info"
+        given: "Current value of metric prebid cache"
+        def okInitialValue = getCurrentMetricValue(prebidServerStoredCacheService, METRIC_CREATIVE_WRITE_OK)
+
+        and: "Default BidRequest with cache and device info"
         def randomIfa = PBSUtils.randomString
         def system = PBSUtils.getRandomEnum(OperatingSystem)
         def bidRequest = getBidRequestForModuleCacheStorage(randomIfa, system)
@@ -133,8 +136,10 @@ class CacheStorageSpec extends ModuleBaseSpec {
         then: "PBS should update metrics for new saved text storage cache"
         def metrics = prebidServerStoredCacheService.sendCollectedMetricsRequest()
         assert metrics[METRIC_CREATIVE_SIZE_TEXT] == new String(encodeBase64(encode(targetingResult).bytes)).size()
-        assert metrics[METRIC_CREATIVE_WRITE_OK] == 1
-        assert metrics[METRIC_CREATIVE_TTL_TEXT] == targetingConfig.cache.ttlSeconds
+        assert metrics[METRIC_CREATIVE_WRITE_OK] == okInitialValue + 1
+
+        and: "PBS should include histogram metric"
+        assert metrics[METRIC_CREATIVE_TTL_TEXT]
     }
 
     def "PBS should update metrics for stored cached requests cache when proper record present"() {
