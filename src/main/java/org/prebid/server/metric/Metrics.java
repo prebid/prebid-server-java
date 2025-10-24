@@ -631,6 +631,22 @@ public class Metrics extends UpdatableMetrics {
         forAccount(accountId).cache().vtrack().creativeTtl().updateHistogram(creativeType, creativeTtl);
     }
 
+    public void updateModuleStorageCacheReadRequestTime(String moduleCode, long timeElapsed, MetricName metricName) {
+        cache().moduleStorage(moduleCode).read().updateTimer(metricName, timeElapsed);
+    }
+
+    public void updateModuleStorageCacheWriteRequestTime(String moduleCode, long timeElapsed, MetricName metricName) {
+        cache().moduleStorage(moduleCode).write().updateTimer(metricName, timeElapsed);
+    }
+
+    public void updateModuleStorageCacheEntrySize(String moduleCode, int entrySize, MetricName type) {
+        cache().moduleStorage(moduleCode).entrySize().updateHistogram(type, entrySize);
+    }
+
+    public void updateModuleStorageCacheEntryTtl(String moduleCode, Integer entryTtl, MetricName type) {
+        cache().moduleStorage(moduleCode).entryTtl().updateHistogram(type, entryTtl);
+    }
+
     public void updateAuctionCacheRequestTime(String accountId, long timeElapsed, MetricName metricName) {
         cache().requests().updateTimer(metricName, timeElapsed);
         forAccount(accountId).cache().requests().updateTimer(metricName, timeElapsed);

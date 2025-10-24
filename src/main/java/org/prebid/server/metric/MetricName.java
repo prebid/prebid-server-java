@@ -121,6 +121,7 @@ public enum MetricName {
     // cache creative types
     json,
     xml,
+    text,
 
     // account.*.requests.
     rejected_by_invalid_account("rejected.invalid-account"),
