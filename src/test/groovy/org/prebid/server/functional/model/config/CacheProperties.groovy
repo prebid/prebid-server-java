@@ -15,7 +15,7 @@ class CacheProperties {
     static CacheProperties getDefault() {
         new CacheProperties().tap {
             enabled = true
-            ttlSeconds = PBSUtils.randomNumber
+            ttlSeconds = PBSUtils.getRandomNumber(0, 1000)
         }
     }
 }

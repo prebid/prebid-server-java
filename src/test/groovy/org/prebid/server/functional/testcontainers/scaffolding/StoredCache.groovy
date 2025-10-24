@@ -112,7 +112,8 @@ class StoredCache extends NetworkScaffolding {
              "&gdpr=${gdpr ? 1 : 0}",
              regs?.gpp ? "&gpp=${regs.gpp}" : null,
              regs?.gppSid ? "&gpp_sid=${regs.gppSid.first()}" : null,
-             config?.timeout ? "&timeout=${config.timeout}ms" : null].findAll().join('')
+             config?.timeout ? "&timeout=${config.timeout}ms" : null,
+             "&osdk=prebid-server"].findAll().join('')
         }
     }
 }

@@ -1,6 +1,5 @@
 package org.prebid.server.functional.tests.module.optabletargeting
 
-import org.apache.commons.codec.binary.Base64
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountHooksConfiguration
 import org.prebid.server.functional.model.config.IdentifierType
@@ -134,8 +133,8 @@ class CacheStorageSpec extends ModuleBaseSpec {
         then: "PBS should update metrics for new saved text storage cache"
         def metrics = prebidServerStoredCacheService.sendCollectedMetricsRequest()
         assert metrics[METRIC_CREATIVE_SIZE_TEXT] == new String(encodeBase64(encode(targetingResult).bytes)).size()
-        assert metrics[METRIC_CREATIVE_TTL_TEXT] == targetingConfig.cache.ttlSeconds
         assert metrics[METRIC_CREATIVE_WRITE_OK] == 1
+        assert metrics[METRIC_CREATIVE_TTL_TEXT] == targetingConfig.cache.ttlSeconds
     }
 
     def "PBS should update metrics for stored cached requests cache when proper record present"() {
