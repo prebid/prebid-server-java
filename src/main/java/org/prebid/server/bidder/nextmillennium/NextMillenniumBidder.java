@@ -50,7 +50,7 @@ public class NextMillenniumBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private static final String NM_ADAPTER_VERSION = "v1.0.0";
+    private static final String NM_ADAPTER_VERSION = "v1.0.1";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -108,8 +108,8 @@ public class NextMillenniumBidder implements Bidder<BidRequest> {
                 .orElse(null);
 
         return bidRequest.toBuilder()
-                .imp(modifyFirstImp(bidRequest.getImp(), soredRequestId))
-                .ext(createExtRequest(soredRequestId, extRequestPrebidServer))
+                .imp(modifyFirstImp(bidRequest.getImp(), soredRequestId, extImp))
+                .ext(createExtRequest(soredRequestId, extRequestPrebidServer, extImp))
                 .build();
     }
 
@@ -150,13 +150,14 @@ public class NextMillenniumBidder implements Bidder<BidRequest> {
                 : null;
     }
 
-    private List<Imp> modifyFirstImp(List<Imp> imps, String storedRequestId) {
+    private List<Imp> modifyFirstImp(List<Imp> imps, String storedRequestId, ExtImpNextMillennium extImp) {
         final ExtRequestPrebid extRequestPrebid = ExtRequestPrebid.builder()
                 .storedrequest(ExtStoredRequest.of(storedRequestId))
                 .build();
 
         final NextMillenniumExt nextMillenniumExt = NextMillenniumExt.of(
-                NextMillenniumExtBidder.of(nmmFlags, null, null));
+                NextMillenniumExtBidder.of(
+                        nmmFlags, extImp.getAdSlots(), extImp.getAllowedAds(), null, null));
 
         final ExtRequest extRequest = ExtRequest.of(extRequestPrebid);
         mapper.fillExtension(extRequest, nextMillenniumExt);
@@ -169,14 +170,18 @@ public class NextMillenniumBidder implements Bidder<BidRequest> {
         return modifiedImps;
     }
 
-    private ExtRequest createExtRequest(String storedRequestId, ExtRequestPrebidServer extRequestPrebidServer) {
+    private ExtRequest createExtRequest(String storedRequestId,
+                                        ExtRequestPrebidServer extRequestPrebidServer,
+                                        ExtImpNextMillennium extImp) {
         final ExtRequestPrebid extRequestPrebid = ExtRequestPrebid.builder()
                 .storedrequest(ExtStoredRequest.of(storedRequestId))
                 .server(extRequestPrebidServer)
                 .build();
 
         final NextMillenniumExt nextMillenniumExt = NextMillenniumExt.of(
-                NextMillenniumExtBidder.of(nmmFlags, NM_ADAPTER_VERSION, versionProvider.getNameVersionRecord()));
+                NextMillenniumExtBidder.of(
+                        nmmFlags, extImp.getAdSlots(), extImp.getAllowedAds(), NM_ADAPTER_VERSION,
+                        versionProvider.getNameVersionRecord()));
 
         final ExtRequest extRequest = ExtRequest.of(extRequestPrebid);
         mapper.fillExtension(extRequest, nextMillenniumExt);
