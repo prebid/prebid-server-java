@@ -347,7 +347,6 @@ public class RtbhouseBidderTest extends VertxTest {
                     assertThat(site.getPublisher()).isNotNull();
                     assertThat(site.getPublisher().getExt()).isNotNull();
 
-                    // The ext is a FlexibleExtension, so we need to access the properties
                     final JsonNode prebidNode = site.getPublisher().getExt().getProperty("prebid");
                     assertThat(prebidNode).isNotNull();
                     assertThat(prebidNode.get("publisherId").asText()).isEqualTo("publisherId");
