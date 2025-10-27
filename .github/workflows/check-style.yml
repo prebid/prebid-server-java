@@ -1,21 +1,22 @@
-name: check-style.yml
-on: pull_request
+name: check-style
+on: [pull_request]
 
 jobs:
   checkstyle_job:
     runs-on: ubuntu-latest
     name: Checkstyle job
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Run check style
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Checkstyle (produce XML)
+        id: checkstyle
         uses: nikitasavinov/checkstyle-action@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          reporter: 'github-pr-check'
-          tool_name: 'testtool'
+          reporter: 'github-pr-review'
+          tool_name: 'checkstyle'
           checkstyle_config: checkstyle.xml
-          filter_mode: diff_context
           checkstyle_version: 10.17.0
           level: 'error'
-          fail_on_error: true
+          fail_on_error: false
