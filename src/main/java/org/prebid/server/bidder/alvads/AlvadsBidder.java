@@ -37,6 +37,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class AlvadsBidder implements Bidder<AlvadsRequestOrtb> {
+
     private static final TypeReference<ExtPrebid<?, AlvadsImpExt>>
             ALVADS_EXT_TYPE_REFERENCE = new TypeReference<>() { };
 
