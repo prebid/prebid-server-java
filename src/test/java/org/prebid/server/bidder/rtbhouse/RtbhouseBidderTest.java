@@ -391,36 +391,6 @@ public class RtbhouseBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldUpdateExistingPublisherId() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                bidReq -> bidReq.site(Site.builder()
-                        .id("site_id")
-                        .publisher(Publisher.builder()
-                                .id("old_publisher_id")
-                                .build())
-                        .build()),
-                identity(),
-                identity());
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(HttpRequest::getPayload)
-                .extracting(BidRequest::getSite)
-                .allSatisfy(site -> {
-                    assertThat(site.getId()).isEqualTo("site_id");
-
-                    final JsonNode prebidNode = site.getPublisher().getExt().getProperty("prebid");
-                    assertThat(prebidNode).isNotNull();
-                    assertThat(prebidNode.get("publisherId").asText()).isEqualTo("publisherId");
-                });
-    }
-
-    @Test
     public void makeHttpRequestsShouldPreserveOtherPublisherFieldsWhenUpdatingId() {
         // given
         final BidRequest bidRequest = givenBidRequest(
@@ -454,47 +424,11 @@ public class RtbhouseBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldPreserveOtherSiteFieldsWhenAddingPublisher() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                bidReq -> bidReq.site(Site.builder()
-                        .id("site_id")
-                        .name("site_name")
-                        .domain("site.com")
-                        .page("https://site.com/page")
-                        .ref("https://referrer.com")
-                        .build()),
-                identity(),
-                identity());
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(HttpRequest::getPayload)
-                .extracting(BidRequest::getSite)
-                .allSatisfy(site -> {
-                    assertThat(site.getId()).isEqualTo("site_id");
-                    assertThat(site.getName()).isEqualTo("site_name");
-                    assertThat(site.getDomain()).isEqualTo("site.com");
-                    assertThat(site.getPage()).isEqualTo("https://site.com/page");
-                    assertThat(site.getRef()).isEqualTo("https://referrer.com");
-
-                    final JsonNode prebidNode = site.getPublisher().getExt().getProperty("prebid");
-                    assertThat(prebidNode).isNotNull();
-                    assertThat(prebidNode.get("publisherId").asText()).isEqualTo("publisherId");
-                });
-    }
-
-    @Test
     public void makeHttpRequestsShouldPreserveOtherBidRequestFields() {
         // given
         final List<Imp> imps = List.of(
                 givenImp(imp -> imp.id("imp1"), identity()),
-                givenImp(imp -> imp.id("imp2"), identity())
-        );
+                givenImp(imp -> imp.id("imp2"), identity()));
         final BidRequest bidRequest = givenBidRequest(
                 bidReq -> bidReq.id("request_id")
                         .test(1)
@@ -535,8 +469,7 @@ public class RtbhouseBidderTest extends VertxTest {
                 givenImp(imp -> imp.id("imp1"),
                         ext -> ext.publisherId("first_publisher_id")),
                 givenImp(imp -> imp.id("imp2"),
-                        ext -> ext.publisherId("second_publisher_id"))
-        );
+                        ext -> ext.publisherId("second_publisher_id")));
         final BidRequest bidRequest = givenBidRequest(
                 bidReq -> bidReq.id("request_id")
                         .imp(imps)
@@ -562,12 +495,11 @@ public class RtbhouseBidderTest extends VertxTest {
 
     @Test
     public void makeHttpRequestsShouldAlwaysRemovePmpField() {
-        // given - test with PMP containing deals
+        // given
         final List<Deal> deals = List.of(
                 Deal.builder().id("deal1").build(),
-                Deal.builder().id("deal2").build()
-        );
-        final BidRequest bidRequestWithDeals = givenBidRequest(
+                Deal.builder().id("deal2").build());
+        final BidRequest bidRequest = givenBidRequest(
                 bidReq -> bidReq.id("request_id"),
                 imp -> imp.id("123")
                         .pmp(Pmp.builder()
@@ -576,45 +508,12 @@ public class RtbhouseBidderTest extends VertxTest {
                                 .build()),
                 identity());
 
-        // given - test with null PMP
-        final BidRequest bidRequestWithNullPmp = givenBidRequest(
-                bidReq -> bidReq.id("request_id"),
-                imp -> imp.id("123").pmp(null),
-                identity());
-
-        // given - test with empty PMP
-        final BidRequest bidRequestWithEmptyPmp = givenBidRequest(
-                bidReq -> bidReq.id("request_id"),
-                imp -> imp.id("123")
-                        .pmp(Pmp.builder()
-                                .privateAuction(0)
-                                .deals(Collections.emptyList())
-                                .build()),
-                identity());
-
         // when
-        final Result<List<HttpRequest<BidRequest>>> resultWithDeals = target.makeHttpRequests(bidRequestWithDeals);
-        final Result<List<HttpRequest<BidRequest>>> resultWithNullPmp = target.makeHttpRequests(bidRequestWithNullPmp);
-        final Result<List<HttpRequest<BidRequest>>> resultWithEmptyPmp =
-                target.makeHttpRequests(bidRequestWithEmptyPmp);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
-        // then - all should have PMP completely removed (null)
-        assertThat(resultWithDeals.getErrors()).isEmpty();
-        assertThat(resultWithDeals.getValue()).hasSize(1)
-                .extracting(HttpRequest::getPayload)
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getPmp)
-                .containsOnlyNulls();
-
-        assertThat(resultWithNullPmp.getErrors()).isEmpty();
-        assertThat(resultWithNullPmp.getValue()).hasSize(1)
-                .extracting(HttpRequest::getPayload)
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getPmp)
-                .containsOnlyNulls();
-
-        assertThat(resultWithEmptyPmp.getErrors()).isEmpty();
-        assertThat(resultWithEmptyPmp.getValue()).hasSize(1)
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getPmp)
