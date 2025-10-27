@@ -16,3 +16,4 @@ jobs:
           tool_name: 'testtool'
           checkstyle_config: checkstyle.xml
           filter_mode: diff_context
+          checkstyle_version: 10.17.0
