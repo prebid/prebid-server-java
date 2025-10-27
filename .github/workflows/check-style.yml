@@ -9,7 +9,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Run Checkstyle (produce XML)
+      - name: Run Checkstyle
         id: checkstyle
         uses: nikitasavinov/checkstyle-action@master
         with:
@@ -19,4 +19,4 @@ jobs:
           checkstyle_config: checkstyle.xml
           checkstyle_version: 10.17.0
           level: 'error'
-          fail_on_error: false
+          fail_on_error: true
