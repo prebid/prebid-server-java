@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.nextmillennium;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -24,6 +23,8 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.bidder.nextmillennium.proto.NextMillenniumExt;
+import org.prebid.server.bidder.nextmillennium.proto.NextMillenniumExtBidder;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -117,8 +118,8 @@ public class NextMillenniumBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
-                givenImpWithExt(identity(), ExtImpNextMillennium.of("placement1", null, null, null)),
-                givenImpWithExt(identity(), ExtImpNextMillennium.of("placement2", null, null, null)));
+                givenImpWithExt(identity(), givenExtImpWithPlacementId("placement1")),
+                givenImpWithExt(identity(), givenExtImpWithPlacementId("placement2")));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -139,8 +140,8 @@ public class NextMillenniumBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
-                givenImpWithExt(identity(), ExtImpNextMillennium.of(null, "group1", null, null)),
-                givenImpWithExt(identity(), ExtImpNextMillennium.of(null, "group2", null, null)));
+                givenImpWithExt(identity(), givenExtImpWithGroupId("group1")),
+                givenImpWithExt(identity(), givenExtImpWithGroupId("group2")));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -169,10 +170,10 @@ public class NextMillenniumBidderTest extends VertxTest {
                                 .w(5)
                                 .h(6)
                                 .build()),
-                        ExtImpNextMillennium.of(null, "group1", null, null)),
+                        givenExtImpWithGroupId("group1")),
                 givenImpWithExt(
                         imp -> imp.banner(Banner.builder().w(7).h(8).build()),
-                        ExtImpNextMillennium.of(null, "group2", null, null)));
+                        givenExtImpWithGroupId("group2")));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -209,17 +210,23 @@ public class NextMillenniumBidderTest extends VertxTest {
 
         final BidRequest actualRequest = result.getValue().getFirst().getPayload();
 
-        final ObjectNode requestExtNode = mapper.valueToTree(actualRequest.getExt());
-        assertThat(requestExtNode.at("/nextMillennium/adSlots/0").asText()).isEqualTo("slot1");
-        assertThat(requestExtNode.at("/nextMillennium/adSlots/1").asText()).isEqualTo("slot2");
-        assertThat(requestExtNode.at("/nextMillennium/allowedAds/0").asText()).isEqualTo("ad1");
-        assertThat(requestExtNode.at("/nextMillennium/allowedAds/1").asText()).isEqualTo("ad2");
+        final NextMillenniumExtBidder requestExt = jacksonMapper.mapper()
+                .convertValue(
+                        jacksonMapper.mapper().convertValue(actualRequest.getExt(), NextMillenniumExt.class).getNextMillennium(),
+                        NextMillenniumExtBidder.class);
 
-        final ObjectNode impExtNode = (ObjectNode) actualRequest.getImp().getFirst().getExt();
-        assertThat(impExtNode.at("/nextMillennium/adSlots/0").asText()).isEqualTo("slot1");
-        assertThat(impExtNode.at("/nextMillennium/adSlots/1").asText()).isEqualTo("slot2");
-        assertThat(impExtNode.at("/nextMillennium/allowedAds/0").asText()).isEqualTo("ad1");
-        assertThat(impExtNode.at("/nextMillennium/allowedAds/1").asText()).isEqualTo("ad2");
+        final NextMillenniumExtBidder impExt = jacksonMapper.mapper()
+                .convertValue(
+                        jacksonMapper.mapper().convertValue(actualRequest.getImp().getFirst().getExt(), NextMillenniumExt.class).getNextMillennium(),
+                        NextMillenniumExtBidder.class);
+
+        assertThat(requestExt)
+                .extracting(NextMillenniumExtBidder::getAdSlots, NextMillenniumExtBidder::getAllowedAds)
+                .containsExactly(adSlots, allowedAds);
+
+        assertThat(impExt)
+                .extracting(NextMillenniumExtBidder::getAdSlots, NextMillenniumExtBidder::getAllowedAds)
+                .containsExactly(adSlots, allowedAds);
     }
 
     @Test
@@ -229,12 +236,12 @@ public class NextMillenniumBidderTest extends VertxTest {
                 identity(),
                 givenImpWithExt(
                         imp -> imp.banner(Banner.builder().w(7).h(8).build()),
-                        ExtImpNextMillennium.of(null, "group1", null, null)),
+                        givenExtImpWithGroupId("group1")),
                 givenImpWithExt(
                         imp -> imp.banner(Banner.builder()
                                 .format(singletonList(Format.builder().w(1).h(2).build()))
                                 .build()),
-                        ExtImpNextMillennium.of(null, "group2", null, null)));
+                        givenExtImpWithGroupId("group2")));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -255,8 +262,8 @@ public class NextMillenniumBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 request -> request.app(App.builder().domain("appDomain").build()),
-                givenImpWithExt(identity(), ExtImpNextMillennium.of(null, "group1", null, null)),
-                givenImpWithExt(identity(), ExtImpNextMillennium.of(null, "group2", null, null)));
+                givenImpWithExt(identity(), givenExtImpWithGroupId("group1")),
+                givenImpWithExt(identity(), givenExtImpWithGroupId("group2")));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -277,8 +284,8 @@ public class NextMillenniumBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 request -> request.site(Site.builder().domain("siteDomain").build()),
-                givenImpWithExt(identity(), ExtImpNextMillennium.of("placement1", "group1", null, null)),
-                givenImpWithExt(identity(), ExtImpNextMillennium.of("placement2", "group2", null, null)));
+                givenImpWithExt(identity(), givenExtImpWithPlacementIdAndGroupId("placement1", "group1")),
+                givenImpWithExt(identity(), givenExtImpWithPlacementIdAndGroupId("placement2", "group2")));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -637,5 +644,17 @@ public class NextMillenniumBidderTest extends VertxTest {
                                        ExtImpNextMillennium extImpNextMillennium) {
         return givenImp(impCustomizer.andThen(imp -> imp.ext(mapper.valueToTree(
                 ExtPrebid.of(null, extImpNextMillennium))))::apply);
+    }
+
+    private static ExtImpNextMillennium givenExtImpWithGroupId(String groupId) {
+        return ExtImpNextMillennium.of(null, groupId, null, null);
+    }
+
+    private static ExtImpNextMillennium givenExtImpWithPlacementId(String placementId) {
+        return ExtImpNextMillennium.of(placementId, null, null, null);
+    }
+
+    private static ExtImpNextMillennium givenExtImpWithPlacementIdAndGroupId(String placementId, String groupId) {
+        return ExtImpNextMillennium.of(placementId, groupId, null, null);
     }
 }
