@@ -1,6 +1,7 @@
 package org.prebid.server.metric;
 
 import com.codahale.metrics.MetricRegistry;
+import org.prebid.server.metric.model.CacheCreativeType;
 
 import java.util.Objects;
 import java.util.function.Function;
@@ -20,8 +21,10 @@ class CacheVtrackMetrics extends UpdatableMetrics {
 
         readMetrics = new CacheReadMetrics(metricRegistry, counterType, createPrefix(prefix));
         writeMetrics = new CacheWriteMetrics(metricRegistry, counterType, createPrefix(prefix));
-        creativeSizeMetrics = new CacheCreativeSizeMetrics(metricRegistry, counterType, createPrefix(prefix));
-        creativeTtlMetrics = new CacheCreativeTtlMetrics(metricRegistry, counterType, createPrefix(prefix));
+        creativeSizeMetrics = new CacheCreativeSizeMetrics(
+                metricRegistry, counterType, createPrefix(prefix), CacheCreativeType.CREATIVE);
+        creativeTtlMetrics = new CacheCreativeTtlMetrics(
+                metricRegistry, counterType, createPrefix(prefix), CacheCreativeType.CREATIVE);
     }
 
     private static Function<MetricName, String> nameCreator(String prefix) {
