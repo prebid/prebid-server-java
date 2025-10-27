@@ -212,12 +212,14 @@ public class NextMillenniumBidderTest extends VertxTest {
 
         final NextMillenniumExtBidder requestExt = jacksonMapper.mapper()
                 .convertValue(
-                        jacksonMapper.mapper().convertValue(actualRequest.getExt(), NextMillenniumExt.class).getNextMillennium(),
+                        jacksonMapper.mapper().convertValue(actualRequest
+                                .getExt(), NextMillenniumExt.class).getNextMillennium(),
                         NextMillenniumExtBidder.class);
 
         final NextMillenniumExtBidder impExt = jacksonMapper.mapper()
                 .convertValue(
-                        jacksonMapper.mapper().convertValue(actualRequest.getImp().getFirst().getExt(), NextMillenniumExt.class).getNextMillennium(),
+                        jacksonMapper.mapper().convertValue(actualRequest
+                                .getImp().getFirst().getExt(), NextMillenniumExt.class).getNextMillennium(),
                         NextMillenniumExtBidder.class);
 
         assertThat(requestExt)
