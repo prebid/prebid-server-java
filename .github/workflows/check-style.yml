@@ -13,3 +13,4 @@ jobs:
           reporter: github-pr-review
           level: error
           checkstyle_config: checkstyle.xml
+          fail_level: error
