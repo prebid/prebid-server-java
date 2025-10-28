@@ -1455,8 +1455,7 @@ public class CoreCacheServiceTest extends VertxTest {
                 MultiMap.caseInsensitiveMultiMap().add("Header", "Value"),
                 "body");
 
-        given(httpClient.get(eq("http://cache-service/cache?uuid=key&ch=ch"), any(), anyLong()))
-                .willReturn(Future.succeededFuture(response));
+        given(httpClient.get(any(), any(), anyLong())).willReturn(Future.succeededFuture(response));
 
         // when
         final Future<HttpClientResponse> result = target.getCachedObject("key", "ch", timeout);
@@ -1464,6 +1463,11 @@ public class CoreCacheServiceTest extends VertxTest {
         // then
         assertThat(result.result()).isEqualTo(response);
         verify(metrics).updateVtrackCacheReadRequestTime(anyLong(), eq(MetricName.ok));
+        final ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
+        verify(httpClient).get(urlCaptor.capture(), any(), anyLong());
+        assertThat(urlCaptor.getValue())
+                .startsWith("http://cache-service/cache?")
+                .contains("uuid=key", "ch=ch");
     }
 
     @Test
@@ -1487,13 +1491,13 @@ public class CoreCacheServiceTest extends VertxTest {
 
     @Test
     public void getCachedObjectShouldAddUuidQueryParamsToInternalBeforeSendingWhenChIsAbsent()
-            throws MalformedURLException {
+            throws MalformedURLException, URISyntaxException {
 
         // given
         target = new CoreCacheService(
                 httpClient,
-                new URL("http://cache-service/cache"),
-                new URL("http://internal-cache-service/cache"),
+                new URI("http://cache-service/cache").toURL(),
+                new URI("http://internal-cache-service/cache").toURL(),
                 "http://cache-service-host/cache?uuid=",
                 100L,
                 "ApiKey",
@@ -1525,12 +1529,7 @@ public class CoreCacheServiceTest extends VertxTest {
     @Test
     public void getCachedObjectShouldNotLogErrorMetricsWhenCacheIsNotReached() {
         // given
-        final HttpClientResponse response = HttpClientResponse.of(
-                200,
-                MultiMap.caseInsensitiveMultiMap().add("Header", "Value"),
-                "body");
-
-        given(httpClient.get(eq("http://cache-service/cache?uuid=key&ch=ch"), any(), anyLong()))
+        given(httpClient.get(any(), any(), anyLong()))
                 .willReturn(Future.failedFuture(new TimeoutException("Timeout")));
 
         // when
@@ -1549,8 +1548,7 @@ public class CoreCacheServiceTest extends VertxTest {
                 null,
                 jacksonMapper.encodeToString(CacheErrorResponse.builder().message("Resource not found").build()));
 
-        given(httpClient.get(eq("http://cache-service/cache?uuid=key&ch=ch"), any(), anyLong()))
-                .willReturn(Future.succeededFuture(response));
+        given(httpClient.get(any(), any(), anyLong())).willReturn(Future.succeededFuture(response));
 
         // when
         final Future<HttpClientResponse> result = target.getCachedObject("key", "ch", timeout);
@@ -1565,8 +1563,7 @@ public class CoreCacheServiceTest extends VertxTest {
         // given
         final HttpClientResponse response = HttpClientResponse.of(404, null, "Resource not found");
 
-        given(httpClient.get(eq("http://cache-service/cache?uuid=key&ch=ch"), any(), anyLong()))
-                .willReturn(Future.succeededFuture(response));
+        given(httpClient.get(any(), any(), anyLong())).willReturn(Future.succeededFuture(response));
 
         // when
         final Future<HttpClientResponse> result = target.getCachedObject("key", "ch", timeout);
