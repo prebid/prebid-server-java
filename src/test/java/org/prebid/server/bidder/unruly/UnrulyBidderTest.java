@@ -20,7 +20,8 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.bidder.unruly.proto.UnrulyExtImp;
+import org.prebid.server.bidder.unruly.proto.UnrulyExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.unruly.ExtImpUnruly;
 
 import java.util.List;
 import java.util.Map;
@@ -310,10 +311,7 @@ public class UnrulyBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         final ObjectNode impExt = mapper.valueToTree(
-                UnrulyExtImp.of(
-                        null,
-                        mapper.createObjectNode().set("siteId", IntNode.valueOf(123)),
-                        "gpid"));
+                UnrulyExtPrebid.of(ExtImpUnruly.of(123), "gpid"));
 
         return impCustomizer.apply(
                         Imp.builder()
