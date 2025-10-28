@@ -1,15 +1,17 @@
 package org.prebid.server.bidder.alvads.model;
 
 import lombok.Builder;
-import lombok.Data;
+import lombok.Value;
 
 import java.util.Map;
 
-@Data
+@Value
 @Builder
 public class AlvaAdsSite {
 
-    private String page;
-    private String ref;
-    private Map<String, Object> publisher;
+    String page;
+
+    String ref;
+
+    Map<String, Object> publisher;
 }

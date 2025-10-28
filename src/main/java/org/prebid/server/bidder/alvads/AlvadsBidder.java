@@ -1,11 +1,9 @@
 package org.prebid.server.bidder.alvads;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
-import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.http.HttpMethod;
@@ -38,8 +36,9 @@ import java.util.stream.Collectors;
 
 public class AlvadsBidder implements Bidder<AlvadsRequestOrtb> {
 
-    private static final TypeReference<ExtPrebid<?, AlvadsImpExt>>
-            ALVADS_EXT_TYPE_REFERENCE = new TypeReference<>() { };
+    private static final TypeReference<ExtPrebid<?, AlvadsImpExt>> ALVADS_EXT_TYPE_REFERENCE =
+            new TypeReference<>() {
+            };
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -109,37 +108,24 @@ public class AlvadsBidder implements Bidder<AlvadsRequestOrtb> {
     }
 
     private static AlvaAdsImp makeImp(Imp imp) {
-        final Banner banner = imp.getBanner();
-        Map<String, Object> bannerMap = null;
-        if (banner != null) {
-            bannerMap = new HashMap<>();
-            if (banner.getW() != null) {
-                bannerMap.put("w", banner.getW());
-            }
-            if (banner.getH() != null) {
-                bannerMap.put("h", banner.getH());
-            }
-        }
-
-        final Video video = imp.getVideo();
-        Map<String, Object> videoMap = null;
-        if (video != null) {
-            videoMap = new HashMap<>();
-            if (video.getW() != null) {
-                videoMap.put("w", video.getW());
-            }
-            if (video.getH() != null) {
-                videoMap.put("h", video.getH());
-            }
-        }
-
         return AlvaAdsImp.builder()
                 .id(imp.getId())
                 .tagid(imp.getTagid())
                 .bidfloor(imp.getBidfloor())
-                .banner(bannerMap)
-                .video(videoMap)
+                .banner(imp.getBanner() != null ? sizes(imp.getBanner().getW(), imp.getBanner().getH()) : null)
+                .video(imp.getVideo() != null ? sizes(imp.getVideo().getW(), imp.getVideo().getH()) : null)
                 .build();
+    }
+
+    private static Map<String, Object> sizes(Integer w, Integer h) {
+        final Map<String, Object> map = new HashMap<>();
+        if (w != null) {
+            map.put("w", w);
+        }
+        if (h != null) {
+            map.put("h", h);
+        }
+        return map.isEmpty() ? null : map;
     }
 
     private static AlvaAdsSite makeSite(Site site, String publisherUniqueId) {

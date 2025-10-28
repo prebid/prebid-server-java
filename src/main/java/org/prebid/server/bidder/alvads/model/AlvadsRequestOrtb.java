@@ -4,18 +4,23 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.User;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Value;
 
 import java.util.List;
 
-@Data
+@Value
 @Builder(toBuilder = true)
 public class AlvadsRequestOrtb {
 
-    private String id;
-    private List<AlvaAdsImp> imp;
-    private Device device;
-    private User user;
-    private Regs regs;
-    private AlvaAdsSite site;
+    String id;
+
+    List<AlvaAdsImp> imp;
+
+    Device device;
+
+    User user;
+
+    Regs regs;
+
+    AlvaAdsSite site;
 }

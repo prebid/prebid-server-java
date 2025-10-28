@@ -1,18 +1,22 @@
 package org.prebid.server.bidder.alvads.model;
 
 import lombok.Builder;
-import lombok.Data;
+import lombok.Value;
 
 import java.math.BigDecimal;
 import java.util.Map;
 
-@Data
+@Value
 @Builder
 public class AlvaAdsImp {
 
-    private String id;
-    private Map<String, Object> banner;
-    private Map<String, Object> video;
-    private String tagid;
-    private BigDecimal bidfloor;
+    String id;
+
+    Map<String, Object> banner;
+
+    Map<String, Object> video;
+
+    String tagid;
+
+    BigDecimal bidfloor;
 }
