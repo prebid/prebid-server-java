@@ -51,7 +51,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
-public class VtrackHandlerTest extends VertxTest {
+public class PostVtrackHandlerTest extends VertxTest {
 
     @Mock
     private ApplicationSettings applicationSettings;
@@ -62,7 +62,7 @@ public class VtrackHandlerTest extends VertxTest {
     @Mock
     private TimeoutFactory timeoutFactory;
 
-    private VtrackHandler handler;
+    private PostVtrackHandler handler;
     @Mock(strictness = LENIENT)
     private RoutingContext routingContext;
     @Mock(strictness = LENIENT)
@@ -84,7 +84,7 @@ public class VtrackHandlerTest extends VertxTest {
 
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
 
-        handler = new VtrackHandler(
+        handler = new PostVtrackHandler(
                 2000, true, true, applicationSettings, bidderCatalog, coreCacheService, timeoutFactory, jacksonMapper);
     }
 
@@ -314,7 +314,7 @@ public class VtrackHandlerTest extends VertxTest {
     public void shouldSendToCacheExpectedPutsAndUpdatableBiddersWhenBidderVastNotAllowed()
             throws JsonProcessingException {
         // given
-        handler = new VtrackHandler(
+        handler = new PostVtrackHandler(
                 2000, false, true, applicationSettings, bidderCatalog, coreCacheService, timeoutFactory, jacksonMapper);
 
         final List<BidPutObject> bidPutObjects = asList(
@@ -359,7 +359,7 @@ public class VtrackHandlerTest extends VertxTest {
     @Test
     public void shouldSendToCacheExpectedPutsAndUpdatableBiddersWhenBidderVastAllowed() throws JsonProcessingException {
         // given
-        handler = new VtrackHandler(
+        handler = new PostVtrackHandler(
                 2000, false, false,
                 applicationSettings, bidderCatalog, coreCacheService, timeoutFactory, jacksonMapper);
 
@@ -447,7 +447,7 @@ public class VtrackHandlerTest extends VertxTest {
     public void shouldSendToCacheWithEmptyBiddersAllowingVastUpdatePutsWhenAllowUnknownBidderIsFalse()
             throws JsonProcessingException {
         // given
-        handler = new VtrackHandler(
+        handler = new PostVtrackHandler(
                 2000, false, true, applicationSettings, bidderCatalog, coreCacheService, timeoutFactory, jacksonMapper);
 
         final List<BidPutObject> bidPutObjects = asList(
@@ -486,7 +486,7 @@ public class VtrackHandlerTest extends VertxTest {
     public void shouldSendToCacheWithEmptyBiddersAllowingVastUpdatePutsWhenModifyVastForUnknownBidderIsFalse()
             throws JsonProcessingException {
         // given
-        handler = new VtrackHandler(
+        handler = new PostVtrackHandler(
                 2000, true, false, applicationSettings, bidderCatalog, coreCacheService, timeoutFactory, jacksonMapper);
 
         final List<BidPutObject> bidPutObjects = asList(

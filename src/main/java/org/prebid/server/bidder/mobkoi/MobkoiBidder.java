@@ -6,8 +6,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.uritemplate.UriTemplate;
-import io.vertx.uritemplate.Variables;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -26,8 +24,6 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -62,11 +58,9 @@ public class MobkoiBidder implements Bidder<BidRequest> {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
-        final String selectedEndpointUrl = resolveEndpoint(extImpMobkoi.getAdServerBaseUrl());
-
         return Result.withValue(BidderUtil.defaultRequest(
                 modifyBidRequest(bidRequest, modifiedFirstImp),
-                selectedEndpointUrl,
+                endpointUrl,
                 mapper));
     }
 
@@ -91,21 +85,6 @@ public class MobkoiBidder implements Bidder<BidRequest> {
 
         throw new PreBidException("invalid because it comes with neither request.imp[0].tagId nor "
                     + "req.imp[0].ext.Bidder.placementId");
-    }
-
-    // url is already validated with `bidder-params` json schema
-    private String resolveEndpoint(String customUri) {
-        if (customUri == null) {
-            return endpointUrl;
-        }
-        try {
-            final URL url = HttpUtil.parseUrl(customUri);
-            final String origin = url.getProtocol() + "://" + url.getAuthority();
-            return UriTemplate.of("{+origin}/bid")
-                    .expandToString(Variables.variables().set("origin", origin));
-        } catch (IllegalArgumentException | MalformedURLException e) {
-            return endpointUrl;
-        }
     }
 
     private static BidRequest modifyBidRequest(BidRequest bidRequest, Imp modifiedFirstImp) {

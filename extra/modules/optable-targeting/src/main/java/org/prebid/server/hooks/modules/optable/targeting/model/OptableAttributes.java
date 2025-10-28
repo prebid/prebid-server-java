@@ -20,5 +20,7 @@ public class OptableAttributes {
 
     List<String> ips;
 
+    String userAgent;
+
     Long timeout;
 }

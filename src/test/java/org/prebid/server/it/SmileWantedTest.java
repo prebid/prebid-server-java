@@ -18,7 +18,7 @@ public class SmileWantedTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromSmileWanted() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/smilewanted-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/smilewanted-exchange/java/someZoneId"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/smilewanted/test-smilewanted-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom(
                         "openrtb2/smilewanted/test-smilewanted-bid-response.json"))));

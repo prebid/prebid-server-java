@@ -1,6 +1,7 @@
 adapters:
   connatix:
     endpoint: "https://capi.connatix.com/rtb/ortb"
+    endpoint-compression: gzip
     meta-info:
       maintainer-email: "pubsolutions@connatix.com"
       vendor-id: 143
