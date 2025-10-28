@@ -1,9 +1,10 @@
-name: reviewdog
+name: Check style
+
 on: [pull_request]
 
 jobs:
   checkstyle:
-    name: runner / checkstyle
+    name: Run
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5

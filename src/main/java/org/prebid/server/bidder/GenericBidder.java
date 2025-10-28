@@ -12,13 +12,9 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.json.JsonMerger;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.UUID;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -39,11 +35,6 @@ public class GenericBidder implements Bidder<BidRequest> {
 
     @Override
     public final Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
-
-        final List<BidderError> errorsWithLOOOOOOOOOOOOOONGESTnaminggggggggggggggggggggggggggggggggggggggggggg = new ArrayList<>();
-
-
-
         return Result.withValue(BidderUtil.defaultRequest(bidRequest, endpointUrl, mapper));
     }
 
