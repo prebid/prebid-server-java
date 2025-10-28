@@ -8,8 +8,8 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.MultiMap;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.Endpoint;
 import org.prebid.server.bidder.Bidder;
@@ -38,6 +38,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 public class NativeryBidder implements Bidder<BidRequest> {
 
@@ -119,7 +120,11 @@ public class NativeryBidder implements Bidder<BidRequest> {
     private ExtRequest buildRequestExtWithNativery(ExtRequest originalExt, boolean isAmp, String widgetId) {
         final ExtRequest ext = originalExt != null ? originalExt : ExtRequest.empty();
 
-        final ObjectNode nativeryNode = mapper.mapper().createObjectNode();
+        final JsonNode existing = ext.getProperty("nativery");
+        final ObjectNode nativeryNode = existing != null && existing.isObject()
+                ? (ObjectNode) existing
+                : mapper.mapper().createObjectNode();
+
         nativeryNode.put("isAmp", isAmp);
         if (StringUtils.isNotBlank(widgetId)) {
             nativeryNode.put("widgetId", widgetId);
@@ -133,17 +138,13 @@ public class NativeryBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         final List<BidderError> errors = new ArrayList<>();
 
-        if (httpCall.getResponse() != null && httpCall.getResponse().getStatusCode() == 204) {
-            final MultiMap headers = httpCall.getResponse().getHeaders();
-            final String nativeryErr = headers != null ? headers.get(NATIVERY_ERROR_HEADER) : null;
-            if (StringUtils.isNotBlank(nativeryErr)) {
-                return Result.withError(BidderError.badInput("Nativery Error: " + nativeryErr + "."));
-            }
-            return Result.withError(BidderError.badServerResponse("No Content"));
+        final var response = httpCall.getResponse();
+        if (response == null || StringUtils.isBlank(response.getBody())) {
+            return Result.withError(BidderError.badServerResponse("Empty response"));
         }
 
         try {
-            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            final BidResponse bidResponse = mapper.decodeValue(response.getBody(), BidResponse.class);
             final List<BidderBid> bidderBids = extractBids(bidResponse, errors);
             return Result.of(bidderBids, errors);
         } catch (DecodeException e) {
@@ -172,15 +173,12 @@ public class NativeryBidder implements Bidder<BidRequest> {
     private BidderBid resolveBidderBid(Bid bid, String currency, List<BidderError> errors) {
         try {
             final BidExtNativery nativeryExt = parseNativeryExt(bid.getExt());
-            final String mediaTypeRaw = nativeryExt != null ? nativeryExt.getBidAdMediaType() : null;
-            final BidType bidType = mapMediaType(mediaTypeRaw);
 
-            final List<String> advDomains = nativeryExt != null && nativeryExt.getBidAdvDomains() != null
-                    ? nativeryExt.getBidAdvDomains()
-                    : Collections.emptyList();
+            final BidType bidType = mapMediaType(nativeryExt.getBidAdMediaType());
+            final List<String> advDomains = ListUtils.defaultIfNull(
+                    nativeryExt.getBidAdvDomains(), Collections.emptyList());
 
             final Bid updatedBid = addBidMeta(bid, mediaTypeString(bidType), advDomains);
-
             return BidderBid.of(updatedBid, bidType, currency);
         } catch (PreBidException e) {
             errors.add(BidderError.badInput(e.getMessage()));
@@ -216,9 +214,9 @@ public class NativeryBidder implements Bidder<BidRequest> {
 
     private static String mediaTypeString(BidType type) {
         return switch (type) {
-            case banner -> "banner";
-            case video -> "video";
-            case xNative -> "native";
+            case banner -> type.getName();
+            case video -> type.getName();
+            case xNative -> type.getName();
             default -> throw new IllegalStateException("Unexpected value: " + type.getName());
         };
     }
@@ -226,14 +224,20 @@ public class NativeryBidder implements Bidder<BidRequest> {
     private Bid addBidMeta(Bid bid, String mediaType, List<String> advDomains) {
         final ExtBidPrebid prebid = parseExtBidPrebid(bid);
 
-        final ExtBidPrebidMeta modifiedMeta = (prebid != null && prebid.getMeta() != null
-                ? prebid.getMeta().toBuilder()
-                : ExtBidPrebidMeta.builder())
+        final List<String> safeAdvDomains = Optional.ofNullable(advDomains)
+                .orElse(Collections.emptyList());
+
+        final ExtBidPrebidMeta modifiedMeta = Optional.ofNullable(prebid)
+                .map(ExtBidPrebid::getMeta)
+                .map(ExtBidPrebidMeta::toBuilder)
+                .orElseGet(ExtBidPrebidMeta::builder)
                 .mediaType(mediaType)
-                .advertiserDomains(advDomains)
+                .advertiserDomains(safeAdvDomains)
                 .build();
 
-        final ExtBidPrebid modifiedPrebid = (prebid != null ? prebid.toBuilder() : ExtBidPrebid.builder())
+        final ExtBidPrebid modifiedPrebid = Optional.ofNullable(prebid)
+                .map(ExtBidPrebid::toBuilder)
+                .orElseGet(ExtBidPrebid::builder)
                 .meta(modifiedMeta)
                 .build();
 

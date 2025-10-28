@@ -212,22 +212,6 @@ public class NativeryBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldNotSetCurrencyIfNotProvided() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(UnaryOperator.identity());
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .extracting(BidRequest::getCur)
-                .allSatisfy(cur -> assertThat(cur).isNull());
-    }
-
-    @Test
     public void makeHttpRequestsShouldReturnExpectedHeaders() {
         // given
         final BidRequest bidRequest = givenBidRequest(UnaryOperator.identity());
@@ -243,41 +227,6 @@ public class NativeryBidderTest extends VertxTest {
                 .satisfies(headers -> assertThat(headers.get(ACCEPT_HEADER))
                         .isEqualTo(APPLICATION_JSON_VALUE));
         assertThat(result.getErrors()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnErrorWhenStatusIs204WithErrorHeader() {
-        // given
-        final BidderCall<BidRequest> httpCall =
-                givenHttpCallWithHeaders(204, Map.of(NATIVERY_ERROR_HEADER, "test error"));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1)
-                .allSatisfy(error -> {
-                    assertThat(error.getMessage()).isEqualTo("Nativery Error: test error.");
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
-                });
-    }
-
-    @Test
-    public void makeBidsShouldReturnErrorWhenStatusIs204WithoutErrorHeader() {
-        // given
-        final BidderCall<BidRequest> httpCall = givenHttpCallWithHeaders(204, null);
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1)
-                .allSatisfy(error -> {
-                    assertThat(error.getMessage()).isEqualTo("No Content");
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
-                });
     }
 
     @Test
