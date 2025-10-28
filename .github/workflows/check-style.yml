@@ -10,7 +10,8 @@ jobs:
       - uses: dbelyaev/action-checkstyle@v3
         with:
           github_token: ${{ secrets.github_token }}
-          reporter: github-pr-check
+          reporter: github-pr-review
           level: error
           checkstyle_config: checkstyle.xml
           fail_level: error
+          filter_mode: diff_context
