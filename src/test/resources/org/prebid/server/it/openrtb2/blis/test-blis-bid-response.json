@@ -1,0 +1,19 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "price": 3.33,
+          "crid": "creativeId",
+          "adm": "adm_${AUCTION_PRICE}",
+          "nurl": "nurl_${AUCTION_PRICE}",
+          "burl": "burl_${AUCTION_PRICE}",
+          "mtype": 1
+        }
+      ]
+    }
+  ]
+}

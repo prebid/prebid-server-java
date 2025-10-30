@@ -346,9 +346,10 @@ For HTTP data source available next options:
 - `settings.http.amp-endpoint` - the url to fetch AMP stored requests.
 - `settings.http.video-endpoint` - the url to fetch video stored requests.
 - `settings.http.category-endpoint` - the url to fetch categories for long form video.
+- `settings.http.rfc3986-compatible` - if equals to `true` the url will be build according to RFC 3986, `false` by default
 
 For account processing rules available next options:
-- `settings.enforce-valid-account` - if equals to `true` then request without account id will be rejected with 401.
+- `settings.enforce-valid-account` - if equals to `true` then request without account id will be rejection with 401.
 - `settings.generate-storedrequest-bidrequest-id` - overrides `bidrequest.id` in amp or app stored request with generated UUID if true. Default value is false. This flag can be overridden by setting `bidrequest.id` as `{{UUID}}` placeholder directly in stored request.
 
 It is possible to specify default account configuration values that will be assumed if account config have them 

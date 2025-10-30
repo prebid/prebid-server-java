@@ -24,6 +24,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.thetradedesk.ExtImpTheTradeDesk;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -33,6 +34,7 @@ import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
@@ -183,6 +185,21 @@ public class TheTradeDeskBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().getFirst().getMessage()).startsWith("Cannot deserialize value");
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorWhenBothSupplySourceIdAndSupplyIdAreNull() {
+        final TheTradeDeskBidder bidderWithNullSupplyId = new TheTradeDeskBidder(ENDPOINT_URL, jacksonMapper, null);
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                imp -> imp.ext(impExt("publisher", null)));
+
+        final Result<List<HttpRequest<BidRequest>>> result = bidderWithNullSupplyId.makeHttpRequests(bidRequest);
+
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors().getFirst().getMessage())
+                .isEqualTo("Either supplySourceId or a default endpoint must be provided");
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -443,7 +460,7 @@ public class TheTradeDeskBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldThrowErrorWhenMediaTypeIsMissing() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorWhenMediaTypeIsMissing() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidResponse(bidBuilder -> bidBuilder.impid("123")));
@@ -454,7 +471,281 @@ public class TheTradeDeskBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badServerResponse("unsupported mtype: null"));
+                .containsOnly(BidderError.badServerResponse("could not define media type for impression: 123"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnValidBidsAndErrorsForMixedMediaTypes() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                mapper.writeValueAsString(BidResponse.builder()
+                        .cur("USD")
+                        .seatbid(singletonList(SeatBid.builder()
+                                .bid(Arrays.asList(
+                                        Bid.builder().mtype(1).impid("valid1").build(),  // valid banner
+                                        Bid.builder().mtype(3).impid("invalid1").build(), // invalid mtype
+                                        Bid.builder().mtype(2).impid("valid2").build(),  // valid video
+                                        Bid.builder().mtype(null).impid("invalid2").build() // null mtype
+                                ))
+                                .build()))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getValue()).hasSize(2)
+                .extracting(bidderBid -> bidderBid.getBid().getImpid())
+                .containsExactly("valid1", "valid2");
+        assertThat(result.getErrors()).hasSize(2)
+                .containsExactly(
+                        BidderError.badServerResponse("could not define media type for impression: invalid1"),
+                        BidderError.badServerResponse("could not define media type for impression: invalid2"));
+    }
+
+    @Test
+    public void makeBidsShouldReplacePriceMacroInNurlAndAdmWithBidPrice() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidResponse(bidBuilder -> bidBuilder
+                        .mtype(1)
+                        .impid("123")
+                        .price(BigDecimal.valueOf(1.23))
+                        .nurl("http://example.com/nurl?price=${AUCTION_PRICE}")
+                        .adm("<div>Price: ${AUCTION_PRICE}</div>")
+                        .burl("https://adsrvr.org/feedback/xxx?wp=${AUCTION_PRICE}&param2=xyz")));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getNurl, Bid::getAdm, Bid::getBurl, Bid::getPrice)
+                .containsOnly(tuple("http://example.com/nurl?price=1.23", "<div>Price: 1.23</div>",
+                        "https://adsrvr.org/feedback/xxx?wp=1.23&param2=xyz", BigDecimal.valueOf(1.23)));
+    }
+
+    @Test
+    public void makeBidsShouldReplacePriceMacroWithZeroWhenBidPriceIsNull() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidResponse(bidBuilder -> bidBuilder
+                        .mtype(1)
+                        .impid("123")
+                        .price(null)
+                        .nurl("http://example.com/nurl?price=${AUCTION_PRICE}")
+                        .adm("<div>Price: ${AUCTION_PRICE}</div>")
+                        .burl("https://adsrvr.org/feedback/xxx?wp=${AUCTION_PRICE}&param2=xyz")));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getNurl, Bid::getAdm, Bid::getBurl)
+                .containsOnly(tuple("http://example.com/nurl?price=0", "<div>Price: 0</div>",
+                        "https://adsrvr.org/feedback/xxx?wp=0&param2=xyz"));
+    }
+
+    @Test
+    public void makeBidsShouldReplacePriceMacroWithZeroWhenBidPriceIsZero() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidResponse(bidBuilder -> bidBuilder
+                        .mtype(1)
+                        .impid("123")
+                        .price(BigDecimal.ZERO)
+                        .nurl("http://example.com/nurl?price=${AUCTION_PRICE}")
+                        .adm("<div>Price: ${AUCTION_PRICE}</div>")
+                        .burl("https://adsrvr.org/feedback/xxx?wp=${AUCTION_PRICE}&param2=xyz")));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getNurl, Bid::getAdm, Bid::getBurl)
+                .containsOnly(tuple("http://example.com/nurl?price=0", "<div>Price: 0</div>",
+                        "https://adsrvr.org/feedback/xxx?wp=0&param2=xyz"));
+    }
+
+    @Test
+    public void makeBidsShouldReplacePriceMacroInNurlOnlyWhenAdmDoesNotContainMacro() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidResponse(bidBuilder -> bidBuilder
+                        .mtype(1)
+                        .impid("123")
+                        .price(BigDecimal.valueOf(5.67))
+                        .nurl("http://example.com/nurl?price=${AUCTION_PRICE}")
+                        .adm("<div>No macro here</div>")
+                        .burl("http://example.com/burl")));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getNurl, Bid::getAdm, Bid::getBurl)
+                .containsOnly(tuple("http://example.com/nurl?price=5.67", "<div>No macro here</div>",
+                        "http://example.com/burl"));
+    }
+
+    @Test
+    public void makeBidsShouldReplacePriceMacroInAdmOnlyWhenNurlDoesNotContainMacro() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidResponse(bidBuilder -> bidBuilder
+                        .mtype(1)
+                        .impid("123")
+                        .price(BigDecimal.valueOf(8.90))
+                        .nurl("http://example.com/nurl")
+                        .adm("<div>Price: ${AUCTION_PRICE}</div>")
+                        .burl("http://example.com/burl")));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getNurl, Bid::getAdm, Bid::getBurl)
+                .containsOnly(tuple("http://example.com/nurl", "<div>Price: 8.9</div>",
+                        "http://example.com/burl"));
+    }
+
+    @Test
+    public void makeBidsShouldNotReplacePriceMacroWhenNurlAndAdmDoNotContainMacro() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidResponse(bidBuilder -> bidBuilder
+                        .mtype(1)
+                        .impid("123")
+                        .price(BigDecimal.valueOf(12.34))
+                        .nurl("http://example.com/nurl")
+                        .adm("<div>No macro</div>")
+                        .burl("http://example.com/burl")));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getNurl, Bid::getAdm, Bid::getBurl)
+                .containsOnly(tuple("http://example.com/nurl", "<div>No macro</div>",
+                        "http://example.com/burl"));
+    }
+
+    @Test
+    public void makeBidsShouldHandleNullNurlAndAdm() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidResponse(bidBuilder -> bidBuilder
+                        .mtype(1)
+                        .impid("123")
+                        .price(BigDecimal.valueOf(15.00))
+                        .nurl(null)
+                        .adm(null)
+                        .burl(null)));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getNurl, Bid::getAdm, Bid::getBurl)
+                .containsOnly(tuple(null, null, null));
+    }
+
+    @Test
+    public void makeBidsShouldReplaceMultiplePriceMacrosInSameField() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidResponse(bidBuilder -> bidBuilder
+                        .mtype(1)
+                        .impid("123")
+                        .price(BigDecimal.valueOf(9.99))
+                        .nurl("http://example.com/nurl?price=${AUCTION_PRICE}&backup_price=${AUCTION_PRICE}")
+                        .adm("<div>Price: ${AUCTION_PRICE}, Fallback: ${AUCTION_PRICE}</div>")
+                        .burl("https://adsrvr.org/feedback/xxx?wp=${AUCTION_PRICE}&backup_wp=${AUCTION_PRICE}&param2=xyz")));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getNurl, Bid::getAdm, Bid::getBurl)
+                .containsOnly(tuple(
+                        "http://example.com/nurl?price=9.99&backup_price=9.99",
+                        "<div>Price: 9.99, Fallback: 9.99</div>",
+                        "https://adsrvr.org/feedback/xxx?wp=9.99&backup_wp=9.99&param2=xyz"));
+    }
+
+    @Test
+    public void makeBidsShouldHandleLargeDecimalPrices() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidResponse(bidBuilder -> bidBuilder
+                        .mtype(1)
+                        .impid("123")
+                        .price(new BigDecimal("123456789.123456789"))
+                        .nurl("http://example.com/nurl?price=${AUCTION_PRICE}")
+                        .adm("<div>Price: ${AUCTION_PRICE}</div>")
+                        .burl("https://adsrvr.org/feedback/xxx?wp=${AUCTION_PRICE}&param2=xyz")));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getNurl, Bid::getAdm, Bid::getBurl)
+                .containsOnly(tuple(
+                        "http://example.com/nurl?price=123456789.123456789",
+                        "<div>Price: 123456789.123456789</div>",
+                        "https://adsrvr.org/feedback/xxx?wp=123456789.123456789&param2=xyz"));
+    }
+
+    @Test
+    public void makeBidsShouldReplacePriceMacroInBurlIfNurlAndAdmDoNotContainMacro() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidResponse(bidBuilder -> bidBuilder
+                        .mtype(1)
+                        .impid("123")
+                        .price(BigDecimal.valueOf(7.77))
+                        .nurl("http://example.com/nurl")
+                        .adm("<div>No macro</div>")
+                        .burl("https://adsrvr.org/feedback/xxx?wp=${AUCTION_PRICE}&param2=xyz")));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getNurl, Bid::getAdm, Bid::getBurl)
+                .containsOnly(tuple(
+                        "http://example.com/nurl",
+                        "<div>No macro</div>",
+                        "https://adsrvr.org/feedback/xxx?wp=7.77&param2=xyz"));
     }
 
     private String givenBidResponse(UnaryOperator<Bid.BidBuilder> bidCustomizer) throws JsonProcessingException {
@@ -493,5 +784,4 @@ public class TheTradeDeskBidderTest extends VertxTest {
     private static ObjectNode impExt(String publisherId, String supplySourceId) {
         return mapper.valueToTree(ExtPrebid.of(null, ExtImpTheTradeDesk.of(publisherId, supplySourceId)));
     }
-
 }

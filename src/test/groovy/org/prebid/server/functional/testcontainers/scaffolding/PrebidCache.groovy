@@ -7,12 +7,15 @@ import org.mockserver.model.HttpResponse
 import org.prebid.server.functional.model.mock.services.prebidcache.response.CacheObject
 import org.prebid.server.functional.model.mock.services.prebidcache.response.PrebidCacheResponse
 import org.prebid.server.functional.model.request.cache.BidCacheRequest
+import org.prebid.server.functional.model.response.vtrack.TransferValue
+import org.prebid.server.functional.util.PBSUtils
 import org.testcontainers.containers.MockServerContainer
 
 import java.util.stream.Stream
 
 import static org.mockserver.model.HttpRequest.request
 import static org.mockserver.model.HttpResponse.response
+import static org.mockserver.model.HttpStatusCode.INTERNAL_SERVER_ERROR_500
 import static org.mockserver.model.HttpStatusCode.OK_200
 import static org.mockserver.model.JsonPathBody.jsonPath
 
@@ -22,6 +25,11 @@ class PrebidCache extends NetworkScaffolding {
 
     PrebidCache(MockServerContainer mockServerContainer) {
         super(mockServerContainer, CACHE_ENDPOINT)
+    }
+
+    String getVTracGetRequestParams() {
+        getRecordedRequestsQueryParameters(request().withMethod("GET")
+                .withPath(CACHE_ENDPOINT))
     }
 
     void setXmlCacheResponse(String payload, PrebidCacheResponse prebidCacheResponse) {
@@ -43,8 +51,8 @@ class PrebidCache extends NetworkScaffolding {
     @Override
     protected HttpRequest getRequest(String impId) {
         request().withMethod("POST")
-                 .withPath(CACHE_ENDPOINT)
-                 .withBody(jsonPath("\$.puts[?(@.value.impid == '$impId')]"))
+                .withPath(CACHE_ENDPOINT)
+                .withBody(jsonPath("\$.puts[?(@.value.impid == '$impId')]"))
     }
 
     List<BidCacheRequest> getRecordedRequests(String impId) {
@@ -59,21 +67,52 @@ class PrebidCache extends NetworkScaffolding {
     @Override
     HttpRequest getRequest() {
         request().withMethod("POST")
-                 .withPath(CACHE_ENDPOINT)
+                .withPath(CACHE_ENDPOINT)
     }
 
     @Override
     void setResponse() {
-        mockServerClient.when(request().withPath(endpoint), Times.unlimited(), TimeToLive.unlimited(), -10)
-                        .respond{request -> request.withPath(endpoint)
-                                ? response().withStatusCode(OK_200.code()).withBody(getBodyByRequest(request))
-                                : HttpResponse.notFoundResponse()}
+        mockServerClient.when(request()
+                .withMethod("POST")
+                .withPath(endpoint), Times.unlimited(), TimeToLive.unlimited(), -10)
+                .respond { request ->
+                    request.withPath(endpoint)
+                            ? response().withStatusCode(OK_200.code()).withBody(getBodyByRequest(request))
+                            : HttpResponse.notFoundResponse()
+                }
+    }
+
+    void setGetResponse(TransferValue vTrackResponse) {
+        mockServerClient.when(request()
+                .withMethod("GET")
+                .withPath(endpoint), Times.unlimited(), TimeToLive.unlimited(), -10)
+                .respond { request ->
+                    request.withPath(endpoint)
+                            ? response().withStatusCode(OK_200.code()).withBody(encode(vTrackResponse))
+                            : HttpResponse.notFoundResponse()
+                }
+    }
+
+    void setInvalidPostResponse() {
+        mockServerClient.when(request()
+                .withMethod("POST")
+                .withPath(endpoint), Times.unlimited(), TimeToLive.unlimited(), -10)
+                .respond { response().withStatusCode(INTERNAL_SERVER_ERROR_500.code()) }
+    }
+
+    void setInvalidGetResponse(String uuid, String errorMessage = PBSUtils.randomString) {
+        mockServerClient.when(request()
+                .withMethod("GET")
+                .withPath(endpoint)
+                .withQueryStringParameter("uuid", uuid), Times.unlimited(), TimeToLive.unlimited(), -10)
+                .respond { response().withBody(errorMessage).withStatusCode(INTERNAL_SERVER_ERROR_500.code()) }
+
     }
 
     private static HttpRequest getXmlCacheRequest(String payload) {
         request().withMethod("POST")
-                 .withPath(CACHE_ENDPOINT)
-                 .withBody(jsonPath("\$.puts[?(@.value =~/^.*$payload.*\$/)]"))
+                .withPath(CACHE_ENDPOINT)
+                .withBody(jsonPath("\$.puts[?(@.value =~/^.*$payload.*\$/)]"))
     }
 
     private static String getBodyByRequest(HttpRequest request) {

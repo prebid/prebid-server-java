@@ -1,0 +1,31 @@
+package org.prebid.server.auction.model;
+
+import lombok.Value;
+import org.prebid.server.bidder.model.BidderBid;
+
+@Value(staticConstructor = "of")
+public class BidRejection implements Rejection {
+
+    BidderBid bid;
+
+    BidRejectionReason reason;
+
+    @Override
+    public String impId() {
+        return bid.getBid().getImpid();
+    }
+
+    @Override
+    public BidRejectionReason reason() {
+        return reason;
+    }
+
+    @Override
+    public String seat() {
+        return bid.getSeat();
+    }
+
+    public String bidId() {
+        return bid.getBid().getId();
+    }
+}

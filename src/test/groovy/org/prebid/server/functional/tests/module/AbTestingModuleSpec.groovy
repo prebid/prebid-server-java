@@ -218,7 +218,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.action == [NO_ACTION, NO_ACTION]
             it.analyticsTags.activities.name.flatten().sort() == [ORTB2_BLOCKING, AB_TESTING, AB_TESTING].value.sort()
             it.analyticsTags.activities.status.flatten().sort() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten().sort() == [AnalyticTagStatus.SUCCESS_ALLOW, AnalyticTagStatus.RUN, AnalyticTagStatus.RUN].value.sort()
+            it.analyticsTags.activities.results.status.flatten().sort() == [AnalyticTagStatus.SUCCESS_ALLOW, AnalyticTagStatus.RUN, AnalyticTagStatus.RUN].sort()
             it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.ORTB2_BLOCKING, ModuleName.ORTB2_BLOCKING]
         }
 
@@ -229,7 +229,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.action == [NO_ACTION]
             it.analyticsTags.activities.name.flatten() == [AB_TESTING].value
             it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.RUN].value
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.RUN]
             it.analyticsTags.activities.results.values.module.flatten() == [PB_RESPONSE_CORRECTION]
         }
 
@@ -279,7 +279,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.action == [NO_INVOCATION, NO_INVOCATION]
             it.analyticsTags.activities.name.flatten() == [AB_TESTING, AB_TESTING].value
             it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED].value
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED]
             it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.ORTB2_BLOCKING, ModuleName.ORTB2_BLOCKING]
         }
 
@@ -290,7 +290,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.action == [NO_INVOCATION]
             it.analyticsTags.activities.name.flatten() == [AB_TESTING].value
             it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED].value
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED]
             it.analyticsTags.activities.results.values.module.flatten() == [PB_RESPONSE_CORRECTION]
         }
 
@@ -340,7 +340,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.action == [NO_INVOCATION, NO_INVOCATION]
             it.analyticsTags.activities.name.flatten() == [AB_TESTING, AB_TESTING].value
             it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED].value
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED]
             it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.ORTB2_BLOCKING, ModuleName.ORTB2_BLOCKING]
         }
 
@@ -351,7 +351,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.action == [NO_ACTION]
             it.analyticsTags.activities.name.flatten() == [AB_TESTING].value
             it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.RUN].value
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.RUN]
             it.analyticsTags.activities.results.values.module.flatten() == [PB_RESPONSE_CORRECTION]
         }
 
@@ -394,7 +394,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.action == [NO_INVOCATION, NO_INVOCATION]
             it.analyticsTags.activities.name.flatten() == [AB_TESTING, AB_TESTING].value
             it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED].value
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED]
             it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.ORTB2_BLOCKING, ModuleName.ORTB2_BLOCKING]
         }
 
@@ -432,7 +432,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.action == [NO_ACTION, NO_ACTION]
             it.analyticsTags.activities.name.flatten().sort() == [ORTB2_BLOCKING, AB_TESTING, AB_TESTING].value.sort()
             it.analyticsTags.activities.status.flatten().sort() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten().sort() == [AnalyticTagStatus.SUCCESS_ALLOW, AnalyticTagStatus.RUN, AnalyticTagStatus.RUN].value.sort()
+            it.analyticsTags.activities.results.status.flatten().sort() == [AnalyticTagStatus.SUCCESS_ALLOW, AnalyticTagStatus.RUN, AnalyticTagStatus.RUN].sort()
             it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.ORTB2_BLOCKING, ModuleName.ORTB2_BLOCKING]
         }
 
@@ -481,7 +481,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.action == [NO_INVOCATION, NO_INVOCATION]
             it.analyticsTags.activities.name.flatten() == [AB_TESTING, AB_TESTING].value
             it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED].value
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED]
             it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.ORTB2_BLOCKING, ModuleName.ORTB2_BLOCKING]
         }
 
@@ -528,7 +528,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.action == [NO_INVOCATION, NO_INVOCATION]
             it.analyticsTags.activities.name.flatten() == [AB_TESTING, AB_TESTING].value
             it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED].value
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED]
             it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.ORTB2_BLOCKING, ModuleName.ORTB2_BLOCKING]
         }
 
@@ -576,7 +576,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
             it.analyticsTags.activities.name.flatten().sort() == [ORTB2_BLOCKING, AB_TESTING, AB_TESTING].value.sort()
             it.analyticsTags.activities.status.flatten().sort() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten().sort() == [AnalyticTagStatus.SUCCESS_ALLOW, AnalyticTagStatus.RUN, AnalyticTagStatus.RUN].value.sort()
+            it.analyticsTags.activities.results.status.flatten().sort() == [AnalyticTagStatus.SUCCESS_ALLOW, AnalyticTagStatus.RUN, AnalyticTagStatus.RUN].sort()
             it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.ORTB2_BLOCKING, ModuleName.ORTB2_BLOCKING]
         }
 
@@ -625,7 +625,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.action == [NO_INVOCATION, NO_INVOCATION]
             it.analyticsTags.activities.name.flatten() == [AB_TESTING, AB_TESTING].value
             it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED].value
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED]
             it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.ORTB2_BLOCKING, ModuleName.ORTB2_BLOCKING]
         }
 
@@ -795,7 +795,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.action == [NO_INVOCATION, NO_INVOCATION]
             it.analyticsTags.activities.name.flatten() == [AB_TESTING, AB_TESTING].value
             it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED].value
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED]
             it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.ORTB2_BLOCKING, ModuleName.ORTB2_BLOCKING]
         }
 
@@ -858,7 +858,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.action == [NO_INVOCATION, NO_INVOCATION]
             it.analyticsTags.activities.name.flatten() == [AB_TESTING, AB_TESTING].value
             it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED].value
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED]
             it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.ORTB2_BLOCKING, ModuleName.ORTB2_BLOCKING]
         }
 
@@ -922,7 +922,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.action == [NO_INVOCATION, NO_INVOCATION]
             it.analyticsTags.activities.name.flatten() == [AB_TESTING, AB_TESTING].value
             it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED].value
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED]
             it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.ORTB2_BLOCKING, ModuleName.ORTB2_BLOCKING]
         }
 
@@ -933,7 +933,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.action == [NO_INVOCATION]
             it.analyticsTags.activities.name.flatten() == [AB_TESTING].value
             it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED].value
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED]
             it.analyticsTags.activities.results.values.module.flatten() == [PB_RESPONSE_CORRECTION]
         }
 
@@ -982,7 +982,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
             it.analyticsTags.activities.name.flatten() == [ORTB2_BLOCKING].value
             it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SUCCESS_ALLOW].value
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SUCCESS_ALLOW]
             it.analyticsTags.activities.results.values.module.flatten().every { it == null }
         }
 
@@ -1051,7 +1051,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.action == [NO_INVOCATION, NO_INVOCATION, NO_INVOCATION, NO_INVOCATION]
             it.analyticsTags.activities.name.flatten() == [AB_TESTING, AB_TESTING, AB_TESTING, AB_TESTING].value
             it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED].value
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED]
             it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.ORTB2_BLOCKING, ModuleName.ORTB2_BLOCKING, ModuleName.ORTB2_BLOCKING, ModuleName.ORTB2_BLOCKING]
         }
 
@@ -1120,7 +1120,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.action == [NO_INVOCATION, NO_INVOCATION]
             it.analyticsTags.activities.name.flatten() == [AB_TESTING, AB_TESTING].value
             it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED].value
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED]
             it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.ORTB2_BLOCKING, ModuleName.ORTB2_BLOCKING]
         }
 

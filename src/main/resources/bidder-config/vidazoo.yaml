@@ -1,6 +1,41 @@
 adapters:
   vidazoo:
     endpoint: https://prebidsrvr.cootlogix.com/openrtb/
+    aliases:
+      progx:
+        enabled: false
+        endpoint: https://exchange.programmaticx.ai/openrtb/
+        meta-info:
+          maintainer-email: pxteam@programmaticx.ai
+          vendor-id: 1344
+        usersync:
+          enabled: true
+          cookie-family-name: progx
+          iframe:
+            url: https://sync.programmaticx.ai/api/user/html/685297194d85991a5e6e36dd?pbs=true&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}
+            support-cors: false
+            uid-macro: '${userId}'
+      omnidex:
+        endpoint: https://exchange.omni-dex.io/openrtb/
+        usersync:
+          enabled: true
+          cookie-family-name: omnidex
+          vendor-id: 1463
+          iframe:
+            url: https://sync.omni-dex.io/api/user/html/6810d0c7f163277130f3d7a9?pbs=true&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}
+            support-cors: false
+            uid-macro: '${userId}'
+      tagoras:
+        endpoint: https://exchange.tagoras.io/openrtb/
+        meta-info:
+          maintainer-email: prebid@tagoras.io
+        usersync:
+          enabled: true
+          cookie-family-name: tagoras
+          iframe:
+            url: https://sync.tagoras.io/api/user/html/6819bdc3e6bb44545c55f843?pbs=true&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}
+            support-cors: false
+            uid-macro: '${userId}'
     endpoint-compression: gzip
     ortb-version: "2.6"
     meta-info:

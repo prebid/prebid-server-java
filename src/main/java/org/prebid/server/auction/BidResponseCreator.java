@@ -25,6 +25,7 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.prebid.server.auction.categorymapping.CategoryMappingService;
+import org.prebid.server.auction.externalortb.StoredRequestProcessor;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionParticipation;
 import org.prebid.server.auction.model.BidInfo;
@@ -35,6 +36,7 @@ import org.prebid.server.auction.model.CachedDebugLog;
 import org.prebid.server.auction.model.CategoryMappingResult;
 import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.PaaFormat;
+import org.prebid.server.auction.model.Rejection;
 import org.prebid.server.auction.model.TargetingInfo;
 import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.auction.requestfactory.Ortb2ImplicitParametersResolver;
@@ -1564,7 +1566,15 @@ public class BidResponseCreator {
             final String categoryDuration = bidInfo.getCategory();
             targetingKeywords = keywordsCreator != null
                     ? keywordsCreator.makeFor(
-                    bid, seat, isWinningBid, cacheId, bidType.getName(), videoCacheId, categoryDuration, account)
+                    bid,
+                    seat,
+                    isWinningBid,
+                    cacheId,
+                    bidType.getName(),
+                    videoCacheId,
+                    categoryDuration,
+                    account,
+                    bidWarnings)
                     : null;
         } else {
             targetingKeywords = null;
@@ -1949,12 +1959,10 @@ public class BidResponseCreator {
         }
 
         final List<SeatNonBid> seatNonBids = auctionContext.getBidRejectionTrackers().values().stream()
-                .flatMap(bidRejectionTracker -> bidRejectionTracker.getRejectedImps().entrySet().stream())
+                .flatMap(bidRejectionTracker -> bidRejectionTracker.getRejected().stream())
                 .collect(Collectors.groupingBy(
-                        entry -> entry.getValue().getLeft(),
-                        Collectors.mapping(
-                                entry -> NonBid.of(entry.getKey(), entry.getValue().getRight()),
-                                Collectors.toList())))
+                        Rejection::seat,
+                        Collectors.mapping(entry -> NonBid.of(entry.impId(), entry.reason()), Collectors.toList())))
                 .entrySet().stream()
                 .filter(entry -> !entry.getValue().isEmpty())
                 .map(entry -> SeatNonBid.of(entry.getKey(), entry.getValue()))

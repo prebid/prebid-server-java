@@ -11,7 +11,9 @@
       "ext": {
         "connatix": {
           "placementId": "some-placement-id"
-        }
+        },
+        "tid": "${json-unit.any-string}",
+        "gpid": "test-gpid"
       }
     }
   ],

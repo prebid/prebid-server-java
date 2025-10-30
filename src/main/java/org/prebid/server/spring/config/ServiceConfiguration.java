@@ -27,18 +27,18 @@ import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.OrtbTypesResolver;
 import org.prebid.server.auction.SecBrowsingTopicsResolver;
 import org.prebid.server.auction.SkippedAuctionService;
-import org.prebid.server.auction.StoredRequestProcessor;
-import org.prebid.server.auction.StoredResponseProcessor;
 import org.prebid.server.auction.SupplyChainResolver;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.UidUpdater;
 import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.VideoStoredRequestProcessor;
 import org.prebid.server.auction.WinningBidComparatorFactory;
-import org.prebid.server.bidadjustments.BidAdjustmentFactorResolver;
 import org.prebid.server.auction.categorymapping.BasicCategoryMappingService;
 import org.prebid.server.auction.categorymapping.CategoryMappingService;
 import org.prebid.server.auction.categorymapping.NoOpCategoryMappingService;
+import org.prebid.server.auction.externalortb.ProfilesProcessor;
+import org.prebid.server.auction.externalortb.StoredRequestProcessor;
+import org.prebid.server.auction.externalortb.StoredResponseProcessor;
 import org.prebid.server.auction.gpp.AmpGppService;
 import org.prebid.server.auction.gpp.AuctionGppService;
 import org.prebid.server.auction.gpp.CookieSyncGppService;
@@ -65,9 +65,10 @@ import org.prebid.server.auction.requestfactory.Ortb2RequestFactory;
 import org.prebid.server.auction.requestfactory.VideoRequestFactory;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConverterFactory;
+import org.prebid.server.bidadjustments.BidAdjustmentFactorResolver;
+import org.prebid.server.bidadjustments.BidAdjustmentsEnricher;
 import org.prebid.server.bidadjustments.BidAdjustmentsProcessor;
 import org.prebid.server.bidadjustments.BidAdjustmentsResolver;
-import org.prebid.server.bidadjustments.BidAdjustmentsEnricher;
 import org.prebid.server.bidadjustments.BidAdjustmentsRulesResolver;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderDeps;
@@ -247,14 +248,18 @@ public class ServiceConfiguration {
             @Value("${storage.pbc.call-timeout-ms}") int callTimeoutMs,
             @Value("${pbc.api.key}") String apiKey,
             HttpClient httpClient,
-            JacksonMapper mapper) {
+            JacksonMapper mapper,
+            Clock clock,
+            Metrics metrics) {
 
         return new BasicPbcStorageService(
                 httpClient,
                 CacheServiceUtil.getCacheEndpointUrl(scheme, host, path),
                 apiKey,
                 callTimeoutMs,
-                mapper);
+                mapper,
+                clock,
+                metrics);
     }
 
     @Bean
@@ -433,6 +438,7 @@ public class ServiceConfiguration {
             TimeoutResolver auctionTimeoutResolver,
             TimeoutFactory timeoutFactory,
             StoredRequestProcessor storedRequestProcessor,
+            ProfilesProcessor profilesProcessor,
             ApplicationSettings applicationSettings,
             IpAddressHelper ipAddressHelper,
             HookStageExecutor hookStageExecutor,
@@ -451,6 +457,7 @@ public class ServiceConfiguration {
                 auctionTimeoutResolver,
                 timeoutFactory,
                 storedRequestProcessor,
+                profilesProcessor,
                 applicationSettings,
                 ipAddressHelper,
                 hookStageExecutor,
@@ -463,6 +470,7 @@ public class ServiceConfiguration {
             @Value("${auction.max-request-size}") @Min(0) int maxRequestSize,
             Ortb2RequestFactory ortb2RequestFactory,
             StoredRequestProcessor storedRequestProcessor,
+            ProfilesProcessor profilesProcessor,
             BidRequestOrtbVersionConversionManager bidRequestOrtbVersionConversionManager,
             AuctionGppService auctionGppService,
             CookieDeprecationService cookieDeprecationService,
@@ -479,6 +487,7 @@ public class ServiceConfiguration {
                 maxRequestSize,
                 ortb2RequestFactory,
                 storedRequestProcessor,
+                profilesProcessor,
                 bidRequestOrtbVersionConversionManager,
                 auctionGppService,
                 cookieDeprecationService,
@@ -513,6 +522,7 @@ public class ServiceConfiguration {
     @Bean
     AmpRequestFactory ampRequestFactory(Ortb2RequestFactory ortb2RequestFactory,
                                         StoredRequestProcessor storedRequestProcessor,
+                                        ProfilesProcessor profilesProcessor,
                                         BidRequestOrtbVersionConversionManager bidRequestOrtbVersionConversionManager,
                                         AmpGppService ampGppService,
                                         OrtbTypesResolver ortbTypesResolver,
@@ -527,6 +537,7 @@ public class ServiceConfiguration {
         return new AmpRequestFactory(
                 ortb2RequestFactory,
                 storedRequestProcessor,
+                profilesProcessor,
                 bidRequestOrtbVersionConversionManager,
                 ampGppService,
                 ortbTypesResolver,
@@ -983,6 +994,29 @@ public class ServiceConfiguration {
                 new UUIDIdGenerator(),
                 metrics,
                 timeoutFactory,
+                mapper,
+                jsonMerger);
+    }
+
+    @Bean
+    ProfilesProcessor profilesProcessor(@Value("${auction.profiles.limit}") int maxProfiles,
+                                        @Value("${auction.profiles.timeout-ms}") long defaultTimeoutMillis,
+                                        @Value("${auction.profiles.fail-on-unknown:true}") boolean failOnUnknown,
+                                        @Value("${logging.sampling-rate:0.01}") double logSamplingRate,
+                                        ApplicationSettings applicationSettings,
+                                        TimeoutFactory timeoutFactory,
+                                        Metrics metrics,
+                                        JacksonMapper mapper,
+                                        JsonMerger jsonMerger) {
+
+        return new ProfilesProcessor(
+                maxProfiles,
+                defaultTimeoutMillis,
+                failOnUnknown,
+                logSamplingRate,
+                applicationSettings,
+                timeoutFactory,
+                metrics,
                 mapper,
                 jsonMerger);
     }

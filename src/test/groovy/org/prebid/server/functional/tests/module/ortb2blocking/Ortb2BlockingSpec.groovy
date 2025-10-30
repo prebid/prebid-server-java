@@ -1501,7 +1501,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
         assert response.ext.seatnonbid.size() == 1
 
         def seatNonBid = response.ext.seatnonbid[0]
-        assert seatNonBid.seat == ErrorType.GENERIC.value
+        assert seatNonBid.seat == GENERIC
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == RESPONSE_REJECTED_ADVERTISER_BLOCKED
     }

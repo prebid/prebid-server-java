@@ -30,7 +30,8 @@ import org.prebid.server.auction.GeoLocationServiceWrapper;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.InterstitialProcessor;
 import org.prebid.server.auction.OrtbTypesResolver;
-import org.prebid.server.auction.StoredRequestProcessor;
+import org.prebid.server.auction.externalortb.ProfilesProcessor;
+import org.prebid.server.auction.externalortb.StoredRequestProcessor;
 import org.prebid.server.auction.gpp.AuctionGppService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionStoredResult;
@@ -39,6 +40,7 @@ import org.prebid.server.auction.privacy.contextfactory.AuctionPrivacyContextFac
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.bidadjustments.BidAdjustmentsEnricher;
 import org.prebid.server.bidadjustments.model.BidAdjustmentType;
+import org.prebid.server.bidadjustments.model.BidAdjustmentsRule;
 import org.prebid.server.cookie.CookieDeprecationService;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.geolocation.model.GeoInfo;
@@ -52,7 +54,6 @@ import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsa;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.bidadjustments.model.BidAdjustmentsRule;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidDataEidPermissions;
@@ -88,6 +89,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
     private Ortb2RequestFactory ortb2RequestFactory;
     @Mock(strictness = LENIENT)
     private StoredRequestProcessor storedRequestProcessor;
+    @Mock(strictness = LENIENT)
+    private ProfilesProcessor profilesProcessor;
     @Mock(strictness = LENIENT)
     private BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
     @Mock(strictness = LENIENT)
@@ -146,6 +149,9 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .debugContext(DebugContext.of(true, true, null))
                 .build();
 
+        given(profilesProcessor.process(any(), any()))
+                .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(1)));
+
         given(ortbVersionConversionManager.convertToAuctionSupportedVersion(any()))
                 .willAnswer(invocation -> invocation.getArgument(0));
 
@@ -167,6 +173,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(ortb2RequestFactory.executeRawAuctionRequestHooks(any()))
                 .willAnswer(invocation -> Future.succeededFuture(
                         ((AuctionContext) invocation.getArgument(0)).getBidRequest()));
+        given(ortb2RequestFactory.limitImpressions(any(), any(), any()))
+                .willAnswer(invocationOnMock -> Future.succeededFuture(invocationOnMock.getArgument(1)));
         given(ortb2RequestFactory.validateRequest(any(), any(), any(), any(), any()))
                 .willAnswer(invocationOnMock -> Future.succeededFuture((BidRequest) invocationOnMock.getArgument(1)));
         given(ortb2RequestFactory.removeEmptyEids(any(), any()))
@@ -205,6 +213,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 Integer.MAX_VALUE,
                 ortb2RequestFactory,
                 storedRequestProcessor,
+                profilesProcessor,
                 ortbVersionConversionManager,
                 auctionGppService,
                 cookieDeprecationService,
@@ -241,6 +250,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 1,
                 ortb2RequestFactory,
                 storedRequestProcessor,
+                profilesProcessor,
                 ortbVersionConversionManager,
                 auctionGppService,
                 cookieDeprecationService,
@@ -800,6 +810,27 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .extracting(AuctionContext::getBidRequest)
                 .extracting(BidRequest::getTmax)
                 .isEqualTo(10000L);
+    }
+
+    @Test
+    public void shouldUseProfilesResult() {
+        // given
+        givenValidBidRequest();
+
+        given(profilesProcessor.process(any(), any())).willAnswer(
+                invocation -> Future.succeededFuture(((BidRequest) invocation.getArgument(1)).toBuilder()
+                        .source(Source.builder().tid("uniqTid").build())
+                        .build()));
+
+        // when
+        target.enrichAuctionContext(defaultActionContext);
+
+        // then
+        verify(paramsResolver).resolve(
+                argThat(bidRequest -> bidRequest.getSource().equals(Source.builder().tid("uniqTid").build())),
+                any(),
+                any(),
+                anyBoolean());
     }
 
     private void givenBidRequest(BidRequest bidRequest) {

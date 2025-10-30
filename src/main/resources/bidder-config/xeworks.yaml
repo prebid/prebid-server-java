@@ -7,6 +7,22 @@ adapters:
         endpoint: http://rtb.connektai.live/?pid={{SourceId}}&host={{Host}}&s=pbs
         meta-info:
           maintainer-email: adops@connekt.ai
+      adipolo:
+        enabled: false
+        endpoint: http://rtb.adipolo.live?pid={{SourceId}}&host={{Host}}&pbs=1
+        meta-info:
+          maintainer-email: smart@adipolo.com
+        usersync:
+          enabled: true
+          cookie-family-name: adipolo
+          redirect:
+            url: https://sync.adipolo.live/psync?t=s&e=0&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&cb={{redirect_url}}
+            support-cors: false
+            uid-macro: '$UID'
+          iframe:
+            url: https://sync.adipolo.live/static/adisync.html?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&cb={{redirect_url}}
+            support-cors: false
+            uid-macro: '$UID'
     meta-info:
       maintainer-email: team@xe.works
       app-media-types:

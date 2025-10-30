@@ -1,6 +1,7 @@
 package org.prebid.server.functional.tests
 
 import org.mockserver.model.HttpStatusCode
+import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountBidValidationConfig
 import org.prebid.server.functional.model.config.AccountConfig
@@ -22,6 +23,7 @@ import static org.mockserver.model.HttpStatusCode.OK_200
 import static org.mockserver.model.HttpStatusCode.PROCESSING_102
 import static org.mockserver.model.HttpStatusCode.SERVICE_UNAVAILABLE_503
 import static org.prebid.server.functional.model.AccountStatus.ACTIVE
+
 import static org.prebid.server.functional.model.config.BidValidationEnforcement.ENFORCE
 import static org.prebid.server.functional.model.request.auction.DebugCondition.DISABLED
 import static org.prebid.server.functional.model.request.auction.DebugCondition.ENABLED
@@ -57,7 +59,7 @@ class SeatNonBidSpec extends BaseSpec {
         assert response.ext.seatnonbid.size() == 1
 
         def seatNonBid = response.ext.seatnonbid[0]
-        assert seatNonBid.seat == GENERIC.value
+        assert seatNonBid.seat == BidderName.GENERIC
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == ERROR_NO_BID
 
@@ -83,7 +85,7 @@ class SeatNonBidSpec extends BaseSpec {
         assert response.ext.seatnonbid.size() == 1
 
         def seatNonBid = response.ext.seatnonbid[0]
-        assert seatNonBid.seat == GENERIC.value
+        assert seatNonBid.seat == BidderName.GENERIC
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == ERROR_INVALID_BID_RESPONSE
     }
@@ -105,7 +107,7 @@ class SeatNonBidSpec extends BaseSpec {
         assert response.ext.seatnonbid.size() == 1
 
         def seatNonBid = response.ext.seatnonbid[0]
-        assert seatNonBid.seat == GENERIC.value
+        assert seatNonBid.seat == BidderName.GENERIC
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == ERROR_BIDDER_UNREACHABLE
     }
@@ -118,7 +120,7 @@ class SeatNonBidSpec extends BaseSpec {
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
             seatbid.first.tap {
                 bid.first.height = bidRequest.imp.first.banner.format.first.height + 1
-                bid.first.weight = bidRequest.imp.first.banner.format.first.weight + 1
+                bid.first.width = bidRequest.imp.first.banner.format.first.width + 1
             }
         }
 
@@ -138,7 +140,7 @@ class SeatNonBidSpec extends BaseSpec {
         assert response.ext.seatnonbid.size() == 1
 
         def seatNonBid = response.ext.seatnonbid[0]
-        assert seatNonBid.seat == GENERIC.value
+        assert seatNonBid.seat == BidderName.GENERIC
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == RESPONSE_REJECTED_INVALID_CREATIVE_SIZE
     }
@@ -170,7 +172,7 @@ class SeatNonBidSpec extends BaseSpec {
         assert response.ext.seatnonbid.size() == 1
 
         def seatNonBid = response.ext.seatnonbid[0]
-        assert seatNonBid.seat == GENERIC.value
+        assert seatNonBid.seat == BidderName.GENERIC
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == RESPONSE_REJECTED_INVALID_CREATIVE_NOT_SECURE
 
@@ -220,7 +222,7 @@ class SeatNonBidSpec extends BaseSpec {
         assert response.ext.seatnonbid.size() == 1
 
         def seatNonBid = response.ext.seatnonbid[0]
-        assert seatNonBid.seat == GENERIC.value
+        assert seatNonBid.seat == BidderName.GENERIC
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == ERROR_NO_BID
 
@@ -282,7 +284,7 @@ class SeatNonBidSpec extends BaseSpec {
         assert seatNonBids.size() == 1
 
         def seatNonBid = seatNonBids[0]
-        assert seatNonBid.seat == GENERIC.value
+        assert seatNonBid.seat == BidderName.GENERIC
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == ERROR_TIMED_OUT
 
@@ -309,7 +311,7 @@ class SeatNonBidSpec extends BaseSpec {
         assert seatNonBids.size() == 1
 
         def seatNonBid = seatNonBids[0]
-        assert seatNonBid.seat == GENERIC.value
+        assert seatNonBid.seat == BidderName.GENERIC
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == REQUEST_BLOCKED_UNSUPPORTED_MEDIA_TYPE
 
