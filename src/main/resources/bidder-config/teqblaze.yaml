@@ -23,8 +23,7 @@ adapters:
         enabled: false
         # We have the following regional endpoint domains:  'lb' - for US_EAST, 'ortb-eu' - for EU, 'ortb-apac' - for APAC
         # Please deploy this config in each of your datacenters with the appropriate regional subdomain
-        # Endpoint pattern: https://{REGION}.al-ad.com/pserver
-        endpoint: https://lb.al-ad.com/pserver
+        endpoint: https://#{REGION}#.al-ad.com/pserver
         meta-info:
           maintainer-email: sdksupport@app-stock.com
         usersync:
