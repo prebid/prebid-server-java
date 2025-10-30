@@ -1,9 +1,11 @@
 package org.prebid.server.bidder.alvads;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.http.HttpMethod;
@@ -25,13 +27,13 @@ import org.prebid.server.proto.openrtb.ext.request.alvads.AlvadsImpExt;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class AlvadsBidder implements Bidder<AlvadsRequestOrtb> {
@@ -75,7 +77,6 @@ public class AlvadsBidder implements Bidder<AlvadsRequestOrtb> {
     }
 
     private HttpRequest<AlvadsRequestOrtb> makeHttpRequest(BidRequest request, Imp imp, AlvadsImpExt impExt) {
-        final String resolvedUrl = makeUrl(impExt);
         final AlvaAdsImp impObj = makeImp(imp);
         final AlvaAdsSite siteObj = makeSite(request.getSite(), impExt.getPublisherUniqueId());
         final AlvadsRequestOrtb alvadsRequest = AlvadsRequestOrtb.builder()
@@ -89,7 +90,7 @@ public class AlvadsBidder implements Bidder<AlvadsRequestOrtb> {
 
         return HttpRequest.<AlvadsRequestOrtb>builder()
                 .method(HttpMethod.POST)
-                .uri(resolvedUrl)
+                .uri(endpointUrl)
                 .headers(HttpUtil.headers())
                 .payload(alvadsRequest)
                 .body(mapper.encodeToBytes(alvadsRequest))
@@ -97,23 +98,16 @@ public class AlvadsBidder implements Bidder<AlvadsRequestOrtb> {
                 .build();
     }
 
-    private String makeUrl(AlvadsImpExt impExt) {
-        final String resolvedUrl = impExt.getEndpointUrl() != null ? impExt.getEndpointUrl() : endpointUrl;
-        try {
-            URI.create(resolvedUrl);
-            return resolvedUrl;
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException("Invalid endpoint URL: " + resolvedUrl, e);
-        }
-    }
-
     private static AlvaAdsImp makeImp(Imp imp) {
+        final Banner banner = imp.getBanner();
+        final Video video = imp.getVideo();
+
         return AlvaAdsImp.builder()
                 .id(imp.getId())
                 .tagid(imp.getTagid())
                 .bidfloor(imp.getBidfloor())
-                .banner(imp.getBanner() != null ? sizes(imp.getBanner().getW(), imp.getBanner().getH()) : null)
-                .video(imp.getVideo() != null ? sizes(imp.getVideo().getW(), imp.getVideo().getH()) : null)
+                .banner(banner != null ? sizes(banner.getW(), banner.getH()) : null)
+                .video(video != null ? sizes(video.getW(), video.getH()) : null)
                 .build();
     }
 
@@ -175,13 +169,9 @@ public class AlvadsBidder implements Bidder<AlvadsRequestOrtb> {
             return BidType.video;
         }
 
-        final ExtBidAlvads bidExt = getBidExt(bid);
-        if (bidExt == null) {
-            return BidType.banner;
-        }
-
-        final BidType crtype = bidExt.getCrtype();
-        return crtype != null ? crtype : BidType.banner;
+        return Optional.ofNullable(getBidExt(bid))
+                .map(ExtBidAlvads::getCrtype)
+                .orElse(BidType.banner);
     }
 
     private ExtBidAlvads getBidExt(Bid bid) {
