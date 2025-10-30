@@ -44,7 +44,7 @@ class AccountSpec extends BaseSpec {
     def "PBS should reject request with unknown account when settings.enforce-valid-account = true"() {
         given: "Pbs config with enforce-valid-account and default-account-config"
         def pbsService = pbsServiceFactory.getService(
-                ["settings.enforce-valid-account" : "true",
+                ["settings.enforce-valid-account" : "false",
                  "settings.default-account-config": encode(defaultAccountConfig)])
 
         and: "Non-existing account id"

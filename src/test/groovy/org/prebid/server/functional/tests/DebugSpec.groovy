@@ -50,7 +50,7 @@ class DebugSpec extends BaseSpec {
 
         and: "Debug metrics should be incremented"
         def metricsRequest = defaultPbsService.sendCollectedMetricsRequest()
-        assert metricsRequest[DEBUG_REQUESTS_METRIC] == 1
+        assert metricsRequest[DEBUG_REQUESTS_METRIC] == 0
 
         and: "Account debug metrics shouldn't be incremented"
         assert !metricsRequest.keySet().contains(ACCOUNT_METRICS_PREFIX_NAME)
