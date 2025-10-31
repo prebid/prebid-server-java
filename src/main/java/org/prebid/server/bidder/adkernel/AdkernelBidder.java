@@ -41,6 +41,8 @@ public class AdkernelBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
+    private static final String ZONE_ID_MACRO = "{{ZoneId}}";
+
     private static final String MF_SUFFIX = "__mf";
     private static final String MF_SUFFIX_BANNER = "b" + MF_SUFFIX;
     private static final String MF_SUFFIX_VIDEO = "v" + MF_SUFFIX;
@@ -49,11 +51,11 @@ public class AdkernelBidder implements Bidder<BidRequest> {
 
     private static final int MF_SUFFIX_LENGTH = MF_SUFFIX.length() + 1;
 
-    private final String endpointTemplate;
+    private final String endpointUrl;
     private final JacksonMapper mapper;
 
-    public AdkernelBidder(String endpointTemplate, JacksonMapper mapper) {
-        this.endpointTemplate = HttpUtil.validateUrl(Objects.requireNonNull(endpointTemplate));
+    public AdkernelBidder(String endpointUrl, JacksonMapper mapper) {
+        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -183,10 +185,9 @@ public class AdkernelBidder implements Bidder<BidRequest> {
                                                       App app) {
 
         final ExtImpAdkernel impExt = extAndImp.getKey();
-        final String uri = endpointTemplate.formatted(impExt.getZoneId());
+        final String uri = endpointUrl.replace(ZONE_ID_MACRO, HttpUtil.encodeUrl(impExt.getZoneId().toString()));
 
-        final MultiMap headers = HttpUtil.headers()
-                .add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
+        final MultiMap headers = HttpUtil.headers().add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
 
         final BidRequest outgoingRequest = createBidRequest(extAndImp.getValue(), requestBuilder, site, app);
 

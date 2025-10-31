@@ -10,7 +10,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -26,8 +25,8 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
-import java.net.URI;
-import java.net.URISyntaxException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -46,9 +45,29 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
     private final JacksonMapper mapper;
 
     public SmartadserverBidder(String endpointUrl, String secondaryEndpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
-        this.secondaryEndpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(secondaryEndpointUrl));
+        this.endpointUrl = prepareEndpoint(endpointUrl);
+        this.secondaryEndpointUrl = prepareSecondaryEndpoint(secondaryEndpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
+    }
+
+    private static String prepareEndpoint(String endpointUrl) {
+        try {
+            final URL url = HttpUtil.parseUrl(endpointUrl);
+            final String baseUrl = url.getProtocol() + "://" + url.getAuthority() + StringUtils.removeEnd(url.getPath(), "/");
+            return baseUrl + "/api/bid?callerId=5";
+        } catch (MalformedURLException e) {
+            throw new IllegalArgumentException("URL supplied is not valid: " + endpointUrl, e);
+        }
+    }
+
+    private static String prepareSecondaryEndpoint(String endpointUrl) {
+        try {
+            final URL url = HttpUtil.parseUrl(endpointUrl);
+            final String baseUrl = url.getProtocol() + "://" + url.getAuthority() + StringUtils.removeEnd(url.getPath(), "/");
+            return baseUrl + "/ortb?" + url.getQuery();
+        } catch (MalformedURLException e) {
+            throw new IllegalArgumentException("URL supplied is not valid: " + endpointUrl, e);
+        }
     }
 
     @Override
@@ -120,21 +139,7 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
     }
 
     private String makeUrl(boolean isProgrammaticGuaranteed) {
-        final String url = isProgrammaticGuaranteed ? secondaryEndpointUrl : endpointUrl;
-        try {
-            final URI uri = new URI(url);
-            final String path = isProgrammaticGuaranteed ? "/ortb" : "/api/bid";
-            final URIBuilder uriBuilder = new URIBuilder(uri)
-                    .setPath(StringUtils.removeEnd(uri.getPath(), "/") + path);
-
-            if (!isProgrammaticGuaranteed) {
-                uriBuilder.addParameter("callerId", "5");
-            }
-
-            return uriBuilder.toString();
-        } catch (URISyntaxException e) {
-            throw new PreBidException("Malformed URL: %s.".formatted(url));
-        }
+        return isProgrammaticGuaranteed ? secondaryEndpointUrl : endpointUrl;
     }
 
     @Override

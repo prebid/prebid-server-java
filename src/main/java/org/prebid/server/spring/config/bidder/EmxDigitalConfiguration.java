@@ -14,6 +14,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 
 import jakarta.validation.constraints.NotBlank;
+import java.time.Clock;
 
 @Configuration
 @PropertySource(value = "classpath:/bidder-config/emxdigital.yaml", factory = YamlPropertySourceFactory.class)
@@ -30,12 +31,13 @@ public class EmxDigitalConfiguration {
     @Bean
     BidderDeps emxdigitalBidderDeps(BidderConfigurationProperties emxdigitalConfigurationProperties,
                                     @NotBlank @Value("${external-url}") String externalUrl,
+                                    Clock clock,
                                     JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(emxdigitalConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new EmxDigitalBidder(config.getEndpoint(), mapper))
+                .bidderCreator(config -> new EmxDigitalBidder(config.getEndpoint(), clock, mapper))
                 .assemble();
     }
 }

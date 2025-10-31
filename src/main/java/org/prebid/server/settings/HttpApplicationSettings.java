@@ -5,10 +5,11 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Future;
+import io.vertx.uritemplate.UriTemplate;
+import io.vertx.uritemplate.Variables;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.json.DecodeException;
@@ -24,10 +25,11 @@ import org.prebid.server.settings.model.StoredResponseDataResult;
 import org.prebid.server.settings.proto.response.HttpAccountsResponse;
 import org.prebid.server.settings.proto.response.HttpFetcherResponse;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.UriTemplateUtil;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
-import java.net.URISyntaxException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -77,6 +79,10 @@ public class HttpApplicationSettings implements ApplicationSettings {
     private static final TypeReference<Map<String, Category>> CATEGORY_RESPONSE_REFERENCE =
             new TypeReference<>() {
             };
+    private static final long TIMESTAMP = Instant.now().toEpochMilli();
+    private static final String ACCOUNT_ID_PARAMETER = "accountId%s".formatted(TIMESTAMP);
+    private static final String REQUEST_ID_PARAMETER = "requestId%s".formatted(TIMESTAMP);
+    private static final String IMP_ID_PARAMETER = "impId%s".formatted(TIMESTAMP);
 
     private final boolean isRfc3986Compatible;
     private final String endpoint;
@@ -85,6 +91,8 @@ public class HttpApplicationSettings implements ApplicationSettings {
     private final String categoryEndpoint;
     private final HttpClient httpClient;
     private final JacksonMapper mapper;
+    private final UriTemplate storedDataUrlTemplate;
+    private final UriTemplate accountUrlTemplate;
 
     public HttpApplicationSettings(boolean isRfc3986Compatible,
                                    String endpoint,
@@ -95,12 +103,15 @@ public class HttpApplicationSettings implements ApplicationSettings {
                                    JacksonMapper mapper) {
 
         this.isRfc3986Compatible = isRfc3986Compatible;
-        this.endpoint = HttpUtil.validateUrlSyntax(Objects.requireNonNull(endpoint));
-        this.ampEndpoint = HttpUtil.validateUrlSyntax(Objects.requireNonNull(ampEndpoint));
-        this.videoEndpoint = HttpUtil.validateUrlSyntax(Objects.requireNonNull(videoEndpoint));
-        this.categoryEndpoint = HttpUtil.validateUrlSyntax(Objects.requireNonNull(categoryEndpoint));
+        this.endpoint = HttpUtil.validateUrl(Objects.requireNonNull(endpoint));
+        this.ampEndpoint = HttpUtil.validateUrl(Objects.requireNonNull(ampEndpoint));
+        this.videoEndpoint = HttpUtil.validateUrl(Objects.requireNonNull(videoEndpoint));
+        this.categoryEndpoint = HttpUtil.validateUrl(Objects.requireNonNull(categoryEndpoint));
         this.httpClient = Objects.requireNonNull(httpClient);
         this.mapper = Objects.requireNonNull(mapper);
+
+        this.storedDataUrlTemplate = UriTemplateUtil.createTemplate(endpoint, REQUEST_ID_PARAMETER, IMP_ID_PARAMETER);
+        this.accountUrlTemplate = UriTemplateUtil.createTemplate(endpoint, ACCOUNT_ID_PARAMETER);
     }
 
     @Override
@@ -127,19 +138,17 @@ public class HttpApplicationSettings implements ApplicationSettings {
     }
 
     private String accountsRequestUrlFrom(String endpoint, Set<String> accountIds) {
-        try {
-            final URIBuilder uriBuilder = new URIBuilder(endpoint);
-            if (!accountIds.isEmpty()) {
-                if (isRfc3986Compatible) {
-                    accountIds.forEach(accountId -> uriBuilder.addParameter("account-id", accountId));
-                } else {
-                    uriBuilder.addParameter("account-ids", "[\"%s\"]".formatted(joinIds(accountIds)));
-                }
-            }
-            return uriBuilder.build().toString();
-        } catch (URISyntaxException e) {
-            throw new PreBidException("URL %s has bad syntax".formatted(endpoint));
+        if (accountIds.isEmpty()) {
+            return endpoint;
         }
+
+        final String resolvedUrl = isRfc3986Compatible
+                ? accountUrlTemplate.expandToString(Variables.variables()
+                .set(ACCOUNT_ID_PARAMETER, new ArrayList<>(accountIds)))
+                : accountUrlTemplate.expandToString(Variables.variables()
+                .set(ACCOUNT_ID_PARAMETER, "[\"%s\"]".formatted(joinIds(accountIds))));
+
+        return resolvedUrl.replace(ACCOUNT_ID_PARAMETER, isRfc3986Compatible ? "account-id" : "account-ids");
     }
 
     private Set<Account> processAccountsResponse(HttpClientResponse httpClientResponse, Set<String> accountIds) {
@@ -232,26 +241,33 @@ public class HttpApplicationSettings implements ApplicationSettings {
     }
 
     private String storeRequestUrlFrom(String endpoint, Set<String> requestIds, Set<String> impIds) {
-        try {
-            final URIBuilder uriBuilder = new URIBuilder(endpoint);
+        if (requestIds.isEmpty() && impIds.isEmpty()) {
+            return endpoint;
+        }
+
+        final Variables variables = Variables.variables();
+        if (isRfc3986Compatible) {
             if (!requestIds.isEmpty()) {
-                if (isRfc3986Compatible) {
-                    requestIds.forEach(requestId -> uriBuilder.addParameter("request-id", requestId));
-                } else {
-                    uriBuilder.addParameter("request-ids", "[\"%s\"]".formatted(joinIds(requestIds)));
-                }
+                variables.set(REQUEST_ID_PARAMETER, new ArrayList<>(requestIds));
             }
             if (!impIds.isEmpty()) {
-                if (isRfc3986Compatible) {
-                    impIds.forEach(impId -> uriBuilder.addParameter("imp-id", impId));
-                } else {
-                    uriBuilder.addParameter("imp-ids", "[\"%s\"]".formatted(joinIds(impIds)));
-                }
+                variables.set(IMP_ID_PARAMETER, new ArrayList<>(impIds));
             }
-            return uriBuilder.build().toString();
-        } catch (URISyntaxException e) {
-            throw new PreBidException("URL %s has bad syntax".formatted(endpoint));
+
+            return storedDataUrlTemplate.expandToString(variables)
+                    .replace(REQUEST_ID_PARAMETER, "request-id")
+                    .replace(IMP_ID_PARAMETER, "imp-id");
         }
+
+        if (!requestIds.isEmpty()) {
+            variables.set(REQUEST_ID_PARAMETER, "[\"%s\"]".formatted(joinIds(requestIds)));
+        }
+        if (!impIds.isEmpty()) {
+            variables.set(IMP_ID_PARAMETER, "[\"%s\"]".formatted(joinIds(impIds)));
+        }
+        return storedDataUrlTemplate.expandToString(variables)
+                .replace(REQUEST_ID_PARAMETER, "request-ids")
+                .replace(IMP_ID_PARAMETER, "imp-ids");
     }
 
     private StoredDataResult<String> processStoredDataResponse(HttpClientResponse httpClientResponse,
