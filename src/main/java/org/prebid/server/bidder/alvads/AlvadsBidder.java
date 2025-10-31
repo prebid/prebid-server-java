@@ -8,6 +8,7 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
+import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
@@ -28,6 +29,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -149,11 +151,18 @@ public class AlvadsBidder implements Bidder<AlvadsRequestOrtb> {
     }
 
     private List<BidderBid> bidsFromResponse(BidResponse bidResponse, AlvadsRequestOrtb request) {
-        return bidResponse.getSeatbid().stream()
-                .flatMap(seatBid -> seatBid.getBid().stream())
+        return Optional.ofNullable(bidResponse.getSeatbid())
+                .orElse(Collections.emptyList())
+                .stream()
+                .filter(Objects::nonNull)
+                .map(SeatBid::getBid)
+                .filter(Objects::nonNull)
+                .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
                 .map(bid -> makeBid(bid, request, bidResponse.getCur()))
                 .toList();
     }
+
 
     private BidderBid makeBid(Bid bid, AlvadsRequestOrtb request, String currency) {
         final AlvaAdsImp imp = request.getImp().stream()
