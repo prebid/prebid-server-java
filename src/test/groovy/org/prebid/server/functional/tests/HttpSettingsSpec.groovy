@@ -43,10 +43,6 @@ class HttpSettingsSpec extends BaseSpec {
         prebidServerService = pbsServiceFactory.removeContainer(PBS_CONFIG_WITH_RFC)
     }
 
-    def cleanupSpec() {
-        pbsServiceFactory.removeContainer(PbsConfig.httpSettingsConfig)
-    }
-
     def "PBS should take account information from http data source on auction request"() {
         given: "Get basic BidRequest with generic bidder and set gdpr = 1"
         def bidRequest = BidRequest.defaultBidRequest

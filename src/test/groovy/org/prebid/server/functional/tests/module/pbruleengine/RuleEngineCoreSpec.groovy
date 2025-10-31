@@ -8,7 +8,7 @@ import org.prebid.server.functional.model.config.Stage
 import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.util.PBSUtils
 
-import static org.prebid.server.functional.model.ModuleName.PB_RULE_ENGINE
+import static org.prebid.server.functional.model.config.ModuleName.PB_RULE_ENGINE
 import static org.prebid.server.functional.model.bidder.BidderName.AMX
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
