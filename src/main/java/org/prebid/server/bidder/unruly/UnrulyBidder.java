@@ -15,11 +15,10 @@ import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.bidder.unruly.proto.UnrulyExtPrebid;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.unruly.ExtImpUnruly;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
@@ -34,7 +33,7 @@ import java.util.Objects;
 
 public class UnrulyBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpUnruly>> UNRULY_EXT_TYPE_REFERENCE =
+    private static final TypeReference<UnrulyExtPrebid> UNRULY_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
 
@@ -58,14 +57,17 @@ public class UnrulyBidder implements Bidder<BidRequest> {
 
     private Imp modifyImp(Imp imp) {
 
+        final UnrulyExtPrebid unrulyExtPrebid = parseImpExt(imp);
         return imp.toBuilder()
-                .ext(mapper.mapper().valueToTree(ExtPrebid.of(null, parseImpExt(imp))))
+                .ext(mapper.mapper().valueToTree(UnrulyExtPrebid.of(
+                        unrulyExtPrebid.getBidder(),
+                        unrulyExtPrebid.getGpid())))
                 .build();
     }
 
-    private ExtImpUnruly parseImpExt(Imp imp) {
+    private UnrulyExtPrebid parseImpExt(Imp imp) {
         try {
-            return mapper.mapper().convertValue(imp.getExt(), UNRULY_EXT_TYPE_REFERENCE).getBidder();
+            return mapper.mapper().convertValue(imp.getExt(), UNRULY_EXT_TYPE_REFERENCE);
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage());
         }
