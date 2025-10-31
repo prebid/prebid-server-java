@@ -67,7 +67,8 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 @ExtendWith(MockitoExtension.class)
 public class IxBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "http://exchange.org/";
+    private static final String ENDPOINT_URL = "http://exchange.org/?s=${IX_ACCOUNT_ID}";
+    private static final String DEFAULT_ACCOUNT_ID = "123456";
     private static final String SITE_ID = "site id";
 
     @Mock(strictness = LENIENT)
@@ -77,14 +78,14 @@ public class IxBidderTest extends VertxTest {
 
     @BeforeEach
     public void setUp() {
-        target = new IxBidder(ENDPOINT_URL, prebidVersionProvider, jacksonMapper);
+        target = new IxBidder(ENDPOINT_URL, DEFAULT_ACCOUNT_ID, prebidVersionProvider, jacksonMapper);
         given(prebidVersionProvider.getNameVersionRecord()).willReturn(null);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException().isThrownBy(
-                () -> new IxBidder("invalid_url", prebidVersionProvider, jacksonMapper));
+                () -> new IxBidder("invalid_url", DEFAULT_ACCOUNT_ID, prebidVersionProvider, jacksonMapper));
     }
 
     @Test
@@ -107,7 +108,7 @@ public class IxBidderTest extends VertxTest {
     public void makeHttpRequestsShouldModifyImpExtWithSid() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.ext(givenImpExt(null, "sid")));
+                impBuilder -> impBuilder.ext(givenImpExt(null, "sid", null)));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -128,7 +129,7 @@ public class IxBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
                         .banner(Banner.builder().w(1).h(2).build())
-                        .ext(givenImpExt(null, null)));
+                        .ext(givenImpExt(null, null, null)));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -154,7 +155,7 @@ public class IxBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
                         .banner(Banner.builder().format(singletonList(Format.builder().w(1).h(2).build())).build())
-                        .ext(givenImpExt(null, null)));
+                        .ext(givenImpExt(null, null, null)));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -220,8 +221,8 @@ public class IxBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnIxDiagWithMultipleSiteIdsWhenMultipleImpExtSiteIdPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.ext(givenImpExt("site1", null)),
-                impBuilder -> impBuilder.ext(givenImpExt("site2", null)));
+                impBuilder -> impBuilder.ext(givenImpExt("site1", null, null)),
+                impBuilder -> impBuilder.ext(givenImpExt("site2", null, null)));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -255,8 +256,8 @@ public class IxBidderTest extends VertxTest {
                         "pbjsv1",
                         givenIxDiag)),
                 List.of(
-                        impBuilder -> impBuilder.ext(givenImpExt("site1", null)),
-                        impBuilder -> impBuilder.ext(givenImpExt("site2", null))));
+                        impBuilder -> impBuilder.ext(givenImpExt("site1", null, null)),
+                        impBuilder -> impBuilder.ext(givenImpExt("site2", null, null))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -284,7 +285,7 @@ public class IxBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 bidRequestBuilder -> bidRequestBuilder.site(Site.builder().build()),
-                singletonList(impBuilder -> impBuilder.ext(givenImpExt("site1", null))));
+                singletonList(impBuilder -> impBuilder.ext(givenImpExt("site1", null, null))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -304,7 +305,7 @@ public class IxBidderTest extends VertxTest {
     public void makeHttpRequestsShouldNotCreateRequestSiteWhenImpExtSiteIdPresentAndSiteIsAbsent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.ext(givenImpExt("site1", null)));
+                impBuilder -> impBuilder.ext(givenImpExt("site1", null, null)));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -322,7 +323,7 @@ public class IxBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 bidRequestBuilder -> bidRequestBuilder.app(App.builder().build()),
-                singletonList(impBuilder -> impBuilder.ext(givenImpExt("site1", null))));
+                singletonList(impBuilder -> impBuilder.ext(givenImpExt("site1", null, null))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -342,7 +343,7 @@ public class IxBidderTest extends VertxTest {
     public void makeHttpRequestsShouldNotCreateRequestAppWhenImpExtSiteIdPresentAndSiteIsAbsent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.ext(givenImpExt("site1", null)));
+                impBuilder -> impBuilder.ext(givenImpExt("site1", null, null)));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -353,6 +354,41 @@ public class IxBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getApp)
                 .containsOnlyNulls();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReplaceAccountIdMacroInEndpointUrlWithEXTAccountId() {
+        // given
+        final String accountId = "account123";
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.ext(givenImpExt("site1", "sid", accountId)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getValue().get(0).getUri())
+            .doesNotContain("${IX_ACCOUNT_ID}")
+                .contains(accountId);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReplaceAccountIdMacroInEndpointUrlWithDefaultAccountId() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.ext(givenImpExt("site1", "sid", null)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getValue().get(0).getUri())
+            .doesNotContain("${IX_ACCOUNT_ID}")
+                .contains(DEFAULT_ACCOUNT_ID);
     }
 
     @Test
@@ -937,8 +973,8 @@ public class IxBidderTest extends VertxTest {
         return extRequest;
     }
 
-    private static ObjectNode givenImpExt(String siteId, String sid) {
-        return mapper.valueToTree(ExtPrebid.of(null, ExtImpIx.of(siteId, null, sid)));
+    private static ObjectNode givenImpExt(String siteId, String sid, String accountId) {
+        return mapper.valueToTree(ExtPrebid.of(null, ExtImpIx.of(siteId, null, sid, accountId)));
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder>... impCustomizers) {
@@ -961,7 +997,7 @@ public class IxBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                         .id("123")
                         .banner(Banner.builder().w(1).h(1).build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpIx.of(SITE_ID, null, null)))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpIx.of(SITE_ID, null, null, null)))))
                 .build();
     }
 
