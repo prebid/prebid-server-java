@@ -1,0 +1,34 @@
+{
+  "id": "tid",
+  "imp": [
+    {
+      "id": "imp1",
+      "banner": {
+        "w": 300,
+        "h": 250
+      },
+      "tagid": "123",
+      "bidfloor": 0
+    }
+  ],
+  "device": {
+    "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+    "ip": "193.168.244.1"
+  },
+  "user": {
+    "id": "+59172893207",
+    "buyeruid": "79e917b5-8bb3-4e46-94dc-1053497311f8"
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  },
+  "site": {
+    "page": "https://facebooktest.com",
+    "ref": "https://facebooktest.com",
+    "publisher": {
+      "id": "D7DACCE3-C23D-4AB9-8FE6-9FF41BF32F8F"
+    }
+  }
+}
