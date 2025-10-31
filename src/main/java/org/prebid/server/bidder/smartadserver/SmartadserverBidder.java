@@ -8,8 +8,6 @@ import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.uritemplate.UriTemplate;
-import io.vertx.uritemplate.Variables;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -47,9 +45,29 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
     private final JacksonMapper mapper;
 
     public SmartadserverBidder(String endpointUrl, String secondaryEndpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
-        this.secondaryEndpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(secondaryEndpointUrl));
+        this.endpointUrl = prepareEndpoint(endpointUrl);
+        this.secondaryEndpointUrl = prepareSecondaryEndpoint(secondaryEndpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
+    }
+
+    private static String prepareEndpoint(String endpointUrl) {
+        try {
+            final URL url = HttpUtil.parseUrl(endpointUrl);
+            final String baseUrl = url.getProtocol() + "://" + url.getAuthority() + StringUtils.removeEnd(url.getPath(), "/");
+            return baseUrl + "/api/bid?callerId=5";
+        } catch (MalformedURLException e) {
+            throw new IllegalArgumentException("URL supplied is not valid: " + endpointUrl, e);
+        }
+    }
+
+    private static String prepareSecondaryEndpoint(String endpointUrl) {
+        try {
+            final URL url = HttpUtil.parseUrl(endpointUrl);
+            final String baseUrl = url.getProtocol() + "://" + url.getAuthority() + StringUtils.removeEnd(url.getPath(), "/");
+            return baseUrl + "/ortb?" + url.getQuery();
+        } catch (MalformedURLException e) {
+            throw new IllegalArgumentException("URL supplied is not valid: " + endpointUrl, e);
+        }
     }
 
     @Override
@@ -121,19 +139,7 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
     }
 
     private String makeUrl(boolean isProgrammaticGuaranteed) {
-        final String endpoint = isProgrammaticGuaranteed ? secondaryEndpointUrl : endpointUrl;
-        final URL url;
-
-        try {
-            url = HttpUtil.parseUrl(endpoint);
-        } catch (MalformedURLException e) {
-            throw new PreBidException("Malformed URL: %s.".formatted(endpoint));
-        }
-        final List<String> paths = isProgrammaticGuaranteed ? Collections.singletonList("ortb") : List.of("api", "bid");
-        final String query = isProgrammaticGuaranteed ? "?" + url.getQuery() : "{?callerId}";
-        final String baseUrl = url.getProtocol() + "://" + url.getAuthority() + StringUtils.removeEnd(url.getPath(), "/");
-        return UriTemplate.of(baseUrl + "{/path*}" + query).expandToString(
-                Variables.variables().set("path", paths).set("callerId", isProgrammaticGuaranteed ? null : "5"));
+        return isProgrammaticGuaranteed ? secondaryEndpointUrl : endpointUrl;
     }
 
     @Override

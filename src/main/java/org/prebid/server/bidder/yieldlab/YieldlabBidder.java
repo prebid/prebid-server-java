@@ -46,6 +46,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidDsa;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.UriTemplateUtil;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -76,7 +77,6 @@ public class YieldlabBidder implements Bidder<Void> {
     private static final String AD_SIZE_SEPARATOR = "x";
     private static final String CREATIVE_ID = "%s%s%s";
     private static final String AD_SOURCE_BANNER = "<script src=\"%s\"></script>";
-    private static final String AD_SOURCE_URL = "https://ad.yieldlab.net/d/%s/%s/%s?%s";
     private static final String TRANSPARENCY_TEMPLATE = "%s~%s";
     private static final String TRANSPARENCY_TEMPLATE_PARAMS_DELIMITER = "_";
     private static final String TRANSPARENCY_TEMPLATE_DELIMITER = "~~";
@@ -87,13 +87,16 @@ public class YieldlabBidder implements Bidder<Void> {
             <Impression></Impression>
             <Creatives></Creatives>
             </Wrapper></Ad></VAST>""";
+    private static final UriTemplate NURL_TEMPLATE = UriTemplateUtil.createTemplate(
+            "https://ad.yieldlab.net/d{/path*}", false, "queryParams");
 
-    private final String endpointUrl;
+    private final UriTemplate endpointUrlTemplate;
     private final Clock clock;
     private final JacksonMapper mapper;
 
     public YieldlabBidder(String endpointUrl, Clock clock, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrlTemplate = UriTemplateUtil.createTemplate(endpointUrl + "{/adslotId}", false, "queryParams");
         this.clock = Objects.requireNonNull(clock);
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -153,7 +156,6 @@ public class YieldlabBidder implements Bidder<Void> {
     }
 
     private String makeUrl(ExtImpYieldlab extImpYieldlab, BidRequest request, Map<String, ExtImpYieldlab> extImps) {
-        final UriTemplate uriTemplate = UriTemplate.of(endpointUrl + "{/adslotId}{?queryParams*}");
         final Map<String, String> queryParams = new HashMap<>();
 
         queryParams.put("content", "json");
@@ -199,7 +201,7 @@ public class YieldlabBidder implements Bidder<Void> {
         addUriParameterIfNotBlank(queryParams, "schain", getSchainParameter(request.getSource()));
         queryParams.putAll(extractDsaRequestParamsFromBidRequest(request));
 
-        return uriTemplate.expandToString(Variables.variables()
+        return endpointUrlTemplate.expandToString(Variables.variables()
                 .set("adslotId", extImpYieldlab.getAdslotId())
                 .set("queryParams", queryParams));
     }
@@ -236,7 +238,7 @@ public class YieldlabBidder implements Bidder<Void> {
     }
 
     private String getTargetingValues(ExtImpYieldlab extImpYieldlab) {
-        return UriTemplate.of("{?queryParams*}")
+        return UriTemplateUtil.ONLY_QUERY_URI_TEMPLATE
                 .expandToString(Variables.variables().set("queryParams", extImpYieldlab.getTargeting()))
                 .replace("?", StringUtils.EMPTY);
     }
@@ -529,8 +531,9 @@ public class YieldlabBidder implements Bidder<Void> {
         }
 
         final List<String> pathSegments = List.of(extImp.getAdslotId(), extImp.getSupplyId(), yieldlabBid.getAdSize());
-        return UriTemplate.of("https://ad.yieldlab.net/d{/path*}{?queryParams*}")
-                .expandToString(Variables.variables().set("path", pathSegments).set("queryParams", queryParams));
+        return NURL_TEMPLATE.expandToString(Variables.variables()
+                .set("path", pathSegments)
+                .set("queryParams", queryParams));
     }
 
     private ObjectNode resolveBidExt(YieldlabBid bid, List<BidderError> errors) {

@@ -44,6 +44,7 @@ import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
+import org.prebid.server.util.UriTemplateUtil;
 import org.prebid.server.vast.VastModifier;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
@@ -88,6 +89,7 @@ public class CoreCacheService {
 
     private final boolean appendTraceInfoToCacheId;
     private final String datacenterRegion;
+    private final UriTemplate cacheGetEndpointTemplate;
 
     public CoreCacheService(
             HttpClient httpClient,
@@ -125,6 +127,9 @@ public class CoreCacheService {
 
         this.appendTraceInfoToCacheId = appendTraceInfoToCacheId;
         this.datacenterRegion = normalizeDatacenterRegion(datacenterRegion);
+
+        final String endpointUrl = ObjectUtils.firstNonNull(internalEndpointUrl, externalEndpointUrl).toString();
+        this.cacheGetEndpointTemplate = UriTemplateUtil.createTemplate(endpointUrl, "uuid", "ch");
     }
 
     public String getEndpointHost() {
@@ -646,16 +651,14 @@ public class CoreCacheService {
             return Future.failedFuture(new TimeoutException("Timeout has been exceeded"));
         }
 
-        final String endpointUrl = ObjectUtils.firstNonNull(internalEndpointUrl, externalEndpointUrl).toString();
-        final StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append(endpointUrl);
-        stringBuilder.append(endpointUrl.contains("?") ? "{&uuid}" : "{?uuid}");
+        final Variables queryParams = Variables.variables();
+
+        queryParams.set("uuid", key);
         if (StringUtils.isNotBlank(ch)) {
-            stringBuilder.append("{&ch}");
+            queryParams.set("ch", ch);
         }
-        final String url = UriTemplate.of(stringBuilder.toString()).expandToString(Variables.variables()
-                .set("uuid", key)
-                .set("ch", ch));
+
+        final String url = cacheGetEndpointTemplate.expandToString(queryParams);
 
         final long startTime = clock.millis();
         return httpClient.get(url, cacheHeaders, remainingTimeout)

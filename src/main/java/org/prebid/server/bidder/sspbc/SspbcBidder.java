@@ -20,6 +20,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.UriTemplateUtil;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -29,12 +30,14 @@ import java.util.Objects;
 public class SspbcBidder implements Bidder<SspbcRequest> {
 
     private static final String ADAPTER_VERSION = "6.0";
+    private static final String BDVER_QUERY_PARAM = "bdver";
 
-    private final String endpointUrl;
     private final JacksonMapper mapper;
+    private final UriTemplate uriTemplate;
 
     public SspbcBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.uriTemplate = UriTemplateUtil.createTemplate(endpointUrl, BDVER_QUERY_PARAM);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -47,7 +50,7 @@ public class SspbcBidder implements Bidder<SspbcRequest> {
         final SspbcRequest outgoingRequest = SspbcRequest.of(request);
         return HttpRequest.<SspbcRequest>builder()
                 .method(HttpMethod.POST)
-                .uri(makeUrl(endpointUrl))
+                .uri(makeUrl())
                 .headers(HttpUtil.headers())
                 .impIds(BidderUtil.impIds(outgoingRequest.getBidRequest()))
                 .body(mapper.encodeToBytes(outgoingRequest))
@@ -55,9 +58,8 @@ public class SspbcBidder implements Bidder<SspbcRequest> {
                 .build();
     }
 
-    private static String makeUrl(String endpointUrl) {
-        return UriTemplate.of(endpointUrl + (endpointUrl.contains("?") ? "{&bdver}" : "{?bdver}"))
-                .expandToString(Variables.variables().set("bdver", ADAPTER_VERSION));
+    private String makeUrl() {
+        return uriTemplate.expandToString(Variables.variables().set(BDVER_QUERY_PARAM, ADAPTER_VERSION));
     }
 
     @Override

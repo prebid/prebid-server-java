@@ -30,6 +30,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.yandex.ExtImpYandex;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.UriTemplateUtil;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -47,16 +48,20 @@ public class YandexBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private static final String PAGE_ID_MACRO = "{{PageId}}";
-    private static final String IMP_ID_MACRO = "{{ImpId}}";
+    private static final String PAGE_ID_MACRO = "PageId";
+    private static final String IMP_ID_MACRO = "ImpId";
     private static final String DISPLAY_MANAGER = "prebid.java";
     private static final String DISPLAY_MANAGER_VERSION = "1.1";
 
-    private final String endpointUrl;
+    private final UriTemplate endpointUrlTemplate;
     private final JacksonMapper mapper;
 
     public YandexBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrlTemplate = UriTemplateUtil.createTemplate(
+                endpointUrl,
+                "queryParams",
+                List.of(PAGE_ID_MACRO, IMP_ID_MACRO));
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -173,12 +178,6 @@ public class YandexBidder implements Bidder<BidRequest> {
     }
 
     private String modifyUrl(ExtImpYandex extImpYandex, String referer, String currency) {
-        final String resolvedUrl = endpointUrl
-                .replace(PAGE_ID_MACRO, HttpUtil.encodeUrl(extImpYandex.getPageId().toString()))
-                .replace(IMP_ID_MACRO, HttpUtil.encodeUrl(extImpYandex.getImpId().toString()));
-
-        final UriTemplate uriTemplate = UriTemplate.of(resolvedUrl
-                + (resolvedUrl.contains("?") ? "{&queryParams*}" : "{?queryParams*}"));
         final Map<String, String> queryParams = new HashMap<>();
 
         if (StringUtils.isNotBlank(referer)) {
@@ -189,7 +188,10 @@ public class YandexBidder implements Bidder<BidRequest> {
             queryParams.put("ssp-cur", currency);
         }
 
-        return uriTemplate.expandToString(Variables.variables().set("queryParams", queryParams));
+        return endpointUrlTemplate.expandToString(Variables.variables()
+                .set(PAGE_ID_MACRO, extImpYandex.getPageId().toString())
+                .set(IMP_ID_MACRO, extImpYandex.getImpId().toString())
+                .set("queryParams", queryParams));
     }
 
     private HttpRequest<BidRequest> buildHttpRequest(BidRequest outgoingRequest, String url) {

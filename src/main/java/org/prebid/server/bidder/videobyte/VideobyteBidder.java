@@ -25,6 +25,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.videobyte.ExtImpVideobyte;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.UriTemplateUtil;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -41,11 +42,12 @@ public class VideobyteBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private final String endpointUrl;
+    private final UriTemplate endpointUrlTemplate;
     private final JacksonMapper mapper;
 
     public VideobyteBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrlTemplate = UriTemplateUtil.createTemplate(endpointUrl, "queryParams");
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -88,8 +90,6 @@ public class VideobyteBidder implements Bidder<BidRequest> {
     }
 
     private String createUri(ExtImpVideobyte extImpVideobyte) {
-        final UriTemplate uriTemplate = UriTemplate.of(endpointUrl
-                + (endpointUrl.contains("?") ? "{&queryParams*}" : "{?queryParams*}"));
         final Map<String, String> queryParams = new HashMap<>();
 
         queryParams.put("source", "pbs");
@@ -103,7 +103,7 @@ public class VideobyteBidder implements Bidder<BidRequest> {
             queryParams.put("nid", extImpVideobyte.getNetworkId());
         }
 
-        return uriTemplate.expandToString(Variables.variables().set("queryParams", queryParams));
+        return endpointUrlTemplate.expandToString(Variables.variables().set("queryParams", queryParams));
     }
 
     private static MultiMap headers(BidRequest bidRequest) {

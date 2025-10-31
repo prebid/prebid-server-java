@@ -24,6 +24,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.tappx.ExtImpTappx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
+import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.UriTemplateUtil;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -45,14 +47,19 @@ public class TappxBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
     private static final Pattern NEW_ENDPOINT_PATTERN = Pattern.compile("^(zz|vz)[0-9]{3,}([a-z]{2,3}|test)$");
-    private static final String SUBDOMAIN_MACRO = "{{subdomain}}";
+    private static final String SUBDOMAIN_MACRO = "subdomain";
 
-    private final String endpointUrl;
+    private final UriTemplate newEndpointUrlTemplate;
+    private final UriTemplate oldEndpointUrlTemplate;
     private final Clock clock;
     private final JacksonMapper mapper;
 
     public TappxBidder(String endpointUrl, Clock clock, JacksonMapper mapper) {
-        this.endpointUrl = Objects.requireNonNull(endpointUrl);
+        HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.newEndpointUrlTemplate = UriTemplateUtil.createTemplate(
+                endpointUrl + "/rtb/", false, "queryParams", List.of(SUBDOMAIN_MACRO));
+        this.oldEndpointUrlTemplate = UriTemplateUtil.createTemplate(
+                endpointUrl + "/rtb/v2/{path}", false, "queryParams", List.of(SUBDOMAIN_MACRO));
         this.clock = Objects.requireNonNull(clock);
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -92,13 +99,9 @@ public class TappxBidder implements Bidder<BidRequest> {
     private String resolveUrl(ExtImpTappx extImpTappx, Integer test) {
         final String subdomain = extImpTappx.getEndpoint();
         final boolean isNewEndpoint = NEW_ENDPOINT_PATTERN.matcher(subdomain).matches();
+        final UriTemplate urlTemplate = isNewEndpoint ? newEndpointUrlTemplate : oldEndpointUrlTemplate;
 
-        final String baseUri = isNewEndpoint ? resolveNewHost(subdomain) : resolveOldHost();
-        final UriTemplate uriTemplate = UriTemplate.of(baseUri
-                + (isNewEndpoint ? StringUtils.EMPTY : "{/subdomain}")
-                + "{?queryParams*}");
         final Map<String, String> queryParams = new HashMap<>();
-
         queryParams.put("tappxkey", extImpTappx.getTappxkey());
         queryParams.put("v", VERSION);
         queryParams.put("type_cnn", TYPE_CNN);
@@ -107,17 +110,10 @@ public class TappxBidder implements Bidder<BidRequest> {
             queryParams.put("ts", String.valueOf(clock.millis()));
         }
 
-        return uriTemplate.expandToString(Variables.variables()
-                .set("subdomain", subdomain)
+        return urlTemplate.expandToString(Variables.variables()
+                .set(SUBDOMAIN_MACRO, isNewEndpoint ? subdomain + ".pub" : "ssp.api")
+                .set("path", isNewEndpoint ? StringUtils.EMPTY : subdomain)
                 .set("queryParams", queryParams));
-    }
-
-    private String resolveNewHost(String subdomain) {
-        return endpointUrl.replace(SUBDOMAIN_MACRO, subdomain + ".pub") + "/rtb/";
-    }
-
-    private String resolveOldHost() {
-        return endpointUrl.replace(SUBDOMAIN_MACRO, "ssp.api") + "/rtb/v2";
     }
 
     private static Imp modifyImp(Imp imp, ExtImpTappx extImpTappx) {

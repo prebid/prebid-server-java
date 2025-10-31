@@ -27,6 +27,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
+import org.prebid.server.util.UriTemplateUtil;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -42,11 +43,12 @@ public class DxKultureBidder implements Bidder<BidRequest> {
             };
     private static final String X_OPENRTB_VERSION = "2.5";
 
-    private final String endpointUrl;
+    private final UriTemplate endpointUrlTemplate;
     private final JacksonMapper mapper;
 
     public DxKultureBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrlTemplate = UriTemplateUtil.createTemplate(endpointUrl, "queryParams");
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -79,14 +81,11 @@ public class DxKultureBidder implements Bidder<BidRequest> {
     }
 
     private String getUri(ExtImpDxKulture extImpDxKulture) {
-        final UriTemplate uriTemplate = UriTemplate.of(endpointUrl
-                + (endpointUrl.contains("?") ? "{&queryParams*}" : "{?queryParams*}"));
-
         final Map<String, String> queryParams = Map.of(
                 "publisher_id", extImpDxKulture.getPublisherId(),
                 "placement_id", extImpDxKulture.getPlacementId());
 
-        return uriTemplate.expandToString(Variables.variables().set("queryParams", queryParams));
+        return endpointUrlTemplate.expandToString(Variables.variables().set("queryParams", queryParams));
     }
 
     private static MultiMap resolveHeaders(BidRequest bidRequest) {

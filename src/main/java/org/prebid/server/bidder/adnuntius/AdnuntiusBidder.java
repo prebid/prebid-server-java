@@ -58,6 +58,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidDsa;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
+import org.prebid.server.util.UriTemplateUtil;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -82,8 +83,8 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
     private static final int BANNER_MTYPE = 1;
     private static final int NATIVE_MTYPE = 4;
 
-    private final String endpointUrl;
-    private final String euEndpoint;
+    private final UriTemplate endpointUrlTemplate;
+    private final UriTemplate euEndpointUrlTemplate;
     private final Clock clock;
     private final JacksonMapper mapper;
 
@@ -92,8 +93,12 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
                            Clock clock,
                            JacksonMapper mapper) {
 
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
-        this.euEndpoint = euEndpoint == null ? null : HttpUtil.validateUrl(euEndpoint);
+        HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrlTemplate = UriTemplateUtil.createTemplate(endpointUrl, "queryParams");
+        final String euUrl = euEndpoint == null ? null : HttpUtil.validateUrl(euEndpoint);
+        this.euEndpointUrlTemplate = euUrl == null
+                ? null
+                : UriTemplateUtil.createTemplate(euUrl, "queryParams");
         this.clock = Objects.requireNonNull(clock);
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -249,9 +254,9 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
 
     private String makeEndpoint(BidRequest bidRequest, Boolean noCookies) {
         final String gdpr = extractGdpr(bidRequest.getRegs());
-        final String url = StringUtils.isNotBlank(gdpr) ? euEndpoint : endpointUrl;
+        final UriTemplate urlTemplate = StringUtils.isNotBlank(gdpr) ? euEndpointUrlTemplate : endpointUrlTemplate;
 
-        if (url == null) {
+        if (urlTemplate == null) {
             throw new PreBidException("an EU endpoint is required but invalid");
         }
 
@@ -273,8 +278,7 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
             queryParams.put("noCookies", "true");
         }
 
-        return UriTemplate.of(url + (url.contains("?") ? "{&queryParams*}" : "{?queryParams*}"))
-                .expandToString(Variables.variables().set("queryParams", queryParams));
+        return urlTemplate.expandToString(Variables.variables().set("queryParams", queryParams));
     }
 
     private String getTimeZoneOffset() {

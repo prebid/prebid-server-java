@@ -54,6 +54,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
+import org.prebid.server.util.UriTemplateUtil;
 
 import jakarta.validation.ValidationException;
 import java.math.BigDecimal;
@@ -83,7 +84,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private final String endpointUrl;
+    private final UriTemplate endpointUrlTemplate;
     private final Integer headerBiddingSource;
     private final Map<Integer, String> iabCategories;
     private final JacksonMapper mapper;
@@ -93,7 +94,8 @@ public class AppnexusBidder implements Bidder<BidRequest> {
                           Map<Integer, String> iabCategories,
                           JacksonMapper mapper) {
 
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrlTemplate = UriTemplateUtil.createTemplate(endpointUrl, "member_id");
         this.headerBiddingSource = ObjectUtils.defaultIfNull(platformId, DEFAULT_PLATFORM_ID);
         this.iabCategories = ObjectUtils.defaultIfNull(iabCategories, Collections.emptyMap());
         this.mapper = Objects.requireNonNull(mapper);
@@ -307,14 +309,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
     }
 
     private String makeUrl(String member) {
-        try {
-            return member != null
-                    ? UriTemplate.of(endpointUrl + (endpointUrl.contains("?") ? "{&member_id}" : "{?member_id}"))
-                    .expandToString(Variables.variables().set("member_id", member))
-                    : endpointUrl;
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage());
-        }
+        return endpointUrlTemplate.expandToString(Variables.variables().set("member_id", member));
     }
 
     private static String extractEndpointName(BidRequest bidRequest) {

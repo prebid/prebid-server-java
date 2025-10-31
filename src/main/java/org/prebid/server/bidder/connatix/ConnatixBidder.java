@@ -36,6 +36,7 @@ import org.prebid.server.proto.openrtb.ext.request.connatix.ExtImpConnatix;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.UriTemplateUtil;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -53,9 +54,8 @@ public class ConnatixBidder implements Bidder<BidRequest> {
 
     private static final String BIDDER_CURRENCY = "USD";
     private static final String FORMATTING = "%s-%s";
-    private static final String GPID_KEY = "gpid";
 
-    private final String endpointUrl;
+    private final UriTemplate endpointUrlTemplate;
     private final JacksonMapper mapper;
 
     private final CurrencyConversionService currencyConversionService;
@@ -64,7 +64,8 @@ public class ConnatixBidder implements Bidder<BidRequest> {
                           CurrencyConversionService currencyConversionService,
                           JacksonMapper mapper) {
 
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrlTemplate = UriTemplateUtil.createTemplate(endpointUrl, "dc");
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -106,14 +107,8 @@ public class ConnatixBidder implements Bidder<BidRequest> {
     }
 
     private String getOptimalEndpointUrl(BidRequest request) {
-        final Optional<String> dataCenterCode = getUserId(request).map(ConnatixBidder::getDataCenterCode);
-
-        if (dataCenterCode.isEmpty()) {
-            return endpointUrl;
-        }
-
-        return UriTemplate.of(endpointUrl + (endpointUrl.contains("?") ? "{&dc}" : "{?dc}"))
-                .expandToString(Variables.variables().set("dc", dataCenterCode.get()));
+        final String dataCenterCode = getUserId(request).map(ConnatixBidder::getDataCenterCode).orElse(null);
+        return endpointUrlTemplate.expandToString(Variables.variables().set("dc", dataCenterCode));
     }
 
     private static Optional<String> getUserId(BidRequest request) {

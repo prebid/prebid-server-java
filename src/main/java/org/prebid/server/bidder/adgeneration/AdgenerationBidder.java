@@ -32,6 +32,7 @@ import org.prebid.server.proto.openrtb.ext.request.adgeneration.ExtImpAdgenerati
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
+import org.prebid.server.util.UriTemplateUtil;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -53,11 +54,12 @@ public class AdgenerationBidder implements Bidder<Void> {
             new TypeReference<>() {
             };
 
-    private final String endpointUrl;
+    private final UriTemplate endpointUrlTemplate;
     private final JacksonMapper mapper;
 
     public AdgenerationBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrlTemplate = UriTemplateUtil.createTemplate(endpointUrl, "queryParams");
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -98,8 +100,6 @@ public class AdgenerationBidder implements Bidder<Void> {
     }
 
     private String getUri(String adSize, String id, String currency, BidRequest bidRequest) {
-        final UriTemplate uriTemplate = UriTemplate.of(endpointUrl
-                + (endpointUrl.contains("?") ? "{&queryParams*}" : "{?queryParams*}"));
         final Map<String, String> queryParams = new HashMap<>();
 
         queryParams.put("posall", "SSPLOC");
@@ -129,7 +129,7 @@ public class AdgenerationBidder implements Bidder<Void> {
             queryParams.put("sdktype", "0");
         }
 
-        return uriTemplate.expandToString(Variables.variables().set("queryParams", queryParams));
+        return endpointUrlTemplate.expandToString(Variables.variables().set("queryParams", queryParams));
     }
 
     private static void addParameterIfNotEmpty(Map<String, String> queryParams, String parameter, String value) {

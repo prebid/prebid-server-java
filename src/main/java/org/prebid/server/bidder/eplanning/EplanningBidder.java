@@ -38,6 +38,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.eplanning.ExtImpEplanning;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.UriTemplateUtil;
 
 import java.math.BigDecimal;
 import java.net.MalformedURLException;
@@ -79,11 +80,12 @@ public class EplanningBidder implements Bidder<Void> {
             new TypeReference<>() {
             };
 
-    private final String endpointUrl;
+    private final UriTemplate endpointUrlTemplate;
     private final JacksonMapper mapper;
 
     public EplanningBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrlTemplate = UriTemplateUtil.createTemplate(endpointUrl + "{/path*}", false, "queryParams");
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -233,7 +235,6 @@ public class EplanningBidder implements Bidder<Void> {
                 : pageDomain;
 
         final List<String> path = List.of(clientId, DFP_CLIENT_ID, requestTarget, SEC);
-        final UriTemplate uriTemplate = UriTemplate.of(endpointUrl + "{/path*}{?queryParams*}");
 
         final Map<String, String> queryParams = new HashMap<>();
 
@@ -276,7 +277,9 @@ public class EplanningBidder implements Bidder<Void> {
             queryParams.put("sch", schain);
         }
 
-        return uriTemplate.expandToString(Variables.variables().set("path", path).set("queryParams", queryParams));
+        return endpointUrlTemplate.expandToString(Variables.variables()
+                .set("path", path)
+                .set("queryParams", queryParams));
     }
 
     private static URL parseUrl(String url) {

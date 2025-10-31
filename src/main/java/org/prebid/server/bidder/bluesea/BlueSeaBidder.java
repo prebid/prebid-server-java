@@ -25,6 +25,7 @@ import org.prebid.server.proto.openrtb.ext.request.bluesea.ExtImpBlueSea;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.UriTemplateUtil;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -40,11 +41,12 @@ public class BlueSeaBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private final String endpointUrl;
+    private final UriTemplate endpointUrlTemplate;
     private final JacksonMapper mapper;
 
     public BlueSeaBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrlTemplate = UriTemplateUtil.createTemplate(endpointUrl, "queryParams");
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -79,14 +81,11 @@ public class BlueSeaBidder implements Bidder<BidRequest> {
     }
 
     private String resolveUrl(ExtImpBlueSea extImpBlueSea) {
-        final UriTemplate uriTemplate = UriTemplate.of(endpointUrl
-                + (endpointUrl.contains("?") ? "{&queryParams*}" : "{?queryParams*}"));
-
         final Map<String, String> queryParams = Map.of(
                 "pubid", extImpBlueSea.getPubId(),
                 "token", extImpBlueSea.getToken());
 
-        return uriTemplate.expandToString(Variables.variables().set("queryParams", queryParams));
+        return endpointUrlTemplate.expandToString(Variables.variables().set("queryParams", queryParams));
     }
 
     @Override
