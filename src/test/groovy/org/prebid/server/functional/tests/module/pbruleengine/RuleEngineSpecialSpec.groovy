@@ -12,7 +12,7 @@ import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.config.PbRulesEngine.createRulesEngineWithRule
 import static org.prebid.server.functional.model.config.RuleEngineFunction.PERCENT
 import static org.prebid.server.functional.model.config.RuleEngineFunction.PREBID_KEY
-import static org.prebid.server.functional.model.request.auction.FetchStatus.SUCCESS
+import static org.prebid.server.functional.model.response.auction.AnalyticTagStatus.SUCCESS
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
 
 class RuleEngineSpecialSpec extends RuleEngineBaseSpec {

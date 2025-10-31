@@ -19,7 +19,7 @@ import static org.prebid.server.functional.model.config.RuleEngineFunction.DEVIC
 import static org.prebid.server.functional.model.config.RuleEngineFunction.DEVICE_TYPE
 import static org.prebid.server.functional.model.config.RuleEngineFunction.DEVICE_TYPE_IN
 import static org.prebid.server.functional.model.pricefloors.Country.USA
-import static org.prebid.server.functional.model.request.auction.FetchStatus.SUCCESS
+import static org.prebid.server.functional.model.response.auction.AnalyticTagStatus.SUCCESS
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
 
 class RuleEngineDeviceSpec extends RuleEngineBaseSpec {

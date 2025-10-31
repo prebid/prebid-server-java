@@ -1,6 +1,7 @@
 package org.prebid.server.functional.tests.module.pbruleengine
 
 import org.prebid.server.functional.model.UidsCookie
+import org.prebid.server.functional.model.response.auction.AnalyticTagStatus
 import org.prebid.server.functional.util.HttpUtil
 
 import static org.prebid.server.functional.model.config.ModuleName.PB_RULE_ENGINE
@@ -10,7 +11,7 @@ import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.config.PbRulesEngine.createRulesEngineWithRule
 import static org.prebid.server.functional.model.config.RuleEngineModelRuleResult.createRuleEngineModelRuleWithExcludeResult
 import static org.prebid.server.functional.model.config.RuleEngineModelRuleResult.createRuleEngineModelRuleWithIncludeResult
-import static org.prebid.server.functional.model.request.auction.FetchStatus.SUCCESS
+import static org.prebid.server.functional.model.response.auction.AnalyticTagStatus.SUCCESS
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
 
 class RuleEngineSyncSpec extends RuleEngineBaseSpec {

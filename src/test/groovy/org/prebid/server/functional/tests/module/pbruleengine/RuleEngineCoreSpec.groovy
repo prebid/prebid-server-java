@@ -6,6 +6,7 @@ import org.prebid.server.functional.model.config.RuleSet
 import org.prebid.server.functional.model.config.RulesEngineModelGroup
 import org.prebid.server.functional.model.config.Stage
 import org.prebid.server.functional.model.request.auction.Imp
+import org.prebid.server.functional.model.response.auction.AnalyticTagStatus
 import org.prebid.server.functional.util.PBSUtils
 
 import static org.prebid.server.functional.model.config.ModuleName.PB_RULE_ENGINE
@@ -20,8 +21,8 @@ import static org.prebid.server.functional.model.config.RuleEngineModelRuleResul
 import static org.prebid.server.functional.model.config.RuleEngineModelRuleResult.createRuleEngineModelRuleWithLogATagResult
 import static org.prebid.server.functional.model.config.Stage.PROCESSED_AUCTION_REQUEST
 import static org.prebid.server.functional.model.pricefloors.Country.BULGARIA
-import static org.prebid.server.functional.model.request.auction.FetchStatus.SUCCESS
 import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
+import static org.prebid.server.functional.model.response.auction.AnalyticTagStatus.SUCCESS
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.ERROR_NO_BID
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
 

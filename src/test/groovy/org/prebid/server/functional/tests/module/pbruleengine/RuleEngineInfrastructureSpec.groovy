@@ -2,6 +2,7 @@ package org.prebid.server.functional.tests.module.pbruleengine
 
 import org.prebid.server.functional.model.config.RuleEngineFunctionArgs
 import org.prebid.server.functional.model.config.RuleEngineModelSchema
+import org.prebid.server.functional.model.response.auction.AnalyticTagStatus
 import org.prebid.server.functional.util.PBSUtils
 
 import java.time.Instant
@@ -13,7 +14,7 @@ import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.config.PbRulesEngine.createRulesEngineWithRule
 import static org.prebid.server.functional.model.config.RuleEngineFunction.DATA_CENTER
 import static org.prebid.server.functional.model.config.RuleEngineFunction.DATA_CENTER_IN
-import static org.prebid.server.functional.model.request.auction.FetchStatus.SUCCESS
+import static org.prebid.server.functional.model.response.auction.AnalyticTagStatus.SUCCESS
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
 
 class RuleEngineInfrastructureSpec extends RuleEngineBaseSpec {

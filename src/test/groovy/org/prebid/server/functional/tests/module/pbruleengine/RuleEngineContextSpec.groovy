@@ -33,11 +33,11 @@ import static org.prebid.server.functional.model.pricefloors.MediaType.BANNER
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.DOOH
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
-import static org.prebid.server.functional.model.request.auction.FetchStatus.SUCCESS
 import static org.prebid.server.functional.model.request.auction.ImpUnitCode.GPID
 import static org.prebid.server.functional.model.request.auction.ImpUnitCode.PB_AD_SLOT
 import static org.prebid.server.functional.model.request.auction.ImpUnitCode.STORED_REQUEST
 import static org.prebid.server.functional.model.request.auction.ImpUnitCode.TAG_ID
+import static org.prebid.server.functional.model.response.auction.AnalyticTagStatus.SUCCESS
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
 
 class RuleEngineContextSpec extends RuleEngineBaseSpec {

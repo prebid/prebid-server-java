@@ -14,6 +14,7 @@ import org.prebid.server.functional.model.request.auction.SiteExtData
 import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.model.request.auction.UserExt
 import org.prebid.server.functional.model.request.auction.UserExtData
+import org.prebid.server.functional.model.response.auction.AnalyticTagStatus
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.TcfConsent
 
@@ -32,7 +33,7 @@ import static org.prebid.server.functional.model.config.RuleEngineFunction.GPP_S
 import static org.prebid.server.functional.model.config.RuleEngineFunction.TCF_IN_SCOPE
 import static org.prebid.server.functional.model.config.RuleEngineFunction.USER_FPD_AVAILABLE
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
-import static org.prebid.server.functional.model.request.auction.FetchStatus.SUCCESS
+import static org.prebid.server.functional.model.response.auction.AnalyticTagStatus.SUCCESS
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
