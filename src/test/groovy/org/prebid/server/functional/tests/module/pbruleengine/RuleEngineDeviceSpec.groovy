@@ -6,11 +6,10 @@ import org.prebid.server.functional.model.pricefloors.Country
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.DeviceType
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.RepeatUntilFailure
 
 import java.time.Instant
 
-import static org.prebid.server.functional.model.ModuleName.PB_RULE_ENGINE
+import static org.prebid.server.functional.model.config.ModuleName.PB_RULE_ENGINE
 import static org.prebid.server.functional.model.bidder.BidderName.AMX
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
@@ -20,7 +19,7 @@ import static org.prebid.server.functional.model.config.RuleEngineFunction.DEVIC
 import static org.prebid.server.functional.model.config.RuleEngineFunction.DEVICE_TYPE
 import static org.prebid.server.functional.model.config.RuleEngineFunction.DEVICE_TYPE_IN
 import static org.prebid.server.functional.model.pricefloors.Country.USA
-import static org.prebid.server.functional.model.request.auction.FetchStatus.SUCCESS
+import static org.prebid.server.functional.model.response.auction.AnalyticTagStatus.SUCCESS
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
 
 class RuleEngineDeviceSpec extends RuleEngineBaseSpec {

@@ -16,8 +16,9 @@ import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.tests.module.ModuleBaseSpec
 import org.prebid.server.functional.util.PBSUtils
 
+import static org.prebid.server.functional.model.config.ModuleHookImplementation.PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE
-import static org.prebid.server.functional.model.ModuleName.PB_RICHMEDIA_FILTER
+import static org.prebid.server.functional.model.config.ModuleName.PB_RICHMEDIA_FILTER
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.config.Endpoint.OPENRTB2_AUCTION
 import static org.prebid.server.functional.model.config.Stage.ALL_PROCESSED_BID_RESPONSES
@@ -34,9 +35,15 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
                 endpoints.values().first().stages.values().first().groups.first.hookSequenceSnakeCase = [new HookId(moduleCodeSnakeCase: PB_RICHMEDIA_FILTER.code, hookImplCodeSnakeCase: "${PB_RICHMEDIA_FILTER.code}-${ALL_PROCESSED_BID_RESPONSES.value}-hook")]
             })]).collectEntries { key, value -> [(key.toString()): value.toString()] }
 
-    private static final PrebidServerService pbsServiceWithDisabledMediaFilter = pbsServiceFactory.getService(DISABLED_FILTER_SPECIFIC_PATTERN_NAME_CONFIG)
-    private static final PrebidServerService pbsServiceWithEnabledMediaFilter = pbsServiceFactory.getService(SPECIFIC_PATTERN_NAME_CONFIG)
-    private static final PrebidServerService pbsServiceWithEnabledMediaFilterAndDifferentCaseStrategy = pbsServiceFactory.getService(SNAKE_SPECIFIC_PATTERN_NAME_CONFIG)
+    private static PrebidServerService pbsServiceWithDisabledMediaFilter
+    private static PrebidServerService pbsServiceWithEnabledMediaFilter
+    private static PrebidServerService pbsServiceWithEnabledMediaFilterAndDifferentCaseStrategy
+
+    def setupSpec() {
+        pbsServiceWithDisabledMediaFilter = pbsServiceFactory.getService(DISABLED_FILTER_SPECIFIC_PATTERN_NAME_CONFIG)
+        pbsServiceWithEnabledMediaFilter = pbsServiceFactory.getService(SPECIFIC_PATTERN_NAME_CONFIG)
+        pbsServiceWithEnabledMediaFilterAndDifferentCaseStrategy = pbsServiceFactory.getService(SNAKE_SPECIFIC_PATTERN_NAME_CONFIG)
+    }
 
     def cleanupSpec() {
         pbsServiceFactory.removeContainer(DISABLED_FILTER_SPECIFIC_PATTERN_NAME_CONFIG)
@@ -45,10 +52,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
     }
 
     def "PBS should process request without rich media module when host config have empty settings"() {
-        given: "Prebid server with empty settings for module"
-        def prebidServerService = pbsServiceFactory.getService(pbsConfig)
-
-        and: "BidRequest with stored response"
+        given: "BidRequest with stored response"
         def storedResponseId = PBSUtils.randomNumber
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.returnAllBidStatus = true
@@ -63,12 +67,12 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         def storedResponse = new StoredResponse(responseId: storedResponseId, storedBidResponse: storedBidResponse)
         storedResponseDao.save(storedResponse)
 
-        and: "Account in the DB"
-        def account = new Account(uuid: bidRequest.getAccountId())
+        and: "Account with enabled richMedia config in the DB"
+        def account = getAccountWithRichmediaFilter(bidRequest.accountId, filterMraid, mraidScriptPattern)
         accountDao.save(account)
 
         when: "PBS processes auction request"
-        def response = prebidServerService.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Response header should contain seatbid"
         assert response.seatbid.size() == 1
@@ -79,14 +83,12 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         and: "Response shouldn't contain analytics"
         assert !getAnalyticResults(response)
 
-        cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(pbsConfig)
-
         where:
-        pbsConfig << [getRichMediaFilterSettings(PBSUtils.randomString, null),
-                      getRichMediaFilterSettings(null, true),
-                      getRichMediaFilterSettings(null, false),
-                      getRichMediaFilterSettings(null, null)]
+        filterMraid      | mraidScriptPattern
+        true             | PBSUtils.randomString
+        true             | null
+        false            | null
+        null             | null
     }
 
     def "PBS should process request without analytics when adm matches with pattern name and filter set to disabled in host config"() {
@@ -106,7 +108,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         storedResponseDao.save(storedResponse)
 
         and: "Account in the DB"
-        def account = new Account(uuid: bidRequest.getAccountId())
+        def account = new Account(uuid: bidRequest.accountId)
         accountDao.save(account)
 
         when: "PBS processes auction request"
@@ -142,7 +144,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         storedResponseDao.save(storedResponse)
 
         and: "Account in the DB"
-        def account = new Account(uuid: bidRequest.getAccountId())
+        def account = new Account(uuid: bidRequest.accountId)
         accountDao.save(account)
 
         when: "PBS processes auction request"
@@ -169,7 +171,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         admValue << [PATTERN_NAME, "${PBSUtils.randomString}-${PATTERN_NAME}", "${PATTERN_NAME}.${PBSUtils.randomString}"]
     }
 
-    def "PBS should process request without analytics when adm is #admValue and filter enabled in host config"() {
+    def "PBS should process request without analytics when adm is #admValue and filter enabled in config"() {
         given: "BidRequest with stored response"
         def storedResponseId = PBSUtils.randomNumber
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -186,9 +188,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         storedResponseDao.save(storedResponse)
 
         and: "Account with enabled richMedia config in the DB"
-        def richMediaFilterConfig = new PbsModulesConfig(pbRichmediaFilter: new RichmediaFilter(filterMraid: true))
-        def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(modules: richMediaFilterConfig))
-        def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
+        def account = getAccountWithRichmediaFilter(bidRequest.accountId, true, null)
         accountDao.save(account)
 
         when: "PBS processes auction request"
@@ -217,9 +217,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         }
 
         and: "Account with enabled richMedia config in the DB"
-        def richMediaFilterConfig = new PbsModulesConfig(pbRichmediaFilter: new RichmediaFilter(filterMraid: true, mraidScriptPattern: PATTERN_NAME))
-        def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(modules: richMediaFilterConfig))
-        def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
+        def account = getAccountWithRichmediaFilter(bidRequest.accountId, true, PATTERN_NAME)
         accountDao.save(account)
 
         and: "Stored bid response in DB"
@@ -263,9 +261,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         }
 
         and: "Account with disabled richMedia config in the DB"
-        def richMediaFilterConfig = new PbsModulesConfig(pbRichmediaFilter: new RichmediaFilter(filterMraid: false, mraidScriptPattern: PATTERN_NAME))
-        def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(modules: richMediaFilterConfig))
-        def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
+        def account = getAccountWithRichmediaFilter(bidRequest.accountId, false, PATTERN_NAME)
         accountDao.save(account)
 
         and: "Stored bid response in DB"
@@ -301,9 +297,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         }
 
         and: "Account with enabled richMedia config in the DB"
-        def richMediaFilterConfig = new PbsModulesConfig(pbRichmediaFilter: new RichmediaFilter(filterMraid: true, mraidScriptPattern: PATTERN_NAME_ACCOUNT))
-        def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(modules: richMediaFilterConfig))
-        def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
+        def account = getAccountWithRichmediaFilter(bidRequest.accountId, true, PATTERN_NAME_ACCOUNT)
         accountDao.save(account)
 
         and: "Stored bid response in DB"
@@ -344,9 +338,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         }
 
         and: "Account with enabled richMedia config in the DB"
-        def richMediaFilterConfig = new PbsModulesConfig(pbRichmediaFilter: new RichmediaFilter(filterMraid: true, mraidScriptPattern: PATTERN_NAME_ACCOUNT))
-        def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(modules: richMediaFilterConfig))
-        def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
+        def account = getAccountWithRichmediaFilter(bidRequest.accountId, true, PATTERN_NAME_ACCOUNT)
         accountDao.save(account)
 
         and: "Stored bid response in DB"
@@ -371,7 +363,10 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
 
     def "PBS should process any request without analytics and errors when pb-richmedia-filter hook is disabled"() {
         given: "PBS with disabled pb-richmedia-filter hook"
-        def pbsServiceWithDisabledMediaFilterHook = pbsServiceFactory.getService(getDisabledRichMediaFilterSettings(PATTERN_NAME))
+        def pbsConfig = getRichMediaFilterSettings(PATTERN_NAME) +
+                getModuleBaseSettings(PB_RICHMEDIA_FILTER, false) +
+                ["hooks.host-execution-plan": null]
+        def pbsServiceWithDisabledMediaFilterHook = pbsServiceFactory.getService(pbsConfig)
 
         and: "BidRequest with stored response"
         def storedResponseId = PBSUtils.randomNumber
@@ -384,7 +379,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         and: "Account with enabled richMedia config in the DB"
         def richMediaFilterConfig = new PbsModulesConfig(pbRichmediaFilter: new RichmediaFilter(filterMraid: true, mraidScriptPattern: PATTERN_NAME_ACCOUNT))
         def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(modules: richMediaFilterConfig))
-        def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
+        def account = new Account(uuid: bidRequest.accountId, config: accountConfig)
         accountDao.save(account)
 
         and: "Stored bid response in DB"
@@ -405,6 +400,9 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
 
         and: "Response shouldn't contain analytics"
         assert !getAnalyticResults(response)
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
 
         where:
         admValue << [PATTERN_NAME, PATTERN_NAME_ACCOUNT]
@@ -427,7 +425,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         storedResponseDao.save(storedResponse)
 
         and: "Account in the DB"
-        def account = new Account(uuid: bidRequest.getAccountId())
+        def account = new Account(uuid: bidRequest.accountId)
         accountDao.save(account)
 
         when: "PBS processes auction request"
@@ -452,5 +450,11 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
 
         where:
         admValue << [PATTERN_NAME, "${PBSUtils.randomString}-${PATTERN_NAME}", "${PATTERN_NAME}.${PBSUtils.randomString}"]
+    }
+
+    private static Account getAccountWithRichmediaFilter(String accountId, Boolean filterMraid, String mraidScriptPattern) {
+        getAccountWithModuleConfig(accountId, [PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES]).tap {
+            it.config.hooks.modules.pbRichmediaFilter = new RichmediaFilter(filterMraid: filterMraid, mraidScriptPattern: mraidScriptPattern)
+        }
     }
 }

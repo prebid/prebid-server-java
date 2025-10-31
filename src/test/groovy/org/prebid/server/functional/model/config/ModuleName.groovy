@@ -1,4 +1,4 @@
-package org.prebid.server.functional.model
+package org.prebid.server.functional.model.config
 
 import com.fasterxml.jackson.annotation.JsonValue
 
@@ -16,5 +16,9 @@ enum ModuleName {
 
     ModuleName(String code) {
         this.code = code
+    }
+
+    static ModuleName forValue(ModuleHookImplementation moduleHook) {
+        values().find { moduleHook.code.contains(it.code) }
     }
 }
