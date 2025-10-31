@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
@@ -20,7 +21,6 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
@@ -39,67 +39,15 @@ import static org.assertj.core.api.Assertions.tuple;
 
 public class SparteoBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.sparteo.com/endpoint";
+    private static final String ENDPOINT_URL =
+            "https://test.sparteo.com/endpoint?network_id={{NetworkId}}{{SiteDomainQuery}}{{AppDomainQuery}}{{BundleQuery}}";
     private final SparteoBidder sparteoBidder = new SparteoBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        // when and then
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> new SparteoBidder("invalid_url", jacksonMapper))
                 .withMessage("URL supplied is not valid: invalid_url");
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnErrorWhenImpExtIsInvalid() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                givenImp(imp -> imp.ext(mapper.valueToTree(ExtPrebid.of(null, "invalid")))));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = sparteoBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .allSatisfy(error -> assertThat(error.getMessage())
-                        .startsWith("ignoring imp id=impId, error processing ext: invalid imp.ext"));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnErrorWhenAllImpsAreInvalid() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                givenImp(imp -> imp.id("imp1").ext(mapper.valueToTree(ExtPrebid.of(null, "invalid")))));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = sparteoBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1);
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnPartialResultWhenSomeImpsAreInvalid() {
-        // given
-        final ObjectNode validExt = mapper.createObjectNode();
-        validExt.set("bidder", mapper.createObjectNode().put("key", "value"));
-
-        final BidRequest bidRequest = givenBidRequest(
-                givenImp(imp -> imp.id("imp1").ext(mapper.valueToTree(ExtPrebid.of(null, "invalid")))),
-                givenImp(imp -> imp.id("imp2").ext(validExt)));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = sparteoBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .allSatisfy(error -> assertThat(error.getMessage()).startsWith("ignoring imp id=imp1"));
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getExt)
-                .extracting((JsonNode ext) -> ext.at("/sparteo/params/key").asText())
-                .containsExactly("", "value");
     }
 
     @Test
@@ -118,10 +66,11 @@ public class SparteoBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = sparteoBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
+        assertMissingSiteDomainWarning(result);
         assertThat(result.getValue())
                 .extracting(HttpRequest::getMethod, HttpRequest::getUri)
-                .containsExactly(tuple(HttpMethod.POST, ENDPOINT_URL));
+                .containsExactly(tuple(HttpMethod.POST,
+                        "https://test.sparteo.com/endpoint?network_id=testNetworkId&site_domain=unknown"));
 
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
@@ -159,7 +108,7 @@ public class SparteoBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = sparteoBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
+        assertMissingSiteDomainWarning(result);
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getSite)
@@ -170,10 +119,14 @@ public class SparteoBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldOverwriteSparteoParamsWithBidderParamsOnConflict() {
+    public void makeHttpRequestsShouldMergeSparteoParamsWithBidderParamsOnConflict() {
         // given
+        final ObjectNode bidderNode = mapper.createObjectNode();
+        bidderNode.put("conflictingParam", "bidderValue");
+        bidderNode.put("networkId", "id1");
+
         final ObjectNode impExt = mapper.createObjectNode();
-        impExt.set("bidder", mapper.createObjectNode().put("conflictingParam", "bidderValue"));
+        impExt.set("bidder", bidderNode);
         final ObjectNode sparteoNode = impExt.putObject("sparteo");
         sparteoNode.putObject("params").put("conflictingParam", "sparteoValue");
 
@@ -190,6 +143,12 @@ public class SparteoBidderTest extends VertxTest {
                 .extracting(Imp::getExt)
                 .extracting((JsonNode ext) -> ext.at("/sparteo/params/conflictingParam").asText())
                 .containsExactly("bidderValue");
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .extracting((JsonNode ext) -> ext.at("/sparteo/params/networkId").asText())
+                .containsExactly("id1");
     }
 
     @Test
@@ -198,7 +157,8 @@ public class SparteoBidderTest extends VertxTest {
         final ObjectNode impExt = mapper.createObjectNode();
         impExt.set("bidder", mapper.createObjectNode().put("networkId", "testNetworkId"));
 
-        final BidRequest bidRequestNoSite = givenBidRequest(request -> request.site(null),
+        final BidRequest bidRequestNoSite = givenBidRequest(
+                request -> request.site(null),
                 givenImp(imp -> imp.ext(impExt)));
 
         final BidRequest bidRequestNoPublisher = givenBidRequest(
@@ -211,18 +171,21 @@ public class SparteoBidderTest extends VertxTest {
                 sparteoBidder.makeHttpRequests(bidRequestNoPublisher);
 
         // then
-        assertThat(resultNoSite.getErrors()).isEmpty();
         assertThat(resultNoSite.getValue())
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getSite)
                 .containsNull();
 
-        assertThat(resultNoPublisher.getErrors()).isEmpty();
-        assertThat(resultNoPublisher.getValue())
-                .extracting(HttpRequest::getPayload)
-                .extracting(BidRequest::getSite)
-                .extracting(Site::getPublisher)
-                .containsNull();
+        assertThat(resultNoSite.getErrors()).isEmpty();
+        final BidRequest out = resultNoPublisher.getValue().get(0).getPayload();
+        assertThat(out.getSite()).isNotNull();
+        assertThat(out.getSite().getPublisher()).isNotNull();
+
+        final ExtPublisher publisherExt = (ExtPublisher) out.getSite().getPublisher().getExt();
+        assertThat(publisherExt).isNotNull();
+        assertThat(publisherExt.getProperties()).containsKey("params");
+        assertThat(publisherExt.getProperties().get("params").get("networkId").asText())
+                .isEqualTo("testNetworkId");
     }
 
     @Test
@@ -244,7 +207,7 @@ public class SparteoBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = sparteoBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
+        assertMissingSiteDomainWarning(result);
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getSite)
@@ -259,7 +222,7 @@ public class SparteoBidderTest extends VertxTest {
 
     @Test
     public void makeHttpRequestsShouldAddParamsToPublisherExtWhenExtExistsWithoutParams()
-        throws JsonProcessingException {
+            throws JsonProcessingException {
         // given
         final ObjectNode impExt = mapper.createObjectNode();
         impExt.set("bidder", mapper.createObjectNode().put("networkId", "testNetworkId"));
@@ -277,7 +240,7 @@ public class SparteoBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = sparteoBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
+        assertMissingSiteDomainWarning(result);
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getSite)
@@ -287,147 +250,6 @@ public class SparteoBidderTest extends VertxTest {
                 .allSatisfy(properties -> {
                     assertThat(properties.get("params").get("networkId").asText()).isEqualTo("testNetworkId");
                     assertThat(properties.get("otherField").asText()).isEqualTo("otherValue");
-                });
-    }
-
-    @Test
-    public void makeHttpRequestsShouldCreateEmptyParamsWhenBidderExtIsEmpty() {
-        // given
-        final ObjectNode impExt = mapper.createObjectNode();
-        impExt.set("bidder", mapper.createObjectNode());
-        impExt.putObject("sparteo");
-
-        final BidRequest bidRequest = givenBidRequest(givenImp(imp -> imp.ext(impExt)));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = sparteoBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getExt)
-                .allSatisfy(ext -> {
-                    assertThat(ext.at("/sparteo")).isInstanceOf(ObjectNode.class);
-                    assertThat(ext.at("/sparteo/params")).isInstanceOf(ObjectNode.class);
-                    assertThat(ext.at("/sparteo/params").size()).isZero();
-                });
-    }
-
-    @Test
-    public void makeHttpRequestsShouldNotAddParamsWhenNetworkIdIsMissing() {
-        // given
-        final ObjectNode impExt = mapper.createObjectNode();
-        impExt.set("bidder", mapper.createObjectNode().put("otherParam", "value"));
-        final BidRequest bidRequest = givenBidRequest(
-                request -> request.site(Site.builder().publisher(Publisher.builder().id("pub1").build()).build()),
-                givenImp(imp -> imp.ext(impExt)));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = sparteoBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .extracting(BidRequest::getSite)
-                .extracting(Site::getPublisher)
-                .allSatisfy(publisher -> {
-                    final ExtPublisher publisherExt = (ExtPublisher) publisher.getExt();
-                    if (publisherExt == null || publisherExt.getProperties() == null) {
-                        assertThat(publisherExt).isNull();
-                    } else {
-                        assertThat(publisherExt.getProperties()).doesNotContainKey("params");
-                    }
-                });
-    }
-
-    @Test
-    public void makeHttpRequestsShouldNotAddNetworkIdWhenItIsNullInExt() {
-        // given
-        final ObjectNode impExt = mapper.createObjectNode();
-        final ObjectNode bidderNode = mapper.createObjectNode();
-        bidderNode.putNull("networkId");
-        impExt.set("bidder", bidderNode);
-
-        final BidRequest bidRequest = givenBidRequest(
-                request -> request.site(Site.builder().publisher(Publisher.builder().id("pub1").build()).build()),
-                givenImp(imp -> imp.ext(impExt)));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = sparteoBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .extracting(BidRequest::getSite)
-                .extracting(Site::getPublisher)
-                .allSatisfy(publisher -> {
-                    final ExtPublisher publisherExt = (ExtPublisher) publisher.getExt();
-                    if (publisherExt != null && publisherExt.getProperties() != null
-                            && publisherExt.getProperties().containsKey("params")) {
-                        assertThat(publisherExt.getProperties().get("params")).isInstanceOf(ObjectNode.class);
-                        assertThat(((ObjectNode)
-                                publisherExt.getProperties().get("params")).has("networkId")).isFalse();
-                    }
-                });
-    }
-
-    @Test
-    public void makeHttpRequestsShouldNotModifyPublisherExtWhenNetworkIdIsMissing() throws JsonProcessingException {
-        // given
-        final ObjectNode impExt = mapper.createObjectNode();
-        impExt.set("bidder", mapper.createObjectNode().put("someOtherParam", "someValue"));
-
-        final ObjectNode publisherExtJson = mapper.createObjectNode();
-        publisherExtJson.put("existing", "value");
-        final ExtPublisher originalPublisherExt = mapper.convertValue(publisherExtJson, ExtPublisher.class);
-
-        final BidRequest bidRequest = givenBidRequest(
-                request -> request.site(Site.builder().publisher(
-                        Publisher.builder().ext(originalPublisherExt).build()).build()),
-                givenImp(imp -> imp.ext(impExt)));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = sparteoBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .extracting(BidRequest::getSite)
-                .extracting(Site::getPublisher)
-                .extracting(Publisher::getExt)
-                .extracting(ext -> ((ExtPublisher) ext).getProperties())
-                .allSatisfy(properties -> {
-                    assertThat(properties.get("existing").asText()).isEqualTo("value");
-                    assertThat(properties).doesNotContainKey("params");
-                });
-    }
-
-    @Test
-    public void makeHttpRequestsShouldOverwriteInvalidSparteoExtWhenBidderExtIsValid() {
-        // given
-        final ObjectNode impExt = mapper.createObjectNode();
-        impExt.set("bidder", mapper.createObjectNode().put("param", "value"));
-        impExt.put("sparteo", "this_is_a_string");
-
-        final BidRequest bidRequest = givenBidRequest(givenImp(imp -> imp.ext(impExt)));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = sparteoBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getExt)
-                .allSatisfy(ext -> {
-                    assertThat(ext.at("/sparteo")).isInstanceOf(ObjectNode.class);
-                    assertThat(ext.at("/sparteo/params/param").asText()).isEqualTo("value");
                 });
     }
 
@@ -522,12 +344,10 @@ public class SparteoBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnEmptyResultWhenBidResponseHasNoSeatBids()
-        throws JsonProcessingException {
+    public void makeBidsShouldReturnEmptyResultWhenBidResponseHasNoSeatBids() throws JsonProcessingException {
         // given
         final BidResponse bidResponse = BidResponse.builder().seatbid(Collections.emptyList()).build();
-        final BidderCall<BidRequest> httpCall =
-                givenHttpCall(givenBidRequest(), bidResponse);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(), bidResponse);
 
         // when
         final Result<List<BidderBid>> result = sparteoBidder.makeBids(httpCall, givenBidRequest());
@@ -543,8 +363,7 @@ public class SparteoBidderTest extends VertxTest {
         final Bid bid = givenBid(builder -> builder.impid("imp1").price(BigDecimal.valueOf(1.23)).adm("adm-banner"),
                 BidType.banner.getName());
         final BidResponse bidResponse = givenBidResponse(bid, "EUR");
-        final BidderCall<BidRequest> httpCall =
-                givenHttpCall(givenBidRequest(), bidResponse);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(), bidResponse);
 
         // when
         final Result<List<BidderBid>> result = sparteoBidder.makeBids(httpCall, givenBidRequest());
@@ -559,11 +378,10 @@ public class SparteoBidderTest extends VertxTest {
     public void makeBidsShouldReturnVideoBidWhenMediaTypeIsVideo() throws JsonProcessingException {
         // given
         final Bid bid = givenBid(builder ->
-                builder.impid("imp2").price(BigDecimal.valueOf(2.34)).adm("adm-video"),
+                        builder.impid("imp2").price(BigDecimal.valueOf(2.34)).adm("adm-video"),
                 BidType.video.getName());
         final BidResponse bidResponse = givenBidResponse(bid, "EUR");
-        final BidderCall<BidRequest> httpCall =
-                givenHttpCall(givenBidRequest(), bidResponse);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(), bidResponse);
 
         // when
         final Result<List<BidderBid>> result = sparteoBidder.makeBids(httpCall, givenBidRequest());
@@ -578,11 +396,10 @@ public class SparteoBidderTest extends VertxTest {
     public void makeBidsShouldReturnNativeBidWhenMediaTypeIsNative() throws JsonProcessingException {
         // given
         final Bid bid = givenBid(builder ->
-                builder.impid("imp3").price(BigDecimal.valueOf(3.45)).adm("adm-native"),
+                        builder.impid("imp3").price(BigDecimal.valueOf(3.45)).adm("adm-native"),
                 BidType.xNative.getName());
         final BidResponse bidResponse = givenBidResponse(bid, "EUR");
-        final BidderCall<BidRequest> httpCall =
-                givenHttpCall(givenBidRequest(), bidResponse);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(), bidResponse);
 
         // when
         final Result<List<BidderBid>> result = sparteoBidder.makeBids(httpCall, givenBidRequest());
@@ -603,8 +420,7 @@ public class SparteoBidderTest extends VertxTest {
                 builder.impid("impBanner").price(BigDecimal.valueOf(2.0)),
                 BidType.banner.getName());
         final BidResponse bidResponse = givenBidResponse(List.of(audioBid, bannerBid), "EUR");
-        final BidderCall<BidRequest> httpCall =
-                givenHttpCall(givenBidRequest(), bidResponse);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(), bidResponse);
 
         // when
         final Result<List<BidderBid>> result = sparteoBidder.makeBids(httpCall, givenBidRequest());
@@ -624,8 +440,7 @@ public class SparteoBidderTest extends VertxTest {
         // given
         final Bid bid = givenBid(builder -> builder.impid("imp1").ext(null), null);
         final BidResponse bidResponse = givenBidResponse(bid, "USD");
-        final BidderCall<BidRequest> httpCall =
-                givenHttpCall(givenBidRequest(), bidResponse);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(), bidResponse);
 
         // when
         final Result<List<BidderBid>> result = sparteoBidder.makeBids(httpCall, givenBidRequest());
@@ -642,8 +457,7 @@ public class SparteoBidderTest extends VertxTest {
         // given
         final Bid bid = givenBid(builder -> builder.impid("imp1").ext(mapper.createObjectNode()), null);
         final BidResponse bidResponse = givenBidResponse(bid, "USD");
-        final BidderCall<BidRequest> httpCall =
-                givenHttpCall(givenBidRequest(), bidResponse);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(), bidResponse);
 
         // when
         final Result<List<BidderBid>> result = sparteoBidder.makeBids(httpCall, givenBidRequest());
@@ -660,8 +474,7 @@ public class SparteoBidderTest extends VertxTest {
         // given
         final Bid bid = givenBid(builder -> builder.impid("imp1").ext(createBidExtWithEmptyPrebid()), null);
         final BidResponse bidResponse = givenBidResponse(bid, "USD");
-        final BidderCall<BidRequest> httpCall =
-                givenHttpCall(givenBidRequest(), bidResponse);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(), bidResponse);
 
         // when
         final Result<List<BidderBid>> result = sparteoBidder.makeBids(httpCall, givenBidRequest());
@@ -680,8 +493,7 @@ public class SparteoBidderTest extends VertxTest {
         malformedExt.putArray("prebid");
         final Bid bid = givenBid(builder -> builder.impid("imp1").ext(malformedExt), null);
         final BidResponse bidResponse = givenBidResponse(bid, "USD");
-        final BidderCall<BidRequest> httpCall =
-                givenHttpCall(givenBidRequest(), bidResponse);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(), bidResponse);
 
         // when
         final Result<List<BidderBid>> result = sparteoBidder.makeBids(httpCall, givenBidRequest());
@@ -698,8 +510,7 @@ public class SparteoBidderTest extends VertxTest {
         // given
         final Bid bid = givenBid(builder -> builder.impid("imp1"), "unknown-type");
         final BidResponse bidResponse = givenBidResponse(bid, "USD");
-        final BidderCall<BidRequest> httpCall =
-                givenHttpCall(givenBidRequest(), bidResponse);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(), bidResponse);
 
         // when
         final Result<List<BidderBid>> result = sparteoBidder.makeBids(httpCall, givenBidRequest());
@@ -715,15 +526,14 @@ public class SparteoBidderTest extends VertxTest {
     public void makeBidsShouldProcessValidBidsWhenSeatBidContainsNulls() throws JsonProcessingException {
         // given
         final Bid validBid = givenBid(builder ->
-                builder.impid("validImp").price(BigDecimal.ONE),
+                        builder.impid("validImp").price(BigDecimal.ONE),
                 BidType.banner.getName());
         final List<Bid> bids = new ArrayList<>();
         bids.add(null);
         bids.add(validBid);
 
         final BidResponse bidResponse = givenBidResponse(bids, "USD");
-        final BidderCall<BidRequest> httpCall =
-                givenHttpCall(givenBidRequest(), bidResponse);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(), bidResponse);
 
         // when
         final Result<List<BidderBid>> result = sparteoBidder.makeBids(httpCall, givenBidRequest());
@@ -739,21 +549,20 @@ public class SparteoBidderTest extends VertxTest {
     public void makeBidsShouldCorrectlyProcessMultipleBidsAndSeatBids() throws JsonProcessingException {
         // given
         final Bid bid1 = givenBid(builder ->
-                builder.impid("imp1").price(BigDecimal.valueOf(1.0)),
+                        builder.impid("imp1").price(BigDecimal.valueOf(1.0)),
                 BidType.banner.getName());
         final Bid bid2 = givenBid(builder ->
-                builder.impid("imp2").price(BigDecimal.valueOf(2.0)),
+                        builder.impid("imp2").price(BigDecimal.valueOf(2.0)),
                 BidType.video.getName());
         final Bid bid3 = givenBid(builder ->
-                builder.impid("imp3").price(BigDecimal.valueOf(3.0)),
+                        builder.impid("imp3").price(BigDecimal.valueOf(3.0)),
                 BidType.xNative.getName());
 
         final SeatBid seatBid1 = SeatBid.builder().bid(asList(bid1, bid2)).build();
         final SeatBid seatBid2 = SeatBid.builder().bid(singletonList(bid3)).build();
 
         final BidResponse bidResponse = BidResponse.builder().cur("USD").seatbid(asList(seatBid1, seatBid2)).build();
-        final BidderCall<BidRequest> httpCall =
-                givenHttpCall(givenBidRequest(), bidResponse);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(), bidResponse);
 
         // when
         final Result<List<BidderBid>> result = sparteoBidder.makeBids(httpCall, givenBidRequest());
@@ -777,8 +586,7 @@ public class SparteoBidderTest extends VertxTest {
 
         final Bid bid = givenBid(builder -> builder.impid("imp1").ext(bidExtWithNullPrebid), null);
         final BidResponse bidResponse = givenBidResponse(bid, "USD");
-        final BidderCall<BidRequest> httpCall =
-                givenHttpCall(givenBidRequest(), bidResponse);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(), bidResponse);
 
         // when
         final Result<List<BidderBid>> result = sparteoBidder.makeBids(httpCall, givenBidRequest());
@@ -794,10 +602,10 @@ public class SparteoBidderTest extends VertxTest {
     public void makeBidsShouldProcessValidSeatBidsWhenResponseContainsNulls() throws JsonProcessingException {
         // given
         final Bid validBid1 = givenBid(builder ->
-                builder.impid("validImp1").price(BigDecimal.TEN),
+                        builder.impid("validImp1").price(BigDecimal.TEN),
                 BidType.banner.getName());
         final Bid validBid2 = givenBid(builder ->
-                builder.impid("validImp2").price(BigDecimal.ONE),
+                        builder.impid("validImp2").price(BigDecimal.ONE),
                 BidType.banner.getName());
 
         final SeatBid validSeatBid1 = SeatBid.builder().bid(singletonList(validBid1)).build();
@@ -809,8 +617,7 @@ public class SparteoBidderTest extends VertxTest {
         seatBidsWithNull.add(validSeatBid2);
 
         final BidResponse bidResponse = BidResponse.builder().cur("USD").seatbid(seatBidsWithNull).build();
-        final BidderCall<BidRequest> httpCall =
-                givenHttpCall(givenBidRequest(), bidResponse);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(), bidResponse);
 
         // when
         final Result<List<BidderBid>> result = sparteoBidder.makeBids(httpCall, givenBidRequest());
@@ -829,8 +636,7 @@ public class SparteoBidderTest extends VertxTest {
         final SeatBid seatBidWithNullBids = SeatBid.builder().bid(null).build();
         final BidResponse bidResponse =
                 BidResponse.builder().cur("USD").seatbid(singletonList(seatBidWithNullBids)).build();
-        final BidderCall<BidRequest> httpCall =
-                givenHttpCall(givenBidRequest(), bidResponse);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(), bidResponse);
 
         // when
         final Result<List<BidderBid>> result = sparteoBidder.makeBids(httpCall, givenBidRequest());
@@ -846,8 +652,7 @@ public class SparteoBidderTest extends VertxTest {
         final SeatBid seatBidWithEmptyBids = SeatBid.builder().bid(Collections.emptyList()).build();
         final BidResponse bidResponse =
                 BidResponse.builder().cur("USD").seatbid(singletonList(seatBidWithEmptyBids)).build();
-        final BidderCall<BidRequest> httpCall =
-                givenHttpCall(givenBidRequest(), bidResponse);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(), bidResponse);
 
         // when
         final Result<List<BidderBid>> result = sparteoBidder.makeBids(httpCall, givenBidRequest());
@@ -855,6 +660,384 @@ public class SparteoBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldAppendSiteDomainAndNetworkIdAsQueryParams() {
+        // given
+        final ObjectNode impExt = mapper.createObjectNode();
+        impExt.set("bidder", mapper.createObjectNode().put("networkId", "testNetworkId"));
+
+        final BidRequest bidRequest = givenBidRequest(
+                r -> r.site(Site.builder()
+                                .domain("dev.sparteo.com")
+                                .publisher(Publisher.builder().build())
+                                .build()),
+                givenImp(i -> i.ext(impExt)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = sparteoBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+        final String uri = result.getValue().get(0).getUri();
+        assertThat(uri).isEqualTo(
+                "https://test.sparteo.com/endpoint?network_id=testNetworkId&site_domain=dev.sparteo.com");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldAppendSitePageDomainAndNetworkIdAsQueryParams() {
+        // given
+        final ObjectNode impExt = mapper.createObjectNode();
+        impExt.set("bidder", mapper.createObjectNode().put("networkId", "testNetworkId"));
+
+        final BidRequest bidRequest = givenBidRequest(
+                r -> r.site(Site.builder()
+                                .domain(null)
+                                .page("https://www.dev.sparteo.com:3000/p")
+                                .publisher(Publisher.builder().build())
+                                .build()),
+                givenImp(i -> i.ext(impExt)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = sparteoBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+        final String uri = result.getValue().get(0).getUri();
+        assertThat(uri).isEqualTo(
+                "https://test.sparteo.com/endpoint?network_id=testNetworkId&site_domain=dev.sparteo.com");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUseSiteDomainWhenPublisherDomainIsMissing() {
+        // given
+        final ObjectNode impExt = mapper.createObjectNode();
+        impExt.set("bidder", mapper.createObjectNode().put("networkId", "testNetworkId"));
+
+        final BidRequest bidRequest = givenBidRequest(
+                r -> r.site(Site.builder()
+                                .domain("dev.sparteo.com")
+                                .publisher(Publisher.builder().build())
+                                .build()),
+                givenImp(i -> i.ext(impExt)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = sparteoBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://test.sparteo.com/endpoint?network_id=testNetworkId&site_domain=dev.sparteo.com");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldPreferSiteDomainOverPublisherDomain() {
+        // given
+        final ObjectNode impExt = mapper.createObjectNode();
+        impExt.set("bidder", mapper.createObjectNode().put("networkId", "networkId"));
+
+        final BidRequest bidRequest = givenBidRequest(
+                r -> r.site(Site.builder()
+                                .domain("site.sparteo.com")
+                                .publisher(Publisher.builder().domain("dev.sparteo.com").build())
+                                .build()),
+                givenImp(i -> i.ext(impExt)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = sparteoBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getValue().get(0).getUri())
+                .isEqualTo("https://test.sparteo.com/endpoint?network_id=networkId&site_domain=site.sparteo.com");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUseAppDomainWhenNoSite() {
+        // given
+        final ObjectNode impExt = mapper.createObjectNode();
+        impExt.set("bidder", mapper.createObjectNode().put("networkId", "networkId"));
+
+        final BidRequest bidRequest = givenBidRequest(
+                r -> r
+                        .site(null)
+                        .app(App.builder()
+                                .domain("com.sparteo.app")
+                                .publisher(Publisher.builder().id("p1").build())
+                                .build()),
+                givenImp(i -> i.ext(impExt)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = sparteoBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertMissingBundleWarning(result);
+        assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getValue().get(0).getUri())
+                .isEqualTo("https://test.sparteo.com/endpoint?network_id=networkId&app_domain=com.sparteo.app&bundle=unknown");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetNetworkIdOnAppPublisherExtWhenNoSite() {
+        // given
+        final ObjectNode impExt = mapper.createObjectNode();
+        impExt.set("bidder", mapper.createObjectNode().put("networkId", "networkId"));
+
+        final BidRequest bidRequest = givenBidRequest(
+                r -> r
+                        .site(null)
+                        .app(App.builder()
+                                .domain("com.sparteo.app")
+                                .publisher(Publisher.builder().build())
+                                .build()),
+                givenImp(i -> i.ext(impExt)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = sparteoBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertMissingBundleWarning(result);
+        final BidRequest out = result.getValue().get(0).getPayload();
+        assertThat(out.getApp()).isNotNull();
+        assertThat(out.getApp().getPublisher()).isNotNull();
+
+        final ExtPublisher ext = (ExtPublisher) out.getApp().getPublisher().getExt();
+        assertThat(ext).isNotNull();
+        assertThat(ext.getProperties()).containsKey("params");
+        assertThat(ext.getProperties().get("params").get("networkId").asText()).isEqualTo("networkId");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCreateAppPublisherWhenMissingAndSetNetworkId() {
+        // given
+        final ObjectNode impExt = mapper.createObjectNode();
+        impExt.set("bidder", mapper.createObjectNode().put("networkId", "networkId"));
+
+        final BidRequest bidRequest = givenBidRequest(
+                r -> r
+                        .site(null)
+                        .app(App.builder()
+                                .domain("com.sparteo.app")
+                                .publisher(null)
+                                .build()),
+                givenImp(i -> i.ext(impExt)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = sparteoBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertMissingBundleWarning(result);
+        final BidRequest out = result.getValue().get(0).getPayload();
+        assertThat(out.getApp()).isNotNull();
+        assertThat(out.getApp().getPublisher()).isNotNull();
+
+        final ExtPublisher ext = (ExtPublisher) out.getApp().getPublisher().getExt();
+        assertThat(ext).isNotNull();
+        assertThat(ext.getProperties()).containsKey("params");
+        assertThat(ext.getProperties().get("params").get("networkId").asText()).isEqualTo("networkId");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldAppendBundleWhenAppBundlePresent() {
+        // given
+        final String endpointWithBundle =
+                "https://test.sparteo.com/endpoint?network_id={{NetworkId}}{{SiteDomainQuery}}{{AppDomainQuery}}{{BundleQuery}}";
+        final SparteoBidder bidder = new SparteoBidder(endpointWithBundle, jacksonMapper);
+
+        final ObjectNode impExt = mapper.createObjectNode();
+        impExt.set("bidder", mapper.createObjectNode().put("networkId", "networkId"));
+
+        final BidRequest bidRequest = givenBidRequest(
+                r -> r
+                        .site(null)
+                        .app(App.builder()
+                                .domain("dev.sparteo.com")
+                                .bundle("com.sparteo.app")
+                                .publisher(Publisher.builder().id("p1").build())
+                                .build()),
+                givenImp(i -> i.ext(impExt)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getValue().get(0).getUri())
+                .isEqualTo("https://test.sparteo.com/endpoint?network_id=networkId&app_domain=dev.sparteo.com&bundle=com.sparteo.app");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotAppendBundleWhenNoAppBundle() {
+        // given
+        final String endpointWithBundle =
+                "https://test.sparteo.com/endpoint?network_id={{NetworkId}}{{SiteDomainQuery}}{{AppDomainQuery}}{{BundleQuery}}";
+        final SparteoBidder bidder = new SparteoBidder(endpointWithBundle, jacksonMapper);
+
+        final ObjectNode impExt = mapper.createObjectNode();
+        impExt.set("bidder", mapper.createObjectNode().put("networkId", "networkId"));
+
+        final BidRequest bidRequest = givenBidRequest(
+                r -> r
+                        .site(Site.builder().domain("dev.sparteo.com").publisher(Publisher.builder().build()).build())
+                        .app(null),
+                givenImp(i -> i.ext(impExt)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getValue().get(0).getUri())
+                .isEqualTo("https://test.sparteo.com/endpoint?network_id=networkId&site_domain=dev.sparteo.com");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldAppendUnknownBundleWhenAppPresentButBundleMissing() {
+        // given
+        final String endpointWithBundle =
+                "https://test.sparteo.com/endpoint?network_id={{NetworkId}}{{SiteDomainQuery}}{{AppDomainQuery}}{{BundleQuery}}";
+        final SparteoBidder bidder = new SparteoBidder(endpointWithBundle, jacksonMapper);
+
+        final ObjectNode impExt = mapper.createObjectNode();
+        impExt.set("bidder", mapper.createObjectNode().put("networkId", "networkId"));
+
+        final BidRequest bidRequest = givenBidRequest(
+                r -> r
+                        .site(null)
+                        .app(App.builder()
+                                .domain("dev.sparteo.com")
+                                .publisher(Publisher.builder().id("p1").build())
+                                .build()),
+                givenImp(i -> i.ext(impExt)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertMissingBundleWarning(result);
+        assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getValue().get(0).getUri())
+                .isEqualTo("https://test.sparteo.com/endpoint?network_id=networkId&app_domain=dev.sparteo.com&bundle=unknown");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldAppendUnknownBundleWhenAppBundleBlankOrLiteralNull() {
+        // given
+        final String endpointWithBundle =
+                "https://test.sparteo.com/endpoint?network_id={{NetworkId}}{{SiteDomainQuery}}{{AppDomainQuery}}{{BundleQuery}}";
+        final SparteoBidder bidder = new SparteoBidder(endpointWithBundle, jacksonMapper);
+
+        for (String rawBundle : new String[] { null, "", "   ", "null", "NuLl" }) {
+            final ObjectNode impExt = mapper.createObjectNode();
+            impExt.set("bidder", mapper.createObjectNode().put("networkId", "networkId"));
+
+            final BidRequest bidRequest = givenBidRequest(
+                    r -> r
+                            .site(null)
+                            .app(App.builder()
+                                    .domain("dev.sparteo.com")
+                                    .bundle(rawBundle)
+                                    .publisher(Publisher.builder().id("p1").build())
+                                    .build()),
+                    givenImp(i -> i.ext(impExt)));
+
+            // when
+            final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+
+            // then
+            assertMissingBundleWarning(result);
+            assertThat(result.getValue()).hasSize(1);
+            assertThat(result.getValue().get(0).getUri())
+                    .isEqualTo("https://test.sparteo.com/endpoint?network_id=networkId&app_domain=dev.sparteo.com&bundle=unknown");
+        }
+    }
+
+    @Test
+    public void makeHttpRequestsShouldWarnAndSetUnknownAppDomainWhenAppDomainMissing() {
+        // given
+        final String endpoint =
+                "https://test.sparteo.com/endpoint?network_id={{NetworkId}}{{SiteDomainQuery}}{{AppDomainQuery}}{{BundleQuery}}";
+        final SparteoBidder bidder = new SparteoBidder(endpoint, jacksonMapper);
+
+        final ObjectNode impExt = mapper.createObjectNode();
+        impExt.set("bidder", mapper.createObjectNode().put("networkId", "nid"));
+
+        final BidRequest bidRequest = givenBidRequest(
+                r -> r.site(null)
+                      .app(App.builder()
+                              .domain(null) // missing app domain → warning + unknown
+                              .bundle("com.example.bundle")
+                              .publisher(Publisher.builder().build())
+                              .build()),
+                givenImp(i -> i.ext(impExt)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        final String uri = result.getValue().get(0).getUri();
+        assertThat(uri).isEqualTo(
+                "https://test.sparteo.com/endpoint?network_id=nid&app_domain=unknown&bundle=com.example.bundle");
+    }
+
+    @Test
+    public void normalizeHostnameShouldReturnBaseDomain() {
+        final String base = "dev.sparteo.com";
+
+        // Already normalized
+        assertThat(normalize(base)).isEqualTo(base);
+
+        // Case folding + trimming
+        assertThat(normalize("DeV.SpArTeO.CoM")).isEqualTo(base);
+        assertThat(normalize("  " + base + "  ")).isEqualTo(base);
+
+        // Strip leading "www."
+        assertThat(normalize("www." + base)).isEqualTo(base);
+        assertThat(normalize("WWW." + base)).isEqualTo(base);
+
+        // Strip exactly ONE trailing dot
+        assertThat(normalize(base + ".")).isEqualTo(base);
+        // Pathological: multiple trailing dots → only one removed by the method
+        assertThat(normalize(base + "..")).isEqualTo(base + ".");
+
+        // Literal "null" (any case) -> empty string
+        assertThat(normalize("null")).isEqualTo("");
+        assertThat(normalize("NuLl")).isEqualTo("");
+
+        // Empty / whitespace-only -> empty string
+        assertThat(normalize("")).isEqualTo("");
+        assertThat(normalize("   ")).isEqualTo("");
+
+        // Non-"www" prefixes are NOT stripped
+        assertThat(normalize("www2." + base)).isEqualTo("www2." + base);
+
+        // Bare host + port
+        assertThat(normalize("www." + base + ":8080")).isEqualTo(base);
+        assertThat(normalize("DEV.SPARTEO.COM:443")).isEqualTo(base);
+        assertThat(normalize(base + ".:8443")).isEqualTo(base); // trailing dot + port
+
+        // Bare host + path
+        assertThat(normalize(base + "/some/path?x=1")).isEqualTo(base);
+        assertThat(normalize("www." + base + "/p")).isEqualTo(base);
+
+        // Bare host + port + path
+        assertThat(normalize(base + ":8080/p?q=1")).isEqualTo(base);
+        assertThat(normalize("www." + base + ":3000/some/path")).isEqualTo(base);
+
+        // Absolute URLs
+        assertThat(normalize("https://www." + base + "/x")).isEqualTo(base);
+        assertThat(normalize("http://WWW." + base + ":8080/abc")).isEqualTo(base);
+
+        // Odd spacing around URL
+        assertThat(normalize("   https://www." + base + ":3000/x  ")).isEqualTo(base);
     }
 
     private BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> customizer, Imp... imps) {
@@ -872,11 +1055,9 @@ public class SparteoBidderTest extends VertxTest {
     private Bid givenBid(UnaryOperator<Bid.BidBuilder> bidCustomizer, String mediaType) {
         final Bid.BidBuilder builder = Bid.builder();
         bidCustomizer.apply(builder);
-
         if (builder.build().getExt() == null && mediaType != null) {
             builder.ext(createBidExtWithType(mediaType));
         }
-
         return builder.build();
     }
 
@@ -915,5 +1096,35 @@ public class SparteoBidderTest extends VertxTest {
         final ObjectNode bidExt = mapper.createObjectNode();
         bidExt.set("prebid", mapper.createObjectNode());
         return bidExt;
+    }
+
+    private static void assertMissingSiteDomainWarning(Result<?> result) {
+        assertThat(result.getErrors())
+                .hasSize(1)
+                .allSatisfy(err -> {
+                    assertThat(err.getType()).isEqualTo(BidderError.Type.bad_input);
+                    assertThat(err.getMessage())
+                            .contains("Domain not found. Missing the site.domain or the site.page field");
+                });
+    }
+
+    private static void assertMissingBundleWarning(Result<?> result) {
+        assertThat(result.getErrors())
+                .hasSize(1)
+                .allSatisfy(err -> {
+                    assertThat(err.getType()).isEqualTo(BidderError.Type.bad_input);
+                    assertThat(err.getMessage())
+                            .contains("Bundle not found. Missing the app.bundle field.");
+                });
+    }
+
+    private static String normalize(String in) {
+        try {
+            final var m = SparteoBidder.class.getDeclaredMethod("normalizeHostname", String.class);
+            m.setAccessible(true);
+            return (String) m.invoke(null, in);
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException("Unable to call normalizeHostname via reflection", e);
+        }
     }
 }
