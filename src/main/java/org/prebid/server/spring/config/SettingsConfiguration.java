@@ -51,9 +51,9 @@ import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 
-import javax.validation.constraints.Min;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Clock;
@@ -259,6 +259,9 @@ public class SettingsConfiguration {
 
         @Component
         @ConfigurationProperties(prefix = "settings.s3")
+        @ConditionalOnProperty(
+                prefix = "settings.s3",
+                name = {"accounts-dir", "stored-imps-dir", "stored-requests-dir"})
         @Validated
         @Data
         @NoArgsConstructor
@@ -294,7 +297,7 @@ public class SettingsConfiguration {
             @NotBlank
             private String bucket;
 
-            @NotBlank
+            @NotNull
             private Boolean forcePathStyle;
 
             @NotBlank
