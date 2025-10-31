@@ -6,8 +6,8 @@ import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 import org.prebid.server.functional.model.request.auction.Imp
 
-import static org.prebid.server.functional.model.request.auction.FetchStatus.SUCCESS
-import static org.prebid.server.functional.model.request.auction.FetchStatus.SUCCESS_BLOCK
+import static org.prebid.server.functional.model.response.auction.AnalyticTagStatus.SUCCESS
+import static org.prebid.server.functional.model.response.auction.AnalyticTagStatus.SUCCESS_BLOCK
 
 @ToString(includeNames = true, ignoreNulls = true)
 @JsonNaming(PropertyNamingStrategies.LowerCaseStrategy)
@@ -21,6 +21,6 @@ class AnalyticResult {
     static AnalyticResult buildFromImp(Imp imp) {
         def appliedTo = new AppliedTo(impIds: [imp.id], bidders: [imp.ext.prebid.bidder.configuredBidders.first()])
         def impResult = new ImpResult(status: SUCCESS_BLOCK, values: new ModuleValue(richmediaFormat: 'mraid'), appliedTo: appliedTo)
-        new AnalyticResult(name: 'reject-richmedia', status: AnalyticTagStatus.SUCCESS, results: [impResult])
+        new AnalyticResult(name: 'reject-richmedia', status: SUCCESS, results: [impResult])
     }
 }

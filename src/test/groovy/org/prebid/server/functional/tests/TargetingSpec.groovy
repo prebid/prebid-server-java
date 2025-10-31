@@ -955,9 +955,6 @@ class TargetingSpec extends BaseSpec {
         def targeting = ampResponse.targeting
         assert !targeting.isEmpty()
         assert targeting.keySet().every { it -> it.startsWith(prefix) }
-
-        cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS amp should use long request targeting prefix when settings.targeting.truncate-attr-chars override"() {
@@ -981,9 +978,6 @@ class TargetingSpec extends BaseSpec {
         def targeting = ampResponse.targeting
         assert !targeting.isEmpty()
         assert targeting.keySet().every { it -> it.startsWith(prefix) }
-
-        cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS auction should use long request targeting prefix when settings.targeting.truncate-attr-chars override"() {
@@ -1000,9 +994,6 @@ class TargetingSpec extends BaseSpec {
         def targeting = bidResponse.seatbid?.first()?.bid?.first()?.ext?.prebid?.targeting
         assert !targeting.isEmpty()
         assert targeting.keySet().every { it -> it.startsWith(prefix) }
-
-        cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS auction should use long account targeting prefix when settings.targeting.truncate-attr-chars override"() {
@@ -1024,9 +1015,6 @@ class TargetingSpec extends BaseSpec {
         def targeting = bidResponse.seatbid?.first()?.bid?.first()?.ext?.prebid?.targeting
         assert !targeting.isEmpty()
         assert targeting.keySet().every { it -> it.startsWith(prefix) }
-
-        cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS amp should ignore and add a warning to ext.warnings when value of the account prefix is longer then settings.targeting.truncate-attr-chars"() {
@@ -1075,9 +1063,6 @@ class TargetingSpec extends BaseSpec {
         then: "Amp response should contain warning"
         def decreasePrefixLength = prefix.length() + TARGETING_PREFIX_LENGTH - DEFAULT_TRUNCATE_CHARS
         assert ampResponse.ext?.warnings[TARGETING]*.message == [DROP_PREFIX_WARNING.formatted(decreasePrefixLength), truncatedMessage()]
-
-        cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS auction should ignore and add a warning to ext.warnings when value of the request prefix is longer then settings.targeting.truncate-attr-chars"() {
@@ -1096,9 +1081,6 @@ class TargetingSpec extends BaseSpec {
         assert !targeting.isEmpty()
         assert targeting.keySet().every { it -> it.startsWith(DEFAULT_TARGETING_PREFIX) }
         assert bidResponse.ext?.warnings[TARGETING]*.message == [DROP_PREFIX_WARNING.formatted(prefix.length() + TARGETING_PREFIX_LENGTH - DEFAULT_TRUNCATE_CHARS)]
-
-        cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS auction should ignore and add a warning to ext.warnings when value of the account prefix is longer then settings.targeting.truncate-attr-chars"() {
@@ -1121,9 +1103,6 @@ class TargetingSpec extends BaseSpec {
         assert !targeting.isEmpty()
         assert targeting.keySet().every { it -> it.startsWith(DEFAULT_TARGETING_PREFIX) }
         assert bidResponse.ext?.warnings[TARGETING]*.message == [DROP_PREFIX_WARNING.formatted(prefix.length() + TARGETING_PREFIX_LENGTH - DEFAULT_TRUNCATE_CHARS)]
-
-        cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS amp should apply data from query to ext.prebid.amp.data"() {
