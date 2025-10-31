@@ -19,6 +19,24 @@ adapters:
             url: https://usync.rocketlab.ai/pbserver?gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redirect={{redirect_url}}
             support-cors: false
             uid-macro: '[UID]'
+      appStockSSP:
+        enabled: false
+        # We have the following regional endpoint domains:  'lb' - for US_EAST, 'ortb-eu' - for EU, 'ortb-apac' - for APAC
+        # Please deploy this config in each of your datacenters with the appropriate regional subdomain
+        endpoint: https://#{REGION}#.al-ad.com/pserver
+        meta-info:
+          maintainer-email: sdksupport@app-stock.com
+        usersync:
+          enabled: true
+          cookie-family-name: appStockSSP
+          redirect:
+            url: https://csync.al-ad.com/pbserver?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redir={{redirect_url}}
+            support-cors: false
+            uid-macro: '[UID]'
+          iframe:
+            url: "https://csync.al-ad.com/pbserverIframe?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&pbserverUrl={{redirect_url}}"
+            support-cors: false
+            uid-macro: '[UID]'
     meta-info:
       maintainer-email: github@teqblaze.com
       app-media-types:
