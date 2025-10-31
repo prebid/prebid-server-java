@@ -56,6 +56,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.function.BiConsumer;
@@ -212,11 +213,12 @@ public class CoreCacheService {
                                                     Boolean isEventsEnabled,
                                                     Set<String> biddersAllowingVastUpdate,
                                                     String accountId,
+                                                    Integer accountTtl,
                                                     String integration,
                                                     Timeout timeout) {
 
-        final List<CachedCreative> cachedCreatives =
-                updatePutObjects(bidPutObjects, isEventsEnabled, biddersAllowingVastUpdate, accountId, integration);
+        final List<CachedCreative> cachedCreatives = updatePutObjects(
+                bidPutObjects, isEventsEnabled, biddersAllowingVastUpdate, accountId, accountTtl, integration);
 
         updateCreativeMetrics(
                 cachedCreatives,
@@ -230,6 +232,7 @@ public class CoreCacheService {
                                                   Boolean isEventsEnabled,
                                                   Set<String> allowedBidders,
                                                   String accountId,
+                                                  Integer accountTtl,
                                                   String integration) {
 
         return bidPutObjects.stream()
@@ -244,9 +247,16 @@ public class CoreCacheService {
                                 putObject,
                                 accountId,
                                 integration))
+                        .ttlseconds(resolveVtrackTtl(putObject.getTtlseconds(), accountTtl))
                         .build())
                 .map(payload -> CachedCreative.of(payload, creativeSizeFromTextNode(payload.getValue())))
                 .toList();
+    }
+
+    private static Integer resolveVtrackTtl(Integer initialObjectTtl, Integer initialAccountTtl) {
+        final Integer accountTtl = Optional.ofNullable(initialAccountTtl).filter(ttl -> ttl > 0).orElse(null);
+        final Integer objectTtl = Optional.ofNullable(initialObjectTtl).filter(ttl -> ttl > 0).orElse(null);
+        return ObjectUtils.min(objectTtl, accountTtl);
     }
 
     public Future<CacheServiceResult> cacheBidsOpenrtb(List<BidInfo> bidsToCache,
