@@ -581,6 +581,16 @@ abstract class PrivacyBaseSpec extends BaseSpec {
         })
     }
 
+    protected static String getInvalidGppString(int stringLength = 20) {
+        // Random string can potentially generate deprecated v1 value with specific starting values
+        def gppV1Prefix = ['A', 'B', 'C', 'D']
+        def invalidGPPValue
+        do {
+            invalidGPPValue = PBSUtils.getRandomString(stringLength)
+        } while (gppV1Prefix.contains(invalidGPPValue[0].toUpperCase()))
+        return invalidGPPValue
+    }
+
     private static Purpose getRandomPurposeWithExclusion(Purpose excludeFromRandom) {
         def availablePurposes = Purpose.values().toList() - excludeFromRandom
         availablePurposes.shuffled().first()
