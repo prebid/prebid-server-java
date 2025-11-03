@@ -36,7 +36,7 @@ class RuleEngineSyncSpec extends RuleEngineBaseSpec {
         waitUntilSuccessfullyParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest, cookieHeader)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest, cookieHeader)
 
         then: "Bid response should contain seats"
         assert bidResponse.seatbid.seat.sort() == [OPENX, AMX]
@@ -93,7 +93,7 @@ class RuleEngineSyncSpec extends RuleEngineBaseSpec {
         waitUntilSuccessfullyParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest, cookieHeader)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest, cookieHeader)
 
         then: "Bid response should contain seats"
         assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
@@ -129,7 +129,7 @@ class RuleEngineSyncSpec extends RuleEngineBaseSpec {
         waitUntilSuccessfullyParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
         assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
@@ -168,7 +168,7 @@ class RuleEngineSyncSpec extends RuleEngineBaseSpec {
         waitUntilSuccessfullyParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest, cookieHeader)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest, cookieHeader)
 
         then: "Bid response shouldn't contain seat"
         assert bidResponse.seatbid.seat == [GENERIC]
@@ -228,7 +228,7 @@ class RuleEngineSyncSpec extends RuleEngineBaseSpec {
         waitUntilSuccessfullyParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest, cookieHeader)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest, cookieHeader)
 
         then: "Bid response shouldn't contain seat"
         assert !bidResponse.seatbid.seat
@@ -278,7 +278,7 @@ class RuleEngineSyncSpec extends RuleEngineBaseSpec {
         accountDao.save(accountWithRulesEngine)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
         assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
