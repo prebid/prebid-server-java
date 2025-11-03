@@ -51,7 +51,6 @@ public class NativeryBidder implements Bidder<BidRequest> {
             };
 
     private static final String DEFAULT_CURRENCY = "EUR";
-    private static final String NATIVERY_ERROR_HEADER = "X-Nativery-Error";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -139,9 +138,6 @@ public class NativeryBidder implements Bidder<BidRequest> {
         final List<BidderError> errors = new ArrayList<>();
 
         final var response = httpCall.getResponse();
-        if (response == null || StringUtils.isBlank(response.getBody())) {
-            return Result.withError(BidderError.badServerResponse("Empty response"));
-        }
 
         try {
             final BidResponse bidResponse = mapper.decodeValue(response.getBody(), BidResponse.class);
@@ -175,10 +171,10 @@ public class NativeryBidder implements Bidder<BidRequest> {
             final BidExtNativery nativeryExt = parseNativeryExt(bid.getExt());
 
             final BidType bidType = mapMediaType(nativeryExt.getBidAdMediaType());
-            final List<String> advDomains = ListUtils.defaultIfNull(
-                    nativeryExt.getBidAdvDomains(), Collections.emptyList());
+            final List<String> advDomains = ListUtils.emptyIfNull(
+                    nativeryExt.getBidAdvDomains());
 
-            final Bid updatedBid = addBidMeta(bid, mediaTypeString(bidType), advDomains);
+            final Bid updatedBid = addBidMeta(bid, bidType.getName(), advDomains);
             return BidderBid.of(updatedBid, bidType, currency);
         } catch (PreBidException e) {
             errors.add(BidderError.badInput(e.getMessage()));
@@ -212,27 +208,15 @@ public class NativeryBidder implements Bidder<BidRequest> {
         };
     }
 
-    private static String mediaTypeString(BidType type) {
-        return switch (type) {
-            case banner -> type.getName();
-            case video -> type.getName();
-            case xNative -> type.getName();
-            default -> throw new IllegalStateException("Unexpected value: " + type.getName());
-        };
-    }
-
     private Bid addBidMeta(Bid bid, String mediaType, List<String> advDomains) {
         final ExtBidPrebid prebid = parseExtBidPrebid(bid);
-
-        final List<String> safeAdvDomains = Optional.ofNullable(advDomains)
-                .orElse(Collections.emptyList());
 
         final ExtBidPrebidMeta modifiedMeta = Optional.ofNullable(prebid)
                 .map(ExtBidPrebid::getMeta)
                 .map(ExtBidPrebidMeta::toBuilder)
                 .orElseGet(ExtBidPrebidMeta::builder)
                 .mediaType(mediaType)
-                .advertiserDomains(safeAdvDomains)
+                .advertiserDomains(advDomains)
                 .build();
 
         final ExtBidPrebid modifiedPrebid = Optional.ofNullable(prebid)

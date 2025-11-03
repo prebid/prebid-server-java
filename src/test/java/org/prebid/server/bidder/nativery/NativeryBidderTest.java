@@ -8,7 +8,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.MultiMap;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.Endpoint;
@@ -42,7 +41,6 @@ public class NativeryBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.com/test";
     private static final String DEFAULT_CURRENCY = "EUR";
-    private static final String NATIVERY_ERROR_HEADER = "X-Nativery-Error";
 
     private final NativeryBidder target = new NativeryBidder(ENDPOINT_URL, jacksonMapper);
 
@@ -130,19 +128,11 @@ public class NativeryBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldPreserveOriginalExtFields() {
         // given
-        final ObjectNode extNode = mapper.createObjectNode();
-        extNode.put("accountId", "acc-123");
+        final ExtRequest extRequest = ExtRequest.empty();
+        extRequest.addProperty("accountId", mapper.convertValue("acc-123", JsonNode.class));
 
         final BidRequest bidRequest = givenBidRequest(
-                requestBuilder -> {
-                    try {
-                        return requestBuilder.ext(
-                                mapper.readValue(mapper.writeValueAsString(extNode), ExtRequest.class)
-                        );
-                    } catch (JsonProcessingException e) {
-                        throw new RuntimeException(e);
-                    }
-                },
+                requestBuilder -> requestBuilder.ext(extRequest),
                 UnaryOperator.identity());
 
         // when
@@ -161,22 +151,17 @@ public class NativeryBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldSetExtWithAmpTrue() {
         // given
-        final ObjectNode extNode = mapper.createObjectNode();
-        final ObjectNode prebidNode = mapper.createObjectNode();
+        final ExtRequest extRequest = ExtRequest.empty();
+
         final ObjectNode serverNode = mapper.createObjectNode();
         serverNode.put("endpoint", Endpoint.openrtb2_amp.value());
+
+        final ObjectNode prebidNode = mapper.createObjectNode();
         prebidNode.set("server", serverNode);
-        extNode.set("prebid", prebidNode);
+
+        extRequest.addProperty("prebid", prebidNode);
         final BidRequest bidRequest = givenBidRequest(
-                requestBuilder -> {
-                    try {
-                        return requestBuilder.ext(
-                                mapper.readValue(mapper.writeValueAsString(extNode), ExtRequest.class)
-                        );
-                    } catch (JsonProcessingException e) {
-                        throw new RuntimeException(e);
-                    }
-                },
+                requestBuilder -> requestBuilder.ext(extRequest),
                 UnaryOperator.identity());
 
         // when
@@ -451,18 +436,6 @@ public class NativeryBidderTest extends VertxTest {
         return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(null).build(),
                 HttpResponse.of(200, null, body),
-                null);
-    }
-
-    private static BidderCall<BidRequest> givenHttpCallWithHeaders(int statusCode, Map<String, String> headers) {
-        final MultiMap multiMap = MultiMap.caseInsensitiveMultiMap();
-        if (headers != null) {
-            headers.forEach(multiMap::add);
-        }
-
-        return BidderCall.succeededHttp(
-                HttpRequest.<BidRequest>builder().payload(null).build(),
-                HttpResponse.of(statusCode, multiMap, null),
                 null);
     }
 }
