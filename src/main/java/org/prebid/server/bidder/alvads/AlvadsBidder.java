@@ -163,7 +163,6 @@ public class AlvadsBidder implements Bidder<AlvadsRequestOrtb> {
                 .toList();
     }
 
-
     private BidderBid makeBid(Bid bid, AlvadsRequestOrtb request, String currency) {
         final AlvaAdsImp imp = request.getImp().stream()
                 .filter(i -> i.getId().equals(bid.getImpid()))
