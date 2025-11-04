@@ -40,7 +40,7 @@ import static org.assertj.core.api.Assertions.tuple;
 public class SparteoBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL =
-            "https://test.sparteo.com/endpoint?network_id={{NetworkId}}{{SiteDomainQuery}}{{AppDomainQuery}}{{BundleQuery}}";
+            "https://test.sparteo.com/endpoint?network_id={{NetworkId}}";
     private final SparteoBidder sparteoBidder = new SparteoBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
@@ -177,15 +177,13 @@ public class SparteoBidderTest extends VertxTest {
                 .containsNull();
 
         assertThat(resultNoSite.getErrors()).isEmpty();
-        final BidRequest out = resultNoPublisher.getValue().get(0).getPayload();
-        assertThat(out.getSite()).isNotNull();
-        assertThat(out.getSite().getPublisher()).isNotNull();
-
-        final ExtPublisher publisherExt = (ExtPublisher) out.getSite().getPublisher().getExt();
-        assertThat(publisherExt).isNotNull();
-        assertThat(publisherExt.getProperties()).containsKey("params");
-        assertThat(publisherExt.getProperties().get("params").get("networkId").asText())
-                .isEqualTo("testNetworkId");
+        assertThat(resultNoPublisher.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getSite)
+                .extracting(Site::getPublisher)
+                .extracting(Publisher::getExt)
+                .extracting(ext -> ((ExtPublisher) ext).getProperties().get("params").get("networkId").asText())
+                .containsExactly("testNetworkId");
     }
 
     @Test
@@ -681,9 +679,9 @@ public class SparteoBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
-        final String uri = result.getValue().get(0).getUri();
-        assertThat(uri).isEqualTo(
-                "https://test.sparteo.com/endpoint?network_id=testNetworkId&site_domain=dev.sparteo.com");
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://test.sparteo.com/endpoint?network_id=testNetworkId&site_domain=dev.sparteo.com");
     }
 
     @Test
@@ -705,10 +703,9 @@ public class SparteoBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1);
-        final String uri = result.getValue().get(0).getUri();
-        assertThat(uri).isEqualTo(
-                "https://test.sparteo.com/endpoint?network_id=testNetworkId&site_domain=dev.sparteo.com");
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://test.sparteo.com/endpoint?network_id=testNetworkId&site_domain=dev.sparteo.com");
     }
 
     @Test
@@ -752,9 +749,9 @@ public class SparteoBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().get(0).getUri())
-                .isEqualTo("https://test.sparteo.com/endpoint?network_id=networkId&site_domain=site.sparteo.com");
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://test.sparteo.com/endpoint?network_id=networkId&site_domain=site.sparteo.com");
     }
 
     @Test
@@ -777,9 +774,9 @@ public class SparteoBidderTest extends VertxTest {
 
         // then
         assertMissingBundleWarning(result);
-        assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().get(0).getUri())
-                .isEqualTo("https://test.sparteo.com/endpoint?network_id=networkId&app_domain=com.sparteo.app&bundle=unknown");
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://test.sparteo.com/endpoint?network_id=networkId&app_domain=com.sparteo.app&bundle=unknown");
     }
 
     @Test
@@ -845,10 +842,6 @@ public class SparteoBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldAppendBundleWhenAppBundlePresent() {
         // given
-        final String endpointWithBundle =
-                "https://test.sparteo.com/endpoint?network_id={{NetworkId}}{{SiteDomainQuery}}{{AppDomainQuery}}{{BundleQuery}}";
-        final SparteoBidder bidder = new SparteoBidder(endpointWithBundle, jacksonMapper);
-
         final ObjectNode impExt = mapper.createObjectNode();
         impExt.set("bidder", mapper.createObjectNode().put("networkId", "networkId"));
 
@@ -863,22 +856,18 @@ public class SparteoBidderTest extends VertxTest {
                 givenImp(i -> i.ext(impExt)));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = sparteoBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().get(0).getUri())
-                .isEqualTo("https://test.sparteo.com/endpoint?network_id=networkId&app_domain=dev.sparteo.com&bundle=com.sparteo.app");
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://test.sparteo.com/endpoint?network_id=networkId&app_domain=dev.sparteo.com&bundle=com.sparteo.app");
     }
 
     @Test
     public void makeHttpRequestsShouldNotAppendBundleWhenNoAppBundle() {
         // given
-        final String endpointWithBundle =
-                "https://test.sparteo.com/endpoint?network_id={{NetworkId}}{{SiteDomainQuery}}{{AppDomainQuery}}{{BundleQuery}}";
-        final SparteoBidder bidder = new SparteoBidder(endpointWithBundle, jacksonMapper);
-
         final ObjectNode impExt = mapper.createObjectNode();
         impExt.set("bidder", mapper.createObjectNode().put("networkId", "networkId"));
 
@@ -889,22 +878,18 @@ public class SparteoBidderTest extends VertxTest {
                 givenImp(i -> i.ext(impExt)));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = sparteoBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().get(0).getUri())
-                .isEqualTo("https://test.sparteo.com/endpoint?network_id=networkId&site_domain=dev.sparteo.com");
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://test.sparteo.com/endpoint?network_id=networkId&site_domain=dev.sparteo.com");
     }
 
     @Test
     public void makeHttpRequestsShouldAppendUnknownBundleWhenAppPresentButBundleMissing() {
         // given
-        final String endpointWithBundle =
-                "https://test.sparteo.com/endpoint?network_id={{NetworkId}}{{SiteDomainQuery}}{{AppDomainQuery}}{{BundleQuery}}";
-        final SparteoBidder bidder = new SparteoBidder(endpointWithBundle, jacksonMapper);
-
         final ObjectNode impExt = mapper.createObjectNode();
         impExt.set("bidder", mapper.createObjectNode().put("networkId", "networkId"));
 
@@ -918,126 +903,128 @@ public class SparteoBidderTest extends VertxTest {
                 givenImp(i -> i.ext(impExt)));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = sparteoBidder.makeHttpRequests(bidRequest);
 
         // then
         assertMissingBundleWarning(result);
-        assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().get(0).getUri())
-                .isEqualTo("https://test.sparteo.com/endpoint?network_id=networkId&app_domain=dev.sparteo.com&bundle=unknown");
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://test.sparteo.com/endpoint?network_id=networkId&app_domain=dev.sparteo.com&bundle=unknown");
     }
 
     @Test
-    public void makeHttpRequestsShouldAppendUnknownBundleWhenAppBundleBlankOrLiteralNull() {
+    public void makeHttpRequestsShouldAppendUnknownBundleWhenAppBundleIsNull() {
+        testAppendUnknownBundle(null);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldAppendUnknownBundleWhenAppBundleIsEmpty() {
+        testAppendUnknownBundle("");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldAppendUnknownBundleWhenAppBundleIsBlank() {
+        testAppendUnknownBundle("   ");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldAppendUnknownBundleWhenAppBundleIsLiteralNull() {
+        testAppendUnknownBundle("null");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldAppendUnknownBundleWhenAppBundleIsLiteralNullIgnoreCase() {
+        testAppendUnknownBundle("NuLl");
+    }
+
+    private void testAppendUnknownBundle(String rawBundle) {
         // given
-        final String endpointWithBundle =
-                "https://test.sparteo.com/endpoint?network_id={{NetworkId}}{{SiteDomainQuery}}{{AppDomainQuery}}{{BundleQuery}}";
-        final SparteoBidder bidder = new SparteoBidder(endpointWithBundle, jacksonMapper);
+        final ObjectNode impExt = mapper.createObjectNode();
+        impExt.set("bidder", mapper.createObjectNode().put("networkId", "networkId"));
 
-        for (String rawBundle : new String[] { null, "", "   ", "null", "NuLl" }) {
-            final ObjectNode impExt = mapper.createObjectNode();
-            impExt.set("bidder", mapper.createObjectNode().put("networkId", "networkId"));
+        final BidRequest bidRequest = givenBidRequest(
+                r -> r
+                        .site(null)
+                        .app(App.builder()
+                                .domain("dev.sparteo.com")
+                                .bundle(rawBundle)
+                                .publisher(Publisher.builder().id("p1").build())
+                                .build()),
+                givenImp(i -> i.ext(impExt)));
 
-            final BidRequest bidRequest = givenBidRequest(
-                    r -> r
-                            .site(null)
-                            .app(App.builder()
-                                    .domain("dev.sparteo.com")
-                                    .bundle(rawBundle)
-                                    .publisher(Publisher.builder().id("p1").build())
-                                    .build()),
-                    givenImp(i -> i.ext(impExt)));
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = sparteoBidder.makeHttpRequests(bidRequest);
 
-            // when
-            final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
-
-            // then
-            assertMissingBundleWarning(result);
-            assertThat(result.getValue()).hasSize(1);
-            assertThat(result.getValue().get(0).getUri())
-                    .isEqualTo("https://test.sparteo.com/endpoint?network_id=networkId&app_domain=dev.sparteo.com&bundle=unknown");
-        }
+        // then
+        assertMissingBundleWarning(result);
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://test.sparteo.com/endpoint?network_id=networkId&app_domain=dev.sparteo.com&bundle=unknown");
     }
 
     @Test
     public void makeHttpRequestsShouldWarnAndSetUnknownAppDomainWhenAppDomainMissing() {
         // given
-        final String endpoint =
-                "https://test.sparteo.com/endpoint?network_id={{NetworkId}}{{SiteDomainQuery}}{{AppDomainQuery}}{{BundleQuery}}";
-        final SparteoBidder bidder = new SparteoBidder(endpoint, jacksonMapper);
-
         final ObjectNode impExt = mapper.createObjectNode();
         impExt.set("bidder", mapper.createObjectNode().put("networkId", "nid"));
 
         final BidRequest bidRequest = givenBidRequest(
                 r -> r.site(null)
                       .app(App.builder()
-                              .domain(null) // missing app domain → warning + unknown
+                              .domain(null)
                               .bundle("com.example.bundle")
                               .publisher(Publisher.builder().build())
                               .build()),
                 givenImp(i -> i.ext(impExt)));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = sparteoBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        final String uri = result.getValue().get(0).getUri();
-        assertThat(uri).isEqualTo(
-                "https://test.sparteo.com/endpoint?network_id=nid&app_domain=unknown&bundle=com.example.bundle");
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly(
+                        "https://test.sparteo.com/endpoint?network_id=nid&app_domain=unknown&bundle=com.example.bundle");
     }
 
     @Test
     public void normalizeHostnameShouldReturnBaseDomain() {
         final String base = "dev.sparteo.com";
 
-        // Already normalized
-        assertThat(normalize(base)).isEqualTo(base);
+        assertThat(SparteoBidder.normalizeHostname(base)).isEqualTo(base);
 
-        // Case folding + trimming
-        assertThat(normalize("DeV.SpArTeO.CoM")).isEqualTo(base);
-        assertThat(normalize("  " + base + "  ")).isEqualTo(base);
+        assertThat(SparteoBidder.normalizeHostname("DeV.SpArTeO.CoM")).isEqualTo(base);
+        assertThat(SparteoBidder.normalizeHostname("  " + base + "  ")).isEqualTo(base);
 
-        // Strip leading "www."
-        assertThat(normalize("www." + base)).isEqualTo(base);
-        assertThat(normalize("WWW." + base)).isEqualTo(base);
+        assertThat(SparteoBidder.normalizeHostname("www." + base)).isEqualTo(base);
+        assertThat(SparteoBidder.normalizeHostname("WWW." + base)).isEqualTo(base);
 
-        // Strip exactly ONE trailing dot
-        assertThat(normalize(base + ".")).isEqualTo(base);
-        // Pathological: multiple trailing dots → only one removed by the method
-        assertThat(normalize(base + "..")).isEqualTo(base + ".");
+        assertThat(SparteoBidder.normalizeHostname(base + ".")).isEqualTo(base);
+        assertThat(SparteoBidder.normalizeHostname(base + "..")).isEqualTo(base + ".");
 
-        // Literal "null" (any case) -> empty string
-        assertThat(normalize("null")).isEqualTo("");
-        assertThat(normalize("NuLl")).isEqualTo("");
+        assertThat(SparteoBidder.normalizeHostname("null")).isEqualTo("");
+        assertThat(SparteoBidder.normalizeHostname("NuLl")).isEqualTo("");
 
-        // Empty / whitespace-only -> empty string
-        assertThat(normalize("")).isEqualTo("");
-        assertThat(normalize("   ")).isEqualTo("");
+        assertThat(SparteoBidder.normalizeHostname("")).isEqualTo("");
+        assertThat(SparteoBidder.normalizeHostname("   ")).isEqualTo("");
 
-        // Non-"www" prefixes are NOT stripped
-        assertThat(normalize("www2." + base)).isEqualTo("www2." + base);
+        assertThat(SparteoBidder.normalizeHostname("www2." + base)).isEqualTo("www2." + base);
 
-        // Bare host + port
-        assertThat(normalize("www." + base + ":8080")).isEqualTo(base);
-        assertThat(normalize("DEV.SPARTEO.COM:443")).isEqualTo(base);
-        assertThat(normalize(base + ".:8443")).isEqualTo(base); // trailing dot + port
+        assertThat(SparteoBidder.normalizeHostname("www." + base + ":8080")).isEqualTo(base);
+        assertThat(SparteoBidder.normalizeHostname("DEV.SPARTEO.COM:443")).isEqualTo(base);
+        assertThat(SparteoBidder.normalizeHostname(base + ".:8443")).isEqualTo(base);
 
-        // Bare host + path
-        assertThat(normalize(base + "/some/path?x=1")).isEqualTo(base);
-        assertThat(normalize("www." + base + "/p")).isEqualTo(base);
+        assertThat(SparteoBidder.normalizeHostname(base + "/some/path?x=1")).isEqualTo(base);
+        assertThat(SparteoBidder.normalizeHostname("www." + base + "/p")).isEqualTo(base);
 
-        // Bare host + port + path
-        assertThat(normalize(base + ":8080/p?q=1")).isEqualTo(base);
-        assertThat(normalize("www." + base + ":3000/some/path")).isEqualTo(base);
+        assertThat(SparteoBidder.normalizeHostname(base + ":8080/p?q=1")).isEqualTo(base);
+        assertThat(SparteoBidder.normalizeHostname("www." + base + ":3000/some/path")).isEqualTo(base);
 
-        // Absolute URLs
-        assertThat(normalize("https://www." + base + "/x")).isEqualTo(base);
-        assertThat(normalize("http://WWW." + base + ":8080/abc")).isEqualTo(base);
+        assertThat(SparteoBidder.normalizeHostname("https://www." + base + "/x")).isEqualTo(base);
+        assertThat(SparteoBidder.normalizeHostname("http://WWW." + base + ":8080/abc")).isEqualTo(base);
 
-        // Odd spacing around URL
-        assertThat(normalize("   https://www." + base + ":3000/x  ")).isEqualTo(base);
+        assertThat(SparteoBidder.normalizeHostname("   https://www." + base + ":3000/x  ")).isEqualTo(base);
     }
 
     private BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> customizer, Imp... imps) {
@@ -1116,15 +1103,5 @@ public class SparteoBidderTest extends VertxTest {
                     assertThat(err.getMessage())
                             .contains("Bundle not found. Missing the app.bundle field.");
                 });
-    }
-
-    private static String normalize(String in) {
-        try {
-            final var m = SparteoBidder.class.getDeclaredMethod("normalizeHostname", String.class);
-            m.setAccessible(true);
-            return (String) m.invoke(null, in);
-        } catch (ReflectiveOperationException e) {
-            throw new RuntimeException("Unable to call normalizeHostname via reflection", e);
-        }
     }
 }

@@ -1,6 +1,6 @@
 adapters:
   sparteo:
-    endpoint: https://bid.sparteo.com/s2s-auction?network_id={{NetworkId}}{{SiteDomainQuery}}{{AppDomainQuery}}{{BundleQuery}}
+    endpoint: https://bid.sparteo.com/s2s-auction?network_id={{NetworkId}}
     meta-info: 
       maintainer-email: prebid@sparteo.com
       app-media-types:
