@@ -151,15 +151,17 @@ public class NativeryBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldSetExtWithAmpTrue() {
         // given
-        final ExtRequest extRequest = ExtRequest.empty();
-
         final ObjectNode serverNode = mapper.createObjectNode();
         serverNode.put("endpoint", Endpoint.openrtb2_amp.value());
 
         final ObjectNode prebidNode = mapper.createObjectNode();
         prebidNode.set("server", serverNode);
 
-        extRequest.addProperty("prebid", prebidNode);
+        final ObjectNode extNode = mapper.createObjectNode();
+        extNode.set("prebid", prebidNode);
+
+        final ExtRequest extRequest = mapper.convertValue(extNode, ExtRequest.class);
+
         final BidRequest bidRequest = givenBidRequest(
                 requestBuilder -> requestBuilder.ext(extRequest),
                 UnaryOperator.identity());
