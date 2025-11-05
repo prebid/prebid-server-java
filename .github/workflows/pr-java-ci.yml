@@ -33,12 +33,10 @@ jobs:
       - name: Build with Maven
         run: mvn -B package --file extra/pom.xml
 
-      - name: Emitting run result of unit test
+      - name: Publish JUnit Report
+        if: always()
         uses: mikepenz/action-junit-report@v5
-        if: success() || failure()
         with:
-          report_paths: '**/target/failsafe-reports/TEST-*.xml'
-          comment: true
-          fail_on_failure: true
-          updateComment: true
-          token: ${{ secrets.GITHUB_TOKEN }}
+          report_paths: '**/target/surefire-reports/TEST-*.xml'
+          check_name: 'JUnit Test Report'
+          include_passed: true
