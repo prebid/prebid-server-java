@@ -41,3 +41,6 @@ jobs:
           check_name: 'JUnit Test Report'
           include_passed: true
           comment: true
+          fail_on_failure: true
+          updateComment: false
+          token: ${{ secrets.GITHUB_TOKEN }}
