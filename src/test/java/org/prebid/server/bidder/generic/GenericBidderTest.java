@@ -56,7 +56,7 @@ public class GenericBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://randomurl.com");
+                .containsExactly("https://123.com");
     }
 
     @Test
@@ -71,7 +71,7 @@ public class GenericBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(23102077)
                 .allSatisfy(error -> {
                     assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
-                    assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token");
+                    assertThat(error.getMessage()).startsWith("123 to decode: Unrecognized token");
                 });
         assertThat(result.getValue()).isEmpty();
     }
