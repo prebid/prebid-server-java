@@ -56,7 +56,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.function.BiConsumer;
@@ -261,8 +260,8 @@ public class CoreCacheService {
     }
 
     private static Integer resolveVtrackTtl(Integer initialObjectTtl, Integer initialAccountTtl) {
-        final Integer accountTtl = Optional.ofNullable(initialAccountTtl).filter(ttl -> ttl > 0).orElse(null);
-        final Integer objectTtl = Optional.ofNullable(initialObjectTtl).filter(ttl -> ttl > 0).orElse(null);
+        final Integer accountTtl = initialAccountTtl != null && initialAccountTtl > 0 ? initialAccountTtl : null;
+        final Integer objectTtl = initialObjectTtl != null && initialObjectTtl > 0 ? initialObjectTtl : null;
         return ObjectUtils.min(objectTtl, accountTtl);
     }
 

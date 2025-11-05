@@ -323,7 +323,7 @@ public class PostVtrackHandlerTest extends VertxTest {
         given(requestBody.buffer()).willReturn(givenVtrackRequest(bidPutObjects));
 
         given(applicationSettings.getAccountById(any(), any())).willReturn(Future.succeededFuture(
-                Account.builder().vtrack(AccountVtrackConfig.builder().ttl(100).build()).build()));
+                Account.builder().vtrack(AccountVtrackConfig.of(100)).build()));
         given(coreCacheService.cachePutObjects(any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(BidCacheResponse.of(emptyList())));
 
