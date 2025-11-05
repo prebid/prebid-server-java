@@ -3,32 +3,24 @@
   "imp": [
     {
       "id": "imp_id",
-      "secure": 1,
       "banner": {
         "w": 300,
         "h": 250
       },
+      "secure": 1,
       "ext": {
-        "tid": "${json-unit.any-string}",
         "bidder": {
-          "publisherId": "publisherId"
+          "type": "publisher",
+          "placementId": "testPlacementId"
         }
       }
     }
   ],
-  "source": {
-    "tid": "${json-unit.any-string}"
-  },
   "site": {
     "domain": "www.example.com",
     "page": "http://www.example.com",
     "publisher": {
-      "domain": "example.com",
-      "ext": {
-        "prebid": {
-          "publisherId": "publisherId"
-        }
-      }
+      "domain": "example.com"
     },
     "ext": {
       "amp": 0
@@ -43,8 +35,13 @@
   "cur": [
     "USD"
   ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
   "regs": {
-    "gdpr": 0
+    "ext": {
+      "gdpr": 0
+    }
   },
   "ext": {
     "prebid": {

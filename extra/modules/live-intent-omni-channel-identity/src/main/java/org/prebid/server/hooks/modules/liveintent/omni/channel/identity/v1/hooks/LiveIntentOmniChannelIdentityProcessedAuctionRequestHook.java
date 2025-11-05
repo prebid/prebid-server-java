@@ -17,6 +17,9 @@ import org.prebid.server.activity.infrastructure.payload.impl.BidRequestActivity
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
+import org.prebid.server.hooks.execution.v1.analytics.ActivityImpl;
+import org.prebid.server.hooks.execution.v1.analytics.ResultImpl;
+import org.prebid.server.hooks.execution.v1.analytics.TagsImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.liveintent.omni.channel.identity.model.IdResResponse;
 import org.prebid.server.hooks.modules.liveintent.omni.channel.identity.model.config.LiveIntentOmniChannelProperties;
@@ -163,6 +166,15 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
                 .status(InvocationStatus.success)
                 .action(InvocationAction.update)
                 .payloadUpdate(payload -> updatedPayload(payload, resolutionResult.getEids()))
+                .analyticsTags(TagsImpl.of(List.of(
+                        ActivityImpl.of(
+                                "liveintent-enriched", "success",
+                                List.of(
+                                    ResultImpl.of(
+                                            "",
+                                            mapper.mapper().createObjectNode()
+                                                    .put("treatmentRate", config.getTreatmentRate()),
+                                            null))))))
                 .build();
     }
 
