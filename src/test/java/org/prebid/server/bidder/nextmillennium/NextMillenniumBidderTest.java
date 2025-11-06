@@ -190,7 +190,7 @@ public class NextMillenniumBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldIncludeAdSlotsAndAllowedAdsInRequestAndImpExt() {
+    public void makeHttpRequestsShouldIncludeAdSlotsAndAllowedAdsOnlyInRequestExt() {
         // given
         final List<String> adSlots = List.of("slot1", "slot2");
         final List<String> allowedAds = List.of("ad1", "ad2");
@@ -226,9 +226,9 @@ public class NextMillenniumBidderTest extends VertxTest {
                 .extracting(NextMillenniumExtBidder::getAdSlots, NextMillenniumExtBidder::getAllowedAds)
                 .containsExactly(adSlots, allowedAds);
 
-        assertThat(impExt)
-                .extracting(NextMillenniumExtBidder::getAdSlots, NextMillenniumExtBidder::getAllowedAds)
-                .containsExactly(adSlots, allowedAds);
+        assertThat(impExt.getAdSlots()).isNull();
+        assertThat(impExt.getAllowedAds()).isNull();
+        assertThat(impExt.getNmmFlags()).containsExactly("valueOne", "valueTwo");
     }
 
     @Test
