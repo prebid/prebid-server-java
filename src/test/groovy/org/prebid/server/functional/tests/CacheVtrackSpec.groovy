@@ -4,6 +4,7 @@ import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountCacheConfig
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountEventsConfig
+import org.prebid.server.functional.model.config.AccountVtrackConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.vtrack.VtrackRequest
 import org.prebid.server.functional.model.request.vtrack.xml.Vast
@@ -53,6 +54,212 @@ class CacheVtrackSpec extends BaseSpec {
 
     void cleanup() {
         prebidCache.reset()
+    }
+
+    def "PBS should update prebid_cache.creative_size.xml metric and adding tracking xml when xml creative contain #wrapper and impression are valid xml value"() {
+        given: "Current value of metric prebid_cache.vtrack.write.ok"
+        def initialOkVTrackValue = getCurrentMetricValue(defaultPbsService, VTRACK_WRITE_OK_METRIC)
+
+        and: "Create and save enabled events config in account"
+        def accountId = PBSUtils.randomNumber.toString()
+        def account = new Account().tap {
+            uuid = accountId
+            config = new AccountConfig().tap {
+                auction = new AccountAuctionConfig(events: new AccountEventsConfig(enabled: true))
+            }
+        }
+        accountDao.save(account)
+
+        and: "Set up prebid cache"
+        prebidCache.setResponse()
+
+        and: "Vtrack request with custom tags"
+        def payload = PBSUtils.randomString
+        def creative = "<VAST version=\"3.0\"><Ad><${wrapper}><AdSystem>prebid.org wrapper</AdSystem>" +
+                "<VASTAdTagURI>&lt;![CDATA[//${payload}]]&gt;</VASTAdTagURI>" +
+                "<${impression}> &lt;![CDATA[ ]]&gt; </${impression}><Creatives></Creatives></${wrapper}></Ad></VAST>"
+        def request = VtrackRequest.getDefaultVtrackRequest(creative)
+
+        and: "Flush metrics"
+        flushMetrics(defaultPbsService)
+
+        when: "PBS processes vtrack request"
+        defaultPbsService.sendPostVtrackRequest(request, accountId)
+
+        then: "Vast xml is modified"
+        def prebidCacheRequest = prebidCache.getXmlRecordedRequestsBody(payload)
+        assert prebidCacheRequest.size() == 1
+        assert prebidCacheRequest[0].contains("/event?t=imp&b=${request.puts[0].bidid}&a=$accountId&bidder=${request.puts[0].bidder}")
+
+        and: "prebid_cache.creative_size.xml metric should be updated"
+        def metrics = defaultPbsService.sendCollectedMetricsRequest()
+        def ttlSeconds = request.puts[0].ttlseconds
+        assert metrics[VTRACK_WRITE_OK_METRIC] == initialOkVTrackValue + 1
+        assert metrics[VTRACK_XML_CREATIVE_TTL_METRIC] == ttlSeconds
+
+        and: "account.<account-id>.prebid_cache.vtrack.creative_size.xml should be updated"
+        assert metrics[ACCOUNT_VTRACK_WRITE_OK_METRIC.formatted(accountId) as String] == 1
+        assert metrics[ACCOUNT_VTRACK_CREATIVE_TTL_XML_METRIC.formatted(accountId) as String] == ttlSeconds
+
+        where:
+        wrapper                                     | impression
+        " wrapper "                                 | " impression "
+        PBSUtils.getRandomCase(" wrapper ")         | PBSUtils.getRandomCase(" impression ")
+        "  wraPPer ${PBSUtils.getRandomString()}  " | "  imPreSSion ${PBSUtils.getRandomString()}"
+        "    inLine    "                            | " ImpreSSion $PBSUtils.randomNumber"
+        PBSUtils.getRandomCase(" inline ")          | " ${PBSUtils.getRandomCase(" impression ")} $PBSUtils.randomNumber "
+        "  inline ${PBSUtils.getRandomString()}  "  | "   ImpreSSion    "
+    }
+
+    def "PBS should update prebid_cache.creative_size.xml metric when xml creative is received"() {
+        given: "Current value of metric prebid_cache.requests.ok"
+        def initialValue = getCurrentMetricValue(defaultPbsService, VTRACK_WRITE_OK_METRIC)
+
+        and: "Cache set up response"
+        prebidCache.setResponse()
+
+        and: "Default VtrackRequest"
+        def accountId = PBSUtils.randomNumber.toString()
+        def creative = encodeXml(Vast.getDefaultVastModel(PBSUtils.randomString))
+        def request = VtrackRequest.getDefaultVtrackRequest(creative)
+
+        and: "Flush metrics"
+        flushMetrics(defaultPbsService)
+
+        when: "PBS processes vtrack request"
+        defaultPbsService.sendPostVtrackRequest(request, accountId)
+
+        then: "prebid_cache.vtrack.creative_size.xml metric should be updated"
+        def metrics = defaultPbsService.sendCollectedMetricsRequest()
+        def creativeSize = creative.bytes.length
+        assert metrics[VTRACK_WRITE_OK_METRIC] == initialValue + 1
+
+        and: "account.<account-id>.prebid_cache.creative_size.xml should be updated"
+        assert metrics[ACCOUNT_VTRACK_WRITE_OK_METRIC.formatted(accountId)] == 1
+        assert metrics[ACCOUNT_VTRACK_XML_CREATIVE_SIZE_METRIC.formatted(accountId)] == creativeSize
+    }
+
+    def "PBS should failed VTrack request when sending request without account"() {
+        given: "Default VtrackRequest"
+        def creative = encodeXml(Vast.getDefaultVastModel(PBSUtils.randomString))
+        def request = VtrackRequest.getDefaultVtrackRequest(creative)
+
+        and: "Flush metrics"
+        flushMetrics(defaultPbsService)
+
+        when: "PBS processes vtrack request"
+        defaultPbsService.sendPostVtrackRequest(request, null)
+
+        then: "Request should fail with an error"
+        def exception = thrown(PrebidServerException)
+        assert exception.statusCode == BAD_REQUEST.code()
+        assert exception.responseBody == "Account 'a' is required query parameter and can't be empty"
+    }
+
+    def "PBS shouldn't use negative value in tllSecond when account vtrack ttl is #accountTtl and request ttl second is #requestedTtl"() {
+        given: "Default VtrackRequest"
+        def creative = encodeXml(Vast.getDefaultVastModel(PBSUtils.randomString))
+        def request = VtrackRequest.getDefaultVtrackRequest(creative).tap {
+            puts[0].ttlseconds = requestedTtl
+        }
+
+        and: "Cache set up response"
+        prebidCache.setResponse()
+
+        and: "Create and save vtrack in account"
+        def accountId = PBSUtils.randomNumber.toString()
+        def account = new Account().tap {
+            it.uuid = accountId
+            it.config = new AccountConfig().tap {
+                it.vtrack = new AccountVtrackConfig(ttl: accountTtl)
+            }
+        }
+        accountDao.save(account)
+
+        and: "Flush metrics"
+        flushMetrics(defaultPbsService)
+
+        when: "PBS processes vtrack request"
+        defaultPbsService.sendPostVtrackRequest(request, accountId)
+
+        then: "Pbs should emit creative_ttl.xml with lowest value"
+        def metrics = defaultPbsService.sendCollectedMetricsRequest()
+        assert metrics[ACCOUNT_VTRACK_CREATIVE_TTL_XML_METRIC.formatted(accountId)]
+                == [requestedTtl, accountTtl].findAll { it -> it > 0 }.min()
+        where:
+        requestedTtl                                            | accountTtl
+        PBSUtils.getRandomNumber(300, 1500) as Integer          | PBSUtils.getRandomNegativeNumber(-1500, 300) as Integer
+        PBSUtils.getRandomNegativeNumber(-1500, 300) as Integer | PBSUtils.getRandomNumber(300, 1500) as Integer
+        PBSUtils.getRandomNegativeNumber(-1500, 300) as Integer | PBSUtils.getRandomNegativeNumber(-1500, 300) as Integer
+    }
+
+    def "PBS should use lowest tllSecond when account vtrack ttl is #accountTtl and request ttl second is #requestedTtl"() {
+        given: "Default VtrackRequest"
+        def creative = encodeXml(Vast.getDefaultVastModel(PBSUtils.randomString))
+        def request = VtrackRequest.getDefaultVtrackRequest(creative).tap {
+            puts[0].ttlseconds = requestedTtl
+        }
+
+        and: "Cache set up response"
+        prebidCache.setResponse()
+
+        and: "Create and save vtrack in account"
+        def accountId = PBSUtils.randomNumber.toString()
+        def account = new Account().tap {
+            it.uuid = accountId
+            it.config = new AccountConfig().tap {
+                it.vtrack = new AccountVtrackConfig(ttl: accountTtl)
+            }
+        }
+        accountDao.save(account)
+
+        and: "Flush metrics"
+        flushMetrics(defaultPbsService)
+
+        when: "PBS processes vtrack request"
+        defaultPbsService.sendPostVtrackRequest(request, accountId)
+
+        then: "Pbs should emit creative_ttl.xml with lowest value"
+        def metrics = defaultPbsService.sendCollectedMetricsRequest()
+        assert metrics[ACCOUNT_VTRACK_CREATIVE_TTL_XML_METRIC.formatted(accountId)] == [requestedTtl, accountTtl].min()
+
+        where:
+        requestedTtl                                   | accountTtl
+        null                                           | null
+        null                                           | PBSUtils.getRandomNumber(300, 1500) as Integer
+        PBSUtils.getRandomNumber(300, 1500) as Integer | null
+        PBSUtils.getRandomNumber(300, 1500) as Integer | PBSUtils.getRandomNumber(300, 1500) as Integer
+    }
+
+    def "PBS should proceed request when account ttl and request ttl second are empty"() {
+        given: "Default VtrackRequest"
+        def creative = encodeXml(Vast.getDefaultVastModel(PBSUtils.randomString))
+        def request = VtrackRequest.getDefaultVtrackRequest(creative).tap {
+            puts[0].ttlseconds = null
+        }
+
+        and: "Cache set up response"
+        prebidCache.setResponse()
+
+        and: "Create and save vtrack in account"
+        def accountId = PBSUtils.randomNumber.toString()
+        def account = new Account().tap {
+            it.uuid = accountId
+            it.config = new AccountConfig().tap {
+                it.vtrack = new AccountVtrackConfig(ttl: null)
+            }
+        }
+        accountDao.save(account)
+
+        and: "Flush metrics"
+        flushMetrics(defaultPbsService)
+
+        when: "PBS processes vtrack request"
+        defaultPbsService.sendPostVtrackRequest(request, accountId)
+
+        then: "Pbs shouldn't emit creative_ttl.xml"
+        def metrics = defaultPbsService.sendCollectedMetricsRequest()
+        assert !metrics[ACCOUNT_VTRACK_CREATIVE_TTL_XML_METRIC.formatted(accountId)]
     }
 
     def "PBS should return 400 status code when get vtrack request without uuid"() {
@@ -220,90 +427,6 @@ class CacheVtrackSpec extends BaseSpec {
         def exception = thrown(PrebidServerException)
         assert exception.statusCode == BAD_REQUEST.code()
         assert exception.responseBody == "'uuid' is a required query parameter and can't be empty"
-    }
-
-    def "PBS should update prebid_cache.creative_size.xml metric when xml creative is received"() {
-        given: "Current value of metric prebid_cache.requests.ok"
-        def initialValue = getCurrentMetricValue(defaultPbsService, VTRACK_WRITE_OK_METRIC)
-
-        and: "Cache set up response"
-        prebidCache.setResponse()
-
-        and: "Default VtrackRequest"
-        def accountId = PBSUtils.randomNumber.toString()
-        def creative = encodeXml(Vast.getDefaultVastModel(PBSUtils.randomString))
-        def request = VtrackRequest.getDefaultVtrackRequest(creative)
-
-        and: "Flush metrics"
-        flushMetrics(defaultPbsService)
-
-        when: "PBS processes vtrack request"
-        defaultPbsService.sendPostVtrackRequest(request, accountId)
-
-        then: "prebid_cache.vtrack.creative_size.xml metric should be updated"
-        def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        def creativeSize = creative.bytes.length
-        assert metrics[VTRACK_WRITE_OK_METRIC] == initialValue + 1
-        assert metrics[VTRACK_XML_CREATIVE_SIZE_METRIC] == creativeSize
-
-        and: "account.<account-id>.prebid_cache.creative_size.xml should be updated"
-        assert metrics[ACCOUNT_VTRACK_WRITE_OK_METRIC.formatted(accountId)] == 1
-        assert metrics[ACCOUNT_VTRACK_XML_CREATIVE_SIZE_METRIC.formatted(accountId)] == creativeSize
-    }
-
-    def "PBS should update prebid_cache.creative_size.xml metric and adding tracking xml when xml creative contain #wrapper and impression are valid xml value"() {
-        given: "Current value of metric prebid_cache.vtrack.write.ok"
-        def initialOkVTrackValue = getCurrentMetricValue(defaultPbsService, VTRACK_WRITE_OK_METRIC)
-
-        and: "Create and save enabled events config in account"
-        def accountId = PBSUtils.randomNumber.toString()
-        def account = new Account().tap {
-            uuid = accountId
-            config = new AccountConfig().tap {
-                auction = new AccountAuctionConfig(events: new AccountEventsConfig(enabled: true))
-            }
-        }
-        accountDao.save(account)
-
-        and: "Set up prebid cache"
-        prebidCache.setResponse()
-
-        and: "Vtrack request with custom tags"
-        def payload = PBSUtils.randomString
-        def creative = "<VAST version=\"3.0\"><Ad><${wrapper}><AdSystem>prebid.org wrapper</AdSystem>" +
-                "<VASTAdTagURI>&lt;![CDATA[//${payload}]]&gt;</VASTAdTagURI>" +
-                "<${impression}> &lt;![CDATA[ ]]&gt; </${impression}><Creatives></Creatives></${wrapper}></Ad></VAST>"
-        def request = VtrackRequest.getDefaultVtrackRequest(creative)
-
-        and: "Flush metrics"
-        flushMetrics(defaultPbsService)
-
-        when: "PBS processes vtrack request"
-        defaultPbsService.sendPostVtrackRequest(request, accountId)
-
-        then: "Vast xml is modified"
-        def prebidCacheRequest = prebidCache.getXmlRecordedRequestsBody(payload)
-        assert prebidCacheRequest.size() == 1
-        assert prebidCacheRequest[0].contains("/event?t=imp&b=${request.puts[0].bidid}&a=$accountId&bidder=${request.puts[0].bidder}")
-
-        and: "prebid_cache.creative_size.xml metric should be updated"
-        def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        def ttlSeconds = request.puts[0].ttlseconds
-        assert metrics[VTRACK_WRITE_OK_METRIC] == initialOkVTrackValue + 1
-        assert metrics[VTRACK_XML_CREATIVE_TTL_METRIC] == ttlSeconds
-
-        and: "account.<account-id>.prebid_cache.vtrack.creative_size.xml should be updated"
-        assert metrics[ACCOUNT_VTRACK_WRITE_OK_METRIC.formatted(accountId) as String] == 1
-        assert metrics[ACCOUNT_VTRACK_CREATIVE_TTL_XML_METRIC.formatted(accountId) as String] == ttlSeconds
-
-        where:
-        wrapper                                     | impression
-        " wrapper "                                 | " impression "
-        PBSUtils.getRandomCase(" wrapper ")         | PBSUtils.getRandomCase(" impression ")
-        "  wraPPer ${PBSUtils.getRandomString()}  " | "  imPreSSion ${PBSUtils.getRandomString()}"
-        "    inLine    "                            | " ImpreSSion $PBSUtils.randomNumber"
-        PBSUtils.getRandomCase(" inline ")          | " ${PBSUtils.getRandomCase(" impression ")} $PBSUtils.randomNumber "
-        "  inline ${PBSUtils.getRandomString()}  "  | "   ImpreSSion    "
     }
 
     def "PBS should update prebid_cache.creative_size.xml metric when account cache config #enabledCacheConcfig"() {

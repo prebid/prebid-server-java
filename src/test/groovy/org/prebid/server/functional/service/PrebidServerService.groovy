@@ -215,7 +215,7 @@ class PrebidServerService implements ObjectMapperWrapper {
     }
 
     PrebidCacheResponse sendPostVtrackRequest(VtrackRequest request, String account) {
-        def response = given(requestSpecification).queryParam("a", account)
+        def response = given(requestSpecification).queryParams(["a": account])
                 .body(request)
                 .post(VTRACK_ENDPOINT)
 
