@@ -2,7 +2,7 @@ package org.prebid.server.bidder.nativery;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
@@ -19,6 +19,8 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidServer;
 import org.prebid.server.proto.openrtb.ext.request.nativery.ExtImpNativery;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
@@ -77,23 +79,6 @@ public class NativeryBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldIncludeImpIds() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.id("imp1"));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getId)
-                .containsExactly("imp1");
-    }
-
-    @Test
     public void makeHttpRequestsShouldUseCorrectUri() {
         // given
         final BidRequest bidRequest = givenBidRequest(UnaryOperator.identity());
@@ -129,8 +114,7 @@ public class NativeryBidderTest extends VertxTest {
     public void makeHttpRequestsShouldPreserveOriginalExtFields() {
         // given
         final ExtRequest extRequest = ExtRequest.empty();
-        extRequest.addProperty("accountId", mapper.convertValue("acc-123", JsonNode.class));
-
+        extRequest.addProperty("accountId", TextNode.valueOf("acc-123"));
         final BidRequest bidRequest = givenBidRequest(
                 requestBuilder -> requestBuilder.ext(extRequest),
                 UnaryOperator.identity());
@@ -141,26 +125,22 @@ public class NativeryBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
 
-        final ObjectNode resultingExt = mapper.convertValue(
-                result.getValue().get(0).getPayload().getExt(), ObjectNode.class);
+        final ExtRequest resultingExt = result.getValue().get(0).getPayload().getExt();
 
-        assertThat(resultingExt.path("accountId").asText()).isEqualTo("acc-123");
-        assertThat(resultingExt.path("nativery").path("widgetId").asText()).isEqualTo("widget1");
+        assertThat(resultingExt.getProperty("accountId").asText()).isEqualTo("acc-123");
+        assertThat(resultingExt.getProperty("nativery").path("widgetId").asText()).isEqualTo("widget1");
     }
 
     @Test
     public void makeHttpRequestsShouldSetExtWithAmpTrue() {
         // given
-        final ObjectNode serverNode = mapper.createObjectNode();
-        serverNode.put("endpoint", Endpoint.openrtb2_amp.value());
+        final ExtRequestPrebidServer server = ExtRequestPrebidServer.of(
+                null, null, null, Endpoint.openrtb2_amp.value());
+        final ExtRequestPrebid prebid = ExtRequestPrebid.builder()
+                .server(server)
+                .build();
 
-        final ObjectNode prebidNode = mapper.createObjectNode();
-        prebidNode.set("server", serverNode);
-
-        final ObjectNode extNode = mapper.createObjectNode();
-        extNode.set("prebid", prebidNode);
-
-        final ExtRequest extRequest = mapper.convertValue(extNode, ExtRequest.class);
+        final ExtRequest extRequest = ExtRequest.of(prebid);
 
         final BidRequest bidRequest = givenBidRequest(
                 requestBuilder -> requestBuilder.ext(extRequest),
@@ -279,6 +259,42 @@ public class NativeryBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldReturnBannerBidForDisplayType() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidResponse(bidBuilder -> bidBuilder
+                        .impid("123")
+                        .ext(mapper.valueToTree(Map.of("nativery", Map.of("bid_ad_media_type", "display"))))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getType)
+                .containsExactly(BidType.banner);
+    }
+
+    @Test
+    public void makeBidsShouldReturnBannerBidForRichMediaType() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidResponse(bidBuilder -> bidBuilder
+                        .impid("123")
+                        .ext(mapper.valueToTree(Map.of("nativery", Map.of("bid_ad_media_type", "rich_media"))))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getType)
+                .containsExactly(BidType.banner);
+    }
+
+    @Test
     public void makeBidsShouldReturnVideoBid() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
@@ -302,28 +318,42 @@ public class NativeryBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidResponse(bidBuilder -> bidBuilder
                         .impid("123")
-                        .ext(mapper.valueToTree(Map.of("nativery", Map.of("bid_ad_media_type", "native"))))));
+                        .ext(mapper.valueToTree(Map.of(
+                                "nativery", Map.of("bid_ad_media_type", "native"))))));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(BidderBid::getType)
-                .containsExactly(BidType.xNative);
+        assertThat(result.getValue()).hasSize(1);
+
+        final BidderBid bidderBid = result.getValue().get(0);
+        assertThat(bidderBid.getType()).isEqualTo(BidType.xNative);
+        assertThat(bidderBid.getBidCurrency()).isEqualTo("EUR");
+
+        final Bid bid = bidderBid.getBid();
+        assertThat(bid.getImpid()).isEqualTo("123");
+
+        final JsonNode prebidMeta = bid.getExt().path("prebid").path("meta");
+        assertThat(prebidMeta.path("mediaType").asText()).isEqualTo("native");
+        assertThat(prebidMeta.path("advertiserDomains").isArray()).isTrue();
+        assertThat(prebidMeta.path("advertiserDomains").size()).isEqualTo(0);
+
+        assertThat(bid.getExt().has("nativery")).isFalse();
     }
 
     @Test
     public void makeBidsShouldHandleUnsupportedBidType() throws JsonProcessingException {
         // given
-        final ObjectNode bidExtNativery = mapper.createObjectNode().put("bid_ad_media_type", "audio");
-        final ObjectNode bidExt = mapper.createObjectNode()
-                .putPOJO("prebid", ExtBidPrebid.builder().type(audio).build())
-                .set("nativery", bidExtNativery);
-
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).impid("123")));
+                givenBidResponse(b -> b
+                        .ext(mapper.valueToTree(Map.of(
+                                "prebid", ExtBidPrebid.builder().type(audio).build(),
+                                "nativery", Map.of("bid_ad_media_type", "audio")
+                        )))
+                        .impid("123"))
+        );
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -334,7 +364,7 @@ public class NativeryBidderTest extends VertxTest {
                 .hasSize(1)
                 .allSatisfy(error -> {
                     assertThat(error.getMessage())
-                            .contains("unrecognized bid_ad_media_type in response from nativery: audio");
+                            .isEqualTo("unrecognized bid_ad_media_type in response from nativery: audio");
                     assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
                 });
     }

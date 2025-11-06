@@ -17,6 +17,7 @@ import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
+import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
@@ -102,10 +103,12 @@ public class NativeryBidder implements Bidder<BidRequest> {
     }
 
     private static String extractEndpointName(BidRequest bidRequest) {
-        final ExtRequest requestExt = bidRequest.getExt();
-        final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
-        final ExtRequestPrebidServer server = prebid != null ? prebid.getServer() : null;
-        return server != null ? server.getEndpoint() : null;
+        return Optional.ofNullable(bidRequest)
+                .map(BidRequest::getExt)
+                .map(ExtRequest::getPrebid)
+                .map(ExtRequestPrebid::getServer)
+                .map(ExtRequestPrebidServer::getEndpoint)
+                .orElse(null);
     }
 
     private ExtImpNativery parseImpExt(Imp imp) {
@@ -137,7 +140,7 @@ public class NativeryBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         final List<BidderError> errors = new ArrayList<>();
 
-        final var response = httpCall.getResponse();
+        final HttpResponse response = httpCall.getResponse();
 
         try {
             final BidResponse bidResponse = mapper.decodeValue(response.getBody(), BidResponse.class);
@@ -183,18 +186,17 @@ public class NativeryBidder implements Bidder<BidRequest> {
     }
 
     private BidExtNativery parseNativeryExt(ObjectNode bidExt) {
-        if (bidExt == null) {
-            throw new PreBidException("missing bid.ext");
-        }
-        final JsonNode node = bidExt.get("nativery");
-        if (!(node instanceof ObjectNode nativeryNode)) {
-            throw new PreBidException("missing bid.ext.nativery");
-        }
-        try {
-            return mapper.mapper().convertValue(nativeryNode, BidExtNativery.class);
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException("invalid bid.ext.nativery: " + e.getMessage());
-        }
+        return Optional.of(bidExt)
+                .map(ext -> ext.get("nativery"))
+                .filter(JsonNode::isObject)
+                .map(node -> {
+                    try {
+                        return mapper.mapper().convertValue(node, BidExtNativery.class);
+                    } catch (IllegalArgumentException e) {
+                        throw new PreBidException("invalid bid.ext.nativery: " + e.getMessage());
+                    }
+                })
+                .orElseThrow(() -> new PreBidException("missing bid.ext.nativery"));
     }
 
     private static BidType mapMediaType(String mediaType) {
