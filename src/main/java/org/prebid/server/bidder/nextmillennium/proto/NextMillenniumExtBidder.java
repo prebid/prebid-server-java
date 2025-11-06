@@ -20,4 +20,8 @@ public class NextMillenniumExtBidder {
     String nmVersion;
 
     String serverVersion;
+
+    public static NextMillenniumExtBidder ofNmmFlags(List<String> nmmFlags) {
+        return of(nmmFlags, null, null, null, null);
+    }
 }

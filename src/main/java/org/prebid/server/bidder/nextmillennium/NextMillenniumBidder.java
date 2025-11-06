@@ -108,7 +108,7 @@ public class NextMillenniumBidder implements Bidder<BidRequest> {
                 .orElse(null);
 
         return bidRequest.toBuilder()
-                .imp(modifyFirstImp(bidRequest.getImp(), soredRequestId, extImp))
+                .imp(modifyFirstImp(bidRequest.getImp(), soredRequestId))
                 .ext(createExtRequest(soredRequestId, extRequestPrebidServer, extImp))
                 .build();
     }
@@ -150,14 +150,13 @@ public class NextMillenniumBidder implements Bidder<BidRequest> {
                 : null;
     }
 
-    private List<Imp> modifyFirstImp(List<Imp> imps, String storedRequestId, ExtImpNextMillennium extImp) {
+    private List<Imp> modifyFirstImp(List<Imp> imps, String storedRequestId) {
         final ExtRequestPrebid extRequestPrebid = ExtRequestPrebid.builder()
                 .storedrequest(ExtStoredRequest.of(storedRequestId))
                 .build();
 
         final NextMillenniumExt nextMillenniumExt = NextMillenniumExt.of(
-                NextMillenniumExtBidder.of(
-                        nmmFlags, extImp.getAdSlots(), extImp.getAllowedAds(), null, null));
+                NextMillenniumExtBidder.ofNmmFlags(nmmFlags));
 
         final ExtRequest extRequest = ExtRequest.of(extRequestPrebid);
         mapper.fillExtension(extRequest, nextMillenniumExt);

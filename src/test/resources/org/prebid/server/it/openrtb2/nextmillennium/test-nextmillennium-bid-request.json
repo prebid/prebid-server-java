@@ -10,9 +10,7 @@
       "secure": 1,
       "ext": {
         "nextMillennium" : {
-          "nmmFlags" : [ "1" ],
-          "adSlots": ["slot-1", "slot-2"],
-          "allowedAds": ["banner", "native"]
+          "nmmFlags" : [ "1" ]
         },
         "prebid": {
           "storedrequest": {
