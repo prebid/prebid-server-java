@@ -20,6 +20,7 @@ import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.bidder.sparteo.util.SparteoUtil;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
@@ -32,7 +33,6 @@ import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 import org.apache.http.client.utils.URIBuilder;
 
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -121,7 +121,7 @@ public class SparteoBidder implements Bidder<BidRequest> {
                 ? site.getPublisher()
                 : Publisher.builder().build();
 
-        final Publisher modifiedPublisher = modifiedPublisher(originalPublisher, networkId);
+        final Publisher modifiedPublisher = modifyPublisher(originalPublisher, networkId);
 
         return site.toBuilder().publisher(modifiedPublisher).build();
     }
@@ -135,12 +135,12 @@ public class SparteoBidder implements Bidder<BidRequest> {
                 ? app.getPublisher()
                 : Publisher.builder().build();
 
-        final Publisher modifiedPublisher = modifiedPublisher(originalPublisher, networkId);
+        final Publisher modifiedPublisher = modifyPublisher(originalPublisher, networkId);
 
         return app.toBuilder().publisher(modifiedPublisher).build();
     }
 
-    private Publisher modifiedPublisher(Publisher originalPublisher, String networkId) {
+    private Publisher modifyPublisher(Publisher originalPublisher, String networkId) {
         final ExtPublisher originalExt = originalPublisher.getExt();
         final ExtPublisher modifiedExt = originalExt == null
                 ? ExtPublisher.empty()
@@ -161,6 +161,7 @@ public class SparteoBidder implements Bidder<BidRequest> {
         }
         final ObjectNode paramsNode = mapper.mapper().createObjectNode();
         extPublisher.addProperty("params", paramsNode);
+
         return paramsNode;
     }
 
@@ -169,36 +170,44 @@ public class SparteoBidder implements Bidder<BidRequest> {
         final String appDomain = resolveAppDomain(app);
         final String bundle = resolveBundle(app);
 
-        if (site != null) {
-            if (UNKNOWN_VALUE.equals(siteDomain)) {
-                errors.add(BidderError.badInput(
-                        "Domain not found. Missing the site.domain or the site.page field"));
-            }
+        if (UNKNOWN_VALUE.equals(siteDomain)) {
+            errors.add(BidderError.badInput(
+                    "Domain not found. Missing the site.domain or the site.page field"));
         }
 
-        if (app != null && UNKNOWN_VALUE.equals(bundle)) {
+        if (UNKNOWN_VALUE.equals(bundle)) {
             errors.add(BidderError.badInput(
                     "Bundle not found. Missing the app.bundle field."));
         }
+
         return resolveEndpoint(siteDomain, appDomain, networkId, bundle);
     }
 
     private String resolveSiteDomain(Site site) {
-        return Optional.ofNullable(site)
-                .map(s -> {
-                    final String domain = normalizeHostname(s.getDomain());
-                    return StringUtils.isNotEmpty(domain) ? domain : normalizeHostname(s.getPage());
-                })
+        if (site == null) {
+            return null;
+        }
+
+        return Optional.of(site)
+                .map(Site::getDomain)
+                .map(SparteoUtil::normalizeHostname)
                 .filter(StringUtils::isNotEmpty)
-                .orElse(site != null ? UNKNOWN_VALUE : null);
+                .or(() -> Optional.ofNullable(site.getPage())
+                        .map(SparteoUtil::normalizeHostname)
+                        .filter(StringUtils::isNotEmpty))
+                .orElse(UNKNOWN_VALUE);
     }
 
     private String resolveAppDomain(App app) {
-        return Optional.ofNullable(app)
+        if (app == null) {
+            return null;
+        }
+
+        return Optional.of(app)
                 .map(App::getDomain)
-                .map(SparteoBidder::normalizeHostname)
+                .map(SparteoUtil::normalizeHostname)
                 .filter(StringUtils::isNotEmpty)
-                .orElse(app != null ? UNKNOWN_VALUE : null);
+                .orElse(UNKNOWN_VALUE);
     }
 
     private String resolveBundle(App app) {
@@ -207,39 +216,10 @@ public class SparteoBidder implements Bidder<BidRequest> {
         }
 
         return Optional.ofNullable(app.getBundle())
-                .filter(rawBundle -> !rawBundle.isBlank())
+                .filter(StringUtils::isNotBlank)
                 .map(String::trim)
                 .filter(bundle -> !"null".equalsIgnoreCase(bundle))
                 .orElse(UNKNOWN_VALUE);
-    }
-
-    public static String normalizeHostname(String host) {
-        String h = StringUtils.trimToEmpty(host);
-        if (h.isEmpty()) {
-            return "";
-        }
-
-        String hostname = null;
-        try {
-            hostname = new URI(h).getHost();
-        } catch (URISyntaxException e) {
-        }
-
-        if (StringUtils.isNotEmpty(hostname)) {
-            h = hostname;
-        } else {
-            if (h.contains(":")) {
-                h = StringUtils.substringBefore(h, ":");
-            } else {
-                h = StringUtils.substringBefore(h, "/");
-            }
-        }
-
-        h = h.toLowerCase();
-        h = StringUtils.removeStart(h, "www.");
-        h = StringUtils.removeEnd(h, ".");
-
-        return "null".equals(h) ? "" : h;
     }
 
     private String resolveEndpoint(String siteDomain, String appDomain, String networkId, String bundle) {
