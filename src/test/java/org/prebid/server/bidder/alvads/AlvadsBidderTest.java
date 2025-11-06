@@ -6,9 +6,11 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
@@ -20,6 +22,7 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
@@ -28,8 +31,9 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.tuple;
 
-class AlvadsBidderTest extends VertxTest {
+public class AlvadsBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://helios-ads-qa-core.ssidevops.com/decision/openrtb";
 
@@ -70,7 +74,10 @@ class AlvadsBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        result.getValue().forEach(req -> assertThat(req.getUri()).isEqualTo(ENDPOINT_URL));
+
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .allMatch(uri -> uri.equals(ENDPOINT_URL));
     }
 
     @Test
@@ -82,7 +89,17 @@ class AlvadsBidderTest extends VertxTest {
         final Result<List<HttpRequest<AlvadsRequestOrtb>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        result.getValue().forEach(req -> assertThat(req.getHeaders()).isNotEmpty());
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getHeaders)
+                .flatExtracting(MultiMap::entries)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsExactlyInAnyOrder(
+                        tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
+                        tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()),
+
+                        tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
+                        tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()));
     }
 
     @Test
@@ -155,17 +172,13 @@ class AlvadsBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBidderBidsWithFullFields() {
+    public void makeBidsShouldReturnBannerBidderBid() {
         // given
         final Imp bannerImp = createImp("imp-banner", "pub-1", 300, 250);
-        final Imp videoImp = createImp("imp-video", "pub-2", 640, 480);
-
-        final BidRequest bidRequest = createBidRequest(List.of(bannerImp, videoImp));
+        final BidRequest bidRequest = createBidRequest(List.of(bannerImp));
 
         final Bid bannerBid = createBid("bid-banner", "imp-banner", 1.5);
-        final Bid videoBid = createBid("bid-video", "imp-video", 2.5);
-
-        final SeatBid seatBid = createSeatBid(bannerBid, videoBid);
+        final SeatBid seatBid = createSeatBid(bannerBid);
         final BidResponse bidResponse = createBidResponse(List.of(seatBid), "USD");
 
         final HttpResponse httpResponse = HttpResponse.of(
@@ -175,10 +188,7 @@ class AlvadsBidderTest extends VertxTest {
 
         final HttpRequest<AlvadsRequestOrtb> request = HttpRequest.<AlvadsRequestOrtb>builder()
                 .payload(AlvadsRequestOrtb.builder()
-                        .imp(List.of(
-                                createAlvadsRequestImp("imp-banner", 300, 250),
-                                createAlvadsRequestImp("imp-video", 640, 480)
-                        ))
+                        .imp(List.of(createAlvadsRequestImp("imp-banner", 300, 250)))
                         .build())
                 .build();
 
@@ -189,23 +199,79 @@ class AlvadsBidderTest extends VertxTest {
         );
 
         // then
-        assertThat(result.getValue()).hasSize(2);
+        final BidderBid expected = BidderBid.of(
+                bannerBid,
+                BidType.banner,
+                "USD"
+        );
+        assertThat(result.getValue()).containsExactly(expected);
+    }
 
-        final BidderBid bannerBidderBid = result.getValue().stream()
-                .filter(b -> b.getBid().getImpid().equals("imp-banner"))
-                .findFirst()
-                .orElseThrow();
-        assertThat(bannerBidderBid.getBid().getId()).isEqualTo("bid-banner");
-        assertThat(bannerBidderBid.getBid().getPrice()).isEqualByComparingTo("1.5");
-        assertThat(bannerBidderBid.getType()).isEqualTo(BidType.banner);
+    @Test
+    public void makeBidsShouldReturnVideoBidderBid() {
+        // given
+        final Imp videoImp = createImp("imp-video", "pub-2", 640, 480);
+        final BidRequest bidRequest = createBidRequest(List.of(videoImp));
 
-        final BidderBid videoBidderBid = result.getValue().stream()
-                .filter(b -> b.getBid().getImpid().equals("imp-video"))
-                .findFirst()
-                .orElseThrow();
-        assertThat(videoBidderBid.getBid().getId()).isEqualTo("bid-video");
-        assertThat(videoBidderBid.getBid().getPrice()).isEqualByComparingTo("2.5");
-        assertThat(videoBidderBid.getType()).isEqualTo(BidType.video);
+        final Bid videoBid = createBid("bid-video", "imp-video", 2.5);
+        final SeatBid seatBid = createSeatBid(videoBid);
+        final BidResponse bidResponse = createBidResponse(List.of(seatBid), "USD");
+
+        final HttpResponse httpResponse = HttpResponse.of(
+                200,
+                MultiMap.caseInsensitiveMultiMap(),
+                jacksonMapper.encodeToString(bidResponse));
+
+        final HttpRequest<AlvadsRequestOrtb> request = HttpRequest.<AlvadsRequestOrtb>builder()
+                .payload(AlvadsRequestOrtb.builder()
+                        .imp(List.of(createAlvadsRequestImp("imp-video", 640, 480)))
+                        .build())
+                .build();
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(
+                BidderCall.succeededHttp(request, httpResponse, null),
+                bidRequest
+        );
+
+        // then
+        final BidderBid expected = BidderBid.of(
+                videoBid,
+                BidType.video,
+                "USD"
+        );
+        assertThat(result.getValue()).containsExactly(expected);
+    }
+
+    @Test
+    public void makeBidsShouldIgnoreUnsupportedBidType() {
+        // given
+        final Imp imp = createImp("imp-unknown", "pub-3", 100, 100);
+        final BidRequest bidRequest = createBidRequest(List.of(imp));
+
+        final Bid unknownBid = createBid("bid-unknown", "imp-unknown", 1.0);
+        final SeatBid seatBid = createSeatBid(unknownBid);
+        final BidResponse bidResponse = createBidResponse(List.of(seatBid), "USD");
+
+        final HttpResponse httpResponse = HttpResponse.of(
+                200,
+                MultiMap.caseInsensitiveMultiMap(),
+                jacksonMapper.encodeToString(bidResponse));
+
+        final HttpRequest<AlvadsRequestOrtb> request = HttpRequest.<AlvadsRequestOrtb>builder()
+                .payload(AlvadsRequestOrtb.builder()
+                        .imp(List.of())
+                        .build())
+                .build();
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(
+                BidderCall.succeededHttp(request, httpResponse, null),
+                bidRequest
+        );
+
+        // then
+        assertThat(result.getValue()).isEmpty();
     }
 
     private static BidRequest createBidRequestWithBannerAndVideo() {
@@ -231,7 +297,7 @@ class AlvadsBidderTest extends VertxTest {
 
         final Imp imp2 = Imp.builder()
                 .id("imp-2")
-                .video(com.iab.openrtb.request.Video.builder().w(640).h(480).build())
+                .video(Video.builder().w(640).h(480).build())
                 .ext(impExtNode2)
                 .build();
 
@@ -283,18 +349,6 @@ class AlvadsBidderTest extends VertxTest {
         return BidRequest.builder()
                 .id("req-123")
                 .imp(imps)
-                .build();
-    }
-
-    private static AlvadsRequestOrtb createAlvadsRequest(String impId, int width, int height) {
-        final AlvaAdsImp alvaImp = AlvaAdsImp.builder()
-                .id(impId)
-                .banner(height <= 250 ? Map.of("w", width, "h", height) : null)
-                .video(height > 250 ? Map.of("w", width, "h", height) : null)
-                .build();
-
-        return AlvadsRequestOrtb.builder()
-                .imp(List.of(alvaImp))
                 .build();
     }
 

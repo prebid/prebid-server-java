@@ -8,10 +8,6 @@
     "publisherUniqueId": {
       "type": "string",
       "description": "Publisher Unique Id"
-    },
-    "endPointUrl": {
-      "type": "string",
-      "description": "Url ads openrtb"
     }
   },
 

@@ -8,7 +8,6 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
@@ -29,7 +28,6 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -114,14 +112,13 @@ public class AlvadsBidder implements Bidder<AlvadsRequestOrtb> {
     }
 
     private static Map<String, Object> sizes(Integer w, Integer h) {
+        if (w == null || h == null) {
+            return null;
+        }
         final Map<String, Object> map = new HashMap<>();
-        if (w != null) {
-            map.put("w", w);
-        }
-        if (h != null) {
-            map.put("h", h);
-        }
-        return map.isEmpty() ? null : map;
+        map.put("w", w);
+        map.put("h", h);
+        return map;
     }
 
     private static AlvaAdsSite makeSite(Site site, String publisherUniqueId) {
@@ -151,15 +148,10 @@ public class AlvadsBidder implements Bidder<AlvadsRequestOrtb> {
     }
 
     private List<BidderBid> bidsFromResponse(BidResponse bidResponse, AlvadsRequestOrtb request) {
-        return Optional.ofNullable(bidResponse.getSeatbid())
-                .orElse(Collections.emptyList())
-                .stream()
-                .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .filter(Objects::nonNull)
+        return bidResponse.getSeatbid().stream()
+                .flatMap(sb -> sb.getBid().stream())
                 .map(bid -> makeBid(bid, request, bidResponse.getCur()))
+                .filter(Objects::nonNull)
                 .toList();
     }
 
@@ -169,17 +161,27 @@ public class AlvadsBidder implements Bidder<AlvadsRequestOrtb> {
                 .findFirst()
                 .orElse(null);
 
-        return BidderBid.of(bid, getBidType(bid, imp), currency);
+        final BidType type = getBidType(bid, imp);
+
+        if (type == null) {
+            return null;
+        }
+
+        return BidderBid.of(bid, type, currency);
     }
 
     private BidType getBidType(Bid bid, AlvaAdsImp imp) {
-        if (imp != null && imp.getVideo() != null) {
-            return BidType.video;
+        if (imp != null) {
+            if (imp.getVideo() != null) {
+                return BidType.video;
+            }
+
+            return Optional.ofNullable(getBidExt(bid))
+                    .map(ExtBidAlvads::getCrtype)
+                    .orElse(BidType.banner);
         }
 
-        return Optional.ofNullable(getBidExt(bid))
-                .map(ExtBidAlvads::getCrtype)
-                .orElse(BidType.banner);
+        return null;
     }
 
     private ExtBidAlvads getBidExt(Bid bid) {

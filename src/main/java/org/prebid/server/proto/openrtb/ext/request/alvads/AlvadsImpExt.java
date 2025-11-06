@@ -9,6 +9,4 @@ public class AlvadsImpExt {
     @JsonProperty("publisherUniqueId")
     String publisherUniqueId;
 
-    @JsonProperty("endPointUrl")
-    String endpointUrl;
 }
