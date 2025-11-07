@@ -2,7 +2,7 @@ package org.prebid.server.hooks.modules.optable.targeting.model;
 
 import lombok.Value;
 
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 
 @Value(staticConstructor = "of")
 public class Id {
