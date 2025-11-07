@@ -8,6 +8,7 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
+import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
@@ -28,8 +29,8 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -115,10 +116,7 @@ public class AlvadsBidder implements Bidder<AlvadsRequestOrtb> {
         if (w == null || h == null) {
             return null;
         }
-        final Map<String, Object> map = new HashMap<>();
-        map.put("w", w);
-        map.put("h", h);
-        return map;
+        return Map.of("w", w, "h", h);
     }
 
     private static AlvaAdsSite makeSite(Site site, String publisherUniqueId) {
@@ -149,7 +147,11 @@ public class AlvadsBidder implements Bidder<AlvadsRequestOrtb> {
 
     private List<BidderBid> bidsFromResponse(BidResponse bidResponse, AlvadsRequestOrtb request) {
         return bidResponse.getSeatbid().stream()
-                .flatMap(sb -> sb.getBid().stream())
+                .filter(Objects::nonNull)
+                .map(SeatBid::getBid)
+                .filter(Objects::nonNull)
+                .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
                 .map(bid -> makeBid(bid, request, bidResponse.getCur()))
                 .filter(Objects::nonNull)
                 .toList();
