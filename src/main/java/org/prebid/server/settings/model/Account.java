@@ -30,6 +30,8 @@ public class Account {
     @JsonAlias("alternate-bidder-codes")
     AccountAlternateBidderCodes alternateBidderCodes;
 
+    AccountVtrackConfig vtrack;
+
     public static Account empty(String id) {
         return Account.builder().id(id).build();
     }

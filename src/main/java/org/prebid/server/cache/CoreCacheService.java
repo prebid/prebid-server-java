@@ -212,11 +212,12 @@ public class CoreCacheService {
                                                     Boolean isEventsEnabled,
                                                     Set<String> biddersAllowingVastUpdate,
                                                     String accountId,
+                                                    Integer accountTtl,
                                                     String integration,
                                                     Timeout timeout) {
 
-        final List<CachedCreative> cachedCreatives =
-                updatePutObjects(bidPutObjects, isEventsEnabled, biddersAllowingVastUpdate, accountId, integration);
+        final List<CachedCreative> cachedCreatives = updatePutObjects(
+                bidPutObjects, isEventsEnabled, biddersAllowingVastUpdate, accountId, accountTtl, integration);
 
         updateCreativeMetrics(
                 cachedCreatives,
@@ -230,6 +231,7 @@ public class CoreCacheService {
                                                   Boolean isEventsEnabled,
                                                   Set<String> allowedBidders,
                                                   String accountId,
+                                                  Integer accountTtl,
                                                   String integration) {
 
         return bidPutObjects.stream()
@@ -244,9 +246,16 @@ public class CoreCacheService {
                                 putObject,
                                 accountId,
                                 integration))
+                        .ttlseconds(resolveVtrackTtl(putObject.getTtlseconds(), accountTtl))
                         .build())
                 .map(payload -> CachedCreative.of(payload, creativeSizeFromTextNode(payload.getValue())))
                 .toList();
+    }
+
+    private static Integer resolveVtrackTtl(Integer initialObjectTtl, Integer initialAccountTtl) {
+        final Integer accountTtl = initialAccountTtl != null && initialAccountTtl > 0 ? initialAccountTtl : null;
+        final Integer objectTtl = initialObjectTtl != null && initialObjectTtl > 0 ? initialObjectTtl : null;
+        return ObjectUtils.min(objectTtl, accountTtl);
     }
 
     public Future<CacheServiceResult> cacheBidsOpenrtb(List<BidInfo> bidsToCache,

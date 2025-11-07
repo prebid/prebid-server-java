@@ -55,6 +55,9 @@ adapters:
       adtg_org:
         enabled: false
         endpoint: http://ads-pbs.rtb.adtarget.org/openrtb/{{PublisherID}}?host={{Host}}
+      performist:
+        enabled: false
+        endpoint: http://ads-pbs.performserv.com/openrtb/{{PublisherID}}
     meta-info:
       maintainer-email: engineering@project-limelight.com
       app-media-types:
