@@ -2,7 +2,6 @@ package org.prebid.server.functional.tests.module.pbruleengine
 
 import org.prebid.server.functional.model.config.RuleEngineFunctionArgs
 import org.prebid.server.functional.model.config.RuleEngineModelSchema
-import org.prebid.server.functional.model.response.auction.AnalyticTagStatus
 import org.prebid.server.functional.util.PBSUtils
 
 import java.time.Instant
@@ -30,7 +29,7 @@ class RuleEngineInfrastructureSpec extends RuleEngineBaseSpec {
         def pbRuleEngine = createRulesEngineWithRule().tap {
             it.ruleSets[0].modelGroups[0].schema[0].tap {
                 it.function = DATA_CENTER_IN
-                it.args = new RuleEngineFunctionArgs(countries: [CONFIG_DATA_CENTER])
+                it.args = new RuleEngineFunctionArgs(countries: [RANDOM_DATACENTER_REGION])
             }
         }
 
@@ -73,7 +72,7 @@ class RuleEngineInfrastructureSpec extends RuleEngineBaseSpec {
         def pbRuleEngine = createRulesEngineWithRule().tap {
             it.ruleSets[0].modelGroups[0].schema[0].tap {
                 it.function = DATA_CENTER_IN
-                it.args = new RuleEngineFunctionArgs(datacenters: [CONFIG_DATA_CENTER])
+                it.args = new RuleEngineFunctionArgs(datacenters: [RANDOM_DATACENTER_REGION])
             }
         }
 
@@ -172,7 +171,7 @@ class RuleEngineInfrastructureSpec extends RuleEngineBaseSpec {
         def pbRuleEngine = createRulesEngineWithRule().tap {
             it.ruleSets[0].modelGroups[0].tap {
                 schema = [new RuleEngineModelSchema(function: DATA_CENTER)]
-                rules[0].conditions = [CONFIG_DATA_CENTER]
+                rules[0].conditions = [RANDOM_DATACENTER_REGION]
             }
         }
 
