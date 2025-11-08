@@ -21,7 +21,7 @@ public class NextMillenniumExtBidder {
 
     String serverVersion;
 
-    public static NextMillenniumExtBidder ofNmmFlags(List<String> nmmFlags) {
+    public static NextMillenniumExtBidder of(List<String> nmmFlags) {
         return of(nmmFlags, null, null, null, null);
     }
 }

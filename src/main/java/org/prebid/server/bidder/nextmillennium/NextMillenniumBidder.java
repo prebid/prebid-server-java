@@ -101,15 +101,15 @@ public class NextMillenniumBidder implements Bidder<BidRequest> {
     }
 
     private BidRequest updateBidRequest(BidRequest bidRequest, ExtImpNextMillennium extImp) {
-        final String soredRequestId = resolveStoredRequestId(bidRequest, extImp);
+        final String storedRequestId = resolveStoredRequestId(bidRequest, extImp);
         final ExtRequestPrebidServer extRequestPrebidServer = Optional.ofNullable(bidRequest.getExt())
                 .map(ExtRequest::getPrebid)
                 .map(ExtRequestPrebid::getServer)
                 .orElse(null);
 
         return bidRequest.toBuilder()
-                .imp(modifyFirstImp(bidRequest.getImp(), soredRequestId))
-                .ext(createExtRequest(soredRequestId, extRequestPrebidServer, extImp))
+                .imp(modifyFirstImp(bidRequest.getImp(), storedRequestId))
+                .ext(createExtRequest(storedRequestId, extRequestPrebidServer, extImp))
                 .build();
     }
 
@@ -156,7 +156,7 @@ public class NextMillenniumBidder implements Bidder<BidRequest> {
                 .build();
 
         final NextMillenniumExt nextMillenniumExt = NextMillenniumExt.of(
-                NextMillenniumExtBidder.ofNmmFlags(nmmFlags));
+                NextMillenniumExtBidder.of(nmmFlags));
 
         final ExtRequest extRequest = ExtRequest.of(extRequestPrebid);
         mapper.fillExtension(extRequest, nextMillenniumExt);
@@ -179,7 +179,10 @@ public class NextMillenniumBidder implements Bidder<BidRequest> {
 
         final NextMillenniumExt nextMillenniumExt = NextMillenniumExt.of(
                 NextMillenniumExtBidder.of(
-                        nmmFlags, extImp.getAdSlots(), extImp.getAllowedAds(), NM_ADAPTER_VERSION,
+                        nmmFlags,
+                        extImp.getAdSlots(),
+                        extImp.getAllowedAds(),
+                        NM_ADAPTER_VERSION,
                         versionProvider.getNameVersionRecord()));
 
         final ExtRequest extRequest = ExtRequest.of(extRequestPrebid);
