@@ -186,17 +186,19 @@ public class NativeryBidder implements Bidder<BidRequest> {
     }
 
     private BidExtNativery parseNativeryExt(ObjectNode bidExt) {
-        return Optional.of(bidExt)
+        return Optional.ofNullable(bidExt)
                 .map(ext -> ext.get("nativery"))
                 .filter(JsonNode::isObject)
-                .map(node -> {
-                    try {
-                        return mapper.mapper().convertValue(node, BidExtNativery.class);
-                    } catch (IllegalArgumentException e) {
-                        throw new PreBidException("invalid bid.ext.nativery: " + e.getMessage());
-                    }
-                })
+                .map(this::toBidExtNativery)
                 .orElseThrow(() -> new PreBidException("missing bid.ext.nativery"));
+    }
+
+    private BidExtNativery toBidExtNativery(JsonNode node) {
+        try {
+            return mapper.mapper().convertValue(node, BidExtNativery.class);
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException("invalid bid.ext.nativery: " + e.getMessage());
+        }
     }
 
     private static BidType mapMediaType(String mediaType) {

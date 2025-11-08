@@ -27,6 +27,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.UnaryOperator;
 
 import static java.util.Arrays.asList;
@@ -34,6 +35,7 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.audio;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.util.HttpUtil.ACCEPT_HEADER;
 import static org.prebid.server.util.HttpUtil.APPLICATION_JSON_CONTENT_TYPE;
 import static org.prebid.server.util.HttpUtil.CONTENT_TYPE_HEADER;
@@ -76,6 +78,9 @@ public class NativeryBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getId)
                 .containsExactlyInAnyOrder("123", "321");
+        assertThat(result.getValue()).hasSize(2)
+                .extracting(HttpRequest::getImpIds)
+                .containsExactly(Set.of("123"), Set.of("321"));
     }
 
     @Test
@@ -288,10 +293,22 @@ public class NativeryBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
+        final Bid expectedBid = Bid.builder()
+                .impid("123")
+                .ext(mapper.valueToTree(ExtPrebid.of(
+                        ExtBidPrebid.builder()
+                                .meta(org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidMeta.builder()
+                                        .mediaType("banner")
+                                        .advertiserDomains(List.of())
+                                        .build())
+                                .build(),
+                        null)))
+                .build();
+
+        final BidderBid expected = BidderBid.of(expectedBid, banner, DEFAULT_CURRENCY);
+
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(BidderBid::getType)
-                .containsExactly(BidType.banner);
+        assertThat(result.getValue()).containsExactly(expected);
     }
 
     @Test
