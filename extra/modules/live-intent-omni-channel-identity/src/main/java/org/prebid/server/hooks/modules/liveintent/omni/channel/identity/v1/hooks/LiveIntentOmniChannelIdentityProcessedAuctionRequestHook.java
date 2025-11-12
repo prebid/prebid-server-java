@@ -7,6 +7,7 @@ import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
@@ -33,6 +34,10 @@ import org.prebid.server.hooks.v1.auction.ProcessedAuctionRequestHook;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.LoggerFactory;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidDataEidPermissions;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ListUtil;
 import org.prebid.server.vertx.httpclient.HttpClient;
@@ -42,6 +47,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Stream;
 
 public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements ProcessedAuctionRequestHook {
 
@@ -55,6 +61,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
     private final HttpClient httpClient;
     private final UserFpdActivityMask userFpdActivityMask;
     private final double logSamplingRate;
+    private final List<String> targetBidders;
 
     public LiveIntentOmniChannelIdentityProcessedAuctionRequestHook(LiveIntentOmniChannelProperties config,
                                                                     UserFpdActivityMask userFpdActivityMask,
@@ -68,6 +75,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
         this.httpClient = Objects.requireNonNull(httpClient);
         this.logSamplingRate = logSamplingRate;
         this.userFpdActivityMask = Objects.requireNonNull(userFpdActivityMask);
+        this.targetBidders = ListUtils.emptyIfNull(config.getTargetBidders());
     }
 
     @Override
@@ -170,23 +178,64 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
                         ActivityImpl.of(
                                 "liveintent-enriched", "success",
                                 List.of(
-                                    ResultImpl.of(
-                                            "",
-                                            mapper.mapper().createObjectNode()
-                                                    .put("treatmentRate", config.getTreatmentRate()),
-                                            null))))))
+                                        ResultImpl.of(
+                                                "",
+                                                mapper.mapper().createObjectNode()
+                                                        .put("treatmentRate", config.getTreatmentRate()),
+                                                null))))))
                 .build();
     }
 
     private AuctionRequestPayload updatedPayload(AuctionRequestPayload requestPayload, List<Eid> resolvedEids) {
         final List<Eid> eids = ListUtils.emptyIfNull(resolvedEids);
-        final BidRequest bidRequest = requestPayload.bidRequest();
+        final BidRequest bidRequest = updateAllowedBidders(requestPayload.bidRequest(), resolvedEids);
         final User updatedUser = Optional.ofNullable(bidRequest.getUser())
                 .map(user -> user.toBuilder().eids(ListUtil.union(ListUtils.emptyIfNull(user.getEids()), eids)))
                 .orElseGet(() -> User.builder().eids(eids))
                 .build();
 
         return AuctionRequestPayloadImpl.of(bidRequest.toBuilder().user(updatedUser).build());
+    }
+
+    private BidRequest updateAllowedBidders(BidRequest bidRequest, List<Eid> resolvedEids) {
+        if (this.targetBidders.isEmpty()) {
+            return bidRequest;
+        }
+
+        final List<String> resolvedSources = resolvedEids.stream().map(Eid::getSource).distinct().toList();
+        final ExtRequest requestExt = bidRequest.getExt();
+        final ExtRequestPrebid prebid = requestExt == null ? null : requestExt.getPrebid();
+        final ExtRequestPrebidData prebidData = prebid != null
+                ? prebid.getData()
+                : null;
+        final List<ExtRequestPrebidDataEidPermissions> eidPermissions = prebidData == null
+                ? List.of()
+                : CollectionUtils.emptyIfNull(prebidData.getEidPermissions()).stream().toList();
+        final Stream<ExtRequestPrebidDataEidPermissions> existingPermissions = eidPermissions
+                .stream()
+                .filter(e -> resolvedSources.contains(e.getSource()));
+
+        final Stream<String> missingSources = resolvedSources.stream()
+                .filter(src -> eidPermissions.stream().noneMatch(e -> e.getSource().equals(src)));
+
+        final List<ExtRequestPrebidDataEidPermissions> updatedPermissions = CollectionUtils.union(
+                        missingSources.map(src -> ExtRequestPrebidDataEidPermissions.of(src, this.targetBidders))
+                                .toList(),
+                        existingPermissions.map(p -> ExtRequestPrebidDataEidPermissions.of(
+                                p.getSource(),
+                                CollectionUtils.union(p.getBidders(), this.targetBidders)
+                                        .stream().distinct().toList())).toList())
+                .stream().toList();
+
+        final List<String> bidders = prebidData == null ? this.targetBidders : CollectionUtils.union(this.targetBidders,
+                CollectionUtils.emptyIfNull(prebidData.getBidders())).stream().distinct().toList();
+
+        final ExtRequestPrebidData updatedPrebidData = ExtRequestPrebidData.of(bidders, updatedPermissions);
+        final ExtRequestPrebid updatedExtPrebid = prebid == null
+                ? ExtRequestPrebid.builder().data(updatedPrebidData).build()
+                : prebid.toBuilder().data(updatedPrebidData).build();
+
+        return bidRequest.toBuilder().ext(ExtRequest.of(updatedExtPrebid)).build();
     }
 
     @Override
