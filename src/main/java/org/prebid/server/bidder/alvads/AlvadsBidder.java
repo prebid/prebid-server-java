@@ -56,7 +56,7 @@ public class AlvadsBidder implements Bidder<AlvadsRequestOrtb> {
         final List<BidderError> errors = new ArrayList<>();
         final List<HttpRequest<AlvadsRequestOrtb>> httpRequests = new ArrayList<>();
 
-        for (Imp imp : bidRequest.getImp()) {
+        bidRequest.getImp().forEach(imp -> {
             try {
                 final AlvadsImpExt impExt = parseImpExt(imp);
                 final HttpRequest<AlvadsRequestOrtb> request = makeHttpRequest(bidRequest, imp, impExt);
@@ -64,7 +64,7 @@ public class AlvadsBidder implements Bidder<AlvadsRequestOrtb> {
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
-        }
+        });
 
         return httpRequests.isEmpty() ? Result.withErrors(errors) : Result.of(httpRequests, errors);
     }
@@ -113,10 +113,7 @@ public class AlvadsBidder implements Bidder<AlvadsRequestOrtb> {
     }
 
     private static Map<String, Object> sizes(Integer w, Integer h) {
-        if (w == null || h == null) {
-            return null;
-        }
-        return Map.of("w", w, "h", h);
+        return (w == null || h == null) ? null : Map.of("w", w, "h", h);
     }
 
     private static AlvaAdsSite makeSite(Site site, String publisherUniqueId) {
@@ -158,32 +155,25 @@ public class AlvadsBidder implements Bidder<AlvadsRequestOrtb> {
     }
 
     private BidderBid makeBid(Bid bid, AlvadsRequestOrtb request, String currency) {
-        final AlvaAdsImp imp = request.getImp().stream()
+        return request.getImp().stream()
                 .filter(i -> i.getId().equals(bid.getImpid()))
                 .findFirst()
+                .map(imp -> BidderBid.of(bid, getBidType(bid, imp), currency))
                 .orElse(null);
-
-        final BidType type = getBidType(bid, imp);
-
-        if (type == null) {
-            return null;
-        }
-
-        return BidderBid.of(bid, type, currency);
     }
 
     private BidType getBidType(Bid bid, AlvaAdsImp imp) {
-        if (imp != null) {
-            if (imp.getVideo() != null) {
-                return BidType.video;
-            }
-
-            return Optional.ofNullable(getBidExt(bid))
-                    .map(ExtBidAlvads::getCrtype)
-                    .orElse(BidType.banner);
+        if (imp == null) {
+            return BidType.banner;
         }
 
-        return null;
+        if (imp.getVideo() != null) {
+            return BidType.video;
+        }
+
+        return Optional.ofNullable(getBidExt(bid))
+                .map(ExtBidAlvads::getCrtype)
+                .orElse(BidType.banner);
     }
 
     private ExtBidAlvads getBidExt(Bid bid) {
