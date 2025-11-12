@@ -40,7 +40,7 @@ import static org.assertj.core.api.Assertions.tuple;
 public class SparteoBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL =
-            "https://test.sparteo.com/endpoint?network_id={{NetworkId}}";
+            "https://test.sparteo.com/endpoint";
     private final SparteoBidder sparteoBidder = new SparteoBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test

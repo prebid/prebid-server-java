@@ -43,7 +43,6 @@ import java.util.Optional;
 
 public class SparteoBidder implements Bidder<BidRequest> {
 
-    private static final String NETWORK_ID_MACRO = "{{NetworkId}}";
     private static final String UNKNOWN_VALUE = "unknown";
 
     private static final TypeReference<ExtPrebid<?, ExtImpSparteo>> TYPE_REFERENCE =
@@ -223,10 +222,11 @@ public class SparteoBidder implements Bidder<BidRequest> {
     }
 
     private String resolveEndpoint(String siteDomain, String appDomain, String networkId, String bundle) {
-        final String baseUrl = endpointUrl.replace(NETWORK_ID_MACRO, StringUtils.defaultString(networkId));
-
         try {
-            final URIBuilder uriBuilder = new URIBuilder(baseUrl);
+            final URIBuilder uriBuilder = new URIBuilder(endpointUrl);
+            if (StringUtils.isNotBlank(networkId)) {
+                uriBuilder.addParameter("network_id", networkId);
+            }
             if (StringUtils.isNotBlank(siteDomain)) {
                 uriBuilder.addParameter("site_domain", siteDomain);
             }
