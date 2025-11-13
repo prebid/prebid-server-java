@@ -52,7 +52,7 @@ public class SparteoBidder implements Bidder<BidRequest> {
     private final JacksonMapper mapper;
 
     public SparteoBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrlSyntax(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
     }
 
