@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests
 
+import org.prebid.server.functional.model.bidderspecific.BidderRequest
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Content
@@ -8,7 +9,6 @@ import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.DeviceType
 import org.prebid.server.functional.model.request.auction.PublicCountryIp
 import org.prebid.server.functional.model.request.get.GeneralGetRequest
-import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
 
@@ -49,7 +49,7 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         given: "General get request without stored request param"
         def generalGetRequest = new GeneralGetRequest()
 
-        "Default stored request"
+        and: "Default stored request"
         def request = BidRequest.getDefaultBidRequest()
 
         and: "Save storedRequest into DB"
@@ -70,7 +70,7 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         def generalGetRequest = new GeneralGetRequest(storedRequestId: PBSUtils.randomNumber,
                 storedRequestIdLegacy: PBSUtils.randomNumber)
 
-        "Default stored request"
+        and: "Default stored request"
         def request = BidRequest.getDefaultBidRequest()
 
         and: "Save storedRequest into DB"
@@ -121,7 +121,7 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
             it.accountIdLegacy = PBSUtils.randomNumber
         }
 
-        "Default stored request"
+        and: "Default stored request"
         def request = BidRequest.getDefaultBidRequest()
 
         and: "Save storedRequest into DB"
@@ -145,7 +145,7 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
             it.timeoutMax = PBSUtils.randomNumber
         }
 
-        "Default stored request"
+        and: "Default stored request"
         def request = BidRequest.getDefaultBidRequest()
 
         and: "Save storedRequest into DB"
@@ -169,7 +169,7 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
             it.timeoutMax = tmax
         }
 
-        "Default stored request"
+        and: "Default stored request"
         def request = BidRequest.getDefaultBidRequest()
 
         and: "Save storedRequest into DB"
@@ -198,7 +198,7 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
             it.debug = debugCondition
         }
 
-        "Default stored request"
+        and: "Default stored request"
         def request = BidRequest.getDefaultBidRequest()
 
         and: "Save storedRequest into DB"
@@ -226,7 +226,7 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
             it.outputFormat = outputFormat
         }
 
-        "Default stored request"
+        and: "Default stored request"
         def request = BidRequest.getDefaultBidRequest()
 
         and: "Save storedRequest into DB"
@@ -251,7 +251,7 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
             it.outputModule = outputModule
         }
 
-        "Default stored request"
+        and: "Default stored request"
         def request = BidRequest.getDefaultBidRequest()
 
         and: "Save storedRequest into DB"
@@ -276,7 +276,7 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
             it.storedAuctionResponseId = storedAuctionResponse
         }
 
-        "Default stored request"
+        and: "Default stored request"
         def request = BidRequest.getDefaultBidRequest()
 
         and: "Save storedRequest into DB"
@@ -308,10 +308,6 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
         storedRequestDao.save(storedRequest)
 
-        and: "Default bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(request)
-        bidder.setResponse(request.id, bidResponse)
-
         when: "PBS processes general get request"
         def response = defaultPbsService.sendGeneralGetRequest(generalGetRequest)
 
@@ -337,10 +333,6 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         and: "Save storedRequest into DB"
         def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
         storedRequestDao.save(storedRequest)
-
-        and: "Default bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(request)
-        bidder.setResponse(request.id, bidResponse)
 
         when: "PBS processes general get request"
         def response = defaultPbsService.sendGeneralGetRequest(generalGetRequest)
@@ -368,10 +360,6 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
         storedRequestDao.save(storedRequest)
 
-        and: "Default bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(request)
-        bidder.setResponse(request.id, bidResponse)
-
         when: "PBS processes general get request"
         def response = defaultPbsService.sendGeneralGetRequest(generalGetRequest)
 
@@ -397,10 +385,6 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         and: "Save storedRequest into DB"
         def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
         storedRequestDao.save(storedRequest)
-
-        and: "Default bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(request)
-        bidder.setResponse(request.id, bidResponse)
 
         when: "PBS processes general get request"
         def response = defaultPbsService.sendGeneralGetRequest(generalGetRequest)
@@ -428,10 +412,6 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
         storedRequestDao.save(storedRequest)
 
-        and: "Default bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(request)
-        bidder.setResponse(request.id, bidResponse)
-
         when: "PBS processes general get request"
         def response = defaultPbsService.sendGeneralGetRequest(generalGetRequest)
 
@@ -457,10 +437,6 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         and: "Save storedRequest into DB"
         def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
         storedRequestDao.save(storedRequest)
-
-        and: "Default bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(request)
-        bidder.setResponse(request.id, bidResponse)
 
         when: "PBS processes general get request"
         def response = defaultPbsService.sendGeneralGetRequest(generalGetRequest)
@@ -488,10 +464,6 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
         storedRequestDao.save(storedRequest)
 
-        and: "Default bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(request)
-        bidder.setResponse(request.id, bidResponse)
-
         when: "PBS processes general get request"
         def response = defaultPbsService.sendGeneralGetRequest(generalGetRequest)
 
@@ -517,10 +489,6 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         and: "Save storedRequest into DB"
         def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
         storedRequestDao.save(storedRequest)
-
-        and: "Default bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(request)
-        bidder.setResponse(request.id, bidResponse)
 
         when: "PBS processes general get request"
         def response = defaultPbsService.sendGeneralGetRequest(generalGetRequest)
@@ -562,7 +530,7 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         assert !response.ext?.warnings
 
         and: "Bidder request should contain contentGenre from param"
-        verifyAll(bidder.getBidderRequest(request.id).getProperty(distributionType.value).content as Content) {
+        verifyAll(getRequestContent(bidder.getBidderRequest(request.id))) {
             it.genre == generalGetRequest.contentGenre
             it.language == generalGetRequest.contentLanguage
             it.contentrating == generalGetRequest.contentRating
@@ -599,7 +567,7 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         assert !response.ext?.warnings
 
         and: "Bidder request should contain contentGenre from param"
-        assert bidder.getBidderRequest(request.id).getProperty(distributionType.value).content.series == contentSeries
+        assert getRequestContent(bidder.getBidderRequest(request.id)).series == contentSeries
 
         where:
         distributionType | rawGeneralGetRequest
@@ -628,10 +596,6 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         and: "Save storedRequest into DB"
         def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
         storedRequestDao.save(storedRequest)
-
-        and: "Default bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(request)
-        bidder.setResponse(request.id, bidResponse)
 
         when: "PBS processes general get request"
         def response = defaultPbsService.sendGeneralGetRequest(generalGetRequest)
@@ -667,10 +631,6 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
         storedRequestDao.save(storedRequest)
 
-        and: "Default bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(request)
-        bidder.setResponse(request.id, bidResponse)
-
         when: "PBS processes general get request"
         def response = defaultPbsService.sendGeneralGetRequest(generalGetRequest)
 
@@ -699,10 +659,6 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
         storedRequestDao.save(storedRequest)
 
-        and: "Default bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(request)
-        bidder.setResponse(request.id, bidResponse)
-
         when: "PBS processes general get request"
         def page = PBSUtils.randomString
         def response = defaultPbsService.sendGeneralGetRequest(generalGetRequest, ["Referer": page])
@@ -726,10 +682,6 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         and: "Save storedRequest into DB"
         def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
         storedRequestDao.save(storedRequest)
-
-        and: "Default bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(request)
-        bidder.setResponse(request.id, bidResponse)
 
         when: "PBS processes general get request"
         def ua = PBSUtils.randomString
@@ -757,10 +709,6 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         and: "Save storedRequest into DB"
         def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
         storedRequestDao.save(storedRequest)
-
-        and: "Default bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(request)
-        bidder.setResponse(request.id, bidResponse)
 
         when: "PBS processes general get request"
         def response = defaultPbsService.sendGeneralGetRequest(generalGetRequest, [(header): deviceIp])
@@ -790,5 +738,19 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
 
     static String getDeviceIp(Device device) {
         device.ip ?: device.ipv6
+    }
+
+    static Content getRequestContent(BidderRequest bidderRequest) {
+        def distributionChannels = bidderRequest.getRequestDistributionChannels()
+
+        if (distributionChannels.contains(SITE)) {
+            return bidderRequest.site.content
+        }
+
+        if (distributionChannels.contains(APP)) {
+            return bidderRequest.app.content
+        }
+
+        return bidderRequest.dooh.content
     }
 }

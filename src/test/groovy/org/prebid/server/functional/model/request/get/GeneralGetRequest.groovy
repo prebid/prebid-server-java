@@ -27,7 +27,6 @@ class GeneralGetRequest {
     @JsonProperty("tmax")
     Integer timeoutMax
 
-    @JsonProperty("debug")
     DebugCondition debug
 
     @JsonProperty("of")
@@ -45,7 +44,6 @@ class GeneralGetRequest {
     @JsonProperty("sarid")
     String storedAuctionResponseId
 
-    @JsonProperty("mimes")
     List<String> mimes
 
     @JsonProperty("w")
@@ -60,13 +58,11 @@ class GeneralGetRequest {
     @JsonProperty("oh")
     Integer originalHeight
 
-    @JsonProperty("sizes")
     Object sizes
 
     @JsonProperty("ms")
     Object sizesLegacy
 
-    @JsonProperty("slot")
     String slot
 
     @JsonProperty("mindur")
@@ -75,16 +71,13 @@ class GeneralGetRequest {
     @JsonProperty("maxdur")
     Integer maxDuration
 
-    @JsonProperty("api")
     List<Integer> api
 
     @JsonProperty("battr")
-    List<Integer> battr
+    List<Integer> blockAttributes
 
-    @JsonProperty("delivery")
     List<Integer> delivery
 
-    @JsonProperty("linearity")
     Integer linearity
 
     @JsonProperty("minbr")
@@ -112,7 +105,7 @@ class GeneralGetRequest {
     Integer podSequence
 
     @JsonProperty("proto")
-    List<Integer> proto
+    List<Integer> protocols
 
     @JsonProperty("rqddurs")
     List<Integer> requiredDurations
@@ -126,7 +119,6 @@ class GeneralGetRequest {
     @JsonProperty("startdelay")
     Integer startDelay
 
-    @JsonProperty("skip")
     Integer skip
 
     @JsonProperty("skipafter")
@@ -141,13 +133,11 @@ class GeneralGetRequest {
     @JsonProperty("stitched")
     Integer stitched
 
-    @JsonProperty("feed")
     Integer feed
 
     @JsonProperty("nvol")
     Integer normalizedVolume
 
-    @JsonProperty("placement")
     VideoPlacementSubtypes placement
 
     @JsonProperty("plcmt")
@@ -171,10 +161,8 @@ class GeneralGetRequest {
     @JsonProperty("topframe")
     Integer topFrame
 
-    @JsonProperty("targeting")
     String targeting
 
-    @JsonProperty("consent")
     String consent
 
     @JsonProperty("gdpr_consent")
@@ -183,7 +171,6 @@ class GeneralGetRequest {
     @JsonProperty("consent_string")
     String consentStringLegacy
 
-    @JsonProperty("gdpr")
     Integer gdpr
 
     @JsonProperty("privacy")
@@ -204,7 +191,6 @@ class GeneralGetRequest {
     @JsonProperty("gpp_sid")
     List<Integer> gppSid
 
-    @JsonProperty("coppa")
     Integer coppa
 
     @JsonProperty("gpc")
@@ -222,7 +208,6 @@ class GeneralGetRequest {
     @JsonProperty("badv")
     List<String> blockedAdvertisers
 
-    @JsonProperty("page")
     String page
 
     @JsonProperty("bundle")
@@ -279,7 +264,6 @@ class GeneralGetRequest {
     @JsonProperty("ifat")
     String deviceIfaType
 
-    @JsonProperty("unknown")
     String unknown
 
     @JsonProperty("unknown_alias")

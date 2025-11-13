@@ -110,4 +110,9 @@ class Imp {
                 (audio ? AUDIO : null)
         ].findAll { it }
     }
+
+    Object getSingleMediaTypeData() {
+        return banner ?: video ?: nativeObj ?: audio
+    }
+
 }

@@ -10,6 +10,9 @@ import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.MediaType
 import org.prebid.server.functional.util.PBSUtils
 
+import static org.prebid.server.functional.model.response.auction.ErrorType.GENERIC
+import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
+
 class GeneralGetInterfaceImpSpec extends BaseSpec {
 
     def "PBS should apply mimes from general get request when it's specified"() {
@@ -19,7 +22,7 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
             it.mimes = [mimes]
         }
 
-        "Default stored request"
+        and: "Default stored request"
         def request = BidRequest.getDefaultBidRequest().tap {
             it.imp = [Imp.getDefaultImpression(impMediaType)]
         }
@@ -42,29 +45,21 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
         and: "Bidder request should contain mimes from param"
         def bidderRequest = bidder.getBidderRequest(request.id)
         assert bidderRequest.imp.size() == 1
-        assert bidderRequest.imp.first.getProperty(impMediaType.value).mimes == [mimes]
+        assert bidderRequest.imp.first.singleMediaTypeData.mimes == [mimes]
 
         where:
-        impMediaType << [
-                MediaType.BANNER,
-                MediaType.VIDEO,
-                MediaType.AUDIO
-        ]
+        impMediaType << [MediaType.BANNER, MediaType.VIDEO, MediaType.AUDIO]
     }
 
-    def "PBS should apply width and height for banner imp from general get request when it's specified"() {
+    def "PBS should remove invalid mimes from general get request when it's specified"() {
         given: "Default General get request"
-        def width = PBSUtils.randomNumber
-        def height = PBSUtils.randomNumber
+        def validMemis = PBSUtils.randomString
         def generalGetRequest = GeneralGetRequest.default.tap {
-            it.width = width
-            it.height = height
+            it.mimes = (invalidMimes + validMemis)
         }
 
-        "Default stored request"
-        def request = BidRequest.getDefaultBidRequest().tap {
-            it.imp = [Imp.getDefaultImpression(MediaType.BANNER)]
-        }
+        and: "Default stored request"
+        def request = BidRequest.getDefaultBidRequest()
 
         and: "Save storedRequest into DB"
         def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
@@ -73,6 +68,40 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
         and: "Default bid response"
         def bidResponse = BidResponse.getDefaultBidResponse(request)
         bidder.setResponse(request.id, bidResponse)
+
+        when: "PBS processes general get request"
+        def response = defaultPbsService.sendGeneralGetRequest(generalGetRequest)
+
+        then: "Response should not contain errors and warnings"
+        assert !response.ext?.errors
+
+        and: "Response should contain warning"
+        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.message == ['some message'] //TODO replace
+
+        and: "Bidder request should contain mimes from param"
+        def bidderRequest = bidder.getBidderRequest(request.id)
+        assert bidderRequest.imp.size() == 1
+        assert bidderRequest.imp.first.singleMediaTypeData.mimes == [validMemis]
+
+        where:
+        invalidMimes << [[null], [''], [PBSUtils.randomNumber.toString()]]
+    }
+
+    def "PBS should apply width and height for banner imp from general get request when it's specified"() {
+        given: "Default General get request"
+        def width = PBSUtils.randomNumber
+        def height = PBSUtils.randomNumber
+        def generalGetRequest = bannerGeneralRequest(height, width) as GeneralGetRequest
+
+        and: "Default stored request"
+        def request = BidRequest.getDefaultBidRequest().tap {
+            it.imp = [Imp.getDefaultImpression(MediaType.BANNER)]
+        }
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
+        storedRequestDao.save(storedRequest)
 
         when: "PBS processes general get request"
         def response = defaultPbsService.sendGeneralGetRequest(generalGetRequest)
@@ -90,6 +119,87 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
             it.format.width == [width]
             it.format.height == [height]
         }
+
+        where:
+        bannerGeneralRequest <<
+                [
+                        { Integer h, Integer w -> new GeneralGetRequest(height: h, width: w) },
+                        { Integer h, Integer w -> new GeneralGetRequest(originalHeight: h, originalWidth: w) },
+                        { Integer h, Integer w -> new GeneralGetRequest(height: h, width: w,
+                                originalHeight: PBSUtils.randomNumber, originalWidth: PBSUtils.randomNumber) }
+                ]
+    }
+
+    def "PBS should unsuccessfully pass and throw error due to validation banner.format{w.h} when banner.format width and height is invalid"() {
+        given: "Default General get request"
+        def generalGetRequest = GeneralGetRequest.default.tap {
+            it.width = bannerFormatWidth
+            it.height = bannerFormatHeight
+        }
+
+        and: "Default stored request"
+        def request = BidRequest.getDefaultBidRequest().tap {
+            it.imp = [Imp.getDefaultImpression(MediaType.BANNER)]
+        }
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes general get request"
+        def response = defaultPbsService.sendGeneralGetRequest(generalGetRequest)
+
+        then: "Bid response should contain error"
+        assert response.ext?.errors[GENERIC]*.code == [400]
+        assert response.ext?.errors[GENERIC]*.message[0] == "Invalid request format: " +
+                "request.imp[0].banner has no sizes. Define \"w\" and \"h\", or include \"format\" elements"
+
+        and: "PBs shouldn't perform a bidder request due to stored bid response"
+        assert !bidder.getBidderRequests(request.id)
+
+        where:
+        bannerFormatWidth             | bannerFormatHeight
+        0                             | 0
+        0                             | null
+        0                             | PBSUtils.randomNegativeNumber
+        null                          | null
+        null                          | PBSUtils.randomNegativeNumber
+        PBSUtils.randomNegativeNumber | PBSUtils.randomNegativeNumber
+    }
+
+    def "PBS should apply width and height for banner imp from general get request when banner width and height are square dimensions"() {
+        given: "Default General get request"
+        def side = PBSUtils.getRandomNumber(0, 10)
+        def generalGetRequest = GeneralGetRequest.default.tap {
+            it.width = side
+            it.height = side
+        }
+
+        and: "Default stored request"
+        def request = BidRequest.getDefaultBidRequest().tap {
+            it.imp = [Imp.getDefaultImpression(MediaType.BANNER)]
+        }
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes general get request"
+        def response = defaultPbsService.sendGeneralGetRequest(generalGetRequest)
+
+        then: "Response should not contain errors and warnings"
+        assert !response.ext?.errors
+        assert !response.ext?.warnings
+
+        and: "Bidder request should contain width and height from param"
+        def bidderRequest = bidder.getBidderRequest(request.id)
+        assert bidderRequest.imp.size() == 1
+        verifyAll(bidderRequest.imp.first.banner) {
+            it.width == side
+            it.height == side
+            it.format.width == [side]
+            it.format.height == [side]
+        }
     }
 
     def "PBS should apply width and height for video imp from general get request when it's specified"() {
@@ -101,7 +211,7 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
             it.height = height
         }
 
-        "Default stored request"
+        and: "Default stored request"
         def request = BidRequest.getDefaultBidRequest().tap {
             it.imp = [Imp.getDefaultImpression(MediaType.VIDEO)]
         }
@@ -130,46 +240,6 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
         }
     }
 
-    def "PBS should apply ow and oh for banner imp from general get request when it's specified"() {
-        given: "Default General get request"
-        def width = PBSUtils.randomNumber
-        def height = PBSUtils.randomNumber
-        def generalGetRequest = GeneralGetRequest.default.tap {
-            it.originalWidth = width
-            it.originalHeight = height
-        }
-
-        "Default stored request"
-        def request = BidRequest.getDefaultBidRequest().tap {
-            it.imp = [Imp.getDefaultImpression(MediaType.BANNER)]
-        }
-
-        and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
-        storedRequestDao.save(storedRequest)
-
-        and: "Default bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(request)
-        bidder.setResponse(request.id, bidResponse)
-
-        when: "PBS processes general get request"
-        def response = defaultPbsService.sendGeneralGetRequest(generalGetRequest)
-
-        then: "Response should not contain errors and warnings"
-        assert !response.ext?.errors
-        assert !response.ext?.warnings
-
-        and: "Bidder request should contain width and height from param"
-        def bidderRequest = bidder.getBidderRequest(request.id)
-        assert bidderRequest.imp.size() == 1
-        verifyAll(bidderRequest.imp.first.banner) {
-            it.width == width
-            it.height == height
-            it.format.width == [width]
-            it.format.height == [height]
-        }
-    }
-
     def "PBS should apply sizes banner imp from general get request when it's specified"() {
         given: "Default General get request"
         def width = PBSUtils.randomNumber
@@ -178,7 +248,7 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
             it.sizes = ["${width}x${height}"]
         }
 
-        "Default stored request"
+        and: "Default stored request"
         def request = BidRequest.getDefaultBidRequest().tap {
             it.imp = [Imp.getDefaultImpression(MediaType.BANNER)]
         }
@@ -186,10 +256,6 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
         and: "Save storedRequest into DB"
         def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
         storedRequestDao.save(storedRequest)
-
-        and: "Default bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(request)
-        bidder.setResponse(request.id, bidResponse)
 
         when: "PBS processes general get request"
         def response = defaultPbsService.sendGeneralGetRequest(generalGetRequest)
@@ -215,7 +281,7 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
             it.sizesLegacy = ["${width}x${height}, ${widthSecond}x${heightSecond}"]
         }
 
-        "Default stored request"
+        and: "Default stored request"
         def request = BidRequest.getDefaultBidRequest().tap {
             it.imp = [Imp.getDefaultImpression(MediaType.BANNER)]
         }
@@ -223,10 +289,6 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
         and: "Save storedRequest into DB"
         def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
         storedRequestDao.save(storedRequest)
-
-        and: "Default bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(request)
-        bidder.setResponse(request.id, bidResponse)
 
         when: "PBS processes general get request"
         def response = defaultPbsService.sendGeneralGetRequest(generalGetRequest)
@@ -242,6 +304,80 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
         assert bidderRequest.imp.first.banner.format.height == [height, heightSecond]
     }
 
+    def "PBS should unsuccessfully pass and throw error due to validation banner sizes when banner.format width and height is invalid"() {
+        given: "Default stored request"
+        def request = BidRequest.getDefaultBidRequest().tap {
+            it.imp = [Imp.getDefaultImpression(MediaType.BANNER)]
+        }
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes general get request"
+        def response = defaultPbsService.sendGeneralGetRequest(generalGetRequest)
+
+        then: "Bid response should contain error"
+        assert response.ext?.errors[GENERIC]*.code == [400]
+        assert response.ext?.errors[GENERIC]*.message[0] == "Invalid request format: " +
+                "request.imp[0].banner has no sizes. Define \"w\" and \"h\", or include \"format\" elements"
+
+        and: "PBs shouldn't perform a bidder request due to stored bid response"
+        assert !bidder.getBidderRequests(request.id)
+
+        where:
+        generalGetRequest << [
+                GeneralGetRequest.default.tap { sizes = ["0x0"]},
+                GeneralGetRequest.default.tap { sizes = ["0x"]},
+                GeneralGetRequest.default.tap { sizes = ["x"]},
+                GeneralGetRequest.default.tap { sizes = ["0"]},
+                GeneralGetRequest.default.tap { sizes = ["0x${PBSUtils.randomNegativeNumber}"]},
+                GeneralGetRequest.default.tap { sizes = [""]},
+                GeneralGetRequest.default.tap { sizes = [" "]},
+                GeneralGetRequest.default.tap { sizes = [null]},
+                GeneralGetRequest.default.tap { sizes = ["x${PBSUtils.randomNegativeNumber}"]},
+                GeneralGetRequest.default.tap { sizes = ["${PBSUtils.randomNegativeNumber}x"]},
+                GeneralGetRequest.default.tap { sizes = ["${PBSUtils.randomNegativeNumber}x${PBSUtils.randomNegativeNumber}"]},
+        ]
+    }
+
+    def "PBS should apply sizes banner imp from general get request when banner width and height are square dimensions"() {
+        given: "Default General get request"
+        def side = PBSUtils.getRandomNumber(0, 10)
+        def generalGetRequest = bannerGeneralRequest(side) as GeneralGetRequest
+
+        and: "Default stored request"
+        def request = BidRequest.getDefaultBidRequest().tap {
+            it.imp = [Imp.getDefaultImpression(MediaType.BANNER)]
+        }
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes general get request"
+        def response = defaultPbsService.sendGeneralGetRequest(generalGetRequest)
+
+        then: "Response should not contain errors and warnings"
+        assert !response.ext?.errors
+        assert !response.ext?.warnings
+
+        and: "Bidder request should contain width and height from param"
+        def bidderRequest = bidder.getBidderRequest(request.id)
+        assert bidderRequest.imp.size() == 1
+        assert bidderRequest.imp.first.banner.format.width == [side]
+        assert bidderRequest.imp.first.banner.format.height == [side]
+
+        where:
+        bannerGeneralRequest <<
+                [
+                        { Integer requestSide -> new GeneralGetRequest(sizes: ["${requestSide}x${requestSide}"]) },
+                        { Integer requestSide -> new GeneralGetRequest(sizesLegacy: ["${requestSide}x${requestSide}"]) },
+                        { Integer requestSide -> new GeneralGetRequest(sizes: ["${requestSide}x${requestSide}"],
+                                sizesLegacy: ["${PBSUtils.randomNumber}x${PBSUtils.randomNumber}"]) }
+                ]
+    }
+
     def "PBS should apply slot from height general get request when it's specified"() {
         given: "Default General get request"
         def slotParam = PBSUtils.randomString
@@ -249,16 +385,12 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
             it.slot = [slotParam]
         }
 
-        "Default stored request"
+        and: "Default stored request"
         def request = BidRequest.getDefaultBidRequest()
 
         and: "Save storedRequest into DB"
         def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
         storedRequestDao.save(storedRequest)
-
-        and: "Default bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(request)
-        bidder.setResponse(request.id, bidResponse)
 
         when: "PBS processes general get request"
         def response = defaultPbsService.sendGeneralGetRequest(generalGetRequest)
@@ -281,7 +413,7 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
             it.maxDuration = maxDurationParam
         }
 
-        "Default stored request"
+        and: "Default stored request"
         def request = BidRequest.getDefaultBidRequest().tap {
             it.imp = [Imp.getDefaultImpression(impMediaType)]
         }
@@ -304,8 +436,8 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
         and: "Bidder request should contain mimes from param"
         def bidderRequest = bidder.getBidderRequest(request.id)
         assert bidderRequest.imp.size() == 1
-        assert bidderRequest.imp.first.getProperty(impMediaType.value).minduration == [minDurationParam]
-        assert bidderRequest.imp.first.getProperty(impMediaType.value).maxduration == [maxDurationParam]
+        assert bidderRequest.imp.first.singleMediaTypeData.minduration == [minDurationParam]
+        assert bidderRequest.imp.first.singleMediaTypeData.maxduration == [maxDurationParam]
 
         where:
         impMediaType << [
@@ -343,7 +475,7 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
 
         and: "Bidder request should contain api from param"
         def bidderRequest = bidder.getBidderRequest(request.id)
-        assert bidderRequest.imp.first.getProperty(impMediaType.value).api == apiParam
+        assert bidderRequest.imp.first.singleMediaTypeData.api == apiParam
 
         where:
         impMediaType << [MediaType.BANNER, MediaType.VIDEO, MediaType.AUDIO]
@@ -353,7 +485,7 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
         given: "Default General get request"
         def battrParam = [PBSUtils.randomNumber]
         def generalGetRequest = GeneralGetRequest.default.tap {
-            it.battr = battrParam
+            it.blockAttributes = battrParam
         }
 
         and: "Default stored request"
@@ -378,7 +510,7 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
 
         and: "Bidder request should contain battr from param"
         def bidderRequest = bidder.getBidderRequest(request.id)
-        assert bidderRequest.imp.first.getProperty(impMediaType.value).battr == battrParam
+        assert bidderRequest.imp.first.singleMediaTypeData.battr == battrParam
 
         where:
         impMediaType << [MediaType.BANNER, MediaType.VIDEO, MediaType.AUDIO]
@@ -413,7 +545,7 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
 
         and: "Bidder request should contain delivery from param"
         def bidderRequest = bidder.getBidderRequest(request.id)
-        assert bidderRequest.imp.first.getProperty(impMediaType.value).delivery == deliveryParam
+        assert bidderRequest.imp.first.singleMediaTypeData.delivery == deliveryParam
 
         where:
         impMediaType << [MediaType.VIDEO, MediaType.AUDIO]
@@ -482,8 +614,8 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
 
         and: "Bidder request should contain minbr from param"
         def bidderRequest = bidder.getBidderRequest(request.id)
-        assert bidderRequest.imp.first.getProperty(impMediaType.value).minbitrate == minBitrateParam
-        assert bidderRequest.imp.first.getProperty(impMediaType.value).maxbitrate == maxBitrateParam
+        assert bidderRequest.imp.first.singleMediaTypeData.minbitrate == minBitrateParam
+        assert bidderRequest.imp.first.singleMediaTypeData.maxbitrate == maxBitrateParam
 
         where:
         impMediaType << [MediaType.VIDEO, MediaType.AUDIO]
@@ -518,7 +650,7 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
 
         and: "Bidder request should contain maxex from param"
         def bidderRequest = bidder.getBidderRequest(request.id)
-        assert bidderRequest.imp.first.getProperty(impMediaType.value).maxextended == maxexParam
+        assert bidderRequest.imp.first.singleMediaTypeData.maxextended == maxexParam
 
         where:
         impMediaType << [MediaType.VIDEO, MediaType.AUDIO]
@@ -553,7 +685,7 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
 
         and: "Bidder request should contain maxseq from param"
         def bidderRequest = bidder.getBidderRequest(request.id)
-        assert bidderRequest.imp.first.getProperty(impMediaType.value).maxseq == maxseqParam
+        assert bidderRequest.imp.first.singleMediaTypeData.maxseq == maxseqParam
 
         where:
         impMediaType << [MediaType.VIDEO, MediaType.AUDIO]
@@ -588,7 +720,7 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
 
         and: "Bidder request should contain mincpms from param"
         def bidderRequest = bidder.getBidderRequest(request.id)
-        assert bidderRequest.imp.first.getProperty(impMediaType.value).mincpmpersec == mincpmsParam
+        assert bidderRequest.imp.first.singleMediaTypeData.mincpmpersec == mincpmsParam
 
         where:
         impMediaType << [MediaType.VIDEO, MediaType.AUDIO]
@@ -623,7 +755,7 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
 
         and: "Bidder request should contain poddur from param"
         def bidderRequest = bidder.getBidderRequest(request.id)
-        assert bidderRequest.imp.first.getProperty(impMediaType.value).poddur == poddurParam
+        assert bidderRequest.imp.first.singleMediaTypeData.poddur == poddurParam
 
         where:
         impMediaType << [MediaType.VIDEO, MediaType.AUDIO]
@@ -658,7 +790,7 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
 
         and: "Bidder request should contain podid from param"
         def bidderRequest = bidder.getBidderRequest(request.id)
-        assert bidderRequest.imp.first.getProperty(impMediaType.value).podid == podIdParam
+        assert bidderRequest.imp.first.singleMediaTypeData.podid == podIdParam
 
         where:
         impMediaType << [MediaType.VIDEO, MediaType.AUDIO]
@@ -693,7 +825,7 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
 
         and: "Bidder request should contain podseq from param"
         def bidderRequest = bidder.getBidderRequest(request.id)
-        assert bidderRequest.imp.first.getProperty(impMediaType.value).podseq == podSequenceParam
+        assert bidderRequest.imp.first.singleMediaTypeData.podseq == podSequenceParam
 
         where:
         impMediaType << [MediaType.VIDEO, MediaType.AUDIO]
@@ -703,7 +835,7 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
         given: "Default General get request"
         def protoParam = [PBSUtils.randomNumber, PBSUtils.randomNumber]
         def generalGetRequest = GeneralGetRequest.default.tap {
-            it.proto = protoParam
+            it.protocols = protoParam
         }
 
         and: "Default stored request"
@@ -728,7 +860,7 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
 
         and: "Bidder request should contain proto from param"
         def bidderRequest = bidder.getBidderRequest(request.id)
-        assert bidderRequest.imp.first.getProperty(impMediaType.value).protocols == protoParam
+        assert bidderRequest.imp.first.singleMediaTypeData.protocols == protoParam
 
         where:
         impMediaType << [MediaType.VIDEO, MediaType.AUDIO]
@@ -763,7 +895,7 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
 
         and: "Bidder request should contain rqddurs from param"
         def bidderRequest = bidder.getBidderRequest(request.id)
-        assert bidderRequest.imp.first.getProperty(impMediaType.value).rqddurs == requiredDurationsParam
+        assert bidderRequest.imp.first.singleMediaTypeData.rqddurs == requiredDurationsParam
 
         where:
         impMediaType << [MediaType.VIDEO, MediaType.AUDIO]
@@ -798,7 +930,7 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
 
         and: "Bidder request should contain seq from param"
         def bidderRequest = bidder.getBidderRequest(request.id)
-        assert bidderRequest.imp.first.getProperty(impMediaType.value).sequence == sequenceParam
+        assert bidderRequest.imp.first.singleMediaTypeData.sequence == sequenceParam
 
         where:
         impMediaType << [MediaType.VIDEO, MediaType.AUDIO]
@@ -833,7 +965,7 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
 
         and: "Bidder request should contain slotinpod from param"
         def bidderRequest = bidder.getBidderRequest(request.id)
-        assert bidderRequest.imp.first.getProperty(impMediaType.value).slotinpod == slotInPodParam
+        assert bidderRequest.imp.first.singleMediaTypeData.slotinpod == slotInPodParam
 
         where:
         impMediaType << [MediaType.VIDEO, MediaType.AUDIO]
@@ -868,7 +1000,7 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
 
         and: "Bidder request should contain startdelay from param"
         def bidderRequest = bidder.getBidderRequest(request.id)
-        assert bidderRequest.imp.first.getProperty(impMediaType.value).startdelay == startDelayParam
+        assert bidderRequest.imp.first.singleMediaTypeData.startdelay == startDelayParam
 
         where:
         impMediaType << [MediaType.VIDEO, MediaType.AUDIO]
@@ -943,7 +1075,7 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
 
         and: "Bidder request should contain pos from param"
         def bidderRequest = bidder.getBidderRequest(request.id)
-        assert bidderRequest.imp.first.getProperty(impMediaType.value).pos == positionParam
+        assert bidderRequest.imp.first.singleMediaTypeData.pos == positionParam
 
         where:
         impMediaType << [MediaType.BANNER, MediaType.VIDEO]
@@ -1192,10 +1324,6 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
         def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
         storedRequestDao.save(storedRequest)
 
-        and: "Default bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(request)
-        bidder.setResponse(request.id, bidResponse)
-
         when: "PBS processes general get request"
         def response = defaultPbsService.sendGeneralGetRequest(generalGetRequest)
 
@@ -1255,10 +1383,6 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
         and: "Save storedRequest into DB"
         def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
         storedRequestDao.save(storedRequest)
-
-        and: "Default bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(request)
-        bidder.setResponse(request.id, bidResponse)
 
         when: "PBS processes general get request"
         def response = defaultPbsService.sendGeneralGetRequest(generalGetRequest)

@@ -6,7 +6,6 @@ import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.GppSectionId
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.get.GeneralGetRequest
-import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.TcfConsent
 import org.prebid.server.functional.util.privacy.gpp.UsNatV1Consent
@@ -41,10 +40,6 @@ class GeneralGetInterfacePrivacySpec extends PrivacyBaseSpec {
         and: "Save storedRequest into DB"
         def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
         storedRequestDao.save(storedRequest)
-
-        and: "Default bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(request)
-        bidder.setResponse(request.id, bidResponse)
 
         when: "PBS processes general get request"
         def response = privacyPbsService.sendGeneralGetRequest(generalGetRequest)
@@ -83,10 +78,6 @@ class GeneralGetInterfacePrivacySpec extends PrivacyBaseSpec {
         and: "Save storedRequest into DB"
         def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
         storedRequestDao.save(storedRequest)
-
-        and: "Default bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(request)
-        bidder.setResponse(request.id, bidResponse)
 
         when: "PBS processes general get request"
         def response = privacyPbsService.sendGeneralGetRequest(generalGetRequest)
@@ -139,10 +130,6 @@ class GeneralGetInterfacePrivacySpec extends PrivacyBaseSpec {
         def accountGdprConfig = new AccountGdprConfig(purposes: purposes)
         def account = getAccountWithGdpr(request.accountId, accountGdprConfig)
         accountDao.save(account)
-
-        and: "Default bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(request)
-        bidder.setResponse(request.id, bidResponse)
 
         when: "PBS processes general get request"
         def response = privacyPbsService.sendGeneralGetRequest(generalGetRequest)
@@ -206,10 +193,6 @@ class GeneralGetInterfacePrivacySpec extends PrivacyBaseSpec {
         def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
         storedRequestDao.save(storedRequest)
 
-        and: "Default bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(request)
-        bidder.setResponse(request.id, bidResponse)
-
         when: "PBS processes general get request"
         def response = privacyPbsService.sendGeneralGetRequest(generalGetRequest)
 
@@ -260,10 +243,6 @@ class GeneralGetInterfacePrivacySpec extends PrivacyBaseSpec {
         and: "Save storedRequest into DB"
         def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
         storedRequestDao.save(storedRequest)
-
-        and: "Default bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(request)
-        bidder.setResponse(request.id, bidResponse)
 
         when: "PBS processes general get request"
         def response = privacyPbsService.sendGeneralGetRequest(generalGetRequest)
@@ -323,10 +302,6 @@ class GeneralGetInterfacePrivacySpec extends PrivacyBaseSpec {
         def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
         storedRequestDao.save(storedRequest)
 
-        and: "Default bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(request)
-        bidder.setResponse(request.id, bidResponse)
-
         when: "PBS processes general get request"
         def response = privacyPbsService.sendGeneralGetRequest(generalGetRequest)
 
@@ -370,10 +345,6 @@ class GeneralGetInterfacePrivacySpec extends PrivacyBaseSpec {
         def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
         storedRequestDao.save(storedRequest)
 
-        and: "Default bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(request)
-        bidder.setResponse(request.id, bidResponse)
-
         when: "PBS processes general get request"
         def response = privacyPbsService.sendGeneralGetRequest(generalGetRequest)
 
@@ -410,10 +381,6 @@ class GeneralGetInterfacePrivacySpec extends PrivacyBaseSpec {
         def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
         storedRequestDao.save(storedRequest)
 
-        and: "Default bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(request)
-        bidder.setResponse(request.id, bidResponse)
-
         when: "PBS processes general get request"
         def response = privacyPbsService.sendGeneralGetRequest(generalGetRequest)
 
@@ -439,10 +406,6 @@ class GeneralGetInterfacePrivacySpec extends PrivacyBaseSpec {
         and: "Save storedRequest into DB"
         def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
         storedRequestDao.save(storedRequest)
-
-        and: "Default bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(request)
-        bidder.setResponse(request.id, bidResponse)
 
         when: "PBS processes general get request"
         def response = privacyPbsService.sendGeneralGetRequest(generalGetRequest)
@@ -470,10 +433,6 @@ class GeneralGetInterfacePrivacySpec extends PrivacyBaseSpec {
         def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
         storedRequestDao.save(storedRequest)
 
-        and: "Default bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(request)
-        bidder.setResponse(request.id, bidResponse)
-
         when: "PBS processes general get request"
         def response = privacyPbsService.sendGeneralGetRequest(generalGetRequest)
 
@@ -500,10 +459,6 @@ class GeneralGetInterfacePrivacySpec extends PrivacyBaseSpec {
         def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
         storedRequestDao.save(storedRequest)
 
-        and: "Default bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(request)
-        bidder.setResponse(request.id, bidResponse)
-
         when: "PBS processes general get request"
         def response = privacyPbsService.sendGeneralGetRequest(generalGetRequest)
 
@@ -529,10 +484,6 @@ class GeneralGetInterfacePrivacySpec extends PrivacyBaseSpec {
         and: "Save storedRequest into DB"
         def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
         storedRequestDao.save(storedRequest)
-
-        and: "Default bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(request)
-        bidder.setResponse(request.id, bidResponse)
 
         when: "PBS processes general get request"
         def response = privacyPbsService.sendGeneralGetRequest(generalGetRequest)
