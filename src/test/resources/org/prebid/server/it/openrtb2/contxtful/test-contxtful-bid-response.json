@@ -1,0 +1,22 @@
+[
+  {
+    "cpm": 2.50,
+    "width": 300,
+    "height": 250,
+    "currency": "USD",
+    "requestId": "test-imp-banner",
+    "adm": "<div style=\"width:300px;height:250px;background:#f0f0f0;text-align:center;line-height:250px;\">Contxtful Demo Ad</div>",
+    "ttl": 300,
+    "creativeId": "demo-creative-123",
+    "netRevenue": true,
+    "mediaType": "banner",
+    "nurl": "https://monitoring.receptivity.io/v1/pbs/DEMO123/pbs-impression?b=contxtful-test-imp-banner&a=DEMO123&bidder=contxtful&impId=test-imp-banner&price=2.50&traceId=&random=0.000000&domain=example.com&adRequestId=test-request-banner&w=300&h=250&f=b",
+    "burl": "https://monitoring.receptivity.io/v1/pbs/DEMO123/pbs-billing?b=contxtful-test-imp-banner&a=DEMO123&bidder=contxtful&impId=test-imp-banner&price=2.50&traceId=&random=0.000000&domain=example.com&adRequestId=test-request-banner&w=300&h=250&f=b",
+    "ext": {
+      "contxtful": {
+        "reseller": "demo-reseller",
+        "version": "v1.0"
+      }
+    }
+  }
+]

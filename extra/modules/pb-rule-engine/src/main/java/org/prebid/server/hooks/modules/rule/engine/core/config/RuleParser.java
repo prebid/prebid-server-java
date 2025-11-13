@@ -90,7 +90,7 @@ public class RuleParser {
 
         // reference equality used on purpose - if references are equal - then we should parse
         if (attempt.timestamp() == now) {
-            logger.info("Parsing rule for account {}", accountId);
+            logger.debug("Parsing rule for account {}", accountId);
             vertx.executeBlocking(() -> parser.parse(config))
                     .onSuccess(result -> succeedParsingAttempt(accountId, result))
                     .onFailure(error -> failParsingAttempt(accountId, attempt, error));

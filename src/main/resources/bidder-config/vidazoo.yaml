@@ -20,6 +20,7 @@ adapters:
         usersync:
           enabled: true
           cookie-family-name: omnidex
+          vendor-id: 1463
           iframe:
             url: https://sync.omni-dex.io/api/user/html/6810d0c7f163277130f3d7a9?pbs=true&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}
             support-cors: false

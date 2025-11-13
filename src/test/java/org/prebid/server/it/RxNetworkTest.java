@@ -18,7 +18,7 @@ public class RxNetworkTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromRxNetwork() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/adkernel-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rxnetwork-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/rxnetwork/test-rxnetwork-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/rxnetwork/test-rxnetwork-bid-response.json"))));
 

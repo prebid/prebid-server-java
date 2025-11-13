@@ -271,7 +271,7 @@ class HttpSettingsSpec extends BaseSpec {
         httpSettings.setResponse(accountId, httpSettingsResponse)
 
         when: "PBS processes vtrack request"
-        def response = prebidServerService.sendVtrackRequest(request, accountId)
+        def response = prebidServerService.sendPostVtrackRequest(request, accountId)
 
         then: "Response should contain uid"
         assert response.responses[0]?.uuid
@@ -296,7 +296,7 @@ class HttpSettingsSpec extends BaseSpec {
         httpSettings.setRfcResponse(accountId, httpSettingsResponse)
 
         when: "PBS processes vtrack request"
-        def response = prebidServerServiceWithRfc.sendVtrackRequest(request, accountId)
+        def response = prebidServerServiceWithRfc.sendPostVtrackRequest(request, accountId)
 
         then: "Response should contain uid"
         assert response.responses[0]?.uuid
