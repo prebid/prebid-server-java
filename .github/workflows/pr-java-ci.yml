@@ -34,7 +34,6 @@ jobs:
         run: mvn -B package --file extra/pom.xml
 
       - name: Publish JUnit Report
-        if: always()
         uses: mikepenz/action-junit-report@v5
         with:
           report_paths: '**/target/surefire-reports/TEST-*.xml'
@@ -42,5 +41,5 @@ jobs:
           include_passed: true
           comment: true
           fail_on_failure: true
-          updateComment: false
+          updateComment: true
           token: ${{ secrets.GITHUB_TOKEN }}
