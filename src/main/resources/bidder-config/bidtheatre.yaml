@@ -1,6 +1,6 @@
 adapters:
   bidtheatre:
-    endpoint: https://prebidjs-bids.bidtheatre.net/prebidjsbid
+    endpoint: https://client-bids.adsby.bidtheatre.com/prebidjsbid
     modifying-vast-xml-allowed: true
     meta-info:
       maintainer-email: operations@bidtheatre.com
@@ -12,3 +12,9 @@ adapters:
         - video
       supported-vendors:
       vendor-id: 30
+    usersync:
+      cookie-family-name: bidtheatre
+      redirect:
+        url: https://match.adsby.bidtheatre.com/prebidmatch?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&redir={{redirect_url}}
+        support-cors: false
+        uid-macro: '$UID'
