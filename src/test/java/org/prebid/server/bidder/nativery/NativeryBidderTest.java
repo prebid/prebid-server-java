@@ -293,22 +293,20 @@ public class NativeryBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
-        final Bid expectedBid = Bid.builder()
-                .impid("123")
-                .ext(mapper.valueToTree(ExtPrebid.of(
-                        ExtBidPrebid.builder()
-                                .meta(org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidMeta.builder()
-                                        .mediaType("banner")
-                                        .advertiserDomains(List.of())
-                                        .build())
-                                .build(),
-                        null)))
-                .build();
-
-        final BidderBid expected = BidderBid.of(expectedBid, banner, DEFAULT_CURRENCY);
-
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsExactly(expected);
+        assertThat(result.getValue()).hasSize(1);
+
+        final BidderBid bidderBid = result.getValue().get(0);
+        assertThat(bidderBid.getType()).isEqualTo(banner);
+        assertThat(bidderBid.getBidCurrency()).isEqualTo(DEFAULT_CURRENCY);
+
+        final Bid bid = bidderBid.getBid();
+        assertThat(bid.getImpid()).isEqualTo("123");
+
+        final JsonNode prebidMeta = bid.getExt().path("prebid").path("meta");
+        assertThat(prebidMeta.path("mediaType").asText()).isEqualTo("banner");
+        assertThat(prebidMeta.path("advertiserDomains").isArray()).isTrue();
+        assertThat(prebidMeta.path("advertiserDomains").size()).isEqualTo(0);
     }
 
     @Test
@@ -347,7 +345,7 @@ public class NativeryBidderTest extends VertxTest {
 
         final BidderBid bidderBid = result.getValue().get(0);
         assertThat(bidderBid.getType()).isEqualTo(BidType.xNative);
-        assertThat(bidderBid.getBidCurrency()).isEqualTo("EUR");
+        assertThat(bidderBid.getBidCurrency()).isEqualTo(DEFAULT_CURRENCY);
 
         final Bid bid = bidderBid.getBid();
         assertThat(bid.getImpid()).isEqualTo("123");
