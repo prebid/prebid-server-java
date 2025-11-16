@@ -25,6 +25,7 @@ import org.prebid.server.functional.model.response.cookiesync.CookieSyncResponse
 import org.prebid.server.functional.model.response.cookiesync.RawCookieSyncResponse
 import org.prebid.server.functional.model.response.currencyrates.CurrencyRatesResponse
 import org.prebid.server.functional.model.response.getuids.GetuidResponse
+import org.prebid.server.functional.model.response.influx.InfluxResponse
 import org.prebid.server.functional.model.response.infobidders.BidderInfoResponse
 import org.prebid.server.functional.model.response.setuid.SetuidResponse
 import org.prebid.server.functional.model.response.status.StatusResponse
@@ -60,9 +61,11 @@ class PrebidServerService implements ObjectMapperWrapper {
     static final String COLLECTED_METRICS_ENDPOINT = "/collected-metrics"
     static final String PROMETHEUS_METRICS_ENDPOINT = "/metrics"
     static final String UIDS_COOKIE_NAME = "uids"
+    static final String INFLUX_DB_ENDPOINT = "/query"
 
     private final PrebidServerContainer pbsContainer
     private final RequestSpecification requestSpecification
+    private final RequestSpecification influxRequestSpecification
     private final RequestSpecification adminRequestSpecification
     private final RequestSpecification prometheusRequestSpecification
 
@@ -74,6 +77,8 @@ class PrebidServerService implements ObjectMapperWrapper {
         authenticationScheme.password = pbsContainer.ADMIN_ENDPOINT_PASSWORD
         this.pbsContainer = pbsContainer
         requestSpecification = new RequestSpecBuilder().setBaseUri(pbsContainer.rootUri)
+                .build()
+        influxRequestSpecification = new RequestSpecBuilder().setBaseUri(pbsContainer.influxUri)
                 .build()
         adminRequestSpecification = buildAndGetRequestSpecification(pbsContainer.adminRootUri, authenticationScheme)
         prometheusRequestSpecification = buildAndGetRequestSpecification(pbsContainer.prometheusRootUri, authenticationScheme)
@@ -288,6 +293,26 @@ class PrebidServerService implements ObjectMapperWrapper {
 
         checkResponseStatusCode(response)
         decode(response.asString(), new TypeReference<Map<String, Number>>() {})
+    }
+
+    Map<String, Number> sendInfluxMetricsRequest() {
+        def response = given(influxRequestSpecification)
+                .queryParams(["db": "prebid", "q": "SHOW MEASUREMENTS"])
+                .get(INFLUX_DB_ENDPOINT)
+
+        checkResponseStatusCode(response)
+        def responseBody = decode(response.getBody().asString(), InfluxResponse)
+
+        def metricNameToCountOfCall = new HashMap()
+        responseBody.results.first().series.first.values.flatten().each { it ->
+            def influxResponse = decode(given(influxRequestSpecification)
+                    .queryParams(["db": "prebid", "q": "SELECT COUNT(count) FROM  \"$it\""])
+                    .get(INFLUX_DB_ENDPOINT).getBody().asString(), InfluxResponse)
+
+            metricNameToCountOfCall.put(influxResponse?.results?.first?.series?.name?.first,
+                    influxResponse?.results?.first?.series?.values?.flatten()?.last())
+        }
+        metricNameToCountOfCall
     }
 
     String sendPrometheusMetricsRequest() {

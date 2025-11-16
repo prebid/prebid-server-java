@@ -43,6 +43,7 @@ class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
                 << PbsConfig.prebidCacheConfig
                 << PbsConfig.mySqlConfig
                 << PbsConfig.targetingConfig
+                << PbsConfig.influxContainer
         withConfig(commonConfig)
         withConfig(customConfig)
     }
@@ -73,6 +74,10 @@ class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
 
     int getPrometheusPort() {
         getMappedPort(PROMETHEUS_PORT)
+    }
+
+    String getInfluxUri() {
+        return "http://$host:$Dependencies.influxdbContainer.firstMappedPort"
     }
 
     String getRootUri() {

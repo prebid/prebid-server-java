@@ -2,6 +2,7 @@ package org.prebid.server.functional.testcontainers
 
 import org.prebid.server.functional.testcontainers.container.NetworkServiceContainer
 import org.prebid.server.functional.util.SystemProperties
+import org.testcontainers.containers.InfluxDBContainer
 import org.testcontainers.containers.MySQLContainer
 import org.testcontainers.containers.Network
 import org.testcontainers.containers.localstack.LocalStackContainer
@@ -34,6 +35,14 @@ class Dependencies {
             .withInitScript("org/prebid/server/functional/db_psql_schema.sql")
             .withNetwork(network)
 
+    static final InfluxDBContainer influxdbContainer = new InfluxDBContainer<>(DockerImageName.parse("influxdb:1.8.10"))
+            .withUsername("prebid")
+            .withUsername("prebid")
+            .withPassword("prebid")
+            .withAuthEnabled(false)
+            .withDatabase("prebid")
+            .withNetwork(network)
+
     static final NetworkServiceContainer networkServiceContainer = new NetworkServiceContainer(MOCKSERVER_VERSION)
             .withNetwork(network)
 
@@ -44,13 +53,13 @@ class Dependencies {
             localStackContainer = new LocalStackContainer(DockerImageName.parse("localstack/localstack:s3-latest"))
                     .withNetwork(network)
                     .withServices(S3)
-            Startables.deepStart([networkServiceContainer, mysqlContainer, localStackContainer]).join()
+            Startables.deepStart([networkServiceContainer, mysqlContainer, localStackContainer, influxdbContainer]).join()
         }
     }
 
     static void stop() {
         if (IS_LAUNCH_CONTAINERS) {
-            [networkServiceContainer, mysqlContainer, localStackContainer].parallelStream()
+            [networkServiceContainer, mysqlContainer, localStackContainer, influxdbContainer].parallelStream()
                     .forEach({ it.stop() })
         }
     }
