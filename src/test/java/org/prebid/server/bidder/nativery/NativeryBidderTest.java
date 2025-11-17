@@ -251,16 +251,27 @@ public class NativeryBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidResponse(bidBuilder -> bidBuilder
                         .impid("123")
-                        .ext(mapper.valueToTree(Map.of("nativery", Map.of("bid_ad_media_type", "banner"))))));
+                        .ext(mapper.valueToTree(Map.of(
+                                "nativery", Map.of("bid_ad_media_type", "banner"))))));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(BidderBid::getType)
-                .containsExactly(BidType.banner);
+        assertThat(result.getValue()).hasSize(1);
+
+        final BidderBid bidderBid = result.getValue().get(0);
+        assertThat(bidderBid.getType()).isEqualTo(BidType.banner);
+        assertThat(bidderBid.getBidCurrency()).isEqualTo(DEFAULT_CURRENCY);
+
+        final Bid bid = bidderBid.getBid();
+        assertThat(bid.getImpid()).isEqualTo("123");
+
+        final JsonNode prebidMeta = bid.getExt().path("prebid").path("meta");
+        assertThat(prebidMeta.path("mediaType").asText()).isEqualTo("banner");
+        assertThat(prebidMeta.path("advertiserDomains").isArray()).isTrue();
+        assertThat(prebidMeta.path("advertiserDomains").size()).isEqualTo(0);
     }
 
     @Test
@@ -269,16 +280,27 @@ public class NativeryBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidResponse(bidBuilder -> bidBuilder
                         .impid("123")
-                        .ext(mapper.valueToTree(Map.of("nativery", Map.of("bid_ad_media_type", "display"))))));
+                        .ext(mapper.valueToTree(Map.of(
+                                "nativery", Map.of("bid_ad_media_type", "display"))))));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(BidderBid::getType)
-                .containsExactly(BidType.banner);
+        assertThat(result.getValue()).hasSize(1);
+
+        final BidderBid bidderBid = result.getValue().get(0);
+        assertThat(bidderBid.getType()).isEqualTo(BidType.banner);
+        assertThat(bidderBid.getBidCurrency()).isEqualTo(DEFAULT_CURRENCY);
+
+        final Bid bid = bidderBid.getBid();
+        assertThat(bid.getImpid()).isEqualTo("123");
+
+        final JsonNode prebidMeta = bid.getExt().path("prebid").path("meta");
+        assertThat(prebidMeta.path("mediaType").asText()).isEqualTo("banner");
+        assertThat(prebidMeta.path("advertiserDomains").isArray()).isTrue();
+        assertThat(prebidMeta.path("advertiserDomains").size()).isEqualTo(0);
     }
 
     @Test
@@ -315,16 +337,27 @@ public class NativeryBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidResponse(bidBuilder -> bidBuilder
                         .impid("123")
-                        .ext(mapper.valueToTree(Map.of("nativery", Map.of("bid_ad_media_type", "video"))))));
+                        .ext(mapper.valueToTree(Map.of(
+                                "nativery", Map.of("bid_ad_media_type", "video"))))));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(BidderBid::getType)
-                .containsExactly(BidType.video);
+        assertThat(result.getValue()).hasSize(1);
+
+        final BidderBid bidderBid = result.getValue().get(0);
+        assertThat(bidderBid.getType()).isEqualTo(BidType.video);
+        assertThat(bidderBid.getBidCurrency()).isEqualTo(DEFAULT_CURRENCY);
+
+        final Bid bid = bidderBid.getBid();
+        assertThat(bid.getImpid()).isEqualTo("123");
+
+        final JsonNode prebidMeta = bid.getExt().path("prebid").path("meta");
+        assertThat(prebidMeta.path("mediaType").asText()).isEqualTo("video");
+        assertThat(prebidMeta.path("advertiserDomains").isArray()).isTrue();
+        assertThat(prebidMeta.path("advertiserDomains").size()).isEqualTo(0);
     }
 
     @Test
@@ -390,24 +423,31 @@ public class NativeryBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidResponse(bidBuilder -> bidBuilder
                         .impid("123")
-                        .ext(mapper.valueToTree(Map.of("nativery",
-                                Map.of("bid_ad_media_type", "native", "bid_adv_domains", List.of("domain.com")))))));
+                        .ext(mapper.valueToTree(Map.of(
+                                "nativery", Map.of(
+                                        "bid_ad_media_type", "native",
+                                        "bid_adv_domains", List.of("domain.com")))))));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .hasSize(1);
+        assertThat(result.getValue()).hasSize(1);
 
         final BidderBid bidderBid = result.getValue().get(0);
-        final JsonNode extNode = bidderBid.getBid().getExt();
-        final JsonNode metaNode = extNode.path("prebid").path("meta");
+        assertThat(bidderBid.getType()).isEqualTo(BidType.xNative);
+        assertThat(bidderBid.getBidCurrency()).isEqualTo(DEFAULT_CURRENCY);
 
-        assertThat(metaNode.path("mediaType").asText()).isEqualTo("native");
-        assertThat(metaNode.path("advertiserDomains").isArray()).isTrue();
-        assertThat(metaNode.path("advertiserDomains").get(0).asText()).isEqualTo("domain.com");
+        final Bid bid = bidderBid.getBid();
+        assertThat(bid.getImpid()).isEqualTo("123");
+
+        final JsonNode prebidMeta = bid.getExt().path("prebid").path("meta");
+        assertThat(prebidMeta.path("mediaType").asText()).isEqualTo("native");
+        assertThat(prebidMeta.path("advertiserDomains").isArray()).isTrue();
+        assertThat(prebidMeta.path("advertiserDomains").get(0).asText()).isEqualTo("domain.com");
+
+        assertThat(bid.getExt().has("nativery")).isFalse();
     }
 
     @Test
