@@ -43,6 +43,7 @@ import java.time.format.DateTimeFormatter
 
 import static io.restassured.RestAssured.given
 import static java.time.ZoneOffset.UTC
+import static org.prebid.server.functional.testcontainers.PbsConfig.PREBID_DATABASE
 
 class PrebidServerService implements ObjectMapperWrapper {
 
@@ -297,20 +298,20 @@ class PrebidServerService implements ObjectMapperWrapper {
 
     Map<String, Number> sendInfluxMetricsRequest() {
         def response = given(influxRequestSpecification)
-                .queryParams(["db": "prebid", "q": "SHOW MEASUREMENTS"])
+                .queryParams(["db": PREBID_DATABASE, "q": "SHOW MEASUREMENTS"])
                 .get(INFLUX_DB_ENDPOINT)
 
         checkResponseStatusCode(response)
         def responseBody = decode(response.getBody().asString(), InfluxResponse)
 
-        def metricNameToCountOfCall = new HashMap()
+        Map<String, Number> metricNameToCountOfCall = [:]
         responseBody.results.first().series.first.values.flatten().each { it ->
             def influxResponse = decode(given(influxRequestSpecification)
-                    .queryParams(["db": "prebid", "q": "SELECT COUNT(count) FROM  \"$it\""])
+                    .queryParams(["db": PREBID_DATABASE, "q": "SELECT COUNT(count) FROM \"$it\" WHERE count >= 1"])
                     .get(INFLUX_DB_ENDPOINT).getBody().asString(), InfluxResponse)
 
-            metricNameToCountOfCall.put(influxResponse?.results?.first?.series?.name?.first,
-                    influxResponse?.results?.first?.series?.values?.flatten()?.last())
+            def series = influxResponse?.results?.first?.series
+            metricNameToCountOfCall.put(series?.name?.first, series?.values?.flatten()?[1] as Integer)
         }
         metricNameToCountOfCall
     }

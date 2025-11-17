@@ -11,6 +11,7 @@ import static org.prebid.server.functional.util.CurrencyUtil.DEFAULT_CURRENCY
 
 final class PbsConfig {
 
+    static final String PREBID_DATABASE = "prebid"
     private static final String DB_ACCOUNT_QUERY = """
 SELECT JSON_MERGE_PATCH(JSON_OBJECT('id', uuid,
                                     'status', status,
@@ -108,7 +109,7 @@ LIMIT 1
          "metrics.influxdb.host"          : influx.getNetworkAliases().get(0),
          "metrics.influxdb.port"          : influx.getExposedPorts().get(0) as String,
          "metrics.influxdb.protocol"      : "http",
-         "metrics.influxdb.database"      : "prebid",
+         "metrics.influxdb.database"      : PREBID_DATABASE,
          "metrics.influxdb.auth"          : "prebid:prebid",
          "metrics.influxdb.interval"      : "1",
          "metrics.influxdb.connectTimeout": "5000",

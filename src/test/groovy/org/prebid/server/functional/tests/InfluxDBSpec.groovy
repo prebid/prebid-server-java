@@ -5,18 +5,21 @@ import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.service.PrebidServerException
+import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
 
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED
 
 class InfluxDBSpec extends BaseSpec {
 
-    def "PBS should reject request with error and metrics when inactive account"() {
-        given: "Pbs config with enforce-valid-account and default-account-config"
-        def pbsService = pbsServiceFactory.getService(
-                ["settings.enforce-valid-account": enforceValidAccount as String])
+    private static final PrebidServerService pbsServiceWithEnforceValidAccount
+            = pbsServiceFactory.getService(["settings.enforce-valid-account": true as String])
+    private static final Closure<String> REJECT_INVALID_ACCOUNT_METRIC = { accountId ->
+        "influx.metric.account.${accountId}.requests.rejected.invalid-account"
+    }
 
-        and: "Inactive account id"
+    def "PBS should reject request with error and metrics when inactive account"() {
+        given: "Inactive account id"
         def accountId = PBSUtils.randomNumber
         def account = new Account(uuid: accountId, config: new AccountConfig(status: AccountStatus.INACTIVE))
         accountDao.save(account)
@@ -27,7 +30,7 @@ class InfluxDBSpec extends BaseSpec {
         }
 
         when: "PBS processes auction request"
-        pbsService.sendAuctionRequest(bidRequest)
+        pbsServiceWithEnforceValidAccount.sendAuctionRequest(bidRequest)
 
         then: "PBS should reject the entire auction"
         def exception = thrown(PrebidServerException)
@@ -36,20 +39,15 @@ class InfluxDBSpec extends BaseSpec {
 
         and: "PBs should emit proper metric"
         PBSUtils.waitUntil({
-            def metricsRequest = pbsService.sendInfluxMetricsRequest()
-            metricsRequest["influx.metric.account.${bidRequest.accountId}.requests.rejected.invalid-account"] != null
+            pbsServiceWithEnforceValidAccount.sendInfluxMetricsRequest()
+                    .containsKey(REJECT_INVALID_ACCOUNT_METRIC(bidRequest.accountId) as String)
         })
-
-        where:
-        enforceValidAccount << [true, false]
+        def influxMetricsRequest = pbsServiceWithEnforceValidAccount.sendInfluxMetricsRequest()
+        assert influxMetricsRequest[REJECT_INVALID_ACCOUNT_METRIC(bidRequest.accountId) as String] == 1
     }
 
     def "PBS shouldn't reject request with error and metrics when active account"() {
-        given: "Pbs config with enforce-valid-account and default-account-config"
-        def pbsService = pbsServiceFactory.getService(
-                ["settings.enforce-valid-account": enforceValidAccount as String])
-
-        and: "Inactive account id"
+        given: "Inactive account id"
         def accountId = PBSUtils.randomNumber
         def account = new Account(uuid: accountId, config: new AccountConfig(status: AccountStatus.ACTIVE))
         accountDao.save(account)
@@ -60,18 +58,15 @@ class InfluxDBSpec extends BaseSpec {
         }
 
         when: "PBS processes auction request"
-        def response = pbsService.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithEnforceValidAccount.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seatBid"
         assert response.seatbid.size() == 1
 
-        and: "PBs should emit proper metric"
+        and: "PBs shouldn't emit metric"
         PBSUtils.waitUntil({
-            def metricsRequest = pbsService.sendInfluxMetricsRequest()
-            metricsRequest["influx.metric.account.${bidRequest.accountId}.requests.rejected.invalid-account"] == null
+            !pbsServiceWithEnforceValidAccount.sendInfluxMetricsRequest()
+                    .containsKey(REJECT_INVALID_ACCOUNT_METRIC(bidRequest.accountId) as String)
         })
-
-        where:
-        enforceValidAccount << [true, false]
     }
 }
