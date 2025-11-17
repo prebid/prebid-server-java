@@ -30,6 +30,7 @@ import org.prebid.server.functional.model.response.getuids.GetuidResponse
 import org.prebid.server.functional.model.response.infobidders.BidderInfoResponse
 import org.prebid.server.functional.model.response.setuid.SetuidResponse
 import org.prebid.server.functional.model.response.status.StatusResponse
+import org.prebid.server.functional.model.response.vtrack.TransferValue
 import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
 import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.prebid.server.functional.util.PBSUtils
@@ -76,7 +77,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         authenticationScheme.password = pbsContainer.ADMIN_ENDPOINT_PASSWORD
         this.pbsContainer = pbsContainer
         requestSpecification = new RequestSpecBuilder().setBaseUri(pbsContainer.rootUri)
-                                                       .build()
+                .build()
         adminRequestSpecification = buildAndGetRequestSpecification(pbsContainer.adminRootUri, authenticationScheme)
         prometheusRequestSpecification = buildAndGetRequestSpecification(pbsContainer.prometheusRootUri, authenticationScheme)
     }
@@ -201,7 +202,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         def uidsCookieAsEncodedJson = Base64.urlEncoder.encodeToString(uidsCookieAsJson.bytes)
 
         def response = given(requestSpecification).cookie(UIDS_COOKIE_NAME, uidsCookieAsEncodedJson)
-                                                  .get(GET_UIDS_ENDPOINT)
+                .get(GET_UIDS_ENDPOINT)
 
         checkResponseStatusCode(response)
         decode(response.body.asString(), GetuidResponse)
@@ -209,20 +210,29 @@ class PrebidServerService implements ObjectMapperWrapper {
 
     byte[] sendEventRequest(EventRequest eventRequest, Map<String, String> headers = [:]) {
         def response = given(requestSpecification).headers(headers)
-                                                  .queryParams(toMap(eventRequest))
-                                                  .get(EVENT_ENDPOINT)
+                .queryParams(toMap(eventRequest))
+                .get(EVENT_ENDPOINT)
 
         checkResponseStatusCode(response)
         response.body.asByteArray()
     }
 
-    PrebidCacheResponse sendVtrackRequest(VtrackRequest request, String account) {
-        def response = given(requestSpecification).queryParam("a", account)
-                                                  .body(request)
-                                                  .post(VTRACK_ENDPOINT)
+    PrebidCacheResponse sendPostVtrackRequest(VtrackRequest request, String account) {
+        def response = given(requestSpecification).queryParams(["a": account])
+                .body(request)
+                .post(VTRACK_ENDPOINT)
 
         checkResponseStatusCode(response)
         decode(response.body.asString(), PrebidCacheResponse)
+    }
+
+    TransferValue sendGetVtrackRequest(Map<String, Object> parameters) {
+        def response = given(requestSpecification)
+                .queryParams(parameters)
+                .get(VTRACK_ENDPOINT)
+
+        checkResponseStatusCode(response)
+        decode(response.body.asString(), TransferValue)
     }
 
     StatusResponse sendStatusRequest() {
@@ -270,7 +280,7 @@ class PrebidServerService implements ObjectMapperWrapper {
 
     String sendLoggingHttpInteractionRequest(HttpInteractionRequest httpInteractionRequest) {
         def response = given(adminRequestSpecification).queryParams(toMap(httpInteractionRequest))
-                                                       .get(HTTP_INTERACTION_ENDPOINT)
+                .get(HTTP_INTERACTION_ENDPOINT)
 
         checkResponseStatusCode(response)
         response.body().asString()
@@ -299,8 +309,8 @@ class PrebidServerService implements ObjectMapperWrapper {
         def payload = encode(bidRequest)
 
         given(requestSpecification).headers(headers)
-                                   .body(payload)
-                                   .post(AUCTION_ENDPOINT)
+                .body(payload)
+                .post(AUCTION_ENDPOINT)
     }
 
     private Response postCookieSync(CookieSyncRequest cookieSyncRequest,
@@ -393,7 +403,7 @@ class PrebidServerService implements ObjectMapperWrapper {
             throw new IllegalArgumentException("The end time of the test is less than the start time")
         }
         def formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
-                                         .withZone(ZoneId.from(UTC))
+                .withZone(ZoneId.from(UTC))
         def logs = Arrays.asList(pbsContainer.logs.split("\n"))
         def filteredLogs = []
 
@@ -446,7 +456,7 @@ class PrebidServerService implements ObjectMapperWrapper {
 
     private static RequestSpecification buildAndGetRequestSpecification(String uri, AuthenticationScheme authScheme) {
         new RequestSpecBuilder().setBaseUri(uri)
-                                .setAuth(authScheme)
-                                .build()
+                .setAuth(authScheme)
+                .build()
     }
 }
