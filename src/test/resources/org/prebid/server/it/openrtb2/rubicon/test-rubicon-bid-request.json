@@ -13,6 +13,7 @@
       },
       "ext": {
         "rp": {
+          "pb_bid_id": "${json-unit.any-string}",
           "zone_id": 4001,
           "target": {
             "page": [
@@ -27,7 +28,6 @@
             "mint_version": ""
           }
         },
-        "maxbids": 1,
         "tid": "${json-unit.any-string}"
       }
     }
@@ -54,8 +54,8 @@
         "site_id": 3001,
         "target": {
           "iab": [
-            "segmentId2",
             "segmentId1",
+            "segmentId2",
             "segmentId3"
           ]
         }

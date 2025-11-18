@@ -12,7 +12,6 @@ import io.restassured.config.RestAssuredConfig;
 import io.restassured.internal.mapping.Jackson2Mapper;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
-import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONException;
@@ -41,6 +40,8 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.TestPropertySource;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -117,6 +118,12 @@ public abstract class IntegrationTest extends VertxTest {
         // workaround to clear formatting
         return mapper.writeValueAsString(mapper.readTree(IntegrationTest.class.getResourceAsStream(file)))
                 .replace("{{ pbs.java.version }}", prebidVersionProvider.getNameVersionRecord());
+    }
+
+    protected static String xmlFrom(String file) throws IOException {
+        try (InputStream inputStream = IntegrationTest.class.getResourceAsStream(file)) {
+            return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+        }
     }
 
     protected static String openrtbAuctionResponseFrom(String templatePath, Response response, List<String> bidders)
@@ -198,7 +205,7 @@ public abstract class IntegrationTest extends VertxTest {
 
             final List<CacheObject> responseCacheObjects = new ArrayList<>();
             for (BidPutObject putItem : puts) {
-                final String id = putItem.getType().equals("json")
+                final String id = "json".equals(putItem.getType())
                         ? putItem.getValue().get("id").textValue() + "@" + resolvePriceForJsonMediaType(putItem)
                         : putItem.getValue().textValue();
 
@@ -297,8 +304,7 @@ public abstract class IntegrationTest extends VertxTest {
         }
     }
 
-    @Value
-    @AllArgsConstructor(staticName = "of")
+    @Value(staticConstructor = "of")
     static class BidRequestExecutionParameters {
         String dealId;
 

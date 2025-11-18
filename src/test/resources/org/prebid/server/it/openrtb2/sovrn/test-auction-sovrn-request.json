@@ -17,9 +17,10 @@
       },
       "ext": {
         "sovrn": {
-          "adunitcode": "sovrn_auc",
+          "adunitcode": "sovrn_auc_bidder",
           "tagid": "tag_id"
-        }
+        },
+        "gpid": "test_gpid"
       }
     }
   ],

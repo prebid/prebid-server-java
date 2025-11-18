@@ -36,7 +36,7 @@ public class RedisParser {
         } catch (JsonProcessingException resultParse) {
             String message;
             try {
-                RedisError errorResponse = objectMapper.readValue(redisResponse, RedisError.class);
+                final RedisError errorResponse = objectMapper.readValue(redisResponse, RedisError.class);
                 message = String.format("Redis error - %s: %s", errorResponse.getCode(), errorResponse.getMessage());
             } catch (JsonProcessingException errorParse) {
                 message = String.format("Error during parse redis response: %s", redisResponse);

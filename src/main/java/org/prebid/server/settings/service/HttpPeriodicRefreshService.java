@@ -66,7 +66,7 @@ public class HttpPeriodicRefreshService implements Initializable {
     private final String refreshUrl;
     private final long refreshPeriod;
     private final long timeout;
-    private final CacheNotificationListener cacheNotificationListener;
+    private final CacheNotificationListener<String> cacheNotificationListener;
     private final Vertx vertx;
     private final HttpClient httpClient;
     private final JacksonMapper mapper;
@@ -76,7 +76,7 @@ public class HttpPeriodicRefreshService implements Initializable {
     public HttpPeriodicRefreshService(String refreshUrl,
                                       long refreshPeriod,
                                       long timeout,
-                                      CacheNotificationListener cacheNotificationListener,
+                                      CacheNotificationListener<String> cacheNotificationListener,
                                       Vertx vertx,
                                       HttpClient httpClient,
                                       JacksonMapper mapper) {

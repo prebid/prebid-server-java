@@ -15,6 +15,7 @@ import org.prebid.server.activity.infrastructure.privacy.usnat.inner.model.Sensi
 import org.prebid.server.activity.infrastructure.privacy.usnat.inner.model.SensitiveDataProcessing;
 import org.prebid.server.activity.infrastructure.privacy.usnat.inner.model.SensitiveDataProcessingOptOutNotice;
 import org.prebid.server.activity.infrastructure.privacy.usnat.inner.model.USNatField;
+import org.prebid.server.settings.model.activity.privacy.AccountUSNatModuleConfig;
 
 import java.util.List;
 import java.util.Objects;
@@ -24,10 +25,10 @@ public class USNatTransmitGeo implements PrivacyModule, Loggable {
     private final USNatGppReader gppReader;
     private final Result result;
 
-    public USNatTransmitGeo(USNatGppReader gppReader) {
+    public USNatTransmitGeo(USNatGppReader gppReader, AccountUSNatModuleConfig.Config config) {
         this.gppReader = gppReader;
 
-        result = disallow(gppReader) ? Result.DISALLOW : Result.ALLOW;
+        result = disallow(gppReader, config) ? Result.DISALLOW : Result.ALLOW;
     }
 
     @Override
@@ -35,12 +36,12 @@ public class USNatTransmitGeo implements PrivacyModule, Loggable {
         return result;
     }
 
-    public static boolean disallow(USNatGppReader gppReader) {
+    public static boolean disallow(USNatGppReader gppReader, AccountUSNatModuleConfig.Config config) {
         return equals(gppReader.getMspaServiceProviderMode(), MspaServiceProviderMode.YES)
                 || equals(gppReader.getGpc(), Gpc.TRUE)
                 || checkSensitiveData(gppReader)
                 || checkKnownChildSensitiveDataConsents(gppReader)
-                || equals(gppReader.getPersonalDataConsents(), PersonalDataConsents.CONSENT);
+                || checkPersonalDataConsents(gppReader, config);
     }
 
     private static boolean checkSensitiveData(USNatGppReader gppReader) {
@@ -63,6 +64,11 @@ public class USNatTransmitGeo implements PrivacyModule, Loggable {
                 || equalsAtIndex(KnownChildSensitiveDataConsent.NO_CONSENT, knownChildSensitiveDataConsents, 1)
                 || equalsAtIndex(KnownChildSensitiveDataConsent.NO_CONSENT, knownChildSensitiveDataConsents, 2)
                 || equalsAtIndex(KnownChildSensitiveDataConsent.CONSENT, knownChildSensitiveDataConsents, 1);
+    }
+
+    private static boolean checkPersonalDataConsents(USNatGppReader gppReader, AccountUSNatModuleConfig.Config config) {
+        return (config == null || !config.isAllowPersonalDataConsent2())
+                && equals(gppReader.getPersonalDataConsents(), PersonalDataConsents.CONSENT);
     }
 
     private static <T> boolean equalsAtIndex(USNatField<T> expectedValue, List<T> list, int index) {

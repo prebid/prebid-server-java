@@ -1,11 +1,16 @@
 package org.prebid.server.bidder.rtbhouse;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Deal;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
+import com.iab.openrtb.request.Pmp;
+import com.iab.openrtb.request.Publisher;
+import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
@@ -319,6 +324,198 @@ public class RtbhouseBidderTest extends VertxTest {
                 .extracting(BidderBid::getBid)
                 .extracting(Bid::getNurl, Bid::getAdm)
                 .containsExactly(tuple("nurl:12.34", "adm:12.34"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCreateSiteAndPublisherWhenBidRequestHasNoSite() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                bidReq -> bidReq.site(null),
+                identity(),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getSite)
+                .allSatisfy(site -> {
+                    assertThat(site).isNotNull();
+                    assertThat(site.getPublisher()).isNotNull();
+                    assertThat(site.getPublisher().getExt()).isNotNull();
+
+                    final JsonNode prebidNode = site.getPublisher().getExt().getProperty("prebid");
+                    assertThat(prebidNode).isNotNull();
+                    assertThat(prebidNode.get("publisherId").asText()).isEqualTo("publisherId");
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldAddPublisherToExistingSiteWhenNoPublisher() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                bidReq -> bidReq.site(Site.builder()
+                        .id("site_id")
+                        .name("site_name")
+                        .domain("example.com")
+                        .page("https://example.com/page")
+                        .publisher(null)
+                        .build()),
+                identity(),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getSite)
+                .allSatisfy(site -> {
+                    assertThat(site.getId()).isEqualTo("site_id");
+                    assertThat(site.getName()).isEqualTo("site_name");
+                    assertThat(site.getDomain()).isEqualTo("example.com");
+                    assertThat(site.getPage()).isEqualTo("https://example.com/page");
+                    assertThat(site.getPublisher()).isNotNull();
+
+                    final JsonNode prebidNode = site.getPublisher().getExt().getProperty("prebid");
+                    assertThat(prebidNode).isNotNull();
+                    assertThat(prebidNode.get("publisherId").asText()).isEqualTo("publisherId");
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldPreserveOtherPublisherFieldsWhenUpdatingId() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                bidReq -> bidReq.site(Site.builder()
+                        .id("site_id")
+                        .publisher(Publisher.builder()
+                                .id("old_publisher_id")
+                                .name("publisher_name")
+                                .domain("publisher.com")
+                                .build())
+                        .build()),
+                identity(),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getSite)
+                .allSatisfy(site -> {
+                    final JsonNode prebidNode = site.getPublisher().getExt().getProperty("prebid");
+                    assertThat(prebidNode).isNotNull();
+                    assertThat(prebidNode.get("publisherId").asText()).isEqualTo("publisherId");
+                    assertThat(site.getPublisher().getId()).isEqualTo("old_publisher_id");
+                    assertThat(site.getPublisher().getName()).isEqualTo("publisher_name");
+                    assertThat(site.getPublisher().getDomain()).isEqualTo("publisher.com");
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldPreserveOtherBidRequestFields() {
+        // given
+        final List<Imp> imps = List.of(
+                givenImp(imp -> imp.id("imp1"), identity()),
+                givenImp(imp -> imp.id("imp2"), identity()));
+        final BidRequest bidRequest = givenBidRequest(
+                bidReq -> bidReq.id("request_id")
+                        .test(1)
+                        .tmax(2000L)
+                        .imp(imps)
+                        .cur(List.of("USD", "EUR"))
+                        .site(Site.builder().id("site_id").build()),
+                identity(),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .allSatisfy(request -> {
+                    assertThat(request.getId()).isEqualTo("request_id");
+                    assertThat(request.getTest()).isEqualTo(1);
+                    assertThat(request.getTmax()).isEqualTo(2000L);
+                    assertThat(request.getImp()).hasSize(2);
+                    assertThat(request.getImp().get(0).getId()).isEqualTo("imp1");
+                    assertThat(request.getImp().get(1).getId()).isEqualTo("imp2");
+                    assertThat(request.getCur()).containsExactly("USD");
+
+                    final JsonNode prebidNode = request.getSite().getPublisher().getExt()
+                            .getProperty("prebid");
+                    assertThat(prebidNode).isNotNull();
+                    assertThat(prebidNode.get("publisherId").asText()).isEqualTo("publisherId");
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUsePublisherIdFromFirstImp() {
+        // given
+        final List<Imp> imps = List.of(
+                givenImp(imp -> imp.id("imp1"),
+                        ext -> ext.publisherId("first_publisher_id")),
+                givenImp(imp -> imp.id("imp2"),
+                        ext -> ext.publisherId("second_publisher_id")));
+        final BidRequest bidRequest = givenBidRequest(
+                bidReq -> bidReq.id("request_id")
+                        .imp(imps)
+                        .site(Site.builder().id("site_id").build()),
+                identity(),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getSite)
+                .allSatisfy(site -> {
+                    final JsonNode prebidNode = site.getPublisher().getExt().getProperty("prebid");
+                    assertThat(prebidNode).isNotNull();
+                    assertThat(prebidNode.get("publisherId").asText())
+                            .isEqualTo("first_publisher_id");
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldAlwaysRemovePmpField() {
+        // given
+        final List<Deal> deals = List.of(
+                Deal.builder().id("deal1").build(),
+                Deal.builder().id("deal2").build());
+        final BidRequest bidRequest = givenBidRequest(
+                bidReq -> bidReq.id("request_id"),
+                imp -> imp.id("123")
+                        .pmp(Pmp.builder()
+                                .privateAuction(1)
+                                .deals(deals)
+                                .build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getPmp)
+                .containsOnlyNulls();
     }
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {

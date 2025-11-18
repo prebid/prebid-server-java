@@ -4,13 +4,16 @@ import org.prebid.server.functional.model.ChannelType
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.bidder.Openx
 import org.prebid.server.functional.model.bidderspecific.BidderRequest
+import org.prebid.server.functional.model.config.AlternateBidderCodes
+import org.prebid.server.functional.model.config.BidderConfig
 import org.prebid.server.functional.model.db.StoredImp
 import org.prebid.server.functional.model.pricefloors.Country
+import org.prebid.server.functional.model.pricefloors.FloorModelGroup
 import org.prebid.server.functional.model.pricefloors.MediaType
-import org.prebid.server.functional.model.pricefloors.ModelGroup
 import org.prebid.server.functional.model.pricefloors.PriceFloorData
 import org.prebid.server.functional.model.pricefloors.PriceFloorSchema
 import org.prebid.server.functional.model.pricefloors.Rule
+import org.prebid.server.functional.model.request.auction.Amx
 import org.prebid.server.functional.model.request.auction.Banner
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Device
@@ -22,11 +25,15 @@ import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.ImpExtContextData
 import org.prebid.server.functional.model.request.auction.ImpExtContextDataAdServer
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
+import org.prebid.server.functional.model.response.auction.BidExt
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
 
+import java.time.Instant
+
 import static org.prebid.server.functional.model.ChannelType.WEB
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
+import static org.prebid.server.functional.model.bidder.BidderName.AMX
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.pricefloors.Country.USA
@@ -171,7 +178,10 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
     }
 
     def "PBS should consider rules file invalid when rules file contains an unrecognized dimension in the schema"() {
-        given: "BidRequest with domain"
+        given: "Test start time"
+        def startTime = Instant.now()
+
+        and: "BidRequest with domain"
         def domain = PBSUtils.randomString
         def accountId = PBSUtils.randomString
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -186,7 +196,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         and: "Set Floors Provider response"
         def floorValue = PBSUtils.randomFloorValue
         def floorsResponse = PriceFloorData.priceFloorData.tap {
-            modelGroups << ModelGroup.modelGroup
+            modelGroups << FloorModelGroup.modelGroup
             modelGroups[0].schema = new PriceFloorSchema(fields: [BOGUS])
             modelGroups[0].values = [(new Rule(domain: domain).rule): floorValue + 0.1]
             modelGroups[1].schema = new PriceFloorSchema(fields: [DOMAIN])
@@ -212,9 +222,15 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         assert bidderRequest.ext?.prebid?.floors?.location == NO_DATA
         assert bidderRequest.ext?.prebid?.floors?.fetchStatus == ERROR
 
-        and: "PBS should not contain errors, warnings"
-        assert !response.ext?.warnings
+        and: "PBS should not contain errors or warnings"
         assert !response.ext?.errors
+        assert !response.ext?.warnings
+
+        and: "PBS should log a warning"
+        def logs = floorsPbsService.getLogsByTime(startTime)
+        assert getLogsByText(logs, "Cannot deserialize value of type " +
+                "`org.prebid.server.floors.model.PriceFloorField` " +
+                "from String \"bogus\": not one of the values accepted for Enum class").size() == 1
 
         and: "PBS should not reject the entire auction"
         assert !response.seatbid.isEmpty()
@@ -290,8 +306,8 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         def higherWidth = lowerWidth + 1
         def higherHigh = lowerHigh + 1
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp[0].banner.format = [new Format(weight: lowerWidth, height: lowerHigh),
-                                    new Format(weight: higherWidth, height: higherHigh)]
+            imp[0].banner.format = [new Format(width: lowerWidth, height: lowerHigh),
+                                    new Format(width: higherWidth, height: higherHigh)]
         }
 
         and: "Account with enabled fetch, fetch.url in the DB"
@@ -358,19 +374,19 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         mediaType                                                            | impClosure
         org.prebid.server.functional.model.response.auction.MediaType.BANNER | { int widthVal, int heightVal ->
             Imp.getDefaultImpression(mediaType).tap {
-                banner.format = [new Format(weight: widthVal, height: heightVal)]
+                banner.format = [new Format(width: widthVal, height: heightVal)]
             }
         }
         org.prebid.server.functional.model.response.auction.MediaType.BANNER | { int widthVal, int heightVal ->
             Imp.getDefaultImpression(mediaType).tap {
                 banner.format = null
-                banner.weight = widthVal
+                banner.width = widthVal
                 banner.height = heightVal
             }
         }
         org.prebid.server.functional.model.response.auction.MediaType.VIDEO  | { int widthVal, int heightVal ->
             Imp.getDefaultImpression(mediaType).tap {
-                video.weight = widthVal
+                video.width = widthVal
                 video.height = heightVal
             }
         }
@@ -951,7 +967,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         assert seatNonBids.size() == 1
 
         def seatNonBid = seatNonBids[0]
-        assert seatNonBid.seat == GENERIC.value
+        assert seatNonBid.seat == GENERIC
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == RESPONSE_REJECTED_DUE_TO_PRICE_FLOOR
         assert seatNonBid.nonBid.size() == bidResponse.seatbid[0].bid.size()
@@ -1042,7 +1058,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
         and: "Bidder request should contain proper bid floor value"
         def bidderRequests = bidder.getBidderRequests(bidRequest.id)
-        def impIdToBidderCallImp =  impIdToBidderCallImp(bidderRequests)
+        def impIdToBidderCallImp = impIdToBidderCallImp(bidderRequests)
         assert impIdToBidderCallImp[bidRequest.imp[0].id].bidFloor == genericBidFloorRuleValue
         assert impIdToBidderCallImp[bidRequest.imp[1].id].bidFloor == openxBidFloorRuleValue
 
@@ -1143,6 +1159,65 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         null                      | PBSUtils.randomFloorValue
         PBSUtils.randomFloorValue | null
         PBSUtils.randomFloorValue | PBSUtils.randomFloorValue
+    }
+
+    def "PBS should populate seatNonBid when bid rejected due to floor and alternate bidder code specified"() {
+        given: "PBS config with floors config"
+        def config = FLOORS_CONFIG +
+                ["adapters.amx.enabled" : "true",
+                 "adapters.amx.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
+        def pbsService = pbsServiceFactory.getService(config)
+
+        and: "Default bid request"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.prebid.bidder.tap {
+                generic = null
+                amx = new Amx()
+            }
+            ext.prebid.tap {
+                floors = new ExtPrebidFloors(enforcement: new ExtPrebidPriceFloorEnforcement(enforcePbs: true))
+                returnAllBidStatus = true
+                alternateBidderCodes = new AlternateBidderCodes(
+                        enabled: true,
+                        bidders: [(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])])
+            }
+        }
+
+        and: "Account with enabled fetch, fetch.url in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
+        accountDao.save(account)
+
+        and: "Set Floors Provider response"
+        def floorValue = PBSUtils.randomFloorValue
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].values = [(rule): floorValue]
+        }
+        floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
+
+        and: "PBS cache rules"
+        cacheFloorsProviderRules(bidRequest, floorValue, pbsService, AMX)
+
+        and: "Set bidder response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid.first().bid.first().tap {
+                price = floorValue - 0.1
+                ext = new BidExt(bidderCode: GENERIC)
+            }
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS response should contain seatNonBid"
+        def seatNonBids = response.ext.seatnonbid
+        assert seatNonBids.size() == 1
+
+        def seatNonBid = seatNonBids[0]
+        assert seatNonBid.seat == GENERIC
+        assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
+        assert seatNonBid.nonBid[0].statusCode == RESPONSE_REJECTED_DUE_TO_PRICE_FLOOR
+        assert seatNonBid.nonBid.size() == bidResponse.seatbid[0].bid.size()
     }
 
     private static Map<String, Imp> impIdToBidderCallImp(List<BidderRequest> bidderRequests) {

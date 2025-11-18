@@ -1,5 +1,6 @@
 package org.prebid.server.bidder.adnuntius;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -23,11 +24,12 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.adnuntius.model.request.AdnuntiusAdUnit;
 import org.prebid.server.bidder.adnuntius.model.request.AdnuntiusMetaData;
+import org.prebid.server.bidder.adnuntius.model.request.AdnuntiusNativeRequest;
 import org.prebid.server.bidder.adnuntius.model.request.AdnuntiusRequest;
+import org.prebid.server.bidder.adnuntius.model.request.AdnuntiusRequestAdUnit;
 import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusAd;
-import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusAdsUnit;
+import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusAdUnit;
 import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusAdvertiser;
 import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusBid;
 import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusBidExt;
@@ -41,6 +43,7 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.EncodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
@@ -49,8 +52,10 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsa;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.adnuntius.ExtImpAdnuntius;
+import org.prebid.server.proto.openrtb.ext.request.adnuntius.ExtImpAdnuntiusTargeting;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidDsa;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
 
@@ -65,8 +70,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
 
@@ -74,48 +77,62 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
             new TypeReference<>() {
             };
     private static final int SECONDS_IN_MINUTE = 60;
-    private static final String TARGET_ID_DELIMITER = "-";
     private static final String DEFAULT_PAGE = "unknown";
     private static final String DEFAULT_NETWORK = "default";
     private static final BigDecimal PRICE_MULTIPLIER = BigDecimal.valueOf(1000);
+    private static final int BANNER_MTYPE = 1;
+    private static final int NATIVE_MTYPE = 4;
 
     private final String endpointUrl;
+    private final String euEndpoint;
     private final Clock clock;
     private final JacksonMapper mapper;
 
-    public AdnuntiusBidder(String endpointUrl, Clock clock, JacksonMapper mapper) {
+    public AdnuntiusBidder(String endpointUrl,
+                           String euEndpoint,
+                           Clock clock,
+                           JacksonMapper mapper) {
+
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.euEndpoint = euEndpoint == null ? null : HttpUtil.validateUrl(euEndpoint);
         this.clock = Objects.requireNonNull(clock);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
     public Result<List<HttpRequest<AdnuntiusRequest>>> makeHttpRequests(BidRequest request) {
-        final Map<String, List<AdnuntiusAdUnit>> networkToAdUnits = new HashMap<>();
-        boolean noCookies = false;
-
-        for (Imp imp : request.getImp()) {
-            final ExtImpAdnuntius extImpAdnuntius;
-            try {
+        try {
+            final Map<String, List<AdnuntiusRequestAdUnit>> networkToAdUnits = new HashMap<>();
+            boolean noCookies = false;
+            for (Imp imp : request.getImp()) {
                 validateImp(imp);
-                extImpAdnuntius = parseImpExt(imp);
-            } catch (PreBidException e) {
-                return Result.withError(BidderError.badInput(e.getMessage()));
+                final ExtImpAdnuntius extImpAdnuntius = parseImpExt(imp);
+                noCookies = noCookies || resolveIsNoCookies(extImpAdnuntius);
+                final String network = resolveNetwork(extImpAdnuntius);
+
+                final List<AdnuntiusRequestAdUnit> adUnits = networkToAdUnits.computeIfAbsent(
+                        network,
+                        ignored -> new ArrayList<>());
+
+                if (imp.getBanner() != null) {
+                    adUnits.add(makeBannerAdUnit(imp, extImpAdnuntius));
+                }
+
+                if (imp.getXNative() != null) {
+                    adUnits.add(makeNativeAdUnit(imp, extImpAdnuntius));
+                }
             }
 
-            noCookies = noCookies || resolveIsNoCookies(extImpAdnuntius);
-            final String network = resolveNetwork(extImpAdnuntius);
-
-            networkToAdUnits.computeIfAbsent(network, ignored -> new ArrayList<>())
-                    .add(makeAdUnit(imp, extImpAdnuntius));
+            return Result.withValues(createHttpRequests(networkToAdUnits, request, noCookies));
+        } catch (PreBidException e) {
+            return Result.withError(BidderError.badInput(e.getMessage()));
         }
-
-        return Result.withValues(createHttpRequests(networkToAdUnits, request, noCookies));
     }
 
     private static void validateImp(Imp imp) {
-        if (imp.getBanner() == null) {
-            throw new PreBidException("Fail on Imp.Id=%s: Adnuntius supports only Banner".formatted(imp.getId()));
+        if (imp.getBanner() == null && imp.getXNative() == null) {
+            throw new PreBidException("ignoring imp id=%s: Adnuntius supports only native and banner"
+                    .formatted(imp.getId()));
         }
     }
 
@@ -141,18 +158,14 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
                 .orElse(DEFAULT_NETWORK);
     }
 
-    private static AdnuntiusAdUnit makeAdUnit(Imp imp, ExtImpAdnuntius extImpAdnuntius) {
-        final String auId = extImpAdnuntius.getAuId();
-        return AdnuntiusAdUnit.builder()
-                .auId(auId)
-                .targetId(targetId(auId, imp.getId()))
+    private static AdnuntiusRequestAdUnit makeBannerAdUnit(Imp imp, ExtImpAdnuntius extImpAdnuntius) {
+        return makeAdUnitBuilder(imp, extImpAdnuntius, "banner")
                 .dimensions(createDimensions(imp.getBanner()))
-                .maxDeals(resolveMaxDeals(extImpAdnuntius))
                 .build();
     }
 
-    private static String targetId(String auId, String impId) {
-        return auId + TARGET_ID_DELIMITER + impId;
+    private static String targetId(String auId, String impId, String bidType) {
+        return "%s-%s:%s".formatted(auId, impId, bidType);
     }
 
     private static List<List<Integer>> createDimensions(Banner banner) {
@@ -166,6 +179,7 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
                 formats.add(List.of(w, h));
             }
         }
+
         if (!formats.isEmpty()) {
             return formats;
         }
@@ -179,44 +193,86 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
         return formats.isEmpty() ? null : formats;
     }
 
+    private AdnuntiusRequestAdUnit makeNativeAdUnit(Imp imp, ExtImpAdnuntius extImpAdnuntius) {
+        return makeAdUnitBuilder(imp, extImpAdnuntius, "native")
+                .nativeRequest(AdnuntiusNativeRequest.of(parseNativeRequest(imp)))
+                .adType("NATIVE")
+                .build();
+    }
+
+    private ObjectNode parseNativeRequest(Imp imp) {
+        try {
+            return mapper.mapper().readValue(imp.getXNative().getRequest(), ObjectNode.class);
+        } catch (IllegalArgumentException | JsonProcessingException e) {
+            throw new PreBidException("Unmarshalling Native error " + e.getMessage());
+        }
+    }
+
+    private static AdnuntiusRequestAdUnit.AdnuntiusRequestAdUnitBuilder makeAdUnitBuilder(
+            Imp imp,
+            ExtImpAdnuntius extImpAdnuntius,
+            String bidType) {
+
+        final String auId = extImpAdnuntius.getAuId();
+        final ExtImpAdnuntiusTargeting targeting = ObjectUtils.defaultIfNull(
+                extImpAdnuntius.getTargeting(),
+                ExtImpAdnuntiusTargeting.builder().build());
+        return AdnuntiusRequestAdUnit.builder()
+                .auId(auId)
+                .targetId(targetId(auId, imp.getId(), bidType))
+                .maxDeals(resolveMaxDeals(extImpAdnuntius))
+                .category(targeting.getCategory())
+                .segments(targeting.getSegments())
+                .keywords(targeting.getKeywords())
+                .keyValues(targeting.getKeyValues())
+                .adUnitMatchingLabel(targeting.getAdUnitMatchingLabel());
+    }
+
     private static Integer resolveMaxDeals(ExtImpAdnuntius extImpAdnuntius) {
         final Integer maxDeals = extImpAdnuntius.getMaxDeals();
         return maxDeals != null && maxDeals > 0 ? maxDeals : null;
     }
 
-    private List<HttpRequest<AdnuntiusRequest>> createHttpRequests(Map<String, List<AdnuntiusAdUnit>> networkToAdUnits,
-                                                                   BidRequest request,
-                                                                   boolean noCookies) {
+    private List<HttpRequest<AdnuntiusRequest>> createHttpRequests(
+            Map<String, List<AdnuntiusRequestAdUnit>> networkToAdUnits,
+            BidRequest request,
+            boolean noCookies) {
 
         final Site site = request.getSite();
 
-        final String uri = createUri(request, noCookies);
+        final String uri = makeEndpoint(request, noCookies);
         final String page = extractPage(site);
         final ObjectNode data = extractData(site);
         final AdnuntiusMetaData metaData = createMetaData(request.getUser());
 
         final List<HttpRequest<AdnuntiusRequest>> adnuntiusRequests = new ArrayList<>();
 
-        for (List<AdnuntiusAdUnit> adUnits : networkToAdUnits.values()) {
+        for (List<AdnuntiusRequestAdUnit> adUnits : networkToAdUnits.values()) {
             final AdnuntiusRequest adnuntiusRequest = AdnuntiusRequest.builder()
                     .adUnits(adUnits)
                     .context(page)
                     .keyValue(data)
                     .metaData(metaData)
                     .build();
-            adnuntiusRequests.add(createHttpRequest(adnuntiusRequest, uri, request.getDevice()));
+            adnuntiusRequests.add(createHttpRequest(request, adnuntiusRequest, uri, request.getDevice()));
         }
 
         return adnuntiusRequests;
     }
 
-    private String createUri(BidRequest bidRequest, Boolean noCookies) {
+    private String makeEndpoint(BidRequest bidRequest, Boolean noCookies) {
         try {
-            final URIBuilder uriBuilder = new URIBuilder(endpointUrl)
+            final String gdpr = extractGdpr(bidRequest.getRegs());
+            final String url = StringUtils.isNotBlank(gdpr) ? euEndpoint : endpointUrl;
+
+            if (url == null) {
+                throw new PreBidException("an EU endpoint is required but invalid");
+            }
+
+            final URIBuilder uriBuilder = new URIBuilder(url)
                     .addParameter("format", "prebidServer")
                     .addParameter("tzo", getTimeZoneOffset());
 
-            final String gdpr = extractGdpr(bidRequest.getRegs());
             if (StringUtils.isNotEmpty(gdpr)) {
                 uriBuilder.addParameter("gdpr", gdpr);
             }
@@ -231,7 +287,7 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
             }
 
             return uriBuilder.build().toString();
-        } catch (URISyntaxException e) {
+        } catch (URISyntaxException | IllegalArgumentException e) {
             throw new PreBidException(e.getMessage());
         }
     }
@@ -297,7 +353,8 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
                 .orElse(null);
     }
 
-    private HttpRequest<AdnuntiusRequest> createHttpRequest(AdnuntiusRequest adnuntiusRequest,
+    private HttpRequest<AdnuntiusRequest> createHttpRequest(BidRequest request,
+                                                            AdnuntiusRequest adnuntiusRequest,
                                                             String uri,
                                                             Device device) {
 
@@ -307,6 +364,7 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
                 .uri(uri)
                 .body(mapper.encodeToBytes(adnuntiusRequest))
                 .payload(adnuntiusRequest)
+                .impIds(BidderUtil.impIds(request))
                 .build();
     }
 
@@ -327,59 +385,102 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
             final String body = httpCall.getResponse().getBody();
             final AdnuntiusResponse adnuntiusResponse = mapper.decodeValue(body, AdnuntiusResponse.class);
             return Result.withValues(extractBids(bidRequest, adnuntiusResponse));
-        } catch (DecodeException | PreBidException e) {
+        } catch (EncodeException | DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
+    private static Map<String, AdnuntiusAdUnit> parseAdUnits(AdnuntiusResponse adnuntiusResponse) {
+        final Map<String, AdnuntiusAdUnit> targetIdToAdsUnit = new HashMap<>();
+        for (AdnuntiusAdUnit adUnit : adnuntiusResponse.getAdUnits()) {
+            if (isValid(adUnit)) {
+                final String targetId = extractTargetId(adUnit.getTargetId());
+                final AdnuntiusAdUnit existingAdUnit = targetIdToAdsUnit.get(targetId);
+                if (existingAdUnit == null || getBidAmount(adUnit).compareTo(getBidAmount(existingAdUnit)) >= 0) {
+                    targetIdToAdsUnit.put(targetId, adUnit);
+                }
+            }
+        }
+
+        return targetIdToAdsUnit;
+    }
+
     private List<BidderBid> extractBids(BidRequest bidRequest, AdnuntiusResponse adnuntiusResponse) {
-        if (adnuntiusResponse == null || CollectionUtils.isEmpty(adnuntiusResponse.getAdsUnits())) {
+        if (adnuntiusResponse == null || CollectionUtils.isEmpty(adnuntiusResponse.getAdUnits())) {
             return Collections.emptyList();
         }
 
-        final Map<String, AdnuntiusAdsUnit> targetIdToAdsUnit = adnuntiusResponse.getAdsUnits().stream()
-                .filter(AdnuntiusBidder::validateAdsUnit)
-                .collect(Collectors.toMap(
-                        AdnuntiusAdsUnit::getTargetId,
-                        Function.identity(),
-                        (first, second) -> second));
+        final Map<String, AdnuntiusAdUnit> targetIdToAdsUnit = parseAdUnits(adnuntiusResponse);
 
         String currency = null;
         final List<Bid> bids = new ArrayList<>();
 
         for (Imp imp : bidRequest.getImp()) {
             final ExtImpAdnuntius extImpAdnuntius = parseImpExt(imp);
-            final String targetId = targetId(extImpAdnuntius.getAuId(), imp.getId());
+            final String targetId = targetIdForBids(extImpAdnuntius.getAuId(), imp.getId());
 
-            final AdnuntiusAdsUnit adsUnit = targetIdToAdsUnit.get(targetId);
-            if (adsUnit == null) {
+            final AdnuntiusAdUnit adUnit = targetIdToAdsUnit.get(targetId);
+            if (adUnit == null) {
                 continue;
             }
 
-            final AdnuntiusAd ad = adsUnit.getAds().getFirst();
+            final AdnuntiusAd ad = adUnit.getAds().getFirst();
             final String impId = imp.getId();
             final String bidType = extImpAdnuntius.getBidType();
+
             currency = ObjectUtil.getIfNotNull(ad.getBid(), AdnuntiusBid::getCurrency);
+            final JsonNode nativeRequest = Optional.ofNullable(adUnit.getNativeJson())
+                    .map(AdnuntiusNativeRequest::getOrtb)
+                    .orElse(null);
+            final int mType = nativeRequest == null ? BANNER_MTYPE : NATIVE_MTYPE;
+            final String html = nativeRequest == null ? adUnit.getHtml() : mapper.encodeToString(nativeRequest);
 
-            bids.add(createBid(ad, bidRequest, adsUnit.getHtml(), impId, bidType));
+            bids.add(createBid(ad, bidRequest, html, impId, bidType, mType));
 
-            for (AdnuntiusAd deal : ListUtils.emptyIfNull(adsUnit.getDeals())) {
-                bids.add(createBid(deal, bidRequest, deal.getHtml(), impId, bidType));
+            for (AdnuntiusAd deal : ListUtils.emptyIfNull(adUnit.getDeals())) {
+                bids.add(createBid(deal, bidRequest, deal.getHtml(), impId, bidType, BANNER_MTYPE));
             }
         }
 
         final String lastCurrency = currency;
         return bids.stream()
-                .map(bid -> BidderBid.of(bid, BidType.banner, lastCurrency))
+                .map(bid -> BidderBid.of(
+                        bid,
+                        bid.getMtype() == BANNER_MTYPE ? BidType.banner : BidType.xNative,
+                        lastCurrency))
                 .toList();
     }
 
-    private static boolean validateAdsUnit(AdnuntiusAdsUnit adsUnit) {
-        final List<AdnuntiusAd> ads = adsUnit != null ? adsUnit.getAds() : null;
-        return CollectionUtils.isNotEmpty(ads) && ads.getFirst() != null;
+    private static BigDecimal getBidAmount(AdnuntiusAdUnit adUnit) {
+        return adUnit.getAds().getFirst().getBid().getAmount();
     }
 
-    private Bid createBid(AdnuntiusAd ad, BidRequest bidRequest, String adm, String impId, String bidType) {
+    private static boolean isValid(AdnuntiusAdUnit adsUnit) {
+        if (adsUnit == null) {
+            return false;
+        }
+
+        final String targetId = extractTargetId(adsUnit.getTargetId());
+        final int matchedCount = ObjectUtils.defaultIfNull(adsUnit.getMatchedAdCount(), 0);
+        final List<AdnuntiusAd> ads = adsUnit.getAds();
+        final BigDecimal bidAmount = CollectionUtils.emptyIfNull(ads).stream()
+                .findFirst()
+                .map(AdnuntiusAd::getBid)
+                .map(AdnuntiusBid::getAmount)
+                .orElse(null);
+
+        return targetId != null && matchedCount > 0 && bidAmount != null;
+    }
+
+    private static String extractTargetId(String targetId) {
+        return targetId == null ? null : targetId.split(":")[0];
+    }
+
+    private static String targetIdForBids(String auId, String impId) {
+        return "%s-%s".formatted(auId, impId);
+    }
+
+    private Bid createBid(AdnuntiusAd ad, BidRequest bidRequest, String adm, String impId, String bidType, int mtype) {
         final String adId = ad.getAdId();
         final AdnuntiusBidExt bidExt = prepareBidExt(ad, bidRequest);
 
@@ -394,7 +495,8 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
                 .crid(ad.getCreativeId())
                 .price(resolvePrice(ad, bidType))
                 .adm(adm)
-                .adomain(extractDomain(ad.getDestinationUrls()))
+                .adomain(ad.getAdvertiserDomains())
+                .mtype(mtype)
                 .ext(bidExt == null ? null : mapper.mapper().valueToTree(bidExt))
                 .build();
     }
@@ -443,14 +545,5 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
         }
 
         return amount != null ? amount.multiply(PRICE_MULTIPLIER) : BigDecimal.ZERO;
-    }
-
-    private static List<String> extractDomain(Map<String, String> destinationUrls) {
-        return destinationUrls == null ? Collections.emptyList() : destinationUrls.values().stream()
-                .filter(Objects::nonNull)
-                .map(url -> url.split("/"))
-                .filter(splintedUrl -> splintedUrl.length >= 2)
-                .map(splintedUrl -> StringUtils.replace(splintedUrl[2], "www.", ""))
-                .toList();
     }
 }

@@ -1,0 +1,22 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "banner": {
+        "w": 300,
+        "h": 250
+      },
+      "ext": {
+        "optidigital": {
+          "publisherId": "testPublisherId",
+          "placementId": "testPlacementId"
+        }
+      }
+    }
+  ],
+  "tmax": 5000,
+  "regs": {
+    "gdpr": 0
+  }
+}

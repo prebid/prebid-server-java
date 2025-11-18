@@ -13,11 +13,17 @@
           "w": 400,
           "h": 300,
           "adm": "",
+          "adomain": [
+            "yieldlab"
+          ],
           "ext": {
             "origbidcpm": 2.01,
             "origbidcur": "EUR",
             "prebid": {
-              "type": "banner"
+              "type": "banner",
+              "meta": {
+                "adaptercode": "yieldlab"
+              }
             }
           }
         }

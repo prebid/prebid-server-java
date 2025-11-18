@@ -19,4 +19,3 @@ public class BidderPrivacyResult {
 
     boolean blockedAnalyticsByTcf;
 }
-

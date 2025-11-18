@@ -12,4 +12,3 @@ public class ImpExtCopper6Ssp {
     @JsonProperty("endpointId")
     String endpointId;
 }
-

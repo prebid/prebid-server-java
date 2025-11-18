@@ -1,0 +1,70 @@
+adapters:
+  adverxo:
+    endpoint: https://pbsadverxo.com/auction?adUnitId={{adUnitId}}&auth={{auth}}
+    endpoint-compression: gzip
+    aliases:
+      adport:
+        enabled: false
+        endpoint: https://adport.pbsadverxo.com/auction?id={{adUnitId}}&auth={{auth}}
+        usersync:
+          enabled: false
+          cookie-family-name: adport
+          iframe:
+            url: https://cittamatra.com/usync?type=iframe&gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+            uid-macro: '$UID'
+            support-cors: false
+          redirect:
+            url: https://cittamatra.com/usync?type=image&gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+            uid-macro: '$UID'
+            support-cors: false
+      bidsmind:
+        enabled: false
+        endpoint: https://bidsmind.pbsadverxo.com/auction?id={{adUnitId}}&auth={{auth}}
+        usersync:
+          enabled: false
+          cookie-family-name: bidsmind
+          iframe:
+            url: https://taetee.com/usync?type=iframe&gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+            uid-macro: '$UID'
+            support-cors: false
+          redirect:
+            url: https://taetee.com/usync?type=image&gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+            uid-macro: '$UID'
+            support-cors: false
+      mobupps:
+        enabled: false
+        endpoint: https://mobupps.pbsadverxo.com/auction?id={{adUnitId}}&auth={{auth}}
+        usersync:
+          enabled: false
+          cookie-family-name: mobupps
+          iframe:
+            url: https://mobupps.pbsadverxo.com/usync?type=iframe&gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+            uid-macro: '$UID'
+            support-cors: false
+          redirect:
+            url: https://mobupps.pbsadverxo.com/usync?type=image&gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+            uid-macro: '$UID'
+            support-cors: false
+    meta-info:
+      maintainer-email: developer@adverxo.com
+      app-media-types:
+        - banner
+        - native
+        - video
+      site-media-types:
+        - banner
+        - native
+        - video
+      supported-vendors:
+      vendor-id: 0
+    usersync:
+      cookie-family-name: adverxo
+      iframe:
+        url: https://pbsadverxo.com/usync?type=iframe&gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+        support-cors: false
+        uid-macro: '$UID'
+      redirect:
+        url: https://pbsadverxo.com/usync?type=image&gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+        support-cors: false
+        uid-macro: '$UID'
+

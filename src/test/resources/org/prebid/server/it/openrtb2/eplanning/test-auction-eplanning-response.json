@@ -11,12 +11,18 @@
           "adm": "<div>test</div>",
           "adid": "imp_id",
           "crid": "crid",
+          "adomain": [
+            "test.com"
+          ],
           "w": 600,
           "h": 300,
           "ext": {
             "origbidcpm": 0.5,
             "prebid": {
-              "type": "banner"
+              "type": "banner",
+              "meta": {
+                "adaptercode": "eplanning"
+              }
             }
           }
         }

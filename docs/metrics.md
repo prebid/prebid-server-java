@@ -45,6 +45,8 @@ where `[DATASOURCE]` is a data source name, `DEFAULT_DS` by defaul.
 - `imps_video` - number of video impressions
 - `imps_native` - number of native impressions
 - `imps_audio` - number of audio impressions
+- `disabled_bidder` - number of disabled bidders received within requests
+- `unknown_bidder` - number of unknown bidders received within requests
 - `requests.(ok|badinput|err|networkerr|blocklisted_account|blocklisted_app).(openrtb2-web|openrtb-app|amp|legacy)` - number of requests broken down by status and type
 - `bidder-cardinality.<cardinality>.requests` - number of requests targeting `<cardinality>` of bidders
 - `connection_accept_errors` - number of errors occurred while establishing HTTP connection
@@ -91,7 +93,9 @@ Following metrics are collected and submitted if account is configured with `bas
 Following metrics are collected and submitted if account is configured with `detailed` verbosity:
 - `account.<account-id>.requests.type.(openrtb2-web,openrtb-app,amp,legacy)` - number of requests received from account with `<account-id>` broken down by type of incoming request
 - `account.<account-id>.debug_requests` - number of requests received from account with `<account-id>` broken down by type of incoming request (when debug mode is enabled)
-- `account.<account-id>.requests.rejected` - number of rejected requests caused by incorrect `accountId`
+- `account.<account-id>.requests.rejection` - number of rejection requests caused by incorrect `accountId`
+- `account.<account-id>.requests.disabled_bidder` - number of disabled bidders received within requests from account with `<account-id>`
+- `account.<account-id>.requests.unknown_bidder` - number of unknown bidder names received within requests from account with `<account-id>`
 - `account.<account-id>.adapter.<bidder-name>.request_time` - timer tracking how long did it take to make a request to `<bidder-name>` when incoming request was from `<account-id>` 
 - `account.<account-id>.adapter.<bidder-name>.bids_received` - number of bids received from `<bidder-name>` when incoming request was from `<account-id>`
 - `account.<account-id>.adapter.<bidder-name>.requests.(gotbids|nobid)` - number of requests made to `<bidder-name>` broken down by result status  when incoming request was from `<account-id>`
@@ -100,11 +104,13 @@ Following metrics are collected and submitted if account is configured with `det
 - `prebid_cache.requests.ok` - timer tracking how long did successful cache requests take
 - `prebid_cache.requests.err` - timer tracking how long did failed cache requests take
 - `prebid_cache.creative_size.<creative_type>` - histogram tracking creative sizes for specific type
+- `prebid_cache.creative_ttl.<creative_type>` - histogram tracking creative TTL for specific type
 
 ## Prebid Cache per-account metrics
 - `account.<account-id>.prebid_cache.requests.ok` - timer tracking how long did successful cache requests take when incoming request was from `<account-id>`
 - `account.<account-id>.prebid_cache.requests.err` - timer tracking how long did failed cache requests take when incoming request was from `<account-id>`
 - `account.<account-id>.prebid_cache.creative_size.<creative_type>` - histogram tracking creative sizes for specific type when incoming request was from `<account-id>`
+- `account.<account-id>.prebid_cache.creative_ttl.<creative_type>` - histogram tracking creative TTL for specific type when incoming request was from `<account-id>`
 
 ## /cookie_sync endpoint metrics
 - `cookie_sync_requests` - number of requests received
@@ -134,7 +140,7 @@ Following metrics are collected and submitted if account is configured with `det
 - `analytics.<reporter-name>.(auction|amp|video|cookie_sync|event|setuid).ok` - number of succeeded processed event requests
 - `analytics.<reporter-name>.(auction|amp|video|cookie_sync|event|setuid).timeout` - number of event requests, failed with timeout cause
 - `analytics.<reporter-name>.(auction|amp|video|cookie_sync|event|setuid).err` - number of event requests, failed with errors
-- `analytics.<reporter-name>.(auction|amp|video|cookie_sync|event|setuid).badinput` - number of event requests, rejected with bad input cause
+- `analytics.<reporter-name>.(auction|amp|video|cookie_sync|event|setuid).badinput` - number of event requests, rejection with bad input cause
 
 ## Modules metrics
 - `modules.module.<module>.stage.<stage>.hook.<hook>.call` - number of times the hook is called

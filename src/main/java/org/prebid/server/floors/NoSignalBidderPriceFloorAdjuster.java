@@ -51,7 +51,7 @@ public class NoSignalBidderPriceFloorAdjuster implements PriceFloorAdjuster {
                 .map(PriceFloorRules::getData)
                 .map(PriceFloorData::getModelGroups)
                 .filter(CollectionUtils::isNotEmpty)
-                .map(modelGroups -> modelGroups.get(0))
+                .map(List::getFirst)
                 .map(PriceFloorModelGroup::getNoFloorSignalBidders)
                 .or(() -> optionalFloors
                         .map(PriceFloorRules::getData)
@@ -65,11 +65,6 @@ public class NoSignalBidderPriceFloorAdjuster implements PriceFloorAdjuster {
                     return Price.empty();
                 })
                 .orElseGet(() -> delegate.adjustForImp(imp, bidder, bidRequest, account, debugWarnings));
-    }
-
-    @Override
-    public Price revertAdjustmentForImp(Imp imp, String bidder, BidRequest bidRequest, Account account) {
-        return delegate.revertAdjustmentForImp(imp, bidder, bidRequest, account);
     }
 
     private static boolean isNoSignalBidder(String bidder, List<String> noSignalBidders) {

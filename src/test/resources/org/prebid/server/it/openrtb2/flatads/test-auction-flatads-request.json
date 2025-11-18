@@ -1,0 +1,38 @@
+{
+  "id": "some-request-id",
+  "imp": [
+    {
+      "id": "some-impression-id1",
+      "tagid": "ogTAGID",
+      "banner": {
+        "w": 320,
+        "h": 50
+      },
+      "ext": {
+        "flatads": {
+          "token": "token",
+          "publisherId": "publisherId"
+        }
+      }
+    }
+  ],
+  "site": {
+    "page": "https://example.com",
+    "publisher": {
+      "id": "123456789"
+    }
+  },
+  "user": {
+    "buyeruid": "awesome-user"
+  },
+  "device": {
+    "ua": "test-user-agent",
+    "ip": "193.168.244.1",
+    "language": "en",
+    "dnt": 0
+  },
+  "tmax": 5000,
+  "regs": {
+    "gdpr": 0
+  }
+}

@@ -24,7 +24,7 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.auction.BidderAliases;
+import org.prebid.server.auction.aliases.BidderAliases;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.PriceGranularity;
@@ -369,7 +369,7 @@ public class Ortb2ImplicitParametersResolver {
         final String ifa = device.getIfa();
         final Integer lmt = device.getLmt();
 
-        if (StringUtils.isEmpty(ifa) || ifa.equals("00000000-0000-0000-0000-000000000000")) {
+        if (StringUtils.isEmpty(ifa) || "00000000-0000-0000-0000-000000000000".equals(ifa)) {
             return !Objects.equals(lmt, 1) ? 1 : null;
         }
 

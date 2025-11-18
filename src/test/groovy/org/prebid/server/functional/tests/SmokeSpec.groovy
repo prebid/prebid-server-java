@@ -98,7 +98,7 @@ class SmokeSpec extends BaseSpec {
         def accountId = PBSUtils.randomNumber.toString()
 
         when: "PBS processes vtrack request"
-        def response = defaultPbsService.sendVtrackRequest(request, accountId)
+        def response = defaultPbsService.sendPostVtrackRequest(request, accountId)
 
         then: "Response should contain uid"
         assert response.responses[0]?.uuid

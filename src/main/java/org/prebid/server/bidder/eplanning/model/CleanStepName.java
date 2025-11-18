@@ -1,10 +1,8 @@
 package org.prebid.server.bidder.eplanning.model;
 
-import lombok.AllArgsConstructor;
 import lombok.Value;
 
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class CleanStepName {
 
     String expression;

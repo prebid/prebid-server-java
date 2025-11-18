@@ -15,7 +15,7 @@ import java.util.Set;
 
 @Accessors(fluent = true)
 @Builder(toBuilder = true)
-@Value(staticConstructor = "of")
+@Value
 public class BiddersContext {
 
     @Builder.Default

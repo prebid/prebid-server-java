@@ -6,7 +6,8 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.BidRejectionReason;
-import org.prebid.server.auction.model.BidRejectionTracker;
+import org.prebid.server.auction.model.Rejection;
+import org.prebid.server.auction.model.BidRejection;
 import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.exception.InvalidAccountConfigurationException;
@@ -49,7 +50,6 @@ public class BidsBlocker {
     private final OrtbVersion ortbVersion;
     private final ObjectNode accountConfig;
     private final BlockedAttributes blockedAttributes;
-    private final BidRejectionTracker bidRejectionTracker;
     private final boolean debugEnabled;
 
     private BidsBlocker(List<BidderBid> bids,
@@ -57,7 +57,6 @@ public class BidsBlocker {
                         OrtbVersion ortbVersion,
                         ObjectNode accountConfig,
                         BlockedAttributes blockedAttributes,
-                        BidRejectionTracker bidRejectionTracker,
                         boolean debugEnabled) {
 
         this.bids = bids;
@@ -65,7 +64,6 @@ public class BidsBlocker {
         this.ortbVersion = ortbVersion;
         this.accountConfig = accountConfig;
         this.blockedAttributes = blockedAttributes;
-        this.bidRejectionTracker = bidRejectionTracker;
         this.debugEnabled = debugEnabled;
     }
 
@@ -74,7 +72,6 @@ public class BidsBlocker {
                                      OrtbVersion ortbVersion,
                                      ObjectNode accountConfig,
                                      BlockedAttributes blockedAttributes,
-                                     BidRejectionTracker bidRejectionTracker,
                                      boolean debugEnabled) {
 
         return new BidsBlocker(
@@ -83,7 +80,6 @@ public class BidsBlocker {
                 Objects.requireNonNull(ortbVersion),
                 accountConfig,
                 blockedAttributes,
-                bidRejectionTracker,
                 debugEnabled);
     }
 
@@ -104,9 +100,10 @@ public class BidsBlocker {
             final BlockedBids blockedBids = !blockedBidIndexes.isEmpty() ? BlockedBids.of(blockedBidIndexes) : null;
             final List<String> warnings = MergeUtils.mergeMessages(blockedBidResults);
 
+            final List<Rejection> rejectedBids = new ArrayList<>();
             if (blockedBids != null) {
                 blockedBidIndexes.forEach(index ->
-                        rejectBlockedBid(blockedBidResults.get(index).getValue(), bids.get(index)));
+                        rejectBlockedBid(rejectedBids, blockedBidResults.get(index).getValue(), bids.get(index)));
             }
 
             return ExecutionResult.<BlockedBids>builder()
@@ -114,6 +111,7 @@ public class BidsBlocker {
                     .debugMessages(blockedBids != null ? debugMessages(blockedBidIndexes, blockedBidResults) : null)
                     .warnings(warnings)
                     .analyticsResults(toAnalyticsResults(blockedBidResults))
+                    .rejections(rejectedBids)
                     .build();
         } catch (InvalidAccountConfigurationException e) {
             return debugEnabled ? ExecutionResult.withError(e.getMessage()) : ExecutionResult.empty();
@@ -288,20 +286,20 @@ public class BidsBlocker {
                 blockingResult.getFailedChecks());
     }
 
-    private void rejectBlockedBid(BlockingResult blockingResult, BidderBid blockedBid) {
+    private void rejectBlockedBid(List<Rejection> rejections, BlockingResult blockingResult, BidderBid blockedBid) {
         if (blockingResult.getBattrCheckResult().isFailed()
                 || blockingResult.getBappCheckResult().isFailed()
                 || blockingResult.getBcatCheckResult().isFailed()) {
 
-            bidRejectionTracker.rejectBid(
+            rejections.add(BidRejection.of(
                     blockedBid,
-                    BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE);
+                    BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE));
         }
 
         if (blockingResult.getBadvCheckResult().isFailed()) {
-            bidRejectionTracker.rejectBid(
+            rejections.add(BidRejection.of(
                     blockedBid,
-                    BidRejectionReason.RESPONSE_REJECTED_ADVERTISER_BLOCKED);
+                    BidRejectionReason.RESPONSE_REJECTED_ADVERTISER_BLOCKED));
         }
     }
 
@@ -335,7 +333,7 @@ public class BidsBlocker {
         }
         final AttributeCheckResult<String> bappResult = blockingResult.getBappCheckResult();
         if (bappResult.isFailed()) {
-            values.put(BUNDLE_FIELD, bappResult.getFailedValues().get(0));
+            values.put(BUNDLE_FIELD, bappResult.getFailedValues().getFirst());
         }
         final AttributeCheckResult<Integer> battrResult = blockingResult.getBattrCheckResult();
         if (battrResult.isFailed()) {

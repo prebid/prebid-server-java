@@ -6,6 +6,8 @@ import io.vertx.core.Future;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.prebid.server.auction.model.BidderResponse;
+import org.prebid.server.auction.model.Rejection;
+import org.prebid.server.auction.model.BidRejection;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.execution.v1.analytics.ActivityImpl;
 import org.prebid.server.hooks.execution.v1.analytics.AppliedToImpl;
@@ -25,11 +27,13 @@ import org.prebid.server.hooks.v1.analytics.Tags;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.bidder.AllProcessedBidResponsesHook;
 import org.prebid.server.hooks.v1.bidder.AllProcessedBidResponsesPayload;
+import org.prebid.server.util.ListUtil;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class PbRichmediaFilterAllProcessedBidResponsesHook implements AllProcessedBidResponsesHook {
 
@@ -60,26 +64,38 @@ public class PbRichmediaFilterAllProcessedBidResponsesHook implements AllProcess
         if (BooleanUtils.isTrue(properties.getFilterMraid())) {
             final MraidFilterResult filterResult = mraidFilter.filterByPattern(
                     properties.getMraidScriptPattern(),
-                    responses,
-                    auctionInvocationContext.auctionContext().getBidRejectionTrackers());
+                    responses);
             final InvocationAction action = filterResult.hasRejectedBids()
                     ? InvocationAction.update
                     : InvocationAction.no_action;
             return Future.succeededFuture(toInvocationResult(
                     filterResult.getFilterResult(),
                     toAnalyticsTags(filterResult.getAnalyticsResult()),
+                    toRejections(filterResult.getAnalyticsResult()),
                     action));
         }
 
         return Future.succeededFuture(toInvocationResult(
                 responses,
                 toAnalyticsTags(Collections.emptyList()),
+                null,
                 InvocationAction.no_action));
+    }
+
+    private Map<String, List<Rejection>> toRejections(List<AnalyticsResult> analyticsResults) {
+        return analyticsResults.stream().collect(Collectors.toMap(
+                AnalyticsResult::getBidder,
+                result -> result.getRejectedBids().stream()
+                        .map(bid -> BidRejection.of(bid, result.getRejectionReason()))
+                        .map(Rejection.class::cast)
+                        .toList(),
+                ListUtil::union));
     }
 
     private static InvocationResult<AllProcessedBidResponsesPayload> toInvocationResult(
             List<BidderResponse> bidderResponses,
             Tags analyticsTags,
+            Map<String, List<Rejection>> rejections,
             InvocationAction action) {
 
         return InvocationResultImpl.<AllProcessedBidResponsesPayload>builder()
@@ -87,6 +103,7 @@ public class PbRichmediaFilterAllProcessedBidResponsesHook implements AllProcess
                 .action(action)
                 .analyticsTags(analyticsTags)
                 .payloadUpdate(payload -> AllProcessedBidResponsesPayloadImpl.of(bidderResponses))
+                .rejections(rejections)
                 .build();
     }
 

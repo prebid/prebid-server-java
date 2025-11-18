@@ -12,6 +12,7 @@ import java.util.List;
 
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.prebid.server.hooks.modules.com.confiant.adquality.core.AnalyticsMapper.toAnalyticsTags;
 
 public class AnalyticsMapperTest {
 
@@ -29,7 +30,10 @@ public class AnalyticsMapperTest {
                 AdQualityModuleTestUtils.getBidderResponse("bidder_d", "imp_d", "bid_id_d"));
 
         // when
-        final Tags tags = AnalyticsMapper.toAnalyticsTags(bidderResponsesWithIssues, bidderResponsesWithoutIssues, bidderResponsesNotScanned);
+        final Tags tags = toAnalyticsTags(
+                bidderResponsesWithIssues,
+                bidderResponsesWithoutIssues,
+                bidderResponsesNotScanned);
 
         // then
         assertThat(tags.activities()).isEqualTo(singletonList(ActivityImpl.of(

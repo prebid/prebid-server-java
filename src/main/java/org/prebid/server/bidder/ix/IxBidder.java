@@ -21,7 +21,6 @@ import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.ix.model.request.IxDiag;
 import org.prebid.server.bidder.ix.model.response.IxBidResponse;
 import org.prebid.server.bidder.ix.model.response.IxExtBidResponse;
 import org.prebid.server.bidder.ix.model.response.NativeV11Wrapper;
@@ -65,6 +64,8 @@ public class IxBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpIx>> IX_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
+    private static final String PBSP_JAVA = "java";
+    private static final String PBS_VERSION_UNKNOWN = "unknown";
 
     private final String endpointUrl;
     private final PrebidVersionProvider prebidVersionProvider;
@@ -204,11 +205,11 @@ public class IxBidder implements Bidder<BidRequest> {
             modifiedExt = ExtRequest.empty();
         }
 
-        modifiedExt.addProperty("ixdiag", mapper.mapper().valueToTree(makeDiagData(extRequest, siteIds)));
+        modifiedExt.addProperty("ixdiag", makeDiagData(extRequest, siteIds));
         return modifiedExt;
     }
 
-    private IxDiag makeDiagData(ExtRequest extRequest, Set<String> siteIds) {
+    private ObjectNode makeDiagData(ExtRequest extRequest, Set<String> siteIds) {
         final String pbjsv = Optional.ofNullable(extRequest)
                 .map(ExtRequest::getPrebid)
                 .map(ExtRequestPrebid::getChannel)
@@ -221,7 +222,23 @@ public class IxBidder implements Bidder<BidRequest> {
                 ? siteIds.stream().sorted().collect(Collectors.joining(", "))
                 : null;
 
-        return IxDiag.of(pbsv, pbjsv, multipleSiteIds);
+        final ObjectNode ixdiag = Optional.ofNullable(extRequest)
+                .map(ext -> ext.getProperty("ixdiag"))
+                .filter(JsonNode::isObject)
+                .map(ObjectNode.class::cast)
+                .orElse(mapper.mapper().createObjectNode())
+                .put("pbsv", pbsv == null ? PBS_VERSION_UNKNOWN : pbsv)
+                .put("pbsp", PBSP_JAVA);
+
+        if (multipleSiteIds != null) {
+            ixdiag.put("multipleSiteIds", multipleSiteIds);
+        }
+
+        if (pbjsv != null) {
+            ixdiag.put("pbjsv", pbjsv);
+        }
+
+        return ixdiag;
     }
 
     @Override
@@ -386,12 +403,15 @@ public class IxBidder implements Bidder<BidRequest> {
     }
 
     private static Response mergeNativeImpTrackers(Response response, List<EventTracker> eventTrackers) {
+        final Stream<String> impTrackers = Optional.of(response)
+                .map(Response::getImptrackers).stream().flatMap(Collection::stream);
+
         return response.toBuilder()
                 .imptrackers(Stream.concat(
                                 eventTrackers.stream()
                                         .filter(IxBidder::isImpTracker)
                                         .map(EventTracker::getUrl),
-                                response.getImptrackers().stream())
+                                impTrackers)
                         .distinct()
                         .toList())
                 .build();
