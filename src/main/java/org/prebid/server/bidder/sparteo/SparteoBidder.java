@@ -103,7 +103,7 @@ public class SparteoBidder implements Bidder<BidRequest> {
         }
     }
 
-    private ObjectNode modifyImpExt(Imp imp) {
+    private static ObjectNode modifyImpExt(Imp imp) {
         final ObjectNode modifiedImpExt = imp.getExt().deepCopy();
         final ObjectNode sparteoNode = modifiedImpExt.putObject("sparteo");
         final JsonNode bidderJsonNode = modifiedImpExt.remove("bidder");

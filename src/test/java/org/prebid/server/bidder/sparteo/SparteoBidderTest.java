@@ -39,15 +39,18 @@ import static org.assertj.core.api.Assertions.tuple;
 
 public class SparteoBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL =
-            "https://test.sparteo.com/endpoint";
+    private static final String ENDPOINT_URL = "https://test.sparteo.com/endpoint";
     private final SparteoBidder sparteoBidder = new SparteoBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
+        // given
+        final String invalidUrl = "invalid_url";
+
+        // when and then
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new SparteoBidder("invalid_url", jacksonMapper))
-                .withMessage("URL supplied is not valid: invalid_url");
+                .isThrownBy(() -> new SparteoBidder(invalidUrl, jacksonMapper))
+                .withMessage("URL supplied is not valid: " + invalidUrl);
     }
 
     @Test
