@@ -163,6 +163,7 @@ class GeneralGetRequest {
 
     String targeting
 
+    @JsonProperty("tcfc")
     String consent
 
     @JsonProperty("gdpr_consent")

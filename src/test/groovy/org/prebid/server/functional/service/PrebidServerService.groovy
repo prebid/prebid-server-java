@@ -48,7 +48,7 @@ import static java.time.ZoneOffset.UTC
 class PrebidServerService implements ObjectMapperWrapper {
 
     static final String AUCTION_ENDPOINT = "/openrtb2/auction"
-    static final String GENERAL_GET_ENDPOINT = "/openrtb2/auction"
+    static final String GENERAL_GET_ENDPOINT = "/openrtb2/get"
     static final String AMP_ENDPOINT = "/openrtb2/amp"
     static final String COOKIE_SYNC_ENDPOINT = "/cookie_sync"
     static final String SET_UID_ENDPOINT = "/setuid"

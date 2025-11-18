@@ -5,6 +5,11 @@ import org.prebid.server.functional.model.config.PurposeConfig
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.GppSectionId
 import org.prebid.server.functional.model.request.auction.BidRequest
+import org.prebid.server.functional.model.request.auction.ConsentedProvidersSettings
+import org.prebid.server.functional.model.request.auction.Regs
+import org.prebid.server.functional.model.request.auction.RegsExt
+import org.prebid.server.functional.model.request.auction.User
+import org.prebid.server.functional.model.request.auction.UserExt
 import org.prebid.server.functional.model.request.get.GeneralGetRequest
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.TcfConsent
@@ -495,5 +500,46 @@ class GeneralGetInterfacePrivacySpec extends PrivacyBaseSpec {
         and: "Bidder request should contain gpc from param"
         def bidderRequest = bidder.getBidderRequest(request.id)
         assert bidderRequest.regs.gpc == gpc
+    }
+
+    def "PBS should use original values from stored request when it's not specified in get request"() {
+        given: "Default General get request"
+        def storedRequestId = PBSUtils.randomString
+        def generalGetRequest = new GeneralGetRequest(storedRequestId: storedRequestId)
+
+        and: "Default stored request"
+        def userForRequest = User.defaultUser.tap {
+            it.consent = PBSUtils.randomString
+            it.ext = new UserExt(consentedProvidersSettings: new ConsentedProvidersSettings(consentedProviders: PBSUtils.randomString))
+        }
+        def regsForRequest = new Regs().tap {
+            it.gdpr = 0 // for preventing bidder block
+            it.gpp = PBSUtils.randomString
+            it.usPrivacy = PBSUtils.randomString
+            it.gppSid = [PBSUtils.randomNumber]
+            it.ext = new RegsExt(gpc: PBSUtils.randomNumber)
+            it.coppa = PBSUtils.randomNumber
+        }
+        def request = BidRequest.getDefaultBidRequest().tap {
+            user = userForRequest
+            regs = regsForRequest
+        }
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes general get request"
+        def response = privacyPbsService.sendGeneralGetRequest(generalGetRequest)
+
+        then: "Response should not contain errors and warnings"
+        assert !response.ext?.errors
+        assert !response.ext?.warnings
+
+        and: "Bidder request should contain privacy data from original request"
+        verifyAll (bidder.getBidderRequest(request.id)) {
+            it.user == userForRequest
+            it.regs == regsForRequest
+        }
     }
 }

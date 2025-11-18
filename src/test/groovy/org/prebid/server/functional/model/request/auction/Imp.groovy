@@ -111,6 +111,7 @@ class Imp {
         ].findAll { it }
     }
 
+    @JsonIgnore
     Object getSingleMediaTypeData() {
         return banner ?: video ?: nativeObj ?: audio
     }

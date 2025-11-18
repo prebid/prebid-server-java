@@ -2,6 +2,7 @@ package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
+import org.prebid.server.functional.model.request.auction.Format
 import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.VideoPlacementSubtypes
 import org.prebid.server.functional.model.request.auction.VideoPlcmtSubtype
@@ -125,8 +126,10 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
                 [
                         { Integer h, Integer w -> new GeneralGetRequest(height: h, width: w) },
                         { Integer h, Integer w -> new GeneralGetRequest(originalHeight: h, originalWidth: w) },
-                        { Integer h, Integer w -> new GeneralGetRequest(height: h, width: w,
-                                originalHeight: PBSUtils.randomNumber, originalWidth: PBSUtils.randomNumber) }
+                        { Integer h, Integer w ->
+                            new GeneralGetRequest(height: h, width: w,
+                                    originalHeight: PBSUtils.randomNumber, originalWidth: PBSUtils.randomNumber)
+                        }
                 ]
     }
 
@@ -327,17 +330,17 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
 
         where:
         generalGetRequest << [
-                GeneralGetRequest.default.tap { sizes = ["0x0"]},
-                GeneralGetRequest.default.tap { sizes = ["0x"]},
-                GeneralGetRequest.default.tap { sizes = ["x"]},
-                GeneralGetRequest.default.tap { sizes = ["0"]},
-                GeneralGetRequest.default.tap { sizes = ["0x${PBSUtils.randomNegativeNumber}"]},
-                GeneralGetRequest.default.tap { sizes = [""]},
-                GeneralGetRequest.default.tap { sizes = [" "]},
-                GeneralGetRequest.default.tap { sizes = [null]},
-                GeneralGetRequest.default.tap { sizes = ["x${PBSUtils.randomNegativeNumber}"]},
-                GeneralGetRequest.default.tap { sizes = ["${PBSUtils.randomNegativeNumber}x"]},
-                GeneralGetRequest.default.tap { sizes = ["${PBSUtils.randomNegativeNumber}x${PBSUtils.randomNegativeNumber}"]},
+                GeneralGetRequest.default.tap { sizes = ["0x0"] },
+                GeneralGetRequest.default.tap { sizes = ["0x"] },
+                GeneralGetRequest.default.tap { sizes = ["x"] },
+                GeneralGetRequest.default.tap { sizes = ["0"] },
+                GeneralGetRequest.default.tap { sizes = ["0x${PBSUtils.randomNegativeNumber}"] },
+                GeneralGetRequest.default.tap { sizes = [""] },
+                GeneralGetRequest.default.tap { sizes = [" "] },
+                GeneralGetRequest.default.tap { sizes = [null] },
+                GeneralGetRequest.default.tap { sizes = ["x${PBSUtils.randomNegativeNumber}"] },
+                GeneralGetRequest.default.tap { sizes = ["${PBSUtils.randomNegativeNumber}x"] },
+                GeneralGetRequest.default.tap { sizes = ["${PBSUtils.randomNegativeNumber}x${PBSUtils.randomNegativeNumber}"] },
         ]
     }
 
@@ -373,8 +376,10 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
                 [
                         { Integer requestSide -> new GeneralGetRequest(sizes: ["${requestSide}x${requestSide}"]) },
                         { Integer requestSide -> new GeneralGetRequest(sizesLegacy: ["${requestSide}x${requestSide}"]) },
-                        { Integer requestSide -> new GeneralGetRequest(sizes: ["${requestSide}x${requestSide}"],
-                                sizesLegacy: ["${PBSUtils.randomNumber}x${PBSUtils.randomNumber}"]) }
+                        { Integer requestSide ->
+                            new GeneralGetRequest(sizes: ["${requestSide}x${requestSide}"],
+                                    sizesLegacy: ["${PBSUtils.randomNumber}x${PBSUtils.randomNumber}"])
+                        }
                 ]
     }
 
@@ -440,10 +445,7 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
         assert bidderRequest.imp.first.singleMediaTypeData.maxduration == [maxDurationParam]
 
         where:
-        impMediaType << [
-                MediaType.VIDEO,
-                MediaType.AUDIO
-        ]
+        impMediaType << [MediaType.VIDEO, MediaType.AUDIO]
     }
 
     def "PBS should apply api from general get request when it's specified"() {
@@ -583,7 +585,7 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
         assert bidderRequest.imp.first.video.linearity == linearityParam
     }
 
-    def "PBS should apply minbr from general get request when it's specified"() {
+    def "PBS should apply minbr and maxbr from general get request when it's specified"() {
         given: "Default General get request"
         def minBitrateParam = PBSUtils.randomNumber
         def maxBitrateParam = PBSUtils.randomNumber
@@ -1239,7 +1241,7 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
         assert !response.ext?.errors
         assert !response.ext?.warnings
 
-        and: "Bidder request should contain boxingallowed from param"
+        and: "Bidder request should contain playbackmethod from param"
         def bidderRequest = bidder.getBidderRequest(request.id)
         assert bidderRequest.imp.first.video.playbackend == playbackEndParam
     }
@@ -1271,7 +1273,7 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
         assert !response.ext?.errors
         assert !response.ext?.warnings
 
-        and: "Bidder request should contain boxingallowed from param"
+        and: "Bidder request should contain playbackmethod from param"
         def bidderRequest = bidder.getBidderRequest(request.id)
         assert bidderRequest.imp.first.video.playbackmethod == playbackMethodParam
     }
@@ -1394,5 +1396,227 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
         and: "Bidder request should contain topFrame from param"
         def bidderRequest = bidder.getBidderRequest(request.id)
         assert bidderRequest.imp.first.banner.topframe == topFrameParam
+    }
+
+    def "PBS should use original values for banner imp when it's not specified in get request"() {
+        given: "Default General get request"
+        def storedRequestId = PBSUtils.randomString
+        def generalGetRequest = new GeneralGetRequest(storedRequestId: storedRequestId)
+
+        and: "Default stored request"
+        def bannerImp = Imp.getDefaultImpression(MediaType.BANNER).tap {
+            it.banner.mimes = [PBSUtils.randomString]
+            it.banner.width = PBSUtils.randomNumber
+            it.banner.height = PBSUtils.randomNumber
+            it.banner.format = [new Format(width: PBSUtils.randomNumber, height: PBSUtils.randomNumber)]
+            it.banner.api = [PBSUtils.randomNumber]
+            it.banner.battr = [PBSUtils.randomNumber]
+            it.banner.pos = PBSUtils.randomNumber
+            it.banner.btype = [PBSUtils.randomNumber]
+            it.banner.expdir = [PBSUtils.randomNumber]
+            it.banner.topframe = PBSUtils.randomNumber
+        }
+        def request = BidRequest.getDefaultBidRequest().tap {
+            it.imp = [bannerImp]
+        }
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
+        storedRequestDao.save(storedRequest)
+
+        and: "Default bid response"
+        def bidResponse = BidResponse.getDefaultBidResponse(request)
+        bidder.setResponse(request.id, bidResponse)
+
+        when: "PBS processes general get request"
+        def response = defaultPbsService.sendGeneralGetRequest(generalGetRequest)
+
+        then: "Response should not contain errors and warnings"
+        assert !response.ext?.errors
+        assert !response.ext?.warnings
+
+        and: "Bidder request should contain imp data from original request"
+        verifyAll(bidder.getBidderRequest(request.id).imp.first.banner) {
+            it.mimes = bannerImp.banner.mimes
+            it.width = bannerImp.banner.width
+            it.height = bannerImp.banner.height
+            it.format = bannerImp.banner.format
+            it.api = bannerImp.banner.api
+            it.battr = bannerImp.banner.battr
+            it.pos = bannerImp.banner.pos
+            it.btype = bannerImp.banner.btype
+            it.expdir = bannerImp.banner.expdir
+            it.topframe = bannerImp.banner.topframe
+        }
+    }
+
+    def "PBS should use original values for video imp when it's not specified in get request"() {
+        given: "Default General get request"
+        def storedRequestId = PBSUtils.randomString
+        def generalGetRequest = new GeneralGetRequest(storedRequestId: storedRequestId)
+
+        and: "Default stored request"
+        def videoImp = Imp.getDefaultImpression(MediaType.VIDEO).tap {
+            it.video.mimes = [PBSUtils.randomString]
+            it.video.width = PBSUtils.randomNumber
+            it.video.height = PBSUtils.randomNumber
+            it.video.minduration = PBSUtils.randomNumber
+            it.video.maxduration = PBSUtils.randomNumber
+            it.video.api = [PBSUtils.randomNumber]
+            it.video.battr = [PBSUtils.randomNumber]
+            it.video.delivery = [PBSUtils.randomNumber]
+            it.video.linearity = PBSUtils.randomNumber
+            it.video.minbitrate = PBSUtils.randomNumber
+            it.video.maxbitrate = PBSUtils.randomNumber
+            it.video.maxextended = PBSUtils.randomNumber
+            it.video.maxseq = PBSUtils.randomNumber
+            it.video.mincpmpersec = PBSUtils.randomNumber
+            it.video.poddur = PBSUtils.randomNumber
+            it.video.podid = PBSUtils.randomNumber
+            it.video.podseq = PBSUtils.randomNumber
+            it.video.protocols = [PBSUtils.randomNumber]
+            it.video.rqddurs = [PBSUtils.randomNumber]
+            it.video.sequence = PBSUtils.randomNumber
+            it.video.slotinpod = PBSUtils.randomNumber
+            it.video.startdelay = PBSUtils.randomNumber
+            it.video.skip = PBSUtils.randomNumber
+            it.video.skipafter = PBSUtils.randomNumber
+            it.video.skipmin = PBSUtils.randomNumber
+            it.video.pos = PBSUtils.randomNumber
+            it.video.placement = PBSUtils.getRandomEnum(VideoPlacementSubtypes)
+            it.video.plcmt = PBSUtils.getRandomEnum(VideoPlcmtSubtype)
+            it.video.playbackend = PBSUtils.randomNumber
+            it.video.playbackmethod = [PBSUtils.randomNumber]
+            it.video.boxingallowed = PBSUtils.randomNumber
+        }
+        def request = BidRequest.getDefaultBidRequest().tap {
+            it.imp = [videoImp]
+        }
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
+        storedRequestDao.save(storedRequest)
+
+        and: "Default bid response"
+        def bidResponse = BidResponse.getDefaultBidResponse(request)
+        bidder.setResponse(request.id, bidResponse)
+
+        when: "PBS processes general get request"
+        def response = defaultPbsService.sendGeneralGetRequest(generalGetRequest)
+
+        then: "Response should not contain errors and warnings"
+        assert !response.ext?.errors
+        assert !response.ext?.warnings
+
+        and: "Bidder request should contain imp data from original request"
+        verifyAll(bidder.getBidderRequest(request.id).imp.first.video) {
+            it.mimes == videoImp.video.mimes
+            it.width == videoImp.video.width
+            it.height == videoImp.video.height
+            it.minduration == videoImp.video.minduration
+            it.maxduration == videoImp.video.maxduration
+            it.api == videoImp.video.api
+            it.battr == videoImp.video.battr
+            it.delivery == videoImp.video.delivery
+            it.linearity == videoImp.video.linearity
+            it.minbitrate == videoImp.video.minbitrate
+            it.maxbitrate == videoImp.video.maxbitrate
+            it.maxextended == videoImp.video.maxextended
+            it.maxseq == videoImp.video.maxseq
+            it.mincpmpersec == videoImp.video.mincpmpersec
+            it.poddur == videoImp.video.poddur
+            it.podid == videoImp.video.podid
+            it.podseq == videoImp.video.podseq
+            it.protocols == videoImp.video.protocols
+            it.rqddurs == videoImp.video.rqddurs
+            it.sequence == videoImp.video.sequence
+            it.slotinpod == videoImp.video.slotinpod
+            it.startdelay == videoImp.video.startdelay
+            it.skip == videoImp.video.skip
+            it.skipafter == videoImp.video.skipafter
+            it.skipmin == videoImp.video.skipmin
+            it.pos == videoImp.video.pos
+            it.placement == videoImp.video.placement
+            it.plcmt == videoImp.video.plcmt
+            it.playbackend == videoImp.video.playbackend
+            it.playbackmethod == videoImp.video.playbackmethod
+            it.boxingallowed == videoImp.video.boxingallowed
+        }
+    }
+
+    def "PBS should use original values for audio imp when it's not specified in get request"() {
+        given: "Default General get request"
+        def storedRequestId = PBSUtils.randomString
+        def generalGetRequest = new GeneralGetRequest(storedRequestId: storedRequestId)
+
+        and: "Default stored request"
+        def audioImp = Imp.getDefaultImpression(MediaType.AUDIO).tap {
+            it.audio.mimes = [PBSUtils.randomString]
+            it.audio.minduration = PBSUtils.randomNumber
+            it.audio.maxduration = PBSUtils.randomNumber
+            it.audio.api = [PBSUtils.randomNumber]
+            it.audio.battr = [PBSUtils.randomNumber]
+            it.audio.delivery = [PBSUtils.randomNumber]
+            it.audio.minbitrate = PBSUtils.randomNumber
+            it.audio.maxbitrate = PBSUtils.randomNumber
+            it.audio.maxextended = PBSUtils.randomNumber
+            it.audio.maxseq = PBSUtils.randomNumber
+            it.audio.mincpmpersec = PBSUtils.randomNumber
+            it.audio.poddur = PBSUtils.randomNumber
+            it.audio.podid = PBSUtils.randomNumber
+            it.audio.podseq = PBSUtils.randomNumber
+            it.audio.protocols = [PBSUtils.randomNumber]
+            it.audio.rqddurs = [PBSUtils.randomNumber]
+            it.audio.sequence = PBSUtils.randomNumber
+            it.audio.slotinpod = PBSUtils.randomNumber
+            it.audio.startdelay = PBSUtils.randomNumber
+            it.audio.stitched = PBSUtils.randomNumber
+            it.audio.feed = PBSUtils.randomNumber
+            it.audio.nvol = PBSUtils.randomNumber
+        }
+        def request = BidRequest.getDefaultBidRequest().tap {
+            it.imp = [audioImp]
+        }
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
+        storedRequestDao.save(storedRequest)
+
+        and: "Default bid response"
+        def bidResponse = BidResponse.getDefaultBidResponse(request)
+        bidder.setResponse(request.id, bidResponse)
+
+        when: "PBS processes general get request"
+        def response = defaultPbsService.sendGeneralGetRequest(generalGetRequest)
+
+        then: "Response should not contain errors and warnings"
+        assert !response.ext?.errors
+        assert !response.ext?.warnings
+
+        and: "Bidder request should contain imp data from original request"
+        verifyAll(bidder.getBidderRequest(request.id).imp.first.audio) {
+            it.mimes == audioImp.audio.mimes
+            it.minduration == audioImp.audio.minduration
+            it.maxduration == audioImp.audio.maxduration
+            it.api == audioImp.audio.api
+            it.battr == audioImp.audio.battr
+            it.delivery == audioImp.audio.delivery
+            it.minbitrate == audioImp.audio.minbitrate
+            it.maxbitrate == audioImp.audio.maxbitrate
+            it.maxextended == audioImp.audio.maxextended
+            it.maxseq == audioImp.audio.maxseq
+            it.mincpmpersec == audioImp.audio.mincpmpersec
+            it.poddur == audioImp.audio.poddur
+            it.podid == audioImp.audio.podid
+            it.podseq == audioImp.audio.podseq
+            it.protocols == audioImp.audio.protocols
+            it.rqddurs == audioImp.audio.rqddurs
+            it.sequence == audioImp.audio.sequence
+            it.slotinpod == audioImp.audio.slotinpod
+            it.startdelay == audioImp.audio.startdelay
+            it.stitched == audioImp.audio.stitched
+            it.feed == audioImp.audio.feed
+            it.nvol == audioImp.audio.nvol
+        }
     }
 }

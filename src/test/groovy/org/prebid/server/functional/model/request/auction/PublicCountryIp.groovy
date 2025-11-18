@@ -1,5 +1,7 @@
 package org.prebid.server.functional.model.request.auction
 
+import inet.ipaddr.IPAddressString
+
 enum PublicCountryIp {
 
     USA_IP("209.232.44.21", "d646:2414:17b2:f371:9b62:f176:b4c0:51cd"),
@@ -13,5 +15,9 @@ enum PublicCountryIp {
     PublicCountryIp(String v4, String ipV6) {
         this.v4 = v4
         this.v6 = ipV6
+    }
+
+    String getMaskedIPv6() {
+        new IPAddressString(this.v6).toAddress().mask(new IPAddressString("::/64").toAddress().getNetworkMask()).toCanonicalString()
     }
 }

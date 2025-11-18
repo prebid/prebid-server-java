@@ -6,8 +6,10 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Content
 import org.prebid.server.functional.model.request.auction.DebugCondition
 import org.prebid.server.functional.model.request.auction.Device
+import org.prebid.server.functional.model.request.auction.DeviceExt
 import org.prebid.server.functional.model.request.auction.DeviceType
 import org.prebid.server.functional.model.request.auction.PublicCountryIp
+import org.prebid.server.functional.model.request.auction.StoredAuctionResponse
 import org.prebid.server.functional.model.request.get.GeneralGetRequest
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
@@ -45,7 +47,7 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         ]
     }
 
-    def "PBS should process bid request from default general get request "() {
+    def "PBS should response with error when process bid request is not specified in general get request"() {
         given: "General get request without stored request param"
         def generalGetRequest = new GeneralGetRequest()
 
@@ -736,6 +738,99 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         "True-Client-IP"  | PBSUtils.getRandomEnum(PublicCountryIp).v6
     }
 
+
+    def "PBS should use original values from stored request when it's not specified in get request"() {
+        given: "Default General get request"
+        def storedRequestId = PBSUtils.randomString
+        def generalGetRequest = new GeneralGetRequest(storedRequestId: storedRequestId)
+
+        and: "Default stored request"
+        def bidRequestDevice = new Device().tap {
+            it.dnt = PBSUtils.randomNumber
+            it.lmt = PBSUtils.randomNumber
+            it.ip = PBSUtils.getRandomEnum(PublicCountryIp).v4
+            it.ipv6 = PBSUtils.getRandomEnum(PublicCountryIp).maskedIPv6
+            it.ua = PBSUtils.randomString
+            it.devicetype = PBSUtils.getRandomEnum(DeviceType)
+            it.ifa = PBSUtils.randomString
+            it.ext = new DeviceExt(ifaType: PBSUtils.randomString)
+        }
+
+        def request = BidRequest.getDefaultBidRequest().tap {
+            it.tmax = PBSUtils.getRandomNumber(1000, 5000)
+            it.bcat = [PBSUtils.randomString]
+            it.badv = [PBSUtils.randomString]
+            it.device = bidRequestDevice
+
+            it.ext.prebid.debug = PBSUtils.getRandomEnum(DebugCondition)
+            it.ext.prebid.outputFormat = PBSUtils.randomString
+            it.ext.prebid.outputModule = PBSUtils.randomString
+            it.ext.prebid.storedAuctionResponse = new StoredAuctionResponse(id: PBSUtils.randomNumber)
+        }
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.storedAuctionResponseId, request)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes general get request"
+        def response = defaultPbsService.sendGeneralGetRequest(generalGetRequest)
+
+        then: "Response should not contain errors and warnings"
+        assert !response.ext?.errors
+        assert !response.ext?.warnings
+
+        and: "Bidder request should contain device ip from headers"
+        verifyAll(bidder.getBidderRequest(request.id)) {
+            it.bcat == request.bcat
+            it.badv == request.badv
+            it.device == bidRequestDevice
+
+            it.ext.prebid.debug == request.ext.prebid.debug
+            it.ext.prebid.outputFormat == request.ext.prebid.outputFormat
+            it.ext.prebid.outputModule == request.ext.prebid.outputModule
+            it.ext.prebid.storedAuctionResponse == request.ext.prebid.storedAuctionResponse
+        }
+    }
+
+    def "PBS should use original content values from stored #channel request when it's not specified in get request"() {
+        given: "Default General get request"
+        def storedRequestId = PBSUtils.randomString
+        def generalGetRequest = new GeneralGetRequest(storedRequestId: storedRequestId)
+
+        and: "Default stored request"
+        def content = Content.getDefaultContent().tap {
+            it.genre = PBSUtils.randomString
+            it.language = PBSUtils.randomString
+            it.contentrating = PBSUtils.randomString
+            it.cat = [PBSUtils.randomString]
+            it.cattax = PBSUtils.randomNumber
+            it.series = PBSUtils.randomString
+            it.title = PBSUtils.randomString
+            it.url = PBSUtils.randomString
+            it.livestream = PBSUtils.randomNumber
+        }
+        def request = BidRequest.getDefaultBidRequest(channel).tap {
+            it.getProperty(channel.value).content = content
+        }
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.storedAuctionResponseId, request)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes general get request"
+        def response = defaultPbsService.sendGeneralGetRequest(generalGetRequest)
+
+        then: "Response should not contain errors and warnings"
+        assert !response.ext?.errors
+        assert !response.ext?.warnings
+
+        and: "Bidder request should contain device ip from headers"
+        assert getRequestContent(bidder.getBidderRequest(request.id)) == content
+
+        where:
+        channel << [SITE, APP, DOOH]
+    }
+
     static String getDeviceIp(Device device) {
         device.ip ?: device.ipv6
     }
@@ -746,11 +841,9 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         if (distributionChannels.contains(SITE)) {
             return bidderRequest.site.content
         }
-
         if (distributionChannels.contains(APP)) {
             return bidderRequest.app.content
         }
-
         return bidderRequest.dooh.content
     }
 }
