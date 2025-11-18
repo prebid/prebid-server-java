@@ -318,7 +318,7 @@ public class USNatTransmitUfpdTest {
     public void proceedShouldDisallowIfKnownChildSensitiveDataConsents3Equals1() {
         // given
         given(gppReader.getKnownChildSensitiveDataConsents()).willReturn(asList(3, 3, 1));
-        final PrivacyModule target = new USNatTransmitUfpd(gppReader);
+        final PrivacyModule target = new USNatTransmitUfpd(gppReader, null);
 
         // when
         final Rule.Result result = target.proceed(null);

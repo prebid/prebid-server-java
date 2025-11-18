@@ -158,7 +158,7 @@ public class USNatTransmitGeoTest {
     public void proceedShouldDisallowIfKnownChildSensitiveDataConsents3Equals1() {
         // given
         given(gppReader.getKnownChildSensitiveDataConsents()).willReturn(asList(3, 3, 1));
-        final PrivacyModule target = new USNatTransmitGeo(gppReader);
+        final PrivacyModule target = new USNatTransmitGeo(gppReader, null);
 
         // when
         final Rule.Result result = target.proceed(null);
