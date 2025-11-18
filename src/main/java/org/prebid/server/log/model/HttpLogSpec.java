@@ -16,6 +16,6 @@ public class HttpLogSpec {
     int limit;
 
     public enum Endpoint {
-        auction, amp
+        auction, amp, get_interface
     }
 }

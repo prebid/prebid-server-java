@@ -15,6 +15,7 @@ public enum Endpoint {
     openrtb2_auction("/openrtb2/auction"),
     openrtb2_amp("/openrtb2/amp"),
     openrtb2_video("/openrtb2/video"),
+    openrtb2_get_interface("/openrtb2/get"),
     cookie_sync("/cookie_sync"),
     setuid("/setuid"),
 
