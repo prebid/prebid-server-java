@@ -218,14 +218,17 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
         final Stream<String> missingSources = resolvedSources.stream()
                 .filter(src -> eidPermissions.stream().noneMatch(e -> e.getSource().equals(src)));
 
-        final List<ExtRequestPrebidDataEidPermissions> updatedPermissions = CollectionUtils.union(
-                        missingSources.map(src -> ExtRequestPrebidDataEidPermissions.of(src, this.targetBidders))
-                                .toList(),
+        final Stream<ExtRequestPrebidDataEidPermissions> additionalPermissions = eidPermissions.stream()
+                .filter(e -> !resolvedSources.contains(e.getSource()));
+
+        final List<ExtRequestPrebidDataEidPermissions> updatedPermissions = Stream.of(
+                        additionalPermissions,
+                        missingSources.map(src -> ExtRequestPrebidDataEidPermissions.of(src, this.targetBidders)),
                         existingPermissions.map(p -> ExtRequestPrebidDataEidPermissions.of(
                                 p.getSource(),
-                                CollectionUtils.union(p.getBidders(), this.targetBidders)
-                                        .stream().distinct().toList())).toList())
-                .stream().toList();
+                                Stream.concat(p.getBidders().stream(), this.targetBidders.stream())
+                                        .distinct().toList())))
+                .flatMap(s -> s).toList();
 
         final List<String> bidders = prebidData == null ? this.targetBidders : CollectionUtils.union(this.targetBidders,
                 CollectionUtils.emptyIfNull(prebidData.getBidders())).stream().distinct().toList();
