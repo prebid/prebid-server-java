@@ -16,6 +16,7 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import io.vertx.core.Future;
 import io.vertx.ext.web.RoutingContext;
+import lombok.Value;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.DebugResolver;
 import org.prebid.server.auction.GeoLocationServiceWrapper;
@@ -27,6 +28,7 @@ import org.prebid.server.auction.externalortb.StoredRequestProcessor;
 import org.prebid.server.auction.gpp.AuctionGppService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionStoredResult;
+import org.prebid.server.auction.model.ConsentType;
 import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.auction.privacy.contextfactory.AuctionPrivacyContextFactory;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
@@ -188,16 +190,17 @@ public class GetInterfaceRequestFactory {
 
     private BidRequest initialBidRequest(HttpRequestContext httpRequest) {
         final GetInterfaceParams params = new GetInterfaceParams(httpRequest);
+        final Consent consent = params.consent();
 
         return BidRequest.builder()
                 .imp(Collections.singletonList(initialImp(params)))
                 .site(tmpSite(params)) // Temporarily add to fetch account
                 .device(initialDevice(params))
-                .user(initialUser(params))
+                .user(initialUser(params, consent))
                 .tmax(params.tmax())
                 .bcat(params.bCat())
                 .badv(params.bAdv())
-                .regs(initialRegs(params))
+                .regs(initialRegs(params, consent))
                 .ext(initialExtRequest(params))
                 .build();
     }
@@ -231,19 +234,21 @@ public class GetInterfaceRequestFactory {
                 .build();
     }
 
-    private static User initialUser(GetInterfaceParams params) {
+    private static User initialUser(GetInterfaceParams params, Consent consent) {
         return User.builder()
+                .consent(consent.getTcfConsent())
                 .ext(ExtUser.builder()
                         .consentedProvidersSettings(ConsentedProvidersSettings.of(params.consentedProviders()))
                         .build())
                 .build();
     }
 
-    private static Regs initialRegs(GetInterfaceParams params) {
+    private static Regs initialRegs(GetInterfaceParams params, Consent consent) {
         return Regs.builder()
                 .coppa(params.coppa())
                 .gdpr(params.gdpr())
-                .usPrivacy(params.usPrivacy())
+                .usPrivacy(consent.getUsPrivacy())
+                .gpp(consent.getGpp())
                 .gppSid(params.gppSid())
                 .ext(ExtRegs.of(null, null, params.gpc(), null))
                 .build();
@@ -706,32 +711,58 @@ public class GetInterfaceRequestFactory {
             return null; // TODO: GET
         }
 
-        public String consent() { // TODO: GET
-            return Optional.ofNullable(getString("consent"))
-                    .or(() -> Optional.ofNullable(getString("gdpr_consent")))
-                    .orElseGet(() -> getString("consent_string"));
+        public Consent consent() {
+            String tcfConsent = getString("tcfc");
+            String usPrivacy = getString("usp");
+            String gpp = getString("gppc");
+
+            final String consentString = Optional.ofNullable(getString("consent_string"))
+                    .orElseGet(() -> getString("gdpr_consent"));
+            final ConsentType consentType = StringUtils.isNotBlank(consentString)
+                    ? ConsentType.from(getString("consent_type"))
+                    : ConsentType.UNKNOWN;
+
+            switch (consentType) {
+                case TCF_V1, TCF_V2 -> {
+                    if (tcfConsent == null) {
+                        tcfConsent = consentString;
+                    }
+                }
+                case CCPA -> {
+                    if (usPrivacy == null) {
+                        usPrivacy = consentString;
+                    }
+                }
+                case GPP -> {
+                    if (gpp == null) {
+                        gpp = consentString;
+                    }
+                }
+            }
+
+            return Consent.of(tcfConsent, usPrivacy, gpp);
         }
 
         public Integer gdpr() {
-            return Optional.ofNullable(getInteger("gdpr"))
-                    .or(() -> Optional.ofNullable(getInteger("privacy")))
-                    .orElseGet(() -> getInteger("gdpr_applies"));
-        }
+            Integer gdpr = getInteger("gdpr");
+            if (gdpr != null) {
+                return gdpr;
+            }
 
-        public String usPrivacy() {
-            return getString("usp");
+            return switch (getString("gdpr_applies")) {
+                case "true" -> 1;
+                case "false" -> 0;
+                case null, default -> null;
+            };
         }
 
         public String consentedProviders() {
             return getString("addtl_consent");
         }
 
-        public Integer consentType() {
-            return getInteger("consent_type");
-        }
-
         public List<Integer> gppSid() {
-            return getListOfIntegers("gpp_sid");
+            return Optional.ofNullable(getListOfIntegers("gpps"))
+                    .orElseGet(() -> getListOfIntegers("gpp_sid"));
         }
 
         public Integer coppa() {
@@ -867,5 +898,15 @@ public class GetInterfaceRequestFactory {
                     .toList()
                     : null;
         }
+    }
+
+    @Value(staticConstructor = "of")
+    private static class Consent {
+
+        String tcfConsent;
+
+        String usPrivacy;
+
+        String gpp;
     }
 }
