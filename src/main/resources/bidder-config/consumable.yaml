@@ -3,6 +3,8 @@ adapters:
     endpoint: https://e.serverbid.com
     endpoint-compression: gzip
     meta-info:
+      currency-accepted:
+        - USD
       maintainer-email: prebid@consumable.com
       app-media-types:
         - banner
