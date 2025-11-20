@@ -24,6 +24,7 @@ import org.prebid.server.auction.privacy.contextfactory.CookieSyncPrivacyContext
 import org.prebid.server.auction.privacy.contextfactory.SetuidPrivacyContextFactory;
 import org.prebid.server.auction.requestfactory.AmpRequestFactory;
 import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
+import org.prebid.server.auction.requestfactory.GetInterfaceRequestFactory;
 import org.prebid.server.auction.requestfactory.VideoRequestFactory;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cache.CoreCacheService;
@@ -39,9 +40,9 @@ import org.prebid.server.handler.GetuidsHandler;
 import org.prebid.server.handler.NoCacheHandler;
 import org.prebid.server.handler.NotificationEventHandler;
 import org.prebid.server.handler.OptoutHandler;
+import org.prebid.server.handler.PostVtrackHandler;
 import org.prebid.server.handler.SetuidHandler;
 import org.prebid.server.handler.StatusHandler;
-import org.prebid.server.handler.PostVtrackHandler;
 import org.prebid.server.handler.info.BidderDetailsHandler;
 import org.prebid.server.handler.info.BiddersHandler;
 import org.prebid.server.handler.info.filters.BaseOnlyBidderInfoFilterStrategy;
@@ -49,6 +50,7 @@ import org.prebid.server.handler.info.filters.BidderInfoFilterStrategy;
 import org.prebid.server.handler.info.filters.EnabledOnlyBidderInfoFilterStrategy;
 import org.prebid.server.handler.openrtb2.AmpHandler;
 import org.prebid.server.handler.openrtb2.AuctionHandler;
+import org.prebid.server.handler.openrtb2.GetInterfaceHandler;
 import org.prebid.server.handler.openrtb2.VideoHandler;
 import org.prebid.server.health.HealthChecker;
 import org.prebid.server.health.PeriodicHealthChecker;
@@ -268,6 +270,35 @@ public class ApplicationServerConfiguration {
                 hookStageExecutor,
                 mapper,
                 logSamplingRate);
+    }
+
+    @Bean
+    GetInterfaceHandler getInterfaceHandler(
+            ExchangeService exchangeService,
+            SkippedAuctionService skippedAuctionService,
+            GetInterfaceRequestFactory getInterfaceRequestFactory,
+            AnalyticsReporterDelegator analyticsReporter,
+            Metrics metrics,
+            HooksMetricsService hooksMetricsService,
+            Clock clock,
+            HttpInteractionLogger httpInteractionLogger,
+            PrebidVersionProvider prebidVersionProvider,
+            HookStageExecutor hookStageExecutor,
+            JacksonMapper mapper) {
+
+        return new GetInterfaceHandler(
+                logSamplingRate,
+                getInterfaceRequestFactory,
+                exchangeService,
+                skippedAuctionService,
+                analyticsReporter,
+                metrics,
+                hooksMetricsService,
+                clock,
+                httpInteractionLogger,
+                prebidVersionProvider,
+                hookStageExecutor,
+                mapper);
     }
 
     @Bean
