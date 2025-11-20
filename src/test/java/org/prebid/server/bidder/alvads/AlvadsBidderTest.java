@@ -5,7 +5,9 @@ import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
@@ -149,21 +151,26 @@ public class AlvadsBidderTest extends VertxTest {
         final HttpRequest<AlvadsRequestOrtb> req1 = result.getValue().get(0);
         final HttpRequest<AlvadsRequestOrtb> req2 = result.getValue().get(1);
 
-        // --- Validate Request ID ---
         assertThat(req1.getPayload().getId()).isEqualTo("req-123");
         assertThat(req2.getPayload().getId()).isEqualTo("req-123");
 
-        // --- Validate Site content ---
         assertThat(req1.getPayload().getSite().getPage())
                 .isEqualTo("https://example.com");
         assertThat(req2.getPayload().getSite().getPage())
                 .isEqualTo("https://example.com");
 
-        // --- Validate Device presence (or specific fields if populated) ---
-        assertThat(req1.getPayload().getDevice()).isNotNull();
-        assertThat(req2.getPayload().getDevice()).isNotNull();
+        Device expectedDevice = bidRequest.getDevice();
+        assertThat(req1.getPayload().getDevice()).isEqualTo(expectedDevice);
+        assertThat(req2.getPayload().getDevice()).isEqualTo(expectedDevice);
 
-        // --- Validate Imp content for req1 (banner) ---
+        User expectedUser = bidRequest.getUser();
+        assertThat(req1.getPayload().getUser()).isEqualTo(expectedUser);
+        assertThat(req2.getPayload().getUser()).isEqualTo(expectedUser);
+
+        Regs expectedRegs = bidRequest.getRegs();
+        assertThat(req1.getPayload().getRegs()).isEqualTo(expectedRegs);
+        assertThat(req2.getPayload().getRegs()).isEqualTo(expectedRegs);
+
         assertThat(req1.getPayload().getImp())
                 .hasSize(1)
                 .extracting("id", "banner", "video")
