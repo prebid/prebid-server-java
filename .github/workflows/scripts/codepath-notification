@@ -17,3 +17,10 @@
 # The aim is to find a minimal set of regex patterns that matches any file in these paths
 
 /ix|Ix|ix.json|ix.yaml: pdu-supply-prebid@indexexchange.com
+appnexus|Appnexus: prebid@microsoft.com
+pubmatic|Pubmatic: header-bidding@pubmatic.com
+openx|OpenX: prebid@openx.com
+medianet|Medianet: prebid@media.net
+thetradedesk|TheTradeDesk: Prebid-Maintainers@thetradedesk.com
+gumgum|GumGum: prebid@gumgum.com
+kargo|Kargo: kraken@kargo.com

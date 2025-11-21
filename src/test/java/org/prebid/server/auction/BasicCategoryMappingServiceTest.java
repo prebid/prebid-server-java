@@ -32,6 +32,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.settings.ApplicationSettings;
+import org.prebid.server.settings.model.Account;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -101,7 +102,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                givenBidRequestWithTargeting(extRequestTargeting), timeout);
+                givenBidRequestWithTargeting(extRequestTargeting), Account.empty("id"), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -141,7 +142,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                givenBidRequestWithTargeting(extRequestTargeting), timeout);
+                givenBidRequestWithTargeting(extRequestTargeting), Account.empty("id"), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -170,7 +171,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                givenBidRequestWithTargeting(extRequestTargeting), timeout);
+                givenBidRequestWithTargeting(extRequestTargeting), Account.empty("id"), timeout);
 
         // then
         verifyNoInteractions(applicationSettings);
@@ -191,7 +192,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
 
         // when
         assertThatThrownBy(() -> categoryMappingService.createCategoryMapping(
-                bidderResponses, givenBidRequestWithTargeting(extRequestTargeting), timeout))
+                bidderResponses, givenBidRequestWithTargeting(extRequestTargeting), Account.empty("id"), timeout))
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessage("Primary ad server required but was not defined when translate category is enabled");
     }
@@ -207,7 +208,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
 
         // when and then
         assertThatThrownBy(() -> categoryMappingService.createCategoryMapping(
-                bidderResponses, givenBidRequestWithTargeting(extRequestTargeting), timeout))
+                bidderResponses, givenBidRequestWithTargeting(extRequestTargeting), Account.empty("id"), timeout))
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessage("Primary ad server `3` is not recognized");
     }
@@ -226,7 +227,10 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
                 Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
-        categoryMappingService.createCategoryMapping(bidderResponses, givenBidRequestWithTargeting(extRequestTargeting),
+        categoryMappingService.createCategoryMapping(
+                bidderResponses,
+                givenBidRequestWithTargeting(extRequestTargeting),
+                Account.empty("id"),
                 timeout);
 
         // then
@@ -247,7 +251,10 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
                 Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
-        categoryMappingService.createCategoryMapping(bidderResponses, givenBidRequestWithTargeting(extRequestTargeting),
+        categoryMappingService.createCategoryMapping(
+                bidderResponses,
+                givenBidRequestWithTargeting(extRequestTargeting),
+                Account.empty("id"),
                 timeout);
 
         // then
@@ -271,7 +278,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                givenBidRequestWithTargeting(extRequestTargeting), timeout);
+                givenBidRequestWithTargeting(extRequestTargeting), Account.empty("id"), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -298,7 +305,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
                 Future.succeededFuture(singletonMap("cat2", "fetchedCat2")));
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                givenBidRequestWithTargeting(extRequestTargeting), timeout);
+                givenBidRequestWithTargeting(extRequestTargeting), Account.empty("id"), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -326,7 +333,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
                 Future.succeededFuture(singletonMap("cat2", "fetchedCat2")));
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                givenBidRequestWithTargeting(extRequestTargeting), timeout);
+                givenBidRequestWithTargeting(extRequestTargeting), Account.empty("id"), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -354,7 +361,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
                 Future.succeededFuture(null));
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                givenBidRequestWithTargeting(extRequestTargeting), timeout);
+                givenBidRequestWithTargeting(extRequestTargeting), Account.empty("id"), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -385,7 +392,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
                 Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                givenBidRequestWithTargeting(extRequestTargeting), timeout);
+                givenBidRequestWithTargeting(extRequestTargeting), Account.empty("id"), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -410,7 +417,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
                 Future.succeededFuture(singletonMap("cat2", "fetchedCat2")));
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                givenBidRequestWithTargeting(extRequestTargeting), timeout);
+                givenBidRequestWithTargeting(extRequestTargeting), Account.empty("id"), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -433,7 +440,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                givenBidRequestWithTargeting(extRequestTargeting), timeout);
+                givenBidRequestWithTargeting(extRequestTargeting), Account.empty("id"), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -462,7 +469,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                givenBidRequestWithTargeting(extRequestTargeting), timeout);
+                givenBidRequestWithTargeting(extRequestTargeting), Account.empty("id"), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -487,7 +494,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                givenBidRequestWithTargeting(extRequestTargeting), timeout);
+                givenBidRequestWithTargeting(extRequestTargeting), Account.empty("id"), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -512,7 +519,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(
-                bidderResponses, givenBidRequestWithTargeting(extRequestTargeting), timeout);
+                bidderResponses, givenBidRequestWithTargeting(extRequestTargeting), Account.empty("id"), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -540,7 +547,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                givenBidRequestWithTargeting(extRequestTargeting), timeout);
+                givenBidRequestWithTargeting(extRequestTargeting), Account.empty("id"), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -562,7 +569,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                givenBidRequestWithTargeting(extRequestTargeting), timeout);
+                givenBidRequestWithTargeting(extRequestTargeting), Account.empty("id"), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -588,7 +595,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                givenBidRequestWithTargeting(extRequestTargeting), timeout);
+                givenBidRequestWithTargeting(extRequestTargeting), Account.empty("id"), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -615,7 +622,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                givenBidRequestWithTargeting(extRequestTargeting), timeout);
+                givenBidRequestWithTargeting(extRequestTargeting), Account.empty("id"), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -643,7 +650,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                givenBidRequestWithTargeting(extRequestTargeting), timeout);
+                givenBidRequestWithTargeting(extRequestTargeting), Account.empty("id"), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -667,7 +674,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                givenBidRequestWithTargeting(extRequestTargeting), timeout);
+                givenBidRequestWithTargeting(extRequestTargeting), Account.empty("id"), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -689,7 +696,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                givenBidRequestWithTargeting(extRequestTargeting), timeout);
+                givenBidRequestWithTargeting(extRequestTargeting), Account.empty("id"), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -712,7 +719,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                givenBidRequestWithTargeting(extRequestTargeting), timeout);
+                givenBidRequestWithTargeting(extRequestTargeting), Account.empty("id"), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -734,7 +741,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                givenBidRequestWithTargeting(extRequestTargeting), timeout);
+                givenBidRequestWithTargeting(extRequestTargeting), Account.empty("id"), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -764,7 +771,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                bidRequest, timeout);
+                bidRequest, Account.empty("id"), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -801,7 +808,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                bidRequest, timeout);
+                bidRequest, Account.empty("id"), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -840,7 +847,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                bidRequest, timeout);
+                bidRequest, Account.empty("id"), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -875,7 +882,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                bidRequest, timeout);
+                bidRequest, Account.empty("id"), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -912,7 +919,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                bidRequest, timeout);
+                bidRequest, Account.empty("id"), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -947,7 +954,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                bidRequest, timeout);
+                bidRequest, Account.empty("id"), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -987,7 +994,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                bidRequest, timeout);
+                bidRequest, Account.empty("id"), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -1022,7 +1029,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                bidRequest, timeout);
+                bidRequest, Account.empty("id"), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -1060,7 +1067,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                bidRequest, timeout);
+                bidRequest, Account.empty("id"), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -1099,7 +1106,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                bidRequest, timeout);
+                bidRequest, Account.empty("id"), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -1136,7 +1143,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                bidRequest, timeout);
+                bidRequest, Account.empty("id"), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -1167,7 +1174,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                givenBidRequestWithTargeting(extRequestTargeting), timeout);
+                givenBidRequestWithTargeting(extRequestTargeting), Account.empty("id"), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();

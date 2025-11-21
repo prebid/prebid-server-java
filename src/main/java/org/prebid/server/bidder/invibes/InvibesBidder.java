@@ -247,7 +247,7 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
     }
 
     private static String resolveHost(Integer domainId) {
-        if (domainId == 0 || domainId == 1 || domainId == 1001) {
+        if (domainId == null || domainId == 0 || domainId == 1 || domainId == 1001) {
             return "bid";
         } else if (domainId < 1002) {
             return "bid" + domainId;

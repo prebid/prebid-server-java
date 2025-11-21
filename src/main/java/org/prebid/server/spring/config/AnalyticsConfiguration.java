@@ -12,6 +12,8 @@ import org.prebid.server.analytics.reporter.agma.AgmaAnalyticsReporter;
 import org.prebid.server.analytics.reporter.agma.model.AgmaAnalyticsProperties;
 import org.prebid.server.analytics.reporter.greenbids.GreenbidsAnalyticsReporter;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsAnalyticsProperties;
+import org.prebid.server.analytics.reporter.liveintent.LiveIntentAnalyticsReporter;
+import org.prebid.server.analytics.reporter.liveintent.model.LiveIntentAnalyticsProperties;
 import org.prebid.server.analytics.reporter.log.LogAnalyticsReporter;
 import org.prebid.server.analytics.reporter.pubstack.PubstackAnalyticsReporter;
 import org.prebid.server.analytics.reporter.pubstack.model.PubstackAnalyticsProperties;
@@ -33,8 +35,8 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import java.time.Clock;
 import java.util.List;
-import java.util.Set;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Configuration
@@ -300,6 +302,49 @@ public class AnalyticsConfiguration {
 
             @NotNull
             Long reportTtlMs;
+        }
+    }
+
+    @Configuration
+    @ConditionalOnProperty(prefix = "analytics.liveintent", name = "enabled", havingValue = "true")
+    public static class LiveIntentAnalyticsConfiguration {
+
+        @Bean
+        LiveIntentAnalyticsReporter liveIntentAnalyticsReporter(
+                LiveIntentAnalyticsConfigurationProperties properties,
+                HttpClient httpClient,
+                JacksonMapper jacksonMapper) {
+
+            return new LiveIntentAnalyticsReporter(
+                    properties.toComponentProperties(),
+                    httpClient,
+                    jacksonMapper);
+        }
+
+        @Bean
+        @ConfigurationProperties(prefix = "analytics.liveintent")
+        LiveIntentAnalyticsConfigurationProperties liveIntentAnalyticsConfigurationProperties() {
+            return new LiveIntentAnalyticsConfigurationProperties();
+        }
+
+        @Validated
+        @NoArgsConstructor
+        @Data
+        private static class LiveIntentAnalyticsConfigurationProperties {
+
+            String partnerId;
+
+            String analyticsEndpoint;
+
+            long timeoutMs;
+
+            public LiveIntentAnalyticsProperties toComponentProperties() {
+                return LiveIntentAnalyticsProperties.builder()
+                        .partnerId(this.partnerId)
+                        .analyticsEndpoint(this.analyticsEndpoint)
+                        .timeoutMs(this.timeoutMs)
+                        .build();
+            }
         }
     }
 }

@@ -9,6 +9,7 @@ import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.DeviceExt
+import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
 import org.prebid.server.functional.model.request.auction.Renderer
 import org.prebid.server.functional.model.request.auction.RendererData
@@ -42,16 +43,22 @@ import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
 class AuctionSpec extends BaseSpec {
 
     private static final String USER_SYNC_URL = "$networkServiceContainer.rootUri/generic-usersync"
-    private static final boolean CORS_SUPPORT = false
+    private static final Boolean CORS_SUPPORT = false
     private static final UserSyncInfo.Type USER_SYNC_TYPE = REDIRECT
-    private static final int DEFAULT_TIMEOUT = getRandomTimeout()
-    private static final Map<String, String> PBS_CONFIG = ["auction.biddertmax.max"    : MAX_TIMEOUT as String,
-                                                           "auction.default-timeout-ms": DEFAULT_TIMEOUT as String]
+    private static final Integer DEFAULT_TIMEOUT = getRandomTimeout()
+    private static final Integer MIN_BID_ID_LENGTH = 17
+    private static final Integer DEFAULT_UUID_LENGTH = 36
     private static final Map<String, String> GENERIC_CONFIG = [
             "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url"         : USER_SYNC_URL,
             "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.support-cors": CORS_SUPPORT.toString()]
     @Shared
     PrebidServerService prebidServerService = pbsServiceFactory.getService(PBS_CONFIG)
+
+    private static final String IMPS_REQUESTED_METRIC = 'imps_requested'
+    private static final String IMPS_DROPPED_METRIC = 'imps_dropped'
+    private static final Integer IMP_LIMIT = 1
+    private static final Map<String, String> PBS_CONFIG = ["auction.biddertmax.max"    : MAX_TIMEOUT as String,
+                                                           "auction.default-timeout-ms": DEFAULT_TIMEOUT as String]
 
     def "PBS should return version in response header for auction request for #description"() {
         when: "PBS processes auction request"
@@ -590,5 +597,291 @@ class AuctionSpec extends BaseSpec {
         and: "BidderRequest shouldn't have device.ext.cdep"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert !bidderRequest?.device?.ext?.cdep
+    }
+
+    def "PBS should override short bid.id with random uuid when enforce-random-bid-id is enabled"() {
+        given: "PBS with enabled generate-bid-id"
+        def pbsConfig = ['auction.enforce-random-bid-id': 'true']
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
+
+        and: "Default bid request"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            enableEvents()
+        }
+
+        and: "Default bid response"
+        def originalBidId = PBSUtils.getRandomString(PBSUtils.getRandomNumber(1, MIN_BID_ID_LENGTH - 1))
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid.first.bid.first.id = originalBidId
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        and: "Save account in DB"
+        def account = new Account(uuid: bidRequest.accountId, eventsEnabled: true)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "Should include imp from original request"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.imp.id.sort() == bidRequest.imp.id.sort()
+
+        and: "Bid response should contain changed bid.id for wins event"
+        def bidIds = response.seatbid.bid.id.flatten()
+        def bidResponseEvents = response.seatbid.first.bid.first.ext.prebid.events
+        assert bidResponseEvents.win.contains("win&b=${bidIds.first}")
+        assert bidResponseEvents.imp.contains("imp&b=${bidIds.first}")
+
+        and: "BidResponse should contain different bid.id"
+        assert bidIds.sort() != [originalBidId]
+
+        and: "BidResponse should contain generated UUID"
+        assert PBSUtils.isUUID(response.seatbid.first.bid.first.id)
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
+    }
+
+    def "PBS shouldn't override short bid.id when enforce-random-bid-id in default or disabled"() {
+        given: "PBS with disabled generate-bid-id"
+        def pbsConfig = ["auction.enforce-random-bid-id": enforceRandomBidId]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
+
+        and: "Default bid request"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            enableEvents()
+        }
+
+        and: "Default bid response"
+        def originalBidId = PBSUtils.getRandomString(PBSUtils.getRandomNumber(1, MIN_BID_ID_LENGTH))
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid.first.bid.first.id = originalBidId
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        and: "Save account in DB"
+        def account = new Account(uuid: bidRequest.accountId, eventsEnabled: true)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "Should include imp from original request"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.imp.id.sort() == bidRequest.imp.id.sort()
+
+        and: "Bid response should contain changed bid.id for wins event"
+        def bidResponseEvents = response.seatbid.first.bid.first.ext.prebid.events
+        assert bidResponseEvents.win.contains("win&b=${originalBidId}")
+        assert bidResponseEvents.imp.contains("imp&b=${originalBidId}")
+
+        and: "BidResponse should contain original bid.id"
+        assert response.seatbid.bid.id.flatten().sort() == [originalBidId]
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
+
+        where:
+        enforceRandomBidId << [null, 'false']
+    }
+
+    def "PBS shouldn't override long enough bid.id with random uuid when enforce-random-bid-id is enabled"() {
+        given: "PBS with enabled generate-bid-id"
+        def pbsConfig = ['auction.enforce-random-bid-id': 'true']
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
+
+        and: "Default bid request"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            enableEvents()
+        }
+
+        and: "Default bid response"
+        def originalBidId = PBSUtils.getRandomString(PBSUtils.getRandomNumber(MIN_BID_ID_LENGTH, DEFAULT_UUID_LENGTH))
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid.first.bid.first.id = originalBidId
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        and: "Save account in DB"
+        def account = new Account(uuid: bidRequest.accountId, eventsEnabled: true)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "Should include imp from original request"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.imp.id.sort() == bidRequest.imp.id.sort()
+
+        and: "Bid response should contain changed bid.id for wins event"
+        def bidResponseEvents = response.seatbid.first.bid.first.ext.prebid.events
+        assert bidResponseEvents.win.contains("win&b=${originalBidId}")
+        assert bidResponseEvents.imp.contains("imp&b=${originalBidId}")
+
+        and: "BidResponse should contain original bid.id"
+        assert response.seatbid.bid.id.flatten().sort() == [originalBidId]
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
+    }
+
+    def "PBS should drop extra impressions with warnings when number of impressions exceeds impression-limit"() {
+        given: "Bid request with multiple imps"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp.add(Imp.getDefaultImpression())
+        }
+
+        and: "Account in the DB with impression limit config"
+        def accountConfig = new AccountConfig(auction: accountAuctionConfig)
+        def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
+        accountDao.save(account)
+
+        and: "Flush metrics"
+        flushMetrics(defaultPbsService)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain seatNonBid"
+        assert !response?.ext?.seatnonbid
+
+        and: "PBS should emit an warning"
+        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.message ==
+                ["Only first $IMP_LIMIT impressions were kept due to the limit, " +
+                         "all the subsequent impressions have been dropped for the auction" as String]
+
+        and: "PBS shouldn't emit an error"
+        assert !response.ext?.errors
+
+        and: "Metrics for imps should be updated"
+        def metrics = defaultPbsService.sendCollectedMetricsRequest()
+        assert metrics[IMPS_DROPPED_METRIC] == bidRequest.imp.size() - IMP_LIMIT
+        assert metrics[IMPS_REQUESTED_METRIC] == IMP_LIMIT
+
+        and: "Response should contain seat bid"
+        assert response.seatbid[0].bid.size() == IMP_LIMIT
+
+        and: "Bidder request should contain imps according to limit"
+        assert bidder.getBidderRequest(bidRequest.id).imp.size() == IMP_LIMIT
+
+        where:
+        accountAuctionConfig << [
+                new AccountAuctionConfig(impressionLimit: IMP_LIMIT),
+                new AccountAuctionConfig(impressionLimitSnakeCase: IMP_LIMIT)
+        ]
+    }
+
+    def "PBS shouldn't drop extra impressions when number of impressions equal to impression-limit"() {
+        given: "Bid request with multiple imps"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp.add(Imp.getDefaultImpression())
+        }
+
+        and: "Account in the DB with impression limit config"
+        def accountConfig = new AccountConfig(auction: new AccountAuctionConfig(impressionLimit: bidRequest.imp.size()))
+        def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
+        accountDao.save(account)
+
+        and: "Flush metrics"
+        flushMetrics(defaultPbsService)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain seatNonBid"
+        assert !response?.ext?.seatnonbid
+
+        and: "Response shouldn't contain warnings and error"
+        assert !response.ext?.warnings
+        assert !response.ext?.errors
+
+        and: "Metrics for imps requested should be updated"
+        def metrics = defaultPbsService.sendCollectedMetricsRequest()
+        assert metrics[IMPS_REQUESTED_METRIC] == bidRequest.imp.size()
+        assert !metrics[IMPS_DROPPED_METRIC]
+
+        and: "Response should contain seat bid"
+        assert response.seatbid[0].bid.size() == bidRequest.imp.size()
+
+        and: "Bidder request should contain originals imps"
+        assert bidder.getBidderRequest(bidRequest.id).imp.size() == bidRequest.imp.size()
+    }
+
+    def "PBS shouldn't drop extra impressions when number of impressions less than or equal to impression-limit"() {
+        given: "Bid request with multiple imps"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp.add(Imp.getDefaultImpression())
+        }
+
+        and: "Account in the DB with impression limit config"
+        def impressionLimit = bidRequest.imp.size() + 1
+        def accountConfig = new AccountConfig(auction: new AccountAuctionConfig(impressionLimit: impressionLimit))
+        def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
+        accountDao.save(account)
+
+        and: "Flush metrics"
+        flushMetrics(defaultPbsService)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain seatNonBid"
+        assert !response?.ext?.seatnonbid
+
+        and: "Response shouldn't contain warnings and error"
+        assert !response.ext?.warnings
+        assert !response.ext?.errors
+
+        and: "Metrics for imps requested should be updated"
+        def metrics = defaultPbsService.sendCollectedMetricsRequest()
+        assert metrics[IMPS_REQUESTED_METRIC] == bidRequest.imp.size()
+        assert !metrics[IMPS_DROPPED_METRIC]
+
+        and: "Response should contain seat bid"
+        assert response.seatbid[0].bid.size() == bidRequest.imp.size()
+
+        and: "Bidder request should contain originals imps"
+        assert bidder.getBidderRequest(bidRequest.id).imp.size() == bidRequest.imp.size()
+    }
+
+    def "PBS shouldn't drop extra impressions when impression-limit set to #impressionLimit"() {
+        given: "Bid request with multiple imps"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp.add(Imp.getDefaultImpression())
+        }
+
+        and: "Account in the DB with impression limit config"
+        def accountConfig = new AccountConfig(auction: new AccountAuctionConfig(impressionLimit: impressionLimit))
+        def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
+        accountDao.save(account)
+
+        and: "Flush metrics"
+        flushMetrics(defaultPbsService)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain seatNonBid"
+        assert !response?.ext?.seatnonbid
+
+        and: "Response shouldn't contain warnings and error"
+        assert !response.ext?.warnings
+        assert !response.ext?.errors
+
+        and: "Metrics for imps requested should be updated"
+        def metrics = defaultPbsService.sendCollectedMetricsRequest()
+        assert metrics[IMPS_REQUESTED_METRIC] == bidRequest.imp.size()
+        assert !metrics[IMPS_DROPPED_METRIC]
+
+        and: "Response should contain seat bid"
+        assert response.seatbid[0].bid.size() == bidRequest.imp.size()
+
+        and: "Bidder request should contain originals imps"
+        assert bidder.getBidderRequest(bidRequest.id).imp.size() == bidRequest.imp.size()
+
+        where:
+        impressionLimit << [null, PBSUtils.randomNegativeNumber, 0]
     }
 }

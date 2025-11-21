@@ -77,9 +77,9 @@ public class BidderError {
 
         /**
          * Covers the case where a bidder failed to generate any http requests to get bids, but did not generate any
-         * error messages. This should not happen in practice and will signal that an bidder is poorly coded.
-         * If there was something wrong with a request such that an bidder could not generate a bid, then it should
-         * generate an error explaining the deficiency. Otherwise it will be extremely difficult to debug the reason
+         * error messages. This should not happen in practice and will signal that a bidder is poorly coded.
+         * If there was something wrong with a request such that a bidder could not generate a bid, then it should
+         * generate an error explaining the deficiency. Otherwise, it will be extremely difficult to debug the reason
          * why a bidder is not bidding.
          */
         failed_to_request_bids(4),

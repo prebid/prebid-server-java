@@ -3,28 +3,23 @@
   "imp": [
     {
       "id": "imp_id",
-      "secure": 1,
       "banner": {
         "w": 300,
         "h": 250
       },
+      "secure": 1,
       "ext": {
+        "nextMillennium" : {
+          "nmmFlags" : [ "1" ]
+        },
         "prebid": {
           "storedrequest": {
             "id": "placement_id"
           }
-        },
-        "nextMillennium": {
-          "nmmFlags": [
-            "1"
-          ]
         }
       }
     }
   ],
-  "source": {
-    "tid": "${json-unit.any-string}"
-  },
   "site": {
     "domain": "www.example.com",
     "page": "http://www.example.com",
@@ -44,6 +39,9 @@
   "cur": [
     "USD"
   ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
   "regs": {
     "ext": {
       "gdpr": 0
@@ -60,6 +58,13 @@
         "datacenter": "local",
         "endpoint": "/openrtb2/auction"
       }
+    },
+    "nextMillennium": {
+      "nmmFlags": [ "1" ],
+      "adSlots": ["slot-1", "slot-2"],
+      "allowedAds": ["banner", "native"],
+      "nm_version": "v1.0.1",
+      "server_version": "${json-unit.any-string}"
     }
   }
 }

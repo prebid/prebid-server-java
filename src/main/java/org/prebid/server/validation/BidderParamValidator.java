@@ -7,7 +7,6 @@ import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SpecVersion;
 import com.networknt.schema.ValidationMessage;
 import org.apache.commons.collections4.map.CaseInsensitiveMap;
-import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.json.EncodeException;
@@ -88,7 +87,7 @@ public class BidderParamValidator {
         final Map<String, JsonNode> bidderRawSchemas = new LinkedHashMap<>();
 
         bidderCatalog.names().forEach(bidder -> bidderRawSchemas.put(
-                bidder, createSchemaNode(schemaDirectory, maybeResolveAlias(bidderCatalog, bidder), mapper)));
+                bidder, createSchemaNode(bidderCatalog, schemaDirectory, bidder, mapper)));
 
         return new BidderParamValidator(toBidderSchemas(bidderRawSchemas), toSchemas(bidderRawSchemas, mapper));
     }
@@ -120,8 +119,20 @@ public class BidderParamValidator {
         return result;
     }
 
-    private static String maybeResolveAlias(BidderCatalog bidderCatalog, String bidder) {
-        return ObjectUtils.defaultIfNull(bidderCatalog.bidderInfoByName(bidder).getAliasOf(), bidder);
+    private static JsonNode createSchemaNode(BidderCatalog bidderCatalog,
+                                             String schemaDirectory,
+                                             String bidder,
+                                             JacksonMapper mapper) {
+
+        try {
+            return createSchemaNode(schemaDirectory, bidder, mapper);
+        } catch (IllegalArgumentException e) {
+            final String parentBidder = bidderCatalog.bidderInfoByName(bidder).getAliasOf();
+            if (parentBidder != null) {
+                return createSchemaNode(schemaDirectory, parentBidder, mapper);
+            }
+            throw e;
+        }
     }
 
     private static JsonNode createSchemaNode(String schemaDirectory, String bidder, JacksonMapper mapper) {

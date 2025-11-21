@@ -48,6 +48,7 @@ public class MetricsTest {
     private static final String RUBICON = "rubicon";
     private static final String CONVERSANT = "conversant";
     private static final String ACCOUNT_ID = "accountId";
+    private static final String ACCOUNT_ID_1 = "accountId1";
     private static final String ANALYTIC_CODE = "analyticCode";
 
     private MetricRegistry metricRegistry;
@@ -329,6 +330,15 @@ public class MetricsTest {
         assertThat(metricRegistry.counter("app_requests").getCount()).isOne();
         assertThat(metricRegistry.counter("no_cookie_requests").getCount()).isOne();
         assertThat(metricRegistry.counter("imps_requested").getCount()).isEqualTo(4);
+    }
+
+    @Test
+    public void updateImpsDroppedMetricShouldIncrementMetrics() {
+        // when
+        metrics.updateImpsDroppedMetric(2);
+
+        // then
+        assertThat(metricRegistry.counter("imps_dropped").getCount()).isEqualTo(2);
     }
 
     @Test
@@ -615,6 +625,37 @@ public class MetricsTest {
     }
 
     @Test
+    public void updateUnknownBidderMetricsShouldIncrementMetrics() {
+        // when
+        metrics.updateUnknownBidderMetric(Account.empty(ACCOUNT_ID));
+        metrics.updateUnknownBidderMetric(Account.empty(ACCOUNT_ID));
+        metrics.updateUnknownBidderMetric(Account.empty(ACCOUNT_ID_1));
+
+        // then
+        assertThat(metricRegistry.counter("unknown_bidder").getCount()).isEqualTo(3);
+        assertThat(metricRegistry.counter(
+                "account.accountId.requests.unknown_bidder").getCount()).isEqualTo(2);
+        assertThat(metricRegistry.counter(
+                "account.accountId1.requests.unknown_bidder").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void updateDisabledBidderMetricsShouldIncrementMetrics() {
+        // when
+        metrics.updateDisabledBidderMetric(Account.empty(ACCOUNT_ID));
+        metrics.updateDisabledBidderMetric(Account.empty(ACCOUNT_ID));
+        metrics.updateDisabledBidderMetric(Account.empty(ACCOUNT_ID_1));
+
+        // then
+        assertThat(metricRegistry.counter(
+                "disabled_bidder").getCount()).isEqualTo(3);
+        assertThat(metricRegistry.counter(
+                "account.accountId.requests.disabled_bidder").getCount()).isEqualTo(2);
+        assertThat(metricRegistry.counter(
+                "account.accountId1.requests.disabled_bidder").getCount()).isEqualTo(1);
+    }
+
+    @Test
     public void updateAdapterRequestErrorMetricShouldIncrementMetrics() {
         // when
         metrics.updateAdapterRequestErrorMetric(RUBICON, MetricName.badinput);
@@ -648,6 +689,17 @@ public class MetricsTest {
         assertThat(metricRegistry.counter("adapter.rubicon.response.validation.secure.err").getCount()).isEqualTo(1);
         assertThat(metricRegistry.counter("adapter.conversant.response.validation.secure.err").getCount()).isEqualTo(1);
         assertThat(metricRegistry.counter("account.accountId.response.validation.secure.err").getCount()).isEqualTo(2);
+    }
+
+    @Test
+    public void updateSeatValidationMetricsShouldIncrementMetrics() {
+        // when
+        metrics.updateSeatValidationMetrics(RUBICON);
+        metrics.updateSeatValidationMetrics(CONVERSANT);
+
+        // then
+        assertThat(metricRegistry.counter("adapter.rubicon.response.validation.seat").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("adapter.conversant.response.validation.seat").getCount()).isEqualTo(1);
     }
 
     @Test
@@ -965,16 +1017,22 @@ public class MetricsTest {
         metrics.updateAdapterRequestNobidMetrics(RUBICON, Account.empty(ACCOUNT_ID));
         metrics.updateAdapterRequestGotbidsMetrics(RUBICON, Account.empty(ACCOUNT_ID));
         metrics.updateAdapterBidMetrics(RUBICON, Account.empty(ACCOUNT_ID), 1234L, true, "banner");
+        metrics.updateDisabledBidderMetric(Account.empty(ACCOUNT_ID));
+        metrics.updateUnknownBidderMetric(Account.empty(ACCOUNT_ID));
 
         // then
         assertThat(metricRegistry.counter("account.accountId.requests").getCount()).isZero();
         assertThat(metricRegistry.counter("account.accountId.debug_requests").getCount()).isZero();
         assertThat(metricRegistry.counter("account.accountId.requests.type.openrtb2-web").getCount()).isZero();
-        assertThat(metricRegistry.timer("account.accountId.rubicon.request_time").getCount()).isZero();
-        assertThat(metricRegistry.counter("account.accountId.rubicon.requests.nobid").getCount()).isZero();
-        assertThat(metricRegistry.counter("account.accountId.rubicon.requests.gotbids").getCount()).isZero();
-        assertThat(metricRegistry.histogram("account.accountId.rubicon.prices").getCount()).isZero();
-        assertThat(metricRegistry.counter("account.accountId.rubicon.bids_received").getCount()).isZero();
+        assertThat(metricRegistry.timer("account.accountId.adapter.rubicon.request_time").getCount()).isZero();
+        assertThat(metricRegistry.counter("account.accountId.adapter.rubicon.requests.nobid").getCount()).isZero();
+        assertThat(metricRegistry.counter("account.accountId.adapter.rubicon.requests.gotbids").getCount()).isZero();
+        assertThat(metricRegistry.histogram("account.accountId.adapter.rubicon.prices").getCount()).isZero();
+        assertThat(metricRegistry.counter("account.accountId.adapter.rubicon.bids_received").getCount()).isZero();
+        assertThat(metricRegistry.counter(
+                "account.accountId.adapter.rubicon.requests.unknown_bidder").getCount()).isZero();
+        assertThat(metricRegistry.counter(
+                "account.accountId.adapter.rubicon.requests.disabled_bidder").getCount()).isZero();
     }
 
     @Test
@@ -990,16 +1048,58 @@ public class MetricsTest {
         metrics.updateAdapterRequestNobidMetrics(RUBICON, Account.empty(ACCOUNT_ID));
         metrics.updateAdapterRequestGotbidsMetrics(RUBICON, Account.empty(ACCOUNT_ID));
         metrics.updateAdapterBidMetrics(RUBICON, Account.empty(ACCOUNT_ID), 1234L, true, "banner");
+        metrics.updateDisabledBidderMetric(Account.empty(ACCOUNT_ID));
+        metrics.updateUnknownBidderMetric(Account.empty(ACCOUNT_ID));
 
         // then
         assertThat(metricRegistry.counter("account.accountId.requests").getCount()).isOne();
         assertThat(metricRegistry.counter("account.accountId.debug_requests").getCount()).isZero();
         assertThat(metricRegistry.counter("account.accountId.requests.type.openrtb2-web").getCount()).isZero();
         assertThat(metricRegistry.timer("account.accountId.rubicon.request_time").getCount()).isZero();
-        assertThat(metricRegistry.counter("account.accountId.rubicon.requests.nobid").getCount()).isZero();
-        assertThat(metricRegistry.counter("account.accountId.rubicon.requests.gotbids").getCount()).isZero();
-        assertThat(metricRegistry.histogram("account.accountId.rubicon.prices").getCount()).isZero();
-        assertThat(metricRegistry.counter("account.accountId.rubicon.bids_received").getCount()).isZero();
+        assertThat(metricRegistry.counter("account.accountId.adapter.rubicon.requests.nobid").getCount()).isZero();
+        assertThat(metricRegistry.counter("account.accountId.adapter.rubicon.requests.gotbids").getCount()).isZero();
+        assertThat(metricRegistry.histogram("account.accountId.adapter.rubicon.prices").getCount()).isZero();
+        assertThat(metricRegistry.counter("account.accountId.adapter.rubicon.bids_received").getCount()).isZero();
+        assertThat(metricRegistry.counter(
+                "account.accountId.adapter.rubicon.requests.unknown_bidder").getCount()).isZero();
+        assertThat(metricRegistry.counter(
+                "account.accountId.adapter.rubicon.requests.disabled_bidder").getCount()).isZero();
+    }
+
+    @Test
+    public void shouldUpdateAccountRequestsMetricOnlyIfVerbosityIsDetailed() {
+        // given
+        given(accountMetricsVerbosityResolver.forAccount(any())).willReturn(AccountMetricsVerbosityLevel.detailed);
+
+        // when
+        metrics.updateAccountRequestMetrics(Account.empty(ACCOUNT_ID), MetricName.openrtb2web);
+        metrics.updateAccountDebugRequestMetrics(Account.empty(ACCOUNT_ID), false);
+        metrics.updateAccountDebugRequestMetrics(Account.empty(ACCOUNT_ID), true);
+        metrics.updateAdapterResponseTime(RUBICON, Account.empty(ACCOUNT_ID), 500);
+        metrics.updateAdapterRequestNobidMetrics(RUBICON, Account.empty(ACCOUNT_ID));
+        metrics.updateAdapterRequestGotbidsMetrics(RUBICON, Account.empty(ACCOUNT_ID));
+        metrics.updateAdapterBidMetrics(RUBICON, Account.empty(ACCOUNT_ID), 1234L, true, "banner");
+        metrics.updateDisabledBidderMetric(Account.empty(ACCOUNT_ID));
+        metrics.updateUnknownBidderMetric(Account.empty(ACCOUNT_ID));
+
+        // then
+        assertThat(metricRegistry.counter("account.accountId.requests").getCount()).isOne();
+        assertThat(metricRegistry.counter("account.accountId.debug_requests").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.counter("account.accountId.requests.type.openrtb2-web").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.counter("account.accountId.adapter.rubicon.requests.nobid").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.counter("account.accountId.adapter.rubicon.requests.gotbids").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.histogram("account.accountId.adapter.rubicon.prices").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.counter("account.accountId.adapter.rubicon.bids_received").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.counter(
+                "unknown_bidder").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter(
+                "account.accountId.requests.disabled_bidder").getCount()).isEqualTo(1);
     }
 
     @Test
@@ -1127,23 +1227,64 @@ public class MetricsTest {
     }
 
     @Test
-    public void shouldIncrementPrebidCacheRequestSuccessTimer() {
+    public void shouldIncrementAuctionPrebidCacheRequestTimer() {
         // when
-        metrics.updateCacheRequestSuccessTime("accountId", 1424L);
+        metrics.updateAuctionCacheRequestTime("accountId", 1424L, MetricName.ok);
+        metrics.updateAuctionCacheRequestTime("accountId", 1424L, MetricName.err);
 
         // then
         assertThat(metricRegistry.timer("prebid_cache.requests.ok").getCount()).isEqualTo(1);
         assertThat(metricRegistry.timer("account.accountId.prebid_cache.requests.ok").getCount()).isOne();
+
+        assertThat(metricRegistry.timer("prebid_cache.requests.err").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.timer("account.accountId.prebid_cache.requests.err").getCount()).isOne();
     }
 
     @Test
-    public void shouldIncrementPrebidCacheRequestFailedTimer() {
+    public void shouldIncrementVtrackReadPrebidCacheRequestTimer() {
         // when
-        metrics.updateCacheRequestFailedTime("accountId", 1424L);
+        metrics.updateVtrackCacheReadRequestTime(1424L, MetricName.ok);
+        metrics.updateVtrackCacheReadRequestTime(1424L, MetricName.err);
 
         // then
-        assertThat(metricRegistry.timer("prebid_cache.requests.err").getCount()).isEqualTo(1);
-        assertThat(metricRegistry.timer("account.accountId.prebid_cache.requests.err").getCount()).isOne();
+        assertThat(metricRegistry.timer("prebid_cache.vtrack.read.ok").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.timer("prebid_cache.vtrack.read.err").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementVtrackWritePrebidCacheRequestTimer() {
+        // when
+        metrics.updateVtrackCacheWriteRequestTime("accountId", 1424L, MetricName.ok);
+        metrics.updateVtrackCacheWriteRequestTime("accountId", 1424L, MetricName.err);
+
+        // then
+        assertThat(metricRegistry.timer("prebid_cache.vtrack.write.ok").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.timer("account.accountId.prebid_cache.vtrack.write.ok").getCount()).isOne();
+
+        assertThat(metricRegistry.timer("prebid_cache.vtrack.write.err").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.timer("account.accountId.prebid_cache.vtrack.write.err").getCount()).isOne();
+    }
+
+    @Test
+    public void shouldIncrementModuleStorageReadPrebidCacheRequestTimer() {
+        // when
+        metrics.updateModuleStorageCacheReadRequestTime("module_code", 1424L, MetricName.ok);
+        metrics.updateModuleStorageCacheReadRequestTime("module_code", 1424L, MetricName.err);
+
+        // then
+        assertThat(metricRegistry.timer("prebid_cache.module_storage.module_code.read.ok").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.timer("prebid_cache.module_storage.module_code.read.err").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementModuleStorageWritePrebidCacheRequestTimer() {
+        // when
+        metrics.updateModuleStorageCacheWriteRequestTime("module_code", 1424L, MetricName.ok);
+        metrics.updateModuleStorageCacheWriteRequestTime("module_code", 1424L, MetricName.err);
+
+        // then
+        assertThat(metricRegistry.timer("prebid_cache.module_storage.module_code.write.ok").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.timer("prebid_cache.module_storage.module_code.write.err").getCount()).isEqualTo(1);
     }
 
     @Test
@@ -1162,6 +1303,101 @@ public class MetricsTest {
                 .isEqualTo(1);
         assertThat(metricRegistry.histogram("prebid_cache.creative_size.unknown").getCount()).isEqualTo(1);
         assertThat(metricRegistry.histogram("account.accountId.prebid_cache.creative_size.unknown").getCount())
+                .isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementPrebidCacheVtrackCreativeSizeHistogram() {
+        // when
+        metrics.updateVtrackCacheCreativeSize("accountId", 123, MetricName.json);
+        metrics.updateVtrackCacheCreativeSize("accountId", 456, MetricName.xml);
+        metrics.updateVtrackCacheCreativeSize("accountId", 789, MetricName.unknown);
+
+        // then
+        assertThat(metricRegistry.histogram("prebid_cache.vtrack.creative_size.json").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.histogram("account.accountId.prebid_cache.vtrack.creative_size.json").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.histogram("prebid_cache.vtrack.creative_size.xml").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.histogram("account.accountId.prebid_cache.vtrack.creative_size.xml").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.histogram("prebid_cache.vtrack.creative_size.unknown").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.histogram("account.accountId.prebid_cache.vtrack.creative_size.unknown").getCount())
+                .isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementPrebidCacheModuleStorageCreativeSizeHistogram() {
+        // when
+        metrics.updateModuleStorageCacheEntrySize("module_code", 123, MetricName.json);
+        metrics.updateModuleStorageCacheEntrySize("module_code", 456, MetricName.xml);
+        metrics.updateModuleStorageCacheEntrySize("module_code", 789, MetricName.unknown);
+        metrics.updateModuleStorageCacheEntrySize("module_code", 1011, MetricName.text);
+
+        // then
+        assertThat(metricRegistry.histogram("prebid_cache.module_storage.module_code.entry_size.json").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.histogram("prebid_cache.module_storage.module_code.entry_size.xml").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.histogram("prebid_cache.module_storage.module_code.entry_size.unknown").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.histogram("prebid_cache.module_storage.module_code.entry_size.text").getCount())
+                .isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementPrebidCacheCreativeTtlHistogram() {
+        // when
+        metrics.updateCacheCreativeTtl("accountId", 123, MetricName.json);
+        metrics.updateCacheCreativeTtl("accountId", 456, MetricName.xml);
+        metrics.updateCacheCreativeTtl("accountId", 789, MetricName.unknown);
+
+        // then
+        assertThat(metricRegistry.histogram("prebid_cache.creative_ttl.json").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.histogram("account.accountId.prebid_cache.creative_ttl.json").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.histogram("prebid_cache.creative_ttl.xml").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.histogram("account.accountId.prebid_cache.creative_ttl.xml").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.histogram("prebid_cache.creative_ttl.unknown").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.histogram("account.accountId.prebid_cache.creative_ttl.unknown").getCount())
+                .isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementPrebidCacheVtrackCreativeTtlHistogram() {
+        // when
+        metrics.updateVtrackCacheCreativeTtl("accountId", 123, MetricName.json);
+        metrics.updateVtrackCacheCreativeTtl("accountId", 456, MetricName.xml);
+        metrics.updateVtrackCacheCreativeTtl("accountId", 789, MetricName.unknown);
+
+        // then
+        assertThat(metricRegistry.histogram("prebid_cache.vtrack.creative_ttl.json").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.histogram("account.accountId.prebid_cache.vtrack.creative_ttl.json").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.histogram("prebid_cache.vtrack.creative_ttl.xml").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.histogram("account.accountId.prebid_cache.vtrack.creative_ttl.xml").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.histogram("prebid_cache.vtrack.creative_ttl.unknown").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.histogram("account.accountId.prebid_cache.vtrack.creative_ttl.unknown").getCount())
+                .isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementPrebidCacheModuleStorageCreativeTtlHistogram() {
+        // when
+        metrics.updateModuleStorageCacheEntryTtl("module_code", 123, MetricName.json);
+        metrics.updateModuleStorageCacheEntryTtl("module_code", 456, MetricName.xml);
+        metrics.updateModuleStorageCacheEntryTtl("module_code", 789, MetricName.unknown);
+        metrics.updateModuleStorageCacheEntryTtl("module_code", 1011, MetricName.text);
+
+        // then
+        assertThat(metricRegistry.histogram("prebid_cache.module_storage.module_code.entry_ttl.json").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.histogram("prebid_cache.module_storage.module_code.entry_ttl.xml").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.histogram("prebid_cache.module_storage.module_code.entry_ttl.unknown").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.histogram("prebid_cache.module_storage.module_code.entry_ttl.text").getCount())
                 .isEqualTo(1);
     }
 
@@ -1449,6 +1685,26 @@ public class MetricsTest {
 
         // then
         assertThat(metricRegistry.counter("account.account_id.requests.rejected.account-fetch-failed").getCount())
+                .isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementUpdateProfileMetric() {
+        // when
+        metrics.updateProfileMetric(MetricName.limit_exceeded);
+
+        // then
+        assertThat(metricRegistry.counter("profiles.limit_exceeded").getCount())
+                .isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementUpdateAccountProfileMetric() {
+        // when
+        metrics.updateAccountProfileMetric("accountId", MetricName.limit_exceeded);
+
+        // then
+        assertThat(metricRegistry.counter("account.accountId.profiles.limit_exceeded").getCount())
                 .isEqualTo(1);
     }
 

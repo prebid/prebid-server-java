@@ -1,6 +1,6 @@
 package org.prebid.server.functional.util.privacy.gpp.v1
 
-import com.iab.gpp.encoder.field.UsCtV1Field
+import com.iab.gpp.encoder.field.UsCtField
 import org.prebid.server.functional.model.privacy.gpp.MspaMode
 import org.prebid.server.functional.model.privacy.gpp.Notice
 import org.prebid.server.functional.model.privacy.gpp.OptOut
@@ -28,27 +28,27 @@ class UsCtV1Consent extends GppConsent {
         }
 
         Builder setSharingNotice(Notice sharingNotice) {
-            fieldValue(UsCtV1Field.SHARING_NOTICE, sharingNotice.value)
+            fieldValue(UsCtField.SHARING_NOTICE, sharingNotice.value)
             this
         }
 
         Builder setSaleOptOutNotice(Notice saleOptOutNotice) {
-            fieldValue(UsCtV1Field.SALE_OPT_OUT_NOTICE, saleOptOutNotice.value)
+            fieldValue(UsCtField.SALE_OPT_OUT_NOTICE, saleOptOutNotice.value)
             this
         }
 
         Builder setTargetedAdvertisingOptOutNotice(Notice targetedAdvertisingOptOutNotice) {
-            fieldValue(UsCtV1Field.TARGETED_ADVERTISING_OPT_OUT_NOTICE, targetedAdvertisingOptOutNotice.value)
+            fieldValue(UsCtField.TARGETED_ADVERTISING_OPT_OUT_NOTICE, targetedAdvertisingOptOutNotice.value)
             this
         }
 
         Builder setSaleOptOut(OptOut saleOptOut) {
-            fieldValue(UsCtV1Field.SALE_OPT_OUT, saleOptOut.value)
+            fieldValue(UsCtField.SALE_OPT_OUT, saleOptOut.value)
             this
         }
 
         Builder setTargetedAdvertisingOptOut(OptOut targetedAdvertisingOptOut) {
-            fieldValue(UsCtV1Field.TARGETED_ADVERTISING_OPT_OUT, targetedAdvertisingOptOut.value)
+            fieldValue(UsCtField.TARGETED_ADVERTISING_OPT_OUT, targetedAdvertisingOptOut.value)
             this
         }
 
@@ -58,37 +58,37 @@ class UsCtV1Consent extends GppConsent {
         }
 
         Builder setKnownChildSensitiveDataConsents(UsConnecticutV1ChildSensitiveData sensitiveData) {
-            fieldValue(UsCtV1Field.KNOWN_CHILD_SENSITIVE_DATA_CONSENTS, sensitiveData.contentList)
+            fieldValue(UsCtField.KNOWN_CHILD_SENSITIVE_DATA_CONSENTS, sensitiveData.contentList)
             this
         }
 
         Builder setMspaCoveredTransaction(MspaMode mspaCoveredTransaction) {
-            fieldValue(UsCtV1Field.MSPA_COVERED_TRANSACTION, mspaCoveredTransaction.value)
+            fieldValue(UsCtField.MSPA_COVERED_TRANSACTION, mspaCoveredTransaction.value)
             this
         }
 
         Builder setMspaOptOutOptionMode(MspaMode mspaOptOutOptionMode) {
-            fieldValue(UsCtV1Field.MSPA_OPT_OUT_OPTION_MODE, mspaOptOutOptionMode.value)
+            fieldValue(UsCtField.MSPA_OPT_OUT_OPTION_MODE, mspaOptOutOptionMode.value)
             this
         }
 
         Builder setMspaServiceProviderMode(MspaMode mspaServiceProviderMode) {
-            fieldValue(UsCtV1Field.MSPA_SERVICE_PROVIDER_MODE, mspaServiceProviderMode.value)
+            fieldValue(UsCtField.MSPA_SERVICE_PROVIDER_MODE, mspaServiceProviderMode.value)
             this
         }
 
         Builder setGpcSegmentType(Integer gpcSegmentType) {
-            fieldValue(UsCtV1Field.GPC_SEGMENT_TYPE, gpcSegmentType)
+            fieldValue(UsCtField.GPC_SEGMENT_TYPE, gpcSegmentType)
             this
         }
 
         Builder setGpcSegmentIncluded(Boolean gpcSegmentIncluded) {
-            fieldValue(UsCtV1Field.GPC_SEGMENT_INCLUDED, gpcSegmentIncluded)
+            fieldValue(UsCtField.GPC_SEGMENT_INCLUDED, gpcSegmentIncluded)
             this
         }
 
         Builder setGpc(Boolean gpc) {
-            fieldValue(UsCtV1Field.GPC, gpc)
+            fieldValue(UsCtField.GPC, gpc)
             this
         }
 

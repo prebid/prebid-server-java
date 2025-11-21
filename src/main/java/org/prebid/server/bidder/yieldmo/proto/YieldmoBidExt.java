@@ -12,4 +12,3 @@ public class YieldmoBidExt {
     @JsonProperty("mediatype")
     String mediaType;
 }
-

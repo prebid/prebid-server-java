@@ -6,6 +6,7 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Dooh;
 import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Geo;
+import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
@@ -22,9 +23,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
 import org.prebid.server.auction.IpAddressHelper;
-import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.TimeoutResolver;
+import org.prebid.server.auction.externalortb.ProfilesProcessor;
+import org.prebid.server.auction.externalortb.StoredRequestProcessor;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.AuctionStoredResult;
 import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.auction.model.TimeoutContext;
 import org.prebid.server.auction.model.debug.DebugContext;
@@ -88,8 +91,8 @@ public class Ortb2RequestFactory {
 
     private static final Logger logger = LoggerFactory.getLogger(Ortb2RequestFactory.class);
 
-    private static final ConditionalLogger EMPTY_ACCOUNT_LOGGER = new ConditionalLogger("empty_account", logger);
-    private static final ConditionalLogger UNKNOWN_ACCOUNT_LOGGER = new ConditionalLogger("unknown_account", logger);
+    private static final ConditionalLogger emptyAccountLogger = new ConditionalLogger("empty_account", logger);
+    private static final ConditionalLogger unknownAccountLogger = new ConditionalLogger("unknown_account", logger);
 
     private final int timeoutAdjustmentFactor;
     private final double logSamplingRate;
@@ -100,6 +103,7 @@ public class Ortb2RequestFactory {
     private final TimeoutResolver timeoutResolver;
     private final TimeoutFactory timeoutFactory;
     private final StoredRequestProcessor storedRequestProcessor;
+    private final ProfilesProcessor profilesProcessor;
     private final ApplicationSettings applicationSettings;
     private final IpAddressHelper ipAddressHelper;
     private final HookStageExecutor hookStageExecutor;
@@ -115,6 +119,7 @@ public class Ortb2RequestFactory {
                                TimeoutResolver timeoutResolver,
                                TimeoutFactory timeoutFactory,
                                StoredRequestProcessor storedRequestProcessor,
+                               ProfilesProcessor profilesProcessor,
                                ApplicationSettings applicationSettings,
                                IpAddressHelper ipAddressHelper,
                                HookStageExecutor hookStageExecutor,
@@ -134,6 +139,7 @@ public class Ortb2RequestFactory {
         this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
+        this.profilesProcessor = Objects.requireNonNull(profilesProcessor);
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.ipAddressHelper = Objects.requireNonNull(ipAddressHelper);
         this.hookStageExecutor = Objects.requireNonNull(hookStageExecutor);
@@ -180,7 +186,7 @@ public class Ortb2RequestFactory {
         final Timeout timeout = auctionContext.getTimeoutContext().getTimeout();
         final HttpRequestContext httpRequest = auctionContext.getHttpRequest();
 
-        return findAccountIdFrom(bidRequest, isLookupStoredRequest)
+        return findAccountIdFrom(auctionContext, bidRequest, isLookupStoredRequest)
                 .map(this::validateIfAccountBlocklisted)
                 .compose(accountId -> loadAccount(timeout, httpRequest, accountId));
     }
@@ -192,13 +198,31 @@ public class Ortb2RequestFactory {
                 auctionContext.getDebugContext().getTraceLevel()));
     }
 
-    public Future<BidRequest> validateRequest(BidRequest bidRequest,
+    public Future<BidRequest> limitImpressions(Account account, BidRequest bidRequest, List<String> warnings) {
+        final List<Imp> imps = bidRequest.getImp();
+        final int impsLimit = Optional.ofNullable(account)
+                .map(Account::getAuction)
+                .map(AccountAuctionConfig::getImpressionLimit)
+                .orElse(0);
+
+        if (impsLimit > 0 && imps.size() > impsLimit) {
+            metrics.updateImpsDroppedMetric(imps.size() - impsLimit);
+            warnings.add(("Only first %d impressions were kept due to the limit, "
+                    + "all the subsequent impressions have been dropped for the auction").formatted(impsLimit));
+            return Future.succeededFuture(bidRequest.toBuilder().imp(imps.subList(0, impsLimit)).build());
+        }
+
+        return Future.succeededFuture(bidRequest);
+    }
+
+    public Future<BidRequest> validateRequest(Account account,
+                                              BidRequest bidRequest,
                                               HttpRequestContext httpRequestContext,
                                               DebugContext debugContext,
                                               List<String> warnings) {
 
         final ValidationResult validationResult = requestValidator.validate(
-                bidRequest, httpRequestContext, debugContext);
+                account, bidRequest, httpRequestContext, debugContext);
 
         if (validationResult.hasWarnings()) {
             warnings.addAll(validationResult.getWarnings());
@@ -354,7 +378,7 @@ public class Ortb2RequestFactory {
                         toCaseInsensitiveMultiMap(routingContext.queryParams()),
                         toCaseInsensitiveMultiMap(routingContext.request().headers()),
                         body,
-                        auctionContext.getHookExecutionContext())
+                        auctionContext)
                 .map(stageResult -> toHttpRequest(stageResult, routingContext, auctionContext));
     }
 
@@ -449,12 +473,53 @@ public class Ortb2RequestFactory {
         return timeoutFactory.create(startTime, timeout);
     }
 
-    private Future<String> findAccountIdFrom(BidRequest bidRequest, boolean isLookupStoredRequest) {
-        final String accountId = accountIdFrom(bidRequest);
-        return StringUtils.isNotBlank(accountId) || !isLookupStoredRequest
-                ? Future.succeededFuture(accountId)
-                : storedRequestProcessor.processAuctionRequest(accountId, bidRequest)
-                .map(storedAuctionResult -> accountIdFrom(storedAuctionResult.bidRequest()));
+    private Future<String> findAccountIdFrom(AuctionContext auctionContext,
+                                             BidRequest bidRequest,
+                                             boolean isLookupStoredRequest) {
+
+        final String accountId = accountIdFromBidRequest(bidRequest);
+        if (StringUtils.isNotBlank(accountId) || !isLookupStoredRequest) {
+            return Future.succeededFuture(accountId);
+        }
+
+        return accountIdFromStoredRequest(bidRequest)
+                .compose(id -> StringUtils.isBlank(id)
+                        ? accountIdFromProfiles(auctionContext, bidRequest)
+                        : Future.succeededFuture(id));
+    }
+
+    private String accountIdFromBidRequest(BidRequest bidRequest) {
+        final App app = bidRequest.getApp();
+        final Publisher appPublisher = app != null ? app.getPublisher() : null;
+        final Site site = bidRequest.getSite();
+        final Publisher sitePublisher = site != null ? site.getPublisher() : null;
+        final Dooh dooh = bidRequest.getDooh();
+        final Publisher doohPublisher = dooh != null ? dooh.getPublisher() : null;
+
+        final Publisher publisher = ObjectUtils.firstNonNull(appPublisher, doohPublisher, sitePublisher);
+        final String publisherId = publisher != null ? resolvePublisherId(publisher) : null;
+        return ObjectUtils.defaultIfNull(publisherId, StringUtils.EMPTY);
+    }
+
+    private String resolvePublisherId(Publisher publisher) {
+        final String parentAccountId = parentAccountIdFromExtPublisher(publisher.getExt());
+        return ObjectUtils.defaultIfNull(parentAccountId, publisher.getId());
+    }
+
+    private String parentAccountIdFromExtPublisher(ExtPublisher extPublisher) {
+        final ExtPublisherPrebid extPublisherPrebid = extPublisher != null ? extPublisher.getPrebid() : null;
+        return extPublisherPrebid != null ? StringUtils.stripToNull(extPublisherPrebid.getParentAccount()) : null;
+    }
+
+    private Future<String> accountIdFromStoredRequest(BidRequest bidRequest) {
+        return storedRequestProcessor.processAuctionRequest(StringUtils.EMPTY, bidRequest)
+                .map(AuctionStoredResult::bidRequest)
+                .map(this::accountIdFromBidRequest);
+    }
+
+    private Future<String> accountIdFromProfiles(AuctionContext auctionContext, BidRequest bidRequest) {
+        return profilesProcessor.process(auctionContext, bidRequest)
+                .map(this::accountIdFromBidRequest);
     }
 
     private String validateIfAccountBlocklisted(String accountId) {
@@ -471,7 +536,7 @@ public class Ortb2RequestFactory {
 
     private Future<Account> loadAccount(Timeout timeout, HttpRequestContext httpRequest, String accountId) {
         if (StringUtils.isBlank(accountId)) {
-            EMPTY_ACCOUNT_LOGGER.warn(accountErrorMessage("Account not specified", httpRequest), logSamplingRate);
+            emptyAccountLogger.warn(accountErrorMessage("Account not specified", httpRequest), logSamplingRate);
         }
 
         return applicationSettings.getAccountById(accountId, timeout)
@@ -489,45 +554,11 @@ public class Ortb2RequestFactory {
                 : Future.succeededFuture(account);
     }
 
-    /**
-     * Extracts publisher id either from {@link BidRequest}.app.publisher or {@link BidRequest}.site.publisher.
-     * If neither is present returns empty string.
-     */
-    private String accountIdFrom(BidRequest bidRequest) {
-        final App app = bidRequest.getApp();
-        final Publisher appPublisher = app != null ? app.getPublisher() : null;
-        final Site site = bidRequest.getSite();
-        final Publisher sitePublisher = site != null ? site.getPublisher() : null;
-        final Dooh dooh = bidRequest.getDooh();
-        final Publisher doohPublisher = dooh != null ? dooh.getPublisher() : null;
-
-        final Publisher publisher = ObjectUtils.firstNonNull(appPublisher, doohPublisher, sitePublisher);
-        final String publisherId = publisher != null ? resolvePublisherId(publisher) : null;
-        return ObjectUtils.defaultIfNull(publisherId, StringUtils.EMPTY);
-    }
-
-    /**
-     * Resolves what value should be used as a publisher id - either taken from publisher.ext.parentAccount
-     * or publisher.id in this respective priority.
-     */
-    private String resolvePublisherId(Publisher publisher) {
-        final String parentAccountId = parentAccountIdFromExtPublisher(publisher.getExt());
-        return ObjectUtils.defaultIfNull(parentAccountId, publisher.getId());
-    }
-
-    /**
-     * Parses publisher.ext and returns parentAccount value from it. Returns null if any parsing error occurs.
-     */
-    private String parentAccountIdFromExtPublisher(ExtPublisher extPublisher) {
-        final ExtPublisherPrebid extPublisherPrebid = extPublisher != null ? extPublisher.getPrebid() : null;
-        return extPublisherPrebid != null ? StringUtils.stripToNull(extPublisherPrebid.getParentAccount()) : null;
-    }
-
     private Future<Account> wrapFailure(Throwable exception, String accountId, HttpRequestContext httpRequest) {
         if (exception instanceof UnauthorizedAccountException) {
             return Future.failedFuture(exception);
         } else if (exception instanceof PreBidException) {
-            UNKNOWN_ACCOUNT_LOGGER.warn(accountErrorMessage(exception.getMessage(), httpRequest), 100);
+            unknownAccountLogger.warn(accountErrorMessage(exception.getMessage(), httpRequest), 100);
         } else {
             metrics.updateAccountRequestRejectedByFailedFetch(accountId);
             logger.warn("Error occurred while fetching account: {}", exception.getMessage());

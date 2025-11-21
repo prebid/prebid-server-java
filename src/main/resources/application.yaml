@@ -6,6 +6,7 @@ vertx:
   uploads-dir: file-uploads
   init-timeout-ms: 5000
   enable-per-client-endpoint-metrics: false
+  round-robin-inet-address: false
 server:
   max-initial-line-length: 8092
   max-headers-size: 16384
@@ -110,6 +111,9 @@ auction:
     percent: 100
   tmax-upstream-response-time: 30
   stored-requests-timeout-ms: 100
+  profiles:
+    limit: 4
+    timeout-ms: 100
   timeout-notification:
     timeout-ms: 200
     log-result: false
@@ -159,6 +163,8 @@ currency-converter:
 settings:
   generate-storedrequest-bidrequest-id: false
   enforce-valid-account: false
+  fail-on-unknown-bidders: true
+  fail-on-disabled-bidders: true
   database:
     pool-size: 20
     idle-connection-timeout: 300

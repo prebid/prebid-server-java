@@ -17,7 +17,10 @@
           "ext": {
             "origbidcpm": 10,
             "prebid": {
-              "type": "banner"
+              "type": "banner",
+              "meta": {
+                "adaptercode": "aja"
+              }
             }
           }
         }

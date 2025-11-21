@@ -1,7 +1,6 @@
 package org.prebid.server.functional.model.request.auction
 
 import com.fasterxml.jackson.annotation.JsonValue
-import org.prebid.server.functional.util.PBSUtils
 
 enum AuctionEnvironment {
 

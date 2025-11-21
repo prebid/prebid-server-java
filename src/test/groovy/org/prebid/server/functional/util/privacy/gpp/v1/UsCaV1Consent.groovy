@@ -1,6 +1,6 @@
 package org.prebid.server.functional.util.privacy.gpp.v1
 
-import com.iab.gpp.encoder.field.UsCaV1Field
+import com.iab.gpp.encoder.field.UsCaField
 import org.prebid.server.functional.model.privacy.gpp.DataActivity
 import org.prebid.server.functional.model.privacy.gpp.MspaMode
 import org.prebid.server.functional.model.privacy.gpp.Notice
@@ -29,72 +29,72 @@ class UsCaV1Consent extends GppConsent {
         }
 
         Builder setSaleOptOutNotice(Notice saleOptOutNotice) {
-            fieldValue(UsCaV1Field.SALE_OPT_OUT_NOTICE, saleOptOutNotice.value)
+            fieldValue(UsCaField.SALE_OPT_OUT_NOTICE, saleOptOutNotice.value)
             this
         }
 
         Builder setSharingOptOutNotice(Notice sharingOptOutNotice) {
-            fieldValue(UsCaV1Field.SHARING_OPT_OUT_NOTICE, sharingOptOutNotice.value)
+            fieldValue(UsCaField.SHARING_OPT_OUT_NOTICE, sharingOptOutNotice.value)
             this
         }
 
         Builder setSensitiveDataLimitUseNotice(Notice sensitiveDataLimitUseNotice) {
-            fieldValue(UsCaV1Field.SENSITIVE_DATA_LIMIT_USE_NOTICE, sensitiveDataLimitUseNotice.value)
+            fieldValue(UsCaField.SENSITIVE_DATA_LIMIT_USE_NOTICE, sensitiveDataLimitUseNotice.value)
             this
         }
 
         Builder setSaleOptOut(OptOut saleOptOut) {
-            fieldValue(UsCaV1Field.SALE_OPT_OUT, saleOptOut.value)
+            fieldValue(UsCaField.SALE_OPT_OUT, saleOptOut.value)
             this
         }
 
         Builder setSharingOptOut(OptOut sharingOptOut) {
-            fieldValue(UsCaV1Field.SHARING_OPT_OUT, sharingOptOut.value)
+            fieldValue(UsCaField.SHARING_OPT_OUT, sharingOptOut.value)
             this
         }
 
-        Builder setSensitiveDataProcessing(UsCaliforniaV1SensitiveData sensitiveDataProcessing) {
-            fieldValue(UsCaV1Field.SENSITIVE_DATA_PROCESSING, sensitiveDataProcessing.contentList)
+        Builder setSensitiveDataProcessing(UsCaliforniaSensitiveData sensitiveDataProcessing) {
+            fieldValue(UsCaField.SENSITIVE_DATA_PROCESSING, sensitiveDataProcessing.contentList)
             this
         }
 
         Builder setKnownChildSensitiveDataConsents(UsCaliforniaV1ChildSensitiveData sensitiveData) {
-            fieldValue(UsCaV1Field.KNOWN_CHILD_SENSITIVE_DATA_CONSENTS, sensitiveData.contentList)
+            fieldValue(UsCaField.KNOWN_CHILD_SENSITIVE_DATA_CONSENTS, sensitiveData.contentList)
             this
         }
 
         Builder setPersonalDataConsents(DataActivity personalDataConsents) {
-            fieldValue(UsCaV1Field.PERSONAL_DATA_CONSENTS, personalDataConsents.value)
+            fieldValue(UsCaField.PERSONAL_DATA_CONSENTS, personalDataConsents.value)
             this
         }
 
         Builder setMspaCoveredTransaction(Boolean mspaCoveredTransaction) {
-            fieldValue(UsCaV1Field.MSPA_COVERED_TRANSACTION, mspaCoveredTransaction)
+            fieldValue(UsCaField.MSPA_COVERED_TRANSACTION, mspaCoveredTransaction)
             this
         }
 
         Builder setMspaOptOutOptionMode(MspaMode mspaOptOutOptionMode) {
-            fieldValue(UsCaV1Field.MSPA_OPT_OUT_OPTION_MODE, mspaOptOutOptionMode.value)
+            fieldValue(UsCaField.MSPA_OPT_OUT_OPTION_MODE, mspaOptOutOptionMode.value)
             this
         }
 
         Builder setMspaServiceProviderMode(MspaMode mspaServiceProviderMode) {
-            fieldValue(UsCaV1Field.MSPA_SERVICE_PROVIDER_MODE, mspaServiceProviderMode.value)
+            fieldValue(UsCaField.MSPA_SERVICE_PROVIDER_MODE, mspaServiceProviderMode.value)
             this
         }
 
         Builder setGpcSegmentType(Integer gpcSegmentType) {
-            fieldValue(UsCaV1Field.GPC_SEGMENT_TYPE, gpcSegmentType)
+            fieldValue(UsCaField.GPC_SEGMENT_TYPE, gpcSegmentType)
             this
         }
 
         Builder setGpcSegmentIncluded(Boolean gpcSegmentIncluded) {
-            fieldValue(UsCaV1Field.GPC_SEGMENT_INCLUDED, gpcSegmentIncluded)
+            fieldValue(UsCaField.GPC_SEGMENT_INCLUDED, gpcSegmentIncluded)
             this
         }
 
         Builder setGpc(Boolean gpc) {
-            fieldValue(UsCaV1Field.GPC, gpc)
+            fieldValue(UsCaField.GPC, gpc)
             this
         }
 

@@ -8,6 +8,7 @@ import io.vertx.core.Future;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.json.DecodeException;
@@ -16,6 +17,7 @@ import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.Category;
+import org.prebid.server.settings.model.Profile;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredDataType;
 import org.prebid.server.settings.model.StoredResponseDataResult;
@@ -25,6 +27,7 @@ import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -35,6 +38,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Implementation of {@link ApplicationSettings}.
@@ -44,10 +48,14 @@ import java.util.stream.Collectors;
  * In order to enable caching and reduce latency for read operations {@link HttpApplicationSettings}
  * can be decorated by {@link CachingApplicationSettings}.
  * <p>
- * Expected the endpoint to satisfy the following API:
+ * Expected the endpoint to satisfy the following API (URL is encoded):
  * <p>
  * GET {endpoint}?request-ids=["req1","req2"]&imp-ids=["imp1","imp2","imp3"]
  * <p>
+ * or settings.http.rfc3986-compatible is set to true
+ * <p>
+ * * GET {endpoint}?request-id=req1&request-id=req2&imp-id=imp1&imp-id=imp2&imp-id=imp3
+ * * <p>
  * This endpoint should return a payload like:
  * <pre>
  * {
@@ -70,6 +78,7 @@ public class HttpApplicationSettings implements ApplicationSettings {
             new TypeReference<>() {
             };
 
+    private final boolean isRfc3986Compatible;
     private final String endpoint;
     private final String ampEndpoint;
     private final String videoEndpoint;
@@ -77,19 +86,25 @@ public class HttpApplicationSettings implements ApplicationSettings {
     private final HttpClient httpClient;
     private final JacksonMapper mapper;
 
-    public HttpApplicationSettings(HttpClient httpClient, JacksonMapper mapper, String endpoint, String ampEndpoint,
-                                   String videoEndpoint, String categoryEndpoint) {
+    public HttpApplicationSettings(boolean isRfc3986Compatible,
+                                   String endpoint,
+                                   String ampEndpoint,
+                                   String videoEndpoint,
+                                   String categoryEndpoint,
+                                   HttpClient httpClient,
+                                   JacksonMapper mapper) {
+
+        this.isRfc3986Compatible = isRfc3986Compatible;
+        this.endpoint = HttpUtil.validateUrlSyntax(Objects.requireNonNull(endpoint));
+        this.ampEndpoint = HttpUtil.validateUrlSyntax(Objects.requireNonNull(ampEndpoint));
+        this.videoEndpoint = HttpUtil.validateUrlSyntax(Objects.requireNonNull(videoEndpoint));
+        this.categoryEndpoint = HttpUtil.validateUrlSyntax(Objects.requireNonNull(categoryEndpoint));
         this.httpClient = Objects.requireNonNull(httpClient);
         this.mapper = Objects.requireNonNull(mapper);
-        this.endpoint = HttpUtil.validateUrl(Objects.requireNonNull(endpoint));
-        this.ampEndpoint = HttpUtil.validateUrl(Objects.requireNonNull(ampEndpoint));
-        this.videoEndpoint = HttpUtil.validateUrl(Objects.requireNonNull(videoEndpoint));
-        this.categoryEndpoint = HttpUtil.validateUrl(Objects.requireNonNull(categoryEndpoint));
     }
 
     @Override
     public Future<Account> getAccountById(String accountId, Timeout timeout) {
-
         return fetchAccountsByIds(Collections.singleton(accountId), timeout)
                 .map(accounts -> accounts.stream()
                         .findFirst()
@@ -101,33 +116,34 @@ public class HttpApplicationSettings implements ApplicationSettings {
         if (CollectionUtils.isEmpty(accountIds)) {
             return Future.succeededFuture(Collections.emptySet());
         }
+
         final long remainingTimeout = timeout.remaining();
         if (timeout.remaining() <= 0) {
             return Future.failedFuture(new TimeoutException("Timeout has been exceeded"));
         }
 
         return httpClient.get(accountsRequestUrlFrom(endpoint, accountIds), HttpUtil.headers(), remainingTimeout)
-                .compose(response -> processAccountsResponse(response, accountIds))
-                .recover(Future::failedFuture);
+                .map(response -> processAccountsResponse(response, accountIds));
     }
 
-    private static String accountsRequestUrlFrom(String endpoint, Set<String> accountIds) {
-        final StringBuilder url = new StringBuilder(endpoint);
-        url.append(endpoint.contains("?") ? "&" : "?");
-
-        if (!accountIds.isEmpty()) {
-            url.append("account-ids=[\"").append(joinIds(accountIds)).append("\"]");
+    private String accountsRequestUrlFrom(String endpoint, Set<String> accountIds) {
+        try {
+            final URIBuilder uriBuilder = new URIBuilder(endpoint);
+            if (!accountIds.isEmpty()) {
+                if (isRfc3986Compatible) {
+                    accountIds.forEach(accountId -> uriBuilder.addParameter("account-id", accountId));
+                } else {
+                    uriBuilder.addParameter("account-ids", "[\"%s\"]".formatted(joinIds(accountIds)));
+                }
+            }
+            return uriBuilder.build().toString();
+        } catch (URISyntaxException e) {
+            throw new PreBidException("URL %s has bad syntax".formatted(endpoint));
         }
-
-        return url.toString();
     }
 
-    private Future<Set<Account>> processAccountsResponse(HttpClientResponse response, Set<String> accountIds) {
-        return Future.succeededFuture(
-                toAccountsResult(response.getStatusCode(), response.getBody(), accountIds));
-    }
-
-    private Set<Account> toAccountsResult(int statusCode, String body, Set<String> accountIds) {
+    private Set<Account> processAccountsResponse(HttpClientResponse httpClientResponse, Set<String> accountIds) {
+        final int statusCode = httpClientResponse.getStatusCode();
         if (statusCode != HttpResponseStatus.OK.code()) {
             throw new PreBidException("Error fetching accounts %s via http: unexpected response status %d"
                     .formatted(accountIds, statusCode));
@@ -135,7 +151,7 @@ public class HttpApplicationSettings implements ApplicationSettings {
 
         final HttpAccountsResponse response;
         try {
-            response = mapper.decodeValue(body, HttpAccountsResponse.class);
+            response = mapper.decodeValue(httpClientResponse.getBody(), HttpAccountsResponse.class);
         } catch (DecodeException e) {
             throw new PreBidException("Error fetching accounts %s via http: failed to parse response: %s"
                     .formatted(accountIds, e.getMessage()));
@@ -145,38 +161,182 @@ public class HttpApplicationSettings implements ApplicationSettings {
         return MapUtils.isNotEmpty(accounts) ? new HashSet<>(accounts.values()) : Collections.emptySet();
     }
 
-    /**
-     * Runs a process to get stored requests by a collection of ids from http service
-     * and returns {@link Future&lt;{@link StoredDataResult }&gt;}
-     */
     @Override
-    public Future<StoredDataResult> getStoredData(String accountId, Set<String> requestIds, Set<String> impIds,
-                                                  Timeout timeout) {
+    public Future<StoredDataResult<String>> getStoredData(String accountId,
+                                                          Set<String> requestIds,
+                                                          Set<String> impIds,
+                                                          Timeout timeout) {
+
         return fetchStoredData(endpoint, requestIds, impIds, timeout);
     }
 
-    /**
-     * Runs a process to get stored requests by a collection of amp ids from http service
-     * and returns {@link Future&lt;{@link StoredDataResult }&gt;}
-     */
     @Override
-    public Future<StoredDataResult> getAmpStoredData(String accountId, Set<String> requestIds, Set<String> impIds,
-                                                     Timeout timeout) {
+    public Future<StoredDataResult<String>> getAmpStoredData(String accountId,
+                                                             Set<String> requestIds,
+                                                             Set<String> impIds,
+                                                             Timeout timeout) {
+
         return fetchStoredData(ampEndpoint, requestIds, Collections.emptySet(), timeout);
     }
 
-    /**
-     * Not supported and returns failed result.
-     */
     @Override
-    public Future<StoredDataResult> getVideoStoredData(String accountId, Set<String> requestIds, Set<String> impIds,
-                                                       Timeout timeout) {
+    public Future<StoredDataResult<String>> getVideoStoredData(String accountId,
+                                                               Set<String> requestIds,
+                                                               Set<String> impIds,
+                                                               Timeout timeout) {
+
         return fetchStoredData(videoEndpoint, requestIds, impIds, timeout);
     }
 
-    /**
-     * Not supported and returns failed result.
-     */
+    private Future<StoredDataResult<String>> fetchStoredData(String endpoint,
+                                                             Set<String> requestIds,
+                                                             Set<String> impIds,
+                                                             Timeout timeout) {
+
+        if (CollectionUtils.isEmpty(requestIds) && CollectionUtils.isEmpty(impIds)) {
+            return Future.succeededFuture(
+                    StoredDataResult.of(Collections.emptyMap(), Collections.emptyMap(), Collections.emptyList()));
+        }
+
+        final long remainingTimeout = timeout.remaining();
+        if (remainingTimeout <= 0) {
+            return failStoredDataResponse(new TimeoutException("Timeout has been exceeded"), requestIds, impIds);
+        }
+
+        return httpClient.get(storeRequestUrlFrom(endpoint, requestIds, impIds), HttpUtil.headers(), remainingTimeout)
+                .map(response -> processStoredDataResponse(response, requestIds, impIds))
+                .recover(exception -> failStoredDataResponse(exception, requestIds, impIds));
+    }
+
+    private static Future<StoredDataResult<String>> failStoredDataResponse(Throwable throwable,
+                                                                           Set<String> requestIds,
+                                                                           Set<String> impIds) {
+
+        return Future.succeededFuture(toFailedStoredDataResult(requestIds, impIds, throwable.getMessage()));
+    }
+
+    private static StoredDataResult<String> toFailedStoredDataResult(Set<String> requestIds,
+                                                                     Set<String> impIds,
+                                                                     String errorMessageFormat,
+                                                                     Object... args) {
+
+        final String errorRequests = requestIds.isEmpty() ? "" : "stored requests for ids " + requestIds;
+        final String separator = requestIds.isEmpty() || impIds.isEmpty() ? "" : " and ";
+        final String errorImps = impIds.isEmpty() ? "" : "stored imps for ids " + impIds;
+
+        final String error = "Error fetching %s%s%s via HTTP: %s"
+                .formatted(errorRequests, separator, errorImps, errorMessageFormat.formatted(args));
+        logger.info(error);
+
+        return StoredDataResult.of(Collections.emptyMap(), Collections.emptyMap(), Collections.singletonList(error));
+    }
+
+    private String storeRequestUrlFrom(String endpoint, Set<String> requestIds, Set<String> impIds) {
+        try {
+            final URIBuilder uriBuilder = new URIBuilder(endpoint);
+            if (!requestIds.isEmpty()) {
+                if (isRfc3986Compatible) {
+                    requestIds.forEach(requestId -> uriBuilder.addParameter("request-id", requestId));
+                } else {
+                    uriBuilder.addParameter("request-ids", "[\"%s\"]".formatted(joinIds(requestIds)));
+                }
+            }
+            if (!impIds.isEmpty()) {
+                if (isRfc3986Compatible) {
+                    impIds.forEach(impId -> uriBuilder.addParameter("imp-id", impId));
+                } else {
+                    uriBuilder.addParameter("imp-ids", "[\"%s\"]".formatted(joinIds(impIds)));
+                }
+            }
+            return uriBuilder.build().toString();
+        } catch (URISyntaxException e) {
+            throw new PreBidException("URL %s has bad syntax".formatted(endpoint));
+        }
+    }
+
+    private StoredDataResult<String> processStoredDataResponse(HttpClientResponse httpClientResponse,
+                                                               Set<String> requestIds,
+                                                               Set<String> impIds) {
+
+        final int statusCode = httpClientResponse.getStatusCode();
+        if (statusCode != HttpResponseStatus.OK.code()) {
+            return toFailedStoredDataResult(requestIds, impIds, "HTTP status code %d", statusCode);
+        }
+
+        final String body = httpClientResponse.getBody();
+        final HttpFetcherResponse response;
+        try {
+            response = mapper.decodeValue(body, HttpFetcherResponse.class);
+        } catch (DecodeException e) {
+            return toFailedStoredDataResult(
+                    requestIds, impIds, "parsing json failed for response: %s with message: %s", body, e.getMessage());
+        }
+
+        return parseResponse(requestIds, impIds, response);
+    }
+
+    private StoredDataResult<String> parseResponse(Set<String> requestIds,
+                                                   Set<String> impIds,
+                                                   HttpFetcherResponse response) {
+
+        final List<String> errors = new ArrayList<>();
+
+        final Map<String, String> storedIdToRequest =
+                parseStoredDataOrAddError(requestIds, response.getRequests(), StoredDataType.request, errors);
+
+        final Map<String, String> storedIdToImp =
+                parseStoredDataOrAddError(impIds, response.getImps(), StoredDataType.imp, errors);
+
+        return StoredDataResult.of(storedIdToRequest, storedIdToImp, errors);
+    }
+
+    private Map<String, String> parseStoredDataOrAddError(Set<String> ids,
+                                                          Map<String, ObjectNode> storedData,
+                                                          StoredDataType type,
+                                                          List<String> errors) {
+
+        final Map<String, String> result = new HashMap<>(ids.size());
+
+        if (storedData != null) {
+            for (Map.Entry<String, ObjectNode> entry : storedData.entrySet()) {
+                final String id = entry.getKey();
+
+                final String jsonAsString;
+                try {
+                    jsonAsString = mapper.mapper().writeValueAsString(entry.getValue());
+                } catch (JsonProcessingException e) {
+                    errors.add("Error parsing %s json for id: %s with message: %s".formatted(type, id, e.getMessage()));
+                    continue;
+                }
+
+                result.put(id, jsonAsString);
+            }
+        }
+
+        if (result.size() < ids.size()) {
+            final Set<String> missedIds = new HashSet<>(ids);
+            missedIds.removeAll(result.keySet());
+
+            missedIds.forEach(id -> errors.add("Stored %s not found for id: %s".formatted(type, id)));
+        }
+
+        return result;
+    }
+
+    @Override
+    public Future<StoredDataResult<Profile>> getProfiles(String accountId,
+                                                         Set<String> requestIds,
+                                                         Set<String> impIds,
+                                                         Timeout timeout) {
+
+        return Future.succeededFuture(StoredDataResult.of(
+                Collections.emptyMap(),
+                Collections.emptyMap(),
+                Stream.concat(requestIds.stream(), impIds.stream())
+                        .map(id -> "Profile not found for id: " + id)
+                        .toList()));
+    }
+
     @Override
     public Future<StoredResponseDataResult> getStoredResponses(Set<String> responseIds, Timeout timeout) {
         return Future.failedFuture(new PreBidException("Not supported"));
@@ -187,11 +347,13 @@ public class HttpApplicationSettings implements ApplicationSettings {
         final String url = StringUtils.isNotEmpty(publisher)
                 ? "%s/%s/%s.json".formatted(categoryEndpoint, primaryAdServer, publisher)
                 : "%s/%s.json".formatted(categoryEndpoint, primaryAdServer);
+
         final long remainingTimeout = timeout.remaining();
         if (remainingTimeout <= 0) {
             return Future.failedFuture(new TimeoutException(
                     "Failed to fetch categories from url '%s'. Reason: Timeout exceeded".formatted(url)));
         }
+
         return httpClient.get(url, remainingTimeout)
                 .map(httpClientResponse -> processCategoryResponse(httpClientResponse, url));
     }
@@ -213,9 +375,11 @@ public class HttpApplicationSettings implements ApplicationSettings {
         } catch (DecodeException e) {
             throw makeFailedCategoryFetchException(url, "Failed to decode response body with error " + e.getMessage());
         }
+
         return categories.entrySet().stream()
                 .filter(catToCategory -> catToCategory.getValue() != null)
-                .collect(Collectors.toMap(Map.Entry::getKey,
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
                         catToCategory -> catToCategory.getValue().getId()));
     }
 
@@ -223,133 +387,7 @@ public class HttpApplicationSettings implements ApplicationSettings {
         return new PreBidException("Failed to fetch categories from url '%s'. Reason: %s".formatted(url, reason));
     }
 
-    private Future<StoredDataResult> fetchStoredData(String endpoint, Set<String> requestIds, Set<String> impIds,
-                                                     Timeout timeout) {
-        if (CollectionUtils.isEmpty(requestIds) && CollectionUtils.isEmpty(impIds)) {
-            return Future.succeededFuture(
-                    StoredDataResult.of(Collections.emptyMap(), Collections.emptyMap(), Collections.emptyList()));
-        }
-
-        final long remainingTimeout = timeout.remaining();
-        if (remainingTimeout <= 0) {
-            return failStoredDataResponse(new TimeoutException("Timeout has been exceeded"), requestIds, impIds);
-        }
-
-        return httpClient.get(storeRequestUrlFrom(endpoint, requestIds, impIds), HttpUtil.headers(), remainingTimeout)
-                .compose(response -> processStoredDataResponse(response, requestIds, impIds))
-                .recover(exception -> failStoredDataResponse(exception, requestIds, impIds));
-    }
-
-    private static String storeRequestUrlFrom(String endpoint, Set<String> requestIds, Set<String> impIds) {
-        final StringBuilder url = new StringBuilder(endpoint);
-        url.append(endpoint.contains("?") ? "&" : "?");
-
-        if (!requestIds.isEmpty()) {
-            url.append("request-ids=[\"").append(joinIds(requestIds)).append("\"]");
-        }
-
-        if (!impIds.isEmpty()) {
-            if (!requestIds.isEmpty()) {
-                url.append("&");
-            }
-            url.append("imp-ids=[\"").append(joinIds(impIds)).append("\"]");
-        }
-
-        return url.toString();
-    }
-
     private static String joinIds(Set<String> ids) {
         return String.join("\",\"", ids);
-    }
-
-    private static Future<StoredDataResult> failStoredDataResponse(Throwable throwable, Set<String> requestIds,
-                                                                   Set<String> impIds) {
-        return Future.succeededFuture(
-                toFailedStoredDataResult(requestIds, impIds, throwable.getMessage()));
-    }
-
-    private Future<StoredDataResult> processStoredDataResponse(HttpClientResponse response, Set<String> requestIds,
-                                                               Set<String> impIds) {
-        return Future.succeededFuture(
-                toStoredDataResult(requestIds, impIds, response.getStatusCode(), response.getBody()));
-    }
-
-    private static StoredDataResult toFailedStoredDataResult(Set<String> requestIds, Set<String> impIds,
-                                                             String errorMessageFormat, Object... args) {
-        final String errorRequests = requestIds.isEmpty() ? ""
-                : "stored requests for ids " + requestIds;
-        final String separator = requestIds.isEmpty() || impIds.isEmpty() ? "" : " and ";
-        final String errorImps = impIds.isEmpty() ? "" : "stored imps for ids " + impIds;
-
-        final String error = "Error fetching %s%s%s via HTTP: %s"
-                .formatted(errorRequests, separator, errorImps, errorMessageFormat.formatted(args));
-
-        logger.info(error);
-        return StoredDataResult.of(Collections.emptyMap(), Collections.emptyMap(), Collections.singletonList(error));
-    }
-
-    private StoredDataResult toStoredDataResult(Set<String> requestIds, Set<String> impIds,
-                                                int statusCode, String body) {
-        if (statusCode != HttpResponseStatus.OK.code()) {
-            return toFailedStoredDataResult(requestIds, impIds, "HTTP status code %d", statusCode);
-        }
-
-        final HttpFetcherResponse response;
-        try {
-            response = mapper.decodeValue(body, HttpFetcherResponse.class);
-        } catch (DecodeException e) {
-            return toFailedStoredDataResult(
-                    requestIds, impIds, "parsing json failed for response: %s with message: %s", body, e.getMessage());
-        }
-
-        return parseResponse(requestIds, impIds, response);
-    }
-
-    private StoredDataResult parseResponse(Set<String> requestIds, Set<String> impIds,
-                                           HttpFetcherResponse response) {
-        final List<String> errors = new ArrayList<>();
-
-        final Map<String, String> storedIdToRequest =
-                parseStoredDataOrAddError(requestIds, response.getRequests(), StoredDataType.request, errors);
-
-        final Map<String, String> storedIdToImp =
-                parseStoredDataOrAddError(impIds, response.getImps(), StoredDataType.imp, errors);
-
-        return StoredDataResult.of(storedIdToRequest, storedIdToImp, errors);
-    }
-
-    private Map<String, String> parseStoredDataOrAddError(Set<String> ids, Map<String, ObjectNode> storedData,
-                                                          StoredDataType type, List<String> errors) {
-        final Map<String, String> result = new HashMap<>(ids.size());
-        final Set<String> notParsedIds = new HashSet<>();
-
-        if (storedData != null) {
-            for (Map.Entry<String, ObjectNode> entry : storedData.entrySet()) {
-                final String id = entry.getKey();
-
-                final String jsonAsString;
-                try {
-                    jsonAsString = mapper.mapper().writeValueAsString(entry.getValue());
-                } catch (JsonProcessingException e) {
-                    errors.add("Error parsing %s json for id: %s with message: %s".formatted(type, id, e.getMessage()));
-                    notParsedIds.add(id);
-                    continue;
-                }
-
-                result.put(id, jsonAsString);
-            }
-        }
-
-        if (result.size() < ids.size()) {
-            final Set<String> missedIds = new HashSet<>(ids);
-            missedIds.removeAll(result.keySet());
-            missedIds.removeAll(notParsedIds);
-
-            errors.addAll(missedIds.stream()
-                    .map(id -> "Stored %s not found for id: %s".formatted(type, id))
-                    .toList());
-        }
-
-        return result;
     }
 }

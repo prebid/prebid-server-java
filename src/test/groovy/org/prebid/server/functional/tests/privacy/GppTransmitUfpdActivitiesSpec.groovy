@@ -47,7 +47,6 @@ import spock.lang.PendingFeature
 
 import java.time.Instant
 
-import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED
 import static org.prebid.server.functional.model.config.DataActivity.CONSENT
 import static org.prebid.server.functional.model.config.DataActivity.NOTICE_NOT_PROVIDED
@@ -74,11 +73,10 @@ import static org.prebid.server.functional.model.config.UsNationalPrivacySection
 import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SHARING_NOTICE
 import static org.prebid.server.functional.model.pricefloors.Country.CAN
 import static org.prebid.server.functional.model.pricefloors.Country.USA
-import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ACCOUNT_DISALLOWED_COUNT
 import static org.prebid.server.functional.model.privacy.Metric.ACCOUNT_PROCESSED_RULES_COUNT
-import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ADAPTER_DISALLOWED_COUNT
-import static org.prebid.server.functional.model.privacy.Metric.ALERT_GENERAL
 import static org.prebid.server.functional.model.privacy.Metric.PROCESSED_ACTIVITY_RULES_COUNT
+import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ACCOUNT_DISALLOWED_COUNT
+import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ADAPTER_DISALLOWED_COUNT
 import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_REQUEST_DISALLOWED_COUNT
 import static org.prebid.server.functional.model.request.GppSectionId.USP_V1
 import static org.prebid.server.functional.model.request.GppSectionId.US_CA_V1
@@ -95,6 +93,7 @@ import static org.prebid.server.functional.model.request.auction.PrivacyModule.I
 import static org.prebid.server.functional.model.request.auction.PrivacyModule.IAB_US_CUSTOM_LOGIC
 import static org.prebid.server.functional.model.request.auction.PrivacyModule.IAB_US_GENERAL
 import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
+import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 import static org.prebid.server.functional.util.privacy.model.State.ALABAMA
 import static org.prebid.server.functional.util.privacy.model.State.ONTARIO
 
@@ -260,7 +259,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         when: "PBS processes auction requests"
         activityPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Response should contain error"
+        then: "Logs should contain error"
         def logs = activityPbsService.getLogsByTime(startTime)
         assert getLogsByText(logs, "Activity configuration for account ${accountId} " +
                 "contains conditional rule with empty array").size() == 1
@@ -855,9 +854,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         }
 
         and: "Activities set for transmitUfpd with rejecting privacy regulation"
-        def rule = new ActivityRule().tap {
-            it.privacyRegulation = [privacyAllowRegulations]
-        }
+        def rule = new ActivityRule(privacyRegulation: [privacyAllowRegulations])
 
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([rule]))
 
@@ -1280,6 +1277,142 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         ]
     }
 
+    def "PBS auction call when privacy module contain invalid GPP segment shouldn't remove UFPD fields in request and emit error log"() {
+        given: "Test start time"
+        def startTime = Instant.now()
+
+        and: "Default Generic BidRequests with UFPD fields and account id"
+        def accountId = PBSUtils.randomNumber as String
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
+            regs.gppSid = [US_NAT_V1.intValue]
+            regs.gpp = INVALID_GPP_STRING
+        }
+
+        and: "Activities set for transmitUfpd with rejecting privacy regulation"
+        def rule = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_US_GENERAL]
+        }
+
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([rule]))
+
+        and: "Account gpp configuration"
+        def accountGppConfig = new AccountGppConfig(code: IAB_US_GENERAL, enabled: true)
+
+        and: "Existed account with privacy regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
+        when: "PBS processes auction requests"
+        def response = activityPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Generic bidder request should have data in UFPD fields"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+
+        verifyAll {
+            bidderRequest.device.didsha1 == bidRequest.device.didsha1
+            bidderRequest.device.didmd5 == bidRequest.device.didmd5
+            bidderRequest.device.dpidsha1 == bidRequest.device.dpidsha1
+            bidderRequest.device.ifa == bidRequest.device.ifa
+            bidderRequest.device.macsha1 == bidRequest.device.macsha1
+            bidderRequest.device.macmd5 == bidRequest.device.macmd5
+            bidderRequest.device.dpidmd5 == bidRequest.device.dpidmd5
+            bidderRequest.user.id == bidRequest.user.id
+            bidderRequest.user.buyeruid == bidRequest.user.buyeruid
+            bidderRequest.user.yob == bidRequest.user.yob
+            bidderRequest.user.gender == bidRequest.user.gender
+            bidderRequest.user.data == bidRequest.user.data
+            bidderRequest.user.geo.zip == bidRequest.user.geo.zip
+            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+        }
+
+        and: "Generic bidder request should have data in EIDS fields"
+        assert bidderRequest.user.eids == bidRequest.user.eids
+
+        and: "Response should not contain any warnings"
+        assert !response.ext.warnings
+
+        and: "Response should not contain any errors"
+        assert !response.ext.errors
+
+        and: "Metrics processed across activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[ACCOUNT_PROCESSED_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[ALERT_GENERAL] == 1
+
+        and: "Logs should contain error"
+        def logs = activityPbsService.getLogsByTime(startTime)
+        assert getLogsByText(logs, "UsNat privacy module creation failed: Unable to decode UsNatCoreSegment " +
+                "'${INVALID_GPP_SEGMENT}'. Activity: TRANSMIT_UFPD. Section: ${US_NAT_V1.value}. Gpp: $INVALID_GPP_STRING").size() == 1
+    }
+
+    def "PBS auction call when privacy module contain invalid GPP string shouldn't remove UFPD fields in request and emit warning in response"() {
+        given: "Default Generic BidRequests with UFPD fields and account id"
+        def accountId = PBSUtils.randomNumber as String
+        def invalidGpp = PBSUtils.randomString
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
+            regs.gppSid = [US_NAT_V1.intValue]
+            regs.gpp = invalidGpp
+        }
+
+        and: "Activities set for transmitUfpd with rejecting privacy regulation"
+        def rule = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_US_GENERAL]
+        }
+
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([rule]))
+
+        and: "Account gpp configuration"
+        def accountGppConfig = new AccountGppConfig(code: IAB_US_GENERAL, enabled: true)
+
+        and: "Existed account with privacy regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
+        when: "PBS processes auction requests"
+        def response = activityPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Generic bidder request should have data in UFPD fields"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+
+        verifyAll {
+            bidderRequest.device.didsha1 == bidRequest.device.didsha1
+            bidderRequest.device.didmd5 == bidRequest.device.didmd5
+            bidderRequest.device.dpidsha1 == bidRequest.device.dpidsha1
+            bidderRequest.device.ifa == bidRequest.device.ifa
+            bidderRequest.device.macsha1 == bidRequest.device.macsha1
+            bidderRequest.device.macmd5 == bidRequest.device.macmd5
+            bidderRequest.device.dpidmd5 == bidRequest.device.dpidmd5
+            bidderRequest.user.id == bidRequest.user.id
+            bidderRequest.user.buyeruid == bidRequest.user.buyeruid
+            bidderRequest.user.yob == bidRequest.user.yob
+            bidderRequest.user.gender == bidRequest.user.gender
+            bidderRequest.user.data == bidRequest.user.data
+            bidderRequest.user.geo.zip == bidRequest.user.geo.zip
+            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+        }
+
+        and: "Generic bidder request should have data in EIDS fields"
+        assert bidderRequest.user.eids == bidRequest.user.eids
+
+        and: "Should add a warning when in debug mode"
+        assert response.ext.warnings[PREBID]?.message.contains("GPP string invalid: Unable to decode '$invalidGpp'".toString())
+
+        and: "Response should not contain any errors"
+        assert !response.ext.errors
+
+        and: "Metrics processed across activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[ACCOUNT_PROCESSED_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+    }
+
     def "PBS auction call when request have different gpp consent but match and rejecting should remove UFPD fields in request"() {
         given: "Default Generic BidRequests with UFPD fields and account id"
         def accountId = PBSUtils.randomNumber as String
@@ -1412,8 +1545,11 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
         accountDao.save(account)
 
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
         when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(bidRequest)
+        def response = activityPbsService.sendAuctionRequest(bidRequest)
 
         then: "Generic bidder request should have data in UFPD fields"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -1439,8 +1575,22 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         and: "Generic bidder request should have data in EIDS fields"
         assert bidderRequest.user.eids == bidRequest.user.eids
 
+        and: "Response shouldn't contain errors"
+        assert !response.ext.errors
+
+        and: "Response shouldn't contain warnings"
+        assert !response.ext.warnings
+
+        and: "Metrics for disallowed activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[ACCOUNT_PROCESSED_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+
+        and: "General alert metric shouldn't be updated"
+        !metrics[ALERT_GENERAL]
+
         where:
-        regsGpp << ["", new UsNatV1Consent.Builder().build(), new UsNatV1Consent.Builder().setGpc(false).build()]
+        regsGpp << [null, "", new UsNatV1Consent.Builder().build(), new UsNatV1Consent.Builder().setGpc(false).build()]
     }
 
     def "PBS auction call when privacy regulation have duplicate should leave UFPD fields in request and update alerts metrics"() {
@@ -1496,7 +1646,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL.getValue()] == 1
+        assert metrics[ALERT_GENERAL] == 1
     }
 
     def "PBS auction call when privacy module contain invalid property should respond with an error"() {
@@ -1650,8 +1800,11 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
                                                                                               new EqualityValueRule(PERSONAL_DATA_CONSENTS, NOTICE_NOT_PROVIDED)]
     }
 
-    def "PBS auction call when custom privacy regulation empty and normalize is disabled should respond with an error and update metric"() {
-        given: "Generic BidRequest with gpp and account setup"
+    def "PBS auction call when custom privacy regulation empty and normalize is disabled should leave UFPD fields in request and emit error log"() {
+        given: "Test start time"
+        def startTime = Instant.now()
+
+        and: "Generic BidRequest with gpp and account setup"
         def gppConsent = new UsNatV1Consent.Builder().setGpc(true).build()
         def accountId = PBSUtils.randomNumber as String
         def bidRequest = getBidRequestWithPersonalData(accountId).tap {
@@ -1682,16 +1835,45 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(bidRequest)
+        def response = activityPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Response should contain error"
-        def error = thrown(PrebidServerException)
-        assert error.statusCode == BAD_REQUEST.code()
-        assert error.responseBody == "JsonLogic exception: objects must have exactly 1 key defined, found 0"
+        then: "Response should not contain any warnings"
+        assert !response.ext.warnings
+
+        and: "Response should not contain any errors"
+        assert !response.ext.errors
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL.getValue()] == 1
+        assert metrics[ALERT_GENERAL] == 1
+
+        and: "Generic bidder request should have data in UFPD fields"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+
+        and: "Generic bidder should be called due to positive allow in activities"
+        verifyAll {
+            bidderRequest.device.didsha1 == bidRequest.device.didsha1
+            bidderRequest.device.didmd5 == bidRequest.device.didmd5
+            bidderRequest.device.dpidsha1 == bidRequest.device.dpidsha1
+            bidderRequest.device.ifa == bidRequest.device.ifa
+            bidderRequest.device.macsha1 == bidRequest.device.macsha1
+            bidderRequest.device.macmd5 == bidRequest.device.macmd5
+            bidderRequest.device.dpidmd5 == bidRequest.device.dpidmd5
+            bidderRequest.user.id == bidRequest.user.id
+            bidderRequest.user.buyeruid == bidRequest.user.buyeruid
+            bidderRequest.user.yob == bidRequest.user.yob
+            bidderRequest.user.gender == bidRequest.user.gender
+            bidderRequest.user.data == bidRequest.user.data
+            bidderRequest.user.geo == bidRequest.user.geo
+            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+        }
+
+        and: "Generic bidder request should have data in EIDS fields"
+        assert bidderRequest.user.eids == bidRequest.user.eids
+
+        and: "Logs should contain error"
+        def logs = activityPbsService.getLogsByTime(startTime)
+        assert getLogsByText(logs, "USCustomLogic creation failed: objects must have exactly 1 key defined, found 0").size() == 1
     }
 
     def "PBS auction call when custom privacy regulation with normalizing that match custom config should have empty UFPD fields"() {
@@ -1802,7 +1984,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
-        and: "amp request with link to account"
+        and: "Default amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
         }
@@ -1857,7 +2039,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
-        and: "amp request with link to account"
+        and: "Default amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
         }
@@ -1913,7 +2095,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
-        and: "amp request with link to account"
+        and: "Default amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
         }
@@ -1965,7 +2147,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
-        and: "amp request with link to account"
+        and: "Default amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
         }
@@ -1985,7 +2167,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         when: "PBS processes amp request"
         activityPbsService.sendAmpRequest(ampRequest)
 
-        then: "Response should contain error"
+        then: "Logs should contain error"
         def logs = activityPbsService.getLogsByTime(startTime)
         assert getLogsByText(logs, "Activity configuration for account ${accountId} " +
                 "contains conditional rule with empty array").size() == 1
@@ -2003,7 +2185,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
-        and: "amp request with link to account"
+        and: "Default amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
         }
@@ -2056,7 +2238,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
-        and: "amp request with link to account"
+        and: "Default amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
         }
@@ -2110,7 +2292,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             it.regs.ext = new RegsExt(gpc: null)
         }
 
-        and: "amp request with link to account"
+        and: "Default amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
         }
@@ -2171,7 +2353,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
-        and: "amp request with link to account"
+        and: "Default amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
         }
@@ -2232,7 +2414,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
-        and: "amp request with link to account"
+        and: "Default amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
             it.gppSid = US_NAT_V1.value
@@ -2241,9 +2423,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         }
 
         and: "Activities set for transmitUfpd with allowing privacy regulation"
-        def rule = new ActivityRule().tap {
-            it.privacyRegulation = [privacyAllowRegulations]
-        }
+        def rule = new ActivityRule(privacyRegulation: [privacyAllowRegulations])
 
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([rule]))
 
@@ -2292,7 +2472,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
-        and: "amp request with link to account"
+        and: "Default amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
             it.gppSid = US_NAT_V1.value
@@ -2472,7 +2652,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
-        and: "amp request with link to account"
+        and: "Default amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
             it.gppSid = US_NAT_V1.value
@@ -2532,12 +2712,164 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         ]
     }
 
+    def "PBS amp call when privacy module contain invalid GPP segment shouldn't remove UFPD fields in request and emit error log"() {
+        given: "Test start time"
+        def startTime = Instant.now()
+
+        and: "Default Generic BidRequest with UFPD fields field and account id"
+        def accountId = PBSUtils.randomNumber as String
+        def ampStoredRequest = getBidRequestWithPersonalData(accountId)
+
+        and: "Default amp request with link to account"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.account = accountId
+            it.gppSid = US_NAT_V1.value
+            it.consentString = INVALID_GPP_STRING
+            it.consentType = GPP
+        }
+
+        and: "Activities set for transmitUfpd with allowing privacy regulation"
+        def rule = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_US_GENERAL]
+        }
+
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([rule]))
+
+        and: "Account gpp configuration"
+        def accountGppConfig = new AccountGppConfig(code: IAB_US_GENERAL, enabled: true)
+
+        and: "Existed account with privacy regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        and: "Stored request in DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
+        when: "PBS processes amp request"
+        def response = activityPbsService.sendAmpRequest(ampRequest)
+
+        then: "Generic bidder request should have data in UFPD fields"
+        def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
+
+        verifyAll {
+            bidderRequest.device.didsha1 == ampStoredRequest.device.didsha1
+            bidderRequest.device.didmd5 == ampStoredRequest.device.didmd5
+            bidderRequest.device.dpidsha1 == ampStoredRequest.device.dpidsha1
+            bidderRequest.device.ifa == ampStoredRequest.device.ifa
+            bidderRequest.device.macsha1 == ampStoredRequest.device.macsha1
+            bidderRequest.device.macmd5 == ampStoredRequest.device.macmd5
+            bidderRequest.device.dpidmd5 == ampStoredRequest.device.dpidmd5
+            bidderRequest.user.id == ampStoredRequest.user.id
+            bidderRequest.user.buyeruid == ampStoredRequest.user.buyeruid
+            bidderRequest.user.yob == ampStoredRequest.user.yob
+            bidderRequest.user.gender == ampStoredRequest.user.gender
+            bidderRequest.user.data == ampStoredRequest.user.data
+            bidderRequest.user.geo == ampStoredRequest.user.geo
+            bidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
+        }
+
+        and: "Generic bidder request should have data in EIDS fields"
+        assert bidderRequest.user.eids == ampStoredRequest.user.eids
+
+        and: "Metrics processed across activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[ALERT_GENERAL] == 1
+
+        and: "Response should not contain any warnings"
+        assert !response.ext.warnings
+
+        and: "Response should contain consent_string errors"
+        assert response.ext.errors[PREBID].message == ["Amp request parameter consent_string has invalid format: $INVALID_GPP_STRING"]
+
+        "Response should contain error"
+        def logs = activityPbsService.getLogsByTime(startTime)
+        assert getLogsByText(logs, "UsNat privacy module creation failed: Unable to decode UsNatCoreSegment " +
+                "'${INVALID_GPP_SEGMENT}'. Activity: TRANSMIT_UFPD. Section: ${US_NAT_V1.value}. Gpp: $INVALID_GPP_STRING").size() == 1
+    }
+
+    def "PBS amp call when privacy module contain invalid GPP string shouldn't remove UFPD fields in request and emit warning in response"() {
+        given: "Default Generic BidRequest with UFPD fields field and account id"
+        def accountId = PBSUtils.randomNumber as String
+        def ampStoredRequest = getBidRequestWithPersonalData(accountId)
+
+        and: "Default amp request with link to account"
+        def invalidGpp = PBSUtils.randomString
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.account = accountId
+            it.gppSid = US_NAT_V1.value
+            it.consentString = invalidGpp
+            it.consentType = GPP
+        }
+
+        and: "Activities set for transmitUfpd with allowing privacy regulation"
+        def rule = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_US_GENERAL]
+        }
+
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([rule]))
+
+        and: "Account gpp configuration"
+        def accountGppConfig = new AccountGppConfig(code: IAB_US_GENERAL, enabled: true)
+
+        and: "Existed account with privacy regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        and: "Stored request in DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
+        when: "PBS processes amp request"
+        def response = activityPbsService.sendAmpRequest(ampRequest)
+
+        then: "Generic bidder request should have data in UFPD fields"
+        def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
+
+        verifyAll {
+            bidderRequest.device.didsha1 == ampStoredRequest.device.didsha1
+            bidderRequest.device.didmd5 == ampStoredRequest.device.didmd5
+            bidderRequest.device.dpidsha1 == ampStoredRequest.device.dpidsha1
+            bidderRequest.device.ifa == ampStoredRequest.device.ifa
+            bidderRequest.device.macsha1 == ampStoredRequest.device.macsha1
+            bidderRequest.device.macmd5 == ampStoredRequest.device.macmd5
+            bidderRequest.device.dpidmd5 == ampStoredRequest.device.dpidmd5
+            bidderRequest.user.id == ampStoredRequest.user.id
+            bidderRequest.user.buyeruid == ampStoredRequest.user.buyeruid
+            bidderRequest.user.yob == ampStoredRequest.user.yob
+            bidderRequest.user.gender == ampStoredRequest.user.gender
+            bidderRequest.user.data == ampStoredRequest.user.data
+            bidderRequest.user.geo == ampStoredRequest.user.geo
+            bidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
+        }
+
+        and: "Generic bidder request should have data in EIDS fields"
+        assert bidderRequest.user.eids == ampStoredRequest.user.eids
+
+        and: "Metrics processed across activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)] == 1
+
+        and: "Should add a warning when in debug mode"
+        assert response.ext.warnings[PREBID]?.message.contains("GPP string invalid: Unable to decode '$invalidGpp'".toString())
+
+        and: "Response should contain consent_string errors"
+        assert response.ext.errors[PREBID].message == ["Amp request parameter consent_string has invalid format: $invalidGpp"]
+    }
+
     def "PBS amp call when request have different gpp consent but match and rejecting should remove UFPD fields in request"() {
         given: "Default Generic BidRequest with UFPD fields field and account id"
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
-        and: "amp request with link to account"
+        and: "Default amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
             it.gppSid = gppSid.value
@@ -2603,7 +2935,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
-        and: "amp request with link to account"
+        and: "Default amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
             it.gppSid = US_NAT_V1.value
@@ -2659,12 +2991,89 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         ]
     }
 
+    def "PBS amp call when regs.gpp empty in request should leave UFPD fields in request"() {
+        given: "Default Generic BidRequest with UFPD fields field and account id"
+        def accountId = PBSUtils.randomNumber as String
+        def ampStoredRequest = getBidRequestWithPersonalData(accountId)
+
+        and: "Default amp request with link to account"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.account = accountId
+            it.gppSid = US_NAT_V1.value
+            it.consentString = regsGpp
+            it.consentType = GPP
+        }
+
+        and: "Activities set for transmitUfpd with allowing privacy regulation"
+        def rule = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_US_GENERAL]
+        }
+
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([rule]))
+
+        and: "Account gpp configuration"
+        def accountGppConfig = new AccountGppConfig(code: IAB_US_GENERAL, enabled: true)
+
+        and: "Existed account with privacy regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        and: "Stored request in DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
+        when: "PBS processes amp request"
+        def response = activityPbsService.sendAmpRequest(ampRequest)
+
+        then: "Generic bidder request should have data in UFPD fields"
+        def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
+
+        verifyAll {
+            bidderRequest.device.didsha1 == ampStoredRequest.device.didsha1
+            bidderRequest.device.didmd5 == ampStoredRequest.device.didmd5
+            bidderRequest.device.dpidsha1 == ampStoredRequest.device.dpidsha1
+            bidderRequest.device.ifa == ampStoredRequest.device.ifa
+            bidderRequest.device.macsha1 == ampStoredRequest.device.macsha1
+            bidderRequest.device.macmd5 == ampStoredRequest.device.macmd5
+            bidderRequest.device.dpidmd5 == ampStoredRequest.device.dpidmd5
+            bidderRequest.user.id == ampStoredRequest.user.id
+            bidderRequest.user.buyeruid == ampStoredRequest.user.buyeruid
+            bidderRequest.user.yob == ampStoredRequest.user.yob
+            bidderRequest.user.gender == ampStoredRequest.user.gender
+            bidderRequest.user.data == ampStoredRequest.user.data
+            bidderRequest.user.geo == ampStoredRequest.user.geo
+            bidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
+        }
+
+        and: "Generic bidder request should have data in EIDS fields"
+        assert bidderRequest.user.eids == ampStoredRequest.user.eids
+
+        and: "Response shouldn't contain errors"
+        assert !response.ext.errors
+
+        and: "Response shouldn't contain warnings"
+        assert !response.ext.warnings
+
+        and: "Metrics processed across activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)] == 1
+
+        and: "General alert metric shouldn't be updated"
+        !metrics[ALERT_GENERAL]
+
+        where:
+        regsGpp << [null, ""]
+    }
+
     def "PBS amp call when regs.gpp in request is allowing should leave UFPD fields in request"() {
         given: "Default Generic BidRequest with UFPD fields field and account id"
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
-        and: "amp request with link to account"
+        and: "Default amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
             it.gppSid = US_NAT_V1.value
@@ -2691,7 +3100,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        activityPbsService.sendAmpRequest(ampRequest)
+        def response = activityPbsService.sendAmpRequest(ampRequest)
 
         then: "Generic bidder request should have data in UFPD fields"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
@@ -2716,8 +3125,14 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         and: "Generic bidder request should have data in EIDS fields"
         assert bidderRequest.user.eids == ampStoredRequest.user.eids
 
+        and: "Response shouldn't contain warnings"
+        assert !response.ext.warnings
+
+        and: "Response should contain consent_string errors"
+        assert response.ext.errors[PREBID].message == ["Amp request parameter consent_string has invalid format: $regsGpp"]
+
         where:
-        regsGpp << ["", new UsNatV1Consent.Builder().build(), new UsNatV1Consent.Builder().setGpc(false).build()]
+        regsGpp << [new UsNatV1Consent.Builder().build(), new UsNatV1Consent.Builder().setGpc(false).build()]
     }
 
     def "PBS amp call when privacy regulation have duplicate should leave UFPD fields in request and update alerts metrics"() {
@@ -2725,7 +3140,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
-        and: "amp request with link to account"
+        and: "Default amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
             it.gppSid = US_NAT_V1.value
@@ -2782,7 +3197,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL.getValue()] == 1
+        assert metrics[ALERT_GENERAL] == 1
     }
 
     def "PBS amp call when privacy module contain invalid property should respond with an error"() {
@@ -2790,7 +3205,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
-        and: "amp request with link to account"
+        and: "Default amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
             it.gppSid = US_NAT_V1.value
@@ -2963,8 +3378,11 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
                                                                                               new EqualityValueRule(PERSONAL_DATA_CONSENTS, NOTICE_NOT_PROVIDED)]
     }
 
-    def "PBS amp call when custom privacy regulation empty and normalize is disabled should respond with an error and update metric"() {
-        given: "Store bid request with link for account"
+    def "PBS amp call when custom privacy regulation empty and normalize is disabled should leave UFPD fields in request and emit error log"() {
+        given: "Test start time"
+        def startTime = Instant.now()
+
+        and: "Store bid request with link for account"
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
@@ -3003,17 +3421,43 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp requests"
-        activityPbsService.sendAmpRequest(ampRequest)
+        def response = activityPbsService.sendAmpRequest(ampRequest)
 
-        then: "Response should contain error"
-        def error = thrown(PrebidServerException)
-        assert error.statusCode == BAD_REQUEST.code()
-        assert error.responseBody == "Invalid account configuration: JsonLogic exception: " +
-                "objects must have exactly 1 key defined, found 0"
+        then: "Response should not contain any warnings"
+        assert !response.ext.warnings
+
+        and: "Response should contain consent_string error"
+        assert response.ext.errors[PREBID].message == ["Amp request parameter consent_string has invalid format: $gppConsent"]
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL.getValue()] == 1
+        assert metrics[ALERT_GENERAL] == 1
+
+        and: "Generic bidder request should have data in UFPD fields"
+        def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
+        verifyAll {
+            bidderRequest.device.didsha1 == ampStoredRequest.device.didsha1
+            bidderRequest.device.didmd5 == ampStoredRequest.device.didmd5
+            bidderRequest.device.dpidsha1 == ampStoredRequest.device.dpidsha1
+            bidderRequest.device.ifa == ampStoredRequest.device.ifa
+            bidderRequest.device.macsha1 == ampStoredRequest.device.macsha1
+            bidderRequest.device.macmd5 == ampStoredRequest.device.macmd5
+            bidderRequest.device.dpidmd5 == ampStoredRequest.device.dpidmd5
+            bidderRequest.user.id == ampStoredRequest.user.id
+            bidderRequest.user.buyeruid == ampStoredRequest.user.buyeruid
+            bidderRequest.user.yob == ampStoredRequest.user.yob
+            bidderRequest.user.gender == ampStoredRequest.user.gender
+            bidderRequest.user.data == ampStoredRequest.user.data
+            bidderRequest.user.geo == ampStoredRequest.user.geo
+            bidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
+        }
+
+        and: "Generic bidder request should have data in EIDS fields"
+        assert bidderRequest.user.eids == ampStoredRequest.user.eids
+
+        and: "Logs should contain error"
+        def logs = activityPbsService.getLogsByTime(startTime)
+        assert getLogsByText(logs, "USCustomLogic creation failed: objects must have exactly 1 key defined, found 0").size() == 1
     }
 
     def "PBS amp call when custom privacy regulation with normalizing should change request consent and call to bidder"() {
@@ -3183,5 +3627,176 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         where:
         eid << [new PurposeEid(activityTransition: false),
                 new PurposeEid(activityTransitionKebabCase: false)]
+    }
+
+    def "PBS should remove UFPD fields when privacy regulation match and rejecting and personalDataConsents is 2"() {
+        given: "Default Generic BidRequests with UFPD fields and account id"
+        def accountId = PBSUtils.randomNumber as String
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
+            regs.gppSid = [US_NAT_V1.intValue]
+            regs.gpp = new UsNatV1Consent.Builder().setPersonalDataConsents(2).build()
+        }
+
+        and: "Activities set for transmitUfpd with rejecting privacy regulation"
+        def rule = new ActivityRule(privacyRegulation: [privacyAllowRegulations])
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([rule]))
+
+        and: "Account gpp configuration"
+        def accountGppConfig = new AccountGppConfig(code: IAB_US_GENERAL, enabled: true)
+
+        and: "Existed account with privacy regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        activityPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should have empty UFPD fields"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        verifyAll {
+            !bidderRequest.device.didsha1
+            !bidderRequest.device.didmd5
+            !bidderRequest.device.dpidsha1
+            !bidderRequest.device.ifa
+            !bidderRequest.device.macsha1
+            !bidderRequest.device.macmd5
+            !bidderRequest.device.dpidmd5
+            !bidderRequest.user.id
+            !bidderRequest.user.buyeruid
+            !bidderRequest.user.yob
+            !bidderRequest.user.gender
+            !bidderRequest.user.data
+            !bidderRequest.user.geo
+            !bidderRequest.user.ext
+        }
+
+        and: "Bidder request should have data in EIDS fields"
+        assert bidderRequest.user.eids == bidRequest.user.eids
+
+        where:
+        privacyAllowRegulations << [IAB_US_GENERAL, IAB_ALL, ALL]
+    }
+
+    def "PBS should remove UFPD fields when privacy regulation match and rejecting and personalDataConsents is 2 and allowPersonalDataConsent2 is false"() {
+        given: "Default Generic BidRequests with UFPD fields and account id"
+        def accountId = PBSUtils.randomNumber as String
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
+            regs.gppSid = [US_NAT_V1.intValue]
+            regs.gpp = new UsNatV1Consent.Builder().setPersonalDataConsents(2).build()
+        }
+
+        and: "Activities set for transmitUfpd with rejecting privacy regulation"
+        def rule = new ActivityRule(privacyRegulation: [privacyAllowRegulations])
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([rule]))
+
+        and: "Account gpp configuration"
+        def accountGppConfig = new AccountGppConfig(code: IAB_US_GENERAL, enabled: true, config: gppModuleConfig)
+
+        and: "Existed account with privacy regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        activityPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should have empty UFPD fields"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        verifyAll {
+            !bidderRequest.device.didsha1
+            !bidderRequest.device.didmd5
+            !bidderRequest.device.dpidsha1
+            !bidderRequest.device.ifa
+            !bidderRequest.device.macsha1
+            !bidderRequest.device.macmd5
+            !bidderRequest.device.dpidmd5
+            !bidderRequest.user.id
+            !bidderRequest.user.buyeruid
+            !bidderRequest.user.yob
+            !bidderRequest.user.gender
+            !bidderRequest.user.data
+            !bidderRequest.user.geo
+            !bidderRequest.user.ext
+        }
+
+        and: "Bidder request should have data in EIDS fields"
+        assert bidderRequest.user.eids == bidRequest.user.eids
+
+        where:
+        privacyAllowRegulations | gppModuleConfig
+        IAB_US_GENERAL          | new GppModuleConfig(allowPersonalDataConsent2: false)
+        IAB_ALL                 | new GppModuleConfig(allowPersonalDataConsent2: false)
+        ALL                     | new GppModuleConfig(allowPersonalDataConsent2: false)
+        IAB_US_GENERAL          | new GppModuleConfig(allowPersonalDataConsent2KebabCase: false)
+        IAB_ALL                 | new GppModuleConfig(allowPersonalDataConsent2KebabCase: false)
+        ALL                     | new GppModuleConfig(allowPersonalDataConsent2KebabCase: false)
+        IAB_US_GENERAL          | new GppModuleConfig(allowPersonalDataConsent2SnakeCase: false)
+        IAB_ALL                 | new GppModuleConfig(allowPersonalDataConsent2SnakeCase: false)
+        ALL                     | new GppModuleConfig(allowPersonalDataConsent2SnakeCase: false)
+        IAB_US_GENERAL          | new GppModuleConfig(allowPersonalDataConsent2: null)
+        IAB_ALL                 | new GppModuleConfig(allowPersonalDataConsent2: null)
+        ALL                     | new GppModuleConfig(allowPersonalDataConsent2: null)
+        IAB_US_GENERAL          | new GppModuleConfig(allowPersonalDataConsent2KebabCase: null)
+        IAB_ALL                 | new GppModuleConfig(allowPersonalDataConsent2KebabCase: null)
+        ALL                     | new GppModuleConfig(allowPersonalDataConsent2KebabCase: null)
+        IAB_US_GENERAL          | new GppModuleConfig(allowPersonalDataConsent2SnakeCase: null)
+        IAB_ALL                 | new GppModuleConfig(allowPersonalDataConsent2SnakeCase: null)
+        ALL                     | new GppModuleConfig(allowPersonalDataConsent2SnakeCase: null)
+    }
+
+    def "PBS shouldn't remove UFPD fields when privacy regulation match and rejecting and personalDataConsents is 2 and allowPersonalDataConsent2 is false"() {
+        given: "Default Generic BidRequests with UFPD fields and account id"
+        def accountId = PBSUtils.randomNumber as String
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
+            regs.gppSid = [US_NAT_V1.intValue]
+            regs.gpp = new UsNatV1Consent.Builder().setPersonalDataConsents(2).build()
+        }
+
+        and: "Activities set for transmitUfpd with rejecting privacy regulation"
+        def rule = new ActivityRule(privacyRegulation: [privacyAllowRegulations])
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([rule]))
+
+        and: "Account gpp configuration"
+        def accountGppConfig = new AccountGppConfig(code: IAB_US_GENERAL, enabled: true, config: gppModuleConfig)
+
+        and: "Existed account with privacy regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        activityPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should have data in UFPD fields"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        verifyAll {
+            bidderRequest.device.didsha1 == bidRequest.device.didsha1
+            bidderRequest.device.didmd5 == bidRequest.device.didmd5
+            bidderRequest.device.dpidsha1 == bidRequest.device.dpidsha1
+            bidderRequest.device.ifa == bidRequest.device.ifa
+            bidderRequest.device.macsha1 == bidRequest.device.macsha1
+            bidderRequest.device.macmd5 == bidRequest.device.macmd5
+            bidderRequest.device.dpidmd5 == bidRequest.device.dpidmd5
+            bidderRequest.user.id == bidRequest.user.id
+            bidderRequest.user.buyeruid == bidRequest.user.buyeruid
+            bidderRequest.user.yob == bidRequest.user.yob
+            bidderRequest.user.gender == bidRequest.user.gender
+            bidderRequest.user.data == bidRequest.user.data
+            bidderRequest.user.geo == bidRequest.user.geo
+            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+        }
+
+        and: "Bidder request should have data in EIDS fields"
+        assert bidderRequest.user.eids == bidRequest.user.eids
+
+        where:
+        privacyAllowRegulations | gppModuleConfig
+        IAB_US_GENERAL          | new GppModuleConfig(allowPersonalDataConsent2: true)
+        IAB_ALL                 | new GppModuleConfig(allowPersonalDataConsent2: true)
+        ALL                     | new GppModuleConfig(allowPersonalDataConsent2: true)
+        IAB_US_GENERAL          | new GppModuleConfig(allowPersonalDataConsent2KebabCase: true)
+        IAB_ALL                 | new GppModuleConfig(allowPersonalDataConsent2KebabCase: true)
+        ALL                     | new GppModuleConfig(allowPersonalDataConsent2KebabCase: true)
+        IAB_US_GENERAL          | new GppModuleConfig(allowPersonalDataConsent2SnakeCase: true)
+        IAB_ALL                 | new GppModuleConfig(allowPersonalDataConsent2SnakeCase: true)
+        ALL                     | new GppModuleConfig(allowPersonalDataConsent2SnakeCase: true)
     }
 }

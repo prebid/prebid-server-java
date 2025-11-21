@@ -37,7 +37,6 @@ import org.prebid.server.functional.model.privacy.gpp.UsUtahV1SensitiveData
 
 import java.time.Instant
 
-import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED
 import static org.prebid.server.functional.model.config.DataActivity.CONSENT
 import static org.prebid.server.functional.model.config.DataActivity.NOTICE_NOT_PROVIDED
@@ -67,7 +66,6 @@ import static org.prebid.server.functional.model.pricefloors.Country.USA
 import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ACCOUNT_DISALLOWED_COUNT
 import static org.prebid.server.functional.model.privacy.Metric.ACCOUNT_PROCESSED_RULES_COUNT
 import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ADAPTER_DISALLOWED_COUNT
-import static org.prebid.server.functional.model.privacy.Metric.ALERT_GENERAL
 import static org.prebid.server.functional.model.privacy.Metric.PROCESSED_ACTIVITY_RULES_COUNT
 import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_REQUEST_DISALLOWED_COUNT
 import static org.prebid.server.functional.model.request.GppSectionId.USP_V1
@@ -1001,10 +999,8 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
             regs.gpp = SIMPLE_GPC_DISALLOW_LOGIC
         }
 
-        and: "Activities set for transmitPreciseGeINTERNAL_SERVER_ERRORo with rejecting privacy regulation"
-        def rule = new ActivityRule().tap {
-            it.privacyRegulation = [privacyAllowRegulations]
-        }
+        and: "Activities set for transmitPreciseGeo with rejecting privacy regulation"
+        def rule = new ActivityRule(privacyRegulation: [privacyAllowRegulations])
 
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([rule]))
 
@@ -1426,7 +1422,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL.getValue()] == 1
+        assert metrics[ALERT_GENERAL] == 1
     }
 
     def "PBS auction call when privacy module contain invalid code should respond with an error"() {
@@ -1596,8 +1592,11 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
                                                                            new EqualityValueRule(PERSONAL_DATA_CONSENTS, NOTICE_NOT_PROVIDED)]
     }
 
-    def "PBS auction call when custom privacy regulation empty and normalize is disabled should respond with an error and update metric"() {
-        given: "Generic BidRequest with gpp and account setup"
+    def "PBS auction call when custom privacy regulation empty and normalize is disabled should not round lat/lon data and emit error log"() {
+        given: "Test start time"
+        def startTime = Instant.now()
+
+        and: "Generic BidRequest with gpp and account setup"
         def gppConsent = new UsNatV1Consent.Builder().setGpc(true).build()
         def accountId = PBSUtils.randomNumber as String
         def bidRequest = bidRequestWithGeo.tap {
@@ -1633,14 +1632,38 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         when: "PBS processes auction requests"
         activityPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Response should contain error"
-        def error = thrown(PrebidServerException)
-        assert error.statusCode == BAD_REQUEST.code()
-        assert error.responseBody == "JsonLogic exception: objects must have exactly 1 key defined, found 0"
+        then: "Bidder request should contain not rounded geo data for device and user"
+        def bidderRequests = bidder.getBidderRequest(bidRequest.id)
+        def deviceBidderRequest = bidderRequests.device
+        verifyAll {
+            deviceBidderRequest.ip == bidRequest.device.ip
+            deviceBidderRequest.ipv6 == "af47:892b:3e98:b49a::"
+            deviceBidderRequest.geo.lat == bidRequest.device.geo.lat
+            deviceBidderRequest.geo.lon == bidRequest.device.geo.lon
+            deviceBidderRequest.geo.country == bidRequest.device.geo.country
+            deviceBidderRequest.geo.region == bidRequest.device.geo.region
+            deviceBidderRequest.geo.utcoffset == bidRequest.device.geo.utcoffset
+            deviceBidderRequest.geo.metro == bidRequest.device.geo.metro
+            deviceBidderRequest.geo.city == bidRequest.device.geo.city
+            deviceBidderRequest.geo.zip == bidRequest.device.geo.zip
+            deviceBidderRequest.geo.accuracy == bidRequest.device.geo.accuracy
+            deviceBidderRequest.geo.ipservice == bidRequest.device.geo.ipservice
+            deviceBidderRequest.geo.ext == bidRequest.device.geo.ext
+        }
+
+        and: "Bidder request user.geo.{lat,lon} shouldn't mask"
+        verifyAll {
+            bidderRequests.user.geo.lat == bidRequest.user.geo.lat
+            bidderRequests.user.geo.lon == bidRequest.user.geo.lon
+        }
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL.getValue()] == 1
+        assert metrics[ALERT_GENERAL] == 1
+
+        and: "Logs should contain error"
+        def logs = activityPbsService.getLogsByTime(startTime)
+        assert getLogsByText(logs, "USCustomLogic creation failed: objects must have exactly 1 key defined, found 0").size() == 1
     }
 
     def "PBS auction call when custom privacy regulation with normalizing should change request consent and call to bidder"() {
@@ -2250,9 +2273,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         }
 
         and: "Activities set for transmitPreciseGeo with allowing privacy regulation"
-        def rule = new ActivityRule().tap {
-            it.privacyRegulation = [privacyAllowRegulations]
-        }
+        def rule = new ActivityRule(privacyRegulation: [privacyAllowRegulations])
 
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([rule]))
 
@@ -2659,7 +2680,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL.getValue()] == 1
+        assert metrics[ALERT_GENERAL] == 1
     }
 
     def "PBS amp call when privacy module contain invalid code should respond with an error"() {
@@ -2857,8 +2878,11 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
                                                                            new EqualityValueRule(PERSONAL_DATA_CONSENTS, NOTICE_NOT_PROVIDED)]
     }
 
-    def "PBS amp call when custom privacy regulation empty and normalize is disabled should respond with an error and update metric"() {
-        given: "Store bid request with gpp string and link for account"
+    def "PBS amp call when custom privacy regulation empty and normalize is disabled should not round lat/lon data and emit error log"() {
+        given: "Test start time"
+        def startTime = Instant.now()
+
+        and: "Store bid request with gpp string and link for account"
         def accountId = PBSUtils.randomNumber as String
         def gppConsent = new UsNatV1Consent.Builder().setGpc(true).build()
         def ampStoredRequest = bidRequestWithGeo.tap {
@@ -2901,15 +2925,38 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         when: "PBS processes amp requests"
         activityPbsService.sendAmpRequest(ampRequest)
 
-        then: "Response should contain error"
-        def error = thrown(PrebidServerException)
-        assert error.statusCode == BAD_REQUEST.code()
-        assert error.responseBody == "Invalid account configuration: JsonLogic exception: " +
-                "objects must have exactly 1 key defined, found 0"
+        then: "Bidder request should contain not rounded geo data for device and user"
+        def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
+        def deviceBidderRequest = bidderRequests.device
+        verifyAll {
+            deviceBidderRequest.ip == ampStoredRequest.device.ip
+            deviceBidderRequest.ipv6 == "af47:892b:3e98:b49a::"
+            deviceBidderRequest.geo.lat == ampStoredRequest.device.geo.lat
+            deviceBidderRequest.geo.lon == ampStoredRequest.device.geo.lon
+            deviceBidderRequest.geo.country == ampStoredRequest.device.geo.country
+            deviceBidderRequest.geo.region == ampStoredRequest.device.geo.region
+            deviceBidderRequest.geo.utcoffset == ampStoredRequest.device.geo.utcoffset
+            deviceBidderRequest.geo.metro == ampStoredRequest.device.geo.metro
+            deviceBidderRequest.geo.city == ampStoredRequest.device.geo.city
+            deviceBidderRequest.geo.zip == ampStoredRequest.device.geo.zip
+            deviceBidderRequest.geo.accuracy == ampStoredRequest.device.geo.accuracy
+            deviceBidderRequest.geo.ipservice == ampStoredRequest.device.geo.ipservice
+            deviceBidderRequest.geo.ext == ampStoredRequest.device.geo.ext
+        }
+
+        and: "Bidder request user.geo.{lat,lon} shouldn't mask"
+        verifyAll {
+            bidderRequests.user.geo.lat == ampStoredRequest.user.geo.lat
+            bidderRequests.user.geo.lon == ampStoredRequest.user.geo.lon
+        }
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL.getValue()] == 1
+        assert metrics[ALERT_GENERAL] == 1
+
+        and: "Logs should contain error"
+        def logs = activityPbsService.getLogsByTime(startTime)
+        assert getLogsByText(logs, "USCustomLogic creation failed: objects must have exactly 1 key defined, found 0").size() == 1
     }
 
     def "PBS amp call when custom privacy regulation with normalizing should change request consent and call to bidder"() {
@@ -3033,5 +3080,196 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UsCtV1Consent.Builder().setKnownChildSensitiveDataConsents(UsConnecticutV1ChildSensitiveData.getRandom().tap { it.childFrom16to18 = DataActivity.NO_CONSENT })
         US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UsCtV1Consent.Builder().setKnownChildSensitiveDataConsents(UsConnecticutV1ChildSensitiveData.getRandom().tap { it.childFrom13to16 = DataActivity.NO_CONSENT })
+    }
+
+    def "PBS auction should round lat/lon data to 2 digits call when privacy regulation match and personalDataConsents is 2"() {
+        given: "Default bid requests with gppConsent and account id"
+        def accountId = PBSUtils.randomNumber as String
+        def bidRequest = bidRequestWithGeo.tap {
+            it.setAccountId(accountId)
+            regs.gppSid = [US_NAT_V1.intValue]
+            regs.gpp = new UsNatV1Consent.Builder().setPersonalDataConsents(2).build()
+        }
+
+        and: "Activities set for transmitPreciseGeo with rejecting privacy regulation"
+        def rule = new ActivityRule(privacyRegulation: [privacyAllowRegulations])
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([rule]))
+
+        and: "Account gpp configuration"
+        def accountGppConfig = new AccountGppConfig(code: IAB_US_GENERAL, enabled: true)
+
+        and: "Existed account with privacy regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        activityPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain rounded geo data for device and user to 2 digits"
+        def bidderRequests = bidder.getBidderRequest(bidRequest.id)
+        verifyAll {
+            bidderRequests.device.ip == "43.77.114.0"
+            bidderRequests.device.ipv6 == "af47:892b:3e98:b400::"
+            bidderRequests.device.geo.lat == bidRequest.device.geo.lat.round(2)
+            bidderRequests.device.geo.lon == bidRequest.device.geo.lon.round(2)
+
+            bidderRequests.device.geo.country == bidRequest.device.geo.country
+            bidderRequests.device.geo.region == bidRequest.device.geo.region
+            bidderRequests.device.geo.utcoffset == bidRequest.device.geo.utcoffset
+        }
+
+        and: "Bidder request should mask several geo fields"
+        verifyAll {
+            !bidderRequests.device.geo.metro
+            !bidderRequests.device.geo.city
+            !bidderRequests.device.geo.zip
+            !bidderRequests.device.geo.accuracy
+            !bidderRequests.device.geo.ipservice
+            !bidderRequests.device.geo.ext
+        }
+
+        and: "Bidder request shouldn't mask geo.{lat,lon} fields"
+        verifyAll {
+            bidderRequests.user.geo.lat == bidRequest.user.geo.lat
+            bidderRequests.user.geo.lon == bidRequest.user.geo.lon
+        }
+
+        where:
+        privacyAllowRegulations << [IAB_US_GENERAL, IAB_ALL, ALL]
+    }
+
+    def "PBS auction should round lat/lon data to 2 digits call when privacy regulation match and personalDataConsents is 2 and allowPersonalDataConsent2 is false"() {
+        given: "Default bid requests with gppConsent and account id"
+        def accountId = PBSUtils.randomNumber as String
+        def bidRequest = bidRequestWithGeo.tap {
+            it.setAccountId(accountId)
+            regs.gppSid = [US_NAT_V1.intValue]
+            regs.gpp = new UsNatV1Consent.Builder().setPersonalDataConsents(2).build()
+        }
+
+        and: "Activities set for transmitPreciseGeo with rejecting privacy regulation"
+        def rule = new ActivityRule(privacyRegulation: [privacyAllowRegulations])
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([rule]))
+
+        and: "Account gpp configuration"
+        def accountGppConfig = new AccountGppConfig(enabled: true, code: IAB_US_GENERAL, config: gppModuleConfig)
+
+        and: "Existed account with privacy regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        activityPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain rounded geo data for device and user to 2 digits"
+        def bidderRequests = bidder.getBidderRequest(bidRequest.id)
+        verifyAll {
+            bidderRequests.device.ip == "43.77.114.0"
+            bidderRequests.device.ipv6 == "af47:892b:3e98:b400::"
+            bidderRequests.device.geo.lat == bidRequest.device.geo.lat.round(2)
+            bidderRequests.device.geo.lon == bidRequest.device.geo.lon.round(2)
+
+            bidderRequests.device.geo.country == bidRequest.device.geo.country
+            bidderRequests.device.geo.region == bidRequest.device.geo.region
+            bidderRequests.device.geo.utcoffset == bidRequest.device.geo.utcoffset
+        }
+
+        and: "Bidder request should mask several geo fields"
+        verifyAll {
+            !bidderRequests.device.geo.metro
+            !bidderRequests.device.geo.city
+            !bidderRequests.device.geo.zip
+            !bidderRequests.device.geo.accuracy
+            !bidderRequests.device.geo.ipservice
+            !bidderRequests.device.geo.ext
+        }
+
+        and: "Bidder request shouldn't mask geo.{lat,lon} fields"
+        verifyAll {
+            bidderRequests.user.geo.lat == bidRequest.user.geo.lat
+            bidderRequests.user.geo.lon == bidRequest.user.geo.lon
+        }
+
+        where:
+        privacyAllowRegulations | gppModuleConfig
+        IAB_US_GENERAL          | new GppModuleConfig(allowPersonalDataConsent2: false)
+        IAB_ALL                 | new GppModuleConfig(allowPersonalDataConsent2: false)
+        ALL                     | new GppModuleConfig(allowPersonalDataConsent2: false)
+        IAB_US_GENERAL          | new GppModuleConfig(allowPersonalDataConsent2KebabCase: false)
+        IAB_ALL                 | new GppModuleConfig(allowPersonalDataConsent2KebabCase: false)
+        ALL                     | new GppModuleConfig(allowPersonalDataConsent2KebabCase: false)
+        IAB_US_GENERAL          | new GppModuleConfig(allowPersonalDataConsent2SnakeCase: false)
+        IAB_ALL                 | new GppModuleConfig(allowPersonalDataConsent2SnakeCase: false)
+        ALL                     | new GppModuleConfig(allowPersonalDataConsent2SnakeCase: false)
+        IAB_US_GENERAL          | new GppModuleConfig(allowPersonalDataConsent2: null)
+        IAB_ALL                 | new GppModuleConfig(allowPersonalDataConsent2: null)
+        ALL                     | new GppModuleConfig(allowPersonalDataConsent2: null)
+        IAB_US_GENERAL          | new GppModuleConfig(allowPersonalDataConsent2KebabCase: null)
+        IAB_ALL                 | new GppModuleConfig(allowPersonalDataConsent2KebabCase: null)
+        ALL                     | new GppModuleConfig(allowPersonalDataConsent2KebabCase: null)
+        IAB_US_GENERAL          | new GppModuleConfig(allowPersonalDataConsent2SnakeCase: null)
+        IAB_ALL                 | new GppModuleConfig(allowPersonalDataConsent2SnakeCase: null)
+        ALL                     | new GppModuleConfig(allowPersonalDataConsent2SnakeCase: null)
+    }
+
+    def "PBS auction shouldn't round lat/lon data to 2 digits call when privacy regulation match and personalDataConsents is 2 and allowPersonalDataConsent2 is true"() {
+        given: "Default bid requests with gppConsent and account id"
+        def accountId = PBSUtils.randomNumber as String
+        def bidRequest = bidRequestWithGeo.tap {
+            it.setAccountId(accountId)
+            regs.gppSid = [US_NAT_V1.intValue]
+            regs.gpp = new UsNatV1Consent.Builder().setPersonalDataConsents(2).build()
+        }
+
+        and: "Activities set for transmitPreciseGeo with rejecting privacy regulation"
+        def rule = new ActivityRule(privacyRegulation: [privacyAllowRegulations])
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([rule]))
+
+        and: "Account gpp configuration"
+        def accountGppConfig = new AccountGppConfig(enabled: true, code: IAB_US_GENERAL, config: gppModuleConfig)
+
+        and: "Existed account with privacy regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        activityPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain not rounded geo data for device and user"
+        def bidderRequests = bidder.getBidderRequest(bidRequest.id)
+        def deviceBidderRequest = bidderRequests.device
+        verifyAll {
+            deviceBidderRequest.ip == bidRequest.device.ip
+            deviceBidderRequest.ipv6 == "af47:892b:3e98:b49a::"
+            deviceBidderRequest.geo.lat == bidRequest.device.geo.lat
+            deviceBidderRequest.geo.lon == bidRequest.device.geo.lon
+            deviceBidderRequest.geo.country == bidRequest.device.geo.country
+            deviceBidderRequest.geo.region == bidRequest.device.geo.region
+            deviceBidderRequest.geo.utcoffset == bidRequest.device.geo.utcoffset
+            deviceBidderRequest.geo.metro == bidRequest.device.geo.metro
+            deviceBidderRequest.geo.city == bidRequest.device.geo.city
+            deviceBidderRequest.geo.zip == bidRequest.device.geo.zip
+            deviceBidderRequest.geo.accuracy == bidRequest.device.geo.accuracy
+            deviceBidderRequest.geo.ipservice == bidRequest.device.geo.ipservice
+            deviceBidderRequest.geo.ext == bidRequest.device.geo.ext
+        }
+
+        and: "Bidder request user.geo.{lat,lon} shouldn't mask"
+        verifyAll {
+            bidderRequests.user.geo.lat == bidRequest.user.geo.lat
+            bidderRequests.user.geo.lon == bidRequest.user.geo.lon
+        }
+
+        where:
+        privacyAllowRegulations | gppModuleConfig
+        IAB_US_GENERAL          | new GppModuleConfig(allowPersonalDataConsent2: true)
+        IAB_ALL                 | new GppModuleConfig(allowPersonalDataConsent2: true)
+        ALL                     | new GppModuleConfig(allowPersonalDataConsent2: true)
+        IAB_US_GENERAL          | new GppModuleConfig(allowPersonalDataConsent2KebabCase: true)
+        IAB_ALL                 | new GppModuleConfig(allowPersonalDataConsent2KebabCase: true)
+        ALL                     | new GppModuleConfig(allowPersonalDataConsent2KebabCase: true)
+        IAB_US_GENERAL          | new GppModuleConfig(allowPersonalDataConsent2SnakeCase: true)
+        IAB_ALL                 | new GppModuleConfig(allowPersonalDataConsent2SnakeCase: true)
+        ALL                     | new GppModuleConfig(allowPersonalDataConsent2SnakeCase: true)
     }
 }

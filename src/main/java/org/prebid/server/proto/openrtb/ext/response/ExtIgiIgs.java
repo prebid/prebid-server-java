@@ -6,7 +6,7 @@ import lombok.Builder;
 import lombok.Value;
 
 @Builder(toBuilder = true)
-@Value(staticConstructor = "of")
+@Value
 public class ExtIgiIgs {
 
     @JsonProperty("impid")

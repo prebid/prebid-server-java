@@ -1,6 +1,7 @@
 adapters:
   nextmillennium:
     endpoint: https://pbs.nextmillmedia.com/openrtb2/auction
+    endpoint-compression: gzip
     meta-info:
       maintainer-email: accountmanagers@nextmillennium.io
       app-media-types:
@@ -20,4 +21,4 @@ adapters:
       redirect:
         url: https://cookies.nextmillmedia.com/sync?type=image&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
         support-cors: false
-        userMacro: '[NMUID]'
+        uid-macro: '[NMUID]'
