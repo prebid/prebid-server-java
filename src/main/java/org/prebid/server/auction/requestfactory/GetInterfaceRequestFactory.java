@@ -24,10 +24,12 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.DebugResolver;
+import org.prebid.server.auction.FpdResolver;
 import org.prebid.server.auction.GeoLocationServiceWrapper;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.InterstitialProcessor;
 import org.prebid.server.auction.IpAddressHelper;
+import org.prebid.server.auction.OrtbTypesResolver;
 import org.prebid.server.auction.externalortb.ProfilesProcessor;
 import org.prebid.server.auction.externalortb.StoredRequestProcessor;
 import org.prebid.server.auction.gpp.AuctionGppService;
@@ -72,8 +74,10 @@ public class GetInterfaceRequestFactory {
     private final AuctionGppService gppService;
     private final CookieDeprecationService cookieDeprecationService;
     private final ImplicitParametersExtractor paramsExtractor;
+    private final OrtbTypesResolver ortbTypesResolver;
     private final IpAddressHelper ipAddressHelper;
     private final Ortb2ImplicitParametersResolver paramsResolver;
+    private final FpdResolver fpdResolver;
     private final InterstitialProcessor interstitialProcessor;
     private final AuctionPrivacyContextFactory auctionPrivacyContextFactory;
     private final DebugResolver debugResolver;
@@ -88,8 +92,10 @@ public class GetInterfaceRequestFactory {
                                       AuctionGppService gppService,
                                       CookieDeprecationService cookieDeprecationService,
                                       ImplicitParametersExtractor paramsExtractor,
+                                      OrtbTypesResolver ortbTypesResolver,
                                       IpAddressHelper ipAddressHelper,
                                       Ortb2ImplicitParametersResolver paramsResolver,
+                                      FpdResolver fpdResolver,
                                       InterstitialProcessor interstitialProcessor,
                                       AuctionPrivacyContextFactory auctionPrivacyContextFactory,
                                       DebugResolver debugResolver,
@@ -104,8 +110,10 @@ public class GetInterfaceRequestFactory {
         this.gppService = Objects.requireNonNull(gppService);
         this.cookieDeprecationService = Objects.requireNonNull(cookieDeprecationService);
         this.paramsExtractor = Objects.requireNonNull(paramsExtractor);
+        this.ortbTypesResolver = Objects.requireNonNull(ortbTypesResolver);
         this.ipAddressHelper = Objects.requireNonNull(ipAddressHelper);
         this.paramsResolver = Objects.requireNonNull(paramsResolver);
+        this.fpdResolver = Objects.requireNonNull(fpdResolver);
         this.interstitialProcessor = Objects.requireNonNull(interstitialProcessor);
         this.auctionPrivacyContextFactory = Objects.requireNonNull(auctionPrivacyContextFactory);
         this.debugResolver = Objects.requireNonNull(debugResolver);
@@ -301,6 +309,19 @@ public class GetInterfaceRequestFactory {
     }
 
     private ObjectNode completeImpExt(ObjectNode ext, GetInterfaceParams params) {
+        final ObjectNode extWithTargeting = enrichImpExtWithTargeting(ext, params);
+        return enrichImpExtWithProfiles(extWithTargeting, params);
+    }
+
+    private ObjectNode enrichImpExtWithTargeting(ObjectNode ext, GetInterfaceParams params) {
+        final ObjectNode targetingNode = params.targeting();
+
+        return targetingNode != null
+                ? fpdResolver.resolveImpExt(ext, targetingNode)
+                : ext;
+    }
+
+    private ObjectNode enrichImpExtWithProfiles(ObjectNode ext, GetInterfaceParams params) {
         final List<String> impProfiles = params.impProfiles();
         if (CollectionUtils.isEmpty(impProfiles)) {
             return ext;
@@ -502,6 +523,8 @@ public class GetInterfaceRequestFactory {
     private class GetInterfaceParams {
 
         HttpRequestContext httpRequestContext;
+
+        List<String> errors = new ArrayList<>();
 
         GetInterfaceParams(HttpRequestContext httpRequestContext) {
             this.httpRequestContext = Objects.requireNonNull(httpRequestContext);
@@ -735,8 +758,12 @@ public class GetInterfaceRequestFactory {
             return getInteger("topframe");
         }
 
-        public Integer targeting() {
-            return null; // TODO: GET
+        public ObjectNode targeting() {
+            final ObjectNode targetingNode = AmpRequestFactory.readTargeting(getString("targeting"), mapper);
+            final String referer = paramsExtractor.refererFrom(httpRequestContext);
+            ortbTypesResolver.normalizeTargeting(targetingNode, errors, referer);
+
+            return targetingNode;
         }
 
         public Consent consent() {
