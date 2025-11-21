@@ -28,6 +28,10 @@ import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.ObjectMapperProvider;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidDataEidPermissions;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
@@ -70,12 +74,16 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
 
     private LiveIntentOmniChannelIdentityProcessedAuctionRequestHook target;
 
+    private List<String> configuredBidders;
+
     @BeforeEach
     public void setUp() {
+        configuredBidders = List.of("bidder1", "bidder2");
         given(properties.getRequestTimeoutMs()).willReturn(5L);
         given(properties.getIdentityResolutionEndpoint()).willReturn("https://test.com/idres");
         given(properties.getAuthToken()).willReturn("auth_token");
         given(properties.getTreatmentRate()).willReturn(1.0f);
+        given(properties.getTargetBidders()).willReturn(configuredBidders);
 
         target = new LiveIntentOmniChannelIdentityProcessedAuctionRequestHook(
                 properties, userFpdActivityMask, MAPPER, httpClient, 0.01d);
@@ -364,5 +372,100 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
         assertThat(result.cause())
                 .isInstanceOf(TimeoutException.class)
                 .hasMessage("Timeout exceeded");
+    }
+
+    @Test
+    public void biddersConfiguredRestrictionShouldBeRespected() {
+        final Uid givenUid = Uid.builder().id("id1").atype(2).build();
+        final Eid givenEid = Eid.builder().source("some.source.com").uids(singletonList(givenUid)).build();
+        final User givenUser = User.builder().eids(singletonList(givenEid)).build();
+        final BidRequest givenBidRequest = BidRequest.builder().id("request").user(givenUser).build();
+
+        final ExtRequestPrebidData expectedData = ExtRequestPrebidData.of(configuredBidders, List.of(
+                ExtRequestPrebidDataEidPermissions.of("liveintent.com", configuredBidders)));
+
+        final Eid expectedEid = Eid.builder().source("liveintent.com").build();
+
+        final String responseBody = MAPPER.encodeToString(IdResResponse.of(List.of(expectedEid)));
+        given(httpClient.post(any(), any(), any(), anyLong()))
+                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, responseBody)));
+
+        given(auctionInvocationContext.auctionContext()).willReturn(auctionContext);
+        given(auctionContext.getActivityInfrastructure()).willReturn(activityInfrastructure);
+        given(activityInfrastructure.isAllowed(any(), any())).willReturn(true);
+        given(userFpdActivityMask.maskUser(any(), eq(false), eq(false)))
+                .willAnswer(invocation -> invocation.getArgument(0));
+        given(userFpdActivityMask.maskDevice(any(), eq(false), eq(false)))
+                .willAnswer(invocation -> invocation.getArgument(0));
+
+        // when
+        final InvocationResult<AuctionRequestPayload> result =
+                target.call(AuctionRequestPayloadImpl.of(givenBidRequest), auctionInvocationContext).result();
+        // then
+        assertThat(result.status()).isEqualTo(InvocationStatus.success);
+        assertThat(result.payloadUpdate().apply(AuctionRequestPayloadImpl.of(givenBidRequest)))
+                .extracting(AuctionRequestPayload::bidRequest)
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getData)
+                .isEqualTo(expectedData);
+
+        verify(httpClient).post(
+                eq("https://test.com/idres"),
+                argThat(headers -> headers.contains("Authorization", "Bearer auth_token", true)),
+                eq(MAPPER.encodeToString(givenBidRequest)),
+                eq(5L));
+    }
+
+    @Test
+    public void biddersConfiguredRestrictionShouldBeMergedWithProvided() {
+        // given
+        final Uid givenUid = Uid.builder().id("id1").atype(2).build();
+        final Eid givenEid = Eid.builder().source("some.source.com").uids(singletonList(givenUid)).build();
+        final User givenUser = User.builder().eids(singletonList(givenEid)).build();
+        final BidRequest givenBidRequest = BidRequest.builder().id("request").user(givenUser).ext(ExtRequest.of(
+                ExtRequestPrebid.builder().data(ExtRequestPrebidData.of(List.of("bidder3"), List.of(
+                        ExtRequestPrebidDataEidPermissions.of("some.other-source.com", List.of("bidder3")),
+                        ExtRequestPrebidDataEidPermissions.of("some.source.com", List.of("bidder3"))))
+                ).build())).build();
+
+        final List<String> expectedBidders = List.of("bidder3", "bidder2", "bidder1");
+
+        final ExtRequestPrebidData expectedData = ExtRequestPrebidData.of(expectedBidders, List.of(
+                ExtRequestPrebidDataEidPermissions.of("some.other-source.com", List.of("bidder3")),
+                ExtRequestPrebidDataEidPermissions.of("some.source.com", List.of("bidder3")),
+                ExtRequestPrebidDataEidPermissions.of("liveintent.com", configuredBidders)));
+
+        final Eid expectedEid = Eid.builder().source("liveintent.com").build();
+
+        final String responseBody = MAPPER.encodeToString(IdResResponse.of(List.of(expectedEid)));
+        given(httpClient.post(any(), any(), any(), anyLong()))
+                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, responseBody)));
+
+        given(auctionInvocationContext.auctionContext()).willReturn(auctionContext);
+        given(auctionContext.getActivityInfrastructure()).willReturn(activityInfrastructure);
+        given(activityInfrastructure.isAllowed(any(), any())).willReturn(true);
+        given(userFpdActivityMask.maskUser(any(), eq(false), eq(false)))
+                .willAnswer(invocation -> invocation.getArgument(0));
+        given(userFpdActivityMask.maskDevice(any(), eq(false), eq(false)))
+                .willAnswer(invocation -> invocation.getArgument(0));
+
+        // when
+        final InvocationResult<AuctionRequestPayload> result =
+                target.call(AuctionRequestPayloadImpl.of(givenBidRequest), auctionInvocationContext).result();
+        // then
+        assertThat(result.status()).isEqualTo(InvocationStatus.success);
+        assertThat(result.payloadUpdate().apply(AuctionRequestPayloadImpl.of(givenBidRequest)))
+                .extracting(AuctionRequestPayload::bidRequest)
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getData)
+                .isEqualTo(expectedData);
+
+        verify(httpClient).post(
+                eq("https://test.com/idres"),
+                argThat(headers -> headers.contains("Authorization", "Bearer auth_token", true)),
+                eq(MAPPER.encodeToString(givenBidRequest)),
+                eq(5L));
     }
 }
