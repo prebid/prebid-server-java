@@ -1,5 +1,8 @@
 package org.prebid.server.auction.requestfactory;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
@@ -17,17 +20,20 @@ import com.iab.openrtb.request.Video;
 import io.vertx.core.Future;
 import io.vertx.ext.web.RoutingContext;
 import lombok.Value;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.DebugResolver;
+import org.prebid.server.auction.FpdResolver;
 import org.prebid.server.auction.GeoLocationServiceWrapper;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.InterstitialProcessor;
 import org.prebid.server.auction.IpAddressHelper;
+import org.prebid.server.auction.OrtbTypesResolver;
 import org.prebid.server.auction.externalortb.ProfilesProcessor;
 import org.prebid.server.auction.externalortb.StoredRequestProcessor;
 import org.prebid.server.auction.gpp.AuctionGppService;
 import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.auction.model.AuctionStoredResult;
 import org.prebid.server.auction.model.ConsentType;
 import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.auction.privacy.contextfactory.AuctionPrivacyContextFactory;
@@ -41,7 +47,6 @@ import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.request.ConsentedProvidersSettings;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
-import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -69,8 +74,10 @@ public class GetInterfaceRequestFactory {
     private final AuctionGppService gppService;
     private final CookieDeprecationService cookieDeprecationService;
     private final ImplicitParametersExtractor paramsExtractor;
+    private final OrtbTypesResolver ortbTypesResolver;
     private final IpAddressHelper ipAddressHelper;
     private final Ortb2ImplicitParametersResolver paramsResolver;
+    private final FpdResolver fpdResolver;
     private final InterstitialProcessor interstitialProcessor;
     private final AuctionPrivacyContextFactory auctionPrivacyContextFactory;
     private final DebugResolver debugResolver;
@@ -85,8 +92,10 @@ public class GetInterfaceRequestFactory {
                                       AuctionGppService gppService,
                                       CookieDeprecationService cookieDeprecationService,
                                       ImplicitParametersExtractor paramsExtractor,
+                                      OrtbTypesResolver ortbTypesResolver,
                                       IpAddressHelper ipAddressHelper,
                                       Ortb2ImplicitParametersResolver paramsResolver,
+                                      FpdResolver fpdResolver,
                                       InterstitialProcessor interstitialProcessor,
                                       AuctionPrivacyContextFactory auctionPrivacyContextFactory,
                                       DebugResolver debugResolver,
@@ -101,8 +110,10 @@ public class GetInterfaceRequestFactory {
         this.gppService = Objects.requireNonNull(gppService);
         this.cookieDeprecationService = Objects.requireNonNull(cookieDeprecationService);
         this.paramsExtractor = Objects.requireNonNull(paramsExtractor);
+        this.ortbTypesResolver = Objects.requireNonNull(ortbTypesResolver);
         this.ipAddressHelper = Objects.requireNonNull(ipAddressHelper);
         this.paramsResolver = Objects.requireNonNull(paramsResolver);
+        this.fpdResolver = Objects.requireNonNull(fpdResolver);
         this.interstitialProcessor = Objects.requireNonNull(interstitialProcessor);
         this.auctionPrivacyContextFactory = Objects.requireNonNull(auctionPrivacyContextFactory);
         this.debugResolver = Objects.requireNonNull(debugResolver);
@@ -125,28 +136,6 @@ public class GetInterfaceRequestFactory {
                         initialBidRequest(httpRequest),
                         startTime))
 
-                .compose(auctionContext -> ortb2RequestFactory.fetchAccount(auctionContext)
-                        .map(auctionContext::with))
-
-                .map(auctionContext -> auctionContext.with(removeTmpPublisher(auctionContext.getBidRequest())))
-
-                .map(auctionContext -> auctionContext.with(debugResolver.debugContextFrom(auctionContext)))
-
-                .compose(auctionContext -> storedRequestProcessor.processAuctionRequest(
-                                auctionContext.getAccount().getId(), auctionContext.getBidRequest())
-                        .map(AuctionStoredResult::bidRequest)
-                        .map(auctionContext::with))
-
-                .compose(auctionContext -> profilesProcessor.process(auctionContext, auctionContext.getBidRequest())
-                        .map(auctionContext::with))
-
-                .map(auctionContext -> auctionContext.with(completeBidRequest(
-                        auctionContext.getBidRequest(),
-                        auctionContext.getHttpRequest(),
-                        auctionContext.getAccount())))
-
-                .map(auctionContext -> auctionContext.with(requestTypeMetric(auctionContext.getBidRequest())))
-
                 .recover(ortb2RequestFactory::restoreResultFromRejection);
     }
 
@@ -155,7 +144,27 @@ public class GetInterfaceRequestFactory {
             return Future.succeededFuture(initialContext);
         }
 
-        return Future.succeededFuture(initialContext)
+        return Future.succeededFuture(addTmpPublisher(initialContext))
+
+                .compose(auctionContext -> ortb2RequestFactory.fetchAccount(auctionContext)
+                        .map(auctionContext::with))
+
+                .map(auctionContext -> auctionContext.with(removeTmpPublisher(auctionContext.getBidRequest())))
+
+                .map(auctionContext -> auctionContext.with(debugResolver.debugContextFrom(auctionContext)))
+
+                .compose(auctionContext -> storedRequestProcessor.processAmpRequest(
+                                auctionContext.getAccount().getId(),
+                                storedRequestId(auctionContext.getBidRequest()),
+                                auctionContext.getBidRequest())
+                        .map(auctionContext::with))
+
+                .map(auctionContext -> auctionContext.with(completeBidRequest(auctionContext)))
+
+                .map(auctionContext -> auctionContext.with(requestTypeMetric(auctionContext.getBidRequest())))
+
+                .compose(auctionContext -> profilesProcessor.process(auctionContext, auctionContext.getBidRequest())
+                        .map(auctionContext::with))
 
                 .compose(auctionContext -> geoLocationServiceWrapper.lookup(auctionContext)
                         .map(auctionContext::with))
@@ -193,8 +202,6 @@ public class GetInterfaceRequestFactory {
         final Consent consent = params.consent();
 
         return BidRequest.builder()
-                .imp(Collections.singletonList(initialImp(params)))
-                .site(tmpSite(params)) // Temporarily add to fetch account
                 .device(initialDevice(params))
                 .user(initialUser(params, consent))
                 .tmax(params.tmax())
@@ -202,21 +209,6 @@ public class GetInterfaceRequestFactory {
                 .badv(params.bAdv())
                 .regs(initialRegs(params, consent))
                 .ext(initialExtRequest(params))
-                .build();
-    }
-
-    private Imp initialImp(GetInterfaceParams params) {
-        return Imp.builder()
-                .tagid(params.tagId())
-                .ext(mapper.mapper().valueToTree(ExtImpPrebid.builder()
-                        .profiles(params.impProfiles())
-                        .build()))
-                .build();
-    }
-
-    private static Site tmpSite(GetInterfaceParams params) {
-        return Site.builder()
-                .publisher(Publisher.builder().id(params.accountId()).build())
                 .build();
     }
 
@@ -259,35 +251,91 @@ public class GetInterfaceRequestFactory {
                 .debug(params.debug())
                 .storedrequest(ExtStoredRequest.of(params.storedRequestId()))
                 .profiles(params.requestProfiles())
-                .storedAuctionResponse(ExtStoredAuctionResponse.of(
-                        params.storedAuctionResponseId(), null, null))
+                .storedAuctionResponse(ExtStoredAuctionResponse.of(params.storedAuctionResponseId(), null, null))
                 .outputFormat(params.outputFormat())
                 .outputModule(params.outputModule())
                 .build());
+    }
+
+    private AuctionContext addTmpPublisher(AuctionContext auctionContext) {
+        final GetInterfaceParams params = new GetInterfaceParams(auctionContext.getHttpRequest());
+        final BidRequest bidRequestWithTmpPublisher = auctionContext.getBidRequest().toBuilder()
+                .site(Site.builder()
+                        .publisher(Publisher.builder().id(params.accountId()).build())
+                        .build())
+                .build();
+
+        return auctionContext.with(bidRequestWithTmpPublisher);
     }
 
     private static BidRequest removeTmpPublisher(BidRequest bidRequest) {
         return bidRequest.toBuilder().site(null).build();
     }
 
-    private BidRequest completeBidRequest(BidRequest bidRequest,
-                                          HttpRequestContext httpRequest,
-                                          Account account) {
+    private static String storedRequestId(BidRequest bidRequest) {
+        return bidRequest.getExt().getPrebid().getStoredrequest().getId();
+    }
 
-        final GetInterfaceParams params = new GetInterfaceParams(httpRequest);
+    private BidRequest completeBidRequest(AuctionContext auctionContext) {
+        final Account account = auctionContext.getAccount();
+        final GetInterfaceParams params = new GetInterfaceParams(auctionContext.getHttpRequest());
 
-        final Imp imp = bidRequest.getImp().getFirst();
+        final BidRequest bidRequest = auctionContext.getBidRequest();
+        final Imp imp = Optional.ofNullable(bidRequest.getImp())
+                .filter(CollectionUtils::isNotEmpty)
+                .map(List::getFirst)
+                .orElse(null);
 
         return bidRequest.toBuilder()
-                .imp(Collections.singletonList(imp.toBuilder()
-                        .banner(completeBanner(imp.getBanner(), params))
-                        .video(completeVideo(imp.getVideo(), params))
-                        .audio(completeAudio(imp.getAudio(), params))
-                        .build()))
+                .imp(Collections.singletonList(completeImp(imp, params)))
                 .site(completeSite(bidRequest.getSite(), params, account))
                 .app(completeApp(bidRequest.getApp(), params, account))
                 .dooh(completeDooh(bidRequest.getDooh(), params, account))
                 .build();
+    }
+
+    private Imp completeImp(Imp imp, GetInterfaceParams params) {
+        if (imp == null) {
+            return null;
+        }
+
+        return imp.toBuilder()
+                .banner(completeBanner(imp.getBanner(), params))
+                .video(completeVideo(imp.getVideo(), params))
+                .audio(completeAudio(imp.getAudio(), params))
+                .tagid(ObjectUtils.defaultIfNull(params.tagId(), imp.getTagid()))
+                .ext(completeImpExt(imp.getExt(), params))
+                .build();
+    }
+
+    private ObjectNode completeImpExt(ObjectNode ext, GetInterfaceParams params) {
+        final ObjectNode extWithTargeting = enrichImpExtWithTargeting(ext, params);
+        return enrichImpExtWithProfiles(extWithTargeting, params);
+    }
+
+    private ObjectNode enrichImpExtWithTargeting(ObjectNode ext, GetInterfaceParams params) {
+        final ObjectNode targetingNode = params.targeting();
+
+        return targetingNode != null
+                ? fpdResolver.resolveImpExt(ext, targetingNode)
+                : ext;
+    }
+
+    private ObjectNode enrichImpExtWithProfiles(ObjectNode ext, GetInterfaceParams params) {
+        final List<String> impProfiles = params.impProfiles();
+        if (CollectionUtils.isEmpty(impProfiles)) {
+            return ext;
+        }
+
+        final ObjectNode modifiedExt = ext != null ? ext : mapper.mapper().createObjectNode();
+        final ObjectNode extPrebid = Optional.ofNullable(modifiedExt.get("prebid"))
+                .filter(JsonNode::isObject)
+                .map(ObjectNode.class::cast)
+                .orElseGet(() -> modifiedExt.putObject("prebid"));
+        final ArrayNode profiles = extPrebid.putArray("profiles");
+        impProfiles.forEach(profiles::add);
+
+        return modifiedExt;
     }
 
     private static Banner completeBanner(Banner banner, GetInterfaceParams params) {
@@ -476,13 +524,16 @@ public class GetInterfaceRequestFactory {
 
         HttpRequestContext httpRequestContext;
 
+        List<String> errors = new ArrayList<>();
+
         GetInterfaceParams(HttpRequestContext httpRequestContext) {
             this.httpRequestContext = Objects.requireNonNull(httpRequestContext);
         }
 
         public String storedRequestId() {
             return Optional.ofNullable(getString("srid"))
-                    .orElseGet(() -> getString("tag_id"));
+                    .or(() -> Optional.ofNullable(getString("tag_id")))
+                    .orElseThrow(() -> new InvalidRequestException("Request require the stored request id."));
         }
 
         public String accountId() {
@@ -707,8 +758,12 @@ public class GetInterfaceRequestFactory {
             return getInteger("topframe");
         }
 
-        public Integer targeting() {
-            return null; // TODO: GET
+        public ObjectNode targeting() {
+            final ObjectNode targetingNode = AmpRequestFactory.readTargeting(getString("targeting"), mapper);
+            final String referer = paramsExtractor.refererFrom(httpRequestContext);
+            ortbTypesResolver.normalizeTargeting(targetingNode, errors, referer);
+
+            return targetingNode;
         }
 
         public Consent consent() {
@@ -846,7 +901,7 @@ public class GetInterfaceRequestFactory {
         public IpAddress ip() {
             return Optional.ofNullable(getString("ip"))
                     .map(ipAddressHelper::toIpAddress)
-                    .orElse(null);
+                    .orElse(IpAddress.of(null, null));
         }
 
         public String ua() {
