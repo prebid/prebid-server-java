@@ -2264,7 +2264,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             it.gppSid = US_NAT_V1.value
             it.account = accountId
-            it.gpp = new UsNatV1Consent.Builder().setPersonalDataConsents(2).build()
+            it.gpp = new UsNatV1Consent.Builder().setPersonalDataConsents(DataActivity.CONSENT).build()
         }
 
         and: "Activities set for cookie sync with allowing privacy regulation"
@@ -2297,7 +2297,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             it.gppSid = US_NAT_V1.value
             it.account = accountId
-            it.gpp = new UsNatV1Consent.Builder().setPersonalDataConsents(2).build()
+            it.gpp = new UsNatV1Consent.Builder().setPersonalDataConsents(DataActivity.CONSENT).build()
         }
 
         and: "Activities set for cookie sync with allowing privacy regulation"
@@ -2349,7 +2349,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             it.gppSid = US_NAT_V1.value
             it.account = accountId
-            it.gpp = new UsNatV1Consent.Builder().setPersonalDataConsents(2).build()
+            it.gpp = new UsNatV1Consent.Builder().setPersonalDataConsents(DataActivity.CONSENT).build()
         }
 
         and: "Activities set for cookie sync with allowing privacy regulation"

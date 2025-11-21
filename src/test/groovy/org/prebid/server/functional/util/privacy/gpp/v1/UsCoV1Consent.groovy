@@ -52,7 +52,7 @@ class UsCoV1Consent extends GppConsent {
             this
         }
 
-        Builder setSensitiveDataProcessing(UsColoradoSensitiveData sensitiveDataProcessing) {
+        Builder setSensitiveDataProcessing(UsColoradoV1SensitiveData sensitiveDataProcessing) {
             fieldValue(UsCoField.SENSITIVE_DATA_PROCESSING, sensitiveDataProcessing.contentList)
             this
         }

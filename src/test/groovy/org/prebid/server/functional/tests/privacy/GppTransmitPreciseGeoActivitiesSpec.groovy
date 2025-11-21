@@ -3088,7 +3088,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         def bidRequest = bidRequestWithGeo.tap {
             it.setAccountId(accountId)
             regs.gppSid = [US_NAT_V1.intValue]
-            regs.gpp = new UsNatV1Consent.Builder().setPersonalDataConsents(2).build()
+            regs.gpp = new UsNatV1Consent.Builder().setPersonalDataConsents(DataActivity.CONSENT).build()
         }
 
         and: "Activities set for transmitPreciseGeo with rejecting privacy regulation"
@@ -3144,7 +3144,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         def bidRequest = bidRequestWithGeo.tap {
             it.setAccountId(accountId)
             regs.gppSid = [US_NAT_V1.intValue]
-            regs.gpp = new UsNatV1Consent.Builder().setPersonalDataConsents(2).build()
+            regs.gpp = new UsNatV1Consent.Builder().setPersonalDataConsents(DataActivity.CONSENT).build()
         }
 
         and: "Activities set for transmitPreciseGeo with rejecting privacy regulation"
@@ -3218,7 +3218,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         def bidRequest = bidRequestWithGeo.tap {
             it.setAccountId(accountId)
             regs.gppSid = [US_NAT_V1.intValue]
-            regs.gpp = new UsNatV1Consent.Builder().setPersonalDataConsents(2).build()
+            regs.gpp = new UsNatV1Consent.Builder().setPersonalDataConsents(DataActivity.CONSENT).build()
         }
 
         and: "Activities set for transmitPreciseGeo with rejecting privacy regulation"

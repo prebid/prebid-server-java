@@ -1,6 +1,6 @@
 package org.prebid.server.functional.util.privacy.gpp.v1
 
-import com.iab.gpp.encoder.field.UsUtV1Field
+import com.iab.gpp.encoder.field.UsUtField
 import org.prebid.server.functional.model.privacy.gpp.MspaMode
 import org.prebid.server.functional.model.privacy.gpp.Notice
 import org.prebid.server.functional.model.privacy.gpp.OptOut
@@ -28,57 +28,57 @@ class UsUtV1Consent extends GppConsent {
         }
 
         Builder setSharingNotice(Notice sharingNotice) {
-            fieldValue(UsUtV1Field.SHARING_NOTICE, sharingNotice.value)
+            fieldValue(UsUtField.SHARING_NOTICE, sharingNotice.value)
             this
         }
 
         Builder setSaleOptOutNotice(Notice saleOptOutNotice) {
-            fieldValue(UsUtV1Field.SALE_OPT_OUT_NOTICE, saleOptOutNotice.value)
+            fieldValue(UsUtField.SALE_OPT_OUT_NOTICE, saleOptOutNotice.value)
             this
         }
 
         Builder setTargetedAdvertisingOptOutNotice(Notice targetedAdvertisingOptOutNotice) {
-            fieldValue(UsUtV1Field.TARGETED_ADVERTISING_OPT_OUT_NOTICE, targetedAdvertisingOptOutNotice.value)
+            fieldValue(UsUtField.TARGETED_ADVERTISING_OPT_OUT_NOTICE, targetedAdvertisingOptOutNotice.value)
             this
         }
 
         Builder setSensitiveDataProcessingOptOutNotice(Notice sensitiveDataProcessingOptOutNotice) {
-            fieldValue(UsUtV1Field.SENSITIVE_DATA_PROCESSING_OPT_OUT_NOTICE, sensitiveDataProcessingOptOutNotice.value)
+            fieldValue(UsUtField.SENSITIVE_DATA_PROCESSING_OPT_OUT_NOTICE, sensitiveDataProcessingOptOutNotice.value)
             this
         }
 
         Builder setSaleOptOut(OptOut saleOptOut) {
-            fieldValue(UsUtV1Field.SALE_OPT_OUT, saleOptOut.value)
+            fieldValue(UsUtField.SALE_OPT_OUT, saleOptOut.value)
             this
         }
 
         Builder setTargetedAdvertisingOptOut(OptOut targetedAdvertisingOptOut) {
-            fieldValue(UsUtV1Field.TARGETED_ADVERTISING_OPT_OUT, targetedAdvertisingOptOut.value)
+            fieldValue(UsUtField.TARGETED_ADVERTISING_OPT_OUT, targetedAdvertisingOptOut.value)
             this
         }
 
         Builder setSensitiveDataProcessing(UsUtahV1SensitiveData sensitiveDataProcessing) {
-            fieldValue(UsUtV1Field.SENSITIVE_DATA_PROCESSING, sensitiveDataProcessing.contentList)
+            fieldValue(UsUtField.SENSITIVE_DATA_PROCESSING, sensitiveDataProcessing.contentList)
             this
         }
 
         Builder setKnownChildSensitiveDataConsents(UsUtahV1ChildSensitiveData knownChildSensitiveDataConsents) {
-            fieldValue(UsUtV1Field.KNOWN_CHILD_SENSITIVE_DATA_CONSENTS, knownChildSensitiveDataConsents.contentList)
+            fieldValue(UsUtField.KNOWN_CHILD_SENSITIVE_DATA_CONSENTS, knownChildSensitiveDataConsents.contentList)
             this
         }
 
         Builder setMspaCoveredTransaction(MspaMode mspaCoveredTransaction) {
-            fieldValue(UsUtV1Field.MSPA_COVERED_TRANSACTION, mspaCoveredTransaction.value)
+            fieldValue(UsUtField.MSPA_COVERED_TRANSACTION, mspaCoveredTransaction.value)
             this
         }
 
         Builder setMspaOptOutOptionMode(MspaMode mspaOptOutOptionMode) {
-            fieldValue(UsUtV1Field.MSPA_OPT_OUT_OPTION_MODE, mspaOptOutOptionMode.value)
+            fieldValue(UsUtField.MSPA_OPT_OUT_OPTION_MODE, mspaOptOutOptionMode.value)
             this
         }
 
         Builder setMspaServiceProviderMode(MspaMode mspaServiceProviderMode) {
-            fieldValue(UsUtV1Field.MSPA_SERVICE_PROVIDER_MODE, mspaServiceProviderMode.value)
+            fieldValue(UsUtField.MSPA_SERVICE_PROVIDER_MODE, mspaServiceProviderMode.value)
             this
         }
 

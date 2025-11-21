@@ -53,7 +53,7 @@ class UsCaV1Consent extends GppConsent {
             this
         }
 
-        Builder setSensitiveDataProcessing(UsCaliforniaSensitiveData sensitiveDataProcessing) {
+        Builder setSensitiveDataProcessing(UsCaliforniaV1SensitiveData sensitiveDataProcessing) {
             fieldValue(UsCaField.SENSITIVE_DATA_PROCESSING, sensitiveDataProcessing.contentList)
             this
         }

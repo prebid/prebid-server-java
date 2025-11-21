@@ -74,7 +74,7 @@ class UsNatV1Consent extends GppConsent {
         }
 
         Builder setSensitiveDataProcessing(UsNationalV1SensitiveData sensitiveDataProcessing) {
-            fieldValue(UsNatV1Field.SENSITIVE_DATA_PROCESSING, sensitiveDataProcessing.contentList)
+            fieldValue(UsNatField.SENSITIVE_DATA_PROCESSING, sensitiveDataProcessing.contentList)
             this
         }
 

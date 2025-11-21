@@ -43,7 +43,6 @@ import org.prebid.server.functional.model.privacy.gpp.UsCaliforniaV1SensitiveDat
 import org.prebid.server.functional.model.privacy.gpp.UsNationalV1SensitiveData
 import org.prebid.server.functional.model.privacy.gpp.UsUtahV1SensitiveData
 import org.prebid.server.functional.util.privacy.gpp.v2.UsNatV2Consent
-import spock.lang.PendingFeature
 
 import java.time.Instant
 
@@ -1175,7 +1174,6 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         ]
     }
 
-    @PendingFeature
     def "PBS auction call when privacy module contain some part of disallow logic US nat v2 validation should remove UFPD fields in request"() {
         given: "Default Generic BidRequests with UFPD fields and account id"
         def accountId = PBSUtils.randomNumber as String
@@ -3634,7 +3632,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             regs.gppSid = [US_NAT_V1.intValue]
-            regs.gpp = new UsNatV1Consent.Builder().setPersonalDataConsents(2).build()
+            regs.gpp = new UsNatV1Consent.Builder().setPersonalDataConsents(DataActivity.CONSENT).build()
         }
 
         and: "Activities set for transmitUfpd with rejecting privacy regulation"
@@ -3682,7 +3680,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             regs.gppSid = [US_NAT_V1.intValue]
-            regs.gpp = new UsNatV1Consent.Builder().setPersonalDataConsents(2).build()
+            regs.gpp = new UsNatV1Consent.Builder().setPersonalDataConsents(DataActivity.CONSENT).build()
         }
 
         and: "Activities set for transmitUfpd with rejecting privacy regulation"
@@ -3748,7 +3746,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             regs.gppSid = [US_NAT_V1.intValue]
-            regs.gpp = new UsNatV1Consent.Builder().setPersonalDataConsents(2).build()
+            regs.gpp = new UsNatV1Consent.Builder().setPersonalDataConsents(DataActivity.CONSENT).build()
         }
 
         and: "Activities set for transmitUfpd with rejecting privacy regulation"

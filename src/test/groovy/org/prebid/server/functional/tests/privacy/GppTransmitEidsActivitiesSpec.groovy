@@ -2615,7 +2615,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             regs.gppSid = [US_NAT_V1.intValue]
-            regs.gpp = new UsNatV1Consent.Builder().setPersonalDataConsents(2).build()
+            regs.gpp = new UsNatV1Consent.Builder().setPersonalDataConsents(DataActivity.CONSENT).build()
         }
 
         and: "Activities set for transmitEIDS with rejecting privacy regulation"
@@ -2646,7 +2646,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             regs.gppSid = [US_NAT_V1.intValue]
-            regs.gpp = new UsNatV1Consent.Builder().setPersonalDataConsents(2).build()
+            regs.gpp = new UsNatV1Consent.Builder().setPersonalDataConsents(DataActivity.CONSENT).build()
         }
 
         and: "Activities set for transmitEIDS with rejecting privacy regulation"
@@ -2695,7 +2695,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             regs.gppSid = [US_NAT_V1.intValue]
-            regs.gpp = new UsNatV1Consent.Builder().setPersonalDataConsents(2).build()
+            regs.gpp = new UsNatV1Consent.Builder().setPersonalDataConsents(DataActivity.CONSENT).build()
         }
 
         and: "Activities set for transmitEIDS with rejecting privacy regulation"
