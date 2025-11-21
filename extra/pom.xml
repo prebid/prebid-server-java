@@ -66,8 +66,6 @@
 
         <!-- Test properties -->
         <skipUnitTests>false</skipUnitTests>
-        <skipFunctionalTests>false</skipFunctionalTests>
-        <skipModuleFunctionalTests>true</skipModuleFunctionalTests>
     </properties>
 
     <modules>
