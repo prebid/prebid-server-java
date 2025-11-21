@@ -344,16 +344,16 @@ public class GetInterfaceRequestFactory {
         }
 
         return banner.toBuilder()
-                .format(params.format())
-                .w(params.w())
-                .h(params.h())
-                .btype(params.bType())
-                .mimes(params.mimes())
-                .battr(params.bAttr())
-                .pos(params.pos())
-                .topframe(params.topFrame())
-                .expdir(params.expDir())
-                .api(params.api())
+                .format(ObjectUtils.defaultIfNull(params.format(), banner.getFormat()))
+                .w(ObjectUtils.defaultIfNull(params.w(), banner.getW()))
+                .h(ObjectUtils.defaultIfNull(params.h(), banner.getH()))
+                .btype(ObjectUtils.defaultIfNull(params.bType(), banner.getBtype()))
+                .mimes(ObjectUtils.defaultIfNull(params.mimes(), banner.getMimes()))
+                .battr(ObjectUtils.defaultIfNull(params.bAttr(), banner.getBattr()))
+                .pos(ObjectUtils.defaultIfNull(params.pos(), banner.getPos()))
+                .topframe(ObjectUtils.defaultIfNull(params.topFrame(), banner.getTopframe()))
+                .expdir(ObjectUtils.defaultIfNull(params.expDir(), banner.getExpdir()))
+                .api(ObjectUtils.defaultIfNull(params.api(), banner.getApi()))
                 .build();
     }
 
@@ -363,37 +363,37 @@ public class GetInterfaceRequestFactory {
         }
 
         return video.toBuilder()
-                .w(params.w())
-                .h(params.h())
-                .mimes(params.mimes())
-                .minduration(params.minDuration())
-                .maxduration(params.maxDuration())
-                .startdelay(params.startDelay())
-                .maxseq(params.maxSeq())
-                .poddur(params.podDur())
-                .protocols(params.protocols())
-                .podid(params.podId())
-                .podseq(params.podSeq())
-                .rqddurs(params.rqdDurs())
-                .placement(params.placement())
-                .plcmt(params.plcmt())
-                .linearity(params.linearity())
-                .skip(params.skip())
-                .skipmin(params.skipMin())
-                .skipafter(params.skipAfter())
-                .sequence(params.sequence())
-                .slotinpod(params.slotInPod())
-                .mincpmpersec(params.minCpmPerSec())
-                .battr(params.bAttr())
-                .pos(params.pos())
-                .maxextended(params.maxExtended())
-                .minbitrate(params.minBitrate())
-                .maxbitrate(params.maxBitrate())
-                .boxingallowed(params.boxingAllowed())
-                .playbackmethod(params.playbackMethod())
-                .playbackend(params.playbackEnd())
-                .delivery(params.delivery())
-                .api(params.api())
+                .w(ObjectUtils.defaultIfNull(params.w(), video.getW()))
+                .h(ObjectUtils.defaultIfNull(params.h(), video.getH()))
+                .mimes(ObjectUtils.defaultIfNull(params.mimes(), video.getMimes()))
+                .minduration(ObjectUtils.defaultIfNull(params.minDuration(), video.getMinduration()))
+                .maxduration(ObjectUtils.defaultIfNull(params.maxDuration(), video.getMaxduration()))
+                .startdelay(ObjectUtils.defaultIfNull(params.startDelay(), video.getStartdelay()))
+                .maxseq(ObjectUtils.defaultIfNull(params.maxSeq(), video.getMaxseq()))
+                .poddur(ObjectUtils.defaultIfNull(params.podDur(), video.getPoddur()))
+                .protocols(ObjectUtils.defaultIfNull(params.protocols(), video.getProtocols()))
+                .podid(ObjectUtils.defaultIfNull(params.podId(), video.getPodid()))
+                .podseq(ObjectUtils.defaultIfNull(params.podSeq(), video.getPodseq()))
+                .rqddurs(ObjectUtils.defaultIfNull(params.rqdDurs(), video.getRqddurs()))
+                .placement(ObjectUtils.defaultIfNull(params.placement(), video.getPlacement()))
+                .plcmt(ObjectUtils.defaultIfNull(params.plcmt(), video.getPlcmt()))
+                .linearity(ObjectUtils.defaultIfNull(params.linearity(), video.getLinearity()))
+                .skip(ObjectUtils.defaultIfNull(params.skip(), video.getSkip()))
+                .skipmin(ObjectUtils.defaultIfNull(params.skipMin(), video.getSkipmin()))
+                .skipafter(ObjectUtils.defaultIfNull(params.skipAfter(), video.getSkipafter()))
+                .sequence(ObjectUtils.defaultIfNull(params.sequence(), video.getSequence()))
+                .slotinpod(ObjectUtils.defaultIfNull(params.slotInPod(), video.getSlotinpod()))
+                .mincpmpersec(ObjectUtils.defaultIfNull(params.minCpmPerSec(), video.getMincpmpersec()))
+                .battr(ObjectUtils.defaultIfNull(params.bAttr(), video.getBattr()))
+                .pos(ObjectUtils.defaultIfNull(params.pos(), video.getPos()))
+                .maxextended(ObjectUtils.defaultIfNull(params.maxExtended(), video.getMaxextended()))
+                .minbitrate(ObjectUtils.defaultIfNull(params.minBitrate(), video.getMinbitrate()))
+                .maxbitrate(ObjectUtils.defaultIfNull(params.maxBitrate(), video.getMaxbitrate()))
+                .boxingallowed(ObjectUtils.defaultIfNull(params.boxingAllowed(), video.getBoxingallowed()))
+                .playbackmethod(ObjectUtils.defaultIfNull(params.playbackMethod(), video.getPlaybackmethod()))
+                .playbackend(ObjectUtils.defaultIfNull(params.playbackEnd(), video.getPlaybackend()))
+                .delivery(ObjectUtils.defaultIfNull(params.delivery(), video.getDelivery()))
+                .api(ObjectUtils.defaultIfNull(params.api(), video.getApi()))
                 .build();
     }
 
@@ -403,28 +403,28 @@ public class GetInterfaceRequestFactory {
         }
 
         return audio.toBuilder()
-                .mimes(params.mimes())
-                .minduration(params.minDuration())
-                .maxduration(params.maxDuration())
-                .startdelay(params.startDelay())
-                .maxseq(params.maxSeq())
-                .poddur(params.podDur())
-                .protocols(params.protocols())
-                .podid(params.podId())
-                .podseq(params.podSeq())
-                .rqddurs(params.rqdDurs())
-                .sequence(params.sequence())
-                .slotinpod(params.slotInPod())
-                .mincpmpersec(params.minCpmPerSec())
-                .battr(params.bAttr())
-                .maxextended(params.maxExtended())
-                .minbitrate(params.minBitrate())
-                .maxbitrate(params.maxBitrate())
-                .delivery(params.delivery())
-                .api(params.api())
-                .feed(params.feed())
-                .stitched(params.stitched())
-                .nvol(params.nvol())
+                .mimes(ObjectUtils.defaultIfNull(params.mimes(), audio.getMimes()))
+                .minduration(ObjectUtils.defaultIfNull(params.minDuration(), audio.getMinduration()))
+                .maxduration(ObjectUtils.defaultIfNull(params.maxDuration(), audio.getMaxduration()))
+                .startdelay(ObjectUtils.defaultIfNull(params.startDelay(), audio.getStartdelay()))
+                .maxseq(ObjectUtils.defaultIfNull(params.maxSeq(), audio.getMaxseq()))
+                .poddur(ObjectUtils.defaultIfNull(params.podDur(), audio.getPoddur()))
+                .protocols(ObjectUtils.defaultIfNull(params.protocols(), audio.getProtocols()))
+                .podid(ObjectUtils.defaultIfNull(params.podId(), audio.getPodid()))
+                .podseq(ObjectUtils.defaultIfNull(params.podSeq(), audio.getPodseq()))
+                .rqddurs(ObjectUtils.defaultIfNull(params.rqdDurs(), audio.getRqddurs()))
+                .sequence(ObjectUtils.defaultIfNull(params.sequence(), audio.getSequence()))
+                .slotinpod(ObjectUtils.defaultIfNull(params.slotInPod(), audio.getSlotinpod()))
+                .mincpmpersec(ObjectUtils.defaultIfNull(params.minCpmPerSec(), audio.getMincpmpersec()))
+                .battr(ObjectUtils.defaultIfNull(params.bAttr(), audio.getBattr()))
+                .maxextended(ObjectUtils.defaultIfNull(params.maxExtended(), audio.getMaxextended()))
+                .minbitrate(ObjectUtils.defaultIfNull(params.minBitrate(), audio.getMinbitrate()))
+                .maxbitrate(ObjectUtils.defaultIfNull(params.maxBitrate(), audio.getMaxbitrate()))
+                .delivery(ObjectUtils.defaultIfNull(params.delivery(), audio.getDelivery()))
+                .api(ObjectUtils.defaultIfNull(params.api(), audio.getApi()))
+                .feed(ObjectUtils.defaultIfNull(params.feed(), audio.getFeed()))
+                .stitched(ObjectUtils.defaultIfNull(params.stitched(), audio.getStitched()))
+                .nvol(ObjectUtils.defaultIfNull(params.nvol(), audio.getNvol()))
                 .build();
     }
 
@@ -434,7 +434,7 @@ public class GetInterfaceRequestFactory {
         }
 
         return site.toBuilder()
-                .page(params.page())
+                .page(ObjectUtils.defaultIfNull(params.page(), site.getPage()))
                 .publisher(completePublisher(site.getPublisher(), account))
                 .content(completeContent(site.getContent(), params))
                 .build();
@@ -446,9 +446,9 @@ public class GetInterfaceRequestFactory {
         }
 
         return app.toBuilder()
-                .name(params.name())
-                .bundle(params.bundle())
-                .storeurl(params.storeUrl())
+                .name(ObjectUtils.defaultIfNull(params.name(), app.getName()))
+                .bundle(ObjectUtils.defaultIfNull(params.bundle(), app.getBundle()))
+                .storeurl(ObjectUtils.defaultIfNull(params.storeUrl(), app.getStoreurl()))
                 .publisher(completePublisher(app.getPublisher(), account))
                 .content(completeContent(app.getContent(), params))
                 .build();
@@ -474,18 +474,18 @@ public class GetInterfaceRequestFactory {
     }
 
     private static Content completeContent(Content content, GetInterfaceParams params) {
-        return Optional.ofNullable(content)
-                .map(Content::toBuilder)
-                .orElseGet(Content::builder)
-                .title(params.title())
-                .series(params.series())
-                .genre(params.genre())
-                .url(params.url())
-                .cattax(params.catTax())
-                .cat(params.cat())
-                .contentrating(params.contentRating())
-                .livestream(params.liveStream())
-                .language(params.language())
+        final Content safeContent = content != null ? content : Content.builder().build();
+
+        return safeContent.toBuilder()
+                .title(ObjectUtils.defaultIfNull(params.title(), safeContent.getTitle()))
+                .series(ObjectUtils.defaultIfNull(params.series(), safeContent.getSeries()))
+                .genre(ObjectUtils.defaultIfNull(params.genre(), safeContent.getGenre()))
+                .url(ObjectUtils.defaultIfNull(params.url(), safeContent.getUrl()))
+                .cattax(ObjectUtils.defaultIfNull(params.catTax(), safeContent.getCattax()))
+                .cat(ObjectUtils.defaultIfNull(params.cat(), safeContent.getCat()))
+                .contentrating(ObjectUtils.defaultIfNull(params.contentRating(), safeContent.getContentrating()))
+                .livestream(ObjectUtils.defaultIfNull(params.liveStream(), safeContent.getLivestream()))
+                .language(ObjectUtils.defaultIfNull(params.language(), safeContent.getLanguage()))
                 .build();
     }
 
@@ -799,7 +799,7 @@ public class GetInterfaceRequestFactory {
         }
 
         public Integer gdpr() {
-            Integer gdpr = getInteger("gdpr");
+            final Integer gdpr = getInteger("gdpr");
             if (gdpr != null) {
                 return gdpr;
             }
