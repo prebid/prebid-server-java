@@ -690,14 +690,17 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         def generalGetRequest = GeneralGetRequest.getDefault()
 
         and: "Default stored request"
-        def request = BidRequest.getDefaultBidRequest()
+        def request = BidRequest.getDefaultBidRequest().tap {
+            site.page = null
+            site.publisher.domain = PBSUtils.randomString
+        }
 
         and: "Save storedRequest into DB"
         def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes general get request"
-        def page = PBSUtils.randomString
+        def page = "http://${PBSUtils.randomString}"
         def response = defaultPbsService.sendGeneralGetRequest(generalGetRequest, ['Referer': page])
 
         then: "Response should not contain errors and warnings"
@@ -722,7 +725,7 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
 
         when: "PBS processes general get request"
         def ua = PBSUtils.randomString
-        def response = defaultPbsService.sendGeneralGetRequest(generalGetRequest, [(header): ua])
+        def response = defaultPbsService.sendGeneralGetRequest(generalGetRequest, ['User-Agent': '', (header): ua]) // remove original user-agent
 
         then: "Response should not contain errors and warnings"
         assert !response.ext?.errors
@@ -772,7 +775,6 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         "True-Client-IP"  | PBSUtils.getRandomEnum(PublicCountryIp).v4
         "True-Client-IP"  | PBSUtils.getRandomEnum(PublicCountryIp).maskedIPv6
     }
-
 
     def "PBS should use original values from stored request when it's not specified in get request"() {
         given: "Default General get request"
