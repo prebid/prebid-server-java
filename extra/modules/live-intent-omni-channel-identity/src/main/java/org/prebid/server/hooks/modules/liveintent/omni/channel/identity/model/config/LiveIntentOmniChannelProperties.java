@@ -2,6 +2,8 @@ package org.prebid.server.hooks.modules.liveintent.omni.channel.identity.model.c
 
 import lombok.Data;
 
+import java.util.List;
+
 @Data
 public final class LiveIntentOmniChannelProperties {
 
@@ -12,4 +14,6 @@ public final class LiveIntentOmniChannelProperties {
     String authToken;
 
     float treatmentRate;
+
+    List<String> targetBidders;
 }
