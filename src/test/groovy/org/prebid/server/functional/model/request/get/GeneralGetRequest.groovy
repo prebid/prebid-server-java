@@ -1,6 +1,7 @@
 package org.prebid.server.functional.model.request.get
 
 import com.fasterxml.jackson.annotation.JsonProperty
+import com.fasterxml.jackson.databind.annotation.JsonSerialize
 import org.prebid.server.functional.model.request.amp.ConsentType
 import org.prebid.server.functional.model.request.auction.DebugCondition
 import org.prebid.server.functional.model.request.auction.DeviceType
@@ -36,9 +37,11 @@ class GeneralGetRequest {
     String outputModule
 
     @JsonProperty("rprof")
+    @JsonSerialize(using = CommaSeparatedListSerializer)
     List<String> requestProfiles
 
     @JsonProperty("iprof")
+    @JsonSerialize(using = CommaSeparatedListSerializer)
     List<String> impProfiles
 
     @JsonProperty("sarid")
@@ -53,10 +56,10 @@ class GeneralGetRequest {
     Integer height
 
     @JsonProperty("ow")
-    Integer originalWidth
+    Integer overrideWidth
 
     @JsonProperty("oh")
-    Integer originalHeight
+    Integer overrideHeight
 
     Object sizes
 
@@ -71,11 +74,14 @@ class GeneralGetRequest {
     @JsonProperty("maxdur")
     Integer maxDuration
 
+    @JsonSerialize(using = CommaSeparatedListSerializer)
     List<Integer> api
 
     @JsonProperty("battr")
+    @JsonSerialize(using = CommaSeparatedListSerializer)
     List<Integer> blockAttributes
 
+    @JsonSerialize(using = CommaSeparatedListSerializer)
     List<Integer> delivery
 
     Integer linearity
@@ -105,9 +111,11 @@ class GeneralGetRequest {
     Integer podSequence
 
     @JsonProperty("proto")
+    @JsonSerialize(using = CommaSeparatedListSerializer)
     List<Integer> protocols
 
     @JsonProperty("rqddurs")
+    @JsonSerialize(using = CommaSeparatedListSerializer)
     List<Integer> requiredDurations
 
     @JsonProperty("seq")
@@ -147,15 +155,18 @@ class GeneralGetRequest {
     Integer playbackEnd
 
     @JsonProperty("playbackmethod")
+    @JsonSerialize(using = CommaSeparatedListSerializer)
     List<Integer> playbackMethods
 
     @JsonProperty("boxingallowed")
     Integer boxingAllowed
 
     @JsonProperty("btype")
+    @JsonSerialize(using = CommaSeparatedListSerializer)
     List<Integer> bannerTypes
 
     @JsonProperty("expdir")
+    @JsonSerialize(using = CommaSeparatedListSerializer)
     List<Integer> expandableDirections
 
     @JsonProperty("topframe")
@@ -190,6 +201,7 @@ class GeneralGetRequest {
     ConsentType consentType
 
     @JsonProperty("gpp_sid")
+    @JsonSerialize(using = CommaSeparatedListSerializer)
     List<Integer> gppSid
 
     Integer coppa
@@ -204,9 +216,11 @@ class GeneralGetRequest {
     Integer limitAdTracking
 
     @JsonProperty("bcat")
+    @JsonSerialize(using = CommaSeparatedListSerializer)
     List<String> blockedCategories
 
     @JsonProperty("badv")
+    @JsonSerialize(using = CommaSeparatedListSerializer)
     List<String> blockedAdvertisers
 
     String page
@@ -233,7 +247,7 @@ class GeneralGetRequest {
     Integer contentCategory
 
     @JsonProperty("ccattax")
-    List<Integer> contentCategoryTaxonomy
+    Integer contentCategoryTaxonomy
 
     @JsonProperty("cseries")
     String contentSeries
@@ -248,7 +262,7 @@ class GeneralGetRequest {
     String contentUrl
 
     @JsonProperty("clivestream")
-    String contentLivestream
+    Integer contentLivestream
 
     @JsonProperty("ip")
     String deviceIp

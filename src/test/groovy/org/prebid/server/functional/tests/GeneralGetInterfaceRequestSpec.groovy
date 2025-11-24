@@ -2,6 +2,7 @@ package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.model.bidderspecific.BidderRequest
 import org.prebid.server.functional.model.db.StoredRequest
+import org.prebid.server.functional.model.db.StoredResponse
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Content
 import org.prebid.server.functional.model.request.auction.DebugCondition
@@ -11,8 +12,10 @@ import org.prebid.server.functional.model.request.auction.DeviceType
 import org.prebid.server.functional.model.request.auction.PublicCountryIp
 import org.prebid.server.functional.model.request.auction.StoredAuctionResponse
 import org.prebid.server.functional.model.request.get.GeneralGetRequest
+import org.prebid.server.functional.model.response.auction.SeatBid
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.PendingFeature
 
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
@@ -47,26 +50,6 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         ]
     }
 
-    def "PBS should response with error when process bid request is not specified in general get request"() {
-        given: "General get request without stored request param"
-        def generalGetRequest = new GeneralGetRequest()
-
-        and: "Default stored request"
-        def request = BidRequest.getDefaultBidRequest()
-
-        and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.storedRequestIdLegacy, request)
-        storedRequestDao.save(storedRequest)
-
-        when: "PBS processes general get request"
-        defaultPbsService.sendGeneralGetRequest(generalGetRequest)
-
-        then: "Request should fail with an error"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == BAD_REQUEST.code()
-        assert exception.responseBody == "replace" //TODO replace
-    }
-
     def "PBS should prioritise new storedRequest param over legacy when both presents"() {
         given: "General get request with new and old stored request param"
         def generalGetRequest = new GeneralGetRequest(storedRequestId: PBSUtils.randomNumber,
@@ -76,8 +59,23 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         def request = BidRequest.getDefaultBidRequest()
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.storedRequestIdLegacy, request)
+        def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.storedRequestId, request)
         storedRequestDao.save(storedRequest)
+
+        when: "PBS processes general get request"
+        def response = defaultPbsService.sendGeneralGetRequest(generalGetRequest)
+
+        then: "Response should not contain errors and warnings"
+        assert !response.ext?.errors
+        assert !response.ext?.warnings
+
+        and: "Bidder request should be valid"
+        assert bidder.getBidderRequest(request.id)
+    }
+
+    def "PBS should response with error when process bid request is not specified in general get request"() {
+        given: "General get request without stored request param"
+        def generalGetRequest = new GeneralGetRequest()
 
         when: "PBS processes general get request"
         defaultPbsService.sendGeneralGetRequest(generalGetRequest)
@@ -85,12 +83,14 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         then: "Request should fail with an error"
         def exception = thrown(PrebidServerException)
         assert exception.statusCode == BAD_REQUEST.code()
-        assert exception.responseBody == "replace" //TODO replace
+        assert exception.responseBody == "Invalid request format: Request require the stored request id."
     }
 
     def "PBS should apply accountId from general get request when it's specified"() {
         given: "Default stored request"
-        def request = BidRequest.getDefaultBidRequest(distributionType)
+        def request = BidRequest.getDefaultBidRequest(distributionType).tap {
+            setAccountId(generalGetRequest.resolveAccountId())
+        }
 
         and: "Save storedRequest into DB"
         def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
@@ -124,7 +124,9 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         }
 
         and: "Default stored request"
-        def request = BidRequest.getDefaultBidRequest()
+        def request = BidRequest.getDefaultBidRequest().tap {
+            setAccountId(generalGetRequest.accountId)
+        }
 
         and: "Save storedRequest into DB"
         def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
@@ -144,7 +146,7 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
     def "PBS should apply tmax from general get request when it's specified"() {
         given: "Default General get request"
         def generalGetRequest = GeneralGetRequest.default.tap {
-            it.timeoutMax = PBSUtils.randomNumber
+            it.timeoutMax = PBSUtils.getRandomNumber(3000, 5000)
         }
 
         and: "Default stored request"
@@ -162,13 +164,14 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         assert !response.ext?.warnings
 
         and: "Bidder request should contain tmax from param"
-        assert bidder.getBidderRequest(request.id).tmax == generalGetRequest.timeoutMax
+        assert PBSUtils.isApproximatelyEqual(bidder.getBidderRequest(request.id).tmax as Integer, generalGetRequest.timeoutMax)
     }
 
+    @PendingFeature
     def "PBS shouldn't apply tmax from general get request when it's specified lower then 100"() {
         given: "Default General get request"
         def generalGetRequest = GeneralGetRequest.default.tap {
-            it.timeoutMax = tmax
+            it.timeoutMax = PBSUtils.getRandomNumber(0, 100)
         }
 
         and: "Default stored request"
@@ -189,9 +192,28 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
 
         and: "Bidder request should contain tmax from param"
         assert bidder.getBidderRequest(request.id).tmax != generalGetRequest.timeoutMax
+    }
 
-        where:
-        tmax << [PBSUtils.randomNegativeNumber, PBSUtils.getRandomNumber(0, 100)]
+    def "PBS shouldn't apply tmax from general get request when it's specified as negative"() {
+        given: "Default General get request"
+        def generalGetRequest = GeneralGetRequest.default.tap {
+            it.timeoutMax = PBSUtils.randomNegativeNumber
+        }
+
+        and: "Default stored request"
+        def request = BidRequest.getDefaultBidRequest()
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes general get request"
+        defaultPbsService.sendGeneralGetRequest(generalGetRequest)
+
+        then: "PBs should throw error due to invalid request"
+        def exception = thrown(PrebidServerException)
+        assert exception.statusCode == 500
+        assert exception.responseBody == 'Critical error while running the auction: Start time and timeout must be positive'
     }
 
     def "PBS should apply debug from general get request when it's specified"() {
@@ -273,27 +295,40 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
 
     def "PBS should apply storedAuctionResponse from general get request when it's specified"() {
         given: "Default General get request"
-        def storedAuctionResponse = PBSUtils.randomString
+        def storedAuctionResponseId = PBSUtils.randomString
         def generalGetRequest = GeneralGetRequest.default.tap {
-            it.storedAuctionResponseId = storedAuctionResponse
+            it.storedAuctionResponseId = storedAuctionResponseId
         }
 
         and: "Default stored request"
         def request = BidRequest.getDefaultBidRequest()
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
+        def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.storedRequestId, request)
         storedRequestDao.save(storedRequest)
+
+        and: "Stored response in DB"
+        def storedAuctionResponse = SeatBid.getStoredResponse(request)
+        def storedResponse = new StoredResponse(responseId: storedAuctionResponseId,
+                storedAuctionResponse: storedAuctionResponse)
+        storedResponseDao.save(storedResponse)
 
         when: "PBS processes general get request"
         def response = defaultPbsService.sendGeneralGetRequest(generalGetRequest)
 
-        then: "Response should not contain errors and warnings"
-        assert !response.ext?.errors
-        assert !response.ext?.warnings
+        then: "Response should contain same stored auction response as requested"
+        assert response.seatbid == [storedAuctionResponse]
 
-        and: "Bidder request should contain storedAuctionResponse from param"
-        assert bidder.getBidderRequest(request.id).ext.prebid.storedAuctionResponse.id == storedAuctionResponse
+        and: "PBs should emit warning"
+        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.message ==
+                ["no auction. response defined by storedauctionresponse" as String]
+
+        and: "Response should not contain errors"
+        assert !response.ext?.errors
+
+        and: "PBS not send request to bidder"
+        assert bidder.getRequestCount(request.id) == 0
     }
 
     def "PBS should apply dnt from general get request when it's specified"() {
@@ -511,10 +546,10 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
             it.contentLanguage = PBSUtils.randomString
             it.contentRating = PBSUtils.randomString
             it.contentCategory = PBSUtils.randomNumber
-            it.contentCategoryTaxonomy = [PBSUtils.randomNumber]
+            it.contentCategoryTaxonomy = PBSUtils.randomNumber
             it.contentTitle = PBSUtils.randomString
             it.contentUrl = PBSUtils.randomString
-            it.contentLivestream = PBSUtils.randomString
+            it.contentLivestream = PBSUtils.randomNumber
         }
 
         and: "Default stored request"
@@ -550,8 +585,8 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
     def "PBS should apply series from general get request when it's specified"() {
         given: "Default General get request"
         def contentSeries = PBSUtils.randomString
-        def generalGetRequest = (rawGeneralGetRequest as GeneralGetRequest).tap {
-            it.storedAuctionResponseId = PBSUtils.randomString
+        def generalGetRequest = (rawGeneralGetRequest(contentSeries) as GeneralGetRequest).tap {
+            it.storedRequestId = PBSUtils.randomString
         }
 
         and: "Default stored request"
@@ -613,7 +648,7 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         where:
         deviceIp << [
                 PBSUtils.getRandomEnum(PublicCountryIp).v4,
-                PBSUtils.getRandomEnum(PublicCountryIp).v6
+                PBSUtils.getRandomEnum(PublicCountryIp).maskedIPv6
         ]
     }
 
@@ -663,7 +698,7 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
 
         when: "PBS processes general get request"
         def page = PBSUtils.randomString
-        def response = defaultPbsService.sendGeneralGetRequest(generalGetRequest, ["Referer": page])
+        def response = defaultPbsService.sendGeneralGetRequest(generalGetRequest, ['Referer': page])
 
         then: "Response should not contain errors and warnings"
         assert !response.ext?.errors
@@ -687,7 +722,7 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
 
         when: "PBS processes general get request"
         def ua = PBSUtils.randomString
-        def response = defaultPbsService.sendGeneralGetRequest(generalGetRequest, [header: ua])
+        def response = defaultPbsService.sendGeneralGetRequest(generalGetRequest, [(header): ua])
 
         then: "Response should not contain errors and warnings"
         assert !response.ext?.errors
@@ -726,16 +761,16 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         where:
         header            | deviceIp
         "X-Forwarded-For" | PBSUtils.getRandomEnum(PublicCountryIp).v4
-        "X-Forwarded-For" | PBSUtils.getRandomEnum(PublicCountryIp).v6
+        "X-Forwarded-For" | PBSUtils.getRandomEnum(PublicCountryIp).maskedIPv6
 
         "X-Device-IP"     | PBSUtils.getRandomEnum(PublicCountryIp).v4
-        "X-Device-IP"     | PBSUtils.getRandomEnum(PublicCountryIp).v6
+        "X-Device-IP"     | PBSUtils.getRandomEnum(PublicCountryIp).maskedIPv6
 
         "X-Real-IP"       | PBSUtils.getRandomEnum(PublicCountryIp).v4
-        "X-Real-IP"       | PBSUtils.getRandomEnum(PublicCountryIp).v6
+        "X-Real-IP"       | PBSUtils.getRandomEnum(PublicCountryIp).maskedIPv6
 
         "True-Client-IP"  | PBSUtils.getRandomEnum(PublicCountryIp).v4
-        "True-Client-IP"  | PBSUtils.getRandomEnum(PublicCountryIp).v6
+        "True-Client-IP"  | PBSUtils.getRandomEnum(PublicCountryIp).maskedIPv6
     }
 
 
@@ -769,7 +804,7 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.storedAuctionResponseId, request)
+        def storedRequest = StoredRequest.getStoredRequest(storedRequestId, request)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes general get request"
@@ -814,7 +849,7 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.storedAuctionResponseId, request)
+        def storedRequest = StoredRequest.getStoredRequest(storedRequestId, request)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes general get request"

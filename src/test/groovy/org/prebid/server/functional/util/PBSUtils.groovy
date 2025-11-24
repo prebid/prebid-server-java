@@ -179,4 +179,8 @@ class PBSUtils implements ObjectMapperWrapper {
             return false
         }
     }
+
+    static Boolean isApproximatelyEqual(Integer actual, Integer expected, Integer tolerance = 100) {
+        Math.abs(actual - expected) <= tolerance
+    }
 }

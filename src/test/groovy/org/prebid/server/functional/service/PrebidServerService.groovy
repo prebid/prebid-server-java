@@ -98,11 +98,11 @@ class PrebidServerService implements ObjectMapperWrapper {
         }
     }
 
-    GeneralGetResponse sendGeneralGetRequest(GeneralGetRequest request, Map<String, String> headers = [:]) {
+    BidResponse sendGeneralGetRequest(GeneralGetRequest request, Map<String, String> headers = [:]) {
         def response = getAuction(request, headers)
 
         checkResponseStatusCode(response)
-        decode(response.body.asString(), GeneralGetResponse)
+        decode(response.body.asString(), BidResponse)
     }
 
     AmpResponse sendAmpRequest(AmpRequest ampRequest, Map<String, String> headers = [:]) {
