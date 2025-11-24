@@ -7,15 +7,9 @@
         "w": 300,
         "h": 250
       },
-      "secure": 1,
       "ext": {
-        "nextMillennium" : {
-          "nmmFlags" : [ "1" ]
-        },
-        "prebid": {
-          "storedrequest": {
-            "id": "placement_id"
-          }
+        "nativery": {
+          "widgetId": "1"
         }
       }
     }
@@ -35,7 +29,7 @@
     "ip": "193.168.244.1"
   },
   "at": 1,
-  "tmax": "${json-unit.any-number}",
+  "tmax": 5000,
   "cur": [
     "USD"
   ],
@@ -49,22 +43,12 @@
   },
   "ext": {
     "prebid": {
-      "storedrequest": {
-        "id": "placement_id"
-      },
       "server": {
         "externalurl": "http://localhost:8080",
         "gvlid": 1,
         "datacenter": "local",
         "endpoint": "/openrtb2/auction"
       }
-    },
-    "nextMillennium": {
-      "nmmFlags": [ "1" ],
-      "adSlots": ["slot-1", "slot-2"],
-      "allowedAds": ["banner", "native"],
-      "nm_version": "v1.0.1",
-      "server_version": "${json-unit.any-string}"
     }
   }
 }

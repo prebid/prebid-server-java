@@ -3,23 +3,26 @@
   "imp": [
     {
       "id": "imp_id",
-      "banner": {
-        "w": 300,
-        "h": 250
-      },
       "secure": 1,
+      "video": {
+        "mimes": [
+          "video/mp4"
+        ],
+        "w": 800,
+        "h": 600
+      },
       "ext": {
-        "nextMillennium" : {
-          "nmmFlags" : [ "1" ]
-        },
-        "prebid": {
-          "storedrequest": {
-            "id": "placement_id"
-          }
+        "tid": "${json-unit.any-string}",
+        "bidder": {
+          "tid": "tid",
+          "pid": "pid"
         }
       }
     }
   ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
   "site": {
     "domain": "www.example.com",
     "page": "http://www.example.com",
@@ -39,9 +42,6 @@
   "cur": [
     "USD"
   ],
-  "source": {
-    "tid": "${json-unit.any-string}"
-  },
   "regs": {
     "ext": {
       "gdpr": 0
@@ -49,22 +49,12 @@
   },
   "ext": {
     "prebid": {
-      "storedrequest": {
-        "id": "placement_id"
-      },
       "server": {
         "externalurl": "http://localhost:8080",
         "gvlid": 1,
         "datacenter": "local",
         "endpoint": "/openrtb2/auction"
       }
-    },
-    "nextMillennium": {
-      "nmmFlags": [ "1" ],
-      "adSlots": ["slot-1", "slot-2"],
-      "allowedAds": ["banner", "native"],
-      "nm_version": "v1.0.1",
-      "server_version": "${json-unit.any-string}"
     }
   }
 }

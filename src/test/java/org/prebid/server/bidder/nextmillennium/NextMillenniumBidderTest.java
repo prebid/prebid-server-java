@@ -23,6 +23,8 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.bidder.nextmillennium.proto.NextMillenniumExt;
+import org.prebid.server.bidder.nextmillennium.proto.NextMillenniumExtBidder;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -78,8 +80,8 @@ public class NextMillenniumBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 request -> request.id("id"),
-                givenImpWithExt(identity(), ExtImpNextMillennium.of(null, null)),
-                givenImpWithExt(identity(), ExtImpNextMillennium.of(null, null)));
+                givenImpWithExt(identity(), ExtImpNextMillennium.of(null, null, null, null)),
+                givenImpWithExt(identity(), ExtImpNextMillennium.of(null, null, null, null)));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -97,8 +99,8 @@ public class NextMillenniumBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 request -> request.test(1),
-                givenImpWithExt(identity(), ExtImpNextMillennium.of(null, null)),
-                givenImpWithExt(identity(), ExtImpNextMillennium.of(null, null)));
+                givenImpWithExt(identity(), ExtImpNextMillennium.of(null, null, null, null)),
+                givenImpWithExt(identity(), ExtImpNextMillennium.of(null, null, null, null)));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -116,8 +118,8 @@ public class NextMillenniumBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
-                givenImpWithExt(identity(), ExtImpNextMillennium.of("placement1", null)),
-                givenImpWithExt(identity(), ExtImpNextMillennium.of("placement2", null)));
+                givenImpWithExt(identity(), givenExtImpWithPlacementId("placement1")),
+                givenImpWithExt(identity(), givenExtImpWithPlacementId("placement2")));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -138,8 +140,8 @@ public class NextMillenniumBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
-                givenImpWithExt(identity(), ExtImpNextMillennium.of(null, "group1")),
-                givenImpWithExt(identity(), ExtImpNextMillennium.of(null, "group2")));
+                givenImpWithExt(identity(), givenExtImpWithGroupId("group1")),
+                givenImpWithExt(identity(), givenExtImpWithGroupId("group2")));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -168,10 +170,10 @@ public class NextMillenniumBidderTest extends VertxTest {
                                 .w(5)
                                 .h(6)
                                 .build()),
-                        ExtImpNextMillennium.of(null, "group1")),
+                        givenExtImpWithGroupId("group1")),
                 givenImpWithExt(
                         imp -> imp.banner(Banner.builder().w(7).h(8).build()),
-                        ExtImpNextMillennium.of(null, "group2")));
+                        givenExtImpWithGroupId("group2")));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -188,18 +190,60 @@ public class NextMillenniumBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldIncludeAdSlotsAndAllowedAdsOnlyInRequestExt() {
+        // given
+        final List<String> adSlots = List.of("slot1", "slot2");
+        final List<String> allowedAds = List.of("ad1", "ad2");
+
+        final ExtImpNextMillennium extImp = ExtImpNextMillennium.of("placement123", null, adSlots, allowedAds);
+
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                givenImpWithExt(identity(), extImp));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+
+        final BidRequest actualRequest = result.getValue().getFirst().getPayload();
+
+        final NextMillenniumExtBidder requestExt = jacksonMapper.mapper()
+                .convertValue(
+                        jacksonMapper.mapper().convertValue(actualRequest
+                                .getExt(), NextMillenniumExt.class).getNextMillennium(),
+                        NextMillenniumExtBidder.class);
+
+        final NextMillenniumExtBidder impExt = jacksonMapper.mapper()
+                .convertValue(
+                        jacksonMapper.mapper().convertValue(actualRequest
+                                .getImp().getFirst().getExt(), NextMillenniumExt.class).getNextMillennium(),
+                        NextMillenniumExtBidder.class);
+
+        assertThat(requestExt)
+                .extracting(NextMillenniumExtBidder::getAdSlots, NextMillenniumExtBidder::getAllowedAds)
+                .containsExactly(adSlots, allowedAds);
+
+        assertThat(impExt.getAdSlots()).isNull();
+        assertThat(impExt.getAllowedAds()).isNull();
+        assertThat(impExt.getNmmFlags()).containsExactly("valueOne", "valueTwo");
+    }
+
+    @Test
     public void makeHttpRequestsShouldUseFirstImpBannerSizeForStoredRequestIds() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
                 givenImpWithExt(
                         imp -> imp.banner(Banner.builder().w(7).h(8).build()),
-                        ExtImpNextMillennium.of(null, "group1")),
+                        givenExtImpWithGroupId("group1")),
                 givenImpWithExt(
                         imp -> imp.banner(Banner.builder()
                                 .format(singletonList(Format.builder().w(1).h(2).build()))
                                 .build()),
-                        ExtImpNextMillennium.of(null, "group2")));
+                        givenExtImpWithGroupId("group2")));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -220,8 +264,8 @@ public class NextMillenniumBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 request -> request.app(App.builder().domain("appDomain").build()),
-                givenImpWithExt(identity(), ExtImpNextMillennium.of(null, "group1")),
-                givenImpWithExt(identity(), ExtImpNextMillennium.of(null, "group2")));
+                givenImpWithExt(identity(), givenExtImpWithGroupId("group1")),
+                givenImpWithExt(identity(), givenExtImpWithGroupId("group2")));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -242,8 +286,8 @@ public class NextMillenniumBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 request -> request.site(Site.builder().domain("siteDomain").build()),
-                givenImpWithExt(identity(), ExtImpNextMillennium.of("placement1", "group1")),
-                givenImpWithExt(identity(), ExtImpNextMillennium.of("placement2", "group2")));
+                givenImpWithExt(identity(), givenExtImpWithPlacementIdAndGroupId("placement1", "group1")),
+                givenImpWithExt(identity(), givenExtImpWithPlacementIdAndGroupId("placement2", "group2")));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -294,7 +338,7 @@ public class NextMillenniumBidderTest extends VertxTest {
                                         .h(90)
                                         .build()))
                                 .build()),
-                ExtImpNextMillennium.of(placementId, null));
+                ExtImpNextMillennium.of(placementId, null, null, null));
 
         final ExtRequest extRequest = ExtRequest.of(ExtRequestPrebid.builder()
                 .schains(emptyList())
@@ -346,7 +390,7 @@ public class NextMillenniumBidderTest extends VertxTest {
                         .tagid("custom_imp_tagid")
                         .secure(1)
                         .banner(banner),
-                ExtImpNextMillennium.of(placementId, null));
+                ExtImpNextMillennium.of(placementId, null, null, null));
 
         final BidRequest bidRequest = givenBidRequest(b -> b
                 .id("c868fd0b-960c-4f49-a8d6-2b3e938b41f2")
@@ -386,7 +430,7 @@ public class NextMillenniumBidderTest extends VertxTest {
                         .tagid("custom_imp_tagid")
                         .secure(1)
                         .banner(banner),
-                ExtImpNextMillennium.of(placementId, null));
+                ExtImpNextMillennium.of(placementId, null, null, null));
 
         final ExtRequest extRequest = ExtRequest.of(ExtRequestPrebid.builder()
                 .schains(emptyList())
@@ -432,7 +476,7 @@ public class NextMillenniumBidderTest extends VertxTest {
                 .id("test-request")
                 .imp(singletonList(givenImpWithExt(
                         imp -> imp.banner(Banner.builder().w(300).h(250).build()),
-                        ExtImpNextMillennium.of("placement_id", null))))
+                        ExtImpNextMillennium.of("placement_id", null, null, null))))
                 .ext(extRequest)
                 .build();
 
@@ -602,5 +646,17 @@ public class NextMillenniumBidderTest extends VertxTest {
                                        ExtImpNextMillennium extImpNextMillennium) {
         return givenImp(impCustomizer.andThen(imp -> imp.ext(mapper.valueToTree(
                 ExtPrebid.of(null, extImpNextMillennium))))::apply);
+    }
+
+    private static ExtImpNextMillennium givenExtImpWithGroupId(String groupId) {
+        return ExtImpNextMillennium.of(null, groupId, null, null);
+    }
+
+    private static ExtImpNextMillennium givenExtImpWithPlacementId(String placementId) {
+        return ExtImpNextMillennium.of(placementId, null, null, null);
+    }
+
+    private static ExtImpNextMillennium givenExtImpWithPlacementIdAndGroupId(String placementId, String groupId) {
+        return ExtImpNextMillennium.of(placementId, groupId, null, null);
     }
 }

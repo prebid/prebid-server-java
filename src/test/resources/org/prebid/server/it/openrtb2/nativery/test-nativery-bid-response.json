@@ -1,0 +1,29 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "price": 3.33,
+          "adm": "<div>ad</div>",
+          "adomain": [
+            "example.com"
+          ],
+          "crid": "creativeId",
+          "mtype": 1,
+          "ext": {
+            "nativery": {
+              "bid_ad_media_type": "display",
+              "bid_adv_domains": [
+                "example.com"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "cur": "USD"
+}
