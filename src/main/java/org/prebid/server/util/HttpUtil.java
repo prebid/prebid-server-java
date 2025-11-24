@@ -40,8 +40,10 @@ public final class HttpUtil {
             HttpHeaderValues.APPLICATION_JSON + ";" + HttpHeaderValues.CHARSET + "="
                     + StandardCharsets.UTF_8.toString().toLowerCase();
 
+    public static final CharSequence TRUE_CLIENT_IP_HEADER = HttpHeaders.createOptimized("True-Client-Ip");
     public static final CharSequence X_FORWARDED_FOR_HEADER = HttpHeaders.createOptimized("X-Forwarded-For");
     public static final CharSequence X_REAL_IP_HEADER = HttpHeaders.createOptimized("X-Real-Ip");
+    public static final CharSequence X_DEVICE_IP_HEADER = HttpHeaders.createOptimized("X-Device-Ip");
     public static final CharSequence DNT_HEADER = HttpHeaders.createOptimized("DNT");
     public static final CharSequence ORIGIN_HEADER = HttpHeaders.createOptimized("Origin");
     public static final CharSequence ACCEPT_HEADER = HttpHeaders.createOptimized("Accept");
@@ -53,6 +55,7 @@ public final class HttpUtil {
     public static final CharSequence X_REQUESTED_WITH_HEADER = HttpHeaders.createOptimized("X-Requested-With");
     public static final CharSequence REFERER_HEADER = HttpHeaders.createOptimized("Referer");
     public static final CharSequence USER_AGENT_HEADER = HttpHeaders.createOptimized("User-Agent");
+    public static final CharSequence X_DEVICE_USER_AGENT_HEADER = HttpHeaders.createOptimized("X-Device-User-Agent");
     public static final CharSequence COOKIE_HEADER = HttpHeaders.createOptimized("Cookie");
     public static final CharSequence SEC_COOKIE_DEPRECATION =
             HttpHeaders.createOptimized("Sec-Cookie-Deprecation");
