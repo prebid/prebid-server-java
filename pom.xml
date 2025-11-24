@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
@@ -372,7 +373,7 @@
                     <version>${maven-surefire-plugin.version}</version>
                     <configuration>
                         <systemPropertyVariables>
-                            <launchContainers>false</launchContainers>
+                            <launchContainers>true</launchContainers>
                         </systemPropertyVariables>
                         <skipTests>${skipUnitTests}</skipTests>
                         <excludeJUnit5Engines>spock</excludeJUnit5Engines>
@@ -385,11 +386,6 @@
                     <configuration>
                         <systemPropertyVariables>
                             <launchContainers>true</launchContainers>
-                            <mockserver.version>${mockserver.version}</mockserver.version>
-                            <pbs.version>${project.version}</pbs.version>
-                            <tests.max-container-count>5</tests.max-container-count>
-                            <!-- Run only one application container instance on fixed ports for debugging purposes -->
-                            <tests.fixed-container-ports>false</tests.fixed-container-ports>
                         </systemPropertyVariables>
                     </configuration>
                 </plugin>
@@ -590,6 +586,23 @@
 
     <profiles>
         <profile>
+            <!-- Run only one application container instance on fixed ports for debugging purposes -->
+            <id>Container debugging</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <configuration>
+                            <systemPropertyVariables>
+                                <tests.fixed-container-ports>true</tests.fixed-container-ports>
+                            </systemPropertyVariables>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
             <id>Run general functional tests without modules</id>
             <activation>
                 <property>
@@ -624,6 +637,15 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-failsafe-plugin</artifactId>
+                        <configuration>
+                            <systemPropertyVariables>
+                                <mockserver.version>${mockserver.version}</mockserver.version>
+                                <pbs.version>${project.version}</pbs.version>
+                                <tests.max-container-count>5</tests.max-container-count>
+                                <!-- Run only one application container instance on fixed ports for debugging purposes -->
+                                <tests.fixed-container-ports>false</tests.fixed-container-ports>
+                            </systemPropertyVariables>
+                        </configuration>
                         <executions>
                             <execution>
                                 <id>general-functional-tests</id>
@@ -680,6 +702,15 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-failsafe-plugin</artifactId>
+                        <configuration>
+                            <systemPropertyVariables>
+                                <mockserver.version>${mockserver.version}</mockserver.version>
+                                <pbs.version>${project.version}</pbs.version>
+                                <tests.max-container-count>5</tests.max-container-count>
+                                <!-- Run only one application container instance on fixed ports for debugging purposes -->
+                                <tests.fixed-container-ports>false</tests.fixed-container-ports>
+                            </systemPropertyVariables>
+                        </configuration>
                         <executions>
                             <execution>
                                 <id>module-functional-tests</id>
