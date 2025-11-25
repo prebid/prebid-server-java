@@ -175,24 +175,18 @@ class GeneralGetRequest {
     String targeting
 
     @JsonProperty("tcfc")
-    String consent
+    String tcfConsent
 
     @JsonProperty("gdpr_consent")
-    String consentLegacy
+    String generalConsent
 
     @JsonProperty("consent_string")
-    String consentStringLegacy
+    String generalConsentString
 
     Integer gdpr
 
-    @JsonProperty("privacy")
-    Integer gdprPrivacy
-
     @JsonProperty("gdpr_applies")
-    String gdprApplies
-
-    @JsonProperty("usp")
-    String usPrivacy
+    Boolean gdprApplies
 
     @JsonProperty("addtl_consent")
     String additionalConsent
@@ -200,20 +194,26 @@ class GeneralGetRequest {
     @JsonProperty("consent_type")
     ConsentType consentType
 
-    @JsonProperty("gpp_sid")
+    @JsonProperty("gppc")
+    String gpp
+
+    @JsonProperty("gpps")
     @JsonSerialize(using = CommaSeparatedListSerializer)
     List<Integer> gppSid
 
-    Integer coppa
-
     @JsonProperty("gpc")
     Integer globalPrivacyControl
+
+    Integer coppa
 
     @JsonProperty("dnt")
     Integer doNotTrack
 
     @JsonProperty("lmt")
     Integer limitAdTracking
+
+    @JsonProperty("usp")
+    String usPrivacy
 
     @JsonProperty("bcat")
     @JsonSerialize(using = CommaSeparatedListSerializer)
