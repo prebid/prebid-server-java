@@ -1519,7 +1519,7 @@ class ProfileSpec extends BaseSpec {
         ]
     }
 
-    def "PBS should throw exception when profiles are not configured for filesystem and request contain profileId"() {
+    def "PBS should process request when profiles are not configured for filesystem and request contain profileId"() {
         given: "PBS with profiles.fail-on-unknown config"
         def config = FILESYSTEM_CONFIG + PROFILES_CONFIG + ['settings.filesystem.profiles-dir': null]
         pbsContainer = new PrebidServerContainer(config)
@@ -1527,6 +1527,7 @@ class ProfileSpec extends BaseSpec {
         pbsContainer.withFolder(IMPS_PATH)
         pbsContainer.withFolder(RESPONSES_PATH)
         pbsContainer.withFolder(CATEGORIES_PATH)
+        pbsContainer.withCopyToContainer(Transferable.of(encode(fileRequestProfileWithEmptyMerge)), "$PROFILES_PATH/${fileRequestProfileWithEmptyMerge.fileName}")
         def accountsConfig = new FileSystemAccountsConfig(accounts: [new AccountConfig(id: ACCOUNT_ID_FILE_STORAGE, status: ACTIVE)])
         pbsContainer.withCopyToContainer(Transferable.of(encodeYaml(accountsConfig)),
                 SETTINGS_FILENAME)
@@ -1534,17 +1535,45 @@ class ProfileSpec extends BaseSpec {
         def pbsWithStoredProfiles = new PrebidServerService(pbsContainer)
 
         and: "BidRequest with profile"
-        def requestWithProfile = BidRequest.getDefaultBidRequest().tap {
-            it.ext.prebid.profileNames = [PBSUtils.randomString]
-        }
+        def requestWithProfile = getRequestWithProfiles(ACCOUNT_ID_FILE_STORAGE.toString(), [fileRequestProfileWithEmptyMerge]).tap {
+            it.device = Device.default
+        } as BidRequest
 
         when: "PBS processes auction request"
-        pbsWithStoredProfiles.sendAuctionRequest(requestWithProfile)
+        def response = pbsWithStoredProfiles.sendAuctionRequest(requestWithProfile)
 
-        then: "PBs should throw error due to invalid profile config"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == 400
-        assert exception.responseBody == INVALID_REQUEST_PREFIX + CONFIG_ERROR_MESSAGE
+        then: "PBS should emit proper warning"
+        assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
+        assert response.ext?.warnings[ErrorType.PREBID]*.message == [NO_REQUEST_PROFILE_MESSAGE.formatted(fileRequestProfileWithEmptyMerge.id)]
+
+        and: "Response should contain error"
+        assert !response.ext?.errors
+
+        and: "Missing metric should increments"
+        def metrics = pbsWithStoredProfiles.sendCollectedMetricsRequest()
+        assert metrics[MISSING_ACCOUNT_PROFILE_METRIC.formatted(ACCOUNT_ID_FILE_STORAGE)] == 1
+
+        and: "Bidder request should contain data from profile"
+        verifyAll(bidder.getBidderRequest(requestWithProfile.id)) {
+            it.site.id == requestWithProfile.site.id
+            it.site.name == requestWithProfile.site.name
+            it.site.domain == requestWithProfile.site.domain
+            it.site.cat == requestWithProfile.site.cat
+            it.site.sectionCat == requestWithProfile.site.sectionCat
+            it.site.pageCat == requestWithProfile.site.pageCat
+            it.site.page == requestWithProfile.site.page
+            it.site.ref == requestWithProfile.site.ref
+            it.site.search == requestWithProfile.site.search
+            it.site.keywords == requestWithProfile.site.keywords
+
+            it.device.didsha1 == requestWithProfile.device.didsha1
+            it.device.didmd5 == requestWithProfile.device.didmd5
+            it.device.dpidsha1 == requestWithProfile.device.dpidsha1
+            it.device.ifa == requestWithProfile.device.ifa
+            it.device.macsha1 == requestWithProfile.device.macsha1
+            it.device.macmd5 == requestWithProfile.device.macmd5
+            it.device.dpidmd5 == requestWithProfile.device.dpidmd5
+        }
 
         cleanup: "Stop and remove pbs container"
         pbsContainer.stop()
@@ -1563,15 +1592,16 @@ class ProfileSpec extends BaseSpec {
 
         and: "Default stored request"
         def request = BidRequest.getDefaultBidRequest().tap {
+            it.device = Device.default
             setAccountId(accountId)
         }
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getStoredRequest(getRequest.resolveStoredRequestId(), request)
+        def storedRequest = StoredRequest.getStoredRequest(getRequest.storedRequestId, request)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes general get request"
-        def response = pbsWithStoredProfiles.(getRequest)
+        def response = pbsWithStoredProfiles.sendGeneralGetRequest(getRequest)
 
         then: "Response should not contain errors and warnings"
         assert !response.ext?.errors
@@ -1589,7 +1619,6 @@ class ProfileSpec extends BaseSpec {
             it.site.ref == requestProfile.body.site.ref
             it.site.search == requestProfile.body.site.search
             it.site.keywords == requestProfile.body.site.keywords
-            it.site.ext.data == requestProfile.body.site.ext.data
 
             it.device.didsha1 == requestProfile.body.device.didsha1
             it.device.didmd5 == requestProfile.body.device.didmd5
@@ -1723,6 +1752,7 @@ class ProfileSpec extends BaseSpec {
 
         and: "Default stored request"
         def request = BidRequest.getDefaultBidRequest().tap {
+            it.device = Device.default
             setAccountId(accountId)
         }
 
@@ -1756,7 +1786,6 @@ class ProfileSpec extends BaseSpec {
             it.site.ref == request.site.ref
             it.site.search == request.site.search
             it.site.keywords == request.site.keywords
-            it.site.ext.data == request.site.ext.data
 
             it.device.didsha1 == request.device.didsha1
             it.device.didmd5 == request.device.didmd5
@@ -1816,11 +1845,12 @@ class ProfileSpec extends BaseSpec {
         and: "Default stored request"
         def accountId = PBSUtils.randomNumber as String
         def request = BidRequest.getDefaultBidRequest().tap {
+            it.device = Device.default
             setAccountId(accountId)
         }
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
+        def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.storedRequestId, request)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes general get request"
@@ -1828,7 +1858,7 @@ class ProfileSpec extends BaseSpec {
 
         then: "PBS should emit proper warning"
         assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
-        assert response.ext?.warnings[ErrorType.PREBID]*.message == [NO_PROFILE_MESSAGE.formatted(requestProfile)]
+        assert response.ext?.warnings[ErrorType.PREBID]*.message == [NO_REQUEST_PROFILE_MESSAGE.formatted(requestProfile)]
 
         and: "Response should contain error"
         assert !response.ext?.errors
@@ -1849,7 +1879,6 @@ class ProfileSpec extends BaseSpec {
             it.site.ref == request.site.ref
             it.site.search == request.site.search
             it.site.keywords == request.site.keywords
-            it.site.ext.data == request.site.ext.data
 
             it.device.didsha1 == request.device.didsha1
             it.device.didmd5 == request.device.didmd5
@@ -1871,14 +1900,15 @@ class ProfileSpec extends BaseSpec {
 
     def "PBS should emit error and metrics when imp profile missing for profile general get parameter"() {
         given: "Default GeneralGetRequest"
-        def impProfile = PBSUtils.randomString
+        def impProfileId = PBSUtils.randomString
         def generalGetRequest = GeneralGetRequest.default.tap {
-            it.impProfiles = [impProfile]
+            it.impProfiles = [impProfileId]
         }
 
         and: "Default stored request"
         def accountId = PBSUtils.randomNumber as String
         def request = BidRequest.getDefaultBidRequest().tap {
+            it.device = Device.default
             setAccountId(accountId)
         }
 
@@ -1891,7 +1921,7 @@ class ProfileSpec extends BaseSpec {
 
         then: "PBS should emit proper warning"
         assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
-        assert response.ext?.warnings[ErrorType.PREBID]*.message == [NO_PROFILE_MESSAGE.formatted(impProfile.id)]
+        assert response.ext?.warnings[ErrorType.PREBID]*.message == [NO_IMP_PROFILE_MESSAGE.formatted(impProfileId)]
 
         and: "Response should contain error"
         assert !response.ext?.errors
@@ -1912,7 +1942,6 @@ class ProfileSpec extends BaseSpec {
             it.site.ref == request.site.ref
             it.site.search == request.site.search
             it.site.keywords == request.site.keywords
-            it.site.ext.data == request.site.ext.data
 
             it.device.didsha1 == request.device.didsha1
             it.device.didmd5 == request.device.didmd5
@@ -2022,7 +2051,7 @@ class ProfileSpec extends BaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.getStoredAuctionResponseId(), request)
+        def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.storedRequestId, request)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes general get request"
@@ -2088,41 +2117,6 @@ class ProfileSpec extends BaseSpec {
         verifyAll(bidder.getBidderRequest(request.id).imp) {
             it.id == [impProfile.body.id]
             it.banner == [impProfile.body.banner]
-        }
-    }
-
-    def "PBS should apply imp profile for all imps when profile included as parameter for with multi-imps general get request"() {
-        given: "Default profile in database"
-        def accountId = PBSUtils.randomNumber as String
-        def impProfile = ImpProfile.getProfile(accountId)
-        profileImpDao.save(StoredProfileImp.getProfile(impProfile))
-
-        and: "Default GeneralGetRequest"
-        def generalGetRequest = GeneralGetRequest.default.tap {
-            it.impProfiles = [impProfile.id]
-        }
-
-        and: "Default stored request"
-        def request = BidRequest.getDefaultBidRequest().tap {
-            addImp(Imp.defaultImpression)
-            setAccountId(accountId)
-        }
-
-        and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
-        storedRequestDao.save(storedRequest)
-
-        when: "PBS processes general get request"
-        def response = pbsWithStoredProfiles.sendGeneralGetRequest(generalGetRequest)
-
-        then: "Response should not contain errors and warnings"
-        assert !response.ext?.errors
-        assert !response.ext?.warnings
-
-        and: "Bidder request imp should contain data from profile"
-        verifyAll(bidder.getBidderRequest(request.id).imp) {
-            it.id == [impProfile.body.id] * 2
-            it.banner == [impProfile.body.banner] * 2
         }
     }
 

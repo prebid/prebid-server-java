@@ -1,6 +1,7 @@
 package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.model.db.StoredRequest
+import org.prebid.server.functional.model.request.amp.Targeting
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Format
 import org.prebid.server.functional.model.request.auction.Imp
@@ -12,6 +13,8 @@ import org.prebid.server.functional.model.response.auction.MediaType
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.PendingFeature
+
+import java.nio.charset.StandardCharsets
 
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 
@@ -1674,5 +1677,61 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
             it.feed == audioImp.audio.feed
             it.nvol == audioImp.audio.nvol
         }
+    }
+
+    def "PBS get request should move targeting key to imp.ext.data"() {
+        given: "Create targeting"
+        def targeting = new Targeting().tap {
+            any = PBSUtils.randomString
+        }
+
+        and: "Encode Targeting to String"
+        def encodeTargeting = URLEncoder.encode(encode(targeting), StandardCharsets.UTF_8)
+
+        and: "Amp request with targeting"
+        def generalGetRequest = GeneralGetRequest.default.tap {
+            it.targeting = encodeTargeting
+        }
+
+        and: "Default BidRequest"
+        def bidRequest = BidRequest.defaultBidRequest
+
+        and: "Create and save stored request into DB"
+        def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.storedRequestId, bidRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        defaultPbsService.sendGeneralGetRequest(generalGetRequest)
+
+        then: "Amp response should contain value from targeting in imp.ext.data"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.imp[0].ext.data.any == targeting.any
+    }
+
+    def "PBS should throw exception when general get request linked to stored request with several imps"() {
+        given: "Stored request with several imps"
+        def request = BidRequest.getDefaultBidRequest().tap {
+            addImp(Imp.defaultImpression)
+            setAccountId(accountId)
+        }
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes general get request"
+        defaultPbsService.sendGeneralGetRequest(generalGetRequest)
+
+        then: "PBs should throw error due to invalid request"
+        def exception = thrown(PrebidServerException)
+        assert exception.statusCode == 400
+        assert exception.responseBody == "data for tag_id '${generalGetRequest.resolveStoredRequestId()}' includes '${request.imp.size()}'" +
+                " imp elements. Only one is allowed"
+
+        where:
+        generalGetRequest << [
+                new GeneralGetRequest(storedRequestId: PBSUtils.randomNumber),
+                new GeneralGetRequest(storedRequestIdLegacy: PBSUtils.randomNumber)
+        ]
     }
 }
