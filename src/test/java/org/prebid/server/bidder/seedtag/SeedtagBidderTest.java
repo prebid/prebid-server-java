@@ -75,10 +75,9 @@ public class SeedtagBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(HttpRequest::getPayload)
-                .flatExtracting(BidRequest::getImp)
-                .hasSize(2);
+        final BidRequest outgoingRequest = result.getValue().get(0).getPayload();
+        assertThat(outgoingRequest.getImp()).hasSize(2);
+        assertThat(outgoingRequest.getCur()).containsExactly("USD");
     }
 
     @Test
