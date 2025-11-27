@@ -1,7 +1,7 @@
 package org.prebid.server.functional.util.privacy.gpp.v1
 
 import com.iab.gpp.encoder.field.UsCaField
-import org.prebid.server.functional.model.privacy.gpp.DataActivity
+import org.prebid.server.functional.model.privacy.gpp.GppDataActivity
 import org.prebid.server.functional.model.privacy.gpp.MspaMode
 import org.prebid.server.functional.model.privacy.gpp.Notice
 import org.prebid.server.functional.model.privacy.gpp.OptOut
@@ -63,7 +63,7 @@ class UsCaV1Consent extends GppConsent {
             this
         }
 
-        Builder setPersonalDataConsents(DataActivity personalDataConsents) {
+        Builder setPersonalDataConsents(GppDataActivity personalDataConsents) {
             fieldValue(UsCaField.PERSONAL_DATA_CONSENTS, personalDataConsents.value)
             this
         }

@@ -4,18 +4,18 @@ import org.prebid.server.functional.util.PBSUtils
 
 class UsUtahV1ChildSensitiveData {
 
-    DataActivity childSensitive
+    GppDataActivity childSensitive
 
-    static UsUtahV1ChildSensitiveData getDefault(DataActivity childSensitive = DataActivity.NOT_APPLICABLE) {
+    static UsUtahV1ChildSensitiveData getDefault(GppDataActivity childSensitive = GppDataActivity.NOT_APPLICABLE) {
 
         new UsUtahV1ChildSensitiveData().tap {
             it.childSensitive = childSensitive
         }
     }
 
-    static UsUtahV1ChildSensitiveData getRandom(List<DataActivity> excludedActivities) {
+    static UsUtahV1ChildSensitiveData getRandom(List<GppDataActivity> excludedActivities) {
         new UsUtahV1ChildSensitiveData().tap {
-            it.childSensitive = PBSUtils.getRandomEnum(DataActivity, excludedActivities)
+            it.childSensitive = PBSUtils.getRandomEnum(GppDataActivity, excludedActivities)
         }
     }
 

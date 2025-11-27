@@ -2,7 +2,7 @@ package org.prebid.server.functional.model.privacy.gpp
 
 import com.fasterxml.jackson.annotation.JsonValue
 
-enum DataActivity {
+enum GppDataActivity {
 
     NOT_APPLICABLE(0),
     NO_CONSENT(1),
@@ -11,7 +11,7 @@ enum DataActivity {
     @JsonValue
     final int value
 
-    DataActivity(int value) {
+    GppDataActivity(int value) {
         this.value = value
     }
 }

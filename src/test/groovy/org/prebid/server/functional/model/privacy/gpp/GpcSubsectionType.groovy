@@ -2,16 +2,15 @@ package org.prebid.server.functional.model.privacy.gpp
 
 import com.fasterxml.jackson.annotation.JsonValue
 
-enum Notice {
+enum GpcSubsectionType {
 
-    NOT_APPLICABLE(0),
-    PROVIDED(1),
-    NOT_PROVIDED(2)
+    CORE(0),
+    GPC(1)
 
     @JsonValue
     final int value
 
-    Notice(int value) {
+    GpcSubsectionType(int value) {
         this.value = value
     }
 }

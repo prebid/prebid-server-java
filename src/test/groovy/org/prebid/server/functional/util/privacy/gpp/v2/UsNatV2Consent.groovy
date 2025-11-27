@@ -1,7 +1,8 @@
 package org.prebid.server.functional.util.privacy.gpp.v2
 
 import com.iab.gpp.encoder.field.UsNatField
-import org.prebid.server.functional.model.privacy.gpp.DataActivity
+import org.prebid.server.functional.model.privacy.gpp.GpcSubsectionType
+import org.prebid.server.functional.model.privacy.gpp.GppDataActivity
 import org.prebid.server.functional.model.privacy.gpp.MspaMode
 import org.prebid.server.functional.model.privacy.gpp.Notice
 import org.prebid.server.functional.model.privacy.gpp.OptOut
@@ -78,7 +79,7 @@ class UsNatV2Consent extends GppConsent {
             this
         }
 
-        Builder setPersonalDataConsents(DataActivity personalDataConsents) {
+        Builder setPersonalDataConsents(GppDataActivity personalDataConsents) {
             fieldValue(UsNatField.PERSONAL_DATA_CONSENTS, personalDataConsents.value)
             this
         }
@@ -103,8 +104,8 @@ class UsNatV2Consent extends GppConsent {
             this
         }
 
-        Builder setGpcSegmentType(Integer gpcSegmentType) {
-            fieldValue(UsNatField.GPC_SEGMENT_TYPE, gpcSegmentType)
+        Builder setGpcSegmentType(GpcSubsectionType gpcSegmentType) {
+            fieldValue(UsNatField.GPC_SEGMENT_TYPE, gpcSegmentType.value)
             this
         }
 
