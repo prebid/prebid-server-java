@@ -373,7 +373,7 @@
                     <version>${maven-surefire-plugin.version}</version>
                     <configuration>
                         <systemPropertyVariables>
-                            <launchContainers>true</launchContainers>
+                            <launchContainers>false</launchContainers>
                         </systemPropertyVariables>
                         <skipTests>${skipUnitTests}</skipTests>
                         <excludeJUnit5Engines>spock</excludeJUnit5Engines>
@@ -585,6 +585,25 @@
     </build>
 
     <profiles>
+        <profile>
+            <id>Enabling function tests</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <version>${maven-surefire-plugin.version}</version>
+                        <configuration>
+                            <systemPropertyVariables>
+                                <launchContainers>true</launchContainers>
+                            </systemPropertyVariables>
+                            <skipTests>${skipUnitTests}</skipTests>
+                            <excludeJUnit5Engines>spock</excludeJUnit5Engines>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
         <profile>
             <!-- Run only one application container instance on fixed ports for debugging purposes -->
             <id>Container debugging</id>
