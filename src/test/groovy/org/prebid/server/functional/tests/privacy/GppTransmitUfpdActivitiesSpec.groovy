@@ -2802,9 +2802,6 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
                         .setSharingOptOut(OptOut.OPTED_OUT)
                         .build(),
                 new UsNatV2Consent.Builder()
-                        .setSaleOptOut(OptOut.DID_NOT_OPT_OUT)
-                        .build(),
-                new UsNatV2Consent.Builder()
                         .setSharingOptOut(OptOut.DID_NOT_OPT_OUT)
                         .build()
         ]
