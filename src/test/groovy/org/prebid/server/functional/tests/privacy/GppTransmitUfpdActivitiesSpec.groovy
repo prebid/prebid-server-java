@@ -1122,9 +1122,6 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
                         .build(),
                 new UsNatV2Consent.Builder()
                         .setSharingOptOut(OptOut.DID_NOT_OPT_OUT)
-                        .build(),
-                new UsNatV2Consent.Builder()
-                        .setSharingOptOut(OptOut.DID_NOT_OPT_OUT)
                         .build()
         ]
     }
@@ -1205,14 +1202,6 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
                 new UsNationalV2SensitiveData(unionMembership: GppDataActivity.NO_CONSENT),
                 new UsNationalV2SensitiveData(consumerHealthData: GppDataActivity.NO_CONSENT),
                 new UsNationalV2SensitiveData(nationalOrigin: GppDataActivity.NO_CONSENT),
-
-                new UsNationalV2SensitiveData(geneticId: GppDataActivity.CONSENT),
-                new UsNationalV2SensitiveData(biometricId: GppDataActivity.CONSENT),
-                new UsNationalV2SensitiveData(idNumbers: GppDataActivity.CONSENT),
-                new UsNationalV2SensitiveData(accountInfo: GppDataActivity.CONSENT),
-                new UsNationalV2SensitiveData(communicationContents: GppDataActivity.CONSENT),
-                new UsNationalV2SensitiveData(crimeVictim: GppDataActivity.CONSENT),
-                new UsNationalV2SensitiveData(transgenderStatus: GppDataActivity.CONSENT),
 
                 new UsNationalV2SensitiveData(geneticId: GppDataActivity.NO_CONSENT),
                 new UsNationalV2SensitiveData(biometricId: GppDataActivity.NO_CONSENT),
@@ -2557,14 +2546,6 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
                 new UsNationalV2SensitiveData(consumerHealthData: GppDataActivity.NO_CONSENT),
                 new UsNationalV2SensitiveData(nationalOrigin: GppDataActivity.NO_CONSENT),
 
-                new UsNationalV2SensitiveData(geneticId: GppDataActivity.CONSENT),
-                new UsNationalV2SensitiveData(biometricId: GppDataActivity.CONSENT),
-                new UsNationalV2SensitiveData(idNumbers: GppDataActivity.CONSENT),
-                new UsNationalV2SensitiveData(accountInfo: GppDataActivity.CONSENT),
-                new UsNationalV2SensitiveData(communicationContents: GppDataActivity.CONSENT),
-                new UsNationalV2SensitiveData(crimeVictim: GppDataActivity.CONSENT),
-                new UsNationalV2SensitiveData(transgenderStatus: GppDataActivity.CONSENT),
-
                 new UsNationalV2SensitiveData(geneticId: GppDataActivity.NO_CONSENT),
                 new UsNationalV2SensitiveData(biometricId: GppDataActivity.NO_CONSENT),
                 new UsNationalV2SensitiveData(idNumbers: GppDataActivity.NO_CONSENT),
@@ -2821,7 +2802,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
                         .setSharingOptOut(OptOut.OPTED_OUT)
                         .build(),
                 new UsNatV2Consent.Builder()
-                        .setSharingOptOut(OptOut.DID_NOT_OPT_OUT)
+                        .setSaleOptOut(OptOut.DID_NOT_OPT_OUT)
                         .build(),
                 new UsNatV2Consent.Builder()
                         .setSharingOptOut(OptOut.DID_NOT_OPT_OUT)

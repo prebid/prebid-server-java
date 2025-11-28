@@ -854,9 +854,6 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
                         .build(),
                 new UsNatV2Consent.Builder()
                         .setSharingOptOut(OptOut.DID_NOT_OPT_OUT)
-                        .build(),
-                new UsNatV2Consent.Builder()
-                        .setSharingOptOut(OptOut.DID_NOT_OPT_OUT)
                         .build()
         ]
     }
@@ -1952,9 +1949,6 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
                         .build(),
                 new UsNatV2Consent.Builder()
                         .setSharingOptOut(OptOut.OPTED_OUT)
-                        .build(),
-                new UsNatV2Consent.Builder()
-                        .setSharingOptOut(OptOut.DID_NOT_OPT_OUT)
                         .build(),
                 new UsNatV2Consent.Builder()
                         .setSharingOptOut(OptOut.DID_NOT_OPT_OUT)

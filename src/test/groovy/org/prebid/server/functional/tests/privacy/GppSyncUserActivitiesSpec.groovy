@@ -507,7 +507,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         where:
         disallowGppLogic << [
                 new UsNatV2Consent.Builder()
-                        .setSharingOptOut(OptOut.DID_NOT_OPT_OUT)
+                        .setSaleOptOut(OptOut.DID_NOT_OPT_OUT)
                         .build(),
                 new UsNatV2Consent.Builder()
                         .setSharingOptOut(OptOut.DID_NOT_OPT_OUT)
@@ -1498,7 +1498,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         where:
         disallowGppLogic << [
                 new UsNatV2Consent.Builder()
-                        .setSharingOptOut(OptOut.DID_NOT_OPT_OUT)
+                        .setSaleOptOut(OptOut.DID_NOT_OPT_OUT)
                         .build(),
                 new UsNatV2Consent.Builder()
                         .setSharingOptOut(OptOut.DID_NOT_OPT_OUT)

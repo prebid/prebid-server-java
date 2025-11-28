@@ -7,7 +7,6 @@ class UsColoradoV1ChildSensitiveData {
     GppDataActivity childSensitive
 
     static UsColoradoV1ChildSensitiveData getDefault(GppDataActivity childSensitive = GppDataActivity.NOT_APPLICABLE) {
-
         new UsColoradoV1ChildSensitiveData().tap {
             it.childSensitive = childSensitive
         }
