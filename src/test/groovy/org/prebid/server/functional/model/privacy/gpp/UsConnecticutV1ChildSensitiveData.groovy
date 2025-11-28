@@ -1,0 +1,33 @@
+package org.prebid.server.functional.model.privacy.gpp
+
+import org.prebid.server.functional.util.PBSUtils
+
+class UsConnecticutV1ChildSensitiveData {
+
+    GppDataActivity childUnder13
+    GppDataActivity childFrom13to16
+    GppDataActivity childFrom16to18
+
+    static UsConnecticutV1ChildSensitiveData getDefault(GppDataActivity childUnder13 = GppDataActivity.NOT_APPLICABLE,
+                                                        GppDataActivity childFrom13to16 = GppDataActivity.NOT_APPLICABLE,
+                                                        GppDataActivity childFrom16to18 = GppDataActivity.NOT_APPLICABLE) {
+
+        new UsConnecticutV1ChildSensitiveData().tap {
+            it.childUnder13 = childUnder13
+            it.childFrom13to16 = childFrom13to16
+            it.childFrom16to18 = childFrom16to18
+        }
+    }
+
+    static UsConnecticutV1ChildSensitiveData getRandom(List<GppDataActivity> excludedActivities = []) {
+        new UsConnecticutV1ChildSensitiveData().tap {
+            it.childUnder13 = PBSUtils.getRandomEnum(GppDataActivity, excludedActivities)
+            it.childFrom13to16 = PBSUtils.getRandomEnum(GppDataActivity, excludedActivities)
+            it.childFrom16to18 = PBSUtils.getRandomEnum(GppDataActivity, excludedActivities)
+        }
+    }
+
+    List<Integer> getContentList() {
+        [childFrom13to16, childUnder13, childFrom16to18]*.value.collect { it ?: 0 }
+    }
+}
