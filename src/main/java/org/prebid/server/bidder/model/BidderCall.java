@@ -5,7 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Value;
 
 /**
- * Packages together the fields needed to make an http request.
+ * Packages together the fields needed to make a http request.
  */
 @Value
 @AllArgsConstructor(access = AccessLevel.PRIVATE)

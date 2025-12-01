@@ -58,6 +58,7 @@ import org.prebid.server.proto.openrtb.ext.response.seatnonbid.SeatNonBid;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.StreamUtil;
 import org.prebid.server.version.PrebidVersionProvider;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
@@ -65,8 +66,6 @@ import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 import java.time.Clock;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -229,8 +228,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 .flatMap(Collection::stream)
                 .filter(activity -> "greenbids-filter".equals(activity.name()))
                 .map(Activity::results)
-                .map(List::getFirst)
-                .map(Result::values)
+                .flatMap(Collection::stream)
                 .map(this::parseAnalyticsResult)
                 .flatMap(map -> map.entrySet().stream())
                 .collect(Collectors.toMap(
@@ -239,21 +237,20 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                         (existing, replacement) -> existing));
     }
 
-    private Map<String, Ortb2ImpExtResult> parseAnalyticsResult(ObjectNode analyticsResult) {
+    private Map<String, Ortb2ImpExtResult> parseAnalyticsResult(Result result) {
+        return Optional.ofNullable(result)
+                .map(Result::values)
+                .stream()
+                .flatMap(valuesNode -> StreamUtil.asStream(valuesNode.fields()))
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        entry -> parseOrtb2ImpExtResult(entry.getValue()),
+                                (existing, replacement) -> existing));
+    }
+
+    private Ortb2ImpExtResult parseOrtb2ImpExtResult(JsonNode node) {
         try {
-            final Map<String, Ortb2ImpExtResult> parsedAnalyticsResult = new HashMap<>();
-            final Iterator<Map.Entry<String, JsonNode>> fields = analyticsResult.fields();
-
-            while (fields.hasNext()) {
-                final Map.Entry<String, JsonNode> field = fields.next();
-                final String impId = field.getKey();
-                final JsonNode explorationResultNode = field.getValue();
-                final Ortb2ImpExtResult ortb2ImpExtResult = jacksonMapper.mapper()
-                        .treeToValue(explorationResultNode, Ortb2ImpExtResult.class);
-                parsedAnalyticsResult.put(impId, ortb2ImpExtResult);
-            }
-
-            return parsedAnalyticsResult;
+            return jacksonMapper.mapper().treeToValue(node, Ortb2ImpExtResult.class);
         } catch (JsonProcessingException e) {
             throw new PreBidException("Analytics result parsing error", e);
         }
@@ -385,8 +382,8 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
     }
 
     private static SeatNonBid toSeatNonBid(String bidder, BidRejectionTracker bidRejectionTracker) {
-        final List<NonBid> nonBids = bidRejectionTracker.getRejectedImps().entrySet().stream()
-                .map(entry -> NonBid.of(entry.getKey(), entry.getValue()))
+        final List<NonBid> nonBids = bidRejectionTracker.getRejected().stream()
+                .map(rejectedImp -> NonBid.of(rejectedImp.impId(), rejectedImp.reason()))
                 .toList();
 
         return SeatNonBid.of(bidder, nonBids);

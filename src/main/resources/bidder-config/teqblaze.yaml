@@ -1,0 +1,57 @@
+adapters:
+  teqblaze:
+    endpoint: http://
+    aliases:
+      pinkLion:
+        enabled: false
+        endpoint: https://us-east-ep.pinklion.io/pserver
+        meta-info:
+          maintainer-email: prebid@pinklion.io
+      rocketlab:
+        enabled: false
+        endpoint: https://traffic1.rocketlab.ai/pserver
+        meta-info:
+          maintainer-email: support@rocketlab.ai
+        usersync:
+          enabled: true
+          cookie-family-name: rocketlab
+          redirect:
+            url: https://usync.rocketlab.ai/pbserver?gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redirect={{redirect_url}}
+            support-cors: false
+            uid-macro: '[UID]'
+      appStockSSP:
+        enabled: false
+        # We have the following regional endpoint domains:  'lb' - for US_EAST, 'ortb-eu' - for EU, 'ortb-apac' - for APAC
+        # Please deploy this config in each of your datacenters with the appropriate regional subdomain
+        endpoint: https://#{REGION}#.al-ad.com/pserver
+        meta-info:
+          maintainer-email: sdksupport@app-stock.com
+        usersync:
+          enabled: true
+          cookie-family-name: appStockSSP
+          redirect:
+            url: https://csync.al-ad.com/pbserver?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redir={{redirect_url}}
+            support-cors: false
+            uid-macro: '[UID]'
+          iframe:
+            url: "https://csync.al-ad.com/pbserverIframe?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&pbserverUrl={{redirect_url}}"
+            support-cors: false
+            uid-macro: '[UID]'
+      gravite:
+        enabled: false
+        endpoint: https://node1-rtb.gravite.net/pserver
+        mata-info:
+          maintainer-email: support@gravite.net
+          vendor-id: 377
+    meta-info:
+      maintainer-email: github@teqblaze.com
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 0

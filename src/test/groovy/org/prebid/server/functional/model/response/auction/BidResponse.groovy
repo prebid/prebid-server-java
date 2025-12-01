@@ -1,5 +1,6 @@
 package org.prebid.server.functional.model.response.auction
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 import org.prebid.server.functional.model.Currency
@@ -18,7 +19,8 @@ class BidResponse implements ResponseModel {
     String bidid
     Currency cur
     String customdata
-    NoBidResponse nbr
+    @JsonProperty("nbr")
+    NoBidResponse noBidResponse
     BidResponseExt ext
 
     static BidResponse getDefaultBidResponse(BidRequest bidRequest, BidderName bidderName = GENERIC) {

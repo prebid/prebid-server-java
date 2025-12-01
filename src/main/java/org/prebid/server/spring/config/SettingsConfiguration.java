@@ -6,11 +6,14 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.activity.ActivitiesConfigResolver;
 import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.floors.PriceFloorsConfigResolver;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.ApplicationSettings;
@@ -23,6 +26,7 @@ import org.prebid.server.settings.HttpApplicationSettings;
 import org.prebid.server.settings.S3ApplicationSettings;
 import org.prebid.server.settings.SettingsCache;
 import org.prebid.server.settings.helper.ParametrizedQueryHelper;
+import org.prebid.server.settings.model.Profile;
 import org.prebid.server.settings.service.DatabasePeriodicRefreshService;
 import org.prebid.server.settings.service.HttpPeriodicRefreshService;
 import org.prebid.server.settings.service.S3PeriodicRefreshService;
@@ -40,7 +44,10 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 
@@ -58,6 +65,8 @@ import java.util.stream.Stream;
 @UtilityClass
 public class SettingsConfiguration {
 
+    private static final Logger logger = LoggerFactory.getLogger(SettingsConfiguration.class);
+
     @Configuration
     @ConditionalOnProperty(prefix = "settings.filesystem",
             name = {"settings-filename", "stored-requests-dir", "stored-imps-dir"})
@@ -68,13 +77,21 @@ public class SettingsConfiguration {
                 @Value("${settings.filesystem.settings-filename}") String settingsFileName,
                 @Value("${settings.filesystem.stored-requests-dir}") String storedRequestsDir,
                 @Value("${settings.filesystem.stored-imps-dir}") String storedImpsDir,
+                @Value("${settings.filesystem.profiles-dir:#{null}}") String profilesDir,
                 @Value("${settings.filesystem.stored-responses-dir}") String storedResponsesDir,
                 @Value("${settings.filesystem.categories-dir}") String categoriesDir,
                 FileSystem fileSystem,
                 JacksonMapper jacksonMapper) {
 
-            return new FileApplicationSettings(fileSystem, settingsFileName, storedRequestsDir, storedImpsDir,
-                    storedResponsesDir, categoriesDir, jacksonMapper);
+            return new FileApplicationSettings(
+                    fileSystem,
+                    settingsFileName,
+                    storedRequestsDir,
+                    storedImpsDir,
+                    profilesDir,
+                    storedResponsesDir,
+                    categoriesDir,
+                    jacksonMapper);
         }
     }
 
@@ -87,6 +104,7 @@ public class SettingsConfiguration {
                 @Value("${settings.database.account-query}") String accountQuery,
                 @Value("${settings.database.stored-requests-query}") String storedRequestsQuery,
                 @Value("${settings.database.amp-stored-requests-query}") String ampStoredRequestsQuery,
+                @Value("${settings.database.profiles-query:#{null}}") String profilesQuery,
                 @Value("${settings.database.stored-responses-query}") String storedResponsesQuery,
                 ParametrizedQueryHelper parametrizedQueryHelper,
                 DatabaseClient databaseClient,
@@ -99,6 +117,7 @@ public class SettingsConfiguration {
                     accountQuery,
                     storedRequestsQuery,
                     ampStoredRequestsQuery,
+                    profilesQuery,
                     storedResponsesQuery);
         }
     }
@@ -109,6 +128,7 @@ public class SettingsConfiguration {
 
         @Bean
         HttpApplicationSettings httpApplicationSettings(
+                @Value("${settings.http.rfc3986-compatible:false}") boolean isRfc3986Compatible,
                 HttpClient httpClient,
                 JacksonMapper mapper,
                 @Value("${settings.http.endpoint}") String endpoint,
@@ -116,8 +136,14 @@ public class SettingsConfiguration {
                 @Value("${settings.http.video-endpoint}") String videoEndpoint,
                 @Value("${settings.http.category-endpoint}") String categoryEndpoint) {
 
-            return new HttpApplicationSettings(httpClient, mapper, endpoint, ampEndpoint, videoEndpoint,
-                    categoryEndpoint);
+            return new HttpApplicationSettings(
+                    isRfc3986Compatible,
+                    endpoint,
+                    ampEndpoint,
+                    videoEndpoint,
+                    categoryEndpoint,
+                    httpClient,
+                    mapper);
         }
     }
 
@@ -141,7 +167,7 @@ public class SettingsConfiguration {
         @Bean
         public HttpPeriodicRefreshService httpPeriodicRefreshService(
                 @Value("${settings.in-memory-cache.http-update.endpoint}") String endpoint,
-                SettingsCache settingsCache,
+                SettingsCache<String> settingsCache,
                 JacksonMapper mapper) {
 
             return new HttpPeriodicRefreshService(
@@ -151,7 +177,7 @@ public class SettingsConfiguration {
         @Bean
         public HttpPeriodicRefreshService ampHttpPeriodicRefreshService(
                 @Value("${settings.in-memory-cache.http-update.amp-endpoint}") String ampEndpoint,
-                SettingsCache ampSettingsCache,
+                SettingsCache<String> ampSettingsCache,
                 JacksonMapper mapper) {
 
             return new HttpPeriodicRefreshService(
@@ -188,7 +214,7 @@ public class SettingsConfiguration {
 
         @Bean
         public DatabasePeriodicRefreshService databasePeriodicRefreshService(
-                @Qualifier("settingsCache") SettingsCache settingsCache,
+                @Qualifier("settingsCache") SettingsCache<String> settingsCache,
                 @Value("${settings.in-memory-cache.database-update.init-query}") String initQuery,
                 @Value("${settings.in-memory-cache.database-update.update-query}") String updateQuery) {
 
@@ -208,7 +234,7 @@ public class SettingsConfiguration {
 
         @Bean
         public DatabasePeriodicRefreshService ampDatabasePeriodicRefreshService(
-                @Qualifier("ampSettingsCache") SettingsCache ampSettingsCache,
+                @Qualifier("ampSettingsCache") SettingsCache<String> ampSettingsCache,
                 @Value("${settings.in-memory-cache.database-update.amp-init-query}") String ampInitQuery,
                 @Value("${settings.in-memory-cache.database-update.amp-update-query}") String ampUpdateQuery) {
 
@@ -233,17 +259,29 @@ public class SettingsConfiguration {
 
         @Component
         @ConfigurationProperties(prefix = "settings.s3")
-        @ConditionalOnProperty(prefix = "settings.s3", name = {"accessKeyId", "secretAccessKey"})
         @Validated
         @Data
         @NoArgsConstructor
         protected static class S3ConfigurationProperties {
 
-            @NotBlank
+            /**
+             * If accessKeyId and secretAccessKey are provided in the
+             * configuration file then they will be used. Otherwise, the
+             * DefaultCredentialsProvider will look for credentials in this order:
+             * <p>
+             * - Java System Properties
+             * - Environment Variables
+             * - Web Identity Token
+             * - AWS credentials file (~/.aws/credentials)
+             * - ECS container credentials
+             * - EC2 instance profile
+             */
             private String accessKeyId;
-
-            @NotBlank
             private String secretAccessKey;
+
+            private boolean useStaticCredentials() {
+                return StringUtils.isNotBlank(accessKeyId) && StringUtils.isNotBlank(secretAccessKey);
+            }
 
             /**
              * If not provided AWS_GLOBAL will be used as a region
@@ -274,20 +312,31 @@ public class SettingsConfiguration {
 
         @Bean
         S3AsyncClient s3AsyncClient(S3ConfigurationProperties s3ConfigurationProperties) throws URISyntaxException {
-            final AwsBasicCredentials credentials = AwsBasicCredentials.create(
-                    s3ConfigurationProperties.getAccessKeyId(),
-                    s3ConfigurationProperties.getSecretAccessKey());
             final Region awsRegion = Optional.ofNullable(s3ConfigurationProperties.getRegion())
                     .map(Region::of)
                     .orElse(Region.AWS_GLOBAL);
 
-            return S3AsyncClient
-                    .builder()
-                    .credentialsProvider(StaticCredentialsProvider.create(credentials))
+            return S3AsyncClient.builder()
+                    .credentialsProvider(awsCredentialsProvider(s3ConfigurationProperties))
                     .endpointOverride(new URI(s3ConfigurationProperties.getEndpoint()))
                     .forcePathStyle(s3ConfigurationProperties.getForcePathStyle())
                     .region(awsRegion)
                     .build();
+        }
+
+        private static AwsCredentialsProvider awsCredentialsProvider(S3ConfigurationProperties config) {
+            final AwsCredentialsProvider credentialsProvider = config.useStaticCredentials()
+                    ? StaticCredentialsProvider.create(
+                    AwsBasicCredentials.create(config.getAccessKeyId(), config.getSecretAccessKey()))
+                    : DefaultCredentialsProvider.create();
+
+            try {
+                credentialsProvider.resolveCredentials();
+            } catch (SdkClientException e) {
+                logger.error("Failed to resolve AWS credentials", e);
+            }
+
+            return credentialsProvider;
         }
 
         @Bean
@@ -317,7 +366,7 @@ public class SettingsConfiguration {
                 S3AsyncClient s3AsyncClient,
                 S3SettingsConfiguration.S3ConfigurationProperties s3ConfigurationProperties,
                 @Value("${settings.in-memory-cache.s3-update.refresh-rate}") long refreshPeriod,
-                SettingsCache settingsCache,
+                SettingsCache<String> settingsCache,
                 Clock clock,
                 Metrics metrics,
                 Vertx vertx) {
@@ -393,9 +442,10 @@ public class SettingsConfiguration {
         CachingApplicationSettings cachingApplicationSettings(
                 EnrichingApplicationSettings enrichingApplicationSettings,
                 ApplicationSettingsCacheProperties cacheProperties,
-                @Qualifier("settingsCache") SettingsCache cache,
-                @Qualifier("ampSettingsCache") SettingsCache ampCache,
-                @Qualifier("videoSettingCache") SettingsCache videoCache,
+                @Qualifier("settingsCache") SettingsCache<String> cache,
+                @Qualifier("ampSettingsCache") SettingsCache<String> ampCache,
+                @Qualifier("videoSettingCache") SettingsCache<String> videoCache,
+                @Qualifier("profileSettingCache") SettingsCache<Profile> profilesCache,
                 Metrics metrics) {
 
             return new CachingApplicationSettings(
@@ -403,6 +453,7 @@ public class SettingsConfiguration {
                     cache,
                     ampCache,
                     videoCache,
+                    profilesCache,
                     metrics,
                     cacheProperties.getTtlSeconds(),
                     cacheProperties.getCacheSize(),
@@ -427,8 +478,8 @@ public class SettingsConfiguration {
 
         @Bean
         @Qualifier("settingsCache")
-        SettingsCache settingsCache(ApplicationSettingsCacheProperties cacheProperties) {
-            return new SettingsCache(
+        SettingsCache<String> settingsCache(ApplicationSettingsCacheProperties cacheProperties) {
+            return new SettingsCache<>(
                     cacheProperties.getTtlSeconds(),
                     cacheProperties.getCacheSize(),
                     cacheProperties.getJitterSeconds());
@@ -436,8 +487,8 @@ public class SettingsConfiguration {
 
         @Bean
         @Qualifier("ampSettingsCache")
-        SettingsCache ampSettingsCache(ApplicationSettingsCacheProperties cacheProperties) {
-            return new SettingsCache(
+        SettingsCache<String> ampSettingsCache(ApplicationSettingsCacheProperties cacheProperties) {
+            return new SettingsCache<>(
                     cacheProperties.getTtlSeconds(),
                     cacheProperties.getCacheSize(),
                     cacheProperties.getJitterSeconds());
@@ -445,8 +496,17 @@ public class SettingsConfiguration {
 
         @Bean
         @Qualifier("videoSettingCache")
-        SettingsCache videoSettingCache(ApplicationSettingsCacheProperties cacheProperties) {
-            return new SettingsCache(
+        SettingsCache<String> videoSettingCache(ApplicationSettingsCacheProperties cacheProperties) {
+            return new SettingsCache<>(
+                    cacheProperties.getTtlSeconds(),
+                    cacheProperties.getCacheSize(),
+                    cacheProperties.getJitterSeconds());
+        }
+
+        @Bean
+        @Qualifier("profileSettingCache")
+        SettingsCache<Profile> profileSettingCache(ApplicationSettingsCacheProperties cacheProperties) {
+            return new SettingsCache<>(
                     cacheProperties.getTtlSeconds(),
                     cacheProperties.getCacheSize(),
                     cacheProperties.getJitterSeconds());

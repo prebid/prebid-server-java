@@ -11,6 +11,7 @@ import org.prebid.server.activity.infrastructure.privacy.usnat.inner.USNatDefaul
 import org.prebid.server.activity.infrastructure.privacy.usnat.inner.USNatSyncUser;
 import org.prebid.server.activity.infrastructure.privacy.usnat.inner.USNatTransmitGeo;
 import org.prebid.server.activity.infrastructure.privacy.usnat.inner.USNatTransmitUfpd;
+import org.prebid.server.settings.model.activity.privacy.AccountUSNatModuleConfig;
 
 import java.util.Objects;
 
@@ -18,18 +19,21 @@ public class USNatModule implements PrivacyModule, Loggable {
 
     private final PrivacyModule innerModule;
 
-    public USNatModule(Activity activity, USNatGppReader gppReader) {
+    public USNatModule(Activity activity, USNatGppReader gppReader, AccountUSNatModuleConfig.Config config) {
         Objects.requireNonNull(activity);
         Objects.requireNonNull(gppReader);
 
-        innerModule = innerModule(activity, gppReader);
+        innerModule = innerModule(activity, gppReader, config);
     }
 
-    private static PrivacyModule innerModule(Activity activity, USNatGppReader gppReader) {
+    private static PrivacyModule innerModule(Activity activity,
+                                             USNatGppReader gppReader,
+                                             AccountUSNatModuleConfig.Config config) {
+
         return switch (activity) {
-            case SYNC_USER, MODIFY_UFDP -> new USNatSyncUser(gppReader);
-            case TRANSMIT_UFPD, TRANSMIT_EIDS -> new USNatTransmitUfpd(gppReader);
-            case TRANSMIT_GEO -> new USNatTransmitGeo(gppReader);
+            case SYNC_USER, MODIFY_UFDP -> new USNatSyncUser(gppReader, config);
+            case TRANSMIT_UFPD, TRANSMIT_EIDS -> new USNatTransmitUfpd(gppReader, config);
+            case TRANSMIT_GEO -> new USNatTransmitGeo(gppReader, config);
             case CALL_BIDDER, TRANSMIT_TID, REPORT_ANALYTICS -> USNatDefault.instance();
         };
     }

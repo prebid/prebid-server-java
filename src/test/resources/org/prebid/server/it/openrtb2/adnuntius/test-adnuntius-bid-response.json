@@ -2,7 +2,8 @@
   "adUnits": [
     {
       "auId": "some_au_id",
-      "targetId": "some_au_id-imp_id",
+      "targetId": "some_au_id-imp_id:banner",
+      "matchedAdCount": 1,
       "html": "some_html",
       "ads": [
         {
@@ -16,9 +17,9 @@
           "creativeId": "some_creative_id",
           "lineItemId": "some_line_item_id",
           "dealId": "some_deal_id",
-          "destinationUrls": {
-            "some_url": "https://www.domain.dm/uri"
-          }
+          "advertiserDomains": [
+            "domain.dm"
+          ]
         }
       ]
     }

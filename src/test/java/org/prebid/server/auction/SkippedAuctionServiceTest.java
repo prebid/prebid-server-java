@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.prebid.server.auction.externalortb.StoredResponseProcessor;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.auction.model.TimeoutContext;
@@ -17,19 +18,20 @@ import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredAuctionResponse;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
+import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.prebid.server.bidder.model.BidderError.Type.generic;
 
 @ExtendWith(MockitoExtension.class)
 public class SkippedAuctionServiceTest {
@@ -37,15 +39,13 @@ public class SkippedAuctionServiceTest {
     @Mock
     private StoredResponseProcessor storedResponseProcessor;
     @Mock
-    private BidResponseCreator bidResponseCreator;
-    @Mock
     private Timeout timeout;
 
     private SkippedAuctionService target;
 
     @BeforeEach
     public void setUp() {
-        target = new SkippedAuctionService(storedResponseProcessor, bidResponseCreator);
+        target = new SkippedAuctionService(storedResponseProcessor);
     }
 
     @Test
@@ -61,7 +61,7 @@ public class SkippedAuctionServiceTest {
         // then
         assertThat(result.failed()).isTrue();
         assertThat(result.cause()).hasMessage("Rejected request cannot be skipped");
-        verifyNoInteractions(storedResponseProcessor, bidResponseCreator);
+        verifyNoInteractions(storedResponseProcessor);
     }
 
     @Test
@@ -79,7 +79,7 @@ public class SkippedAuctionServiceTest {
         assertThat(result.cause())
                 .hasMessage("the auction can not be skipped, ext.prebid.storedauctionresponse is absent");
 
-        verifyNoInteractions(storedResponseProcessor, bidResponseCreator);
+        verifyNoInteractions(storedResponseProcessor);
     }
 
     @Test
@@ -97,7 +97,7 @@ public class SkippedAuctionServiceTest {
         assertThat(result.cause())
                 .hasMessage("the auction can not be skipped, ext.prebid.storedauctionresponse is absent");
 
-        verifyNoInteractions(storedResponseProcessor, bidResponseCreator);
+        verifyNoInteractions(storedResponseProcessor);
     }
 
     @Test
@@ -117,7 +117,7 @@ public class SkippedAuctionServiceTest {
         assertThat(result.cause())
                 .hasMessage("the auction can not be skipped, ext.prebid.storedauctionresponse is absent");
 
-        verifyNoInteractions(storedResponseProcessor, bidResponseCreator);
+        verifyNoInteractions(storedResponseProcessor);
     }
 
     @Test
@@ -140,7 +140,7 @@ public class SkippedAuctionServiceTest {
                 .hasMessage("the auction can not be skipped, "
                         + "ext.prebid.storedauctionresponse can not be resolved properly");
 
-        verifyNoInteractions(storedResponseProcessor, bidResponseCreator);
+        verifyNoInteractions(storedResponseProcessor);
     }
 
     @Test
@@ -151,15 +151,14 @@ public class SkippedAuctionServiceTest {
         final AuctionContext givenAuctionContext = AuctionContext.builder()
                 .debugWarnings(new ArrayList<>())
                 .bidRequest(BidRequest.builder()
+                        .id("requestId")
+                        .tmax(1000L)
+                        .cur(List.of("USD"))
                         .ext(ExtRequest.of(ExtRequestPrebid.builder()
                                 .storedAuctionResponse(givenStoredResponse)
                                 .build()))
                         .build())
                 .build();
-
-        final BidResponse givenBidResponse = BidResponse.builder().build();
-        given(bidResponseCreator.createOnSkippedAuction(any(), any()))
-                .willReturn(Future.succeededFuture(givenBidResponse));
 
         // when
         final Future<AuctionContext> result = target.skipAuction(givenAuctionContext);
@@ -167,12 +166,22 @@ public class SkippedAuctionServiceTest {
         // then
         final AuctionContext expectedAuctionContext = givenAuctionContext.toBuilder()
                 .debugWarnings(singletonList("no auction. response defined by storedauctionresponse"))
+                .bidResponse(BidResponse.builder()
+                        .id("requestId")
+                        .cur("USD")
+                        .seatbid(givenSeatBids)
+                        .ext(ExtBidResponse.builder()
+                                .tmaxrequest(1000L)
+                                .warnings(singletonMap("prebid", List.of(ExtBidderError.of(
+                                        generic.getCode(),
+                                        "no auction. response defined by storedauctionresponse"))))
+                                .build())
+                        .build())
                 .build();
 
         assertThat(result.succeeded()).isTrue();
-        assertThat(result.result()).isEqualTo(expectedAuctionContext.with(givenBidResponse).skipAuction());
+        assertThat(result.result()).isEqualTo(expectedAuctionContext.skipAuction());
 
-        verify(bidResponseCreator).createOnSkippedAuction(expectedAuctionContext, givenSeatBids);
         verifyNoInteractions(storedResponseProcessor);
     }
 
@@ -184,15 +193,14 @@ public class SkippedAuctionServiceTest {
         final AuctionContext givenAuctionContext = AuctionContext.builder()
                 .debugWarnings(new ArrayList<>())
                 .bidRequest(BidRequest.builder()
+                        .id("requestId")
+                        .tmax(1000L)
+                        .cur(List.of("USD"))
                         .ext(ExtRequest.of(ExtRequestPrebid.builder()
                                 .storedAuctionResponse(givenStoredResponse)
                                 .build()))
                         .build())
                 .build();
-
-        final BidResponse givenBidResponse = BidResponse.builder().build();
-        given(bidResponseCreator.createOnSkippedAuction(any(), any()))
-                .willReturn(Future.succeededFuture(givenBidResponse));
 
         // when
         final Future<AuctionContext> result = target.skipAuction(givenAuctionContext);
@@ -202,12 +210,24 @@ public class SkippedAuctionServiceTest {
                 .debugWarnings(List.of(
                         "SeatBid can't be null in stored response",
                         "no auction. response defined by storedauctionresponse"))
+                .bidResponse(BidResponse.builder()
+                        .id("requestId")
+                        .cur("USD")
+                        .seatbid(emptyList())
+                        .ext(ExtBidResponse.builder()
+                                .tmaxrequest(1000L)
+                                .warnings(singletonMap("prebid", List.of(
+                                        ExtBidderError.of(generic.getCode(),
+                                                "SeatBid can't be null in stored response"),
+                                        ExtBidderError.of(generic.getCode(),
+                                                "no auction. response defined by storedauctionresponse"))))
+                                .build())
+                        .build())
                 .build();
 
         assertThat(result.succeeded()).isTrue();
-        assertThat(result.result()).isEqualTo(expectedAuctionContext.with(givenBidResponse).skipAuction());
+        assertThat(result.result()).isEqualTo(expectedAuctionContext.skipAuction());
 
-        verify(bidResponseCreator).createOnSkippedAuction(expectedAuctionContext, emptyList());
         verifyNoInteractions(storedResponseProcessor);
     }
 
@@ -219,15 +239,14 @@ public class SkippedAuctionServiceTest {
         final AuctionContext givenAuctionContext = AuctionContext.builder()
                 .debugWarnings(new ArrayList<>())
                 .bidRequest(BidRequest.builder()
+                        .id("requestId")
+                        .tmax(1000L)
+                        .cur(List.of("USD"))
                         .ext(ExtRequest.of(ExtRequestPrebid.builder()
                                 .storedAuctionResponse(givenStoredResponse)
                                 .build()))
                         .build())
                 .build();
-
-        final BidResponse givenBidResponse = BidResponse.builder().build();
-        given(bidResponseCreator.createOnSkippedAuction(any(), any()))
-                .willReturn(Future.succeededFuture(givenBidResponse));
 
         // when
         final Future<AuctionContext> result = target.skipAuction(givenAuctionContext);
@@ -237,12 +256,24 @@ public class SkippedAuctionServiceTest {
                 .debugWarnings(List.of(
                         "Seat can't be empty in stored response seatBid",
                         "no auction. response defined by storedauctionresponse"))
+                .bidResponse(BidResponse.builder()
+                        .id("requestId")
+                        .cur("USD")
+                        .seatbid(emptyList())
+                        .ext(ExtBidResponse.builder()
+                                .tmaxrequest(1000L)
+                                .warnings(singletonMap("prebid", List.of(
+                                        ExtBidderError.of(generic.getCode(),
+                                                "Seat can't be empty in stored response seatBid"),
+                                        ExtBidderError.of(generic.getCode(),
+                                                "no auction. response defined by storedauctionresponse"))))
+                                .build())
+                        .build())
                 .build();
 
         assertThat(result.succeeded()).isTrue();
-        assertThat(result.result()).isEqualTo(expectedAuctionContext.with(givenBidResponse).skipAuction());
+        assertThat(result.result()).isEqualTo(expectedAuctionContext.skipAuction());
 
-        verify(bidResponseCreator).createOnSkippedAuction(expectedAuctionContext, emptyList());
         verifyNoInteractions(storedResponseProcessor);
     }
 
@@ -254,15 +285,14 @@ public class SkippedAuctionServiceTest {
         final AuctionContext givenAuctionContext = AuctionContext.builder()
                 .debugWarnings(new ArrayList<>())
                 .bidRequest(BidRequest.builder()
+                        .id("requestId")
+                        .tmax(1000L)
+                        .cur(List.of("USD"))
                         .ext(ExtRequest.of(ExtRequestPrebid.builder()
                                 .storedAuctionResponse(givenStoredResponse)
                                 .build()))
                         .build())
                 .build();
-
-        final BidResponse givenBidResponse = BidResponse.builder().build();
-        given(bidResponseCreator.createOnSkippedAuction(any(), any()))
-                .willReturn(Future.succeededFuture(givenBidResponse));
 
         // when
         final Future<AuctionContext> result = target.skipAuction(givenAuctionContext);
@@ -272,12 +302,24 @@ public class SkippedAuctionServiceTest {
                 .debugWarnings(List.of(
                         "There must be at least one bid in stored response seatBid",
                         "no auction. response defined by storedauctionresponse"))
+                .bidResponse(BidResponse.builder()
+                        .id("requestId")
+                        .cur("USD")
+                        .seatbid(emptyList())
+                        .ext(ExtBidResponse.builder()
+                                .tmaxrequest(1000L)
+                                .warnings(singletonMap("prebid", List.of(
+                                        ExtBidderError.of(generic.getCode(),
+                                                "There must be at least one bid in stored response seatBid"),
+                                        ExtBidderError.of(generic.getCode(),
+                                                "no auction. response defined by storedauctionresponse"))))
+                                .build())
+                        .build())
                 .build();
 
         assertThat(result.succeeded()).isTrue();
-        assertThat(result.result()).isEqualTo(expectedAuctionContext.with(givenBidResponse).skipAuction());
+        assertThat(result.result()).isEqualTo(expectedAuctionContext.skipAuction());
 
-        verify(bidResponseCreator).createOnSkippedAuction(expectedAuctionContext, emptyList());
         verifyNoInteractions(storedResponseProcessor);
     }
 
@@ -289,15 +331,15 @@ public class SkippedAuctionServiceTest {
                 .debugWarnings(new ArrayList<>())
                 .timeoutContext(TimeoutContext.of(1000L, timeout, 0))
                 .bidRequest(BidRequest.builder()
+                        .id("requestId")
+                        .tmax(1000L)
+                        .cur(List.of("USD"))
                         .ext(ExtRequest.of(ExtRequestPrebid.builder()
                                 .storedAuctionResponse(givenStoredResponse)
                                 .build()))
                         .build())
                 .build();
 
-        final BidResponse givenBidResponse = BidResponse.builder().build();
-        given(bidResponseCreator.createOnSkippedAuction(any(), any()))
-                .willReturn(Future.succeededFuture(givenBidResponse));
         given(storedResponseProcessor.getStoredResponseResult("id", timeout))
                 .willReturn(Future.failedFuture("no value"));
 
@@ -309,12 +351,22 @@ public class SkippedAuctionServiceTest {
                 .debugWarnings(List.of(
                         "no value",
                         "no auction. response defined by storedauctionresponse"))
+                .bidResponse(BidResponse.builder()
+                        .id("requestId")
+                        .cur("USD")
+                        .seatbid(emptyList())
+                        .ext(ExtBidResponse.builder()
+                                .tmaxrequest(1000L)
+                                .warnings(singletonMap("prebid", List.of(
+                                        ExtBidderError.of(generic.getCode(), "no value"),
+                                        ExtBidderError.of(generic.getCode(),
+                                                "no auction. response defined by storedauctionresponse"))))
+                                .build())
+                        .build())
                 .build();
 
         assertThat(result.succeeded()).isTrue();
-        assertThat(result.result()).isEqualTo(expectedAuctionContext.with(givenBidResponse).skipAuction());
-
-        verify(bidResponseCreator).createOnSkippedAuction(expectedAuctionContext, Collections.emptyList());
+        assertThat(result.result()).isEqualTo(expectedAuctionContext.skipAuction());
     }
 
     @Test
@@ -326,15 +378,15 @@ public class SkippedAuctionServiceTest {
                 .debugWarnings(new ArrayList<>())
                 .timeoutContext(TimeoutContext.of(1000L, timeout, 0))
                 .bidRequest(BidRequest.builder()
+                        .id("requestId")
+                        .tmax(1000L)
+                        .cur(List.of("USD"))
                         .ext(ExtRequest.of(ExtRequestPrebid.builder()
                                 .storedAuctionResponse(givenStoredResponse)
                                 .build()))
                         .build())
                 .build();
 
-        final BidResponse givenBidResponse = BidResponse.builder().build();
-        given(bidResponseCreator.createOnSkippedAuction(any(), any()))
-                .willReturn(Future.succeededFuture(givenBidResponse));
         given(storedResponseProcessor.getStoredResponseResult("id", timeout))
                 .willReturn(Future.succeededFuture(StoredResponseResult.of(null, givenSeatBids, null)));
 
@@ -344,12 +396,21 @@ public class SkippedAuctionServiceTest {
         // then
         final AuctionContext expectedAuctionContext = givenAuctionContext.toBuilder()
                 .debugWarnings(singletonList("no auction. response defined by storedauctionresponse"))
+                .bidResponse(BidResponse.builder()
+                        .id("requestId")
+                        .cur("USD")
+                        .seatbid(givenSeatBids)
+                        .ext(ExtBidResponse.builder()
+                                .tmaxrequest(1000L)
+                                .warnings(singletonMap("prebid", List.of(ExtBidderError.of(
+                                        generic.getCode(),
+                                        "no auction. response defined by storedauctionresponse"))))
+                                .build())
+                        .build())
                 .build();
 
         assertThat(result.succeeded()).isTrue();
-        assertThat(result.result()).isEqualTo(expectedAuctionContext.with(givenBidResponse).skipAuction());
-
-        verify(bidResponseCreator).createOnSkippedAuction(expectedAuctionContext, givenSeatBids);
+        assertThat(result.result()).isEqualTo(expectedAuctionContext.skipAuction());
     }
 
     private static List<SeatBid> givenSeatBids(String... bidIds) {

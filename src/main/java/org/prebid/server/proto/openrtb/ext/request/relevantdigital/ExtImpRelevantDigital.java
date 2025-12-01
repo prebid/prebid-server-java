@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Value;
 
-@Value(staticConstructor = "of")
+@Value
 @Builder
 public class ExtImpRelevantDigital {
 

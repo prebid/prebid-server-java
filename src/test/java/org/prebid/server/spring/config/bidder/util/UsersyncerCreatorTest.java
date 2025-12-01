@@ -117,7 +117,7 @@ public class UsersyncerCreatorTest {
                 .build();
 
         assertThat(result).isEqualTo(
-                Usersyncer.of("rubicon", expectedIframeMethod, expectedRedirectMethod));
+                Usersyncer.of("rubicon", expectedIframeMethod, expectedRedirectMethod, false, null));
     }
 
     @Test

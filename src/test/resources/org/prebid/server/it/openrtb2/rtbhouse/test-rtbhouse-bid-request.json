@@ -23,7 +23,12 @@
     "domain": "www.example.com",
     "page": "http://www.example.com",
     "publisher": {
-      "domain": "example.com"
+      "domain": "example.com",
+      "ext": {
+        "prebid": {
+          "publisherId": "publisherId"
+        }
+      }
     },
     "ext": {
       "amp": 0
@@ -39,9 +44,7 @@
     "USD"
   ],
   "regs": {
-    "ext": {
-      "gdpr": 0
-    }
+    "gdpr": 0
   },
   "ext": {
     "prebid": {

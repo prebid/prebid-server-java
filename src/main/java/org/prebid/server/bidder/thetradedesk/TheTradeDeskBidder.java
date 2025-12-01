@@ -11,8 +11,8 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.MultiMap;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -29,6 +29,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -42,13 +43,9 @@ public class TheTradeDeskBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private static final String PREBID_INTEGRATION_TYPE_HEADER = "x-integration-type";
-    private static final String PREBID_INTEGRATION_TYPE = "1";
-    private static final MultiMap HEADERS = HttpUtil.headers()
-            .add(PREBID_INTEGRATION_TYPE_HEADER, PREBID_INTEGRATION_TYPE);
-
     private static final String SUPPLY_ID_MACRO = "{{SupplyId}}";
     private static final Pattern SUPPLY_ID_PATTERN = Pattern.compile("([a-z]+)$");
+    private static final String PRICE_MACRO = "${AUCTION_PRICE}";
 
     private final String endpointUrl;
     private final String supplyId;
@@ -73,14 +70,20 @@ public class TheTradeDeskBidder implements Bidder<BidRequest> {
         final List<Imp> modifiedImps = new ArrayList<>();
 
         String publisherId = null;
+        String sourceSupplyId = null;
         for (Imp imp : request.getImp()) {
             try {
                 final ExtImpTheTradeDesk extImp = parseImpExt(imp);
-                publisherId = publisherId == null
-                        ? StringUtils.isNotBlank(extImp.getPublisherId())
-                        ? extImp.getPublisherId()
-                        : publisherId
+
+                final String extImpPublisherId = extImp.getPublisherId();
+                publisherId = publisherId == null && StringUtils.isNotBlank(extImpPublisherId)
+                        ? extImpPublisherId
                         : publisherId;
+
+                final String extImpSourceSupplyId = extImp.getSupplySourceId();
+                sourceSupplyId = sourceSupplyId == null && StringUtils.isNotBlank(extImpSourceSupplyId)
+                        ? extImpSourceSupplyId
+                        : sourceSupplyId;
 
                 modifiedImps.add(modifyImp(imp));
             } catch (PreBidException e) {
@@ -88,11 +91,15 @@ public class TheTradeDeskBidder implements Bidder<BidRequest> {
             }
         }
 
+        if (StringUtils.isBlank(sourceSupplyId) && StringUtils.isBlank(supplyId)) {
+            return Result.withError(
+                BidderError.badInput("Either supplySourceId or a default endpoint must be provided"));
+        }
+
         final BidRequest outgoingRequest = modifyRequest(request, modifiedImps, publisherId);
         final HttpRequest<BidRequest> httpRequest = BidderUtil.defaultRequest(
                 outgoingRequest,
-                HEADERS,
-                resolveEndpoint(),
+                resolveEndpoint(sourceSupplyId),
                 mapper);
 
         return Result.withValue(httpRequest);
@@ -165,40 +172,66 @@ public class TheTradeDeskBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private String resolveEndpoint() {
-        return endpointUrl.replace(SUPPLY_ID_MACRO, HttpUtil.encodeUrl(StringUtils.defaultString(supplyId)));
+    private String resolveEndpoint(String sourceSupplyId) {
+        return endpointUrl.replace(
+                SUPPLY_ID_MACRO,
+                HttpUtil.encodeUrl(StringUtils.defaultString(ObjectUtils.defaultIfNull(sourceSupplyId, supplyId))));
     }
 
     @Override
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.withValues(extractBids(bidResponse));
-        } catch (DecodeException | PreBidException e) {
+            final List<BidderError> errors = new ArrayList<>();
+            final List<BidderBid> bids = extractBids(bidResponse, errors);
+            return Result.of(bids, errors);
+        } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private static List<BidderBid> extractBids(BidResponse bidResponse) {
+    private static List<BidderBid> extractBids(BidResponse bidResponse, List<BidderError> errors) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
 
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
-                .map(SeatBid::getBid).filter(Objects::nonNull)
+                .map(SeatBid::getBid)
+                .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(bid, getBidType(bid), bidResponse.getCur()))
+                .map(bid -> makeBid(bid, bidResponse.getCur(), errors))
+                .filter(Objects::nonNull)
                 .toList();
     }
 
-    private static BidType getBidType(Bid bid) {
+    private static BidderBid makeBid(Bid bid, String currency, List<BidderError> errors) {
+        final BidType bidType = getBidType(bid, errors);
+        return bidType != null ? BidderBid.of(resolvePriceMacros(bid), bidType, currency) : null;
+    }
+
+    private static BidType getBidType(Bid bid, List<BidderError> errors) {
         return switch (bid.getMtype()) {
             case 1 -> BidType.banner;
             case 2 -> BidType.video;
             case 4 -> BidType.xNative;
-            case null, default -> throw new PreBidException("unsupported mtype: %s".formatted(bid.getMtype()));
+            case null, default -> {
+                errors.add(BidderError.badServerResponse(
+                        "could not define media type for impression: " + bid.getImpid()));
+                yield null;
+            }
         };
+    }
+
+    private static Bid resolvePriceMacros(Bid bid) {
+        final BigDecimal price = bid.getPrice();
+        final String priceAsString = price != null ? price.toPlainString() : "0";
+
+        return bid.toBuilder()
+                .nurl(StringUtils.replace(bid.getNurl(), PRICE_MACRO, priceAsString))
+                .adm(StringUtils.replace(bid.getAdm(), PRICE_MACRO, priceAsString))
+                .burl(StringUtils.replace(bid.getBurl(), PRICE_MACRO, priceAsString))
+                .build();
     }
 }

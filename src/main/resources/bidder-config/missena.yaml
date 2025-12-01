@@ -1,6 +1,6 @@
 adapters:
   missena:
-    endpoint: https://bid.missena.io/
+    endpoint: https://bid.missena.io/?t={{PublisherID}}
     meta-info:
       maintainer-email: prebid@missena.com
       modifying-vast-xml-allowed: true

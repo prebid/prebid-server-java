@@ -26,7 +26,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
-import org.prebid.server.bidder.ix.model.request.IxDiag;
 import org.prebid.server.bidder.ix.model.response.AuctionConfigExtBidResponse;
 import org.prebid.server.bidder.ix.model.response.IxBidResponse;
 import org.prebid.server.bidder.ix.model.response.IxExtBidResponse;
@@ -55,6 +54,7 @@ import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -190,8 +190,10 @@ public class IxBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getExt)
                 .extracting(ext -> ext.getProperty("ixdiag"))
-                .extracting(diagNode -> mapper.treeToValue(diagNode, IxDiag.class))
-                .containsExactly(IxDiag.of(null, "pbjsv", null));
+                .containsExactly(mapper.createObjectNode()
+                        .put("pbsv", "unknown")
+                        .put("pbjsv", "pbjsv")
+                        .put("pbsp", "java"));
     }
 
     @Test
@@ -209,8 +211,9 @@ public class IxBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getExt)
                 .extracting(ext -> ext.getProperty("ixdiag"))
-                .extracting(diagNode -> mapper.treeToValue(diagNode, IxDiag.class))
-                .containsExactly(IxDiag.of("pbsv", null, null));
+                .containsExactly(mapper.createObjectNode()
+                        .put("pbsv", "pbsv")
+                        .put("pbsp", "java"));
     }
 
     @Test
@@ -229,8 +232,51 @@ public class IxBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getExt)
                 .extracting(ext -> ext.getProperty("ixdiag"))
-                .extracting(diagNode -> mapper.treeToValue(diagNode, IxDiag.class))
-                .containsExactly(IxDiag.of(null, null, "site1, site2"));
+                .containsExactly(mapper.createObjectNode()
+                        .put("pbsv", "unknown")
+                        .put("pbsp", "java")
+                        .put("multipleSiteIds", "site1, site2"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldPassThroughProvidedIxDiagFields() {
+        // given
+        given(prebidVersionProvider.getNameVersionRecord()).willReturn("pbsv1");
+        final ObjectNode givenIxDiag = mapper.createObjectNode();
+        givenIxDiag.put("pbsv", "pbsv2");
+        givenIxDiag.put("pbjsv", "pbjsv2");
+        givenIxDiag.put("pbsp", "go");
+        givenIxDiag.put("multipleSiteIds", "site1");
+        givenIxDiag.put("property1", "value");
+        givenIxDiag.put("property2", 1);
+
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.ext(givenExtRequestWithIxDiag(
+                        "pbjsv1",
+                        givenIxDiag)),
+                List.of(
+                        impBuilder -> impBuilder.ext(givenImpExt("site1", null)),
+                        impBuilder -> impBuilder.ext(givenImpExt("site2", null))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+
+        final ObjectNode expectedIxDiag = mapper.createObjectNode();
+        expectedIxDiag.put("pbsv", "pbsv1");
+        expectedIxDiag.put("pbjsv", "pbjsv1");
+        expectedIxDiag.put("pbsp", "java");
+        expectedIxDiag.put("multipleSiteIds", "site1, site2");
+        expectedIxDiag.put("property1", "value");
+        expectedIxDiag.put("property2", 1);
+
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getExt)
+                .extracting(ext -> ext.getProperty("ixdiag"))
+                .containsExactly(expectedIxDiag);
     }
 
     @Test
@@ -541,6 +587,86 @@ public class IxBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidderResponseShouldReturnAdmContainingEventImpTrackersUrlsWhenImpTrackersAreNull()
+            throws JsonProcessingException {
+        // given
+        final String adm = mapper.writeValueAsString(
+                Response.builder()
+                        .eventtrackers(singletonList(
+                                EventTracker.builder()
+                                        .event(EventType.IMPRESSION.getValue())
+                                        .url("eventUrl")
+                                        .build()))
+                        .build());
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder().id("123").xNative(Native.builder().build()).build()))
+                .build();
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                bidRequest,
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder
+                        .impid("123")
+                        .adm(adm))));
+
+        // when
+        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
+
+        // then
+        final Response expectedNativeResponse = Response.builder()
+                .imptrackers(asList("eventUrl"))
+                .eventtrackers(singletonList(EventTracker.builder()
+                        .event(EventType.IMPRESSION.getValue())
+                        .url("eventUrl")
+                        .build()))
+                .build();
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getBids())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getAdm)
+                .containsExactly(mapper.writeValueAsString(expectedNativeResponse));
+    }
+
+    @Test
+    public void makeBidderResponseShouldReturnAdmWithoutImpTrackers()
+            throws JsonProcessingException {
+        // given
+        final String adm = mapper.writeValueAsString(
+                Response.builder()
+                        .eventtrackers(singletonList(
+                                EventTracker.builder()
+                                        .event(EventType.VIEWABLE_VIDEO50.getValue())
+                                        .url("eventUrl")
+                                        .build()))
+                        .build());
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder().id("123").xNative(Native.builder().build()).build()))
+                .build();
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                bidRequest,
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder
+                        .impid("123")
+                        .adm(adm))));
+
+        // when
+        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
+
+        // then
+        final Response expectedNativeResponse = Response.builder()
+                .imptrackers(emptyList())
+                .eventtrackers(singletonList(EventTracker.builder()
+                        .event(EventType.VIEWABLE_VIDEO50.getValue())
+                        .url("eventUrl")
+                        .build()))
+                .build();
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getBids())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getAdm)
+                .containsExactly(mapper.writeValueAsString(expectedNativeResponse));
+    }
+
+    @Test
     public void makeBidderResponseShouldReturnAdmContainingOnlyUniqueImpTrackersUrls() throws JsonProcessingException {
         // given
         final String adm = mapper.writeValueAsString(
@@ -803,6 +929,12 @@ public class IxBidderTest extends VertxTest {
         return ExtRequest.of(ExtRequestPrebid.builder()
                 .channel(ExtRequestPrebidChannel.of("pbjs", pbjsv))
                 .build());
+    }
+
+    private static ExtRequest givenExtRequestWithIxDiag(String pbjsv, ObjectNode ixDiag) {
+        final ExtRequest extRequest = givenExtRequest(pbjsv);
+        extRequest.addProperty("ixdiag", ixDiag);
+        return extRequest;
     }
 
     private static ObjectNode givenImpExt(String siteId, String sid) {

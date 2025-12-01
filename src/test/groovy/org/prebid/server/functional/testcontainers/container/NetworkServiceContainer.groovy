@@ -8,6 +8,9 @@ class NetworkServiceContainer extends MockServerContainer {
 
     NetworkServiceContainer(String version) {
         super(DockerImageName.parse("mockserver/mockserver:mockserver-$version"))
+        def aliasWithTopLevelDomain = "${getNetworkAliases().first()}.com".toString()
+        withCreateContainerCmdModifier { it.withHostName(aliasWithTopLevelDomain) }
+        setNetworkAliases([aliasWithTopLevelDomain])
     }
 
     String getHostAndPort() {

@@ -1,7 +1,6 @@
 package org.prebid.server.proto.openrtb.ext.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
 import lombok.Value;
 
 /**
@@ -10,8 +9,7 @@ import lombok.Value;
  * and
  * bidresponse.seatbid.bid[i].ext.prebid.cache.vastXml
  */
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class CacheAsset {
 
     String url;

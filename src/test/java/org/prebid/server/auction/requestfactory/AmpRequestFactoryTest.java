@@ -16,6 +16,7 @@ import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.net.impl.SocketAddressImpl;
+import io.vertx.ext.web.RequestBody;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,7 +30,8 @@ import org.prebid.server.auction.FpdResolver;
 import org.prebid.server.auction.GeoLocationServiceWrapper;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.OrtbTypesResolver;
-import org.prebid.server.auction.StoredRequestProcessor;
+import org.prebid.server.auction.externalortb.ProfilesProcessor;
+import org.prebid.server.auction.externalortb.StoredRequestProcessor;
 import org.prebid.server.auction.gpp.AmpGppService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.debug.DebugContext;
@@ -71,12 +73,12 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
-import static java.util.function.Function.identity;
+import static java.util.function.UnaryOperator.identity;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
@@ -102,6 +104,8 @@ public class AmpRequestFactoryTest extends VertxTest {
     @Mock(strictness = LENIENT)
     private StoredRequestProcessor storedRequestProcessor;
     @Mock(strictness = LENIENT)
+    private ProfilesProcessor profilesProcessor;
+    @Mock(strictness = LENIENT)
     private BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
     @Mock(strictness = LENIENT)
     private AmpGppService ampGppService;
@@ -123,9 +127,11 @@ public class AmpRequestFactoryTest extends VertxTest {
     private AmpRequestFactory target;
 
     @Mock(strictness = LENIENT)
-    private HttpServerRequest httpRequest;
-    @Mock(strictness = LENIENT)
     private RoutingContext routingContext;
+    @Mock(strictness = LENIENT)
+    private HttpServerRequest httpRequest;
+    @Mock
+    private RequestBody requestBody;
 
     private BidRequest defaultBidRequest;
 
@@ -136,11 +142,15 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(ortbVersionConversionManager.convertToAuctionSupportedVersion(any()))
                 .willAnswer(invocation -> invocation.getArgument(0));
 
+        given(profilesProcessor.process(any(), any()))
+                .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(1)));
+
         given(ampGppService.contextFrom(any())).willReturn(Future.succeededFuture());
         given(ampGppService.updateBidRequest(any(), any()))
                 .willAnswer(invocation -> invocation.getArgument(0));
 
         given(routingContext.request()).willReturn(httpRequest);
+        given(routingContext.body()).willReturn(requestBody);
         given(routingContext.queryParams()).willReturn(
                 MultiMap.caseInsensitiveMultiMap()
                         .add("tag_id", "tagId"));
@@ -187,6 +197,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         target = new AmpRequestFactory(
                 ortb2RequestFactory,
                 storedRequestProcessor,
+                profilesProcessor,
                 ortbVersionConversionManager,
                 ampGppService,
                 ortbTypesResolver,
@@ -1732,9 +1743,30 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .isEqualTo(10000L);
     }
 
-    private void givenBidRequest(
-            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> storedBidRequestBuilderCustomizer,
-            Imp... imps) {
+    @Test
+    public void shouldUseProfilesResult() {
+        // given
+        givenBidRequest();
+
+        given(profilesProcessor.process(any(), any())).willAnswer(
+                invocation -> Future.succeededFuture(((BidRequest) invocation.getArgument(1)).toBuilder()
+                        .source(Source.builder().tid("uniqTid").build())
+                        .build()));
+
+        // when
+        final Future<AuctionContext> future = target.fromRequest(routingContext, 0L);
+
+        // then
+        assertThat(future).isSucceeded();
+        assertThat(future.result())
+                .extracting(AuctionContext::getBidRequest)
+                .extracting(BidRequest::getSource)
+                .isEqualTo(Source.builder().tid("uniqTid").build());
+    }
+
+    private void givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> storedBidRequestBuilderCustomizer,
+                                 Imp... imps) {
+
         final List<Imp> impList = imps.length > 0 ? asList(imps) : null;
 
         given(storedRequestProcessor.processAmpRequest(any(), anyString(), any()))
@@ -1753,8 +1785,10 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         given(ortb2ImplicitParametersResolver.resolve(any(), any(), any(), anyBoolean())).willAnswer(
                 answerWithFirstArgument());
-        given(ortb2RequestFactory.validateRequest(any(), any(), any(), any()))
-                .willAnswer(invocation -> Future.succeededFuture((BidRequest) invocation.getArgument(0)));
+        given(ortb2RequestFactory.limitImpressions(any(), any(), any()))
+                .willAnswer(invocation -> Future.succeededFuture((BidRequest) invocation.getArgument(1)));
+        given(ortb2RequestFactory.validateRequest(any(), any(), any(), any(), any()))
+                .willAnswer(invocation -> Future.succeededFuture((BidRequest) invocation.getArgument(1)));
 
         given(ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(any()))
                 .willAnswer(invocation -> Future.succeededFuture(((AuctionContext) invocation.getArgument(0))

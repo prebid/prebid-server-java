@@ -47,9 +47,8 @@ public class AxisBidder implements Bidder<BidRequest> {
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
 
         for (Imp imp : request.getImp()) {
-            final ExtImpAxis extImpAxis;
             try {
-                extImpAxis = parseImpExt(imp);
+                validateImpExt(imp);
             } catch (PreBidException e) {
                 continue;
             }
@@ -59,9 +58,9 @@ public class AxisBidder implements Bidder<BidRequest> {
         return Result.withValues(httpRequests);
     }
 
-    private ExtImpAxis parseImpExt(Imp imp) {
+    private void validateImpExt(Imp imp) {
         try {
-            return mapper.mapper().convertValue(imp.getExt(), ADMAN_EXT_TYPE_REFERENCE).getBidder();
+            mapper.mapper().convertValue(imp.getExt(), ADMAN_EXT_TYPE_REFERENCE);
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage());
         }
@@ -132,4 +131,3 @@ public class AxisBidder implements Bidder<BidRequest> {
         throw new PreBidException("Failed to find impression \"%s\"".formatted(impId));
     }
 }
-

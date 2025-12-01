@@ -11,13 +11,14 @@ import org.prebid.server.auction.GeoLocationServiceWrapper;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.InterstitialProcessor;
 import org.prebid.server.auction.OrtbTypesResolver;
-import org.prebid.server.auction.StoredRequestProcessor;
+import org.prebid.server.auction.externalortb.ProfilesProcessor;
+import org.prebid.server.auction.externalortb.StoredRequestProcessor;
 import org.prebid.server.auction.gpp.AuctionGppService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionStoredResult;
 import org.prebid.server.auction.privacy.contextfactory.AuctionPrivacyContextFactory;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
-import org.prebid.server.bidadjustments.BidAdjustmentsRetriever;
+import org.prebid.server.bidadjustments.BidAdjustmentsEnricher;
 import org.prebid.server.cookie.CookieDeprecationService;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.JacksonMapper;
@@ -40,6 +41,7 @@ public class AuctionRequestFactory {
     private final long maxRequestSize;
     private final Ortb2RequestFactory ortb2RequestFactory;
     private final StoredRequestProcessor storedRequestProcessor;
+    private final ProfilesProcessor profilesProcessor;
     private final BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
     private final AuctionGppService gppService;
     private final CookieDeprecationService cookieDeprecationService;
@@ -51,13 +53,14 @@ public class AuctionRequestFactory {
     private final JacksonMapper mapper;
     private final OrtbTypesResolver ortbTypesResolver;
     private final GeoLocationServiceWrapper geoLocationServiceWrapper;
-    private final BidAdjustmentsRetriever bidAdjustmentsRetriever;
+    private final BidAdjustmentsEnricher bidAdjustmentsEnricher;
 
     private static final String ENDPOINT = Endpoint.openrtb2_auction.value();
 
     public AuctionRequestFactory(long maxRequestSize,
                                  Ortb2RequestFactory ortb2RequestFactory,
                                  StoredRequestProcessor storedRequestProcessor,
+                                 ProfilesProcessor profilesProcessor,
                                  BidRequestOrtbVersionConversionManager ortbVersionConversionManager,
                                  AuctionGppService gppService,
                                  CookieDeprecationService cookieDeprecationService,
@@ -69,11 +72,12 @@ public class AuctionRequestFactory {
                                  DebugResolver debugResolver,
                                  JacksonMapper mapper,
                                  GeoLocationServiceWrapper geoLocationServiceWrapper,
-                                 BidAdjustmentsRetriever bidAdjustmentsRetriever) {
+                                 BidAdjustmentsEnricher bidAdjustmentsEnricher) {
 
         this.maxRequestSize = maxRequestSize;
         this.ortb2RequestFactory = Objects.requireNonNull(ortb2RequestFactory);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
+        this.profilesProcessor = Objects.requireNonNull(profilesProcessor);
         this.ortbVersionConversionManager = Objects.requireNonNull(ortbVersionConversionManager);
         this.gppService = Objects.requireNonNull(gppService);
         this.cookieDeprecationService = Objects.requireNonNull(cookieDeprecationService);
@@ -85,7 +89,7 @@ public class AuctionRequestFactory {
         this.debugResolver = Objects.requireNonNull(debugResolver);
         this.mapper = Objects.requireNonNull(mapper);
         this.geoLocationServiceWrapper = Objects.requireNonNull(geoLocationServiceWrapper);
-        this.bidAdjustmentsRetriever = Objects.requireNonNull(bidAdjustmentsRetriever);
+        this.bidAdjustmentsEnricher = Objects.requireNonNull(bidAdjustmentsEnricher);
     }
 
     /**
@@ -146,7 +150,7 @@ public class AuctionRequestFactory {
                 .compose(auctionContext -> ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(auctionContext)
                         .map(auctionContext::with))
 
-                .map(auctionContext -> auctionContext.with(bidAdjustmentsRetriever.retrieve(auctionContext)))
+                .map(auctionContext -> auctionContext.with(bidAdjustmentsEnricher.enrichBidRequest(auctionContext)))
 
                 .compose(auctionContext -> ortb2RequestFactory.executeProcessedAuctionRequestHooks(auctionContext)
                         .map(auctionContext::with))
@@ -157,7 +161,7 @@ public class AuctionRequestFactory {
     }
 
     private String extractAndValidateBody(RoutingContext routingContext) {
-        final String body = routingContext.getBodyAsString();
+        final String body = routingContext.body().asString();
         if (body == null) {
             throw new InvalidRequestException("Incoming request has no body");
         }
@@ -241,8 +245,9 @@ public class AuctionRequestFactory {
 
         return storedRequestProcessor.processAuctionRequest(account.getId(), auctionContext.getBidRequest())
                 .compose(auctionStoredResult -> updateBidRequest(auctionStoredResult, auctionContext))
+                .compose(bidRequest -> ortb2RequestFactory.limitImpressions(account, bidRequest, debugWarnings))
                 .compose(bidRequest -> ortb2RequestFactory.validateRequest(
-                        bidRequest, httpRequest, auctionContext.getDebugContext(), debugWarnings))
+                        account, bidRequest, httpRequest, auctionContext.getDebugContext(), debugWarnings))
                 .map(interstitialProcessor::process);
     }
 
@@ -251,7 +256,7 @@ public class AuctionRequestFactory {
 
         final boolean hasStoredBidRequest = auctionStoredResult.hasStoredBidRequest();
 
-        return Future.succeededFuture(auctionStoredResult.bidRequest())
+        return profilesProcessor.process(auctionContext, auctionStoredResult.bidRequest())
                 .map(ortbVersionConversionManager::convertToAuctionSupportedVersion)
                 .map(bidRequest -> gppService.updateBidRequest(bidRequest, auctionContext))
                 .map(bidRequest -> paramsResolver.resolve(bidRequest, auctionContext, ENDPOINT, hasStoredBidRequest))

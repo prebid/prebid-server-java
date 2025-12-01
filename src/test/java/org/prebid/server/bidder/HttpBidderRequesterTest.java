@@ -21,10 +21,11 @@ import org.mockito.BDDMockito;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
-import org.prebid.server.auction.BidderAliases;
+import org.prebid.server.auction.aliases.BidderAliases;
 import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.BidderRequest;
+import org.prebid.server.auction.model.Rejection;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
@@ -228,7 +229,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                 .isEqualTo("storedResponse");
         assertThat(bidderSeatBid.getBids()).hasSameElementsAs(bids);
 
-        verify(bidRejectionTracker, never()).rejectImp(anyString(), any());
+        verify(bidRejectionTracker, never()).reject(any(Rejection.class));
         verify(bidRejectionTracker, never()).rejectImps(anyList(), any());
     }
 
@@ -267,7 +268,7 @@ public class HttpBidderRequesterTest extends VertxTest {
         // then
         verify(httpClient, times(2)).request(any(), anyString(), any(), any(byte[].class), anyLong());
 
-        verify(bidRejectionTracker, never()).rejectImp(anyString(), any());
+        verify(bidRejectionTracker, never()).reject(any(Rejection.class));
         verify(bidRejectionTracker, never()).rejectImps(anyList(), any());
     }
 
@@ -302,7 +303,7 @@ public class HttpBidderRequesterTest extends VertxTest {
         // then
         verify(httpClient).request(any(), anyString(), any(), (byte[]) isNull(), anyLong());
 
-        verify(bidRejectionTracker, never()).rejectImp(anyString(), any());
+        verify(bidRejectionTracker, never()).reject(any(Rejection.class));
         verify(bidRejectionTracker, never()).rejectImps(anyList(), any());
     }
 
@@ -338,7 +339,7 @@ public class HttpBidderRequesterTest extends VertxTest {
         // then
         verify(httpClient, times(2)).request(any(), anyString(), any(), any(byte[].class), anyLong());
 
-        verify(bidRejectionTracker, never()).rejectImp(anyString(), any());
+        verify(bidRejectionTracker, never()).reject(any(Rejection.class));
         verify(bidRejectionTracker, never()).rejectImps(anyList(), any());
     }
 
@@ -371,7 +372,7 @@ public class HttpBidderRequesterTest extends VertxTest {
         // then
         assertThat(bidderSeatBid.getBids()).hasSameElementsAs(bids);
 
-        verify(bidRejectionTracker, never()).rejectImp(anyString(), any());
+        verify(bidRejectionTracker, never()).reject(any(Rejection.class));
         verify(bidRejectionTracker, never()).rejectImps(anyList(), any());
     }
 
@@ -404,7 +405,7 @@ public class HttpBidderRequesterTest extends VertxTest {
         // then
         assertThat(bidderSeatBid.getBids()).hasSameElementsAs(bids);
 
-        verify(bidRejectionTracker, never()).rejectImp(anyString(), any());
+        verify(bidRejectionTracker, never()).reject(any(Rejection.class));
         verify(bidRejectionTracker, never()).rejectImps(anyList(), any());
     }
 
@@ -446,7 +447,7 @@ public class HttpBidderRequesterTest extends VertxTest {
         assertThat(bidderSeatBid.getBids()).hasSameElementsAs(bids);
         assertThat(bidderSeatBid.getFledgeAuctionConfigs()).hasSameElementsAs(fledgeAuctionConfigs);
 
-        verify(bidRejectionTracker, never()).rejectImp(anyString(), any());
+        verify(bidRejectionTracker, never()).reject(any(Rejection.class));
         verify(bidRejectionTracker, never()).rejectImps(anyList(), any());
     }
 
@@ -493,7 +494,7 @@ public class HttpBidderRequesterTest extends VertxTest {
         assertThat(bidderSeatBid.getBids()).hasSameElementsAs(bids);
         assertThat(bidderSeatBid.getIgi()).containsExactlyElementsOf(igi);
 
-        verify(bidRejectionTracker, never()).rejectImp(anyString(), any());
+        verify(bidRejectionTracker, never()).reject(any(Rejection.class));
         verify(bidRejectionTracker, never()).rejectImps(anyList(), any());
     }
 
@@ -529,7 +530,7 @@ public class HttpBidderRequesterTest extends VertxTest {
         verify(httpClient).request(any(), anyString(), any(), actualRequestBody.capture(), anyLong());
         assertThat(actualRequestBody.getValue()).isNotSameAs(EMPTY_BYTE_BODY);
 
-        verify(bidRejectionTracker, never()).rejectImp(anyString(), any());
+        verify(bidRejectionTracker, never()).reject(any(Rejection.class));
         verify(bidRejectionTracker, never()).rejectImps(anyList(), any());
     }
 
@@ -627,7 +628,7 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         assertThat(bidderSeatBid.getBids()).containsOnly(bidderBidDeal1, bidderBidDeal2);
 
-        verify(bidRejectionTracker, never()).rejectImp(anyString(), any());
+        verify(bidRejectionTracker, never()).reject(any(Rejection.class));
         verify(bidRejectionTracker, never()).rejectImps(anyList(), any());
     }
 
@@ -676,7 +677,7 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         assertThat(bidderSeatBid.getBids()).contains(bidderBid, bidderBid, bidderBid, bidderBid);
 
-        verify(bidRejectionTracker, never()).rejectImp(anyString(), any());
+        verify(bidRejectionTracker, never()).reject(any(Rejection.class));
         verify(bidRejectionTracker, never()).rejectImps(anyList(), any());
     }
 
@@ -743,7 +744,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                         .status(200)
                         .build());
 
-        verify(bidRejectionTracker, never()).rejectImp(anyString(), any());
+        verify(bidRejectionTracker, never()).reject(any(Rejection.class));
         verify(bidRejectionTracker, never()).rejectImps(anyList(), any());
     }
 
@@ -853,7 +854,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                 .extracting(ExtHttpCall::getRequestheaders)
                 .containsExactly(singletonMap("headerKey", singletonList("headerValue")));
 
-        verify(bidRejectionTracker, never()).rejectImp(anyString(), any());
+        verify(bidRejectionTracker, never()).reject(any(Rejection.class));
         verify(bidRejectionTracker, never()).rejectImps(anyList(), any());
     }
 
@@ -1238,7 +1239,7 @@ public class HttpBidderRequesterTest extends VertxTest {
         verify(bidder, never()).makeBidderResponse(any(), any());
         verify(bidder, never()).makeBids(any(), any());
 
-        verify(bidRejectionTracker, never()).rejectImp(anyString(), any());
+        verify(bidRejectionTracker, never()).reject(any(Rejection.class));
         verify(bidRejectionTracker, never()).rejectImps(anyList(), any());
     }
 

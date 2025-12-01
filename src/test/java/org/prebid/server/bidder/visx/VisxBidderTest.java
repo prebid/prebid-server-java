@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
@@ -22,16 +23,19 @@ import org.prebid.server.bidder.visx.model.VisxResponse;
 import org.prebid.server.bidder.visx.model.VisxSeatBid;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.visx.ExtImpVisx;
+import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.function.UnaryOperator;
 
 import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
@@ -66,6 +70,48 @@ public class VisxBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .containsExactly(bidRequest);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldAddIp() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpVisx.of(123, Arrays.asList(10, 20)))))
+                        .build()))
+                .device(Device.builder().ip("someIp").ipv6("ipv6").build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .flatExtracting(res -> res.getHeaders().entries())
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .contains(tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), "someIp"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldAddIpv6IfIpIsNotPresent() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpVisx.of(123, Arrays.asList(10, 20)))))
+                        .build()))
+                .device(Device.builder().ipv6("ipv6").build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .flatExtracting(res -> res.getHeaders().entries())
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .contains(tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), "ipv6"));
     }
 
     @Test
@@ -122,7 +168,7 @@ public class VisxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).containsExactly(
-                BidderBid.of(Bid.builder().id("id").impid("123").build(), banner, null));
+                BidderBid.of(Bid.builder().id("id").impid("123").build(), banner, "USD"));
     }
 
     @Test
@@ -138,7 +184,7 @@ public class VisxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).containsExactly(
-                BidderBid.of(Bid.builder().id("id").impid("123").build(), video, null));
+                BidderBid.of(Bid.builder().id("id").impid("123").build(), video, "USD"));
     }
 
     @Test
@@ -194,7 +240,7 @@ public class VisxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(givenBid(identity()), banner, null));
+                .containsExactly(BidderBid.of(givenBid(identity()), banner, "USD"));
     }
 
     @Test
@@ -213,7 +259,7 @@ public class VisxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).containsExactly(
-                BidderBid.of(givenBid(bidBuilder -> bidBuilder.ext(null)), video, null));
+                BidderBid.of(givenBid(bidBuilder -> bidBuilder.ext(null)), video, "USD"));
     }
 
     @Test
@@ -235,7 +281,7 @@ public class VisxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).containsExactly(
-                BidderBid.of(givenBid(bidBuilder -> bidBuilder.ext(givenBidExt("123"))), video, null));
+                BidderBid.of(givenBid(bidBuilder -> bidBuilder.ext(givenBidExt("123"))), video, "USD"));
     }
 
     @Test
@@ -289,7 +335,8 @@ public class VisxBidderTest extends VertxTest {
                         .h(100)
                         .adomain(singletonList("adomain"))
                         .build(),
-                video, null);
+                video,
+                "USD");
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).containsExactly(expected);
@@ -314,7 +361,7 @@ public class VisxBidderTest extends VertxTest {
 
     private static VisxResponse givenVisxResponse(UnaryOperator<VisxBid.VisxBidBuilder> bidCustomizer, String seat) {
         return VisxResponse.of(singletonList(VisxSeatBid.of(
-                singletonList(bidCustomizer.apply(VisxBid.builder()).build()), seat)));
+                singletonList(bidCustomizer.apply(VisxBid.builder()).build()), seat)), "USD");
     }
 
     private static Bid givenBid(UnaryOperator<Bid.BidBuilder> bidCustomizer) {

@@ -1,0 +1,17 @@
+{
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "1",
+          "impid": "test-imp-id",
+          "price": 0.5,
+          "adm": "<div>Ad Content</div>",
+          "crid": "creative123",
+          "w": 300,
+          "h": 250
+        }
+      ]
+    }
+  ]
+}
