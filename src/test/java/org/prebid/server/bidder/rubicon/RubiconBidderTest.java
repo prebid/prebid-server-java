@@ -218,7 +218,7 @@ public class RubiconBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(0).element(0).isNotNull()
+        assertThat(result.getValue()).hasSize(1).element(0).isNotNull()
                 .returns(HttpMethod.POST, HttpRequest::getMethod)
                 .returns(ENDPOINT_URL, HttpRequest::getUri);
         assertThat(result.getValue().getFirst().getHeaders()).isNotNull()
