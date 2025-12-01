@@ -876,7 +876,6 @@ class BidderParamsSpec extends BaseSpec {
             prebid.bidder.generic = null
             prebid.adUnitCode = PBSUtils.randomString
             generic = new Generic()
-            auctionEnvironment = PBSUtils.getRandomEnum(AuctionEnvironment, [AuctionEnvironment.SERVER_ORCHESTRATED, AuctionEnvironment.UNKNOWN])
             all = PBSUtils.randomNumber
             context = new ImpExtContext(data: new ImpExtContextData())
             data = new ImpExtContextData(pbAdSlot: PBSUtils.randomString)
@@ -902,7 +901,6 @@ class BidderParamsSpec extends BaseSpec {
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         verifyAll(bidderRequest.imp[0].ext) {
             it.bidder == impExt.generic
-            it.auctionEnvironment == impExt.auctionEnvironment
             it.all == impExt.all
             it.context == impExt.context
             it.data == impExt.data
