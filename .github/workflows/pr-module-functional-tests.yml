@@ -33,4 +33,4 @@ jobs:
         run: mvn package -DskipUnitTests=true --file extra/pom.xml
 
       - name: Run module tests
-        run: mvn -B verify -DskipUnitTests=true -DskipFunctionalTests=true -DskipModuleFunctionalTests=false -Dtests.max-container-count=5 -DdockerfileName=Dockerfile-modules --file extra/pom.xml
+        run: mvn -B verify -DskipUnitTests=true -Drun-module-functional-tests=true -DdockerfileName=Dockerfile-modules --file extra/pom.xml
