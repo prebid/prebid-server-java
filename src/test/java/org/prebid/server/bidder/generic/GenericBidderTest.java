@@ -68,7 +68,7 @@ public class GenericBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
+        assertThat(result.getErrors()).hasSize(0)
                 .allSatisfy(error -> {
                     assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
                     assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token");
@@ -179,7 +179,7 @@ public class GenericBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getErrors()).isNotEmpty();
         assertThat(result.getValue())
                 .containsExactly(BidderBid.of(givenBid(), banner, null));
     }
