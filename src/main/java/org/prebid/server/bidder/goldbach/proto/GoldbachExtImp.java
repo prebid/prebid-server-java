@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 @Value(staticConstructor = "of")
-public class ExtImpGoldbachBidRequest {
+public class GoldbachExtImp {
 
     @JsonProperty("slotId")
     String slotId;

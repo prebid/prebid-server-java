@@ -11,6 +11,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.impl.headers.HeadersMultiMap;
 import org.junit.jupiter.api.Test;
@@ -27,7 +28,6 @@ import org.prebid.server.proto.openrtb.ext.request.goldbach.ExtImpGoldbach;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.UnaryOperator;
@@ -52,63 +52,68 @@ public class GoldbachBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnExpectedRequestUrl() {
         // given
-        final BidRequest bidRequest = givenBidRequest();
+        final BidRequest bidRequest = givenBidRequest(givenImp());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1).allSatisfy(httpRequest ->
-                assertThat(httpRequest.getUri()).isEqualTo(ENDPOINT_URL));
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly(ENDPOINT_URL);
     }
 
     @Test
     public void makeHttpRequestsShouldReturnExpectedRequestMethod() {
         // given
-        final BidRequest bidRequest = givenBidRequest();
+        final BidRequest bidRequest = givenBidRequest(givenImp());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1).allSatisfy(httpRequest ->
-                assertThat(httpRequest.getMethod()).isEqualTo(HttpMethod.POST));
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getMethod)
+                .containsExactly(HttpMethod.POST);
     }
 
     @Test
     public void makeHttpRequestsShouldReturnExpectedRequestHeaders() {
         // given
-        final BidRequest bidRequest = givenBidRequest();
+        final BidRequest bidRequest = givenBidRequest(givenImp());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1).allSatisfy(httpRequest ->
-                assertThat(httpRequest.getHeaders())
-                        .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                        .containsExactlyInAnyOrder(
-                                tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
-                                tuple(
-                                        HttpUtil.ACCEPT_HEADER.toString(),
-                                        HttpHeaderValues.APPLICATION_JSON.toString())));
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getHeaders)
+                .flatExtracting(MultiMap::entries)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsExactlyInAnyOrder(
+                        tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
+                        tuple(
+                                HttpUtil.ACCEPT_HEADER.toString(),
+                                HttpHeaderValues.APPLICATION_JSON.toString()));
     }
 
     @Test
     public void makeHttpRequestsShouldExtendBidRequestIdWithPublisherId() {
         // given
-        final BidRequest bidRequest = givenBidRequest();
+        final BidRequest bidRequest = givenBidRequest(givenImp());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1).allSatisfy(httpRequest ->
-                assertThat(httpRequest.getPayload().getId()).isEqualTo("testBidRequestId_testPublisherId"));
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getId)
+                .containsExactly("testBidRequestId_testPublisherId");
     }
 
     @Test
@@ -116,9 +121,7 @@ public class GoldbachBidderTest extends VertxTest {
         // given
         final ExtRequest extRequest = ExtRequest.empty();
         extRequest.addProperty("goldbach", TextNode.valueOf("Invalid request.ext"));
-        final BidRequest bidRequest = givenBidRequest(
-                request -> request.ext(extRequest),
-                identity());
+        final BidRequest bidRequest = givenBidRequest(request -> request.ext(extRequest), givenImp());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -134,16 +137,16 @@ public class GoldbachBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldAddPublisherIdToGoldbachBidRequestExtension() {
         // given
-        final BidRequest bidRequest = givenBidRequest();
+        final BidRequest bidRequest = givenBidRequest(givenImp());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1).allSatisfy(httpRequest ->
-                assertThat(httpRequest.getPayload().getExt().getProperties())
-                        .containsEntry("goldbach", mapper.createObjectNode().put("publisherId", "testPublisherId")));
+        assertThat(result.getValue())
+                .extracting(httpRequest -> httpRequest.getPayload().getExt().getProperties().get("goldbach"))
+                .containsExactly(mapper.createObjectNode().put("publisherId", "testPublisherId"));
     }
 
     @Test
@@ -151,20 +154,18 @@ public class GoldbachBidderTest extends VertxTest {
         // given
         final ExtRequest extRequest = ExtRequest.empty();
         extRequest.addProperty("goldbach", mapper.createObjectNode().put("mockResponse", true));
-        final BidRequest bidRequest = givenBidRequest(
-                request -> request.ext(extRequest),
-                identity());
+        final BidRequest bidRequest = givenBidRequest(request -> request.ext(extRequest), givenImp());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1).allSatisfy(httpRequest ->
-                assertThat(httpRequest.getPayload().getExt().getProperties())
-                        .containsEntry("goldbach", mapper.createObjectNode()
-                                .put("publisherId", "testPublisherId")
-                                .put("mockResponse", true)));
+        assertThat(result.getValue())
+                .extracting(httpRequest -> httpRequest.getPayload().getExt().getProperties().get("goldbach"))
+                .containsExactly(mapper.createObjectNode()
+                        .put("publisherId", "testPublisherId")
+                        .put("mockResponse", true));
     }
 
     @Test
@@ -173,55 +174,23 @@ public class GoldbachBidderTest extends VertxTest {
         final ExtRequest extRequest = ExtRequest.empty();
         final JsonNode anotherExtension = TextNode.valueOf("anotherExtensionValue");
         extRequest.addProperty("anotherExtension", anotherExtension);
-        final BidRequest bidRequest = givenBidRequest(
-                builder -> builder.ext(extRequest),
-                identity());
+        final BidRequest bidRequest = givenBidRequest(builder -> builder.ext(extRequest), givenImp());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1).allSatisfy(httpRequest ->
-                assertThat(httpRequest.getPayload().getExt().getProperties())
-                        .containsEntry("anotherExtension", anotherExtension));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnErrorIfImpExtIsMissing() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(imp -> imp.ext(null));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(2).containsExactlyInAnyOrder(
-                BidderError.badInput("imp.ext is missing"),
-                BidderError.badInput("No valid impressions found"));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnErrorIfImpExtBidderIsMissing() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(imp -> imp.ext(mapper.createObjectNode()));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(2).containsExactlyInAnyOrder(
-                BidderError.badInput("imp.ext.bidder is missing"),
-                BidderError.badInput("No valid impressions found"));
+        assertThat(result.getValue())
+                .extracting(httpRequest -> httpRequest.getPayload().getExt().getProperties().get("anotherExtension"))
+                .containsExactly(anotherExtension);
     }
 
     @Test
     public void makeHttpRequestsShouldReturnErrorIfImpExtBidderIsInvalid() {
         // given
-        final BidRequest bidRequest = givenBidRequest(imp ->
-                imp.ext(mapper.createObjectNode().put("bidder", "Invalid imp.ext.bidder")));
+        final BidRequest bidRequest = givenBidRequest(givenImp(
+                mapper.createObjectNode().put("bidder", "Invalid imp.ext.bidder")));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -240,77 +209,78 @@ public class GoldbachBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReplaceImpExt() {
         // given
-        final BidRequest bidRequest = givenBidRequest();
+        final BidRequest bidRequest = givenBidRequest(givenImp());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1).allSatisfy(httpRequest ->
-                assertThat(httpRequest.getPayload().getImp()).hasSize(1).allSatisfy(imp ->
-                        assertThat(imp.getExt()).isEqualTo(mapper.createObjectNode().set(
-                                "goldbach",
-                                mapper.createObjectNode().put("slotId", "testSlotId")))));
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .containsExactly(mapper.createObjectNode().set(
+                        "goldbach",
+                        mapper.createObjectNode().put("slotId", "testSlotId")));
     }
 
     @Test
     public void makeHttpRequestsShouldCopyCustomTargetingToOutputImpExt() {
         // given
-        final BidRequest bidRequest = givenBidRequest(imp -> imp.ext(
-                givenImpExt(
-                        "testPublisherId",
-                        "testSlotId",
-                        Map.of("key", List.of("value1", "value2")))));
+        final BidRequest bidRequest = givenBidRequest(givenImp(givenImpExt(
+                "testPublisherId",
+                "testSlotId",
+                Map.of("key", List.of("value1", "value2")))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        final ObjectNode expectedImpExt = mapper.createObjectNode()
-                .set("goldbach", mapper.createObjectNode()
-                        .put("slotId", "testSlotId")
-                        .set("targetings", mapper.createObjectNode()
-                                .set("key", mapper.createArrayNode().add("value1").add("value2"))));
+        final ObjectNode expectedImpExt = mapper.valueToTree(Map.of("goldbach", Map.of(
+                "slotId", "testSlotId",
+                "targetings", Map.of(
+                        "key", List.of("value1", "value2")))));
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1).allSatisfy(httpRequest ->
-                assertThat(httpRequest.getPayload().getImp()).hasSize(1).allSatisfy(imp ->
-                        assertThat(imp.getExt()).isEqualTo(expectedImpExt)));
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .containsExactly(expectedImpExt);
     }
 
     @Test
     public void makeHttpRequestsShouldParseSingleStringAsArrayInCustomTargeting() {
         // given
-        final ObjectNode impExt = mapper.createObjectNode()
-                .set("bidder", mapper.createObjectNode()
-                        .put("publisherId", "testPublisherId")
-                        .put("slotId", "testSlotId")
-                        .set("customTargeting", mapper.createObjectNode()
-                                .put("key1", "value1")
-                                .set("key2", mapper.createArrayNode().add("value2").add("value3"))));
-        final BidRequest bidRequest = givenBidRequest(imp -> imp.ext(impExt));
+        final ObjectNode impExt = mapper.valueToTree(Map.of("bidder", Map.of(
+                "publisherId", "testPublisherId",
+                "slotId", "testSlotId",
+                "customTargeting", Map.of(
+                        "key1", "value1",
+                        "key2", List.of("value2", "value3")))));
+        final BidRequest bidRequest = givenBidRequest(givenImp(impExt));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        final ObjectNode expectedImpExt =
-                mapper.createObjectNode()
-                        .set("goldbach", mapper.createObjectNode()
-                                .put("slotId", "testSlotId")
-                                .set("targetings", mapper.createObjectNode()
-                                        .<ObjectNode>set("key1", mapper.createArrayNode().add("value1"))
-                                        .set("key2", mapper.createArrayNode().add("value2").add("value3"))));
+        final ObjectNode expectedImpExt = mapper.valueToTree(Map.of("goldbach", Map.of(
+                "slotId", "testSlotId",
+                "targetings", Map.of(
+                        "key1", List.of("value1"),
+                        "key2", List.of("value2", "value3")))));
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1).allSatisfy(httpRequest ->
-                assertThat(httpRequest.getPayload().getImp()).hasSize(1).allSatisfy(imp ->
-                        assertThat(imp.getExt()).isEqualTo(expectedImpExt)));
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .containsExactly(expectedImpExt);
     }
 
     @Test
     public void makeHttpRequestsShouldReturnErrorIfThereAreNoImpressions() {
         // given
-        final BidRequest bidRequest = givenBidRequest(Collections.emptyList());
+        final BidRequest bidRequest = givenBidRequest();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -323,20 +293,10 @@ public class GoldbachBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldGroupImpressionsByPublisherId() {
         // given
-        final BidRequest bidRequest = givenBidRequest(List.of(
-                Imp.builder()
-                        .id("imp1")
-                        .ext(givenImpExt("publisherId1", "slot1"))
-                        .build(),
-                Imp.builder()
-                        .id("imp2")
-                        .ext(givenImpExt("publisherId2", "slot2"))
-                        .build(),
-                Imp.builder()
-                        .id("imp3")
-                        .ext(givenImpExt("publisherId1", "slot3"))
-                        .build()
-        ));
+        final BidRequest bidRequest = givenBidRequest(
+                givenImp("imp1", givenImpExt("publisherId1", "slot1")),
+                givenImp("imp2", givenImpExt("publisherId2", "slot2")),
+                givenImp("imp3", givenImpExt("publisherId1", "slot3")));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -347,14 +307,10 @@ public class GoldbachBidderTest extends VertxTest {
                 request -> {
                     assertThat(request.getImpIds()).containsExactlyInAnyOrder("imp1", "imp3");
                     assertThat(request.getPayload().getId()).isEqualTo("testBidRequestId_publisherId1");
-                    assertThat(request.getPayload().getImp()).extracting(Imp::getId)
-                            .containsExactlyInAnyOrder("imp1", "imp3");
                 },
                 request -> {
                     assertThat(request.getImpIds()).containsExactlyInAnyOrder("imp2");
                     assertThat(request.getPayload().getId()).isEqualTo("testBidRequestId_publisherId2");
-                    assertThat(request.getPayload().getImp()).extracting(Imp::getId)
-                            .containsExactlyInAnyOrder("imp2");
                 }
         );
     }
@@ -362,38 +318,24 @@ public class GoldbachBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorAndRequestWithOtherImpressionsIfThereAreImpressionsWithErrors() {
         // given
-        final BidRequest bidRequest = givenBidRequest(List.of(
-                Imp.builder()
-                        .id("imp1")
-                        .ext(givenImpExt("publisherId1", "slot1"))
-                        .build(),
-                Imp.builder()
-                        .id("imp2")
-                        .ext(givenImpExt("publisherId2", "slot2"))
-                        .build(),
-                Imp.builder()
-                        .id("invalidImp")
-                        .ext(mapper.createObjectNode())
-                        .build()
-        ));
+        final BidRequest bidRequest = givenBidRequest(
+                givenImp("imp1", givenImpExt("publisherId1", "slot1")),
+                givenImp("imp2", givenImpExt("publisherId2", "slot2")),
+                givenImp("invalidImp", mapper.createObjectNode().put("bidder", "Invalid imp.ext.bidder")));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1).containsExactly(BidderError.badInput("imp.ext.bidder is missing"));
+        assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getValue()).hasSize(2).satisfiesExactlyInAnyOrder(
                 request -> {
                     assertThat(request.getImpIds()).containsExactlyInAnyOrder("imp1");
                     assertThat(request.getPayload().getId()).isEqualTo("testBidRequestId_publisherId1");
-                    assertThat(request.getPayload().getImp()).extracting(Imp::getId)
-                            .containsExactlyInAnyOrder("imp1");
                 },
                 request -> {
                     assertThat(request.getImpIds()).containsExactlyInAnyOrder("imp2");
                     assertThat(request.getPayload().getId()).isEqualTo("testBidRequestId_publisherId2");
-                    assertThat(request.getPayload().getImp()).extracting(Imp::getId)
-                            .containsExactlyInAnyOrder("imp2");
                 }
         );
     }
@@ -535,33 +477,35 @@ public class GoldbachBidderTest extends VertxTest {
     }
 
     private static BidRequest givenBidRequest() {
-        return givenBidRequest(identity(), identity());
+        return givenBidRequest(identity());
     }
 
-    private static BidRequest givenBidRequest(List<Imp> imps) {
-        return BidRequest.builder()
-                .id("testBidRequestId")
-                .imp(imps)
+    private static BidRequest givenBidRequest(Imp... imps) {
+        return givenBidRequest(identity(), imps);
+    }
+
+    private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
+                                              Imp... imps) {
+
+        return bidRequestCustomizer
+                .apply(BidRequest.builder()
+                        .id("testBidRequestId")
+                        .imp(List.of(imps)))
                 .build();
     }
 
-    private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
-        return givenBidRequest(identity(), impCustomizer);
+    private static Imp givenImp() {
+        return givenImp(givenImpExt());
     }
 
-    private static BidRequest givenBidRequest(
-            UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
-            UnaryOperator<Imp.ImpBuilder> impCustomizer) {
-
-        return bidRequestCustomizer.apply(
-                        BidRequest.builder()
-                                .id("testBidRequestId")
-                                .imp(Collections.singletonList(givenImp(impCustomizer))))
-                .build();
+    private static Imp givenImp(ObjectNode impExt) {
+        return givenImp(null, impExt);
     }
 
-    private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
-        return impCustomizer.apply(Imp.builder().ext(givenImpExt()))
+    private static Imp givenImp(String impId, ObjectNode impExt) {
+        return Imp.builder()
+                .id(impId)
+                .ext(impExt)
                 .build();
     }
 

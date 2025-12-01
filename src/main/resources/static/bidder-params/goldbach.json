@@ -2,7 +2,6 @@
   "$schema": "http://json-schema.org/draft-04/schema#",
   "title": "Goldbach Adapter Params",
   "description": "A schema which validates params accepted by the Goldbach adapter",
-
   "type": "object",
   "properties": {
     "publisherId": {
@@ -33,6 +32,8 @@
       }
     }
   },
-
-  "required": ["publisherId", "slotId"]
+  "required": [
+    "publisherId",
+    "slotId"
+  ]
 }

@@ -11,9 +11,8 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.goldbach.proto.ExtImpGoldbachBidRequest;
+import org.prebid.server.bidder.goldbach.proto.GoldbachExtImp;
 import org.prebid.server.bidder.goldbach.proto.ExtRequestGoldbach;
-import org.prebid.server.bidder.goldbach.proto.GoldbachImpExt;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
@@ -62,7 +61,23 @@ public class GoldbachBidder implements Bidder<BidRequest> {
         final List<BidderError> errors = new ArrayList<>();
 
         final ExtRequestGoldbach extRequestGoldbach = parseRequestExt(request, errors);
-        final Map<String, List<Imp>> publisherToImps = groupImpressionsByPublisherId(request.getImp(), errors);
+        final Map<String, List<Imp>> publisherToImps = new HashMap<>();
+        for (Imp imp : request.getImp()) {
+            try {
+                final ExtImpGoldbach extImp = parseImpExt(imp);
+                final Imp updatedImp = modifyImp(imp, extImp);
+
+                publisherToImps.computeIfAbsent(extImp.getPublisherId(), k -> new ArrayList<>())
+                        .add(updatedImp);
+            } catch (PreBidException e) {
+                errors.add(BidderError.badInput(e.getMessage()));
+            }
+        }
+
+        if (publisherToImps.isEmpty()) {
+            errors.add(BidderError.badInput("No valid impressions found"));
+        }
+
         final List<HttpRequest<BidRequest>> httpRequests = publisherToImps.entrySet().stream()
                 .map(publisherIdAndImps ->
                         makeHttpRequestForPublisher(request,
@@ -92,60 +107,27 @@ public class GoldbachBidder implements Bidder<BidRequest> {
         }
     }
 
-    private Map<String, List<Imp>> groupImpressionsByPublisherId(List<Imp> impressions, List<BidderError> errors) {
-        final Map<String, List<Imp>> publisherToImps = new HashMap<>();
-        for (final Imp imp : impressions) {
-            try {
-                final ExtImpGoldbach extImp = parseImpExt(imp);
-                final Imp updatedImp = modifyImp(imp, extImp);
-
-                publisherToImps.computeIfAbsent(extImp.getPublisherId(), k -> new ArrayList<>())
-                        .add(updatedImp);
-            } catch (PreBidException e) {
-                errors.add(BidderError.badInput(e.getMessage()));
-            }
-        }
-
-        if (publisherToImps.isEmpty()) {
-            errors.add(BidderError.badInput("No valid impressions found"));
-        }
-        return publisherToImps;
-    }
-
     private ExtImpGoldbach parseImpExt(Imp imp) {
-        final ExtPrebid<?, ExtImpGoldbach> extImp;
         try {
-            extImp = mapper.mapper().convertValue(imp.getExt(), GOLDBACH_EXT_TYPE_REFERENCE);
+            return mapper.mapper().convertValue(imp.getExt(), GOLDBACH_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException("Failed to deserialize Goldbach imp extension: " + e.getMessage());
         }
-
-        if (extImp == null) {
-            throw new PreBidException("imp.ext is missing");
-        }
-        final ExtImpGoldbach extImpGoldbach = extImp.getBidder();
-
-        if (extImpGoldbach == null) {
-            throw new PreBidException("imp.ext.bidder is missing");
-        }
-
-        return extImpGoldbach;
     }
 
     private Imp modifyImp(Imp imp, ExtImpGoldbach extImp) {
-        final GoldbachImpExt goldbachImpExt = GoldbachImpExt.of(
-                ExtImpGoldbachBidRequest.of(extImp.getSlotId(), extImp.getCustomTargeting()));
         return imp.toBuilder()
-                .ext(mapper.mapper().valueToTree(goldbachImpExt))
+                .ext(mapper.mapper().createObjectNode().set("goldbach", mapper.mapper().valueToTree(
+                        GoldbachExtImp.of(extImp.getSlotId(), extImp.getCustomTargeting()))))
                 .build();
     }
 
-    private HttpRequest<BidRequest> makeHttpRequestForPublisher(
-            BidRequest bidRequest,
-            ExtRequestGoldbach extRequestGoldbach,
-            String publisherId,
-            List<Imp> imps,
-            List<BidderError> errors) {
+    private HttpRequest<BidRequest> makeHttpRequestForPublisher(BidRequest bidRequest,
+                                                                ExtRequestGoldbach extRequestGoldbach,
+                                                                String publisherId,
+                                                                List<Imp> imps,
+                                                                List<BidderError> errors) {
+
         try {
             final BidRequest modifiedBidRequest = modifyBidRequest(bidRequest, extRequestGoldbach, publisherId, imps);
             return BidderUtil.defaultRequest(modifiedBidRequest, endpointUrl, mapper);
@@ -155,11 +137,11 @@ public class GoldbachBidder implements Bidder<BidRequest> {
         }
     }
 
-    private BidRequest modifyBidRequest(
-            BidRequest bidRequest,
-            ExtRequestGoldbach extRequestGoldbach,
-            String publisherId,
-            List<Imp> imps) {
+    private BidRequest modifyBidRequest(BidRequest bidRequest,
+                                        ExtRequestGoldbach extRequestGoldbach,
+                                        String publisherId,
+                                        List<Imp> imps) {
+
         final ExtRequest modifiedExtRequest = modifyExtRequest(bidRequest.getExt(), extRequestGoldbach, publisherId);
         return bidRequest.toBuilder()
                 .id("%s_%s".formatted(bidRequest.getId(), publisherId))
@@ -171,25 +153,23 @@ public class GoldbachBidder implements Bidder<BidRequest> {
     private ExtRequest modifyExtRequest(ExtRequest extRequest,
                                         ExtRequestGoldbach extRequestGoldbach,
                                         String publisherId) {
+
         final ExtRequestGoldbach modifiedExtRequestGoldbach = ExtRequestGoldbach.builder()
                 .publisherId(publisherId)
                 .mockResponse(extRequestGoldbach != null ? extRequestGoldbach.getMockResponse() : null)
                 .build();
 
-        final ExtRequest modifiedExtRequest = ExtRequest.empty();
-        Optional.ofNullable(extRequest)
-                .map(ExtRequest::getProperties)
-                .ifPresent(modifiedExtRequest::addProperties);
-        modifiedExtRequest.addProperty("goldbach", serializeExtRequestGoldbach(modifiedExtRequestGoldbach));
-        return modifiedExtRequest;
-    }
+        final ExtRequest modifiedExtRequest;
 
-    private JsonNode serializeExtRequestGoldbach(ExtRequestGoldbach extRequestGoldbach) {
-        try {
-            return mapper.mapper().valueToTree(extRequestGoldbach);
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException("Failed to serialize Goldbach bid request extension: " + e.getMessage());
+        if (extRequest != null) {
+            modifiedExtRequest = ExtRequest.of(extRequest.getPrebid());
+            mapper.fillExtension(modifiedExtRequest, extRequest);
+        } else {
+            modifiedExtRequest = ExtRequest.empty();
         }
+
+        modifiedExtRequest.addProperty("goldbach", mapper.mapper().valueToTree(modifiedExtRequestGoldbach));
+        return modifiedExtRequest;
     }
 
     @Override
@@ -221,14 +201,15 @@ public class GoldbachBidder implements Bidder<BidRequest> {
 
     private Result<List<BidderBid>> bidsFromResponse(BidResponse bidResponse) {
         final List<BidderError> errors = new ArrayList<>();
-        final List<BidderBid> bidderBids = Stream
-                .ofNullable(bidResponse)
+        final List<BidderBid> bidderBids = Stream.ofNullable(bidResponse)
                 .map(BidResponse::getSeatbid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
                 .map(bid -> makeBid(bid, bidResponse, errors))
                 .filter(Objects::nonNull)
                 .toList();
