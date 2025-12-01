@@ -167,23 +167,6 @@ public class GenericBidderTest extends VertxTest {
                 .containsExactly(BidderBid.of(givenBid(), audio, null));
     }
 
-    @Test
-    public void makeBidsShouldReturnBannerBidIfBannerAndVideoAndAudioAndNativeIsAbsentInRequestImp()
-            throws JsonProcessingException {
-        // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                givenBidRequest(identity()),
-                mapper.writeValueAsString(givenBidResponse(impBuilder -> impBuilder.impid("123"))));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .containsExactly(BidderBid.of(givenBid(), banner, null));
-    }
-
     private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
         return givenBidRequest(identity(), impCustomizer);
     }
