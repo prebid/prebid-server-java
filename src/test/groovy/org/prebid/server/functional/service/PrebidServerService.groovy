@@ -43,7 +43,6 @@ import java.time.format.DateTimeFormatter
 
 import static io.restassured.RestAssured.given
 import static java.time.ZoneOffset.UTC
-import static org.prebid.server.functional.testcontainers.PbsConfig.PREBID_DATABASE
 
 class PrebidServerService implements ObjectMapperWrapper {
 
@@ -61,8 +60,8 @@ class PrebidServerService implements ObjectMapperWrapper {
     static final String HTTP_INTERACTION_ENDPOINT = "/logging/httpinteraction"
     static final String COLLECTED_METRICS_ENDPOINT = "/collected-metrics"
     static final String PROMETHEUS_METRICS_ENDPOINT = "/metrics"
-    static final String UIDS_COOKIE_NAME = "uids"
     static final String INFLUX_DB_ENDPOINT = "/query"
+    static final String UIDS_COOKIE_NAME = "uids"
 
     private final PrebidServerContainer pbsContainer
     private final RequestSpecification requestSpecification
@@ -298,22 +297,12 @@ class PrebidServerService implements ObjectMapperWrapper {
 
     Map<String, Number> sendInfluxMetricsRequest() {
         def response = given(influxRequestSpecification)
-                .queryParams(["db": PREBID_DATABASE, "q": "SHOW MEASUREMENTS"])
+                .queryParams(["db": "prebid",
+                              "q" : "SELECT COUNT(count) FROM /.*/  WHERE count >= 1 GROUP BY \"measurement\""])
                 .get(INFLUX_DB_ENDPOINT)
 
         checkResponseStatusCode(response)
-        def responseBody = decode(response.getBody().asString(), InfluxResponse)
-
-        Map<String, Number> metricNameToCountOfCall = [:]
-        responseBody.results.first().series.first.values.flatten().each { it ->
-            def influxResponse = decode(given(influxRequestSpecification)
-                    .queryParams(["db": PREBID_DATABASE, "q": "SELECT COUNT(count) FROM \"$it\" WHERE count >= 1"])
-                    .get(INFLUX_DB_ENDPOINT).getBody().asString(), InfluxResponse)
-
-            def series = influxResponse?.results?.first?.series
-            metricNameToCountOfCall.put(series?.name?.first, series?.values?.flatten()?[1] as Integer)
-        }
-        metricNameToCountOfCall
+        collectInToMap(decode(response.getBody().asString(), InfluxResponse))
     }
 
     String sendPrometheusMetricsRequest() {
@@ -457,6 +446,15 @@ class PrebidServerService implements ObjectMapperWrapper {
         }
     }
 
+    Boolean isContainMetricByValue(String value) {
+        try {
+            PBSUtils.waitUntil({ sendInfluxMetricsRequest()[value] != null })
+            true
+        } catch (IllegalStateException ignored) {
+            false
+        }
+    }
+
     private String getPbsLogsByValue(String value) {
         pbsContainer.logs.split("\n").find { it.contains(value) }
     }
@@ -479,5 +477,13 @@ class PrebidServerService implements ObjectMapperWrapper {
         new RequestSpecBuilder().setBaseUri(uri)
                 .setAuth(authScheme)
                 .build()
+    }
+
+    private static Map<String, Number> collectInToMap(InfluxResponse responseBody) {
+        final Map<String, Number> metrics = [:]
+        responseBody?.results?.first?.series?.collect {
+            metrics.put(it?.name as String, it?.values?.first[1] as Integer)
+        }
+        metrics
     }
 }

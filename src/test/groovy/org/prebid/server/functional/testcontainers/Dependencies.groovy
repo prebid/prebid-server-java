@@ -37,7 +37,6 @@ class Dependencies {
 
     static final InfluxDBContainer influxdbContainer = new InfluxDBContainer<>(DockerImageName.parse("influxdb:1.8.10"))
             .withUsername("prebid")
-            .withUsername("prebid")
             .withPassword("prebid")
             .withAuthEnabled(false)
             .withDatabase("prebid")
