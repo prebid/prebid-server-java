@@ -14,10 +14,11 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
+import io.vertx.uritemplate.UriTemplate;
+import io.vertx.uritemplate.Variables;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -35,9 +36,9 @@ import org.prebid.server.proto.openrtb.ext.request.connatix.ExtImpConnatix;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.UriTemplateUtil;
 
 import java.math.BigDecimal;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -53,9 +54,8 @@ public class ConnatixBidder implements Bidder<BidRequest> {
 
     private static final String BIDDER_CURRENCY = "USD";
     private static final String FORMATTING = "%s-%s";
-    private static final String GPID_KEY = "gpid";
 
-    private final String endpointUrl;
+    private final UriTemplate endpointUrlTemplate;
     private final JacksonMapper mapper;
 
     private final CurrencyConversionService currencyConversionService;
@@ -64,7 +64,8 @@ public class ConnatixBidder implements Bidder<BidRequest> {
                           CurrencyConversionService currencyConversionService,
                           JacksonMapper mapper) {
 
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrlTemplate = UriTemplateUtil.createTemplate(endpointUrl, "dc");
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -106,20 +107,8 @@ public class ConnatixBidder implements Bidder<BidRequest> {
     }
 
     private String getOptimalEndpointUrl(BidRequest request) {
-        final Optional<String> dataCenterCode = getUserId(request).map(ConnatixBidder::getDataCenterCode);
-
-        if (dataCenterCode.isEmpty()) {
-            return endpointUrl;
-        }
-
-        try {
-            return new URIBuilder(endpointUrl)
-                    .addParameter("dc", dataCenterCode.get())
-                    .build()
-                    .toString();
-        } catch (URISyntaxException e) {
-            throw new PreBidException(e.getMessage());
-        }
+        final String dataCenterCode = getUserId(request).map(ConnatixBidder::getDataCenterCode).orElse(null);
+        return endpointUrlTemplate.expandToString(Variables.variables().set("dc", dataCenterCode));
     }
 
     private static Optional<String> getUserId(BidRequest request) {

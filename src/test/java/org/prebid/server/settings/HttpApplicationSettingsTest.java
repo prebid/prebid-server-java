@@ -2,8 +2,8 @@ package org.prebid.server.settings;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.vertx.core.Future;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.utils.URIBuilder;
+import org.apache.hc.core5.http.NameValuePair;
+import org.apache.hc.core5.net.URIBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

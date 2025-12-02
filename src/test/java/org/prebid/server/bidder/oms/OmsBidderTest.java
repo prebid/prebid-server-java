@@ -2,7 +2,6 @@ package org.prebid.server.bidder.oms;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
@@ -21,21 +20,18 @@ import org.prebid.server.proto.openrtb.ext.request.omx.ExtImpOms;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
 import static java.util.Collections.singletonList;
-import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.prebid.server.bidder.model.BidderError.badInput;
 
 public class OmsBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://randomurl.com";
+    private static final String ENDPOINT_URL = "https://randomurl.com?publisherId={{PublisherId}}";
 
     private final OmsBidder target = new OmsBidder(ENDPOINT_URL, jacksonMapper);
 
@@ -58,9 +54,9 @@ public class OmsBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldCreateExpectedUrl() {
+    public void makeHttpRequestsShouldCreateUrlWithPidWhenPidIsProvided() {
         // given
-        final ExtImpOms impExt = ExtImpOms.of("otherTagId", 12345);
+        final ExtImpOms impExt = ExtImpOms.of("otherTagId", null);
         final BidRequest bidRequest = givenBidRequest(impCustomizer -> impCustomizer.ext(givenImpExt(impExt)));
 
         // when
@@ -74,7 +70,7 @@ public class OmsBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldCreateExpectedUrlWithPublisherId() {
+    public void makeHttpRequestsShouldCreateUrlWithPublisherIdWhenPublisherIdIsProvided() {
         // given
         final ExtImpOms impExt = ExtImpOms.of(null, 12345);
         final BidRequest bidRequest = givenBidRequest(impCustomizer -> impCustomizer.ext(givenImpExt(impExt)));
@@ -90,47 +86,12 @@ public class OmsBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldIncludePidInRequestWhenPresent() {
-        // given
-        final ObjectNode bidderExt = mapper.createObjectNode().put("pid", "examplePid");
-        final ObjectNode impExt = mapper.createObjectNode().set("bidder", bidderExt);
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(impExt));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getExt)
-                .containsExactly(impExt);
-    }
-
-    @Test
-    public void makeHttpRequestsShouldIncludePublisherIdInRequestWhenPresent() {
-        // given
-        final ObjectNode bidderExt = mapper.createObjectNode().put("publisherId", 12345);
-        final ObjectNode impExt = mapper.createObjectNode().set("bidder", bidderExt);
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(impExt));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getExt)
-                .containsExactly(impExt);
-    }
-
-    @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<BidRequest> httpCall = BidderCall.succeededHttp(
+                HttpRequest.<BidRequest>builder().build(),
+                HttpResponse.of(200, null, "invalid"),
+                null);
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -147,7 +108,7 @@ public class OmsBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null);
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -160,8 +121,7 @@ public class OmsBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
-                mapper.writeValueAsString(BidResponse.builder().build()));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(BidResponse.builder().build());
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -174,9 +134,7 @@ public class OmsBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBid() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                givenBidRequest(impBuilder -> impBuilder.banner(Banner.builder().build())),
-                mapper.writeValueAsString(givenBidResponse(impBuilder -> impBuilder.impid("123").mtype(1))));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(impBuilder -> impBuilder.mtype(1)));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -189,9 +147,7 @@ public class OmsBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnVideoBid() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                givenBidRequest(impBuilder -> impBuilder.banner(Banner.builder().build())),
-                mapper.writeValueAsString(givenBidResponse(impBuilder -> impBuilder.impid("123").mtype(2))));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(impBuilder -> impBuilder.mtype(2)));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -204,9 +160,7 @@ public class OmsBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerWhenMTypeIsUnsupported() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                givenBidRequest(impBuilder -> impBuilder.banner(Banner.builder().build())),
-                mapper.writeValueAsString(givenBidResponse(impBuilder -> impBuilder.impid("123").mtype(99))));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(impBuilder -> impBuilder.mtype(99)));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -214,36 +168,6 @@ public class OmsBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).extracting(BidderBid::getType).containsExactly(BidType.banner);
-    }
-
-    @Test
-    public void makeBidsShouldExtractAllBidsFromMultipleSeatBids() throws JsonProcessingException {
-        // given
-        final Bid bid1 = Bid.builder().impid("bid1").mtype(1).build();
-        final Bid bid2 = Bid.builder().impid("bid2").mtype(1).build();
-        final Bid bid3 = Bid.builder().impid("bid3").mtype(2).build();
-
-        final SeatBid seatBid1 = SeatBid.builder().bid(Arrays.asList(bid1, bid2)).build();
-        final SeatBid seatBid2 = SeatBid.builder().bid(Collections.singletonList(bid3)).build();
-
-        final BidResponse bidResponse = BidResponse.builder()
-                .seatbid(Arrays.asList(seatBid1, seatBid2))
-                .cur("USD")
-                .build();
-        final String bidResponseJson = mapper.writeValueAsString(bidResponse);
-
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.banner(Banner.builder().build()));
-        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, bidResponseJson);
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(3)
-                .extracting(BidderBid::getType)
-                .containsExactly(BidType.banner, BidType.banner, BidType.video);
-        assertThat(result.getValue()).extracting(BidderBid::getBidCurrency).containsOnly("USD");
     }
 
     @Test
@@ -258,7 +182,7 @@ public class OmsBidderTest extends VertxTest {
                 .seatbid(List.of(SeatBid.builder().bid(List.of(videoBid)).build()))
                 .cur("USD")
                 .build();
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(bidResponse));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidResponse);
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -270,14 +194,8 @@ public class OmsBidderTest extends VertxTest {
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
-        return givenBidRequest(identity(), impCustomizer);
-    }
-
-    private static BidRequest givenBidRequest(
-            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
-            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
-        return bidRequestCustomizer.apply(BidRequest.builder()
-                        .imp(singletonList(impCustomizer.apply(Imp.builder().id("123")).build())))
+        return BidRequest.builder()
+                .imp(singletonList(impCustomizer.apply(Imp.builder().id("123")).build()))
                 .build();
     }
 
@@ -288,10 +206,10 @@ public class OmsBidderTest extends VertxTest {
                 .build();
     }
 
-    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+    private static BidderCall<BidRequest> givenHttpCall(BidResponse bidResponse) throws JsonProcessingException {
         return BidderCall.succeededHttp(
-                HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
-                HttpResponse.of(200, null, body),
+                HttpRequest.<BidRequest>builder().build(),
+                HttpResponse.of(200, null, mapper.writeValueAsString(bidResponse)),
                 null);
     }
 
