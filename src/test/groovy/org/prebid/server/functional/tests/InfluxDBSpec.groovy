@@ -12,7 +12,9 @@ import static org.prebid.server.functional.testcontainers.Dependencies.influxdbC
 
 class InfluxDBSpec extends BaseSpec {
 
-    private static final Map PBS_CONFIG_WITH_INFLUX_AND_ENFORCE_VALIDATION_ACCOUNTANT = [
+    private static final String ACCOUNT_REJECTED_METRIC = "influx.metric.account.%s.requests.rejected.invalid-account"
+
+    private static final Map<String, String> PBS_CONFIG_WITH_INFLUX_AND_ENFORCE_VALIDATION_ACCOUNTANT = [
             "metrics.influxdb.enabled"       : "true",
             "metrics.influxdb.prefix"        : "influx.metric.",
             "metrics.influxdb.host"          : influxdbContainer.getNetworkAliases().get(0),
@@ -24,6 +26,7 @@ class InfluxDBSpec extends BaseSpec {
             "metrics.influxdb.connectTimeout": "5000",
             "metrics.influxdb.readTimeout"   : "100",
             "settings.enforce-valid-account": true as String]
+
     private static final PrebidServerService pbsServiceWithEnforceValidAccount
             = pbsServiceFactory.getService(PBS_CONFIG_WITH_INFLUX_AND_ENFORCE_VALIDATION_ACCOUNTANT)
 
@@ -48,12 +51,11 @@ class InfluxDBSpec extends BaseSpec {
         assert exception.responseBody == "Account $bidRequest.accountId is inactive"
 
         and: "PBS wait until get metric"
-        assert pbsServiceWithEnforceValidAccount.isContainMetricByValue(
-                "influx.metric.account.${bidRequest.accountId}.requests.rejected.invalid-account" as String)
+        assert pbsServiceWithEnforceValidAccount.isContainMetricByValue(ACCOUNT_REJECTED_METRIC.formatted(bidRequest.accountId))
 
         and: "PBS metrics populated correctly"
         def influxMetricsRequest = pbsServiceWithEnforceValidAccount.sendInfluxMetricsRequest()
-        assert influxMetricsRequest["influx.metric.account.${bidRequest.accountId}.requests.rejected.invalid-account" as String] == 1
+        assert influxMetricsRequest[ACCOUNT_REJECTED_METRIC.formatted(bidRequest.accountId)] == 1
     }
 
     def "PBS shouldn't reject request with error and metrics when active account"() {
@@ -71,7 +73,6 @@ class InfluxDBSpec extends BaseSpec {
         assert response.seatbid.size() == 1
 
         and: "PBs shouldn't emit metric"
-        assert !pbsServiceWithEnforceValidAccount.isContainMetricByValue(
-                "influx.metric.account.${bidRequest.accountId}.requests.rejected.invalid-account" as String)
+        assert !pbsServiceWithEnforceValidAccount.isContainMetricByValue(ACCOUNT_REJECTED_METRIC.formatted(bidRequest.accountId))
     }
 }
