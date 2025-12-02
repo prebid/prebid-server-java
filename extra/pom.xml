@@ -47,7 +47,8 @@
         <json-schema-validator.version>1.5.6</json-schema-validator.version>
         <jsonpatch.version>1.13</jsonpatch.version>
         <psl.version>2.2.0</psl.version>
-        <metrics-influxdb.version>1.3.4</metrics-influxdb.version>
+        <!-- DO NOT BUMP: versions 1.3.* do not work with flushing counter metrics -->
+        <metrics-influxdb.version>1.2.3</metrics-influxdb.version>
         <vertx.prometheus.version>0.16.0</vertx.prometheus.version>
         <iabtcf.version>2.0.10</iabtcf.version>
         <gpp-encoder.version>3.2.4</gpp-encoder.version>
