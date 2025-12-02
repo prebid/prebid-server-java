@@ -185,7 +185,8 @@ public class RtbhouseBidder implements Bidder<BidRequest> {
     }
 
     private static Imp modifyImp(Imp imp, Price bidFloorPrice) {
-        final String tagid = extractTagid(imp);
+        final String existingTagid = imp.getTagid();
+        final String tagid = StringUtils.isNotBlank(existingTagid) ? existingTagid : extractTagid(imp);
         return imp.toBuilder()
                 .tagid(tagid)
                 .bidfloorcur(ObjectUtil.getIfNotNull(bidFloorPrice, Price::getCurrency))

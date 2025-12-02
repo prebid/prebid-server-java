@@ -635,6 +635,30 @@ public class RtbhouseBidderTest extends VertxTest {
                 .containsOnlyNulls();
     }
 
+    @Test
+    public void makeHttpRequestsShouldPreserveExistingTagid() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .id("imp123")
+                        .tagid("existing_tagid")
+                        .ext(givenRtbhouseExt(node -> node.put("gpid", "gpid_value")))
+                        .build()))
+                .id("request_id")
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getTagid)
+                .containsExactly("existing_tagid");
+    }
+
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
                 .cur("USD")
