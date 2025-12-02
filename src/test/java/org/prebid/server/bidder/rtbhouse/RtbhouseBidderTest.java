@@ -518,6 +518,123 @@ public class RtbhouseBidderTest extends VertxTest {
                 .containsOnlyNulls();
     }
 
+    @Test
+    public void makeHttpRequestsShouldSetTagidFromGpid() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .id("imp123")
+                        .ext(givenRtbhouseExt(node -> node.put("gpid", "gpid_value")))
+                        .build()))
+                .id("request_id")
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getTagid)
+                .containsExactly("gpid_value");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetTagidFromAdserverAdslot() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .id("imp123")
+                        .ext(givenRtbhouseExt(node -> node.set("data", mapper.createObjectNode()
+                                .set("adserver", mapper.createObjectNode().put("adslot", "adslot_value")))))
+                        .build()))
+                .id("request_id")
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getTagid)
+                .containsExactly("adslot_value");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetTagidFromPbadslot() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .id("imp123")
+                        .ext(givenRtbhouseExt(node -> node.set("data", mapper.createObjectNode()
+                                .put("pbadslot", "pbadslot_value"))))
+                        .build()))
+                .id("request_id")
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getTagid)
+                .containsExactly("pbadslot_value");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetTagidFromImpIdWhenNoOtherFields() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                bidReq -> bidReq.id("request_id"),
+                imp -> imp.id("imp123"),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getTagid)
+                .containsExactly("imp123");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetTagidToNullWhenNoFieldsAvailable() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .id(null)
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpRtbhouse.builder()
+                                .publisherId("publisherId")
+                                .region("region")
+                                .build())))
+                        .build()))
+                .id("request_id")
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getTagid)
+                .containsOnlyNulls();
+    }
+
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
                 .cur("USD")
@@ -561,5 +678,13 @@ public class RtbhouseBidderTest extends VertxTest {
                                                 .region("region"))
                                         .build()))))
                 .build();
+    }
+
+    private static ObjectNode givenRtbhouseExt(Function<ObjectNode, ObjectNode> extCustomizer) {
+        final ObjectNode extNode = (ObjectNode) mapper.valueToTree(ExtPrebid.of(null, ExtImpRtbhouse.builder()
+                .publisherId("publisherId")
+                .region("region")
+                .build()));
+        return extCustomizer.apply(extNode);
     }
 }

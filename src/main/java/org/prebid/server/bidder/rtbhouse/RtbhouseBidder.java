@@ -185,11 +185,58 @@ public class RtbhouseBidder implements Bidder<BidRequest> {
     }
 
     private static Imp modifyImp(Imp imp, Price bidFloorPrice) {
+        final String tagid = extractTagid(imp);
         return imp.toBuilder()
+                .tagid(tagid)
                 .bidfloorcur(ObjectUtil.getIfNotNull(bidFloorPrice, Price::getCurrency))
                 .bidfloor(ObjectUtil.getIfNotNull(bidFloorPrice, Price::getValue))
                 .pmp(null)
                 .build();
+    }
+
+    private static String extractTagid(Imp imp) {
+        final ObjectNode ext = imp.getExt();
+        if (ext != null) {
+            // 1. imp.ext.gpid
+            final JsonNode gpid = ext.get("gpid");
+            if (gpid != null && gpid.isTextual()) {
+                final String gpidValue = gpid.asText();
+                if (StringUtils.isNotBlank(gpidValue)) {
+                    return gpidValue;
+                }
+            }
+            // 2. imp.ext.data.adserver.adslot
+            final JsonNode data = ext.get("data");
+            if (data != null && data.isObject()) {
+                final JsonNode adserver = data.get("adserver");
+                if (adserver != null && adserver.isObject()) {
+                    final JsonNode adslot = adserver.get("adslot");
+                    if (adslot != null && adslot.isTextual()) {
+                        final String adslotValue = adslot.asText();
+                        if (StringUtils.isNotBlank(adslotValue)) {
+                            return adslotValue;
+                        }
+                    }
+                }
+            }
+            // 3. imp.ext.data.pbadslot
+            if (data != null && data.isObject()) {
+                final JsonNode pbadslot = data.get("pbadslot");
+                if (pbadslot != null && pbadslot.isTextual()) {
+                    final String pbadslotValue = pbadslot.asText();
+                    if (StringUtils.isNotBlank(pbadslotValue)) {
+                        return pbadslotValue;
+                    }
+                }
+            }
+        }
+        // 4. imp.id
+        final String impId = imp.getId();
+        if (StringUtils.isNotBlank(impId)) {
+            return impId;
+        }
+        // 5. empty (not set)
+        return null;
     }
 
     private Price resolveBidFloor(Imp imp, ExtImpRtbhouse impExt, BidRequest bidRequest) {
