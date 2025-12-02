@@ -79,12 +79,11 @@ public class GoldbachBidder implements Bidder<BidRequest> {
         }
 
         final List<HttpRequest<BidRequest>> httpRequests = publisherToImps.entrySet().stream()
-                .map(publisherIdAndImps ->
-                        makeHttpRequestForPublisher(request,
-                                extRequestGoldbach,
-                                publisherIdAndImps.getKey(),
-                                publisherIdAndImps.getValue(),
-                                errors))
+                .map(publisherIdAndImps -> makeHttpRequestForPublisher(
+                        request,
+                        extRequestGoldbach,
+                        publisherIdAndImps.getKey(),
+                        publisherIdAndImps.getValue()))
                 .filter(Objects::nonNull)
                 .toList();
 
@@ -125,16 +124,10 @@ public class GoldbachBidder implements Bidder<BidRequest> {
     private HttpRequest<BidRequest> makeHttpRequestForPublisher(BidRequest bidRequest,
                                                                 ExtRequestGoldbach extRequestGoldbach,
                                                                 String publisherId,
-                                                                List<Imp> imps,
-                                                                List<BidderError> errors) {
+                                                                List<Imp> imps) {
 
-        try {
-            final BidRequest modifiedBidRequest = modifyBidRequest(bidRequest, extRequestGoldbach, publisherId, imps);
-            return BidderUtil.defaultRequest(modifiedBidRequest, endpointUrl, mapper);
-        } catch (PreBidException e) {
-            errors.add(BidderError.badInput(e.getMessage()));
-            return null;
-        }
+        final BidRequest modifiedBidRequest = modifyBidRequest(bidRequest, extRequestGoldbach, publisherId, imps);
+        return BidderUtil.defaultRequest(modifiedBidRequest, endpointUrl, mapper);
     }
 
     private BidRequest modifyBidRequest(BidRequest bidRequest,
@@ -223,10 +216,7 @@ public class GoldbachBidder implements Bidder<BidRequest> {
 
     private BidderBid makeBid(Bid bid, BidResponse bidResponse, List<BidderError> errors) {
         try {
-            return BidderBid.of(
-                    bid,
-                    getBidType(bid),
-                    bidResponse.getCur());
+            return BidderBid.of(bid, getBidType(bid), bidResponse.getCur());
         } catch (PreBidException e) {
             errors.add(BidderError.badInput(e.getMessage()));
             return null;

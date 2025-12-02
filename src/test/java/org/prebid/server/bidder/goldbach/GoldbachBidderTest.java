@@ -467,13 +467,7 @@ public class GoldbachBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).containsExactly(BidderError.badInput("No media type for bid invalidBidId"));
-        assertThat(result.getValue()).containsExactly(
-                BidderBid.of(
-                        validBid,
-                        BidType.banner,
-                        "USD"
-                )
-        );
+        assertThat(result.getValue()).containsExactly(BidderBid.of(validBid, BidType.banner, "USD"));
     }
 
     private static BidRequest givenBidRequest() {

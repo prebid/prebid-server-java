@@ -29,8 +29,8 @@ public class GoldbachConfiguration {
 
     @Bean
     BidderDeps goldbachBidderDeps(BidderConfigurationProperties goldbachConfigurationProperties,
-                                 @NotBlank @Value("${external-url}") String externalUrl,
-                                 JacksonMapper mapper) {
+                                  @NotBlank @Value("${external-url}") String externalUrl,
+                                  JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(goldbachConfigurationProperties)
