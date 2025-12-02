@@ -1,5 +1,6 @@
 package org.prebid.server.functional.testcontainers
 
+import org.testcontainers.containers.InfluxDBContainer
 import org.testcontainers.containers.MySQLContainer
 import org.testcontainers.containers.PostgreSQLContainer
 
@@ -100,7 +101,6 @@ LIMIT 1
          "settings.database.idle-connection-timeout": "300"
         ].asImmutable()
     }
-
     static Map<String, String> getPostgreSqlConfig(PostgreSQLContainer postgres = Dependencies.postgresqlContainer) {
         ["settings.database.type"                   : "postgres",
          "settings.database.host"                   : postgres.getNetworkAliases().get(0),
@@ -145,7 +145,7 @@ LIMIT 1
          "currency-converter.external-rates.refresh-period-ms" : "900000"]
     }
 
-    static Map<String,String> getTargetingConfig() {
+    static Map<String, String> getTargetingConfig() {
         ["settings.targeting.truncate-attr-chars": '255']
     }
 
