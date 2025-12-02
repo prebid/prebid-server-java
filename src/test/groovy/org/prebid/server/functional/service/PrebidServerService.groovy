@@ -43,6 +43,8 @@ import java.time.format.DateTimeFormatter
 
 import static io.restassured.RestAssured.given
 import static java.time.ZoneOffset.UTC
+import static org.prebid.server.functional.testcontainers.Dependencies.influxdbContainer
+
 
 class PrebidServerService implements ObjectMapperWrapper {
 
@@ -297,7 +299,7 @@ class PrebidServerService implements ObjectMapperWrapper {
 
     Map<String, Number> sendInfluxMetricsRequest() {
         def response = given(influxRequestSpecification)
-                .queryParams(["db": "prebid",
+                .queryParams(["db": influxdbContainer.getDatabase(),
                               "q" : "SELECT COUNT(count) FROM /.*/  WHERE count >= 1 GROUP BY \"measurement\""])
                 .get(INFLUX_DB_ENDPOINT)
 
@@ -480,10 +482,8 @@ class PrebidServerService implements ObjectMapperWrapper {
     }
 
     private static Map<String, Number> collectInToMap(InfluxResponse responseBody) {
-        final Map<String, Number> metrics = [:]
-        responseBody?.results?.first?.series?.collect {
-            metrics.put(it?.name as String, it?.values?.first[1] as Integer)
-        }
-        metrics
+        responseBody?.results?.first()?.series?.collectEntries {
+            [(it.name): it.values?.first()?.getAt(1) as Integer]
+        } ?: [:]
     }
 }

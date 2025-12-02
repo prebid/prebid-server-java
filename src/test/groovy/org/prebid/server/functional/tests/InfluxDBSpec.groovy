@@ -6,7 +6,6 @@ import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
-import org.prebid.server.functional.util.PBSUtils
 
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED
 import static org.prebid.server.functional.testcontainers.Dependencies.influxdbContainer
@@ -24,7 +23,6 @@ class InfluxDBSpec extends BaseSpec {
             "metrics.influxdb.interval"      : "1",
             "metrics.influxdb.connectTimeout": "5000",
             "metrics.influxdb.readTimeout"   : "100",
-
             "settings.enforce-valid-account": true as String]
     private static final PrebidServerService pbsServiceWithEnforceValidAccount
             = pbsServiceFactory.getService(PBS_CONFIG_WITH_INFLUX_AND_ENFORCE_VALIDATION_ACCOUNTANT)
@@ -35,13 +33,10 @@ class InfluxDBSpec extends BaseSpec {
 
     def "PBS should reject request with error and metrics when inactive account"() {
         given: "Default basic BidRequest with inactive account id"
-        def accountId = PBSUtils.randomNumber
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            site.publisher.id = accountId
-        }
+        def bidRequest = BidRequest.defaultBidRequest
 
         and: "Inactive account id"
-        def account = new Account(uuid: accountId, config: new AccountConfig(status: AccountStatus.INACTIVE))
+        def account = new Account(uuid: bidRequest.accountId, config: new AccountConfig(status: AccountStatus.INACTIVE))
         accountDao.save(account)
 
         when: "PBS processes auction request"
@@ -50,7 +45,7 @@ class InfluxDBSpec extends BaseSpec {
         then: "PBS should reject the entire auction"
         def exception = thrown(PrebidServerException)
         assert exception.statusCode == UNAUTHORIZED.code()
-        assert exception.responseBody == "Account $accountId is inactive"
+        assert exception.responseBody == "Account $bidRequest.accountId is inactive"
 
         and: "PBS wait until get metric"
         assert pbsServiceWithEnforceValidAccount.isContainMetricByValue(
@@ -63,13 +58,10 @@ class InfluxDBSpec extends BaseSpec {
 
     def "PBS shouldn't reject request with error and metrics when active account"() {
         given: "Default basic BidRequest with inactive account id"
-        def accountId = PBSUtils.randomNumber
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            site.publisher.id = accountId
-        }
+        def bidRequest = BidRequest.defaultBidRequest
 
         and: "Inactive account id"
-        def account = new Account(uuid: accountId, config: new AccountConfig(status: AccountStatus.ACTIVE))
+        def account = new Account(uuid: bidRequest.accountId, config: new AccountConfig(status: AccountStatus.ACTIVE))
         accountDao.save(account)
 
         when: "PBS processes auction request"
