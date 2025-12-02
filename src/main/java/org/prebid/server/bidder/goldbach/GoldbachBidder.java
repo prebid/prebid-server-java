@@ -147,10 +147,9 @@ public class GoldbachBidder implements Bidder<BidRequest> {
                                         ExtRequestGoldbach extRequestGoldbach,
                                         String publisherId) {
 
-        final ExtRequestGoldbach modifiedExtRequestGoldbach = ExtRequestGoldbach.builder()
-                .publisherId(publisherId)
-                .mockResponse(extRequestGoldbach != null ? extRequestGoldbach.getMockResponse() : null)
-                .build();
+        final ExtRequestGoldbach modifiedExtRequestGoldbach = ExtRequestGoldbach.of(
+                publisherId,
+                extRequestGoldbach != null ? extRequestGoldbach.getMockResponse() : null);
 
         final ExtRequest modifiedExtRequest;
 
