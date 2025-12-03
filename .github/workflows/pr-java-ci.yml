@@ -39,7 +39,5 @@ jobs:
           report_paths: '**/target/surefire-reports/TEST-*.xml'
           check_name: 'JUnit Test Report'
           include_passed: true
-          comment: true
           fail_on_failure: true
-          updateComment: true
           token: ${{ secrets.GITHUB_TOKEN }}
