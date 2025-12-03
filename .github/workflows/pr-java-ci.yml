@@ -1,8 +1,5 @@
 name: Java CI
 
-permissions:
-  checks: write
-
 on:
   pull_request:
     paths-ignore:
@@ -39,8 +36,4 @@ jobs:
       - name: Publish JUnit Report
         uses: mikepenz/action-junit-report@v5
         with:
-          report_paths: '**/target/surefire-reports/TEST-*.xml'
-          check_name: 'JUnit Test Report'
-          include_passed: true
-          fail_on_failure: true
-          token: ${{ secrets.GITHUB_TOKEN }}
+          annotate_only: 'true'
