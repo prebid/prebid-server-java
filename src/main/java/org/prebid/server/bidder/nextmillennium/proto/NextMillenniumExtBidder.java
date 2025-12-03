@@ -11,7 +11,17 @@ public class NextMillenniumExtBidder {
     @JsonProperty("nmmFlags")
     List<String> nmmFlags;
 
+    @JsonProperty("adSlots")
+    List<String> adSlots;
+
+    @JsonProperty("allowedAds")
+    List<String> allowedAds;
+
     String nmVersion;
 
     String serverVersion;
+
+    public static NextMillenniumExtBidder of(List<String> nmmFlags) {
+        return of(nmmFlags, null, null, null, null);
+    }
 }

@@ -72,6 +72,7 @@ public class SeedtagBidder implements Bidder<BidRequest> {
 
         final BidRequest modifiedBidRequest = request.toBuilder()
                 .imp(modifiedImps)
+                .cur(Collections.singletonList(BIDDER_CURRENCY))
                 .build();
         return Result.of(
                 Collections.singletonList(BidderUtil.defaultRequest(modifiedBidRequest, endpointUrl, mapper)),

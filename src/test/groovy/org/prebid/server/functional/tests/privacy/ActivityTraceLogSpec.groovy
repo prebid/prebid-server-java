@@ -16,7 +16,7 @@ import org.prebid.server.functional.model.response.auction.And
 import org.prebid.server.functional.model.response.auction.GeoCode
 import org.prebid.server.functional.model.response.auction.RuleConfiguration
 import org.prebid.server.functional.util.PBSUtils
-import org.prebid.server.functional.util.privacy.gpp.UsNatV1Consent
+import org.prebid.server.functional.util.privacy.gpp.v1.UsNatV1Consent
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.pricefloors.Country.CAN

@@ -16,8 +16,9 @@ import org.prebid.server.functional.util.HttpUtil
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.CcpaConsent
 import org.prebid.server.functional.util.privacy.TcfConsent
-import org.prebid.server.functional.util.privacy.gpp.TcfEuV2Consent
-import org.prebid.server.functional.util.privacy.gpp.UsV1Consent
+import org.prebid.server.functional.util.privacy.gpp.v1.UsNatV1Consent
+import org.prebid.server.functional.util.privacy.gpp.v2.TcfEuV2Consent
+import org.prebid.server.functional.util.privacy.gpp.v1.UspV1Consent
 
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
@@ -210,7 +211,7 @@ class GppCookieSyncSpec extends BaseSpec {
         given: "Cookie sync request"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             it.gppSid = USP_V1.value
-            it.gpp = new UsV1Consent.Builder().build()
+            it.gpp = new UspV1Consent.Builder().build()
             it.gdpr = null
             it.usPrivacy = new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)
         }
@@ -327,7 +328,7 @@ class GppCookieSyncSpec extends BaseSpec {
         given: "Default CookieSyncRequest with gpp and gppSid"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             it.gppSid = TCF_EU_V2.intValue
-            it.gpp = new UsV1Consent.Builder().build()
+            it.gpp = new UsNatV1Consent.Builder().build()
             it.gppSid = gppSid
         }
 
@@ -358,7 +359,7 @@ class GppCookieSyncSpec extends BaseSpec {
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             it.gppSid = TCF_EU_V2.intValue
             it.bidders = [ALIAS]
-            it.gpp = new UsV1Consent.Builder().build()
+            it.gpp = new UsNatV1Consent.Builder().build()
             it.gppSid = gppSid
         }
 
@@ -478,7 +479,7 @@ class GppCookieSyncSpec extends BaseSpec {
 
     def "PBS shouldn't emit error message when request doesn't contain matched gpp config and specific global skip gpp config for adapter"() {
         given: "Default CookieSyncRequest with gpp and gppSid"
-        def gpp = new UsV1Consent.Builder().build()
+        def gpp = new UsNatV1Consent.Builder().build()
         def gppSid = "${PBSUtils.getRandomEnum(GppSectionId.class, [FIRST_GPP_SECTION, SECOND_GPP_SECTION]).value}"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             it.gppSid = TCF_EU_V2.intValue

@@ -33,7 +33,7 @@ import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.ConsentString
 import org.prebid.server.functional.util.privacy.TcfConsent
 import org.prebid.server.functional.util.privacy.gpp.GppConsent
-import org.prebid.server.functional.util.privacy.gpp.UsNatV1Consent
+import org.prebid.server.functional.util.privacy.gpp.v1.UsNatV1Consent
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
