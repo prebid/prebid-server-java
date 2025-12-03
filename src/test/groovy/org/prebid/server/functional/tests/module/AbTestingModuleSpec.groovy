@@ -8,7 +8,6 @@ import org.prebid.server.functional.model.config.ExecutionPlan
 import org.prebid.server.functional.model.config.Stage
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.BidRequest
-import org.prebid.server.functional.model.request.auction.FetchStatus
 import org.prebid.server.functional.model.request.auction.TraceLevel
 import org.prebid.server.functional.model.response.auction.AnalyticResult
 import org.prebid.server.functional.model.response.auction.AnalyticTagStatus
