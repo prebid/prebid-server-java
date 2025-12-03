@@ -34,6 +34,7 @@ import static org.prebid.server.functional.model.response.auction.ResponseAction
 
 class AbTestingModuleSpec extends ModuleBaseSpec {
 
+    private final static String NOOP_METRIC = "modules.module.%s.stage.%s.hook.%s.success.noop"
     private final static String NO_INVOCATION_METRIC = "modules.module.%s.stage.%s.hook.%s.success.no-invocation"
     private final static String CALL_METRIC = "modules.module.%s.stage.%s.hook.%s.call"
     private final static String EXECUTION_ERROR_METRIC = "modules.module.%s.stage.%s.hook.%s.execution-error"
@@ -90,8 +91,9 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         def metrics = ortbModulePbsService.sendCollectedMetricsRequest()
         assert metrics[CALL_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)] == 1
         assert metrics[CALL_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)] == 1
-        assert metrics[CALL_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)] == 1
-        assert metrics[CALL_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)] == 1
+
+        assert metrics[NOOP_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)] == 1
+        assert metrics[NOOP_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)] == 1
 
         assert !metrics[NO_INVOCATION_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)]
         assert !metrics[NO_INVOCATION_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)]
@@ -130,10 +132,8 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         and: "Metric for specified module should be with error call"
         def metrics = prebidServerService.sendCollectedMetricsRequest()
-        assert metrics[CALL_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)] == 1
         assert metrics[CALL_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)] == 1
         assert metrics[CALL_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)] == 1
-        assert metrics[CALL_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)] == 1
         assert metrics[EXECUTION_ERROR_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)] == 1
         assert metrics[EXECUTION_ERROR_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)] == 1
 
@@ -174,8 +174,9 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         and: "Metric for specified module should be as default call"
         def metrics = ortbModulePbsService.sendCollectedMetricsRequest()
-        assert metrics[CALL_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)] == 1
-        assert metrics[CALL_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)] == 1
+        assert metrics[NOOP_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)] == 1
+        assert metrics[NOOP_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)] == 1
+
         assert metrics[CALL_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)] == 1
         assert metrics[CALL_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)] == 1
 
@@ -242,9 +243,9 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         and: "Metric for allowed to run response-correction module should be updated based on ab test config"
         assert metrics[CALL_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)] == 1
-        assert metrics[CALL_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)] == 1
+        assert metrics[NOOP_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)] == 1
         assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)]
-        assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)]
+        assert !metrics[NOOP_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)]
     }
 
     def "PBS should apply a/b test config for each module when multiple config are presents and set to skip modules"() {
@@ -299,13 +300,12 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         assert !metrics[CALL_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)]
         assert !metrics[CALL_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)]
         assert metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)] == 1
-        assert metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)] == 1
+        assert metrics[NOOP_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)] == 1
 
         and: "Metric for skipped response-correction module should be updated based on ab test config"
         assert !metrics[CALL_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)]
-        assert !metrics[CALL_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)]
-        assert metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)] == 1
-        assert metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)] == 1
+        assert !metrics[NOOP_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)]
+        assert metrics[NOOP_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)] == 1
     }
 
     def "PBS should apply a/b test config for each module when multiple config are presents with different percentage"() {
@@ -364,7 +364,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         assert metrics[CALL_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)] == 1
         assert metrics[CALL_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)] == 1
         assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)]
-        assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)]
+        assert !metrics[NOOP_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)]
     }
 
     def "PBS should ignore accounts property for a/b test config when ab test config specialize for specific account"() {
@@ -438,8 +438,6 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         and: "Metric for specified module should be as default call"
         def metrics = ortbModulePbsService.sendCollectedMetricsRequest()
-        assert metrics[CALL_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)] == 1
-        assert metrics[CALL_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)] == 1
         assert metrics[CALL_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)] == 1
         assert metrics[CALL_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)] == 1
 
@@ -584,8 +582,6 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         def metrics = ortbModulePbsService.sendCollectedMetricsRequest()
         assert metrics[CALL_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)] == 1
         assert metrics[CALL_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)] == 1
-        assert metrics[CALL_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)] == 1
-        assert metrics[CALL_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)] == 1
 
         assert !metrics[NO_INVOCATION_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)]
         assert !metrics[NO_INVOCATION_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)]
@@ -720,8 +716,6 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         def metrics = ortbModulePbsService.sendCollectedMetricsRequest()
         assert metrics[CALL_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)] == 1
         assert metrics[CALL_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)] == 1
-        assert metrics[CALL_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)] == 1
-        assert metrics[CALL_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)] == 1
 
         assert !metrics[NO_INVOCATION_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)]
         assert !metrics[NO_INVOCATION_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)]
@@ -815,9 +809,6 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         and: "Metric for non specified module should be as default call"
         assert metrics[CALL_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)] == 1
-        assert metrics[CALL_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)] == 1
-
-        assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)]
         assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)]
 
         cleanup: "Stop and remove pbs container"
@@ -878,9 +869,6 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         and: "Metric for non specified module should be as default call"
         assert metrics[CALL_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)] == 1
-        assert metrics[CALL_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)] == 1
-
-        assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)]
         assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)]
 
         cleanup: "Stop and remove pbs container"
@@ -941,13 +929,9 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         def metrics = pbsServiceWithMultipleModules.sendCollectedMetricsRequest()
         assert !metrics[CALL_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)]
         assert !metrics[CALL_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)]
-        assert metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)] == 1
-        assert metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)] == 1
 
         and: "Metric for skipped response-correction module should be updated based on ab test config"
         assert !metrics[CALL_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)]
-        assert !metrics[CALL_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)]
-        assert metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)] == 1
         assert metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)] == 1
 
         cleanup: "Stop and remove pbs container"
@@ -999,17 +983,12 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         def metrics = pbsServiceWithMultipleModules.sendCollectedMetricsRequest()
         assert metrics[CALL_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)] == 1
         assert metrics[CALL_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)] == 1
-        assert metrics[CALL_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)] == 1
-        assert metrics[CALL_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)] == 1
 
         assert !metrics[NO_INVOCATION_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)]
         assert !metrics[NO_INVOCATION_METRIC.formatted(ModuleName.ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)]
 
         and: "Metric for non specified module should be as default call"
         assert metrics[CALL_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)] == 1
-        assert metrics[CALL_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)] == 1
-
-        assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)]
         assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)]
 
         cleanup: "Stop and remove pbs container"
@@ -1071,9 +1050,6 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         and: "Metric for non specified module should be as default call"
         assert metrics[CALL_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)] == 2
-        assert metrics[CALL_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)] == 2
-
-        assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)]
         assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)]
 
         cleanup: "Stop and remove pbs container"
@@ -1140,9 +1116,6 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         and: "Metric for non specified module should be as default call"
         assert metrics[CALL_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)] == 1
-        assert metrics[CALL_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)] == 1
-
-        assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)]
         assert !metrics[NO_INVOCATION_METRIC.formatted(PB_RESPONSE_CORRECTION.code, ALL_PROCESSED_BID_RESPONSES.metricValue, RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES.code)]
 
         cleanup: "Stop and remove pbs container"
