@@ -56,7 +56,7 @@ public class GenericBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsExactly(ENDPOINT_URL);
+                .containsExactly("failedTest");
     }
 
     @Test
