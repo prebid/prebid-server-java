@@ -36,5 +36,7 @@ jobs:
       - name: Publish JUnit Report
         uses: mikepenz/action-junit-report@v5
         with:
+          check_name: 'JUnit Test Report'
+          report_paths: '**/target/surefire-reports/TEST-*.xml'
           annotate_only: 'true'
           include_passed: 'true'
