@@ -37,3 +37,4 @@ jobs:
         uses: mikepenz/action-junit-report@v5
         with:
           annotate_only: 'true'
+          include_passed: 'true'
