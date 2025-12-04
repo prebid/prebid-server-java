@@ -446,9 +446,7 @@ public class GoldbachBidderTest extends VertxTest {
                 BidderBid.of(
                         bid,
                         BidType.banner,
-                        "USD"
-                )
-        );
+                        "USD"));
     }
 
     @Test
@@ -511,8 +509,9 @@ public class GoldbachBidderTest extends VertxTest {
         return givenImpExt(publisherId, slotId, null);
     }
 
-    private static ObjectNode givenImpExt(String publisherId, String
-            slotId, Map<String, List<String>> customTargeting) {
+    private static ObjectNode givenImpExt(String publisherId,
+                                          String slotId,
+                                          Map<String, List<String>> customTargeting) {
         return mapper.valueToTree(ExtPrebid.of(
                 null,
                 ExtImpGoldbach.of(publisherId, slotId, customTargeting)));
