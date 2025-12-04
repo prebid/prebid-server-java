@@ -7,8 +7,6 @@ class UsCaliforniaV1ChildSensitiveData {
     GppDataActivity toSellUnder16
     GppDataActivity toShareUnder16
 
-
-
     static UsCaliforniaV1ChildSensitiveData getDefault(GppDataActivity childUnder13 = GppDataActivity.NOT_APPLICABLE,
                                                        GppDataActivity childFrom13to16 = GppDataActivity.NOT_APPLICABLE) {
 
