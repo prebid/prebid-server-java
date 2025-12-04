@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.JsonDeserializer
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 import groovy.transform.ToString
+import org.prebid.server.functional.model.privacy.gpp.GppDataActivity
 
 @ToString(includeNames = true, ignoreNulls = true)
 @JsonDeserialize(using = EqualityValueRuleDeserialize.class)
@@ -14,6 +15,10 @@ class EqualityValueRule extends ValueRestrictedRule {
 
     EqualityValueRule(UsNationalPrivacySection privacySection, DataActivity value) {
         super(privacySection, value)
+    }
+
+    EqualityValueRule(UsNationalPrivacySection privacySection, GppDataActivity value) {
+        super(privacySection, DataActivity.fromGppDataActivity(value))
     }
 
     static class EqualityValueRuleDeserialize extends JsonDeserializer<EqualityValueRule> {

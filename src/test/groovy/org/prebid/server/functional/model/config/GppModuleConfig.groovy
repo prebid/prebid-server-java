@@ -4,6 +4,9 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import groovy.transform.ToString
 import org.prebid.server.functional.model.request.GppSectionId
 
+import static org.prebid.server.functional.model.config.GppModuleConfig.ConfigCase.CAMEL_CASE
+import static org.prebid.server.functional.model.config.GppModuleConfig.ConfigCase.KEBAB_CASE
+
 @ToString(includeNames = true, ignoreNulls = true)
 class GppModuleConfig {
 
@@ -31,31 +34,25 @@ class GppModuleConfig {
 
     static GppModuleConfig getDefaultModuleConfig(ActivityConfig activityConfig = ActivityConfig.configWithDefaultRestrictRules,
                                                   List<GppSectionId> sids = [GppSectionId.US_NAT_V1],
-                                                  Boolean normalizeFlags = true) {
+                                                  Boolean normalizeFlags = true,
+                                                  ConfigCase configCase = CAMEL_CASE) {
+
         new GppModuleConfig().tap {
-            it.activityConfig = [activityConfig]
             it.sids = sids
-            it.normalizeFlags = normalizeFlags
+            if (configCase == CAMEL_CASE) {
+                it.activityConfig = [activityConfig]
+                it.normalizeFlags = normalizeFlags
+            } else if (configCase = KEBAB_CASE) {
+                it.activityConfigKebabCase = [activityConfig]
+                it.normalizeFlagsKebabCase = normalizeFlags
+            } else {
+                it.activityConfigSnakeCase = [activityConfig]
+                it.normalizeFlagsSnakeCase = normalizeFlags
+            }
         }
     }
 
-    static GppModuleConfig getDefaultModuleConfigSnakeCase(ActivityConfig activityConfig = ActivityConfig.configWithDefaultRestrictRules,
-                                                           List<GppSectionId> sids = [GppSectionId.US_NAT_V1],
-                                                           Boolean normalizeFlags = true) {
-        new GppModuleConfig().tap {
-            it.activityConfigSnakeCase = [activityConfig]
-            it.sids = sids
-            it.normalizeFlagsSnakeCase = normalizeFlags
-        }
-    }
-
-    static GppModuleConfig getDefaultModuleConfigKebabCase(ActivityConfig activityConfig = ActivityConfig.configWithDefaultRestrictRules,
-                                                           List<GppSectionId> sids = [GppSectionId.US_NAT_V1],
-                                                           Boolean normalizeFlags = true) {
-        new GppModuleConfig().tap {
-            it.activityConfigKebabCase = [activityConfig]
-            it.sids = sids
-            it.normalizeFlagsKebabCase = normalizeFlags
-        }
+    enum ConfigCase {
+        CAMEL_CASE, KEBAB_CASE, SNAKE_CASE
     }
 }

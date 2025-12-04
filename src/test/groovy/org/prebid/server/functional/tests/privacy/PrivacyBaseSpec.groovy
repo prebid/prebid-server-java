@@ -12,6 +12,18 @@ import org.prebid.server.functional.model.config.Purpose
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.mock.services.vendorlist.VendorListResponse
 import org.prebid.server.functional.model.privacy.EnforcementRequirement
+import org.prebid.server.functional.model.privacy.gpp.GppDataActivity
+import org.prebid.server.functional.model.privacy.gpp.UsCaliforniaV1ChildSensitiveData
+import org.prebid.server.functional.model.privacy.gpp.UsCaliforniaV1SensitiveData
+import org.prebid.server.functional.model.privacy.gpp.UsColoradoV1ChildSensitiveData
+import org.prebid.server.functional.model.privacy.gpp.UsColoradoV1SensitiveData
+import org.prebid.server.functional.model.privacy.gpp.UsConnecticutV1ChildSensitiveData
+import org.prebid.server.functional.model.privacy.gpp.UsConnecticutV1SensitiveData
+import org.prebid.server.functional.model.privacy.gpp.UsUtahV1ChildSensitiveData
+import org.prebid.server.functional.model.privacy.gpp.UsUtahV1SensitiveData
+import org.prebid.server.functional.model.privacy.gpp.UsVirginiaV1ChildSensitiveData
+import org.prebid.server.functional.model.privacy.gpp.UsVirginiaV1SensitiveData
+import org.prebid.server.functional.model.request.GppSectionId
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.amp.ConsentType
 import org.prebid.server.functional.model.request.auction.AllowActivities
@@ -33,7 +45,12 @@ import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.ConsentString
 import org.prebid.server.functional.util.privacy.TcfConsent
 import org.prebid.server.functional.util.privacy.gpp.GppConsent
+import org.prebid.server.functional.util.privacy.gpp.v1.UsCaV1Consent
+import org.prebid.server.functional.util.privacy.gpp.v1.UsCoV1Consent
+import org.prebid.server.functional.util.privacy.gpp.v1.UsCtV1Consent
 import org.prebid.server.functional.util.privacy.gpp.v1.UsNatV1Consent
+import org.prebid.server.functional.util.privacy.gpp.v1.UsUtV1Consent
+import org.prebid.server.functional.util.privacy.gpp.v1.UsVaV1Consent
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
@@ -43,6 +60,11 @@ import static org.prebid.server.functional.model.config.PurposeEnforcement.NO
 import static org.prebid.server.functional.model.mock.services.vendorlist.VendorListResponse.getDefaultVendorListResponse
 import static org.prebid.server.functional.model.pricefloors.Country.USA
 import static org.prebid.server.functional.model.pricefloors.Country.BULGARIA
+import static org.prebid.server.functional.model.request.GppSectionId.US_CA_V1
+import static org.prebid.server.functional.model.request.GppSectionId.US_CO_V1
+import static org.prebid.server.functional.model.request.GppSectionId.US_CT_V1
+import static org.prebid.server.functional.model.request.GppSectionId.US_UT_V1
+import static org.prebid.server.functional.model.request.GppSectionId.US_VA_V1
 import static org.prebid.server.functional.model.request.amp.ConsentType.GPP
 import static org.prebid.server.functional.model.request.amp.ConsentType.TCF_2
 import static org.prebid.server.functional.model.request.amp.ConsentType.US_PRIVACY
@@ -559,6 +581,79 @@ abstract class PrivacyBaseSpec extends BaseSpec {
          new EnforcementRequirement(purpose: isPurposeExcludedAndListRandom ? getRandomPurposeWithExclusion(purpose) : purpose,
                  enforcePurpose: NO,
                  enforceVendor: false)]
+    }
+
+    protected static String generateSensitiveGpp(GppSectionId sectionId, Map<String, GppDataActivity> fieldsMap) {
+        def sensitiveData
+        def consentBuilder
+
+        switch (sectionId) {
+            case US_CA_V1:
+                sensitiveData = new UsCaliforniaV1SensitiveData()
+                consentBuilder = new UsCaV1Consent.Builder()
+                break
+            case US_VA_V1:
+                sensitiveData = new UsVirginiaV1SensitiveData()
+                consentBuilder = new UsVaV1Consent.Builder()
+                break
+            case US_CO_V1:
+                sensitiveData = new UsColoradoV1SensitiveData()
+                consentBuilder = new UsCoV1Consent.Builder()
+                break
+            case US_UT_V1:
+                sensitiveData = new UsUtahV1SensitiveData()
+                consentBuilder = new UsUtV1Consent.Builder()
+                break
+            case US_CT_V1:
+                sensitiveData = new UsConnecticutV1SensitiveData()
+                consentBuilder = new UsCtV1Consent.Builder()
+                break
+            default:
+                throw new IllegalArgumentException("Unsupported Section ID for Sensitive Data: $sectionId")
+        }
+
+        fieldsMap.each { fieldName, value ->
+            sensitiveData.setProperty("$fieldName", value)
+        }
+
+        consentBuilder.setSensitiveDataProcessing(sensitiveData).build().toString()
+    }
+
+    protected static String generateChildSensitiveGpp(GppSectionId sectionId, List<GppDataActivity> fields) {
+        def childSensitiveData
+        def consentBuilder
+
+        switch (sectionId) {
+            case US_CA_V1:
+                childSensitiveData = UsCaliforniaV1ChildSensitiveData.getDefault(*fields)
+                consentBuilder = new UsCaV1Consent.Builder()
+                break
+
+            case US_VA_V1:
+                childSensitiveData = UsVirginiaV1ChildSensitiveData.getDefault(fields.first)
+                consentBuilder = new UsVaV1Consent.Builder()
+                break
+
+            case US_CO_V1:
+                childSensitiveData = UsColoradoV1ChildSensitiveData.getDefault(fields.first)
+                consentBuilder = new UsCoV1Consent.Builder()
+                break
+
+            case US_UT_V1:
+                childSensitiveData = UsUtahV1ChildSensitiveData.getDefault(fields.first)
+                consentBuilder = new UsUtV1Consent.Builder()
+                break
+
+            case US_CT_V1:
+                childSensitiveData = UsConnecticutV1ChildSensitiveData.getDefault(*fields)
+                consentBuilder = new UsCtV1Consent.Builder()
+                break
+
+            default:
+                throw new IllegalArgumentException("Unsupported Section ID for Child Data: $sectionId")
+        }
+
+        consentBuilder.setKnownChildSensitiveDataConsents(childSensitiveData).build().toString()
     }
 
     protected static List<EnforcementRequirement> getFullTcfCompanyEnforcementRequirementsRandomlyWithExcludePurpose(Purpose purpose) {
