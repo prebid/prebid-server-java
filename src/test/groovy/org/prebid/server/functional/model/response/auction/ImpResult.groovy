@@ -11,7 +11,7 @@ import org.prebid.server.functional.model.request.auction.FetchStatus
 @EqualsAndHashCode
 class ImpResult {
 
-    FetchStatus status
+    AnalyticTagStatus status
     ModuleValue values
     AppliedTo appliedTo
 }

@@ -37,13 +37,12 @@ class Dependencies {
     static final NetworkServiceContainer networkServiceContainer = new NetworkServiceContainer(MOCKSERVER_VERSION)
             .withNetwork(network)
 
-    static LocalStackContainer localStackContainer
+    static LocalStackContainer localStackContainer = new LocalStackContainer(DockerImageName.parse("localstack/localstack:s3-latest"))
+            .withNetwork(network)
+            .withServices(S3)
 
     static void start() {
         if (IS_LAUNCH_CONTAINERS) {
-            localStackContainer = new LocalStackContainer(DockerImageName.parse("localstack/localstack:s3-latest"))
-                    .withNetwork(network)
-                    .withServices(S3)
             Startables.deepStart([networkServiceContainer, mysqlContainer, localStackContainer]).join()
         }
     }
