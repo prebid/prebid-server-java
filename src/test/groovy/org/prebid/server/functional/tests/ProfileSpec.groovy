@@ -1519,7 +1519,7 @@ class ProfileSpec extends BaseSpec {
         ]
     }
 
-    def "PBS should process request when profiles are not configured for filesystem and request contain profileId"() {
+    def "PBS should process request with warning when profiles are not configured for filesystem and request contain profileId"() {
         given: "PBS with profiles.fail-on-unknown config"
         def config = FILESYSTEM_CONFIG + PROFILES_CONFIG + ['settings.filesystem.profiles-dir': null]
         pbsContainer = new PrebidServerContainer(config)

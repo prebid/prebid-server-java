@@ -13,6 +13,7 @@ import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.model.request.auction.UserExt
 import org.prebid.server.functional.model.request.get.GeneralGetRequest
 import org.prebid.server.functional.util.PBSUtils
+import org.prebid.server.functional.util.privacy.CcpaConsent
 import org.prebid.server.functional.util.privacy.TcfConsent
 import org.prebid.server.functional.util.privacy.gpp.UsNatV1Consent
 import spock.lang.PendingFeature
@@ -35,8 +36,6 @@ import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDO
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
 
 class GeneralGetInterfacePrivacySpec extends PrivacyBaseSpec {
-
-    String DEFAULT_COPPA = '1YYY'
 
     def "PBS should apply gpp consent from general get request when it's specified"() {
         given: "Default General get request"
@@ -62,16 +61,16 @@ class GeneralGetInterfacePrivacySpec extends PrivacyBaseSpec {
         assert !response.ext?.errors
         assert !response.ext?.warnings
 
-        and: "Bidder request should contain gpp info from param"
+        and: "Bidder request should contain user consent info from param"
         def bidderRequest = bidder.getBidderRequest(request.id)
         assert bidderRequest.user.consent == consentValue
 
         where:
         consentGeneralRequest <<
                 [
-                        { String gppConsent -> new GeneralGetRequest(tcfConsent: gppConsent) },
-                        { String gppConsent -> new GeneralGetRequest(tcfConsent: gppConsent, generalConsent: PBSUtils.randomString) },
-                        { String gppConsent -> new GeneralGetRequest(tcfConsent: gppConsent, generalConsentString: PBSUtils.randomString) },
+                        { String tcfConsent -> new GeneralGetRequest(tcfConsent: tcfConsent) },
+                        { String tcfConsent -> new GeneralGetRequest(tcfConsent: tcfConsent, generalConsent: PBSUtils.randomString) },
+                        { String tcfConsent -> new GeneralGetRequest(tcfConsent: tcfConsent, generalConsentString: PBSUtils.randomString) },
                 ]
     }
 
@@ -100,7 +99,7 @@ class GeneralGetInterfacePrivacySpec extends PrivacyBaseSpec {
         assert !response.ext?.errors
         assert !response.ext?.warnings
 
-        and: "Bidder request should contain gpp info from param"
+        and: "Bidder request should contain user consent info from param"
         def bidderRequest = bidder.getBidderRequest(request.id)
         assert bidderRequest.user.consent == consentValue
 
@@ -113,77 +112,9 @@ class GeneralGetInterfacePrivacySpec extends PrivacyBaseSpec {
                 ]
     }
 
-    def "PBS should recognise consent from general get request as TCFv2 when consent type is tcf2"() {
-        given: "Default General get request"
-        def consentValue = new TcfConsent.Builder().build().toString()
-        def accountId = PBSUtils.randomNumber.toString()
-        def generalGetRequest = (consentGeneralRequest(consentValue) as GeneralGetRequest).tap {
-            it.storedRequestId = PBSUtils.randomNumber
-            it.accountId = accountId
-            it.debug = DebugCondition.ENABLED
-            it.consentType = TCF_2
-            it.gdpr = 1
-        }
-
-        and: "Default stored request"
-        def request = BidRequest.getDefaultBidRequest().tap {
-            setAccountId(accountId)
-        }
-
-        and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.resolveStoredRequestId(), request)
-        storedRequestDao.save(storedRequest)
-
-        and: "Save account config with requireConsent into DB"
-        def purposes = [(P2): new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)]
-        def accountGdprConfig = new AccountGdprConfig(purposes: purposes)
-        def account = getAccountWithGdpr(request.accountId, accountGdprConfig)
-        accountDao.save(account)
-
-        when: "PBS processes general get request"
-        def response = privacyPbsService.sendGeneralGetRequest(generalGetRequest)
-
-        then: "Response should not contain errors and warnings"
-        assert !response.ext?.errors
-        assert !response.ext?.warnings
-
-        and: "Generic bidderRequest should contain tcfv2 info"
-        def bidderRequest = response.ext.debug.resolvedRequest
-        verifyAll (bidderRequest) {
-            user.consent == consentValue
-            regs.gdpr == 1
-        }
-
-        and: "Shouldn't contain other privacy info"
-        verifyAll (bidderRequest.regs) {
-            !it.coppa
-            !it.gpc
-            !it.usPrivacy
-            !it.gpp
-
-            it.ext == new RegsExt()
-        }
-
-        and: "PBS should cansel request"
-        assert !bidder.getBidderRequests(request.id)
-
-        then: "Metrics processed across activities should be updated"
-        def metrics = privacyPbsService.sendCollectedMetricsRequest()
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(request, FETCH_BIDS)] == 1
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(request, FETCH_BIDS)] == 1
-
-        where:
-        consentGeneralRequest <<
-                [
-                        { String gppConsent -> new GeneralGetRequest(tcfConsent: gppConsent) },
-                        { String gppConsent -> new GeneralGetRequest(tcfConsent: gppConsent, generalConsent: PBSUtils.randomString) },
-                        { String gppConsent -> new GeneralGetRequest(tcfConsent: gppConsent, generalConsentString: PBSUtils.randomString) }
-                ]
-    }
-
     def "PBS should recognise consent from general get request as us_privacy when consent type is us_privacy"() {
         given: "Default General get request"
-        def generalGetRequest = (consentGeneralRequest(DEFAULT_COPPA) as GeneralGetRequest).tap {
+        def generalGetRequest = (consentGeneralRequest(new CcpaConsent().getConsentString()) as GeneralGetRequest).tap {
             it.storedRequestId = PBSUtils.randomNumber
             it.consentType = US_PRIVACY
         }
@@ -202,10 +133,10 @@ class GeneralGetInterfacePrivacySpec extends PrivacyBaseSpec {
         assert !response.ext?.errors
         assert !response.ext?.warnings
 
-        and: "Generic bidderRequest should contain tcfv2 info"
+        and: "Generic bidderRequest should contain us privacy info"
         def bidderRequest = bidder.getBidderRequest(request.id)
         verifyAll (bidderRequest) {
-            regs.usPrivacy == DEFAULT_COPPA
+            regs.usPrivacy == new CcpaConsent().getConsentString()
             regs.ext == new RegsExt()
         }
 
@@ -248,19 +179,20 @@ class GeneralGetInterfacePrivacySpec extends PrivacyBaseSpec {
         assert !response.ext?.errors
         assert !response.ext?.warnings
 
-        and: "Generic bidderRequest should contain tcfv2 info"
+        and: "Generic bidderRequest should contain gpp info"
         def bidderRequest = bidder.getBidderRequest(request.id)
-        verifyAll (bidderRequest) {
-            regs.gpp == consentValue
-        }
+        assert bidderRequest.regs.gpp == consentValue
+
 
         and: "Shouldn't contain other privacy info"
         verifyAll (bidderRequest.regs) {
             !it.coppa
             !it.gpc
             !it.gppSid
-            it.ext == new RegsExt()
         }
+
+        and: "Shouldn't contain ext privacy info"
+        assert bidderRequest.regs.ext == new RegsExt()
 
         where:
         consentGeneralRequest <<
@@ -338,7 +270,7 @@ class GeneralGetInterfacePrivacySpec extends PrivacyBaseSpec {
         assert !response.ext?.errors
         assert !response.ext?.warnings
 
-        and: "Bidder request should contain gpp info from param"
+        and: "Bidder request should contain user consent info from param"
         def bidderRequest = bidder.getBidderRequest(request.id)
         assert bidderRequest.regs.gdpr == gdprValue
 
@@ -352,7 +284,7 @@ class GeneralGetInterfacePrivacySpec extends PrivacyBaseSpec {
 
     def "PBS should apply usp from general get request when it's specified"() {
         given: "Default General get request"
-        def usp = DEFAULT_COPPA
+        def usp = new CcpaConsent().getConsentString()
         def generalGetRequest = GeneralGetRequest.default.tap {
             it.usPrivacy = usp
         }
@@ -423,12 +355,12 @@ class GeneralGetInterfacePrivacySpec extends PrivacyBaseSpec {
         assert !response.ext?.errors
         assert !response.ext?.warnings
 
-        and: "Bidder request should contain addtlConsent from param"
+        and: "Bidder request should contain regs.gpp from param"
         def bidderRequest = bidder.getBidderRequest(request.id)
         assert bidderRequest.regs.gpp == gppConsent
     }
 
-    def "PBS should apply gpps from general get request when it's specified"() {
+    def "PBS should apply gpp section ids from general get request when it's specified"() {
         given: "Default General get request"
         def gppSids = [PBSUtils.getRandomEnum(GppSectionId.class, [TCF_EU_V2, HEADER_V1])].intValue
         def generalGetRequest = GeneralGetRequest.default.tap {
@@ -519,7 +451,7 @@ class GeneralGetInterfacePrivacySpec extends PrivacyBaseSpec {
         def regsForRequest = new Regs().tap {
             it.gdpr = 0 // for preventing bidder block
             it.gpp = SIMPLE_GPC_DISALLOW_LOGIC
-            it.usPrivacy = DEFAULT_COPPA
+            it.usPrivacy = new CcpaConsent().getConsentString()
             it.gppSid = [PBSUtils.randomNumber]
             it.ext = new RegsExt(gpc: PBSUtils.randomNumber)
             it.coppa = 0
@@ -585,8 +517,8 @@ class GeneralGetInterfacePrivacySpec extends PrivacyBaseSpec {
         and: "Generic bidderRequest should contain tcfv2 info"
         def bidderRequest = response.ext.debug.resolvedRequest
         verifyAll (bidderRequest) {
-            user.consent == consentValue
-            regs.gdpr == 1
+            it.user.consent == consentValue
+            it.regs.gdpr == 1
         }
 
         and: "Shouldn't contain other privacy info"
@@ -595,13 +527,15 @@ class GeneralGetInterfacePrivacySpec extends PrivacyBaseSpec {
             !it.gpc
             !it.usPrivacy
             !it.gpp
-            it.ext == new RegsExt()
         }
 
-        and: "PBS should cansel request"
+        and: "Shouldn't contain ext privacy info"
+        assert bidderRequest.regs.ext == new RegsExt()
+
+        and: "PBS should cancel request"
         assert !bidder.getBidderRequests(request.id)
 
-        then: "Metrics processed across activities should be updated"
+        and: "General Get Request with TCF_2 type correctly updates privacy enforcement metrics"
         def metrics = privacyPbsService.sendCollectedMetricsRequest()
         assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(request, FETCH_BIDS)] == 1
         assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(request, FETCH_BIDS)] == 1

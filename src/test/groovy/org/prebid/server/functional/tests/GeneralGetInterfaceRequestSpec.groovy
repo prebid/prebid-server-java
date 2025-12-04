@@ -40,7 +40,7 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         assert !response.ext?.errors
         assert !response.ext?.warnings
 
-        and: "Bidder request should be valid"
+        and: "PBS should perform bidder request"
         assert bidder.getBidderRequest(request.id)
 
         where:
@@ -69,11 +69,11 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         assert !response.ext?.errors
         assert !response.ext?.warnings
 
-        and: "Bidder request should be valid"
+        and: "PBS should perform bidder request"
         assert bidder.getBidderRequest(request.id)
     }
 
-    def "PBS should response with error when process bid request is not specified in general get request"() {
+    def "PBS should respond with error when process bid request is not specified in general get request"() {
         given: "General get request without stored request param"
         def generalGetRequest = new GeneralGetRequest()
 
@@ -168,7 +168,7 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
     }
 
     @PendingFeature
-    def "PBS shouldn't apply tmax from general get request when it's specified lower then 100"() {
+    def "PBS shouldn't apply tmax from general get request when it's specified lower than 100"() {
         given: "Default General get request"
         def generalGetRequest = GeneralGetRequest.default.tap {
             it.timeoutMax = PBSUtils.getRandomNumber(0, 100)
@@ -210,7 +210,7 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         when: "PBS processes general get request"
         defaultPbsService.sendGeneralGetRequest(generalGetRequest)
 
-        then: "PBs should throw error due to invalid request"
+        then: "PBS should throw error due to invalid request"
         def exception = thrown(PrebidServerException)
         assert exception.statusCode == 500
         assert exception.responseBody == 'Critical error while running the auction: Start time and timeout must be positive'
@@ -289,7 +289,7 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         assert !response.ext?.errors
         assert !response.ext?.warnings
 
-        and: "Bidder request should contain outputformat from param"
+        and: "Bidder request should contain outputModule from param"
         assert bidder.getBidderRequest(request.id).ext.prebid.outputModule == outputModule
     }
 
@@ -319,7 +319,7 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         then: "Response should contain same stored auction response as requested"
         assert response.seatbid == [storedAuctionResponse]
 
-        and: "PBs should emit warning"
+        and: "PBS should emit warning"
         assert response.ext?.warnings[PREBID]*.code == [999]
         assert response.ext?.warnings[PREBID]*.message ==
                 ["no auction. response defined by storedauctionresponse" as String]
@@ -352,7 +352,7 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         assert !response.ext?.errors
         assert !response.ext?.warnings
 
-        and: "Bidder request should contain gpc from param"
+        and: "Bidder request should contain dnt from param"
         def bidderRequest = bidder.getBidderRequest(request.id)
         assert bidderRequest.device.dnt == dnt
     }
@@ -378,7 +378,7 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         assert !response.ext?.errors
         assert !response.ext?.warnings
 
-        and: "Bidder request should contain gpc from param"
+        and: "Bidder request should contain lmt from param"
         def bidderRequest = bidder.getBidderRequest(request.id)
         assert bidderRequest.device.lmt == lmt
     }
@@ -572,7 +572,7 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
             it.language == generalGetRequest.contentLanguage
             it.contentrating == generalGetRequest.contentRating
             it.cat == [generalGetRequest.contentCategory.toString()]
-            it.cattax == generalGetRequest.contentCategoryTaxonomy // TODO discuss this issue
+            it.cattax == generalGetRequest.contentCategoryTaxonomy
             it.title == generalGetRequest.contentTitle
             it.url == generalGetRequest.contentUrl
             it.livestream == generalGetRequest.contentLivestream
@@ -603,7 +603,7 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         assert !response.ext?.errors
         assert !response.ext?.warnings
 
-        and: "Bidder request should contain contentGenre from param"
+        and: "Bidder request should contain contentSeries from param"
         assert getRequestContent(bidder.getBidderRequest(request.id)).series == contentSeries
 
         where:
@@ -707,12 +707,12 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         assert !response.ext?.errors
         assert !response.ext?.warnings
 
-        and: "Bidder request should contain device ip from param"
+        and: "Bidder request should contain site page from header"
         def bidderRequest = bidder.getBidderRequest(request.id)
         assert bidderRequest.site.page == page
     }
 
-    def "PBS should apply site page info from #header header of get request when parameter is not specified"() {
+    def "PBS should apply user agent info from #header header of get request when parameter is not specified"() {
         given: "Default General get request"
         def generalGetRequest = GeneralGetRequest.getDefault()
 
@@ -731,7 +731,7 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         assert !response.ext?.errors
         assert !response.ext?.warnings
 
-        and: "Bidder request should contain device ip from param"
+        and: "Bidder request should contain device ua from header"
         def bidderRequest = bidder.getBidderRequest(request.id)
         assert bidderRequest.device.ua == ua
 
@@ -861,7 +861,7 @@ class GeneralGetInterfaceRequestSpec extends BaseSpec {
         assert !response.ext?.errors
         assert !response.ext?.warnings
 
-        and: "Bidder request should contain device ip from headers"
+        and: "Bidder request should contain content data from headers"
         assert getRequestContent(bidder.getBidderRequest(request.id)) == content
 
         where:

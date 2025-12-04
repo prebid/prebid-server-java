@@ -15,6 +15,7 @@ import org.prebid.server.functional.util.PBSUtils
 import spock.lang.PendingFeature
 
 import java.nio.charset.StandardCharsets
+import java.time.Instant
 
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 
@@ -59,9 +60,9 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
     @PendingFeature
     def "PBS should remove invalid mimes from general get request when it's specified"() {
         given: "Default General get request"
-        def validMemis = PBSUtils.randomString
+        def validMimes = PBSUtils.randomString
         def generalGetRequest = GeneralGetRequest.default.tap {
-            it.mimes = (invalidMimes + validMemis)
+            it.mimes = (invalidMimes + validMimes)
         }
 
         and: "Default stored request"
@@ -88,7 +89,7 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
         and: "Bidder request should contain mimes from param"
         def bidderRequest = bidder.getBidderRequest(request.id)
         assert bidderRequest.imp.size() == 1
-        assert bidderRequest.imp.first.singleMediaTypeData.mimes == [validMemis]
+        assert bidderRequest.imp.first.singleMediaTypeData.mimes == [validMimes]
 
         where:
         invalidMimes << [[''], [PBSUtils.randomNumber.toString()]]
@@ -159,7 +160,7 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
         when: "PBS processes general get request"
         defaultPbsService.sendGeneralGetRequest(generalGetRequest)
 
-        then: "PBs should throw error due to invalid request"
+        then: "PBS should throw error due to invalid request"
         def exception = thrown(PrebidServerException)
         assert exception.statusCode == 400
         assert exception.responseBody == 'Invalid request format: request.imp[0].banner has no sizes. Define "w" and "h", or include "format" elements'
@@ -190,7 +191,7 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
         when: "PBS processes general get request"
         defaultPbsService.sendGeneralGetRequest(generalGetRequest)
 
-        then: "PBs should throw error due to invalid request"
+        then: "PBS should throw error due to invalid request"
         def exception = thrown(PrebidServerException)
         assert exception.statusCode == 400
         assert exception.responseBody == 'Invalid request format: request.imp[0].banner must define a valid "h" and "w" properties'
@@ -397,7 +398,7 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
         assert !response.ext?.errors
         assert !response.ext?.warnings
 
-        and: "Bidder request should contain width and height from param"
+        and: "Bidder request should contain width and height from original stored request"
         def bidderRequest = bidder.getBidderRequest(request.id)
         assert bidderRequest.imp.size() == 1
         assert bidderRequest.imp.banner.format.width == request.imp.banner.format.width
@@ -428,7 +429,7 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
         when: "PBS processes general get request"
         defaultPbsService.sendGeneralGetRequest(generalGetRequest)
 
-        then: "PBs should throw error due to invalid request"
+        then: "PBS should throw error due to invalid request"
         def exception = thrown(PrebidServerException)
         assert exception.statusCode == 400
         assert exception.responseBody == 'Invalid request format: request.imp[0].banner.format[0] should define *either* ' +
@@ -443,7 +444,7 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
         ]
     }
 
-    def "PBS should apply slot from height general get request when it's specified"() {
+    def "PBS should apply slot from general get request when it's specified"() {
         given: "Default General get request"
         def slotParam = PBSUtils.randomString
         def generalGetRequest = GeneralGetRequest.default.tap {
@@ -498,7 +499,7 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
         assert !response.ext?.errors
         assert !response.ext?.warnings
 
-        and: "Bidder request should contain mimes from param"
+        and: "Bidder request should contain duration from param"
         def bidderRequest = bidder.getBidderRequest(request.id)
         assert bidderRequest.imp.singleMediaTypeData.minduration == [minDurationParam]
         assert bidderRequest.imp.singleMediaTypeData.maxduration == [maxDurationParam]
@@ -1300,7 +1301,7 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
         assert !response.ext?.errors
         assert !response.ext?.warnings
 
-        and: "Bidder request should contain playbackmethod from param"
+        and: "Bidder request should contain playbackend from param"
         def bidderRequest = bidder.getBidderRequest(request.id)
         assert bidderRequest.imp.first.video.playbackend == playbackEndParam
     }
@@ -1426,7 +1427,7 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
 
         and: "Bidder request should contain expdir from param"
         def bidderRequest = bidder.getBidderRequest(request.id)
-        assert bidderRequest.imp.first.banner.expdir == expandableDirectionsParam
+        assert bidderRequest.imp.first.banner.expandableDirections == expandableDirectionsParam
     }
 
     def "PBS should apply topFrame from general get request when it's specified"() {
@@ -1472,7 +1473,7 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
             it.banner.battr = [PBSUtils.randomNumber]
             it.banner.pos = PBSUtils.randomNumber
             it.banner.btype = [PBSUtils.randomNumber]
-            it.banner.expdir = [PBSUtils.randomNumber]
+            it.banner.expandableDirections = [PBSUtils.randomNumber]
             it.banner.topframe = PBSUtils.randomNumber
         }
         def request = BidRequest.getDefaultBidRequest().tap {
@@ -1504,7 +1505,7 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
             it.battr == bannerImp.banner.battr
             it.pos == bannerImp.banner.pos
             it.btype == bannerImp.banner.btype
-            it.expdir == bannerImp.banner.expdir
+            it.expandableDirections == bannerImp.banner.expandableDirections
             it.topframe == bannerImp.banner.topframe
         }
     }
@@ -1700,19 +1701,22 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
         def storedRequest = StoredRequest.getStoredRequest(generalGetRequest.storedRequestId, bidRequest)
         storedRequestDao.save(storedRequest)
 
-        when: "PBS processes amp request"
+        when: "PBS processes general get request"
         defaultPbsService.sendGeneralGetRequest(generalGetRequest)
 
-        then: "Amp response should contain value from targeting in imp.ext.data"
+        then: "General get response should contain value from targeting in imp.ext.data"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp[0].ext.data.any == targeting.any
     }
 
     def "PBS should throw exception when general get request linked to stored request with several imps"() {
-        given: "Stored request with several imps"
+        given: "Start time"
+        def startTime = Instant.now()
+
+        and: "Stored request with several imps"
         def request = BidRequest.getDefaultBidRequest().tap {
             addImp(Imp.defaultImpression)
-            setAccountId(accountId)
+            setAccountId(generalGetRequest.resolveStoredRequestId())
         }
 
         and: "Save storedRequest into DB"
@@ -1720,13 +1724,18 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes general get request"
-        defaultPbsService.sendGeneralGetRequest(generalGetRequest)
+        def response = defaultPbsService.sendGeneralGetRequest(generalGetRequest)
 
-        then: "PBs should throw error due to invalid request"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == 400
-        assert exception.responseBody == "data for tag_id '${generalGetRequest.resolveStoredRequestId()}' includes '${request.imp.size()}'" +
-                " imp elements. Only one is allowed"
+        then: "Response should not contain errors and warnings"
+        assert !response.ext?.errors
+        assert !response.ext?.warnings
+
+        and: "Bidder request should contain only first imp data"
+        assert bidder.getBidderRequest(request.id).imp.id == [request.imp.first.id]
+
+        and: "PBS log should contain message"
+        def logs = defaultPbsService.getLogsByTime(startTime)
+        assert getLogsByText(logs, '').size() == 1 //TODO add logs
 
         where:
         generalGetRequest << [
