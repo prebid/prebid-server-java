@@ -1,7 +1,5 @@
 package org.prebid.server.functional.model.privacy.gpp
 
-import org.prebid.server.functional.util.PBSUtils
-
 class UsNationalV1ChildSensitiveData {
 
     GppDataActivity childUnder13
@@ -13,13 +11,6 @@ class UsNationalV1ChildSensitiveData {
         new UsNationalV1ChildSensitiveData().tap {
             it.childUnder13 = childUnder13
             it.childFrom13to16 = childFrom13to16
-        }
-    }
-
-    static UsNationalV1ChildSensitiveData getRandom(List<GppDataActivity> excludedActivities) {
-        new UsNationalV1ChildSensitiveData().tap {
-            it.childUnder13 = PBSUtils.getRandomEnum(GppDataActivity, excludedActivities)
-            it.childFrom13to16 = PBSUtils.getRandomEnum(GppDataActivity, excludedActivities)
         }
     }
 
