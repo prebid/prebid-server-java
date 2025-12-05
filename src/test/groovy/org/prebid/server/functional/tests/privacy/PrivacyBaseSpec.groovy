@@ -620,40 +620,34 @@ abstract class PrivacyBaseSpec extends BaseSpec {
     }
 
     protected static String generateChildSensitiveGpp(GppSectionId sectionId, List<GppDataActivity> fields) {
-        Object childSensitiveData
-        Object consentBuilder
-
         switch (sectionId) {
             case US_CA_V1:
-                childSensitiveData = UsCaliforniaV1ChildSensitiveData.getDefault(*fields)
-                consentBuilder = new UsCaV1Consent.Builder()
-                break
+                return new UsCaV1Consent.Builder()
+                        .setKnownChildSensitiveDataConsents(UsCaliforniaV1ChildSensitiveData.getDefault(*fields))
+                        .build().toString()
 
             case US_VA_V1:
-                childSensitiveData = UsVirginiaV1ChildSensitiveData.getDefault(fields.first)
-                consentBuilder = new UsVaV1Consent.Builder()
-                break
+                return new UsVaV1Consent.Builder()
+                        .setKnownChildSensitiveDataConsents(UsVirginiaV1ChildSensitiveData.getDefault(fields.first))
+                        .build().toString()
 
             case US_CO_V1:
-                childSensitiveData = UsColoradoV1ChildSensitiveData.getDefault(fields.first)
-                consentBuilder = new UsCoV1Consent.Builder()
-                break
+                return new UsCoV1Consent.Builder()
+                        .setKnownChildSensitiveDataConsents(UsColoradoV1ChildSensitiveData.getDefault(fields.first))
+                        .build().toString()
 
             case US_UT_V1:
-                childSensitiveData = UsUtahV1ChildSensitiveData.getDefault(fields.first)
-                consentBuilder = new UsUtV1Consent.Builder()
-                break
+                return new UsUtV1Consent.Builder()
+                        .setKnownChildSensitiveDataConsents(UsUtahV1ChildSensitiveData.getDefault(fields.first))
+                        .build().toString()
 
             case US_CT_V1:
-                childSensitiveData = UsConnecticutV1ChildSensitiveData.getDefault(*fields)
-                consentBuilder = new UsCtV1Consent.Builder()
-                break
-
+                return new UsCtV1Consent.Builder()
+                        .setKnownChildSensitiveDataConsents(UsConnecticutV1ChildSensitiveData.getDefault(*fields))
+                        .build().toString()
             default:
                 throw new IllegalArgumentException("Unsupported Section ID for Child Data: $sectionId")
         }
-
-        consentBuilder.setKnownChildSensitiveDataConsents(childSensitiveData).build().toString()
     }
 
     protected static List<EnforcementRequirement> getFullTcfCompanyEnforcementRequirementsRandomlyWithExcludePurpose(Purpose purpose) {

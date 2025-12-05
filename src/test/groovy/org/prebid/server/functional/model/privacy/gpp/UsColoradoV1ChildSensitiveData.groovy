@@ -1,7 +1,5 @@
 package org.prebid.server.functional.model.privacy.gpp
 
-import org.prebid.server.functional.util.PBSUtils
-
 class UsColoradoV1ChildSensitiveData {
 
     GppDataActivity childSensitive
