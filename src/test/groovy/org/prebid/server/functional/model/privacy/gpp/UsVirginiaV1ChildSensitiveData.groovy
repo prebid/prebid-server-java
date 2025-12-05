@@ -13,12 +13,6 @@ class UsVirginiaV1ChildSensitiveData {
         }
     }
 
-    static UsVirginiaV1ChildSensitiveData getRandom(List<GppDataActivity> excludedActivities = []) {
-        new UsVirginiaV1ChildSensitiveData().tap {
-            it.childSensitive = PBSUtils.getRandomEnum(GppDataActivity, excludedActivities)
-        }
-    }
-
     Integer getContentList() {
         childSensitive.value
     }

@@ -13,12 +13,8 @@ import org.prebid.server.functional.model.privacy.gpp.GppDataActivity
 @JsonDeserialize(using = EqualityValueRuleDeserialize.class)
 class EqualityValueRule extends ValueRestrictedRule {
 
-    EqualityValueRule(UsNationalPrivacySection privacySection, DataActivity value) {
-        super(privacySection, value)
-    }
-
     EqualityValueRule(UsNationalPrivacySection privacySection, GppDataActivity value) {
-        super(privacySection, DataActivity.fromGppDataActivity(value))
+        super(privacySection, value)
     }
 
     static class EqualityValueRuleDeserialize extends JsonDeserializer<EqualityValueRule> {
@@ -27,7 +23,7 @@ class EqualityValueRule extends ValueRestrictedRule {
         EqualityValueRule deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException, JacksonException {
             JsonNode node = jsonParser.getCodec().readTree(jsonParser)
             def privacySection = UsNationalPrivacySection.valueFromText(node?.get(0)?.get(JSON_LOGIC_VALUE_FIELD)?.textValue())
-            def value = DataActivity.fromInt(node?.get(1)?.asInt())
+            def value = GppDataActivity.fromInt(node?.get(1)?.asInt())
             return new EqualityValueRule(privacySection, value)
         }
     }

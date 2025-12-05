@@ -13,12 +13,6 @@ class UsUtahV1ChildSensitiveData {
         }
     }
 
-    static UsUtahV1ChildSensitiveData getRandom(List<GppDataActivity> excludedActivities) {
-        new UsUtahV1ChildSensitiveData().tap {
-            it.childSensitive = PBSUtils.getRandomEnum(GppDataActivity, excludedActivities)
-        }
-    }
-
     Integer getContentList() {
         childSensitive.value
     }

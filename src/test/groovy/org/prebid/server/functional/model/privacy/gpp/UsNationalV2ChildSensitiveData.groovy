@@ -17,14 +17,6 @@ class UsNationalV2ChildSensitiveData extends UsNationalV1ChildSensitiveData {
         }
     }
 
-    static UsNationalV2ChildSensitiveData getRandom(List<GppDataActivity> excludedActivities) {
-        new UsNationalV2ChildSensitiveData().tap {
-            it.childUnder13 = PBSUtils.getRandomEnum(GppDataActivity, excludedActivities)
-            it.childFrom13to16 = PBSUtils.getRandomEnum(GppDataActivity, excludedActivities)
-            it.childFrom16to17 = PBSUtils.getRandomEnum(GppDataActivity, excludedActivities)
-        }
-    }
-
     List<Integer> getContentList() {
         [childFrom13to16, childUnder13, childFrom16to17]*.value.collect { it ?: 0 }
     }

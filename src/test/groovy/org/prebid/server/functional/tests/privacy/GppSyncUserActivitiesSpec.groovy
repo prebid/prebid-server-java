@@ -7,7 +7,6 @@ import org.prebid.server.functional.model.config.AccountGppConfig
 import org.prebid.server.functional.model.config.AccountPrivacyConfig
 import org.prebid.server.functional.model.config.AccountSetting
 import org.prebid.server.functional.model.config.ActivityConfig
-import org.prebid.server.functional.model.config.DataActivity
 import org.prebid.server.functional.model.config.EqualityValueRule
 import org.prebid.server.functional.model.config.GppModuleConfig
 import org.prebid.server.functional.model.config.InequalityValueRule
@@ -585,7 +584,8 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Logs should contain error"
         def logs = activityPbsService.getLogsByTime(startTime)
-        assert getLogsByText(logs, "UsNat privacy module creation failed: Unable to decode UsNatCoreSegment " + "'${INVALID_GPP_SEGMENT}'. Activity: SYNC_USER. Section: ${US_NAT_V1.value}. Gpp: $INVALID_GPP_STRING").size() == 1
+        assert getLogsByText(logs, "UsNat privacy module creation failed: Unable to decode UsNatCoreSegment " +
+                "'${INVALID_GPP_SEGMENT}'. Activity: SYNC_USER. Section: ${US_NAT_V1.value}. Gpp: $INVALID_GPP_STRING").size() == 1
     }
 
     def "PBS cookie sync call when privacy module contain invalid GPP string should respond with required bidder URL and emit warning in response"() {
@@ -696,8 +696,10 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         assert response.getBidderUserSync(GENERIC).userSync.url
 
         where:
-        accountGppConfig << [new AccountGppConfig(code: IAB_US_GENERAL, enabled: false),
-                             new AccountGppConfig(code: IAB_US_GENERAL, config: new GppModuleConfig(skipSids: [US_NAT_V1]), enabled: true)]
+        accountGppConfig << [
+                new AccountGppConfig(code: IAB_US_GENERAL, enabled: false),
+                new AccountGppConfig(code: IAB_US_GENERAL, config: new GppModuleConfig(skipSids: [US_NAT_V1]), enabled: true)
+        ]
     }
 
     def "PBS cookie sync call when regs.gpp in request is allowing should include proper responded with bidders URLs"() {
@@ -849,10 +851,10 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         gpcValue | accountLogic
-        false    | LogicalRestrictedRule.generateSingleRestrictedRule(OR, [new EqualityValueRule(GPC, DataActivity.NOTICE_PROVIDED)])
-        true     | LogicalRestrictedRule.generateSingleRestrictedRule(OR, [new InequalityValueRule(GPC, DataActivity.NOTICE_PROVIDED)])
-        true     | LogicalRestrictedRule.generateSingleRestrictedRule(AND, [new EqualityValueRule(GPC, DataActivity.NOTICE_PROVIDED),
-                                                                            new EqualityValueRule(SHARING_NOTICE, DataActivity.NOTICE_PROVIDED)])
+        false    | LogicalRestrictedRule.generateSingleRestrictedRule(OR, [new EqualityValueRule(GPC, NO_CONSENT)])
+        true     | LogicalRestrictedRule.generateSingleRestrictedRule(OR, [new InequalityValueRule(GPC, NO_CONSENT)])
+        true     | LogicalRestrictedRule.generateSingleRestrictedRule(AND, [new EqualityValueRule(GPC, NO_CONSENT),
+                                                                            new EqualityValueRule(SHARING_NOTICE, NO_CONSENT)])
     }
 
     def "PBS cookie sync when privacy regulation match custom requirement should exclude bidders URLs"() {
@@ -890,13 +892,13 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         gppConsent                                                            | valueRules
-        new UsNatV1Consent.Builder().setPersonalDataConsents(CONSENT).build() | [new EqualityValueRule(PERSONAL_DATA_CONSENTS, DataActivity.NOTICE_NOT_PROVIDED)]
-        new UsNatV1Consent.Builder().setGpc(true).build()                     | [new EqualityValueRule(GPC, DataActivity.NOTICE_PROVIDED)]
-        new UsNatV1Consent.Builder().setGpc(false).build()                    | [new InequalityValueRule(GPC, DataActivity.NOTICE_PROVIDED)]
-        new UsNatV1Consent.Builder().setGpc(true).build()                     | [new EqualityValueRule(GPC, DataActivity.NOTICE_PROVIDED),
-                                                                                 new EqualityValueRule(SHARING_NOTICE, DataActivity.NOTICE_NOT_PROVIDED)]
-        new UsNatV1Consent.Builder().setPersonalDataConsents(CONSENT).build() | [new EqualityValueRule(GPC, DataActivity.NOTICE_PROVIDED),
-                                                                                 new EqualityValueRule(PERSONAL_DATA_CONSENTS, DataActivity.NOTICE_NOT_PROVIDED)]
+        new UsNatV1Consent.Builder().setPersonalDataConsents(CONSENT).build() | [new EqualityValueRule(PERSONAL_DATA_CONSENTS, CONSENT)]
+        new UsNatV1Consent.Builder().setGpc(true).build()                     | [new EqualityValueRule(GPC, NO_CONSENT)]
+        new UsNatV1Consent.Builder().setGpc(false).build()                    | [new InequalityValueRule(GPC, NO_CONSENT)]
+        new UsNatV1Consent.Builder().setGpc(true).build()                     | [new EqualityValueRule(GPC, NO_CONSENT),
+                                                                                 new EqualityValueRule(SHARING_NOTICE, CONSENT)]
+        new UsNatV1Consent.Builder().setPersonalDataConsents(CONSENT).build() | [new EqualityValueRule(GPC, NO_CONSENT),
+                                                                                 new EqualityValueRule(PERSONAL_DATA_CONSENTS, CONSENT)]
     }
 
     def "PBS cookie sync call when custom privacy regulation empty and normalize is disabled should respond with an error and update metric"() {
@@ -1603,7 +1605,8 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Logs should contain error"
         def logs = activityPbsService.getLogsByTime(startTime)
-        assert getLogsByText(logs, "UsNat privacy module creation failed: Unable to decode UsNatCoreSegment " + "'${INVALID_GPP_SEGMENT}'. Activity: SYNC_USER. Section: ${US_NAT_V1.value}. Gpp: $INVALID_GPP_STRING").size() == 1
+        assert getLogsByText(logs, "UsNat privacy module creation failed: Unable to decode UsNatCoreSegment " +
+                "'${INVALID_GPP_SEGMENT}'. Activity: SYNC_USER. Section: ${US_NAT_V1.value}. Gpp: $INVALID_GPP_STRING").size() == 1
     }
 
     def "PBS setuid request when privacy module contain invalid GPP string should respond with valid bidders UIDs cookies"() {
@@ -1722,9 +1725,9 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         assert response.responseBody
 
         where:
-        accountGppConfig << [new AccountGppConfig(code: IAB_US_GENERAL, enabled: false),
-                             new AccountGppConfig(code: IAB_US_GENERAL, config: new GppModuleConfig(skipSids: [US_NAT_V1]), enabled: true),
-
+        accountGppConfig << [
+                new AccountGppConfig(code: IAB_US_GENERAL, enabled: false),
+                new AccountGppConfig(code: IAB_US_GENERAL, config: new GppModuleConfig(skipSids: [US_NAT_V1]), enabled: true)
         ]
     }
 
@@ -1887,10 +1890,10 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         gpcValue | accountLogic
-        false    | LogicalRestrictedRule.generateSingleRestrictedRule(OR, [new EqualityValueRule(GPC, DataActivity.NOTICE_PROVIDED)])
-        true     | LogicalRestrictedRule.generateSingleRestrictedRule(OR, [new InequalityValueRule(GPC, DataActivity.NOTICE_PROVIDED)])
-        true     | LogicalRestrictedRule.generateSingleRestrictedRule(AND, [new EqualityValueRule(GPC, DataActivity.NOTICE_PROVIDED),
-                                                                            new EqualityValueRule(SHARING_NOTICE, DataActivity.NOTICE_PROVIDED)])
+        false    | LogicalRestrictedRule.generateSingleRestrictedRule(OR, [new EqualityValueRule(GPC, NO_CONSENT)])
+        true     | LogicalRestrictedRule.generateSingleRestrictedRule(OR, [new InequalityValueRule(GPC, NO_CONSENT)])
+        true     | LogicalRestrictedRule.generateSingleRestrictedRule(AND, [new EqualityValueRule(GPC, NO_CONSENT),
+                                                                            new EqualityValueRule(SHARING_NOTICE, NO_CONSENT)])
     }
 
     def "PBS setuid call when privacy regulation match custom requirement should reject bidders with status code invalidStatusCode"() {
@@ -1933,13 +1936,13 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         gppConsent                                                            | valueRules
-        new UsNatV1Consent.Builder().setPersonalDataConsents(CONSENT).build() | [new EqualityValueRule(PERSONAL_DATA_CONSENTS, DataActivity.NOTICE_NOT_PROVIDED)]
-        new UsNatV1Consent.Builder().setGpc(true).build()                     | [new EqualityValueRule(GPC, DataActivity.NOTICE_PROVIDED)]
-        new UsNatV1Consent.Builder().setGpc(false).build()                    | [new InequalityValueRule(GPC, DataActivity.NOTICE_PROVIDED)]
-        new UsNatV1Consent.Builder().setGpc(true).build()                     | [new EqualityValueRule(GPC, DataActivity.NOTICE_PROVIDED),
-                                                                                 new EqualityValueRule(SHARING_NOTICE, DataActivity.NOTICE_NOT_PROVIDED)]
-        new UsNatV1Consent.Builder().setPersonalDataConsents(CONSENT).build() | [new EqualityValueRule(GPC, DataActivity.NOTICE_PROVIDED),
-                                                                                 new EqualityValueRule(PERSONAL_DATA_CONSENTS, DataActivity.NOTICE_NOT_PROVIDED)]
+        new UsNatV1Consent.Builder().setPersonalDataConsents(CONSENT).build() | [new EqualityValueRule(PERSONAL_DATA_CONSENTS, CONSENT)]
+        new UsNatV1Consent.Builder().setGpc(true).build()                     | [new EqualityValueRule(GPC, NO_CONSENT)]
+        new UsNatV1Consent.Builder().setGpc(false).build()                    | [new InequalityValueRule(GPC, NO_CONSENT)]
+        new UsNatV1Consent.Builder().setGpc(true).build()                     | [new EqualityValueRule(GPC, NO_CONSENT),
+                                                                                 new EqualityValueRule(SHARING_NOTICE, CONSENT)]
+        new UsNatV1Consent.Builder().setPersonalDataConsents(CONSENT).build() | [new EqualityValueRule(GPC, NO_CONSENT),
+                                                                                 new EqualityValueRule(PERSONAL_DATA_CONSENTS, CONSENT)]
     }
 
     def "PBS setuid call when custom privacy regulation empty and normalize is disabled should respond with required UIDs cookies"() {

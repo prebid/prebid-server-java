@@ -584,8 +584,8 @@ abstract class PrivacyBaseSpec extends BaseSpec {
     }
 
     protected static String generateSensitiveGpp(GppSectionId sectionId, Map<String, GppDataActivity> fieldsMap) {
-        def sensitiveData
-        def consentBuilder
+        Object sensitiveData
+        Object consentBuilder
 
         switch (sectionId) {
             case US_CA_V1:
@@ -620,8 +620,8 @@ abstract class PrivacyBaseSpec extends BaseSpec {
     }
 
     protected static String generateChildSensitiveGpp(GppSectionId sectionId, List<GppDataActivity> fields) {
-        def childSensitiveData
-        def consentBuilder
+        Object childSensitiveData
+        Object consentBuilder
 
         switch (sectionId) {
             case US_CA_V1:

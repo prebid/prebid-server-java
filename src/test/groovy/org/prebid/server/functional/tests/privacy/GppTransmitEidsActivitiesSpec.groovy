@@ -2,7 +2,6 @@ package org.prebid.server.functional.tests.privacy
 
 import org.prebid.server.functional.model.config.AccountGppConfig
 import org.prebid.server.functional.model.config.ActivityConfig
-import org.prebid.server.functional.model.config.DataActivity
 import org.prebid.server.functional.model.config.EqualityValueRule
 import org.prebid.server.functional.model.config.GppModuleConfig
 import org.prebid.server.functional.model.config.InequalityValueRule
@@ -742,15 +741,18 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
                              new UsNatV1Consent.Builder()
                                      .setPersonalDataConsents(CONSENT)
                                      .build(),
-                             new UsNatV1Consent.Builder().setSensitiveDataProcessing(new UsNationalV1SensitiveData(racialEthnicOrigin: NO_CONSENT,
+                             new UsNatV1Consent.Builder().setSensitiveDataProcessing(new UsNationalV1SensitiveData(
+                                     racialEthnicOrigin: NO_CONSENT,
                                      religiousBeliefs: NO_CONSENT,
                                      healthInfo: NO_CONSENT,
                                      orientation: NO_CONSENT,
                                      citizenshipStatus: NO_CONSENT,
-                                     unionMembership: NO_CONSENT,)).build(),
+                                     unionMembership: NO_CONSENT,))
+                                     .build(),
                              new UsNatV1Consent.Builder()
                                      .setSensitiveDataLimitUseNotice(Notice.NOT_APPLICABLE)
-                                     .setSensitiveDataProcessing(new UsNationalV1SensitiveData(racialEthnicOrigin: CONSENT,
+                                     .setSensitiveDataProcessing(new UsNationalV1SensitiveData(
+                                             racialEthnicOrigin: CONSENT,
                                              religiousBeliefs: CONSENT,
                                              healthInfo: CONSENT,
                                              orientation: CONSENT,
@@ -760,10 +762,12 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
                                              idNumbers: CONSENT,
                                              accountInfo: CONSENT,
                                              unionMembership: CONSENT,
-                                             communicationContents: CONSENT)).build(),
+                                             communicationContents: CONSENT))
+                                     .build(),
                              new UsNatV1Consent.Builder()
                                      .setSensitiveDataProcessingOptOutNotice(Notice.NOT_APPLICABLE)
-                                     .setSensitiveDataProcessing(new UsNationalV1SensitiveData(racialEthnicOrigin: CONSENT,
+                                     .setSensitiveDataProcessing(new UsNationalV1SensitiveData(
+                                             racialEthnicOrigin: CONSENT,
                                              religiousBeliefs: CONSENT,
                                              healthInfo: CONSENT,
                                              orientation: CONSENT,
@@ -773,17 +777,24 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
                                              idNumbers: CONSENT,
                                              accountInfo: CONSENT,
                                              unionMembership: CONSENT,
-                                             communicationContents: CONSENT)).build(),
-                             new UsNatV1Consent.Builder().setSensitiveDataProcessing(new UsNationalV1SensitiveData(geneticId: NO_CONSENT,
-                                     biometricId: NO_CONSENT,
-                                     idNumbers: NO_CONSENT,
-                                     accountInfo: NO_CONSENT,
-                                     communicationContents: NO_CONSENT)).build(),
-                             new UsNatV1Consent.Builder().setSensitiveDataProcessing(new UsNationalV1SensitiveData(geneticId: CONSENT,
-                                     biometricId: CONSENT,
-                                     idNumbers: CONSENT,
-                                     accountInfo: CONSENT,
-                                     communicationContents: CONSENT)).build()]
+                                             communicationContents: CONSENT))
+                                     .build(),
+                             new UsNatV1Consent.Builder()
+                                     .setSensitiveDataProcessing(new UsNationalV1SensitiveData(
+                                             geneticId: NO_CONSENT,
+                                             biometricId: NO_CONSENT,
+                                             idNumbers: NO_CONSENT,
+                                             accountInfo: NO_CONSENT,
+                                             communicationContents: NO_CONSENT))
+                                     .build(),
+                             new UsNatV1Consent.Builder()
+                                     .setSensitiveDataProcessing(new UsNationalV1SensitiveData(
+                                             geneticId: CONSENT,
+                                             biometricId: CONSENT,
+                                             idNumbers: CONSENT,
+                                             accountInfo: CONSENT,
+                                             communicationContents: CONSENT))
+                                     .build()]
     }
 
     def "PBS auction call should remove EIDS fields in request when privacy module contain opt out of disallow GPP UsNat v2 logic"() {
@@ -998,8 +1009,10 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         assert genericBidderRequest.user.eids[0].source == bidRequest.user.eids[0].source
 
         where:
-        accountGppConfig << [new AccountGppConfig(code: IAB_US_GENERAL, enabled: false),
-                             new AccountGppConfig(code: IAB_US_GENERAL, config: new GppModuleConfig(skipSids: [US_NAT_V1]), enabled: true)]
+        accountGppConfig << [
+                new AccountGppConfig(code: IAB_US_GENERAL, enabled: false),
+                new AccountGppConfig(code: IAB_US_GENERAL, config: new GppModuleConfig(skipSids: [US_NAT_V1]), enabled: true)
+        ]
     }
 
     def "PBS auction call when regs.gpp in request is allowing should leave EIDS fields in request"() {
@@ -1153,10 +1166,10 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         gpcValue | accountLogic
-        false    | LogicalRestrictedRule.generateSingleRestrictedRule(OR, [new EqualityValueRule(GPC, DataActivity.NOTICE_PROVIDED)])
-        true     | LogicalRestrictedRule.generateSingleRestrictedRule(OR, [new InequalityValueRule(GPC, DataActivity.NOTICE_PROVIDED)])
-        true     | LogicalRestrictedRule.generateSingleRestrictedRule(AND, [new EqualityValueRule(GPC, DataActivity.NOTICE_PROVIDED),
-                                                                            new EqualityValueRule(SHARING_NOTICE, DataActivity.NOTICE_PROVIDED)])
+        false    | LogicalRestrictedRule.generateSingleRestrictedRule(OR, [new EqualityValueRule(GPC, NO_CONSENT)])
+        true     | LogicalRestrictedRule.generateSingleRestrictedRule(OR, [new InequalityValueRule(GPC, NO_CONSENT)])
+        true     | LogicalRestrictedRule.generateSingleRestrictedRule(AND, [new EqualityValueRule(GPC, NO_CONSENT),
+                                                                            new EqualityValueRule(SHARING_NOTICE, NO_CONSENT)])
     }
 
     def "PBS auction call when privacy regulation match custom requirement should remove EIDS fields in request"() {
@@ -1197,13 +1210,13 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         gppConsent                                                            | valueRules
-        new UsNatV1Consent.Builder().setPersonalDataConsents(CONSENT).build() | [new EqualityValueRule(PERSONAL_DATA_CONSENTS, DataActivity.NOTICE_NOT_PROVIDED)]
-        new UsNatV1Consent.Builder().setGpc(true).build()                     | [new EqualityValueRule(GPC, DataActivity.NOTICE_PROVIDED)]
-        new UsNatV1Consent.Builder().setGpc(false).build()                    | [new InequalityValueRule(GPC, DataActivity.NOTICE_PROVIDED)]
-        new UsNatV1Consent.Builder().setGpc(true).build()                     | [new EqualityValueRule(GPC, DataActivity.NOTICE_PROVIDED),
-                                                                                 new EqualityValueRule(SHARING_NOTICE, DataActivity.NOTICE_NOT_PROVIDED)]
-        new UsNatV1Consent.Builder().setPersonalDataConsents(CONSENT).build() | [new EqualityValueRule(GPC, DataActivity.NOTICE_PROVIDED),
-                                                                                 new EqualityValueRule(PERSONAL_DATA_CONSENTS, DataActivity.NOTICE_NOT_PROVIDED)]
+        new UsNatV1Consent.Builder().setPersonalDataConsents(CONSENT).build() | [new EqualityValueRule(PERSONAL_DATA_CONSENTS, CONSENT)]
+        new UsNatV1Consent.Builder().setGpc(true).build()                     | [new EqualityValueRule(GPC, NO_CONSENT)]
+        new UsNatV1Consent.Builder().setGpc(false).build()                    | [new InequalityValueRule(GPC, NO_CONSENT)]
+        new UsNatV1Consent.Builder().setGpc(true).build()                     | [new EqualityValueRule(GPC, NO_CONSENT),
+                                                                                 new EqualityValueRule(SHARING_NOTICE, CONSENT)]
+        new UsNatV1Consent.Builder().setPersonalDataConsents(CONSENT).build() | [new EqualityValueRule(GPC, NO_CONSENT),
+                                                                                 new EqualityValueRule(PERSONAL_DATA_CONSENTS, CONSENT)]
     }
 
     def "PBS auction call when custom privacy regulation empty and normalize is disabled should leave EIDS fields in request and emit error log"() {
@@ -1885,15 +1898,19 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
                              new UsNatV1Consent.Builder()
                                      .setPersonalDataConsents(CONSENT)
                                      .build(),
-                             new UsNatV1Consent.Builder().setSensitiveDataProcessing(new UsNationalV1SensitiveData(racialEthnicOrigin: NO_CONSENT,
-                                     religiousBeliefs: NO_CONSENT,
-                                     healthInfo: NO_CONSENT,
-                                     orientation: NO_CONSENT,
-                                     citizenshipStatus: NO_CONSENT,
-                                     unionMembership: NO_CONSENT,)).build(),
+                             new UsNatV1Consent.Builder()
+                                     .setSensitiveDataProcessing(new UsNationalV1SensitiveData(
+                                             racialEthnicOrigin: NO_CONSENT,
+                                             religiousBeliefs: NO_CONSENT,
+                                             healthInfo: NO_CONSENT,
+                                             orientation: NO_CONSENT,
+                                             citizenshipStatus: NO_CONSENT,
+                                             unionMembership: NO_CONSENT,))
+                                     .build(),
                              new UsNatV1Consent.Builder()
                                      .setSensitiveDataLimitUseNotice(Notice.NOT_APPLICABLE)
-                                     .setSensitiveDataProcessing(new UsNationalV1SensitiveData(racialEthnicOrigin: CONSENT,
+                                     .setSensitiveDataProcessing(new UsNationalV1SensitiveData(
+                                             racialEthnicOrigin: CONSENT,
                                              religiousBeliefs: CONSENT,
                                              healthInfo: CONSENT,
                                              orientation: CONSENT,
@@ -1903,10 +1920,12 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
                                              idNumbers: CONSENT,
                                              accountInfo: CONSENT,
                                              unionMembership: CONSENT,
-                                             communicationContents: CONSENT)).build(),
+                                             communicationContents: CONSENT))
+                                     .build(),
                              new UsNatV1Consent.Builder()
                                      .setSensitiveDataProcessingOptOutNotice(Notice.NOT_APPLICABLE)
-                                     .setSensitiveDataProcessing(new UsNationalV1SensitiveData(racialEthnicOrigin: CONSENT,
+                                     .setSensitiveDataProcessing(new UsNationalV1SensitiveData(
+                                             racialEthnicOrigin: CONSENT,
                                              religiousBeliefs: CONSENT,
                                              healthInfo: CONSENT,
                                              orientation: CONSENT,
@@ -1916,17 +1935,24 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
                                              idNumbers: CONSENT,
                                              accountInfo: CONSENT,
                                              unionMembership: CONSENT,
-                                             communicationContents: CONSENT)).build(),
-                             new UsNatV1Consent.Builder().setSensitiveDataProcessing(new UsNationalV1SensitiveData(geneticId: NO_CONSENT,
-                                     biometricId: NO_CONSENT,
-                                     idNumbers: NO_CONSENT,
-                                     accountInfo: NO_CONSENT,
-                                     communicationContents: NO_CONSENT)).build(),
-                             new UsNatV1Consent.Builder().setSensitiveDataProcessing(new UsNationalV1SensitiveData(geneticId: CONSENT,
-                                     biometricId: CONSENT,
-                                     idNumbers: CONSENT,
-                                     accountInfo: CONSENT,
-                                     communicationContents: CONSENT)).build()]
+                                             communicationContents: CONSENT))
+                                     .build(),
+                             new UsNatV1Consent.Builder()
+                                     .setSensitiveDataProcessing(new UsNationalV1SensitiveData(
+                                             geneticId: NO_CONSENT,
+                                             biometricId: NO_CONSENT,
+                                             idNumbers: NO_CONSENT,
+                                             accountInfo: NO_CONSENT,
+                                             communicationContents: NO_CONSENT))
+                                     .build(),
+                             new UsNatV1Consent.Builder()
+                                     .setSensitiveDataProcessing(new UsNationalV1SensitiveData(
+                                             geneticId: CONSENT,
+                                             biometricId: CONSENT,
+                                             idNumbers: CONSENT,
+                                             accountInfo: CONSENT,
+                                             communicationContents: CONSENT))
+                                     .build()]
     }
 
     def "PBS amp call should remove EIDS fields in request when privacy module contain opt out of disallow GPP UsNat v2 logic"() {
@@ -2184,8 +2210,10 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         assert genericBidderRequest.user.eids[0].source == ampStoredRequest.user.eids[0].source
 
         where:
-        accountGppConfig << [new AccountGppConfig(code: IAB_US_GENERAL, enabled: false),
-                             new AccountGppConfig(code: IAB_US_GENERAL, config: new GppModuleConfig(skipSids: [US_NAT_V1]), enabled: true)]
+        accountGppConfig << [
+                new AccountGppConfig(code: IAB_US_GENERAL, enabled: false),
+                new AccountGppConfig(code: IAB_US_GENERAL, config: new GppModuleConfig(skipSids: [US_NAT_V1]), enabled: true)
+        ]
     }
 
     def "PBS amp call when regs.gpp empty in request should leave EIDS fields in request"() {
@@ -2423,10 +2451,10 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         gpcValue | accountLogic
-        false    | LogicalRestrictedRule.generateSingleRestrictedRule(OR, [new EqualityValueRule(GPC, DataActivity.NOTICE_PROVIDED)])
-        true     | LogicalRestrictedRule.generateSingleRestrictedRule(OR, [new InequalityValueRule(GPC, DataActivity.NOTICE_PROVIDED)])
-        true     | LogicalRestrictedRule.generateSingleRestrictedRule(AND, [new EqualityValueRule(GPC, DataActivity.NOTICE_PROVIDED),
-                                                                            new EqualityValueRule(SHARING_NOTICE, DataActivity.NOTICE_PROVIDED)])
+        false    | LogicalRestrictedRule.generateSingleRestrictedRule(OR, [new EqualityValueRule(GPC, NO_CONSENT)])
+        true     | LogicalRestrictedRule.generateSingleRestrictedRule(OR, [new InequalityValueRule(GPC, NO_CONSENT)])
+        true     | LogicalRestrictedRule.generateSingleRestrictedRule(AND, [new EqualityValueRule(GPC, NO_CONSENT),
+                                                                            new EqualityValueRule(SHARING_NOTICE, NO_CONSENT)])
     }
 
     def "PBS amp call when privacy regulation match custom requirement should remove EIDS fields from request"() {
@@ -2476,13 +2504,13 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         gppConsent                                                            | valueRules
-        new UsNatV1Consent.Builder().setPersonalDataConsents(CONSENT).build() | [new EqualityValueRule(PERSONAL_DATA_CONSENTS, DataActivity.NOTICE_NOT_PROVIDED)]
-        new UsNatV1Consent.Builder().setGpc(true).build()                     | [new EqualityValueRule(GPC, DataActivity.NOTICE_PROVIDED)]
-        new UsNatV1Consent.Builder().setGpc(false).build()                    | [new InequalityValueRule(GPC, DataActivity.NOTICE_PROVIDED)]
-        new UsNatV1Consent.Builder().setGpc(true).build()                     | [new EqualityValueRule(GPC, DataActivity.NOTICE_PROVIDED),
-                                                                                 new EqualityValueRule(SHARING_NOTICE, DataActivity.NOTICE_NOT_PROVIDED)]
-        new UsNatV1Consent.Builder().setPersonalDataConsents(CONSENT).build() | [new EqualityValueRule(GPC, DataActivity.NOTICE_PROVIDED),
-                                                                                 new EqualityValueRule(PERSONAL_DATA_CONSENTS, DataActivity.NOTICE_NOT_PROVIDED)]
+        new UsNatV1Consent.Builder().setPersonalDataConsents(CONSENT).build() | [new EqualityValueRule(PERSONAL_DATA_CONSENTS, CONSENT)]
+        new UsNatV1Consent.Builder().setGpc(true).build()                     | [new EqualityValueRule(GPC, NO_CONSENT)]
+        new UsNatV1Consent.Builder().setGpc(false).build()                    | [new InequalityValueRule(GPC, NO_CONSENT)]
+        new UsNatV1Consent.Builder().setGpc(true).build()                     | [new EqualityValueRule(GPC, NO_CONSENT),
+                                                                                 new EqualityValueRule(SHARING_NOTICE, CONSENT)]
+        new UsNatV1Consent.Builder().setPersonalDataConsents(CONSENT).build() | [new EqualityValueRule(GPC, NO_CONSENT),
+                                                                                 new EqualityValueRule(PERSONAL_DATA_CONSENTS, CONSENT)]
     }
 
     def "PBS amp call when custom privacy regulation empty and normalize is disabled should leave EIDS fields in request and emit error log"() {

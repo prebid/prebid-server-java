@@ -3,7 +3,6 @@ package org.prebid.server.functional.tests.privacy
 import org.prebid.server.functional.model.config.AccountGdprConfig
 import org.prebid.server.functional.model.config.AccountGppConfig
 import org.prebid.server.functional.model.config.ActivityConfig
-import org.prebid.server.functional.model.config.DataActivity
 import org.prebid.server.functional.model.config.EqualityValueRule
 import org.prebid.server.functional.model.config.GppModuleConfig
 import org.prebid.server.functional.model.config.InequalityValueRule
@@ -1715,10 +1714,10 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         gpcValue | accountLogic
-        false    | LogicalRestrictedRule.generateSingleRestrictedRule(OR, [new EqualityValueRule(GPC, DataActivity.NOTICE_PROVIDED)])
-        true     | LogicalRestrictedRule.generateSingleRestrictedRule(OR, [new InequalityValueRule(GPC, DataActivity.NOTICE_PROVIDED)])
-        true     | LogicalRestrictedRule.generateSingleRestrictedRule(AND, [new EqualityValueRule(GPC, DataActivity.NOTICE_PROVIDED),
-                                                                            new EqualityValueRule(SHARING_NOTICE, DataActivity.NOTICE_PROVIDED)])
+        false    | LogicalRestrictedRule.generateSingleRestrictedRule(OR, [new EqualityValueRule(GPC, NO_CONSENT)])
+        true     | LogicalRestrictedRule.generateSingleRestrictedRule(OR, [new InequalityValueRule(GPC, NO_CONSENT)])
+        true     | LogicalRestrictedRule.generateSingleRestrictedRule(AND, [new EqualityValueRule(GPC, NO_CONSENT),
+                                                                            new EqualityValueRule(SHARING_NOTICE, NO_CONSENT)])
     }
 
     def "PBS auction call when privacy regulation match custom requirement should remove UFPD fields in request"() {
@@ -1774,13 +1773,13 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         gppConsent                                                            | valueRules
-        new UsNatV1Consent.Builder().setPersonalDataConsents(CONSENT).build() | [new EqualityValueRule(PERSONAL_DATA_CONSENTS, DataActivity.NOTICE_NOT_PROVIDED)]
-        new UsNatV1Consent.Builder().setGpc(true).build()                     | [new EqualityValueRule(GPC, DataActivity.NOTICE_PROVIDED)]
-        new UsNatV1Consent.Builder().setGpc(false).build()                    | [new InequalityValueRule(GPC, DataActivity.NOTICE_PROVIDED)]
-        new UsNatV1Consent.Builder().setGpc(true).build()                     | [new EqualityValueRule(GPC, DataActivity.NOTICE_PROVIDED),
-                                                                                 new EqualityValueRule(SHARING_NOTICE, DataActivity.NOTICE_NOT_PROVIDED)]
-        new UsNatV1Consent.Builder().setPersonalDataConsents(CONSENT).build() | [new EqualityValueRule(GPC, DataActivity.NOTICE_PROVIDED),
-                                                                                 new EqualityValueRule(PERSONAL_DATA_CONSENTS, DataActivity.NOTICE_NOT_PROVIDED)]
+        new UsNatV1Consent.Builder().setPersonalDataConsents(CONSENT).build() | [new EqualityValueRule(PERSONAL_DATA_CONSENTS, CONSENT)]
+        new UsNatV1Consent.Builder().setGpc(true).build()                     | [new EqualityValueRule(GPC, NO_CONSENT)]
+        new UsNatV1Consent.Builder().setGpc(false).build()                    | [new InequalityValueRule(GPC, NO_CONSENT)]
+        new UsNatV1Consent.Builder().setGpc(true).build()                     | [new EqualityValueRule(GPC, NO_CONSENT),
+                                                                                 new EqualityValueRule(SHARING_NOTICE, CONSENT)]
+        new UsNatV1Consent.Builder().setPersonalDataConsents(CONSENT).build() | [new EqualityValueRule(GPC, NO_CONSENT),
+                                                                                 new EqualityValueRule(PERSONAL_DATA_CONSENTS, CONSENT)]
     }
 
     def "PBS auction call when custom privacy regulation empty and normalize is disabled should leave UFPD fields in request and emit error log"() {
@@ -2743,14 +2742,15 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
                 new UsNatV1Consent.Builder()
                         .setPersonalDataConsents(CONSENT)
                         .build(),
-                new UsNatV1Consent.Builder().setSensitiveDataProcessing(new UsNationalV1SensitiveData(
-                        racialEthnicOrigin: NO_CONSENT,
-                        religiousBeliefs: NO_CONSENT,
-                        healthInfo: NO_CONSENT,
-                        orientation: NO_CONSENT,
-                        citizenshipStatus: NO_CONSENT,
-                        unionMembership: NO_CONSENT,
-                )).build(),
+                new UsNatV1Consent.Builder()
+                        .setSensitiveDataProcessing(new UsNationalV1SensitiveData(
+                                racialEthnicOrigin: NO_CONSENT,
+                                religiousBeliefs: NO_CONSENT,
+                                healthInfo: NO_CONSENT,
+                                orientation: NO_CONSENT,
+                                citizenshipStatus: NO_CONSENT,
+                                unionMembership: NO_CONSENT))
+                        .build(),
                 new UsNatV1Consent.Builder()
                         .setSensitiveDataLimitUseNotice(Notice.NOT_APPLICABLE)
                         .setSensitiveDataProcessing(new UsNationalV1SensitiveData(
@@ -2764,8 +2764,8 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
                                 idNumbers: CONSENT,
                                 accountInfo: CONSENT,
                                 unionMembership: CONSENT,
-                                communicationContents: CONSENT
-                        )).build(),
+                                communicationContents: CONSENT))
+                        .build(),
                 new UsNatV1Consent.Builder()
                         .setSensitiveDataProcessingOptOutNotice(Notice.NOT_APPLICABLE)
                         .setSensitiveDataProcessing(new UsNationalV1SensitiveData(
@@ -2779,22 +2779,22 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
                                 idNumbers: CONSENT,
                                 accountInfo: CONSENT,
                                 unionMembership: CONSENT,
-                                communicationContents: CONSENT
-                        )).build(),
+                                communicationContents: CONSENT))
+                        .build(),
                 new UsNatV1Consent.Builder().setSensitiveDataProcessing(new UsNationalV1SensitiveData(
                         geneticId: NO_CONSENT,
                         biometricId: NO_CONSENT,
                         idNumbers: NO_CONSENT,
                         accountInfo: NO_CONSENT,
-                        communicationContents: NO_CONSENT
-                )).build(),
+                        communicationContents: NO_CONSENT))
+                        .build(),
                 new UsNatV1Consent.Builder().setSensitiveDataProcessing(new UsNationalV1SensitiveData(
                         geneticId: CONSENT,
                         biometricId: CONSENT,
                         idNumbers: CONSENT,
                         accountInfo: CONSENT,
-                        communicationContents: CONSENT
-                )).build()
+                        communicationContents: CONSENT))
+                        .build()
         ]
     }
 
@@ -3459,10 +3459,10 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         gpcValue | accountLogic
-        false    | LogicalRestrictedRule.generateSingleRestrictedRule(OR, [new EqualityValueRule(GPC, DataActivity.NOTICE_PROVIDED)])
-        true     | LogicalRestrictedRule.generateSingleRestrictedRule(OR, [new InequalityValueRule(GPC, DataActivity.NOTICE_PROVIDED)])
-        true     | LogicalRestrictedRule.generateSingleRestrictedRule(AND, [new EqualityValueRule(GPC, DataActivity.NOTICE_PROVIDED),
-                                                                            new EqualityValueRule(SHARING_NOTICE, DataActivity.NOTICE_PROVIDED)])
+        false    | LogicalRestrictedRule.generateSingleRestrictedRule(OR, [new EqualityValueRule(GPC, NO_CONSENT)])
+        true     | LogicalRestrictedRule.generateSingleRestrictedRule(OR, [new InequalityValueRule(GPC, NO_CONSENT)])
+        true     | LogicalRestrictedRule.generateSingleRestrictedRule(AND, [new EqualityValueRule(GPC, NO_CONSENT),
+                                                                            new EqualityValueRule(SHARING_NOTICE, NO_CONSENT)])
     }
 
     def "PBS amp call when privacy regulation match custom requirement should remove UFPD fields from request"() {
@@ -3527,13 +3527,13 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         gppConsent                                                            | valueRules
-        new UsNatV1Consent.Builder().setPersonalDataConsents(CONSENT).build() | [new EqualityValueRule(PERSONAL_DATA_CONSENTS, DataActivity.NOTICE_NOT_PROVIDED)]
-        new UsNatV1Consent.Builder().setGpc(true).build()                     | [new EqualityValueRule(GPC, DataActivity.NOTICE_PROVIDED)]
-        new UsNatV1Consent.Builder().setGpc(false).build()                    | [new InequalityValueRule(GPC, DataActivity.NOTICE_PROVIDED)]
-        new UsNatV1Consent.Builder().setGpc(true).build()                     | [new EqualityValueRule(GPC, DataActivity.NOTICE_PROVIDED),
-                                                                                 new EqualityValueRule(SHARING_NOTICE, DataActivity.NOTICE_NOT_PROVIDED)]
-        new UsNatV1Consent.Builder().setPersonalDataConsents(CONSENT).build() | [new EqualityValueRule(GPC, DataActivity.NOTICE_PROVIDED),
-                                                                                 new EqualityValueRule(PERSONAL_DATA_CONSENTS, DataActivity.NOTICE_NOT_PROVIDED)]
+        new UsNatV1Consent.Builder().setPersonalDataConsents(CONSENT).build() | [new EqualityValueRule(PERSONAL_DATA_CONSENTS, CONSENT)]
+        new UsNatV1Consent.Builder().setGpc(true).build()                     | [new EqualityValueRule(GPC, NO_CONSENT)]
+        new UsNatV1Consent.Builder().setGpc(false).build()                    | [new InequalityValueRule(GPC, NO_CONSENT)]
+        new UsNatV1Consent.Builder().setGpc(true).build()                     | [new EqualityValueRule(GPC, NO_CONSENT),
+                                                                                 new EqualityValueRule(SHARING_NOTICE, CONSENT)]
+        new UsNatV1Consent.Builder().setPersonalDataConsents(CONSENT).build() | [new EqualityValueRule(GPC, NO_CONSENT),
+                                                                                 new EqualityValueRule(PERSONAL_DATA_CONSENTS, CONSENT)]
     }
 
     def "PBS amp call when custom privacy regulation empty and normalize is disabled should leave UFPD fields in request and emit error log"() {

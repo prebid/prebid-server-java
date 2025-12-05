@@ -6,6 +6,7 @@ import org.prebid.server.functional.model.request.GppSectionId
 
 import static org.prebid.server.functional.model.config.GppModuleConfig.ConfigCase.CAMEL_CASE
 import static org.prebid.server.functional.model.config.GppModuleConfig.ConfigCase.KEBAB_CASE
+import static org.prebid.server.functional.model.config.GppModuleConfig.ConfigCase.SNAKE_CASE
 
 @ToString(includeNames = true, ignoreNulls = true)
 class GppModuleConfig {
@@ -36,18 +37,20 @@ class GppModuleConfig {
                                                   List<GppSectionId> sids = [GppSectionId.US_NAT_V1],
                                                   Boolean normalizeFlags = true,
                                                   ConfigCase configCase = CAMEL_CASE) {
-
-        new GppModuleConfig().tap {
-            it.sids = sids
-            if (configCase == CAMEL_CASE) {
-                it.activityConfig = [activityConfig]
-                it.normalizeFlags = normalizeFlags
-            } else if (configCase = KEBAB_CASE) {
-                it.activityConfigKebabCase = [activityConfig]
-                it.normalizeFlagsKebabCase = normalizeFlags
-            } else {
-                it.activityConfigSnakeCase = [activityConfig]
-                it.normalizeFlagsSnakeCase = normalizeFlags
+        new GppModuleConfig(sids: sids).tap {
+            switch (configCase) {
+                case CAMEL_CASE -> {
+                    it.activityConfig = [activityConfig]
+                    it.normalizeFlags = normalizeFlags
+                }
+                case KEBAB_CASE -> {
+                    it.activityConfigKebabCase = [activityConfig]
+                    it.normalizeFlagsKebabCase = normalizeFlags
+                }
+                case SNAKE_CASE -> {
+                    it.activityConfigSnakeCase = [activityConfig]
+                    it.normalizeFlagsSnakeCase = normalizeFlags
+                }
             }
         }
     }

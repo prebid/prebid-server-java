@@ -12,12 +12,6 @@ class UsColoradoV1ChildSensitiveData {
         }
     }
 
-    static UsColoradoV1ChildSensitiveData getRandom(List<GppDataActivity> excludedActivities) {
-        new UsColoradoV1ChildSensitiveData().tap {
-            it.childSensitive = PBSUtils.getRandomEnum(GppDataActivity, excludedActivities)
-        }
-    }
-
     Integer getContentList() {
         this.childSensitive.value
     }

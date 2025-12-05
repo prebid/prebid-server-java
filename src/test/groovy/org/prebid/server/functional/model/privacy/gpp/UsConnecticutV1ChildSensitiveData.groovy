@@ -19,14 +19,6 @@ class UsConnecticutV1ChildSensitiveData {
         }
     }
 
-    static UsConnecticutV1ChildSensitiveData getRandom(List<GppDataActivity> excludedActivities = []) {
-        new UsConnecticutV1ChildSensitiveData().tap {
-            it.childUnder13 = PBSUtils.getRandomEnum(GppDataActivity, excludedActivities)
-            it.childFrom13to16 = PBSUtils.getRandomEnum(GppDataActivity, excludedActivities)
-            it.childFrom13to16Targeted = PBSUtils.getRandomEnum(GppDataActivity, excludedActivities)
-        }
-    }
-
     List<Integer> getContentList() {
         [childUnder13, childFrom13to16, childFrom13to16Targeted]*.value.collect { it ?: 0 }
     }

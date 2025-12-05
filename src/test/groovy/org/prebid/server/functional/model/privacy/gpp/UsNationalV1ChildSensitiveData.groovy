@@ -16,13 +16,6 @@ class UsNationalV1ChildSensitiveData {
         }
     }
 
-    static UsNationalV1ChildSensitiveData getRandom(List<GppDataActivity> excludedActivities) {
-        new UsNationalV1ChildSensitiveData().tap {
-            it.childUnder13 = PBSUtils.getRandomEnum(GppDataActivity, excludedActivities)
-            it.childFrom13to16 = PBSUtils.getRandomEnum(GppDataActivity, excludedActivities)
-        }
-    }
-
     List<Integer> getContentList() {
         [childFrom13to16, childUnder13]*.value.collect { it ?: 0 }
     }
