@@ -4,9 +4,9 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import groovy.transform.ToString
 import org.prebid.server.functional.model.request.GppSectionId
 
-import static org.prebid.server.functional.model.config.GppModuleConfig.ConfigCase.CAMEL_CASE
-import static org.prebid.server.functional.model.config.GppModuleConfig.ConfigCase.KEBAB_CASE
-import static org.prebid.server.functional.model.config.GppModuleConfig.ConfigCase.SNAKE_CASE
+import static org.prebid.server.functional.model.config.ConfigCase.CAMEL_CASE
+import static org.prebid.server.functional.model.config.ConfigCase.KEBAB_CASE
+import static org.prebid.server.functional.model.config.ConfigCase.SNAKE_CASE
 
 @ToString(includeNames = true, ignoreNulls = true)
 class GppModuleConfig {
@@ -53,9 +53,5 @@ class GppModuleConfig {
                 }
             }
         }
-    }
-
-    enum ConfigCase {
-        CAMEL_CASE, KEBAB_CASE, SNAKE_CASE
     }
 }

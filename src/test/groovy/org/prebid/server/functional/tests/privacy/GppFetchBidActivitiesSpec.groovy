@@ -2,6 +2,7 @@ package org.prebid.server.functional.tests.privacy
 
 import org.prebid.server.functional.model.config.AccountGppConfig
 import org.prebid.server.functional.model.config.ActivityConfig
+import org.prebid.server.functional.model.config.ConfigCase
 import org.prebid.server.functional.model.config.EqualityValueRule
 import org.prebid.server.functional.model.config.GppModuleConfig
 import org.prebid.server.functional.model.config.InequalityValueRule
@@ -33,9 +34,9 @@ import org.prebid.server.functional.util.privacy.gpp.v2.UsNatV2Consent
 import java.time.Instant
 
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED
-import static org.prebid.server.functional.model.config.GppModuleConfig.ConfigCase.CAMEL_CASE
-import static org.prebid.server.functional.model.config.GppModuleConfig.ConfigCase.KEBAB_CASE
-import static org.prebid.server.functional.model.config.GppModuleConfig.ConfigCase.SNAKE_CASE
+import static org.prebid.server.functional.model.config.ConfigCase.CAMEL_CASE
+import static org.prebid.server.functional.model.config.ConfigCase.KEBAB_CASE
+import static org.prebid.server.functional.model.config.ConfigCase.SNAKE_CASE
 import static org.prebid.server.functional.model.config.LogicalRestrictedRule.LogicalOperation.AND
 import static org.prebid.server.functional.model.config.LogicalRestrictedRule.LogicalOperation.OR
 import static org.prebid.server.functional.model.config.UsNationalPrivacySection.CHILD_CONSENTS_BELOW_13
