@@ -23,6 +23,10 @@ class PBSUtils implements ObjectMapperWrapper {
         new Random().nextInt(upperBound - min) + min
     }
 
+    static int getRandomBinary() {
+        return new Random().nextInt(2)
+    }
+
     static int getRandomNumberWithExclusion(int excludedValue, int min = 0, int max = MAX_VALUE) {
         def value = getRandomNumber(min, max)
         value == excludedValue ? getRandomNumberWithExclusion(excludedValue, min, max) : value
@@ -174,5 +178,9 @@ class PBSUtils implements ObjectMapperWrapper {
         } catch (IllegalArgumentException e) {
             return false
         }
+    }
+
+    static Boolean isApproximatelyEqual(Integer actual, Integer expected, Integer tolerance = 100) {
+        Math.abs(actual - expected) <= tolerance
     }
 }

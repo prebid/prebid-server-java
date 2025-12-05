@@ -1107,7 +1107,12 @@ class TargetingSpec extends BaseSpec {
 
     def "PBS amp should apply data from query to ext.prebid.amp.data"() {
         given: "Default AmpRequest"
-        def ampRequest = AmpRequest.defaultAmpRequest
+        def unknownValue = PBSUtils.randomString
+        def secondUnknownValue = PBSUtils.randomNumber
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.unknownField = unknownValue
+            it.secondUnknownField = secondUnknownValue
+        }
 
         and: "Bid request"
         def ampStoredRequest = BidRequest.defaultBidRequest
@@ -1117,10 +1122,7 @@ class TargetingSpec extends BaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        def unknownValue = PBSUtils.randomString
-        def secondUnknownValue = PBSUtils.randomNumber
-        pbsWithDefaultTargetingLength.sendAmpRequestWithAdditionalQueries(ampRequest, ["unknown_field"       : unknownValue,
-                                                                                       "second_unknown_field": secondUnknownValue])
+        pbsWithDefaultTargetingLength.sendAmpRequest(ampRequest)
 
         then: "Amp should contain data from query request"
         def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
