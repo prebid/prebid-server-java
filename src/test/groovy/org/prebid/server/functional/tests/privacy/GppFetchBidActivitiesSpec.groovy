@@ -2,7 +2,6 @@ package org.prebid.server.functional.tests.privacy
 
 import org.prebid.server.functional.model.config.AccountGppConfig
 import org.prebid.server.functional.model.config.ActivityConfig
-import org.prebid.server.functional.model.config.ConfigCase
 import org.prebid.server.functional.model.config.EqualityValueRule
 import org.prebid.server.functional.model.config.GppModuleConfig
 import org.prebid.server.functional.model.config.InequalityValueRule
