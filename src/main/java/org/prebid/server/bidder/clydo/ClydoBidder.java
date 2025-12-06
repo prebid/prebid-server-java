@@ -116,13 +116,10 @@ public class ClydoBidder implements Bidder<BidRequest> {
 
     private static String getRegionInfo(ExtImpClydo extImp) {
         final String region = extImp.getRegion();
-        if (region == null) {
-            return DEFAULT_REGION;
-        }
 
         return switch (region) {
             case "us", "usw", "eu", "apac" -> region;
-            default -> DEFAULT_REGION;
+            case null, default -> DEFAULT_REGION;
         };
     }
 
