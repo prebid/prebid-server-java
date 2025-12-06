@@ -2,10 +2,13 @@ package org.prebid.server.bidder.clydo;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.netty.handler.codec.http.HttpHeaderValues;
+import io.vertx.core.MultiMap;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -20,6 +23,7 @@ import org.prebid.server.proto.openrtb.ext.request.clydo.ExtImpClydo;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.ObjectUtil;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -38,6 +42,7 @@ public class ClydoBidder implements Bidder<BidRequest> {
     private static final String REGION_MACRO = "{{Region}}";
     private static final String PARTNER_ID_MACRO = "{{PartnerId}}";
     private static final String DEFAULT_REGION = "us";
+    private static final String X_OPENRTB_VERSION = "2.5";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -77,10 +82,36 @@ public class ClydoBidder implements Bidder<BidRequest> {
         }
     }
 
+    private HttpRequest<BidRequest> makeHttpRequest(BidRequest request, Imp imp, ExtImpClydo extImpClydo) {
+        final BidRequest outgoingRequest = request.toBuilder().imp(List.of(imp)).build();
+
+        return BidderUtil.defaultRequest(
+                outgoingRequest,
+                constructHeaders(request),
+                resolveUrl(endpointUrl, extImpClydo), mapper);
+    }
+
+    private static MultiMap constructHeaders(BidRequest bidRequest) {
+        final Device device = bidRequest.getDevice();
+        final MultiMap headers = HttpUtil.headers();
+
+        headers.set(HttpUtil.X_OPENRTB_VERSION_HEADER, X_OPENRTB_VERSION);
+        headers.set(HttpUtil.ACCEPT_HEADER, HttpHeaderValues.APPLICATION_JSON);
+        headers.set(HttpUtil.CONTENT_TYPE_HEADER, HttpUtil.APPLICATION_JSON_CONTENT_TYPE);
+        HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER,
+                ObjectUtil.getIfNotNull(device, Device::getIpv6));
+        HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER,
+                ObjectUtil.getIfNotNull(device, Device::getIp));
+        HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER,
+                ObjectUtil.getIfNotNull(device, Device::getUa));
+
+        return headers;
+    }
+
     private static String resolveUrl(String endpoint, ExtImpClydo extImp) {
         return endpoint
                 .replace(REGION_MACRO, getRegionInfo(extImp))
-                .replace(PARTNER_ID_MACRO, extImp.getPartnerId());
+                .replace(PARTNER_ID_MACRO, HttpUtil.encodeUrl(extImp.getPartnerId()));
     }
 
     private static String getRegionInfo(ExtImpClydo extImp) {
@@ -95,22 +126,14 @@ public class ClydoBidder implements Bidder<BidRequest> {
         };
     }
 
-    private HttpRequest<BidRequest> makeHttpRequest(BidRequest request, Imp imp, ExtImpClydo extImpClydo) {
-        final BidRequest outgoingRequest = request.toBuilder().imp(List.of(imp)).build();
-
-        return BidderUtil.defaultRequest(outgoingRequest, resolveUrl(endpointUrl, extImpClydo), mapper);
-    }
-
     @Override
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             final List<BidderBid> bidderBids = extractBids(bidRequest, bidResponse);
-            return Result.of(bidderBids, Collections.emptyList());
-        } catch (DecodeException e) {
+            return Result.withValues(bidderBids);
+        } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
-        } catch (PreBidException e) {
-            return Result.withError(BidderError.badInput(e.getMessage()));
         }
     }
 
@@ -132,17 +155,9 @@ public class ClydoBidder implements Bidder<BidRequest> {
     }
 
     private static Map<String, BidType> buildImpIdToBidTypeMap(BidRequest bidRequest) {
-        if (bidRequest == null || bidRequest.getImp() == null || bidRequest.getImp().isEmpty()) {
-            return Collections.emptyMap();
-        }
-
         final Map<String, BidType> impIdToBidTypeMap = new HashMap<>();
         for (Imp imp : bidRequest.getImp()) {
             final String impId = imp.getId();
-            if (impIdToBidTypeMap.containsKey(impId)) {
-                throw new PreBidException("Duplicate impression ID found");
-            }
-
             final BidType bidType = determineBidType(imp);
             if (bidType == null) {
                 throw new PreBidException("Failed to get media type");
@@ -165,14 +180,10 @@ public class ClydoBidder implements Bidder<BidRequest> {
             return BidType.banner;
         }
 
-        return null;
+        throw new PreBidException("Failed to get media type");
     }
 
     private static BidType resolveBidType(Bid bid, Map<String, BidType> impIdToBidTypeMap) {
-        if (bid.getImpid() == null) {
-            throw new PreBidException("Missing imp id for bid.id: '%s'".formatted(bid.getId()));
-        }
-
         return impIdToBidTypeMap.getOrDefault(bid.getImpid(), BidType.banner);
     }
 }

@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.clydo;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -311,24 +310,6 @@ public class ClydoBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorForWrongType() throws JsonProcessingException {
-        // given
-        final ObjectNode bidExt = mapper.createObjectNode()
-                .set("prebid", mapper.createArrayNode());
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).id("123")));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors())
-                .containsExactly(
-                        BidderError.badInput("Missing imp id for bid.id: '123'"));
-    }
-
-    @Test
     public void makeBidsShouldReturnErrorWhenImpHasNoMediaType() throws JsonProcessingException {
         final BidRequest bidRequest = givenBidRequest(imp -> imp.banner(null).video(null).xNative(null).audio(null));
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(bidBuilder -> bidBuilder.impid("123")));
@@ -338,7 +319,7 @@ public class ClydoBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1).first()
                 .satisfies(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
                     assertThat(error.getMessage()).isEqualTo("Failed to get media type");
                 });
     }
