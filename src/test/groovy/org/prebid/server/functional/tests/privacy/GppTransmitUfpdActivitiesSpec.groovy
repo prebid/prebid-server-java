@@ -115,12 +115,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == bidRequest.device.macmd5
             bidderRequest.device.dpidmd5 == bidRequest.device.dpidmd5
             bidderRequest.user.id == bidRequest.user.id
-            bidderRequest.user.buyeruid == bidRequest.user.buyeruid
+            bidderRequest.user.buyerUid == bidRequest.user.buyerUid
             bidderRequest.user.yob == bidRequest.user.yob
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
             bidderRequest.user.geo == bidRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == bidRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -165,7 +165,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
@@ -217,7 +217,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
@@ -293,12 +293,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == bidRequest.device.macmd5
             bidderRequest.device.dpidmd5 == bidRequest.device.dpidmd5
             bidderRequest.user.id == bidRequest.user.id
-            bidderRequest.user.buyeruid == bidRequest.user.buyeruid
+            bidderRequest.user.buyerUid == bidRequest.user.buyerUid
             bidderRequest.user.yob == bidRequest.user.yob
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
             bidderRequest.user.geo == bidRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == bidRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -336,7 +336,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
@@ -388,12 +388,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == bidRequest.device.macmd5
             bidderRequest.device.dpidmd5 == bidRequest.device.dpidmd5
             bidderRequest.user.id == bidRequest.user.id
-            bidderRequest.user.buyeruid == bidRequest.user.buyeruid
+            bidderRequest.user.buyerUid == bidRequest.user.buyerUid
             bidderRequest.user.yob == bidRequest.user.yob
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
             bidderRequest.user.geo == bidRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == bidRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -450,7 +450,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.geo
@@ -510,12 +510,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == bidRequest.device.macmd5
             bidderRequest.device.dpidmd5 == bidRequest.device.dpidmd5
             bidderRequest.user.id == bidRequest.user.id
-            bidderRequest.user.buyeruid == bidRequest.user.buyeruid
+            bidderRequest.user.buyerUid == bidRequest.user.buyerUid
             bidderRequest.user.yob == bidRequest.user.yob
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
             bidderRequest.user.geo == bidRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == bidRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -576,7 +576,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.geo
@@ -640,12 +640,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == bidRequest.device.macmd5
             bidderRequest.device.dpidmd5 == bidRequest.device.dpidmd5
             bidderRequest.user.id == bidRequest.user.id
-            bidderRequest.user.buyeruid == bidRequest.user.buyeruid
+            bidderRequest.user.buyerUid == bidRequest.user.buyerUid
             bidderRequest.user.yob == bidRequest.user.yob
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
             bidderRequest.user.geo == bidRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == bidRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -699,7 +699,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.geo
@@ -758,12 +758,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == bidRequest.device.macmd5
             bidderRequest.device.dpidmd5 == bidRequest.device.dpidmd5
             bidderRequest.user.id == bidRequest.user.id
-            bidderRequest.user.buyeruid == bidRequest.user.buyeruid
+            bidderRequest.user.buyerUid == bidRequest.user.buyerUid
             bidderRequest.user.yob == bidRequest.user.yob
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
             bidderRequest.user.geo.zip == bidRequest.user.geo.zip
-            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == bidRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -816,7 +816,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.geo
@@ -868,7 +868,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
@@ -919,7 +919,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
@@ -1089,7 +1089,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
@@ -1302,12 +1302,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == bidRequest.device.macmd5
             bidderRequest.device.dpidmd5 == bidRequest.device.dpidmd5
             bidderRequest.user.id == bidRequest.user.id
-            bidderRequest.user.buyeruid == bidRequest.user.buyeruid
+            bidderRequest.user.buyerUid == bidRequest.user.buyerUid
             bidderRequest.user.yob == bidRequest.user.yob
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
             bidderRequest.user.geo.zip == bidRequest.user.geo.zip
-            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == bidRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -1334,7 +1334,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
     def "PBS auction call when privacy module contain invalid GPP string shouldn't remove UFPD fields in request and emit warning in response"() {
         given: "Default Generic BidRequests with UFPD fields and account id"
         def accountId = PBSUtils.randomNumber as String
-        def invalidGpp = PBSUtils.randomString
+        def invalidGpp = invalidGppString
         def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             regs.gppSid = [US_NAT_V1.intValue]
             regs.gpp = invalidGpp
@@ -1372,12 +1372,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == bidRequest.device.macmd5
             bidderRequest.device.dpidmd5 == bidRequest.device.dpidmd5
             bidderRequest.user.id == bidRequest.user.id
-            bidderRequest.user.buyeruid == bidRequest.user.buyeruid
+            bidderRequest.user.buyerUid == bidRequest.user.buyerUid
             bidderRequest.user.yob == bidRequest.user.yob
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
             bidderRequest.user.geo.zip == bidRequest.user.geo.zip
-            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == bidRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -1431,7 +1431,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
@@ -1487,12 +1487,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == bidRequest.device.macmd5
             bidderRequest.device.dpidmd5 == bidRequest.device.dpidmd5
             bidderRequest.user.id == bidRequest.user.id
-            bidderRequest.user.buyeruid == bidRequest.user.buyeruid
+            bidderRequest.user.buyerUid == bidRequest.user.buyerUid
             bidderRequest.user.yob == bidRequest.user.yob
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
             bidderRequest.user.geo == bidRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == bidRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -1546,12 +1546,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == bidRequest.device.macmd5
             bidderRequest.device.dpidmd5 == bidRequest.device.dpidmd5
             bidderRequest.user.id == bidRequest.user.id
-            bidderRequest.user.buyeruid == bidRequest.user.buyeruid
+            bidderRequest.user.buyerUid == bidRequest.user.buyerUid
             bidderRequest.user.yob == bidRequest.user.yob
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
             bidderRequest.user.geo == bidRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == bidRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -1615,12 +1615,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == bidRequest.device.macmd5
             bidderRequest.device.dpidmd5 == bidRequest.device.dpidmd5
             bidderRequest.user.id == bidRequest.user.id
-            bidderRequest.user.buyeruid == bidRequest.user.buyeruid
+            bidderRequest.user.buyerUid == bidRequest.user.buyerUid
             bidderRequest.user.yob == bidRequest.user.yob
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
             bidderRequest.user.geo == bidRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == bidRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -1701,12 +1701,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == bidRequest.device.macmd5
             bidderRequest.device.dpidmd5 == bidRequest.device.dpidmd5
             bidderRequest.user.id == bidRequest.user.id
-            bidderRequest.user.buyeruid == bidRequest.user.buyeruid
+            bidderRequest.user.buyerUid == bidRequest.user.buyerUid
             bidderRequest.user.yob == bidRequest.user.yob
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
             bidderRequest.user.geo == bidRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == bidRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -1760,7 +1760,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
@@ -1842,12 +1842,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == bidRequest.device.macmd5
             bidderRequest.device.dpidmd5 == bidRequest.device.dpidmd5
             bidderRequest.user.id == bidRequest.user.id
-            bidderRequest.user.buyeruid == bidRequest.user.buyeruid
+            bidderRequest.user.buyerUid == bidRequest.user.buyerUid
             bidderRequest.user.yob == bidRequest.user.yob
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
             bidderRequest.user.geo == bidRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == bidRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -1901,7 +1901,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
@@ -2072,12 +2072,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == ampStoredRequest.device.macmd5
             bidderRequest.device.dpidmd5 == ampStoredRequest.device.dpidmd5
             bidderRequest.user.id == ampStoredRequest.user.id
-            bidderRequest.user.buyeruid == ampStoredRequest.user.buyeruid
+            bidderRequest.user.buyerUid == ampStoredRequest.user.buyerUid
             bidderRequest.user.yob == ampStoredRequest.user.yob
             bidderRequest.user.gender == ampStoredRequest.user.gender
             bidderRequest.user.data == ampStoredRequest.user.data
             bidderRequest.user.geo == ampStoredRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == ampStoredRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -2127,7 +2127,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
@@ -2181,7 +2181,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
@@ -2275,12 +2275,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == ampStoredRequest.device.macmd5
             bidderRequest.device.dpidmd5 == ampStoredRequest.device.dpidmd5
             bidderRequest.user.id == ampStoredRequest.user.id
-            bidderRequest.user.buyeruid == ampStoredRequest.user.buyeruid
+            bidderRequest.user.buyerUid == ampStoredRequest.user.buyerUid
             bidderRequest.user.yob == ampStoredRequest.user.yob
             bidderRequest.user.gender == ampStoredRequest.user.gender
             bidderRequest.user.data == ampStoredRequest.user.data
             bidderRequest.user.geo == ampStoredRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == ampStoredRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -2327,7 +2327,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
@@ -2385,7 +2385,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
@@ -2447,12 +2447,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == ampStoredRequest.device.macmd5
             bidderRequest.device.dpidmd5 == ampStoredRequest.device.dpidmd5
             bidderRequest.user.id == ampStoredRequest.user.id
-            bidderRequest.user.buyeruid == ampStoredRequest.user.buyeruid
+            bidderRequest.user.buyerUid == ampStoredRequest.user.buyerUid
             bidderRequest.user.yob == ampStoredRequest.user.yob
             bidderRequest.user.gender == ampStoredRequest.user.gender
             bidderRequest.user.data == ampStoredRequest.user.data
             bidderRequest.user.geo == ampStoredRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == ampStoredRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -2506,7 +2506,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
@@ -2663,7 +2663,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
@@ -2843,7 +2843,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
@@ -2922,12 +2922,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == ampStoredRequest.device.macmd5
             bidderRequest.device.dpidmd5 == ampStoredRequest.device.dpidmd5
             bidderRequest.user.id == ampStoredRequest.user.id
-            bidderRequest.user.buyeruid == ampStoredRequest.user.buyeruid
+            bidderRequest.user.buyerUid == ampStoredRequest.user.buyerUid
             bidderRequest.user.yob == ampStoredRequest.user.yob
             bidderRequest.user.gender == ampStoredRequest.user.gender
             bidderRequest.user.data == ampStoredRequest.user.data
             bidderRequest.user.geo == ampStoredRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == ampStoredRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -2956,7 +2956,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
         and: "Default amp request with link to account"
-        def invalidGpp = PBSUtils.randomString
+        def invalidGpp = invalidGppString
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
             it.gppSid = US_NAT_V1.value
@@ -3000,12 +3000,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == ampStoredRequest.device.macmd5
             bidderRequest.device.dpidmd5 == ampStoredRequest.device.dpidmd5
             bidderRequest.user.id == ampStoredRequest.user.id
-            bidderRequest.user.buyeruid == ampStoredRequest.user.buyeruid
+            bidderRequest.user.buyerUid == ampStoredRequest.user.buyerUid
             bidderRequest.user.yob == ampStoredRequest.user.yob
             bidderRequest.user.gender == ampStoredRequest.user.gender
             bidderRequest.user.data == ampStoredRequest.user.data
             bidderRequest.user.geo == ampStoredRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == ampStoredRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -3067,7 +3067,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
@@ -3131,12 +3131,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == ampStoredRequest.device.macmd5
             bidderRequest.device.dpidmd5 == ampStoredRequest.device.dpidmd5
             bidderRequest.user.id == ampStoredRequest.user.id
-            bidderRequest.user.buyeruid == ampStoredRequest.user.buyeruid
+            bidderRequest.user.buyerUid == ampStoredRequest.user.buyerUid
             bidderRequest.user.yob == ampStoredRequest.user.yob
             bidderRequest.user.gender == ampStoredRequest.user.gender
             bidderRequest.user.data == ampStoredRequest.user.data
             bidderRequest.user.geo == ampStoredRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == ampStoredRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -3198,12 +3198,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == ampStoredRequest.device.macmd5
             bidderRequest.device.dpidmd5 == ampStoredRequest.device.dpidmd5
             bidderRequest.user.id == ampStoredRequest.user.id
-            bidderRequest.user.buyeruid == ampStoredRequest.user.buyeruid
+            bidderRequest.user.buyerUid == ampStoredRequest.user.buyerUid
             bidderRequest.user.yob == ampStoredRequest.user.yob
             bidderRequest.user.gender == ampStoredRequest.user.gender
             bidderRequest.user.data == ampStoredRequest.user.data
             bidderRequest.user.geo == ampStoredRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == ampStoredRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -3272,12 +3272,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == ampStoredRequest.device.macmd5
             bidderRequest.device.dpidmd5 == ampStoredRequest.device.dpidmd5
             bidderRequest.user.id == ampStoredRequest.user.id
-            bidderRequest.user.buyeruid == ampStoredRequest.user.buyeruid
+            bidderRequest.user.buyerUid == ampStoredRequest.user.buyerUid
             bidderRequest.user.yob == ampStoredRequest.user.yob
             bidderRequest.user.gender == ampStoredRequest.user.gender
             bidderRequest.user.data == ampStoredRequest.user.data
             bidderRequest.user.geo == ampStoredRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == ampStoredRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -3342,12 +3342,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == ampStoredRequest.device.macmd5
             bidderRequest.device.dpidmd5 == ampStoredRequest.device.dpidmd5
             bidderRequest.user.id == ampStoredRequest.user.id
-            bidderRequest.user.buyeruid == ampStoredRequest.user.buyeruid
+            bidderRequest.user.buyerUid == ampStoredRequest.user.buyerUid
             bidderRequest.user.yob == ampStoredRequest.user.yob
             bidderRequest.user.gender == ampStoredRequest.user.gender
             bidderRequest.user.data == ampStoredRequest.user.data
             bidderRequest.user.geo == ampStoredRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == ampStoredRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -3446,12 +3446,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == ampStoredRequest.device.macmd5
             bidderRequest.device.dpidmd5 == ampStoredRequest.device.dpidmd5
             bidderRequest.user.id == ampStoredRequest.user.id
-            bidderRequest.user.buyeruid == ampStoredRequest.user.buyeruid
+            bidderRequest.user.buyerUid == ampStoredRequest.user.buyerUid
             bidderRequest.user.yob == ampStoredRequest.user.yob
             bidderRequest.user.gender == ampStoredRequest.user.gender
             bidderRequest.user.data == ampStoredRequest.user.data
             bidderRequest.user.geo == ampStoredRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == ampStoredRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -3514,7 +3514,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
@@ -3602,12 +3602,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == ampStoredRequest.device.macmd5
             bidderRequest.device.dpidmd5 == ampStoredRequest.device.dpidmd5
             bidderRequest.user.id == ampStoredRequest.user.id
-            bidderRequest.user.buyeruid == ampStoredRequest.user.buyeruid
+            bidderRequest.user.buyerUid == ampStoredRequest.user.buyerUid
             bidderRequest.user.yob == ampStoredRequest.user.yob
             bidderRequest.user.gender == ampStoredRequest.user.gender
             bidderRequest.user.data == ampStoredRequest.user.data
             bidderRequest.user.geo == ampStoredRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == ampStoredRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -3672,7 +3672,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
@@ -3837,7 +3837,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
@@ -3892,7 +3892,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
@@ -3940,7 +3940,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
@@ -4006,12 +4006,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == bidRequest.device.macmd5
             bidderRequest.device.dpidmd5 == bidRequest.device.dpidmd5
             bidderRequest.user.id == bidRequest.user.id
-            bidderRequest.user.buyeruid == bidRequest.user.buyeruid
+            bidderRequest.user.buyerUid == bidRequest.user.buyerUid
             bidderRequest.user.yob == bidRequest.user.yob
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
             bidderRequest.user.geo == bidRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == bidRequest.user.ext.data.buyerUid
         }
 
         and: "Bidder request should have data in EIDS fields"
