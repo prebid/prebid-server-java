@@ -68,11 +68,16 @@ public class IxBidder implements Bidder<BidRequest> {
     private static final String PBS_VERSION_UNKNOWN = "unknown";
 
     private final String endpointUrl;
+    private final String defaultAccountId;
     private final PrebidVersionProvider prebidVersionProvider;
     private final JacksonMapper mapper;
 
-    public IxBidder(String endpointUrl, PrebidVersionProvider prebidVersionProvider, JacksonMapper mapper) {
+    public IxBidder(String endpointUrl,
+            String defaultAccountId,
+            PrebidVersionProvider prebidVersionProvider,
+            JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.defaultAccountId = (defaultAccountId != null) ? defaultAccountId : "";
         this.prebidVersionProvider = Objects.requireNonNull(prebidVersionProvider);
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -82,6 +87,7 @@ public class IxBidder implements Bidder<BidRequest> {
         final Set<String> siteIds = new HashSet<>();
         final List<Imp> imps = new ArrayList<>();
         final List<BidderError> errors = new ArrayList<>();
+        final Set<String> accountIds = new HashSet<>();
 
         for (Imp imp : bidRequest.getImp()) {
             try {
@@ -89,6 +95,11 @@ public class IxBidder implements Bidder<BidRequest> {
                 final String siteId = impExt.getSiteId();
                 if (StringUtils.isNotEmpty(siteId)) {
                     siteIds.add(siteId);
+                }
+
+                final String accountId = impExt.getAccountId();
+                if (StringUtils.isNotEmpty(accountId)) {
+                    accountIds.add(accountId);
                 }
 
                 imps.add(modifyImp(imp, impExt));
@@ -102,10 +113,22 @@ public class IxBidder implements Bidder<BidRequest> {
         }
 
         final BidRequest modifiedBidRequest = modifyBidRequest(bidRequest, imps, siteIds);
+
+        final String resolvedAccountId = accountIds.isEmpty()
+                ? null
+                : accountIds.iterator().next();
+
+        final String resolvedEndpoint = resolveEndpointMacro(endpointUrl, resolvedAccountId);
+
         final List<HttpRequest<BidRequest>> httpRequests = Collections.singletonList(
-                BidderUtil.defaultRequest(modifiedBidRequest, endpointUrl, mapper));
+                BidderUtil.defaultRequest(modifiedBidRequest, resolvedEndpoint, mapper));
 
         return Result.of(httpRequests, errors);
+    }
+
+    private String resolveEndpointMacro(String endpoint, String accountId) {
+        final String resolvedAccountId = StringUtils.isNotEmpty(accountId) ? accountId : this.defaultAccountId;
+        return endpoint.replace("${IX_ACCOUNT_ID}", resolvedAccountId);
     }
 
     private ExtImpIx parseImpExt(Imp imp) {
