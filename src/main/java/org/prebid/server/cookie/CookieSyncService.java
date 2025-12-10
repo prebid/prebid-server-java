@@ -49,7 +49,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -382,14 +381,16 @@ public class CookieSyncService {
 
         final Set<String> cookieFamiliesToSync = new HashSet<>(); // multiple bidders may have same cookie families
         final Set<String> biddersToSync = new LinkedHashSet<>();
-        final Iterator<String> biddersIterator = allowedBiddersByPriority.iterator();
 
-        while (cookieFamiliesToSync.size() < cookieSyncContext.getLimit() && biddersIterator.hasNext()) {
-            final String bidder = biddersIterator.next();
+        for (String bidder : allowedBiddersByPriority) {
             final String cookieFamilyName = bidderCatalog.cookieFamilyName(bidder).orElseThrow();
 
-            cookieFamiliesToSync.add(cookieFamilyName);
-            biddersToSync.add(bidder);
+            if (cookieFamiliesToSync.size() < cookieSyncContext.getLimit()) {
+                cookieFamiliesToSync.add(cookieFamilyName);
+                biddersToSync.add(bidder);
+            } else if (cookieFamiliesToSync.contains(cookieFamilyName)) {
+                biddersToSync.add(bidder);
+            }
         }
 
         return biddersToSync;
