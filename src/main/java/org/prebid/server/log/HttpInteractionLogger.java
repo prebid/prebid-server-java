@@ -79,6 +79,22 @@ public class HttpInteractionLogger {
         }
     }
 
+    public void maybeLogOpenrtb2GetInterface(AuctionContext auctionContext,
+                                             RoutingContext routingContext,
+                                             int statusCode,
+                                             String responseBody) {
+
+        if (interactionSatisfiesSpec(HttpLogSpec.Endpoint.get_interface, statusCode, auctionContext)) {
+            logger.info(
+                    "Requested URL: \"{}\", response status: \"{}\", response body: \"{}\"",
+                    routingContext.request().uri(),
+                    statusCode,
+                    responseBody);
+
+            incLoggedInteractions();
+        }
+    }
+
     public void maybeLogBidderRequest(AuctionContext context, BidderRequest bidderRequest) {
         final String bidder = bidderRequest.getBidder();
         if (interactionSatisfiesSpec(context, bidder)) {

@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Function;
 
 /**
@@ -72,12 +73,13 @@ public class ImplicitParametersExtractor {
 
     private List<String> ipFrom(Function<String, String> headerGetter, String host) {
         final List<String> candidates = new ArrayList<>();
-        candidates.add(headerGetter.apply("True-Client-IP"));
-        final String xff = headerGetter.apply("X-Forwarded-For");
+        candidates.add(headerGetter.apply(HttpUtil.TRUE_CLIENT_IP_HEADER.toString()));
+        final String xff = headerGetter.apply(HttpUtil.X_FORWARDED_FOR_HEADER.toString());
         if (xff != null) {
             candidates.addAll(Arrays.asList(xff.split(",")));
         }
-        candidates.add(headerGetter.apply("X-Real-IP"));
+        candidates.add(headerGetter.apply(HttpUtil.X_REAL_IP_HEADER.toString()));
+        candidates.add(headerGetter.apply(HttpUtil.X_DEVICE_IP_HEADER.toString()));
         candidates.add(host);
 
         return candidates.stream()
@@ -90,7 +92,12 @@ public class ImplicitParametersExtractor {
      * Determines User-Agent by checking 'User-Agent' http header.
      */
     public String uaFrom(HttpRequestContext request) {
-        return StringUtils.trimToNull(request.getHeaders().get(HttpUtil.USER_AGENT_HEADER));
+        return Optional.ofNullable(getTrimmedHeader(request, HttpUtil.USER_AGENT_HEADER))
+                .orElseGet(() -> getTrimmedHeader(request, HttpUtil.X_DEVICE_USER_AGENT_HEADER));
+    }
+
+    private static String getTrimmedHeader(HttpRequestContext request, CharSequence header) {
+        return StringUtils.trimToNull(request.getHeaders().get(header));
     }
 
     /**
