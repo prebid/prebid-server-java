@@ -46,7 +46,6 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
-import org.prebid.server.util.ObjectUtil;
 
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -78,6 +77,7 @@ public class MsftBidder implements Bidder<BidRequest> {
                       int hbSourceVideo,
                       Map<Integer, String> iabCategories,
                       JacksonMapper mapper) {
+
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.hbSource = hbSource;
         this.hbSourceVideo = hbSourceVideo;
@@ -98,9 +98,7 @@ public class MsftBidder implements Bidder<BidRequest> {
 
                 final Integer memberId = extImp.getMember();
                 if (memberId != null && memberIdValidator.isInvalid(memberId)) {
-                    errors.add(BidderError.badInput("Member id mismatch:"
-                            + " all impressions must use the same member id but found two different ids: %s and %s"
-                            .formatted(memberIdValidator.getValue(), memberId)));
+                    errors.add(BidderError.badInput("member id mismatch: all impressions must use the same member id"));
                     return Result.withErrors(errors);
                 }
 
@@ -149,57 +147,50 @@ public class MsftBidder implements Bidder<BidRequest> {
     }
 
     private Imp updateImp(Imp imp, ExtImpMsft extImp, String defaultDisplayManagerVer) {
-        final Imp.ImpBuilder impBuilder = imp.toBuilder();
+        final String invCode = extImp.getInvCode();
+        final Banner banner = imp.getBanner();
+        final String displayManagerVer = StringUtils.defaultIfEmpty(
+                imp.getDisplaymanagerver(), defaultDisplayManagerVer);
 
-        if (StringUtils.isNotEmpty(extImp.getInvCode())) {
-            impBuilder.tagid(extImp.getInvCode());
-        }
-
-        if (imp.getBanner() != null) {
-            impBuilder.banner(updateBanner(imp.getBanner(), extImp));
-        }
-
-        if (StringUtils.isEmpty(imp.getDisplaymanagerver())) {
-            impBuilder.displaymanagerver(defaultDisplayManagerVer);
-        }
-
-        impBuilder.ext(updateImpExt(imp, extImp));
-
-        return impBuilder.build();
+        return imp.toBuilder()
+                .tagid(StringUtils.isNotEmpty(invCode) ? invCode : imp.getTagid())
+                .banner(banner != null ? updateBanner(banner, extImp) : null)
+                .displaymanagerver(displayManagerVer)
+                .ext(updateImpExt(imp, extImp))
+                .build();
     }
 
     private Banner updateBanner(Banner banner, ExtImpMsft extImp) {
-        final Banner.BannerBuilder bannerBuilder = banner.toBuilder();
-
         final List<Format> bannerFormat = banner.getFormat();
+
+        final Banner.BannerBuilder bannerBuilder = banner.toBuilder();
         if (banner.getW() == null && banner.getH() == null && CollectionUtils.isNotEmpty(bannerFormat)) {
             final Format firstFormat = bannerFormat.getFirst();
             bannerBuilder.w(firstFormat.getW());
             bannerBuilder.h(firstFormat.getH());
         }
 
-        if (banner.getApi() == null) {
-            bannerBuilder.api(extImp.getBannerFrameworks());
-        }
-
-        return bannerBuilder.build();
+        return bannerBuilder
+                .api(ObjectUtils.defaultIfNull(banner.getApi(), extImp.getBannerFrameworks()))
+                .build();
     }
 
     private ObjectNode updateImpExt(Imp imp, ExtImpMsft extImp) {
-        final ObjectNode updatedImpExt = mapper.mapper().createObjectNode()
-                .set("appnexus", mapper.mapper().valueToTree(
-                        MsftExtImpOutgoing.builder()
-                                .placementId(extImp.getPlacementId())
-                                .allowSmallerSizes(extImp.getAllowSmallerSizes())
-                                .usePmtRule(extImp.getUsePmtRule())
-                                .keywords(extImp.getKeywords())
-                                .trafficSourceCode(extImp.getTrafficSourceCode())
-                                .pubClick(extImp.getPubclick())
-                                .extInvCode(extImp.getExtInvCode())
-                                .extImpId(extImp.getExtImpId())
-                                .build()));
+        final MsftExtImpOutgoing impExtOutgoing = MsftExtImpOutgoing.builder()
+                .placementId(extImp.getPlacementId())
+                .allowSmallerSizes(extImp.getAllowSmallerSizes())
+                .usePmtRule(extImp.getUsePmtRule())
+                .keywords(extImp.getKeywords())
+                .trafficSourceCode(extImp.getTrafficSourceCode())
+                .pubClick(extImp.getPubclick())
+                .extInvCode(extImp.getExtInvCode())
+                .extImpId(extImp.getExtImpId())
+                .build();
+        final String gpid = imp.getExt().at("/gpid").textValue();
 
-        final String gpid = ObjectUtil.getIfNotNull(imp.getExt().get("gpid"), JsonNode::textValue);
+        final ObjectNode updatedImpExt = mapper.mapper().createObjectNode()
+                .set("appnexus", mapper.mapper().valueToTree(impExtOutgoing));
+
         if (StringUtils.isNotEmpty(gpid)) {
             updatedImpExt.put("gpid", gpid);
         }
@@ -250,7 +241,7 @@ public class MsftBidder implements Bidder<BidRequest> {
         try {
             return mapper.mapper().treeToValue(extRequestMsftRaw, ExtRequestMsft.class);
         } catch (IllegalArgumentException | JsonProcessingException e) {
-            throw new PreBidException("Failed to deserialize Microsoft bid request extension: " + e.getMessage());
+            throw new PreBidException("malformed request ext.appnexus");
         }
     }
 
@@ -286,6 +277,7 @@ public class MsftBidder implements Bidder<BidRequest> {
     private List<HttpRequest<BidRequest>> splitHttpRequests(BidRequest bidRequest,
                                                             List<Imp> imps,
                                                             String requestUrl) {
+
         return ListUtils.partition(imps, MAX_IMPS_PER_REQUEST)
                 .stream()
                 .map(impsForRequest -> makeHttpRequest(bidRequest, impsForRequest, requestUrl))

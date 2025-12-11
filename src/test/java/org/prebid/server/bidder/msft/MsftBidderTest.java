@@ -178,9 +178,8 @@ public class MsftBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors())
-                .containsExactly(BidderError.badInput("Member id mismatch: "
-                        + "all impressions must use the same member id but found two different ids: 1 and 2"));
+        assertThat(result.getErrors()).containsExactly(
+                BidderError.badInput("member id mismatch: all impressions must use the same member id"));
     }
 
     @Test
@@ -447,10 +446,7 @@ public class MsftBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).hasSize(0);
-        assertThat(result.getErrors()).hasSize(1).allSatisfy(error -> {
-            assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
-            assertThat(error.getMessage()).startsWith("Failed to deserialize Microsoft bid request extension: ");
-        });
+        assertThat(result.getErrors()).containsExactly(BidderError.badInput("malformed request ext.appnexus"));
     }
 
     @Test
