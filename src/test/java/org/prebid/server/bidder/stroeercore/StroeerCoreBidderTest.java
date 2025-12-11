@@ -152,7 +152,9 @@ public class StroeerCoreBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnExpectedBannerBid() throws JsonProcessingException {
         // given
-        final ObjectNode dsaResponse = createDsaResponse();
+        final ObjectNode bidExt = mapper.createObjectNode();
+        bidExt.put("something", "else");
+        bidExt.set("dsa", createDsaResponse());
 
         final StroeerCoreBid bannerBid = StroeerCoreBid.builder()
                 .id("1")
@@ -163,7 +165,7 @@ public class StroeerCoreBidderTest extends VertxTest {
                 .width(300)
                 .height(600)
                 .mtype("banner")
-                .dsa(dsaResponse.deepCopy())
+                .ext(bidExt.deepCopy())
                 .adomain(List.of("domain1.com", "domain2.com"))
                 .build();
 
@@ -184,11 +186,71 @@ public class StroeerCoreBidderTest extends VertxTest {
                 .h(600)
                 .adomain(List.of("domain1.com", "domain2.com"))
                 .mtype(1)
-                .ext(mapper.createObjectNode().set("dsa", dsaResponse))
+                .ext(bidExt)
                 .build();
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).containsOnly(BidderBid.of(expectedBannerBid, BidType.banner, "EUR"));
+    }
+
+    @Test
+    public void makeBidsShouldSupportDeprecatedDsaPath() throws JsonProcessingException {
+        // given
+        final ObjectNode dsa = createDsaResponse();
+
+        final StroeerCoreBid.StroeerCoreBidBuilder stroeerBidBuilder = StroeerCoreBid.builder()
+                .id("1")
+                .bidId("banner-imp-id")
+                .adMarkup("<div></div>")
+                .cpm(BigDecimal.valueOf(0.3))
+                .creativeId("foo")
+                .width(300)
+                .height(600)
+                .mtype("banner")
+                .adomain(List.of("domain1.com", "domain2.com"))
+                .dsa(dsa.deepCopy());
+
+        final StroeerCoreBid bannerBidWithoutExt = stroeerBidBuilder
+                .ext(null)
+                .build();
+
+        final StroeerCoreBid bannerBidWithExt = stroeerBidBuilder
+                .ext(mapper.createObjectNode().put("xyz", true))
+                .build();
+
+        final StroeerCoreBidResponse response = StroeerCoreBidResponse.of(
+                List.of(bannerBidWithoutExt, bannerBidWithExt)
+        );
+        final BidderCall<BidRequest> httpCall = createHttpCall(response);
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        final Bid.BidBuilder expectedBannerBidBuilder = Bid.builder()
+                .id("1")
+                .impid("banner-imp-id")
+                .adm("<div></div>")
+                .price(BigDecimal.valueOf(0.3))
+                .crid("foo")
+                .w(300)
+                .h(600)
+                .adomain(List.of("domain1.com", "domain2.com"))
+                .mtype(1);
+
+        final Bid expectedBid1 = expectedBannerBidBuilder
+                .ext(mapper.createObjectNode().set("dsa", dsa))
+                .build();
+
+        final Bid expectedBid2 = expectedBannerBidBuilder
+                .ext(mapper.createObjectNode().put("xyz", true).set("dsa", dsa))
+                .build();
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsOnly(
+                BidderBid.of(expectedBid1, BidType.banner, "EUR"),
+                BidderBid.of(expectedBid2, BidType.banner, "EUR")
+        );
     }
 
     @Test
