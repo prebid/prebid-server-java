@@ -1,0 +1,23 @@
+adapters:
+  alliancegravity:
+    #endpoint: "https://prebid-server.agrvt.com"
+    endpoint: "http://durbuy.ngrok.io"
+    endpoint-compression: gzip
+    ortb-version: "2.6"
+    ortb:
+      multiformat-supported: true
+    meta-info:
+      maintainer-email: produit@alliancegravity.com
+      currency-accepted:
+        - EUR
+      app-media-types:
+        - banner
+        - video
+        - audio
+        - native
+      site-media-types:
+        - banner
+        - video
+        - audio
+        - native
+      vendor-id: 501
