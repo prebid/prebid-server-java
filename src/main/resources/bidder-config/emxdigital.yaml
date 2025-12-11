@@ -1,6 +1,6 @@
 adapters:
   emxdigital:
-    endpoint: https://hb.emxdgt.com
+    endpoint: https://hb.emxdgt.com?t={{URL_TIMEOUT}}&ts={{TIMESTAMP}}&src=pbserver
     aliases:
       cadent_aperture_mx:
         enabled: false

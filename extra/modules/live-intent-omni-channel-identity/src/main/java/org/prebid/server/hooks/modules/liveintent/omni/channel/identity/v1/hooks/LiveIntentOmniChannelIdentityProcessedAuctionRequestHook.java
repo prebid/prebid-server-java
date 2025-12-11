@@ -74,7 +74,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
                                                                     double logSamplingRate) {
 
         this.config = Objects.requireNonNull(config);
-        HttpUtil.validateUrlSyntax(config.getIdentityResolutionEndpoint());
+        HttpUtil.validateUrl(config.getIdentityResolutionEndpoint());
         this.mapper = Objects.requireNonNull(mapper);
         this.httpClient = Objects.requireNonNull(httpClient);
         this.logSamplingRate = logSamplingRate;

@@ -21,10 +21,10 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
-import org.prebid.server.bidder.adnuntius.model.request.AdnuntiusNativeRequest;
-import org.prebid.server.bidder.adnuntius.model.request.AdnuntiusRequestAdUnit;
 import org.prebid.server.bidder.adnuntius.model.request.AdnuntiusMetaData;
+import org.prebid.server.bidder.adnuntius.model.request.AdnuntiusNativeRequest;
 import org.prebid.server.bidder.adnuntius.model.request.AdnuntiusRequest;
+import org.prebid.server.bidder.adnuntius.model.request.AdnuntiusRequestAdUnit;
 import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusAd;
 import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusAdUnit;
 import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusAdvertiser;
@@ -562,11 +562,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        final String expectedUrl = buildExpectedUrl(ENDPOINT_URL, null, null, null);
-
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getUri)
-                .containsExactly(expectedUrl, expectedUrl);
+        assertExpectedUrl(result, ENDPOINT_URL, null, null, null);
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -584,11 +580,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        final String expectedUrl = givenExpectedUrl(ENDPOINT_URL, null, "consent");
-
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getUri)
-                .containsExactly(expectedUrl, expectedUrl);
+        assertExpectedUrl(result, ENDPOINT_URL, null, "consent");
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -604,11 +596,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        final String expectedUrl = givenExpectedUrl(ENDPOINT_URL, null);
-
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getUri)
-                .containsExactly(expectedUrl, expectedUrl);
+        assertExpectedUrl(result, ENDPOINT_URL, null);
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -623,11 +611,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        final String expectedUrl = givenExpectedUrl(ENDPOINT_URL, null);
-
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getUri)
-                .containsExactly(expectedUrl, expectedUrl);
+        assertExpectedUrl(result, ENDPOINT_URL, null);
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -644,11 +628,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        final String expectedUrl = givenExpectedUrl(ENDPOINT_URL, noCookies);
-
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getUri)
-                .containsExactly(expectedUrl, expectedUrl);
+        assertExpectedUrl(result, ENDPOINT_URL, noCookies);
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -665,11 +645,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        final String expectedUrl = givenExpectedUrl(ENDPOINT_URL, noCookies);
-
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getUri)
-                .containsExactly(expectedUrl, expectedUrl);
+        assertExpectedUrl(result, ENDPOINT_URL, noCookies);
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -685,11 +661,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        final String expectedUrl = givenExpectedUrl(ENDPOINT_URL, null);
-
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getUri)
-                .containsExactly(expectedUrl, expectedUrl);
+        assertExpectedUrl(result, ENDPOINT_URL, null);
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -706,11 +678,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        final String expectedUrl = givenExpectedUrl(ENDPOINT_URL, noCookies);
-
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getUri)
-                .containsExactly(expectedUrl, expectedUrl);
+        assertExpectedUrl(result, ENDPOINT_URL, noCookies);
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -727,11 +695,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        final String expectedUrl = givenExpectedUrl(ENDPOINT_URL, noCookies);
-
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getUri)
-                .containsExactly(expectedUrl, expectedUrl);
+        assertExpectedUrl(result, ENDPOINT_URL, noCookies);
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -755,11 +719,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        final String expectedUrl = buildExpectedUrl(ENDPOINT_URL, null, null, null);
-
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getUri)
-                .containsExactly(expectedUrl, expectedUrl);
+        assertExpectedUrl(result, ENDPOINT_URL, null, null, null);
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -783,11 +743,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        final String expectedUrl = givenExpectedUrl(ENDPOINT_URL, null, "consent");
-
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getUri)
-                .containsExactly(expectedUrl, expectedUrl);
+        assertExpectedUrl(result, ENDPOINT_URL, null, "consent");
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -811,11 +767,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        final String expectedUrl = buildExpectedUrl(ALTERNATIVE_URL, 1, null, null);
-
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getUri)
-                .containsExactly(expectedUrl, expectedUrl);
+        assertExpectedUrl(result, ALTERNATIVE_URL, 1, null, null);
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -865,11 +817,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        final String expectedUrl = givenExpectedUrl(ALTERNATIVE_URL, gdpr, consent);
-
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getUri)
-                .containsExactly(expectedUrl, expectedUrl);
+        assertExpectedUrl(result, ALTERNATIVE_URL, gdpr, consent);
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -891,11 +839,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        final String expectedUrl = buildExpectedUrl(ALTERNATIVE_URL, 1, null, null);
-
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getUri)
-                .containsExactly(expectedUrl, expectedUrl);
+        assertExpectedUrl(result, ALTERNATIVE_URL, 1, null, null);
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -918,11 +862,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        final String expectedUrl = givenExpectedUrl(ALTERNATIVE_URL, 1, noCookies);
-
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getUri)
-                .containsExactly(expectedUrl, expectedUrl);
+        assertExpectedUrl(result, ALTERNATIVE_URL, 1, noCookies);
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -945,11 +885,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        final String expectedUrl = givenExpectedUrl(ALTERNATIVE_URL, 1, noCookies);
-
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getUri)
-                .containsExactly(expectedUrl, expectedUrl);
+        assertExpectedUrl(result, ALTERNATIVE_URL, 1, noCookies);
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -973,11 +909,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        final String expectedUrl = buildExpectedUrl(ALTERNATIVE_URL, 1, null, null);
-
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getUri)
-                .containsExactly(expectedUrl, expectedUrl);
+        assertExpectedUrl(result, ALTERNATIVE_URL, 1, null, null);
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -1002,11 +934,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        final String expectedUrl = givenExpectedUrl(ALTERNATIVE_URL, 1, noCookies);
-
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getUri)
-                .containsExactly(expectedUrl, expectedUrl);
+        assertExpectedUrl(result, ALTERNATIVE_URL, 1, noCookies);
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -1031,11 +959,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        final String expectedUrl = givenExpectedUrl(ALTERNATIVE_URL, 1, noCookies);
-
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getUri)
-                .containsExactly(expectedUrl, expectedUrl);
+        assertExpectedUrl(result, ALTERNATIVE_URL, 1, noCookies);
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -1561,29 +1485,64 @@ public class AdnuntiusBidderTest extends VertxTest {
         return extDevice;
     }
 
-    private static String givenExpectedUrl(String url, Integer gdpr, String consent) {
-        return buildExpectedUrl(url, gdpr, consent, false);
+    private static void assertExpectedUrl(Result<List<HttpRequest<AdnuntiusRequest>>> result,
+                                          String url,
+                                          Integer gdpr,
+                                          String consent) {
+
+        assertExpectedUrl(result, url, gdpr, consent, false);
     }
 
-    private static String givenExpectedUrl(String url, Integer gdpr, Boolean noCookies) {
-        return buildExpectedUrl(url, gdpr, null, noCookies);
+    private static void assertExpectedUrl(Result<List<HttpRequest<AdnuntiusRequest>>> result,
+                                          String url,
+                                          Integer gdpr,
+                                          Boolean noCookies) {
+
+        assertExpectedUrl(result, url, gdpr, null, noCookies);
     }
 
-    private static String givenExpectedUrl(String url, Boolean noCookies) {
-        return buildExpectedUrl(url, null, null, noCookies);
+    private static void assertExpectedUrl(Result<List<HttpRequest<AdnuntiusRequest>>> result,
+                                          String url,
+                                          Boolean noCookies) {
+
+        assertExpectedUrl(result, url, null, null, noCookies);
     }
 
-    private static String buildExpectedUrl(String url, Integer gdpr, String consent, Boolean noCookies) {
+    private static void assertExpectedUrl(Result<List<HttpRequest<AdnuntiusRequest>>> result,
+                                          String url,
+                                          Integer gdpr,
+                                          String consent,
+                                          Boolean noCookies) {
+
         final StringBuilder expectedUri = new StringBuilder(url + "?format=prebidServer&tzo=-300");
-        if (gdpr != null) {
-            expectedUri.append("&gdpr=").append(HttpUtil.encodeUrl(gdpr.toString()));
-        }
         if (consent != null) {
             expectedUri.append("&consentString=").append(HttpUtil.encodeUrl(consent));
         }
         if (BooleanUtils.isTrue(noCookies)) {
             expectedUri.append("&noCookies=").append(HttpUtil.encodeUrl(noCookies.toString()));
         }
-        return expectedUri.toString();
+        if (gdpr != null) {
+            expectedUri.append("&gdpr=").append(HttpUtil.encodeUrl(gdpr.toString()));
+        }
+
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .allSatisfy(uri -> {
+                    assertThat(uri).startsWith(url);
+                    assertThat(uri).contains("format=prebidServer");
+                    assertThat(uri).contains("tzo=-300");
+
+                    if (consent != null) {
+                        assertThat(uri).contains("consentString=%s".formatted(HttpUtil.encodeUrl(consent)));
+                    }
+
+                    if (BooleanUtils.isTrue(noCookies)) {
+                        assertThat(uri).contains("noCookies=%s".formatted(HttpUtil.encodeUrl(noCookies.toString())));
+                    }
+
+                    if (gdpr != null) {
+                        assertThat(uri).contains("gdpr=%s".formatted(HttpUtil.encodeUrl(gdpr.toString())));
+                    }
+                });
     }
 }

@@ -9,8 +9,9 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
+import io.vertx.uritemplate.UriTemplate;
+import io.vertx.uritemplate.Variables;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -26,12 +27,13 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
+import org.prebid.server.util.UriTemplateUtil;
 
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 public class DxKultureBidder implements Bidder<BidRequest> {
@@ -41,11 +43,12 @@ public class DxKultureBidder implements Bidder<BidRequest> {
             };
     private static final String X_OPENRTB_VERSION = "2.5";
 
-    private final String endpointUrl;
+    private final UriTemplate endpointUrlTemplate;
     private final JacksonMapper mapper;
 
     public DxKultureBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrlTemplate = UriTemplateUtil.createTemplate(endpointUrl, "queryParams");
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -78,18 +81,11 @@ public class DxKultureBidder implements Bidder<BidRequest> {
     }
 
     private String getUri(ExtImpDxKulture extImpDxKulture) {
-        final URIBuilder uriBuilder;
-        try {
-            uriBuilder = new URIBuilder(endpointUrl);
-        } catch (URISyntaxException e) {
-            throw new PreBidException("Invalid url: %s, error: %s".formatted(endpointUrl, e.getMessage()));
-        }
+        final Map<String, String> queryParams = Map.of(
+                "publisher_id", extImpDxKulture.getPublisherId(),
+                "placement_id", extImpDxKulture.getPlacementId());
 
-        uriBuilder
-                .addParameter("publisher_id", extImpDxKulture.getPublisherId())
-                .addParameter("placement_id", extImpDxKulture.getPlacementId());
-
-        return uriBuilder.toString();
+        return endpointUrlTemplate.expandToString(Variables.variables().set("queryParams", queryParams));
     }
 
     private static MultiMap resolveHeaders(BidRequest bidRequest) {

@@ -165,7 +165,7 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
     private static Optional<URL> extractUrl(Site site) {
         return Optional.ofNullable(site).map(Site::getPage).map(page -> {
             try {
-                return new URL(page);
+                return HttpUtil.parseUrl(page);
             } catch (MalformedURLException e) {
                 return null;
             }
