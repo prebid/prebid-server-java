@@ -423,7 +423,7 @@ The module includes integration tests (`*IT.java`) that run a full Prebid Server
 1. Build and install the main project with test-jar:
    ```bash
    cd /path/to/prebid-server-java
-   mvn clean install -DskipTests
+   mvn clean install -DskipUnitTests=true -DskipITs=true
    ```
 
 **Run integration tests**:

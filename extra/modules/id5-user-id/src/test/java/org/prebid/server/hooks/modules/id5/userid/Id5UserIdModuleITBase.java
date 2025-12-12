@@ -32,6 +32,7 @@ import java.util.Map;
         // ID5 Module Configuration
         "hooks.id5-user-id.enabled=true",
         "hooks.id5-user-id.partner=173",
+        "hooks.id5-user-id.provider-name=prebid-server",
         "hooks.id5-user-id.inserter-name=prebid-server",
         "hooks.id5-user-id.fetch-endpoint=http://localhost:8090/id5-fetch",
         // Settings Configuration - use custom test-app-settings.yaml for ID5 hooks
