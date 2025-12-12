@@ -13,6 +13,7 @@ import org.prebid.server.functional.model.pricefloors.MediaType
 import org.prebid.server.functional.model.pricefloors.PriceFloorData
 import org.prebid.server.functional.model.pricefloors.PriceFloorSchema
 import org.prebid.server.functional.model.pricefloors.Rule
+import org.prebid.server.functional.model.request.Channel
 import org.prebid.server.functional.model.request.auction.Amx
 import org.prebid.server.functional.model.request.auction.Banner
 import org.prebid.server.functional.model.request.auction.BidRequest
@@ -61,7 +62,6 @@ import static org.prebid.server.functional.model.request.auction.DistributionCha
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 import static org.prebid.server.functional.model.request.auction.FetchStatus.ERROR
 import static org.prebid.server.functional.model.request.auction.Location.NO_DATA
-import static org.prebid.server.functional.model.request.auction.Prebid.Channel
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.RESPONSE_REJECTED_DUE_TO_PRICE_FLOOR
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 

@@ -3,10 +3,9 @@ package org.prebid.server.functional.model.request.auction
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 
-@ToString(includeNames = true, ignoreNulls = true)
 @EqualsAndHashCode
-class UserTime {
+@ToString(includeNames = true, ignoreNulls = true)
+class DevicePrebid {
 
-    Integer userdow
-    Integer userhour
+    Interstitial interstitial
 }

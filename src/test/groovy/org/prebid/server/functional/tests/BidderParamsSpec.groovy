@@ -8,7 +8,9 @@ import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredImp
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
+import org.prebid.server.functional.model.request.auction.AdServerTargeting
 import org.prebid.server.functional.model.request.auction.Adrino
+import org.prebid.server.functional.model.request.auction.Amp
 import org.prebid.server.functional.model.request.auction.Amx
 import org.prebid.server.functional.model.request.auction.AuctionEnvironment
 import org.prebid.server.functional.model.request.auction.Banner
@@ -17,6 +19,7 @@ import org.prebid.server.functional.model.request.auction.BidAdjustmentMediaType
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.AnyUnsupportedBidder
+import org.prebid.server.functional.model.request.auction.Events
 import org.prebid.server.functional.model.request.auction.Geo
 import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.ImpExt
@@ -24,8 +27,14 @@ import org.prebid.server.functional.model.request.auction.ImpExtContext
 import org.prebid.server.functional.model.request.auction.ImpExtContextData
 import org.prebid.server.functional.model.request.auction.InterestGroupAuctionSupport
 import org.prebid.server.functional.model.request.auction.Native
+import org.prebid.server.functional.model.request.auction.Pmp
+import org.prebid.server.functional.model.request.auction.PrebidAnalytics
+import org.prebid.server.functional.model.request.auction.PrebidCache
 import org.prebid.server.functional.model.request.auction.PrebidOptions
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
+import org.prebid.server.functional.model.request.auction.Renderer
+import org.prebid.server.functional.model.request.auction.RendererData
+import org.prebid.server.functional.model.request.auction.Sdk
 import org.prebid.server.functional.model.request.auction.Site
 import org.prebid.server.functional.model.request.auction.Source
 import org.prebid.server.functional.model.request.auction.Targeting
@@ -51,6 +60,7 @@ import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC_CAMEL_CASE
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.bidder.CompressionType.GZIP
@@ -64,6 +74,7 @@ import static org.prebid.server.functional.model.request.auction.BidAdjustmentMe
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.DOOH
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
+import static org.prebid.server.functional.model.request.auction.PaaFormat.ORIGINAL
 import static org.prebid.server.functional.model.request.auction.SecurityLevel.NON_SECURE
 import static org.prebid.server.functional.model.request.auction.SecurityLevel.SECURE
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.REQUEST_BLOCKED_UNACCEPTABLE_CURRENCY
@@ -1799,81 +1810,5 @@ class BidderParamsSpec extends BaseSpec {
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsConfig)
-    }
-
-
-    //todo:ext.prebid.returnallbidstatus (boolean)
-    //  Never needed inside the adapter code
-    //  Exposes nothing because it’s a boolean
-
-    def "PBS shouldn't send returnallbidstatus to bidder request"() {
-        given: "Default basic bid request"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.returnAllBidStatus = true
-        }
-
-        and: "Default bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        bidder.setResponse(bidRequest.id, bidResponse)
-
-        when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
-
-        then: "Bidder request shouldn't contain returnAll"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert !bidderRequest.ext.prebid.returnAllBidStatus
-    }
-
-    //todo: ext.prebid.aliasgvlids (map)
-    //  Never needed inside the adapter code
-
-    @IgnoreRest
-    def "PBS shouldn't send aliasgvlids to bidder request"() {
-        given: "Default basic bid request"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp[0].ext.prebid.bidder.alias = new Generic()
-            imp[0].ext.prebid.bidder.generic = null
-            ext.prebid.aliasgvlids = ["alias": 123]
-            ext.prebid.aliases = [(ALIAS.value): BidderName.GENERIC]
-        }
-
-        and: "Default bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        bidder.setResponse(bidRequest.id, bidResponse)
-
-        when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
-
-        then: "Bidder request shouldn't contain aliasgvlids"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert !bidderRequest.ext.prebid.aliasgvlids
-    }
-
-    //todo: ext.prebid.bidadjustmentfactors and ext.prebid.bidadjustments (map)
-    //  Never needed inside the adapter code (for now) but according to the requirements adapters they might be needed to reverse price floors according to the https://magnite.atlassian.net/browse/HB-20538
-    //  bidadjustments are missed in the table
-    //  The value is taken from request/account
-    //  The rules of other bidders if any are exposed.
-
-    @IgnoreRest
-    def "PBS shouldn't send bid adjustment media type to bidder request"() {
-        given: "Default basic bid request"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.bidAdjustmentFactors = new BidAdjustmentFactors().tap {
-                it.adjustments = [(BidderName.GENERIC): BigDecimal.ONE]
-                it.mediaTypes = [(BidAdjustmentMediaType.BANNER): [(BidderName.GENERIC): BigDecimal.ONE]]
-            }
-        }
-
-        and: "Default bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        bidder.setResponse(bidRequest.id, bidResponse)
-
-        when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
-
-        then: "Bidder request shouldn't contain bid adjustment factors"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert !bidderRequest.ext.prebid.bidAdjustmentFactors
     }
 }

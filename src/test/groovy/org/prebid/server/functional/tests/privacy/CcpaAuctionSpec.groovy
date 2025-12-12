@@ -2,6 +2,7 @@ package org.prebid.server.functional.tests.privacy
 
 import org.prebid.server.functional.model.ChannelType
 import org.prebid.server.functional.model.config.AccountCcpaConfig
+import org.prebid.server.functional.model.request.Channel
 import org.prebid.server.functional.model.request.auction.DistributionChannel
 import org.prebid.server.functional.util.privacy.BogusConsent
 import org.prebid.server.functional.util.privacy.CcpaConsent
@@ -16,7 +17,6 @@ import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_REQUEST
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_EIDS
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_PRECISE_GEO
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_UFPD
-import static org.prebid.server.functional.model.request.auction.Prebid.Channel
 import static org.prebid.server.functional.model.request.auction.TraceLevel.BASIC
 import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
 import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.ENFORCED
