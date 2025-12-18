@@ -11,8 +11,7 @@
       "ext": {
         "tid": "${json-unit.any-string}",
         "bidder": {
-          "adunit": "adunit",
-          "client": "testClient"
+          "adunit": "adunit"
         }
       }
     }

@@ -1,4 +1,10 @@
-package org.prebid.server.bidder.adoppler;
+package org.prebid.server.bidder.elementaltv;
+
+import static java.util.Collections.singletonList;
+import static java.util.function.Function.identity;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.tuple;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -10,10 +16,14 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
-import org.prebid.server.bidder.adoppler.model.AdopplerResponseAdsExt;
-import org.prebid.server.bidder.adoppler.model.AdopplerResponseExt;
+import org.prebid.server.bidder.elementaltv.model.ElementalTVResponseAdsExt;
+import org.prebid.server.bidder.elementaltv.model.ElementalTVResponseExt;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
@@ -21,29 +31,18 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.adoppler.ExtImpAdoppler;
+import org.prebid.server.proto.openrtb.ext.request.elementaltv.ExtImpElementalTV;
 import org.prebid.server.util.HttpUtil;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
+public class ElementalTVBidderTest extends VertxTest {
 
-import static java.util.Collections.singletonList;
-import static java.util.function.Function.identity;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.assertj.core.api.Assertions.tuple;
+    private static final String ENDPOINT_URL = "https://pbs.test.com/some/path/{{AdUnit}}";
 
-public class AdopplerBidderTest extends VertxTest {
-
-    private static final String ENDPOINT_URL = "http://{{AccountID}}.test.com/some/path/{{AdUnit}}";
-
-    private final AdopplerBidder target = new AdopplerBidder(ENDPOINT_URL, jacksonMapper);
+    private final ElementalTVBidder target = new ElementalTVBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new AdopplerBidder("invalid_url", jacksonMapper));
+        assertThatIllegalArgumentException().isThrownBy(() -> new ElementalTVBidder("invalid_url", jacksonMapper));
     }
 
     @Test
@@ -51,13 +50,13 @@ public class AdopplerBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdoppler.of(null, null)))));
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpElementalTV.of(null)))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors())
-                .containsExactly(BidderError.badInput("adunit parameter is required for adoppler bidder"));
+                .containsExactly(BidderError.badInput("adunit parameter is required for elementaltv bidder"));
     }
 
     @Test
@@ -71,7 +70,7 @@ public class AdopplerBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().getFirst().getUri()).isEqualTo("http://clientId.test.com/some/path/adUnit");
+        assertThat(result.getValue().getFirst().getUri()).isEqualTo("https://pbs.test.com/some/path/adUnit");
     }
 
     @Test
@@ -79,7 +78,7 @@ public class AdopplerBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdoppler.of("adUnit", "")))));
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpElementalTV.of("adUnit")))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -87,7 +86,7 @@ public class AdopplerBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().getFirst().getUri()).isEqualTo("http://app.test.com/some/path/adUnit");
+        assertThat(result.getValue().getFirst().getUri()).isEqualTo("https://pbs.test.com/some/path/adUnit");
     }
 
     @Test
@@ -133,7 +132,7 @@ public class AdopplerBidderTest extends VertxTest {
         // given
         final Imp imp = Imp.builder().id("impId").video(Video.builder().build()).build();
         final BidRequest bidRequest = BidRequest.builder().imp(Collections.singletonList(imp)).build();
-        final ObjectNode ext = mapper.valueToTree(AdopplerResponseExt.of(AdopplerResponseAdsExt.of(null)));
+        final ObjectNode ext = mapper.valueToTree(ElementalTVResponseExt.of(ElementalTVResponseAdsExt.of(null)));
         final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, mapper.writeValueAsString(
                 givenBidResponse(bidBuilder -> bidBuilder
                         .id("321")
@@ -166,7 +165,7 @@ public class AdopplerBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                         .id("123")
                         .banner(Banner.builder().id("banner_id").build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdoppler.of("adUnit", "clientId")))))
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpElementalTV.of("adUnit")))))
                 .build();
     }
 

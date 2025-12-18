@@ -1,7 +1,8 @@
 package org.prebid.server.spring.config.bidder;
 
+import jakarta.validation.constraints.NotBlank;
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.adoppler.AdopplerBidder;
+import org.prebid.server.bidder.elementaltv.ElementalTVBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -13,29 +14,27 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 
-import jakarta.validation.constraints.NotBlank;
-
 @Configuration
-@PropertySource(value = "classpath:/bidder-config/adoppler.yaml", factory = YamlPropertySourceFactory.class)
-public class AdopplerConfiguration {
+@PropertySource(value = "classpath:/bidder-config/elementaltv.yaml", factory = YamlPropertySourceFactory.class)
+public class ElementalTVConfiguration {
 
-    private static final String BIDDER_NAME = "adoppler";
+    private static final String BIDDER_NAME = "elementaltv";
 
-    @Bean("adopplerConfigurationProperties")
-    @ConfigurationProperties("adapters.adoppler")
+    @Bean("elementalTVConfigurationProperties")
+    @ConfigurationProperties("adapters.elementaltv")
     BidderConfigurationProperties configurationProperties() {
         return new BidderConfigurationProperties();
     }
 
     @Bean
-    BidderDeps adopplerBidderDeps(BidderConfigurationProperties adopplerConfigurationProperties,
+    BidderDeps elementaltvBidderDeps(BidderConfigurationProperties elementalTVConfigurationProperties,
                                   @NotBlank @Value("${external-url}") String externalUrl,
                                   JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
-                .withConfig(adopplerConfigurationProperties)
+                .withConfig(elementalTVConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new AdopplerBidder(config.getEndpoint(), mapper))
+                .bidderCreator(config -> new ElementalTVBidder(config.getEndpoint(), mapper))
                 .assemble();
     }
 }

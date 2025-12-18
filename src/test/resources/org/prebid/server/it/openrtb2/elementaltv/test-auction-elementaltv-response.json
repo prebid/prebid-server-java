@@ -20,7 +20,7 @@
             "prebid": {
               "type": "banner",
               "meta": {
-                "adaptercode": "adoppler"
+                "adaptercode": "elementaltv"
               }
             },
             "origbidcpm": 3.33,
@@ -32,14 +32,14 @@
           }
         }
       ],
-      "seat": "adoppler",
+      "seat": "elementaltv",
       "group": 0
     }
   ],
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "adoppler": "{{ adoppler.response_time_ms }}"
+      "elementaltv": "{{ elementaltv.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 0
