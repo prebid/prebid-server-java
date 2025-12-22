@@ -201,25 +201,6 @@ class BidderInsensitiveCaseSpec extends BaseSpec {
         assert response.seatbid?.first()?.bid?.last()?.ext?.prebid?.targeting
     }
 
-    def "PBS should populate bidder request buyeruid from buyeruids when buyeruids with appropriate bidder present in request"() {
-        given: "Bid request with buyeruids"
-        def buyeruid = PBSUtils.randomString
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp[0].ext.prebid.bidder.tap {
-                genericCamelCase = new Generic()
-                generic = null
-            }
-            user = new User(ext: new UserExt(prebid: new UserExtPrebid(buyeruids: [(GENERIC_CAMEL_CASE): buyeruid])))
-        }
-
-        when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
-
-        then: "Bidder request should contain buyeruid from the user.ext.prebid.buyeruids"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest?.user?.buyeruid == buyeruid
-    }
-
     def "PBS should be able to match requested bidder with original bidder name in ext.prebid.aliase"() {
         given: "Default bid request with alias"
         def bidRequest = BidRequest.defaultBidRequest.tap {

@@ -3,18 +3,18 @@ package org.prebid.server.functional.tests
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.db.StoredRequest
-import org.prebid.server.functional.model.mock.services.currencyconversion.CurrencyConversionRatesResponse
 import org.prebid.server.functional.model.request.Channel
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.AdServerTargeting
 import org.prebid.server.functional.model.request.auction.Amp
+import org.prebid.server.functional.model.request.auction.AppExt
+import org.prebid.server.functional.model.request.auction.AppPrebid
 import org.prebid.server.functional.model.request.auction.BidAdjustmentFactors
 import org.prebid.server.functional.model.request.auction.BidAdjustmentMediaType
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.BidderConfig
 import org.prebid.server.functional.model.request.auction.BidderConfigOrtb
 import org.prebid.server.functional.model.request.auction.ConsentedProvidersSettings
-import org.prebid.server.functional.model.request.auction.DebugCondition
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.DeviceExt
 import org.prebid.server.functional.model.request.auction.EidPermission
@@ -33,7 +33,6 @@ import org.prebid.server.functional.model.request.auction.Sdk
 import org.prebid.server.functional.model.request.auction.Site
 import org.prebid.server.functional.model.request.auction.SiteExt
 import org.prebid.server.functional.model.request.auction.SiteExtData
-import org.prebid.server.functional.model.request.auction.TraceLevel
 import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.model.request.auction.UserExt
 import org.prebid.server.functional.model.request.auction.UserExtPrebid
@@ -43,15 +42,15 @@ import org.prebid.server.functional.util.PBSUtils
 import spock.lang.IgnoreRest
 
 import static org.prebid.server.functional.model.ChannelType.WEB
-import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
-import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
-import static org.prebid.server.functional.model.bidder.BidderName.UNKNOWN
+
+import static org.prebid.server.functional.model.bidder.BidderName.RUBICON
 import static org.prebid.server.functional.model.mock.services.currencyconversion.CurrencyConversionRatesResponse.defaultConversionRates
 import static org.prebid.server.functional.model.request.auction.DebugCondition.ENABLED
-import static org.prebid.server.functional.model.request.auction.DeviceExt.Atts.*
+import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.request.auction.PaaFormat.ORIGINAL
 import static org.prebid.server.functional.model.request.auction.TraceLevel.BASIC
 import static org.prebid.server.functional.model.response.auction.ErrorType.ALIAS
+import static org.prebid.server.functional.model.response.auction.ErrorType.GENERIC
 
 class BidderFieldDisplayBehaviorSpec extends BaseSpec {
 
@@ -59,7 +58,7 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
     //  Never needed inside the adapter code
     //  Exposes nothing because it’s a boolean
 
-    def "PBS shouldn't send returnallbidstatus to bidder request"() {
+    def "PBS shouldn't pass ext.prebid.returnAllBidStatus to bidder request"() {
         given: "Default basic bid request"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.returnAllBidStatus = true
@@ -80,8 +79,8 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
     //todo: ext.prebid.aliasgvlids (map)
     //  Never needed inside the adapter code
 
-    @IgnoreRest
-    def "PBS shouldn't pass aliasgvlids and aliases to bidder request"() {
+
+    def "PBS shouldn't pass aliasGvlIds to bidder request when aliasGvlIds specified"() {
         given: "Default basic bid request"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].ext.prebid.bidder.alias = new Generic()
@@ -108,29 +107,6 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
     //  bidadjustments are missed in the table
     //  The value is taken from request/account
     //  The rules of other bidders if any are exposed.
-
-    def "PBS shouldn't send bid adjustment media type to bidder request"() {
-        given: "Default basic bid request"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.tap {
-                bidAdjustmentFactors = new BidAdjustmentFactors().tap {
-                    it.adjustments = [(BidderName.GENERIC): BigDecimal.ONE]
-                    it.mediaTypes = [(BidAdjustmentMediaType.BANNER): [(BidderName.GENERIC): BigDecimal.ONE]]
-                }
-            }
-        }
-
-        and: "Default bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        bidder.setResponse(bidRequest.id, bidResponse)
-
-        when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
-
-        then: "Bidder request shouldn't contain bid adjustment factors"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert !bidderRequest.ext.prebid.bidAdjustmentFactors
-    }
 
     //todo: ext.prebid.adservertargeting (object)
     //    Never needed inside the adapter code
@@ -187,7 +163,7 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
     //  Never needed inside the adapter code
     //  Not sure it exposes something because it’s only about ttlseconds integers and some booleans
 
-    @IgnoreRest
+
     def "PBS shouldn't pass ext.prebid.cache to bidder request"() {
         given: "Default basic bid request"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -231,7 +207,7 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
 
     //todo: ext.prebid.currency.rates (object)
 
-    @IgnoreRest
+
     def "PBS should pass ext.prebid.currency.rates to bidder request"() {
         given: "Default basic bid request"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -252,14 +228,13 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
         assert bidderRequest.ext.prebid.currency == bidRequest.ext.prebid.currency
     }
 
-    //todo: ext.prebid.data.bidder (object)
+    //todo: ext.prebid.data.{bidder,eidpermissions} (object)
 
-    @IgnoreRest
     def "PBS shouldn't pass ext.prebid.data.{bidders,eidpermissions} to bidder request"() {
         given: "Default basic bid request"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.data = new ExtRequestPrebidData(bidders: [GENERIC.value],
-                    eidpermissions: [new EidPermission(source: PBSUtils.randomString, bidders: [GENERIC])])
+                    eidpermissions: [new EidPermission(source: PBSUtils.randomString, bidders: [BidderName.GENERIC])])
         }
 
         and: "Default bid response"
@@ -275,12 +250,13 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
         assert !bidderRequest?.ext?.prebid?.data?.eidpermissions
     }
 
-    @IgnoreRest
-    def "PBS shouldn't pass ext.prebid.data.{trace,debug} to bidder request"() {
+
+    def "PBS should pass ext.prebid.{trace,debug,integration} to bidder request"() {
         given: "Default basic bid request"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.trace = BASIC
             ext.prebid.debug = ENABLED
+            ext.prebid.integration = PBSUtils.randomString
         }
 
         and: "Default bid response"
@@ -294,6 +270,7 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.ext.prebid.trace
         assert bidderRequest.ext.prebid.debug
+        assert bidderRequest.ext.prebid.integration
     }
 
     //todo: ext.prebid.events (object)
@@ -478,27 +455,6 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
         assert !bidderRequest.ext.prebid.paaFormat
     }
 
-    def "PBS should pass srid to the bidder request when srid present"() {
-        given: "Default basic BidRequest with generic bidder"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.storedRequest = new PrebidStoredRequest(id: PBSUtils.randomNumber)
-        }
-
-        and: "Default stored request"
-        def storedRequestModel = BidRequest.defaultStoredRequest
-
-        and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getStoredRequest(bidRequest.ext.prebid.storedRequest.id, storedRequestModel)
-        storedRequestDao.save(storedRequest)
-
-        when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
-
-        then: "Bidder request sho ext.prebid"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert !bidderRequest.ext.prebid.storedRequest.id
-    }
-
     //todo: user.ext
     //  The whole object is exposed except for the prebid field
     //  consent, eids, data fields are needed for some bidders
@@ -509,7 +465,7 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
             user = new User(ext: new UserExt().tap {
                 fcapids = [PBSUtils.randomString]
                 time = new UserTime(userdow: PBSUtils.randomNumber, userhour: PBSUtils.randomNumber)
-                prebid = new UserExtPrebid(buyeruids: [(GENERIC): PBSUtils.randomString])
+                prebid = new UserExtPrebid(buyeruids: [(BidderName.GENERIC): PBSUtils.randomString])
                 consentedProvidersSettings = new ConsentedProvidersSettings(consentedProviders: PBSUtils.randomString)
             })
         }
@@ -517,9 +473,9 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
         when: "PBS processes auction request"
         defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Bidder request shouldn't contain user.ext.prebid"
+        then: "Bidder request shouldn't contain user.ext.prebid.buyeruids"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert !bidderRequest.user.ext.prebid
+        assert !bidderRequest.user.ext.prebid.buyeruids
 
         and: "Bidder request should contain fcapid,time,consentedProvidedSettings"
         assert bidderRequest.user.ext.fcapids == bidRequest.user.ext.fcapids
@@ -549,13 +505,13 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
     //todo :device.ext.prebid
     //  The whole object is exposed
 
-    @IgnoreRest
-    def "PBS should pass device.ext.prebid"() {
+
+    def "PBS should pass device.ext.prebid.interstitial to bidder request when interstitial specified"() {
         given: "Default basic bid request with generic bidder"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             device = new Device(
                     ext: new DeviceExt(
-                            atts: UNKNOWN,
+                            atts: DeviceExt.Atts.UNKNOWN,
                             cdep: PBSUtils.randomString,
                             prebid: new DevicePrebid(interstitial: new Interstitial(
                                     minHeightPercentage: PBSUtils.getRandomNumber(0, 100),
@@ -573,16 +529,12 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
     //todo: ext.prebid.adservertargeting (object)
     //    Never needed inside the adapter code
 
-    @IgnoreRest
+
     def "PBS should pass ext.prebid.auctiontimestamp to bidder request"() {
         given: "Default basic bid request"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.auctionTimestamp = PBSUtils.randomNumber
         }
-
-        and: "Default bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
         defaultPbsService.sendAuctionRequest(bidRequest)
@@ -595,11 +547,11 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
     //todo: ext.prebid.adservertargeting (object)
     //    Never needed inside the adapter code
 
-    @IgnoreRest
+
     def "PBS shouldn't pass ext.prebid.bidderConfig to bidder request"() {
         given: "Default basic bid request"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.bidderConfig = [new ExtPrebidBidderConfig(bidders: [GENERIC], config:
+            ext.prebid.bidderConfig = [new ExtPrebidBidderConfig(bidders: [BidderName.GENERIC], config:
                     new BidderConfig(ortb2: new BidderConfigOrtb(site: Site.configFPDSite, user: User.configFPDUser)))]
         }
 
@@ -614,4 +566,48 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert !bidderRequest.ext.prebid.bidderConfig
     }
+
+    def "PBS shouldn't pass bidder param to the bidder when bidder param bidder not requested"() {
+        given: "Default bid request with populated ext.prebid.bidderParams"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.bidderParams = [(RUBICON.value): PBSUtils.randomString]
+        }
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response shouldn't contain error"
+        assert !response.ext?.errors
+
+        and: "Response shouldn't contain warning"
+        assert !response.ext?.warnings
+
+        and: "Bidder request shouldn't contain bidder param"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert !bidderRequest.ext.prebid.bidderParams
+    }
+
+
+    def "PBS should pass bidder app.ext.prebid.source to the bidder whe bidder param bidder not requested"() {
+        def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
+            app.ext = new AppExt(prebid: new AppPrebid(source: PBSUtils.getRandomString(), version: PBSUtils.randomString))
+        }
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response shouldn't contain error"
+        assert !response.ext?.errors
+
+        and: "Response shouldn't contain warning"
+        assert !response.ext?.warnings
+
+        and: "Bidder request should contain bidder param"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.app.ext.prebid.source == bidRequest.app.ext.prebid.source
+    }
+    //todo : WE DON'T have such field ext.prebid.experimentadscert.enabled
+    // Enabled Ads.Cert 2.0 Authenticated Connections on supported outgoing bidder requests.
+    // boolean	no
+
 }

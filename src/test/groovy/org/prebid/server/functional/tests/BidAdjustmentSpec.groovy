@@ -96,6 +96,10 @@ class BidAdjustmentSpec extends BaseSpec {
         assert response?.seatbid?.first?.bid?.first?.price == bidResponse.seatbid.first.bid.first.price *
                 bidAdjustmentFactor
 
+        and: "Bidder request shouldn't contain bid adjustment factors"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert !bidderRequest.ext.prebid.bidAdjustmentFactors
+
         where:
         bidAdjustmentFactor << [0.9, 1.1]
     }

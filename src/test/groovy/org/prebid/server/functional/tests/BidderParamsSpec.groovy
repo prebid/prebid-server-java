@@ -1445,8 +1445,9 @@ class BidderParamsSpec extends BaseSpec {
         and: "Response should contain repose millis with corresponding bidder"
         assert response.ext.responsetimemillis.containsKey(ALIAS.value)
 
-        and: "Bidder request should be valid"
-        assert bidder.getBidderRequests(bidRequest.id)
+        and: "Bidder request should be valid and not contain aliases"
+        def bidderRequests = bidder.getBidderRequests(bidRequest.id)
+        assert !bidderRequests.ext.prebid.aliases
     }
 
     def "PBS should populate same code for adapter code when make call for generic hard code alias"() {

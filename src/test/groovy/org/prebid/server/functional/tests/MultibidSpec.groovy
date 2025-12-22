@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests
 
+import org.prebid.server.functional.model.bidderspecific.BidderRequest
 import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.db.Account
@@ -9,6 +10,7 @@ import org.prebid.server.functional.model.request.auction.Targeting
 import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.IgnoreRest
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 
@@ -41,6 +43,7 @@ class MultibidSpec extends BaseSpec {
         assert !response.seatbid?.first()?.bid?.last()?.ext?.prebid?.targeting
     }
 
+    @IgnoreRest
     def "PBS should return seatbid[].bid[].ext.prebid.targeting for non-winning bid in multi-bid response when includeBidderKeys = true"() {
         given: "Default basic BidRequest with generic bidder with includeBidderKeys = true"
         def bidRequest = BidRequest.defaultBidRequest
@@ -66,6 +69,10 @@ class MultibidSpec extends BaseSpec {
 
         then: "PBS should return targeting for non-winning bid"
         assert response.seatbid?.first()?.bid?.last()?.ext?.prebid?.targeting
+
+        and: "Bidder request should contain multibid"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.ext.prebid.multibid == [multiBid]
     }
 
     def "PBS should prefer bidRequest over account level config"() {

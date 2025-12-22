@@ -53,4 +53,5 @@ class Prebid {
     @JsonProperty("kvps")
     Map<String, String> keyValuePairs
     Boolean supportDeals
+    String integration
 }

@@ -2,6 +2,7 @@ package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.bidder.Openx
+import org.prebid.server.functional.model.bidderspecific.BidderRequest
 import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountRankingConfig
@@ -382,6 +383,10 @@ class TargetingSpec extends BaseSpec {
         then: "Amp response shouldn't contain custom targeting"
         assert !response.targeting[customKey]
 
+        and: "Bidder request shouldn't contain ext.prebid.adservertargeting"
+        def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
+        assert !bidderRequest.ext.prebid.targeting
+
         where:
         customSource  | customValue
         "bidrequest"  | "imp"
@@ -449,6 +454,10 @@ class TargetingSpec extends BaseSpec {
                 .every(list -> list
                         .every(map -> map.keySet()
                                 .every(key -> key.length() <= targetingLength)))
+
+        and: "Bidder request shouldn't contain ext.prebid.adservertargeting"
+        def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
+        assert !bidderRequest.ext.prebid.targeting
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsConfig)

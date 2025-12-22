@@ -139,6 +139,9 @@ class AuctionSpec extends BaseSpec {
         then: "Bidder request should contain buyeruid from the user.ext.prebid.buyeruids"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest?.user?.buyeruid == buyeruid
+
+        and: "Bidder request shouldn't contain user.ext.prebid.buyeruids"
+        assert !bidderRequest.user.ext.prebid.buyeruids
     }
 
     def "PBS shouldn't populate bidder request buyeruid from buyeruids when buyeruids without appropriate bidder present in request"() {

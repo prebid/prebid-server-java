@@ -87,11 +87,13 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
 
         then: "Bidder request should generate (source/imp.ext).tid"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-
         verifyAll {
             bidderRequest.imp[0].ext.tid
             bidderRequest.source.tid
         }
+
+        and: "Bidder request should contain ext.prebid.creativeTids"
+        assert bidderRequest.ext.prebid.createTids
 
         where: "Activities fields name in different case"
         activities << [AllowActivities.getDefaultAllowActivities(TRANSMIT_TID, Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)])),
