@@ -96,6 +96,46 @@ public class MobkoiBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldOverrideExistingTagIdWithPlacementId() {
+        // given
+        final ObjectNode mobkoiExt = impExt("placement-id-from-ext");
+        final Imp givenImp1 = givenImp(impBuilder -> impBuilder.tagid("existing-tag-id").ext(mobkoiExt));
+        final Imp givenImp2 = givenImp(identity());
+        final BidRequest bidRequest = BidRequest.builder().imp(asList(givenImp1, givenImp2)).build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getImp)
+                .extracting(imp -> imp.getTagid())
+                .containsExactly("placement-id-from-ext", null);
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldKeepExistingTagIdWhenPlacementIdIsMissing() {
+        // given
+        final ObjectNode mobkoiExt = impExt(null);
+        final Imp givenImp1 = givenImp(impBuilder -> impBuilder.tagid("existing-tag-id").ext(mobkoiExt));
+        final Imp givenImp2 = givenImp(identity());
+        final BidRequest bidRequest = BidRequest.builder().imp(asList(givenImp1, givenImp2)).build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getImp)
+                .extracting(imp -> imp.getTagid())
+                .containsExactly("existing-tag-id", null);
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
     public void makeHttpRequestsShouldOverrideUserExtAndSetConsent() {
         // given
         final ObjectNode originExtUserData = mapper.createObjectNode().put("originAttr", "originValue");
