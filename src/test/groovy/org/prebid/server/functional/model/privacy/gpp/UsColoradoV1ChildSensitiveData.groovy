@@ -1,7 +1,5 @@
 package org.prebid.server.functional.model.privacy.gpp
 
-import org.prebid.server.functional.util.PBSUtils
-
 class UsColoradoV1ChildSensitiveData {
 
     GppDataActivity childSensitive
@@ -9,12 +7,6 @@ class UsColoradoV1ChildSensitiveData {
     static UsColoradoV1ChildSensitiveData getDefault(GppDataActivity childSensitive = GppDataActivity.NOT_APPLICABLE) {
         new UsColoradoV1ChildSensitiveData().tap {
             it.childSensitive = childSensitive
-        }
-    }
-
-    static UsColoradoV1ChildSensitiveData getRandom(List<GppDataActivity> excludedActivities) {
-        new UsColoradoV1ChildSensitiveData().tap {
-            it.childSensitive = PBSUtils.getRandomEnum(GppDataActivity, excludedActivities)
         }
     }
 
