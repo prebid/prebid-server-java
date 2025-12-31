@@ -3,23 +3,17 @@ package org.prebid.server.functional.tests
 import org.prebid.server.functional.model.bidder.AppNexus
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.bidder.Generic
-import org.prebid.server.functional.model.bidderspecific.BidderRequest
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredImp
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
-import org.prebid.server.functional.model.request.auction.AdServerTargeting
 import org.prebid.server.functional.model.request.auction.Adrino
-import org.prebid.server.functional.model.request.auction.Amp
 import org.prebid.server.functional.model.request.auction.Amx
 import org.prebid.server.functional.model.request.auction.AuctionEnvironment
 import org.prebid.server.functional.model.request.auction.Banner
-import org.prebid.server.functional.model.request.auction.BidAdjustmentFactors
-import org.prebid.server.functional.model.request.auction.BidAdjustmentMediaType
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.AnyUnsupportedBidder
-import org.prebid.server.functional.model.request.auction.Events
 import org.prebid.server.functional.model.request.auction.Geo
 import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.ImpExt
@@ -27,14 +21,8 @@ import org.prebid.server.functional.model.request.auction.ImpExtContext
 import org.prebid.server.functional.model.request.auction.ImpExtContextData
 import org.prebid.server.functional.model.request.auction.InterestGroupAuctionSupport
 import org.prebid.server.functional.model.request.auction.Native
-import org.prebid.server.functional.model.request.auction.Pmp
-import org.prebid.server.functional.model.request.auction.PrebidAnalytics
-import org.prebid.server.functional.model.request.auction.PrebidCache
 import org.prebid.server.functional.model.request.auction.PrebidOptions
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
-import org.prebid.server.functional.model.request.auction.Renderer
-import org.prebid.server.functional.model.request.auction.RendererData
-import org.prebid.server.functional.model.request.auction.Sdk
 import org.prebid.server.functional.model.request.auction.Site
 import org.prebid.server.functional.model.request.auction.Source
 import org.prebid.server.functional.model.request.auction.Targeting
@@ -46,21 +34,14 @@ import org.prebid.server.functional.model.response.auction.BidExt
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.CcpaConsent
-import spock.lang.IgnoreRest
 
 import static org.prebid.server.functional.model.Currency.CHF
 import static org.prebid.server.functional.model.Currency.EUR
 import static org.prebid.server.functional.model.Currency.JPY
 import static org.prebid.server.functional.model.Currency.USD
-import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS_UPPER_CASE
 import static org.prebid.server.functional.model.bidder.BidderName.AMX
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
-import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
-import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
-import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
-import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
-import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC_CAMEL_CASE
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.bidder.CompressionType.GZIP
@@ -70,11 +51,9 @@ import static org.prebid.server.functional.model.request.auction.AuctionEnvironm
 import static org.prebid.server.functional.model.request.auction.AuctionEnvironment.NOT_SUPPORTED
 import static org.prebid.server.functional.model.request.auction.AuctionEnvironment.SERVER_ORCHESTRATED
 import static org.prebid.server.functional.model.request.auction.AuctionEnvironment.UNKNOWN
-import static org.prebid.server.functional.model.request.auction.BidAdjustmentMediaType.BANNER
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.DOOH
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
-import static org.prebid.server.functional.model.request.auction.PaaFormat.ORIGINAL
 import static org.prebid.server.functional.model.request.auction.SecurityLevel.NON_SECURE
 import static org.prebid.server.functional.model.request.auction.SecurityLevel.SECURE
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.REQUEST_BLOCKED_UNACCEPTABLE_CURRENCY
@@ -283,9 +262,12 @@ class BidderParamsSpec extends BaseSpec {
         when: "PBS processes auction request"
         defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Response should contain zoneId value from imp[*].ext.prebid.bidder.BIDDER"
+        then: "Bidder request should contain zoneId value from imp[*].ext.prebid.bidder.BIDDER"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp[0]?.ext?.bidder?.firstParam == firstParam
+
+        and: "Bidder request should contain requested bidder param for related itself bidder"
+        assert bidderRequest.ext.prebid.bidderParams[GENERIC] == bidRequest.ext.prebid.bidderParams[GENERIC]
     }
 
     def "PBS should send bidder params from imp[*].ext.prebid.bidder.BIDDER when ext.prebid.bidderparams.BIDDER isn't specified"() {
@@ -803,7 +785,7 @@ class BidderParamsSpec extends BaseSpec {
         when: "Requesting PBS auction"
         defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Response should contain imp[0].secure same value as in request"
+        then: "Bidder request should contain imp[0].secure same value as in request"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp[0].secure == secureBidderRequest
 

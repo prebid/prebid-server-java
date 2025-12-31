@@ -1,6 +1,5 @@
 package org.prebid.server.functional.tests
 
-
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountConfig
@@ -53,6 +52,7 @@ import static org.prebid.server.functional.model.request.auction.VideoPlcmtSubty
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 import static org.prebid.server.functional.util.PBSUtils.getRandomDecimal
+import static org.prebid.server.functional.util.PBSUtils.roundDecimal
 
 class BidAdjustmentSpec extends BaseSpec {
 
@@ -106,7 +106,7 @@ class BidAdjustmentSpec extends BaseSpec {
 
     def "PBS should prefer bid price adjustment based on media type when request has per-media-type bid adjustment factors"() {
         given: "Default bid request with bid adjustment"
-        def bidAdjustment = randomDecimal
+        def bidAdjustment = roundDecimal(getRandomDecimal(), 0)
         def mediaTypeBidAdjustment = bidAdjustmentFactor
         def bidRequest = BidRequest.getDefaultBidRequest(SITE).tap {
             ext.prebid.bidAdjustmentFactors = new BidAdjustmentFactors().tap {
@@ -125,6 +125,10 @@ class BidAdjustmentSpec extends BaseSpec {
         then: "Final bid price should be adjusted"
         assert response?.seatbid?.first?.bid?.first?.price == bidResponse.seatbid.first.bid.first.price *
                 mediaTypeBidAdjustment
+
+        and: "Bidder request should contain bid bid adjustment factors"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.ext.prebid.bidAdjustmentFactors == bidRequest.ext.prebid.bidAdjustmentFactors
 
         where:
         bidAdjustmentFactor << [0.9, 1.1]
@@ -238,6 +242,9 @@ class BidAdjustmentSpec extends BaseSpec {
         assert bidderRequest.cur == [currency]
         assert bidderRequest.imp.bidFloorCur == [currency]
         assert bidderRequest.imp.bidFloor == [impPrice]
+
+        and: "Bidder request should contain bid adjustments"
+        assert bidderRequest.ext.prebid.bidAdjustments == bidRequest.ext.prebid.bidAdjustments
 
         where:
         adjustmentType | ruleValue                                                       | mediaType        | bidRequest

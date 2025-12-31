@@ -42,7 +42,7 @@ class SchainSpec extends BaseSpec {
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.source?.schain?.nodes == supplyChain.nodes + GLOBAL_SUPPLY_SCHAIN_NODE
 
-        and: "Bidder request should contain schain as requested"
+        and: "Bidder request shouldn't contain schains as requested"
         assert !bidderRequest.ext.prebid.schains
     }
 

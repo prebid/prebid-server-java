@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.databind.annotation.JsonNaming
 import groovy.transform.ToString
-import org.prebid.server.functional.model.ChannelType
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.config.AlternateBidderCodes
 import org.prebid.server.functional.model.request.Channel
@@ -54,4 +53,5 @@ class Prebid {
     Map<String, String> keyValuePairs
     Boolean supportDeals
     String integration
+    Map<String, String> bidders
 }

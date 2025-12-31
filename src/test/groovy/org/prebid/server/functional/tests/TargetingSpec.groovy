@@ -2,7 +2,6 @@ package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.bidder.Openx
-import org.prebid.server.functional.model.bidderspecific.BidderRequest
 import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountRankingConfig
@@ -383,9 +382,10 @@ class TargetingSpec extends BaseSpec {
         then: "Amp response shouldn't contain custom targeting"
         assert !response.targeting[customKey]
 
-        and: "Bidder request shouldn't contain ext.prebid.adservertargeting"
+        and: "Bidder request shouldn't contain ext.prebid.{targeting,adservertargeting}"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
         assert !bidderRequest.ext.prebid.targeting
+        assert !bidderRequest.ext.prebid.adServerTargeting
 
         where:
         customSource  | customValue

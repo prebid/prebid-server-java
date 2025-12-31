@@ -1,6 +1,5 @@
 package org.prebid.server.functional.tests
 
-import org.prebid.server.functional.model.bidderspecific.BidderRequest
 import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountProfilesConfigs
@@ -36,7 +35,6 @@ import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
 import org.prebid.server.functional.util.PBSUtils
 import org.testcontainers.images.builder.Transferable
-import spock.lang.IgnoreRest
 import spock.lang.PendingFeature
 
 import static org.prebid.server.functional.model.AccountStatus.ACTIVE
@@ -1269,7 +1267,6 @@ class ProfileSpec extends BaseSpec {
         }
     }
 
-    @IgnoreRest
     def "PBS should emit error and metrics when imp profile called from request level"() {
         given: "Default bidRequest with request profile"
         def accountId = PBSUtils.randomNumber as String
