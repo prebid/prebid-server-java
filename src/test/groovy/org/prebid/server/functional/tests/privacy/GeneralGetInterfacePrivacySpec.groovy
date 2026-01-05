@@ -16,7 +16,6 @@ import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.CcpaConsent
 import org.prebid.server.functional.util.privacy.TcfConsent
 import org.prebid.server.functional.util.privacy.gpp.UsNatV1Consent
-import spock.lang.PendingFeature
 
 import static org.prebid.server.functional.model.config.Purpose.P2
 import static org.prebid.server.functional.model.config.PurposeEnforcement.BASIC
@@ -191,7 +190,7 @@ class GeneralGetInterfacePrivacySpec extends PrivacyBaseSpec {
             !it.gppSid
         }
 
-        and: "Shouldn't contain ext privacy info"
+        and: "Bidder request shouldn't contain regs.ext"
         assert bidderRequest.regs.ext == new RegsExt()
 
         where:
@@ -203,8 +202,7 @@ class GeneralGetInterfacePrivacySpec extends PrivacyBaseSpec {
                 ]
     }
 
-    @PendingFeature
-    def "PBS should emit error when consent type is invalid"() {
+    def "PBS get interface should emit error when consent type is invalid"() {
         given: "Default General get request"
         def consentValue = PBSUtils.randomString
         def accountId = PBSUtils.randomNumber.toString()
@@ -529,7 +527,7 @@ class GeneralGetInterfacePrivacySpec extends PrivacyBaseSpec {
             !it.gpp
         }
 
-        and: "Shouldn't contain ext privacy info"
+        and: "Bidder request shouldn't contain regs.ext"
         assert bidderRequest.regs.ext == new RegsExt()
 
         and: "PBS should cancel request"

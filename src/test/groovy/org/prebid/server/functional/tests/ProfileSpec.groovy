@@ -641,7 +641,7 @@ class ProfileSpec extends BaseSpec {
         assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
         assert response.ext?.warnings[ErrorType.PREBID]*.message == [LIMIT_ERROR_MESSAGE]
 
-        and: "Response should contain error"
+        and: "Response shouldn't contain error"
         assert !response.ext?.errors
 
         and: "Missing metric should increments"
@@ -811,7 +811,7 @@ class ProfileSpec extends BaseSpec {
         then: "PBS should emit proper warning"
         assert response.ext?.warnings[ErrorType.PREBID]*.message.contains(LIMIT_ERROR_MESSAGE)
 
-        and: "Response should contain error"
+        and: "Response shouldn't contain error"
         assert !response.ext?.errors
 
         and: "Missing metric should increments"
@@ -1194,7 +1194,7 @@ class ProfileSpec extends BaseSpec {
         assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
         assert response.ext?.warnings[ErrorType.PREBID]*.message == [LIMIT_ERROR_MESSAGE]
 
-        and: "Response should contain error"
+        and: "Response shouldn't contain error"
         assert !response.ext?.errors
 
         and: "PBS log should contain error"
@@ -1238,7 +1238,7 @@ class ProfileSpec extends BaseSpec {
         assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
         assert response.ext?.warnings[ErrorType.PREBID]*.message == [NO_PROFILE_MESSAGE.formatted(requestProfile.id)]
 
-        and: "Response should contain error"
+        and: "Response shouldn't contain error"
         assert !response.ext?.errors
 
         and: "Missing metric should increments"
@@ -1292,7 +1292,7 @@ class ProfileSpec extends BaseSpec {
         assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
         assert response.ext?.warnings[ErrorType.PREBID]*.message == [NO_PROFILE_MESSAGE.formatted(requestProfile.id)]
 
-        and: "Response should contain error"
+        and: "Response shouldn't contain error"
         assert !response.ext?.errors
 
         and: "Missing metric should increments"
@@ -1341,7 +1341,7 @@ class ProfileSpec extends BaseSpec {
         assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
         assert response.ext?.warnings[ErrorType.PREBID]*.message == [NO_IMP_PROFILE_MESSAGE.formatted(invalidProfileId)]
 
-        and: "Response should contain error"
+        and: "Response shouldn't contain error"
         assert !response.ext?.errors
 
         and: "Missing metric should increments"
@@ -1373,7 +1373,7 @@ class ProfileSpec extends BaseSpec {
         assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
         assert response.ext?.warnings[ErrorType.PREBID]*.message == [NO_REQUEST_PROFILE_MESSAGE.formatted(invalidProfileId)]
 
-        and: "Response should contain error"
+        and: "Response shouldn't contain error"
         assert !response.ext?.errors
 
         and: "Missing metric should increments"
@@ -1421,7 +1421,7 @@ class ProfileSpec extends BaseSpec {
         assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
         assert response.ext?.warnings[ErrorType.PREBID]*.message == [NO_IMP_PROFILE_MESSAGE.formatted(invalidProfile.id)]
 
-        and: "Response should contain error"
+        and: "Response shouldn't contain error"
         assert !response.ext?.errors
 
         and: "Missing metric should increments"
@@ -1461,7 +1461,7 @@ class ProfileSpec extends BaseSpec {
         assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
         assert response.ext?.warnings[ErrorType.PREBID]*.message == [NO_REQUEST_PROFILE_MESSAGE.formatted(invalidProfileId)]
 
-        and: "Response should contain error"
+        and: "Response shouldn't contain error"
         assert !response.ext?.errors
 
         and: "Missing metric should increments"
@@ -1546,7 +1546,7 @@ class ProfileSpec extends BaseSpec {
         assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
         assert response.ext?.warnings[ErrorType.PREBID]*.message == [NO_REQUEST_PROFILE_MESSAGE.formatted(fileRequestProfileWithEmptyMerge.id)]
 
-        and: "Response should contain error"
+        and: "Response shouldn't contain error"
         assert !response.ext?.errors
 
         and: "Missing metric should increments"
@@ -1767,7 +1767,7 @@ class ProfileSpec extends BaseSpec {
         assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
         assert response.ext?.warnings[ErrorType.PREBID]*.message == [NO_PROFILE_MESSAGE.formatted(requestProfile.id)]
 
-        and: "Response should contain error"
+        and: "Response shouldn't contain error"
         assert !response.ext?.errors
 
         and: "Missing metric should increments"
@@ -1824,7 +1824,7 @@ class ProfileSpec extends BaseSpec {
         assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
         assert response.ext?.warnings[ErrorType.PREBID]*.message == [NO_PROFILE_MESSAGE.formatted(impProfile.id)]
 
-        and: "Response should contain error"
+        and: "Response shouldn't contain error"
         assert !response.ext?.errors
 
         and: "Missing metric should increments"
@@ -1860,7 +1860,7 @@ class ProfileSpec extends BaseSpec {
         assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
         assert response.ext?.warnings[ErrorType.PREBID]*.message == [NO_REQUEST_PROFILE_MESSAGE.formatted(requestProfile)]
 
-        and: "Response should contain error"
+        and: "Response shouldn't contain error"
         assert !response.ext?.errors
 
         and: "Missing metric should increments"
@@ -1923,7 +1923,7 @@ class ProfileSpec extends BaseSpec {
         assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
         assert response.ext?.warnings[ErrorType.PREBID]*.message == [NO_IMP_PROFILE_MESSAGE.formatted(impProfileId)]
 
-        and: "Response should contain error"
+        and: "Response shouldn't contain error"
         assert !response.ext?.errors
 
         and: "Missing metric should increments"
@@ -1995,7 +1995,10 @@ class ProfileSpec extends BaseSpec {
         when: "PBS processes general get request"
         def response = pbsWithStoredProfiles.sendGeneralGetRequest(generalGetRequest)
 
-        then: "Response should contain error"
+        then: "PBS should emit proper warning"
+        assert response.ext?.warnings[ErrorType.PREBID]*.message.contains(LIMIT_ERROR_MESSAGE)
+
+        and: "Response should contain error"
         assert !response.ext?.errors
 
         and: "Missing metric should increments"

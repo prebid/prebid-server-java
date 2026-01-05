@@ -8,7 +8,6 @@ class CommaSeparatedListSerializer extends JsonSerializer<List<Object>> {
 
     @Override
     void serialize(List<Object> value, JsonGenerator generator, SerializerProvider serializers) throws IOException {
-        String result = value.join(',')
-        generator.writeString(result)
+        generator.writeString(value.join(','))
     }
 }

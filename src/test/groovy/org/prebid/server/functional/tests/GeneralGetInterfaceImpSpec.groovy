@@ -1709,7 +1709,7 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
         assert bidderRequest.imp[0].ext.data.any == targeting.any
     }
 
-    def "PBS should throw exception when general get request linked to stored request with several imps"() {
+    def "PBS should discard imps after first one and emit a sampled log entry with referrer and account information when request contain several imps"() {
         given: "Start time"
         def startTime = Instant.now()
 
@@ -1735,7 +1735,7 @@ class GeneralGetInterfaceImpSpec extends BaseSpec {
 
         and: "PBS log should contain message"
         def logs = defaultPbsService.getLogsByTime(startTime)
-        assert getLogsByText(logs, '').size() == 1 //TODO add logs
+        assert getLogsByText(logs, "Request includes ${request.imp.size()} imp elements. Only the first one will remain.").size() == 1
 
         where:
         generalGetRequest << [

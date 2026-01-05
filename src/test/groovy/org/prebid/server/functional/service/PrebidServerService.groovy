@@ -353,10 +353,8 @@ class PrebidServerService implements ObjectMapperWrapper {
     }
 
     private Response getAuction(GeneralGetRequest request, Map<String, String> headers = [:]) {
-        def map = toMap(request)
-
         given(requestSpecification).headers(headers)
-                .queryParams(map)
+                .queryParams(toMap(request))
                 .get(GENERAL_GET_ENDPOINT)
     }
 
