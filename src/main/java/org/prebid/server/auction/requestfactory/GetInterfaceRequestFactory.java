@@ -45,6 +45,8 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
+import org.prebid.server.privacy.ccpa.Ccpa;
+import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.proto.openrtb.ext.request.ConsentedProvidersSettings;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
@@ -133,7 +135,7 @@ public class GetInterfaceRequestFactory {
                 .map(httpRequest -> ortb2RequestFactory.enrichAuctionContext(
                         initialAuctionContext,
                         httpRequest,
-                        initialBidRequest(httpRequest),
+                        initialBidRequest(httpRequest, initialAuctionContext.getPrebidErrors()),
                         startTime))
 
                 .recover(ortb2RequestFactory::restoreResultFromRejection);
@@ -197,8 +199,8 @@ public class GetInterfaceRequestFactory {
                 .recover(ortb2RequestFactory::restoreResultFromRejection);
     }
 
-    private BidRequest initialBidRequest(HttpRequestContext httpRequest) {
-        final GetInterfaceParams params = new GetInterfaceParams(httpRequest);
+    private BidRequest initialBidRequest(HttpRequestContext httpRequest, List<String> errors) {
+        final GetInterfaceParams params = new GetInterfaceParams(httpRequest, errors);
         final Consent consent = params.consent();
 
         return BidRequest.builder()
@@ -258,7 +260,9 @@ public class GetInterfaceRequestFactory {
     }
 
     private AuctionContext addTmpPublisher(AuctionContext auctionContext) {
-        final GetInterfaceParams params = new GetInterfaceParams(auctionContext.getHttpRequest());
+        final GetInterfaceParams params = new GetInterfaceParams(
+                auctionContext.getHttpRequest(), auctionContext.getPrebidErrors());
+
         final BidRequest bidRequestWithTmpPublisher = auctionContext.getBidRequest().toBuilder()
                 .site(Site.builder()
                         .publisher(Publisher.builder().id(params.accountId()).build())
@@ -278,16 +282,20 @@ public class GetInterfaceRequestFactory {
 
     private BidRequest completeBidRequest(AuctionContext auctionContext) {
         final Account account = auctionContext.getAccount();
-        final GetInterfaceParams params = new GetInterfaceParams(auctionContext.getHttpRequest());
+        final GetInterfaceParams params = new GetInterfaceParams(
+                auctionContext.getHttpRequest(), auctionContext.getPrebidErrors());
 
         final BidRequest bidRequest = auctionContext.getBidRequest();
-        final Imp imp = Optional.ofNullable(bidRequest.getImp())
-                .filter(CollectionUtils::isNotEmpty)
-                .map(List::getFirst)
-                .orElse(null);
+        final List<Imp> imps = bidRequest.getImp();
+        if (CollectionUtils.isNotEmpty(imps) && imps.size() != 1) {
+            auctionContext.getPrebidErrors().add(
+                    "Request includes %d imp elements. Only the first one will remain.".formatted(imps.size()));
+        }
+
+        final Imp imp = CollectionUtils.isNotEmpty(imps) ? imps.getFirst() : null;
 
         return bidRequest.toBuilder()
-                .imp(Collections.singletonList(completeImp(imp, params)))
+                .imp(imp != null ? Collections.singletonList(completeImp(imp, params)) : null)
                 .site(completeSite(bidRequest.getSite(), params, account))
                 .app(completeApp(bidRequest.getApp(), params, account))
                 .dooh(completeDooh(bidRequest.getDooh(), params, account))
@@ -295,10 +303,6 @@ public class GetInterfaceRequestFactory {
     }
 
     private Imp completeImp(Imp imp, GetInterfaceParams params) {
-        if (imp == null) {
-            return null;
-        }
-
         return imp.toBuilder()
                 .banner(completeBanner(imp.getBanner(), params))
                 .video(completeVideo(imp.getVideo(), params))
@@ -306,36 +310,6 @@ public class GetInterfaceRequestFactory {
                 .tagid(ObjectUtils.defaultIfNull(params.tagId(), imp.getTagid()))
                 .ext(completeImpExt(imp.getExt(), params))
                 .build();
-    }
-
-    private ObjectNode completeImpExt(ObjectNode ext, GetInterfaceParams params) {
-        final ObjectNode extWithTargeting = enrichImpExtWithTargeting(ext, params);
-        return enrichImpExtWithProfiles(extWithTargeting, params);
-    }
-
-    private ObjectNode enrichImpExtWithTargeting(ObjectNode ext, GetInterfaceParams params) {
-        final ObjectNode targetingNode = params.targeting();
-
-        return targetingNode != null
-                ? fpdResolver.resolveImpExt(ext, targetingNode)
-                : ext;
-    }
-
-    private ObjectNode enrichImpExtWithProfiles(ObjectNode ext, GetInterfaceParams params) {
-        final List<String> impProfiles = params.impProfiles();
-        if (CollectionUtils.isEmpty(impProfiles)) {
-            return ext;
-        }
-
-        final ObjectNode modifiedExt = ext != null ? ext : mapper.mapper().createObjectNode();
-        final ObjectNode extPrebid = Optional.ofNullable(modifiedExt.get("prebid"))
-                .filter(JsonNode::isObject)
-                .map(ObjectNode.class::cast)
-                .orElseGet(() -> modifiedExt.putObject("prebid"));
-        final ArrayNode profiles = extPrebid.putArray("profiles");
-        impProfiles.forEach(profiles::add);
-
-        return modifiedExt;
     }
 
     private static Banner completeBanner(Banner banner, GetInterfaceParams params) {
@@ -426,6 +400,36 @@ public class GetInterfaceRequestFactory {
                 .stitched(ObjectUtils.defaultIfNull(params.stitched(), audio.getStitched()))
                 .nvol(ObjectUtils.defaultIfNull(params.nvol(), audio.getNvol()))
                 .build();
+    }
+
+    private ObjectNode completeImpExt(ObjectNode ext, GetInterfaceParams params) {
+        final ObjectNode extWithTargeting = enrichImpExtWithTargeting(ext, params);
+        return enrichImpExtWithProfiles(extWithTargeting, params);
+    }
+
+    private ObjectNode enrichImpExtWithTargeting(ObjectNode ext, GetInterfaceParams params) {
+        final ObjectNode targetingNode = params.targeting();
+
+        return targetingNode != null
+                ? fpdResolver.resolveImpExt(ext, targetingNode)
+                : ext;
+    }
+
+    private ObjectNode enrichImpExtWithProfiles(ObjectNode ext, GetInterfaceParams params) {
+        final List<String> impProfiles = params.impProfiles();
+        if (CollectionUtils.isEmpty(impProfiles)) {
+            return ext;
+        }
+
+        final ObjectNode modifiedExt = ext != null ? ext : mapper.mapper().createObjectNode();
+        final ObjectNode extPrebid = Optional.ofNullable(modifiedExt.get("prebid"))
+                .filter(JsonNode::isObject)
+                .map(ObjectNode.class::cast)
+                .orElseGet(() -> modifiedExt.putObject("prebid"));
+        final ArrayNode profiles = extPrebid.putArray("profiles");
+        impProfiles.forEach(profiles::add);
+
+        return modifiedExt;
     }
 
     private static Site completeSite(Site site, GetInterfaceParams params, Account account) {
@@ -522,12 +526,13 @@ public class GetInterfaceRequestFactory {
 
     private class GetInterfaceParams {
 
-        HttpRequestContext httpRequestContext;
+        private final HttpRequestContext httpRequestContext;
 
-        List<String> errors = new ArrayList<>();
+        private final List<String> errors;
 
-        GetInterfaceParams(HttpRequestContext httpRequestContext) {
+        GetInterfaceParams(HttpRequestContext httpRequestContext, List<String> errors) {
             this.httpRequestContext = Objects.requireNonNull(httpRequestContext);
+            this.errors = Objects.requireNonNull(errors);
         }
 
         public String storedRequestId() {
@@ -546,7 +551,7 @@ public class GetInterfaceRequestFactory {
                 final String value = getString("tmax");
                 return StringUtils.isNotBlank(value) ? Long.parseLong(value) : null;
             } catch (NumberFormatException e) {
-                throw new InvalidRequestException(e.getMessage());
+                throw new InvalidRequestException("Invalid number: " + e.getMessage());
             }
         }
 
@@ -662,7 +667,7 @@ public class GetInterfaceRequestFactory {
                 final String value = getString("mincpms");
                 return StringUtils.isNotBlank(value) ? new BigDecimal(value) : null;
             } catch (NumberFormatException e) {
-                throw new InvalidRequestException(e.getMessage());
+                throw new InvalidRequestException("Invalid number: " + e.getMessage());
             }
         }
 
@@ -773,9 +778,7 @@ public class GetInterfaceRequestFactory {
 
             final String consentString = Optional.ofNullable(getString("consent_string"))
                     .orElseGet(() -> getString("gdpr_consent"));
-            final ConsentType consentType = StringUtils.isNotBlank(consentString)
-                    ? ConsentType.from(getString("consent_type"))
-                    : ConsentType.UNKNOWN;
+            final ConsentType consentType = ConsentType.from(getString("consent_type"));
 
             switch (consentType) {
                 case TCF_V1, TCF_V2 -> {
@@ -793,6 +796,15 @@ public class GetInterfaceRequestFactory {
                         gpp = consentString;
                     }
                 }
+                case UNKNOWN -> errors.add("Invalid consent_type param passed");
+            }
+
+            if (tcfConsent != null && !TcfDefinerService.isConsentStringValid(tcfConsent)) {
+                errors.add("TCF consent string has invalid format.");
+            }
+
+            if (usPrivacy != null && !Ccpa.isValid(usPrivacy)) {
+                errors.add("UsPrivacy string has invalid format.");
             }
 
             return Consent.of(tcfConsent, usPrivacy, gpp);
@@ -932,7 +944,7 @@ public class GetInterfaceRequestFactory {
             try {
                 return StringUtils.isNotBlank(value) ? Integer.parseInt(value) : null;
             } catch (NumberFormatException e) {
-                throw new InvalidRequestException(e.getMessage());
+                throw new InvalidRequestException("Invalid number: " + e.getMessage());
             }
         }
 
