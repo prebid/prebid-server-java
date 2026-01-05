@@ -1,16 +1,17 @@
 package org.prebid.server.it;
 
+import io.restassured.response.Response;
+import org.json.JSONException;
+import org.junit.jupiter.api.Test;
+import org.prebid.server.model.Endpoint;
+
+import java.io.IOException;
+
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static java.util.Collections.singletonList;
-
-import io.restassured.response.Response;
-import java.io.IOException;
-import org.json.JSONException;
-import org.junit.jupiter.api.Test;
-import org.prebid.server.model.Endpoint;
 
 public class ElementalTVTest extends IntegrationTest {
 
