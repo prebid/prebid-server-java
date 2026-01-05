@@ -99,6 +99,7 @@ import org.prebid.server.settings.model.AccountCacheConfig;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ListUtil;
+import org.prebid.server.util.MapUtil;
 import org.prebid.server.util.PbsUtil;
 import org.prebid.server.util.StreamUtil;
 
@@ -115,6 +116,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class ExchangeService {
@@ -259,17 +262,7 @@ public class ExchangeService {
                                 .map(receivedContext::with))
 
                 .map(context -> updateRequestMetric(context, uidsCookie, aliases, account, requestTypeMetric))
-                .compose(context -> Future.join(
-                                context.getAuctionParticipations().stream()
-                                        .map(auctionParticipation -> processAndRequestBids(
-                                                context,
-                                                auctionParticipation.getBidderRequest(),
-                                                timeout,
-                                                aliases)
-                                                .map(auctionParticipation::with))
-                                        .toList())
-                        // send all the requests to the bidders and gathers results
-                        .map(CompositeFuture::<AuctionParticipation>list)
+                .compose(context -> processAndRequestBids(context, timeout, aliases)
                         .map(storedResponseProcessor::updateStoredBidResponse)
                         .map(auctionParticipations -> storedResponseProcessor.mergeWithBidderResponses(
                                 auctionParticipations,
@@ -459,13 +452,10 @@ public class ExchangeService {
                     bidderToImpIds.computeIfAbsent(bidder, bidderName -> new HashSet<>()).add(impId));
         }
 
-        bidderToImpIds.forEach((bidder, impIds) -> {
-            if (bidRejectionTrackers.containsKey(bidder)) {
-                bidRejectionTrackers.put(bidder, new BidRejectionTracker(bidRejectionTrackers.get(bidder), impIds));
-            } else {
-                bidRejectionTrackers.put(bidder, new BidRejectionTracker(bidder, impIds, logSamplingRate));
-            }
-        });
+        bidderToImpIds.forEach((bidder, impIds) -> bidRejectionTrackers.put(bidder,
+                bidRejectionTrackers.containsKey(bidder)
+                        ? BidRejectionTracker.withAdditionalImpIds(bidRejectionTrackers.get(bidder), impIds)
+                        : new BidRejectionTracker(bidder, impIds, logSamplingRate)));
     }
 
     private static StoredResponseResult populateStoredResponse(StoredResponseResult storedResponseResult,
@@ -1149,10 +1139,93 @@ public class ExchangeService {
         return context;
     }
 
-    private Future<BidderResponse> processAndRequestBids(AuctionContext auctionContext,
-                                                         BidderRequest bidderRequest,
-                                                         Timeout timeout,
-                                                         BidderAliases aliases) {
+    private Future<List<AuctionParticipation>> processAndRequestBids(AuctionContext auctionContext,
+                                                                     Timeout timeout,
+                                                                     BidderAliases aliases) {
+
+        // when we ignore Futures from uncompleted secondary bidders,
+        // they continue running in the background and can write errors to BidRejectionTrackers.
+        // To prevent any issues, we provide them with a copy of BidRejectionTracker
+        // and only merge this copy back if secondary bidder has completed in time
+        final Map<String, BidRejectionTracker> copiedBidRejectionTrackers =
+                MapUtil.mapValues(auctionContext.getBidRejectionTrackers(), BidRejectionTracker::copyOf);
+
+        final Map<String, AuctionParticipation> bidderToAuctionParticipation = auctionContext
+                .getAuctionParticipations().stream().collect(Collectors.toMap(
+                        AuctionParticipation::getBidder,
+                        Function.identity()));
+
+        final Map<String, Future<BidderResponse>> bidderToFutureResponse = MapUtil.mapValues(
+                bidderToAuctionParticipation,
+                auctionParticipation -> processAndRequestBidsForSingleBidder(
+                        auctionContext.with(copiedBidRejectionTrackers),
+                        auctionParticipation.getBidderRequest(),
+                        timeout,
+                        aliases));
+
+        return buildPrimaryBiddersCompositeFuture(auctionContext, bidderToFutureResponse).transform(ignored -> {
+            mergeBidRejectionTrackers(auctionContext, copiedBidRejectionTrackers, bidderToFutureResponse);
+
+            return Future.succeededFuture(bidderToFutureResponse.entrySet().stream()
+                    .map(MapUtil.mapEntryValueMapper((bidder, futureResponse) ->
+                            futureResponse.isComplete() ? futureResponse : recoverUncompletedSecondaryBidder(bidder)))
+                    .map(MapUtil.mapEntryMapper((bidder, futureResponse) -> futureResponse.map(bidderResponse ->
+                            bidderToAuctionParticipation.get(bidder).with(bidderResponse))))
+                    .map(Future::result)
+                    .filter(Objects::nonNull)
+                    .toList());
+        });
+    }
+
+    private Future<BidderResponse> recoverUncompletedSecondaryBidder(String bidderName) {
+        final BidderSeatBid bidderSeatBid = BidderSeatBid.builder()
+                .warnings(Collections.singletonList(
+                        BidderError.of("secondary bidder timed out, auction proceeded", BidderError.Type.timeout)))
+                .build();
+
+        return Future.succeededFuture(BidderResponse.of(bidderName, bidderSeatBid, 0));
+    }
+
+    private CompositeFuture buildPrimaryBiddersCompositeFuture(
+            AuctionContext auctionContext,
+            Map<String, Future<BidderResponse>> bidderToFutureResponse) {
+
+        final Set<String> secondaryBidders = Optional.of(auctionContext)
+                .map(AuctionContext::getAccount)
+                .map(Account::getAuction)
+                .map(AccountAuctionConfig::getSecondaryBidders)
+                .orElse(Collections.emptySet());
+
+        final List<Future<BidderResponse>> primaryBiddersFutureResponses = bidderToFutureResponse.keySet().stream()
+                .filter(Predicate.not(secondaryBidders::contains))
+                .map(bidderToFutureResponse::get)
+                .toList();
+
+        return Future.join(CollectionUtils.isNotEmpty(primaryBiddersFutureResponses)
+                ? primaryBiddersFutureResponses
+                : bidderToFutureResponse.values().stream().toList());
+    }
+
+    private void mergeBidRejectionTrackers(
+            AuctionContext auctionContext,
+            Map<String, BidRejectionTracker> newBidRejectionTrackers,
+            Map<String, Future<BidderResponse>> bidderToFutureResponse) {
+
+        final Map<String, BidRejectionTracker> mergedBidRejectionTrackers = MapUtil.mapValues(
+                bidderToFutureResponse,
+                (bidder, futureResponse) -> futureResponse.isComplete()
+                        ? newBidRejectionTrackers.get(bidder)
+                        : auctionContext.getBidRejectionTrackers().get(bidder)
+                        .rejectAll(BidRejectionReason.ERROR_TIMED_OUT));
+
+        auctionContext.getBidRejectionTrackers().clear();
+        auctionContext.getBidRejectionTrackers().putAll(mergedBidRejectionTrackers);
+    }
+
+    private Future<BidderResponse> processAndRequestBidsForSingleBidder(AuctionContext auctionContext,
+                                                                        BidderRequest bidderRequest,
+                                                                        Timeout timeout,
+                                                                        BidderAliases aliases) {
 
         return bidderRequestPostProcessor.process(bidderRequest, aliases, auctionContext)
                 .compose(result -> invokeHooksAndRequestBids(auctionContext, result.getValue(), timeout, aliases)

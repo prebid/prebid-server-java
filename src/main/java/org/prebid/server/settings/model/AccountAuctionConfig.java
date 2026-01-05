@@ -9,6 +9,7 @@ import org.prebid.server.auction.model.PaaFormat;
 import org.prebid.server.spring.config.bidder.model.MediaType;
 
 import java.util.Map;
+import java.util.Set;
 
 @Builder(toBuilder = true)
 @Value
@@ -65,4 +66,7 @@ public class AccountAuctionConfig {
     Integer impressionLimit;
 
     AccountProfilesConfig profiles;
+
+    @JsonProperty("secondarybidders")
+    Set<String> secondaryBidders;
 }
