@@ -20,7 +20,8 @@ public class ElementalTVTest extends IntegrationTest {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/elementaltv-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/elementaltv/test-elementaltv-bid-request-1.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/elementaltv/test-elementaltv-bid-response-1.json"))));
+                .willReturn(aResponse()
+                        .withBody(jsonFrom("openrtb2/elementaltv/test-elementaltv-bid-response-1.json"))));
 
         // when
         final Response response = responseFor("openrtb2/elementaltv/test-auction-elementaltv-request.json",
