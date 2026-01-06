@@ -1206,20 +1206,27 @@ public class ExchangeService {
                 : bidderToFutureResponse.values().stream().toList());
     }
 
-    private void mergeBidRejectionTrackers(
-            AuctionContext auctionContext,
-            Map<String, BidRejectionTracker> newBidRejectionTrackers,
-            Map<String, Future<BidderResponse>> bidderToFutureResponse) {
+    private void mergeBidRejectionTrackers(AuctionContext auctionContext,
+                                           Map<String, BidRejectionTracker> newBidRejectionTrackers,
+                                           Map<String, Future<BidderResponse>> bidderToFutureResponse) {
 
-        final Map<String, BidRejectionTracker> mergedBidRejectionTrackers = MapUtil.mapValues(
-                bidderToFutureResponse,
-                (bidder, futureResponse) -> futureResponse.isComplete()
-                        ? newBidRejectionTrackers.get(bidder)
-                        : auctionContext.getBidRejectionTrackers().get(bidder)
-                        .rejectAll(BidRejectionReason.ERROR_TIMED_OUT));
+        final Map<String, BidRejectionTracker> mergedBidRejectionTrackers = newBidRejectionTrackers.keySet().stream()
+                .collect(Collectors.toMap(Function.identity(), bidder -> mergeBidRejectionTrackersForSingleBidder(
+                        bidderToFutureResponse.get(bidder),
+                        auctionContext.getBidRejectionTrackers().get(bidder),
+                        newBidRejectionTrackers.get(bidder))));
 
         auctionContext.getBidRejectionTrackers().clear();
         auctionContext.getBidRejectionTrackers().putAll(mergedBidRejectionTrackers);
+    }
+
+    private BidRejectionTracker mergeBidRejectionTrackersForSingleBidder(Future<BidderResponse> futureResponse,
+                                                                         BidRejectionTracker oldBidRejectionTracker,
+                                                                         BidRejectionTracker newBidRejectionTracker) {
+
+        return futureResponse == null ? oldBidRejectionTracker : futureResponse.isComplete()
+                ? newBidRejectionTracker
+                : oldBidRejectionTracker.rejectAll(BidRejectionReason.ERROR_TIMED_OUT);
     }
 
     private Future<BidderResponse> processAndRequestBidsForSingleBidder(AuctionContext auctionContext,

@@ -219,6 +219,7 @@ import static org.prebid.server.auction.model.BidRejectionReason.ERROR_GENERAL;
 import static org.prebid.server.auction.model.BidRejectionReason.ERROR_TIMED_OUT;
 import static org.prebid.server.auction.model.BidRejectionReason.NO_BID;
 import static org.prebid.server.auction.model.BidRejectionReason.REQUEST_BLOCKED_GENERAL;
+import static org.prebid.server.auction.model.BidRejectionReason.REQUEST_BLOCKED_PRIVACY;
 import static org.prebid.server.auction.model.BidRejectionReason.REQUEST_BLOCKED_UNSUPPORTED_MEDIA_TYPE;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
@@ -4327,11 +4328,9 @@ public class ExchangeServiceTest extends VertxTest {
         final AuctionContext auctionContext = givenRequestContext(bidRequest, account);
 
         // when
-        final Future<AuctionContext> result = target.holdAuction(auctionContext);
+        target.holdAuction(auctionContext);
 
         // then
-        assertThat(result.succeeded()).isTrue();
-
         final ArgumentCaptor<List<AuctionParticipation>> captor = ArgumentCaptor.forClass(List.class);
         verify(storedResponseProcessor).updateStoredBidResponse(captor.capture());
         assertThat(captor.getValue())
@@ -4374,10 +4373,9 @@ public class ExchangeServiceTest extends VertxTest {
         final AuctionContext auctionContext = givenRequestContext(bidRequest, account);
 
         // when
-        final Future<AuctionContext> result = target.holdAuction(auctionContext);
+        target.holdAuction(auctionContext);
 
         // then
-        assertThat(result.succeeded()).isTrue();
         final ArgumentCaptor<List<AuctionParticipation>> captor = ArgumentCaptor.forClass(List.class);
         verify(storedResponseProcessor).updateStoredBidResponse(captor.capture());
         assertThat(captor.getValue())
@@ -4422,12 +4420,10 @@ public class ExchangeServiceTest extends VertxTest {
         final AuctionContext auctionContext = givenRequestContext(bidRequest, account);
 
         // when
-        final Future<AuctionContext> result = target.holdAuction(auctionContext);
+        final AuctionContext result = target.holdAuction(auctionContext).result();
 
         // then
-        assertThat(result.succeeded()).isTrue();
-        final Map<String, BidRejectionTracker> finalBidRejectionTrackers = result.result().getBidRejectionTrackers();
-        assertThat(finalBidRejectionTrackers.get("secondary").getRejected())
+        assertThat(result.getBidRejectionTrackers().get("secondary").getRejected())
                 .extracting(Rejection::reason)
                 .containsExactlyInAnyOrder(ERROR_TIMED_OUT);
     }
@@ -4460,12 +4456,10 @@ public class ExchangeServiceTest extends VertxTest {
                 .build();
 
         // when
-        final Future<AuctionContext> result = target.holdAuction(auctionContext);
+        final AuctionContext result = target.holdAuction(auctionContext).result();
 
         // then
-        assertThat(result.succeeded()).isTrue();
-        final Map<String, BidRejectionTracker> finalBidRejectionTrackers = result.result().getBidRejectionTrackers();
-        assertThat(finalBidRejectionTrackers.get("secondary").getRejected())
+        assertThat(result.getBidRejectionTrackers().get("secondary").getRejected())
                 .extracting(Rejection::reason)
                 .containsExactlyInAnyOrder(REQUEST_BLOCKED_GENERAL, ERROR_TIMED_OUT);
     }
@@ -4514,17 +4508,39 @@ public class ExchangeServiceTest extends VertxTest {
                 .build();
 
         // when
-        final Future<AuctionContext> result = target.holdAuction(auctionContext);
+        final AuctionContext result = target.holdAuction(auctionContext).result();
 
         // then
-        assertThat(result.succeeded()).isTrue();
-        final Map<String, BidRejectionTracker> finalBidRejectionTrackers = result.result().getBidRejectionTrackers();
-        assertThat(finalBidRejectionTrackers)
+        assertThat(result.getBidRejectionTrackers())
                 .extractingByKeys("primary", "secondarySucceeded", "secondaryFailed")
                 .extracting(BidRejectionTracker::getRejected)
                 .extracting(rejections -> rejections.stream().map(Rejection::reason).collect(Collectors.toSet()))
                 .hasSize(3)
                 .containsOnly(Set.of(REQUEST_BLOCKED_GENERAL, ERROR_GENERAL));
+    }
+
+    @Test
+    public void shouldRetainBidRejectionsForBiddersThatWereRejectedBeforeBidderFutureSplit() {
+        // given
+        final BidderPrivacyResult restrictedPrivacy = BidderPrivacyResult.builder()
+                .requestBidder("testBidder")
+                .blockedRequestByTcf(true)
+                .build();
+        given(privacyEnforcementService.mask(any(), any(), any()))
+                .willReturn(Future.succeededFuture(singletonList(restrictedPrivacy)));
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(Map.of("testBidder", 1)));
+        final AuctionContext auctionContext = givenRequestContext(bidRequest);
+
+        // when
+        final AuctionContext result = target.holdAuction(auctionContext).result();
+
+        // then
+        assertThat(result.getBidRejectionTrackers())
+                .extractingByKeys("testBidder")
+                .extracting(BidRejectionTracker::getRejected)
+                .extracting(rejections -> rejections.stream().map(Rejection::reason).collect(Collectors.toSet()))
+                .containsExactly(singleton(REQUEST_BLOCKED_PRIVACY));
     }
 
     private void givenTarget(boolean enabledStrictAppSiteDoohValidation) {
