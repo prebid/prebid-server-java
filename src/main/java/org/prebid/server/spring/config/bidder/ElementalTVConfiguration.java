@@ -29,8 +29,8 @@ public class ElementalTVConfiguration {
 
     @Bean
     BidderDeps elementaltvBidderDeps(BidderConfigurationProperties elementalTVConfigurationProperties,
-                                  @NotBlank @Value("${external-url}") String externalUrl,
-                                  JacksonMapper mapper) {
+                                     @NotBlank @Value("${external-url}") String externalUrl,
+                                     JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(elementalTVConfigurationProperties)
