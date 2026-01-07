@@ -33,6 +33,12 @@ import org.prebid.server.auction.UidUpdater;
 import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.VideoStoredRequestProcessor;
 import org.prebid.server.auction.WinningBidComparatorFactory;
+import org.prebid.server.auction.bidderrequestpostprocessor.BidderRequestCleaner;
+import org.prebid.server.auction.bidderrequestpostprocessor.BidderRequestCurrencyBlocker;
+import org.prebid.server.auction.bidderrequestpostprocessor.BidderRequestMediaFilter;
+import org.prebid.server.auction.bidderrequestpostprocessor.BidderRequestPostProcessor;
+import org.prebid.server.auction.bidderrequestpostprocessor.BidderRequestPreferredMediaProcessor;
+import org.prebid.server.auction.bidderrequestpostprocessor.CompositeBidderRequestPostProcessor;
 import org.prebid.server.auction.categorymapping.BasicCategoryMappingService;
 import org.prebid.server.auction.categorymapping.CategoryMappingService;
 import org.prebid.server.auction.categorymapping.NoOpCategoryMappingService;
@@ -47,10 +53,6 @@ import org.prebid.server.auction.gpp.SetuidGppService;
 import org.prebid.server.auction.gpp.processor.GppContextProcessor;
 import org.prebid.server.auction.gpp.processor.tcfeuv2.TcfEuV2ContextProcessor;
 import org.prebid.server.auction.gpp.processor.uspv1.UspV1ContextProcessor;
-import org.prebid.server.auction.mediatypeprocessor.BidderMediaTypeProcessor;
-import org.prebid.server.auction.mediatypeprocessor.CompositeMediaTypeProcessor;
-import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessor;
-import org.prebid.server.auction.mediatypeprocessor.MultiFormatMediaTypeProcessor;
 import org.prebid.server.auction.privacy.contextfactory.AmpPrivacyContextFactory;
 import org.prebid.server.auction.privacy.contextfactory.AuctionPrivacyContextFactory;
 import org.prebid.server.auction.privacy.contextfactory.CookieSyncPrivacyContextFactory;
@@ -136,6 +138,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 import org.springframework.context.annotation.ScopedProxyMode;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 
 import jakarta.validation.constraints.Min;
 import java.io.IOException;
@@ -792,19 +796,35 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    @Order(Ordered.HIGHEST_PRECEDENCE)
+    BidderRequestPostProcessor bidderRequestCurrencyBlocker(BidderCatalog bidderCatalog) {
+        return new BidderRequestCurrencyBlocker(bidderCatalog);
+    }
+
+    @Bean
+    @Order(0)
     @ConditionalOnProperty(prefix = "auction.filter-imp-media-type", name = "enabled", havingValue = "true")
-    MediaTypeProcessor bidderMediaTypeProcessor(BidderCatalog bidderCatalog) {
-        return new BidderMediaTypeProcessor(bidderCatalog);
+    BidderRequestPostProcessor bidderRequestMediaFilter(BidderCatalog bidderCatalog) {
+        return new BidderRequestMediaFilter(bidderCatalog);
     }
 
     @Bean
-    MediaTypeProcessor multiFormatMediaTypeProcessor(BidderCatalog bidderCatalog) {
-        return new MultiFormatMediaTypeProcessor(bidderCatalog);
+    @Order(0)
+    BidderRequestPostProcessor bidderRequestPreferredMediaProcessor(BidderCatalog bidderCatalog) {
+        return new BidderRequestPreferredMediaProcessor(bidderCatalog);
     }
 
     @Bean
-    CompositeMediaTypeProcessor compositeMediaTypeProcessor(List<MediaTypeProcessor> mediaTypeProcessors) {
-        return new CompositeMediaTypeProcessor(mediaTypeProcessors);
+    @Order(Ordered.LOWEST_PRECEDENCE)
+    BidderRequestPostProcessor bidderRequestCleaner() {
+        return new BidderRequestCleaner();
+    }
+
+    @Bean
+    CompositeBidderRequestPostProcessor compositeBidderRequestPostProcessor(
+            List<BidderRequestPostProcessor> bidderRequestPostProcessors) {
+
+        return new CompositeBidderRequestPostProcessor(bidderRequestPostProcessors);
     }
 
     @Bean
@@ -916,7 +936,7 @@ public class ServiceConfiguration {
             ImpAdjuster impAdjuster,
             SupplyChainResolver supplyChainResolver,
             DebugResolver debugResolver,
-            CompositeMediaTypeProcessor mediaTypeProcessor,
+            CompositeBidderRequestPostProcessor bidderRequestPostProcessor,
             UidUpdater uidUpdater,
             TimeoutResolver timeoutResolver,
             TimeoutFactory timeoutFactory,
@@ -944,7 +964,7 @@ public class ServiceConfiguration {
                 impAdjuster,
                 supplyChainResolver,
                 debugResolver,
-                mediaTypeProcessor,
+                bidderRequestPostProcessor,
                 uidUpdater,
                 timeoutResolver,
                 timeoutFactory,

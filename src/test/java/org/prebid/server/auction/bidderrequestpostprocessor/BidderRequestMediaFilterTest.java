@@ -1,4 +1,4 @@
-package org.prebid.server.auction.mediatypeprocessor;
+package org.prebid.server.auction.bidderrequestpostprocessor;
 
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Audio;
@@ -8,6 +8,8 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Video;
+import io.vertx.core.Future;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,10 +17,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.aliases.BidderAliases;
+import org.prebid.server.auction.model.BidRejectionReason;
+import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderInfo;
 import org.prebid.server.bidder.model.BidderError;
+import org.prebid.server.bidder.model.Result;
 import org.prebid.server.spring.config.bidder.model.CompressionType;
 import org.prebid.server.spring.config.bidder.model.MediaType;
 import org.prebid.server.spring.config.bidder.model.Ortb;
@@ -41,7 +46,7 @@ import static org.prebid.server.spring.config.bidder.model.MediaType.NATIVE;
 import static org.prebid.server.spring.config.bidder.model.MediaType.VIDEO;
 
 @ExtendWith(MockitoExtension.class)
-public class BidderMediaTypeProcessorTest extends VertxTest {
+public class BidderRequestMediaFilterTest extends VertxTest {
 
     private static final String BIDDER = "bidder";
 
@@ -50,42 +55,50 @@ public class BidderMediaTypeProcessorTest extends VertxTest {
     @Mock
     private BidderAliases bidderAliases;
 
-    private BidderMediaTypeProcessor target;
+    private BidderRequestMediaFilter target;
 
     @BeforeEach
     public void setUp() {
-        target = new BidderMediaTypeProcessor(bidderCatalog);
+        target = new BidderRequestMediaFilter(bidderCatalog);
         when(bidderAliases.resolveBidder(anyString())).thenAnswer(invocation -> invocation.getArgument(0));
     }
 
     @Test
-    public void processShouldReturnRejectedResultAndErrorIfBidderNotSupportAnyMediaType() {
+    public void processShouldReturnRejectedResultAndErrorIfBidderDoesNotSupportAnyMediaType() {
         // given
         given(bidderCatalog.bidderInfoByName(BIDDER))
                 .willReturn(givenBidderInfo(emptyList(), emptyList(), emptyList()));
-        final BidRequest bidRequest = givenBidRequest(identity(), givenImp(BANNER));
+        final BidderRequest bidderRequest = givenBidderRequest(identity(), givenImp(BANNER));
 
         // when
-        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, bidderAliases, null);
+        final Future<Result<BidderRequest>> result = target.process(bidderRequest, bidderAliases, null);
 
         // then
-        assertThat(result.isRejected()).isTrue();
-        assertThat(result.getErrors()).containsExactly(
-                BidderError.badInput("Bidder does not support any media types."));
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause())
+                .asInstanceOf(InstanceOfAssertFactories.type(BidderRequestRejectedException.class))
+                .satisfies(e -> {
+                    assertThat(e.getRejectionReason())
+                            .isEqualTo(BidRejectionReason.REQUEST_BLOCKED_UNSUPPORTED_MEDIA_TYPE);
+                    assertThat(e.getErrors()).containsExactly(
+                            BidderError.badInput("Bidder does not support any media types."));
+                });
     }
 
     @Test
     public void processShouldUseAppMediaTypesIfAppPresent() {
         // given
-        final BidRequest bidRequest = givenBidRequest(request -> request.app(App.builder().build()), givenImp(BANNER));
         given(bidderCatalog.bidderInfoByName(BIDDER))
                 .willReturn(givenBidderInfo(singletonList(BANNER), singletonList(AUDIO), singletonList(NATIVE)));
+        final BidderRequest bidderRequest = givenBidderRequest(
+                request -> request.app(App.builder().build()),
+                givenImp(BANNER));
 
         // when
-        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, bidderAliases, null);
+        final Result<BidderRequest> result = target.process(bidderRequest, bidderAliases, null).result();
 
         // then
-        assertThat(result.getBidRequest()).isEqualTo(bidRequest);
+        assertThat(result.getValue()).isEqualTo(bidderRequest);
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -94,18 +107,19 @@ public class BidderMediaTypeProcessorTest extends VertxTest {
         // given
         given(bidderCatalog.bidderInfoByName(BIDDER))
                 .willReturn(givenBidderInfo(emptyList(), List.of(BANNER, AUDIO), emptyList()));
-        final BidRequest bidRequest = givenBidRequest(
+        final BidderRequest bidderRequest = givenBidderRequest(
                 request -> request.site(Site.builder().build()),
                 givenImp(AUDIO, NATIVE),
                 givenImp(BANNER, VIDEO));
 
         // when
-        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, bidderAliases, null);
+        final Result<BidderRequest> result = target.process(bidderRequest, bidderAliases, null).result();
 
         // then
-        assertThat(result.getBidRequest())
+        assertThat(result.getValue())
+                .extracting(BidderRequest::getBidRequest)
                 .extracting(BidRequest::getImp)
-                .asList()
+                .asInstanceOf(InstanceOfAssertFactories.LIST)
                 .containsExactly(givenImp(AUDIO), givenImp(BANNER));
         assertThat(result.getErrors()).isEmpty();
     }
@@ -115,18 +129,19 @@ public class BidderMediaTypeProcessorTest extends VertxTest {
         // given
         given(bidderCatalog.bidderInfoByName(BIDDER))
                 .willReturn(givenBidderInfo(emptyList(), asList(BANNER, AUDIO), emptyList()));
-        final BidRequest bidRequest = givenBidRequest(
+        final BidderRequest bidderRequest = givenBidderRequest(
                 request -> request.site(Site.builder().build()),
                 givenImp(VIDEO, NATIVE),
                 givenImp(BANNER, AUDIO));
 
         // when
-        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, bidderAliases, null);
+        final Result<BidderRequest> result = target.process(bidderRequest, bidderAliases, null).result();
 
         // then
-        assertThat(result.getBidRequest())
+        assertThat(result.getValue())
+                .extracting(BidderRequest::getBidRequest)
                 .extracting(BidRequest::getImp)
-                .asList()
+                .asInstanceOf(InstanceOfAssertFactories.LIST)
                 .containsExactly(givenImp(BANNER, AUDIO));
         assertThat(result.getErrors()).containsExactly(
                 BidderError.badInput("Imp " + null + " does not have a supported media type "
@@ -138,22 +153,28 @@ public class BidderMediaTypeProcessorTest extends VertxTest {
         // given
         given(bidderCatalog.bidderInfoByName(BIDDER))
                 .willReturn(givenBidderInfo(emptyList(), asList(BANNER, AUDIO), emptyList()));
-        final BidRequest bidRequest = givenBidRequest(
+        final BidderRequest bidderRequest = givenBidderRequest(
                 request -> request.site(Site.builder().build()),
                 givenImp(VIDEO),
                 givenImp(NATIVE));
 
         // when
-        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, bidderAliases, null);
+        final Future<Result<BidderRequest>> result = target.process(bidderRequest, bidderAliases, null);
 
         // then
-        assertThat(result.isRejected()).isTrue();
-        assertThat(result.getErrors()).containsExactly(
-                BidderError.badInput("Imp " + null + " does not have a supported media type "
-                        + "and has been removed from the request for this bidder."),
-                BidderError.badInput("Imp " + null + " does not have a supported media type "
-                        + "and has been removed from the request for this bidder."),
-                BidderError.badInput("Bid request contains 0 impressions after filtering."));
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause())
+                .asInstanceOf(InstanceOfAssertFactories.type(BidderRequestRejectedException.class))
+                .satisfies(e -> {
+                    assertThat(e.getRejectionReason())
+                            .isEqualTo(BidRejectionReason.REQUEST_BLOCKED_UNSUPPORTED_MEDIA_TYPE);
+                    assertThat(e.getErrors()).containsExactly(
+                            BidderError.badInput("Imp null does not have a supported media type"
+                                    + " and has been removed from the request for this bidder."),
+                            BidderError.badInput("Imp null does not have a supported media type"
+                                    + " and has been removed from the request for this bidder."),
+                            BidderError.badInput("Bid request contains 0 impressions after filtering."));
+                });
     }
 
     private static BidderInfo givenBidderInfo(List<MediaType> appMediaTypes,
@@ -179,10 +200,13 @@ public class BidderMediaTypeProcessorTest extends VertxTest {
                 0L);
     }
 
-    private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
-                                              Imp... imps) {
+    private static BidderRequest givenBidderRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
+                                                    Imp... imps) {
 
-        return bidRequestCustomizer.apply(BidRequest.builder()).imp(asList(imps)).build();
+        return BidderRequest.builder()
+                .bidRequest(bidRequestCustomizer.apply(BidRequest.builder()).imp(asList(imps)).build())
+                .bidder(BIDDER)
+                .build();
     }
 
     private static Imp givenImp(MediaType... mediaTypes) {
