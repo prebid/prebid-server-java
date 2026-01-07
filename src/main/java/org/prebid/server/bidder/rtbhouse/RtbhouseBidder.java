@@ -194,12 +194,9 @@ public class RtbhouseBidder implements Bidder<BidRequest> {
     }
 
     private static String extractTagId(Imp imp) {
-        final String existingTagid = imp.getTagid();
-        if (StringUtils.isNotBlank(existingTagid)) {
-            return existingTagid;
-        }
-
-        return extractTagIdFromExt(imp);
+        return Optional.ofNullable(imp.getTagid())
+                .filter(StringUtils::isNotBlank)
+                .orElseGet(() -> extractTagIdFromExt(imp));
     }
 
     private static String extractTagIdFromExt(Imp imp) {
