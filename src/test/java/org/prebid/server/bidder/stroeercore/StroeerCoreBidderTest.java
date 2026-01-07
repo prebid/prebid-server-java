@@ -219,8 +219,7 @@ public class StroeerCoreBidderTest extends VertxTest {
                 .build();
 
         final StroeerCoreBidResponse response = StroeerCoreBidResponse.of(
-                List.of(bannerBidWithoutExt, bannerBidWithExt)
-        );
+                List.of(bannerBidWithoutExt, bannerBidWithExt));
         final BidderCall<BidRequest> httpCall = createHttpCall(response);
 
         // when
@@ -249,8 +248,7 @@ public class StroeerCoreBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).containsOnly(
                 BidderBid.of(expectedBid1, BidType.banner, "EUR"),
-                BidderBid.of(expectedBid2, BidType.banner, "EUR")
-        );
+                BidderBid.of(expectedBid2, BidType.banner, "EUR"));
     }
 
     @Test
