@@ -19,6 +19,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.spring.config.bidder.model.MediaType;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
@@ -45,7 +46,8 @@ public class BidderRequestMediaFilter implements BidderRequestPostProcessor {
         final BidRequest bidRequest = bidderRequest.getBidRequest();
         final Set<MediaType> supportedMediaTypes = extractSupportedMediaTypes(bidRequest, resolvedBidderName);
         if (supportedMediaTypes.isEmpty()) {
-            return rejected(List.of(BidderError.badInput("Bidder does not support any media types.")));
+            return rejected(Collections.singletonList(
+                    BidderError.badInput("Bidder does not support any media types.")));
         }
 
         final List<BidderError> errors = new ArrayList<>();

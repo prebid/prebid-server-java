@@ -37,7 +37,8 @@ public class BidderRequestCurrencyBlocker implements BidderRequestPostProcessor 
 
         return Future.failedFuture(new BidderRequestRejectedException(
                 BidRejectionReason.REQUEST_BLOCKED_UNACCEPTABLE_CURRENCY,
-                List.of(BidderError.generic("No match between the configured currencies and bidRequest.cur"))));
+                Collections.singletonList(
+                        BidderError.generic("No match between the configured currencies and bidRequest.cur"))));
     }
 
     private boolean isAcceptableCurrency(BidRequest bidRequest, String originalBidderName) {
