@@ -57,21 +57,24 @@ public class EpsilonBidder implements Bidder<BidRequest> {
     // Position of the ad as a relative measure of visibility or prominence
     private static final Set<Integer> AD_POSITIONS = IntStream.range(0, 8).boxed().collect(Collectors.toSet());
 
-    private static final String DISPLAY_MANAGER = "prebid-s2s";
-    private static final String DISPLAY_MANAGER_VER = "2.0.0";
+    private static final String DISPLAY_MANAGER = "prebid-s2s-java";
+    private static final String VERSION_UNDEFINED = "undefined";
 
     private final String endpointUrl;
     private final boolean generateBidId;
     private final JacksonMapper mapper;
+    private final String displayManagerVersion;
 
     public EpsilonBidder(String endpointUrl,
                          boolean generateBidId,
+                         String pbsVersion,
                          JacksonMapper mapper,
                          CurrencyConversionService currencyConversionService) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.generateBidId = generateBidId;
         this.mapper = Objects.requireNonNull(mapper);
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
+        this.displayManagerVersion = VERSION_UNDEFINED.equals(pbsVersion) ? null : pbsVersion;
     }
 
     @Override
@@ -96,7 +99,7 @@ public class EpsilonBidder implements Bidder<BidRequest> {
             final BigDecimal bidFloor = resolveBidFloor(bidRequest,
                     imp.getBidfloorcur(),
                     getBidFloor(imp.getBidfloor(), impExt.getBidfloor()));
-            modifiedImps.add(modifyImp(imp, impExt, bidFloor));
+            modifiedImps.add(modifyImp(imp, impExt, bidFloor, displayManagerVersion));
         }
 
         final Imp firstImp = requestImps.getFirst();
@@ -143,13 +146,13 @@ public class EpsilonBidder implements Bidder<BidRequest> {
         return app == null ? null : app.toBuilder().id(siteId).build();
     }
 
-    private static Imp modifyImp(Imp imp, ExtImpEpsilon impExt, BigDecimal bidfloor) {
+    private static Imp modifyImp(Imp imp, ExtImpEpsilon impExt, BigDecimal bidfloor, String displayManagerVersion) {
         final Banner banner = imp.getBanner();
         final Video video = imp.getVideo();
 
         return imp.toBuilder()
                 .displaymanager(DISPLAY_MANAGER)
-                .displaymanagerver(DISPLAY_MANAGER_VER)
+                .displaymanagerver(displayManagerVersion)
                 .bidfloor(bidfloor)
                 .bidfloorcur(BIDDER_CURRENCY)
                 .tagid(getTagId(imp.getTagid(), impExt.getTagId()))
