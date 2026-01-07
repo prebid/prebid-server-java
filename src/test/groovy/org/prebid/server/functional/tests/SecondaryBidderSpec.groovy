@@ -341,5 +341,3 @@ class SecondaryBidderSpec extends BaseSpec {
         bidder.reset()
     }
 }
-
-
