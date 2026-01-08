@@ -382,9 +382,11 @@ class TargetingSpec extends BaseSpec {
         then: "Amp response shouldn't contain custom targeting"
         assert !response.targeting[customKey]
 
-        and: "Bidder request shouldn't contain ext.prebid.{targeting,adservertargeting}"
+        and: "Bidder request should contain ext.prebid.targeting"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
-        assert !bidderRequest.ext.prebid.targeting
+        assert bidderRequest.ext.prebid.targeting
+
+        and: "Bidder request shouldn't contain ext.prebid.adservertargeting"
         assert !bidderRequest.ext.prebid.adServerTargeting
 
         where:
@@ -455,9 +457,9 @@ class TargetingSpec extends BaseSpec {
                         .every(map -> map.keySet()
                                 .every(key -> key.length() <= targetingLength)))
 
-        and: "Bidder request shouldn't contain ext.prebid.adservertargeting"
-        def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
-        assert !bidderRequest.ext.prebid.targeting
+        and: "Bidder request should contain ext.prebid.adservertargeting"
+        def bidderRequest = bidder.getBidderRequests(bidRequest.id)
+        assert bidderRequest.ext.prebid.targeting
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsConfig)

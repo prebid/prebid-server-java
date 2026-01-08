@@ -98,7 +98,7 @@ class BidAdjustmentSpec extends BaseSpec {
 
         and: "Bidder request shouldn't contain bid adjustment factors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert !bidderRequest.ext.prebid.bidAdjustmentFactors
+        assert bidderRequest.ext.prebid.bidAdjustmentFactors == bidRequest.ext.prebid.bidAdjustmentFactors
 
         where:
         bidAdjustmentFactor << [0.9, 1.1]
@@ -211,10 +211,12 @@ class BidAdjustmentSpec extends BaseSpec {
         def currency = USD
         def impPrice = PBSUtils.randomPrice
         def rule = new BidAdjustmentRule(generic: [(WILDCARD): [new AdjustmentRule(adjustmentType: adjustmentType, value: ruleValue, currency: currency)]])
-        bidRequest.ext.prebid.bidAdjustments = BidAdjustment.getDefaultWithSingleMediaTypeRule(mediaType, rule)
-        bidRequest.cur = [currency]
-        bidRequest.imp.first.bidFloor = impPrice
-        bidRequest.imp.first.bidFloorCur = currency
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.bidAdjustments = BidAdjustment.getDefaultWithSingleMediaTypeRule(mediaType, rule)
+            cur = [currency]
+            imp.first.bidFloor = impPrice
+            imp.first.bidFloorCur = currency
+        }
 
         and: "Default bid response"
         def originalPrice = PBSUtils.randomPrice

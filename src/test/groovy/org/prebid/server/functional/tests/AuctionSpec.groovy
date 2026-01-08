@@ -26,7 +26,6 @@ import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.HttpUtil
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.IgnoreRest
 import spock.lang.Shared
 
 import static org.prebid.server.functional.model.AccountStatus.ACTIVE
@@ -141,7 +140,7 @@ class AuctionSpec extends BaseSpec {
         assert bidderRequest?.user?.buyeruid == buyeruid
 
         and: "Bidder request shouldn't contain user.ext.prebid.buyeruids"
-        assert !bidderRequest.user.ext.prebid.buyeruids
+        assert !bidderRequest?.user?.ext?.prebid?.buyeruids
     }
 
     def "PBS shouldn't populate bidder request buyeruid from buyeruids when buyeruids without appropriate bidder present in request"() {

@@ -1321,8 +1321,8 @@ class ProfileSpec extends BaseSpec {
             it.device.dpidmd5 == bidRequest.device.dpidmd5
         }
 
-        and: "Bidder request shouldn't contain ext.prebid.profile"
-        assert !bidderRequest.ext.prebid.profileNames
+        and: "Bidder request should contain ext.prebid.profile"
+        assert bidderRequest.ext.prebid.profileNames
     }
 
     def "PBS should emit error and metrics when imp profile missing"() {

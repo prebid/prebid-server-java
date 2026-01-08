@@ -34,6 +34,7 @@ import org.prebid.server.functional.model.response.auction.BidExt
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.CcpaConsent
+import spock.lang.IgnoreRest
 
 import static org.prebid.server.functional.model.Currency.CHF
 import static org.prebid.server.functional.model.Currency.EUR
@@ -1428,7 +1429,7 @@ class BidderParamsSpec extends BaseSpec {
         assert response.ext.responsetimemillis.containsKey(ALIAS.value)
 
         and: "Bidder request should be valid and not contain aliases"
-        def bidderRequests = bidder.getBidderRequests(bidRequest.id)
+        def bidderRequests = bidder.getBidderRequests(bidRequest.id).first
         assert !bidderRequests.ext.prebid.aliases
     }
 
