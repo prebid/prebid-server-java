@@ -113,8 +113,9 @@ public class BidderRequestCleanerTest extends VertxTest {
     public void processShouldCleanBidAdjustments() {
         // given
         final ObjectNode bidAdjustments = mapper.valueToTree(Map.of(
-                "banner", Map.of("other", 1),
-                "video", Map.of("other", 1, "biddEr", 1)));
+                "mediatype", Map.of(
+                        "banner", Map.of("other", 1),
+                        "video", Map.of("other", 1, "biddEr", 1))));
 
         final BidderRequest bidderRequest = givenBidderRequest(extPrebid -> extPrebid.bidadjustments(bidAdjustments));
 
@@ -127,14 +128,15 @@ public class BidderRequestCleanerTest extends VertxTest {
                 .extracting(BidRequest::getExt)
                 .extracting(ExtRequest::getPrebid)
                 .extracting(ExtRequestPrebid::getBidadjustments)
-                .isEqualTo(mapper.valueToTree(Map.of("video", Map.of("biddEr", 1))));
+                .isEqualTo(mapper.valueToTree(Map.of("mediatype", Map.of("video", Map.of("biddEr", 1)))));
         assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
     public void processShouldRemoveBidAdjustments() {
         // given
-        final ObjectNode bidAdjustments = mapper.valueToTree(Map.of("banner", Map.of("other", 1)));
+        final ObjectNode bidAdjustments = mapper.valueToTree(Map.of(
+                "mediatype", Map.of("banner", Map.of("other", 1))));
 
         final BidderRequest bidderRequest = givenBidderRequest(extPrebid -> extPrebid.bidadjustments(bidAdjustments));
 
