@@ -211,12 +211,10 @@ class BidAdjustmentSpec extends BaseSpec {
         def currency = USD
         def impPrice = PBSUtils.randomPrice
         def rule = new BidAdjustmentRule(generic: [(WILDCARD): [new AdjustmentRule(adjustmentType: adjustmentType, value: ruleValue, currency: currency)]])
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.bidAdjustments = BidAdjustment.getDefaultWithSingleMediaTypeRule(mediaType, rule)
-            cur = [currency]
-            imp.first.bidFloor = impPrice
-            imp.first.bidFloorCur = currency
-        }
+        bidRequest.ext.prebid.bidAdjustments = BidAdjustment.getDefaultWithSingleMediaTypeRule(mediaType, rule)
+        bidRequest.cur = [currency]
+        bidRequest.imp.first.bidFloor = impPrice
+        bidRequest.imp.first.bidFloorCur = currency
 
         and: "Default bid response"
         def originalPrice = PBSUtils.randomPrice
