@@ -130,18 +130,14 @@ public class ApplicationTest extends IntegrationTest {
 
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/genericAlias-exchange"))
                 .withRequestBody(equalToJson(
-                        jsonFrom(
-                                "openrtb2/multi_bid/test-genericAlias-bid-request-1.json"
-                        )))
+                        jsonFrom("openrtb2/multi_bid/test-genericAlias-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom(
                         "openrtb2/multi_bid/test-genericAlias-bid-response-1.json"))));
 
         // pre-bid cache
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToBidCacheRequest(
-                        jsonFrom(
-                                "openrtb2/multi_bid/test-cache-generic-genericAlias-request.json"
-                        )))
+                        jsonFrom("openrtb2/multi_bid/test-cache-generic-genericAlias-request.json")))
                 .willReturn(aResponse()
                         .withTransformers("cache-response-transformer")
                         .withTransformerParameter("matcherName",
