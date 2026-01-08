@@ -158,7 +158,8 @@ public class BidderRequestCleaner implements BidderRequestPostProcessor {
         }
 
         final ObjectNode cleanedBidAdjustments = bidAdjustments.deepCopy();
-        for (Iterator<JsonNode> maps = cleanedBidAdjustments.elements(); maps.hasNext(); ) {
+        final JsonNode mediaTypeToBidAdjustments = cleanedBidAdjustments.path("mediatype");
+        for (Iterator<JsonNode> maps = mediaTypeToBidAdjustments.elements(); maps.hasNext(); ) {
             final JsonNode bidderMap = maps.next();
             if (!bidderMap.isObject()) {
                 continue;
@@ -175,7 +176,7 @@ public class BidderRequestCleaner implements BidderRequestPostProcessor {
             }
         }
 
-        return !cleanedBidAdjustments.isEmpty()
+        return !mediaTypeToBidAdjustments.isEmpty()
                 ? UpdateResult.updated(cleanedBidAdjustments)
                 : UpdateResult.updated(null);
     }
