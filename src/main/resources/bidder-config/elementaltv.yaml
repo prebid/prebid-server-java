@@ -1,18 +1,18 @@
 adapters:
   elementaltv:
     endpoint: https://pbs.elementaltv.io/ads/processHeaderBid/{{AdUnit}}
-	ortb-version: "2.6"
-	aliases:
-	  adoppler: ~
+    ortb-version: "2.6"
+    aliases:
+      adoppler: ~
     meta-info:
       maintainer-email: support@elementaltv.com
       app-media-types:
         - banner
         - video
-		- native
+        - native
       site-media-types:
         - banner
         - video
-		- native
+        - native
       supported-vendors:
       vendor-id: 0
