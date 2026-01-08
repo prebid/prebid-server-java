@@ -48,7 +48,6 @@ import org.prebid.server.util.StreamUtil;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -379,21 +378,10 @@ public class CookieSyncService {
     private Set<String> biddersToSync(CookieSyncContext cookieSyncContext) {
         final Set<String> allowedBiddersByPriority = allowedBiddersByPriority(cookieSyncContext);
 
-        final Set<String> cookieFamiliesToSync = new HashSet<>(); // multiple bidders may have same cookie families
-        final Set<String> biddersToSync = new LinkedHashSet<>();
-
-        for (String bidder : allowedBiddersByPriority) {
-            final String cookieFamilyName = bidderCatalog.cookieFamilyName(bidder).orElseThrow();
-
-            if (cookieFamiliesToSync.size() < cookieSyncContext.getLimit()) {
-                cookieFamiliesToSync.add(cookieFamilyName);
-                biddersToSync.add(bidder);
-            } else if (cookieFamiliesToSync.contains(cookieFamilyName)) {
-                biddersToSync.add(bidder);
-            }
-        }
-
-        return biddersToSync;
+        return allowedBiddersByPriority.stream()
+                .filter(StreamUtil.distinctBy(bidder -> bidderCatalog.cookieFamilyName(bidder).orElseThrow()))
+                .limit(cookieSyncContext.getLimit())
+                .collect(Collectors.toSet());
     }
 
     private static Set<String> allowedBiddersByPriority(CookieSyncContext cookieSyncContext) {
