@@ -92,9 +92,6 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.source.tid
         }
 
-        and: "Bidder request should contain ext.prebid.creativeTids"
-        assert bidderRequest.ext.prebid.createTids
-
         where: "Activities fields name in different case"
         activities << [AllowActivities.getDefaultAllowActivities(TRANSMIT_TID, Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)])),
                        new AllowActivities().tap { transmitTidKebabCase = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)]) },

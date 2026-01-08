@@ -6,10 +6,14 @@ import org.prebid.server.functional.model.config.AlternateBidderCodes
 import org.prebid.server.functional.model.request.Channel
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.AdServerTargeting
+import org.prebid.server.functional.model.request.auction.AdjustmentRule
 import org.prebid.server.functional.model.request.auction.Amp
 import org.prebid.server.functional.model.request.auction.AppExt
 import org.prebid.server.functional.model.request.auction.AppExtData
 import org.prebid.server.functional.model.request.auction.AppPrebid
+import org.prebid.server.functional.model.request.auction.BidAdjustment
+import org.prebid.server.functional.model.request.auction.BidAdjustmentFactors
+import org.prebid.server.functional.model.request.auction.BidAdjustmentRule
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.BidderConfig
 import org.prebid.server.functional.model.request.auction.BidderConfigOrtb
@@ -22,6 +26,7 @@ import org.prebid.server.functional.model.request.auction.EidPermission
 import org.prebid.server.functional.model.request.auction.ExtPrebidBidderConfig
 import org.prebid.server.functional.model.request.auction.ExtRequestPrebidData
 import org.prebid.server.functional.model.request.auction.Interstitial
+import org.prebid.server.functional.model.request.auction.MultiBid
 import org.prebid.server.functional.model.request.auction.PaaFormat
 import org.prebid.server.functional.model.request.auction.PrebidCache
 import org.prebid.server.functional.model.request.auction.DevicePrebid
@@ -40,15 +45,40 @@ import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
 
 import static org.prebid.server.functional.model.ChannelType.WEB
+import static org.prebid.server.functional.model.Currency.USD
+import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.bidder.BidderName.RUBICON
 import static org.prebid.server.functional.model.mock.services.currencyconversion.CurrencyConversionRatesResponse.defaultConversionRates
+import static org.prebid.server.functional.model.request.auction.AdjustmentType.MULTIPLIER
+import static org.prebid.server.functional.model.request.auction.BidAdjustmentMediaType.BANNER
 import static org.prebid.server.functional.model.request.auction.DebugCondition.ENABLED
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.DOOH
+import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 import static org.prebid.server.functional.model.request.auction.TraceLevel.BASIC
 import static org.prebid.server.functional.model.response.auction.ErrorType.GENERIC
+import static org.prebid.server.functional.util.PBSUtils.getRandomDecimal
+import static org.prebid.server.functional.util.PBSUtils.roundDecimal
 
 class BidderFieldDisplayBehaviorSpec extends BaseSpec {
+
+    def "PBS should pass ext.prebid.createTids to bidder request"() {
+        given: "Default bid request"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.createTids = PBSUtils.randomBoolean
+        }
+
+        and: "Default bid response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain createTids"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.ext.prebid.createTids == bidRequest.ext.prebid.createTids
+    }
 
     def "PBS shouldn't pass ext.prebid.returnAllBidStatus to bidder request"() {
         given: "Default basic bid request"
@@ -364,7 +394,8 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.alternateBidderCodes = new AlternateBidderCodes().tap {
                 it.enabled = true
-                it.bidders = [(BidderName.GENERIC): new org.prebid.server.functional.model.config.BidderConfig(enabled: true, allowedBidderCodes: [BidderName.GENERIC])]
+                it.bidders = [(BidderName.GENERIC): new org.prebid.server.functional.model.config.BidderConfig(enabled: true, allowedBidderCodes: [BidderName.GENERIC]),
+                              (RUBICON)           : new org.prebid.server.functional.model.config.BidderConfig(enabled: true, allowedBidderCodes: [RUBICON])]
             }
         }
 
@@ -514,5 +545,91 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
         then: "Bidder request should contain dooh.ext"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.dooh.ext == bidRequest.dooh.ext
+    }
+
+    def "PBS should pass ext.prebid.multiBid only bidder related entity for each bidder"() {
+        given: "Default basic BidRequest with generic bidder with includeBidderKeys = false"
+        def bidRequest = BidRequest.defaultBidRequest
+
+        and: "Set maxbids = 2 for generic and rubicon bidder"
+        def maxBids = 2
+        def genericMultiBid = new MultiBid(bidder: BidderName.GENERIC, maxBids: maxBids, targetBidderCodePrefix: PBSUtils.randomString)
+        def rubiconMultiBid = new MultiBid(bidder: RUBICON, maxBids: maxBids, targetBidderCodePrefix: PBSUtils.randomString)
+        bidRequest.ext.prebid.multibid = [genericMultiBid, rubiconMultiBid]
+
+        and: "Default basic bid"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+
+        and: "Set bidder response"
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bid request should contain requested ext.prebid.multiBid"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.ext.prebid.multibid == [genericMultiBid]
+    }
+
+    def "PBS should pass ext.prebid.bidAdjustment only bidder related entry for each bidder"() {
+        given: "Default BidRequest with ext.prebid.bidAdjustments"
+        def currency = USD
+        def rule = new BidAdjustmentRule().tap {
+            generic = ["*": [new AdjustmentRule(adjustmentType: MULTIPLIER, value: PBSUtils.randomPrice, currency: currency)]]
+            openx = ["*": [new AdjustmentRule(adjustmentType: MULTIPLIER, value: PBSUtils.randomPrice, currency: currency)]]
+        }
+        def bidRequest = BidRequest.getDefaultBidRequest().tap {
+            ext.prebid.bidAdjustments = BidAdjustment.getDefaultWithSingleMediaTypeRule(BANNER, rule)
+            cur = [currency]
+            imp.first.bidFloor = PBSUtils.randomPrice
+            imp.first.bidFloorCur = currency
+        }
+
+        and: "Default bid response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain generic bid adjustments"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.ext.prebid.bidAdjustments.version == bidRequest.ext.prebid.bidAdjustments.version
+        assert bidderRequest.ext.prebid.bidAdjustments.mediaType[BANNER].generic == bidRequest.ext.prebid.bidAdjustments.mediaType[BANNER].generic
+
+        and: "Bidder request shouldn't contain openx bid adjustments"
+        assert !bidderRequest.ext.prebid.bidAdjustments.mediaType[BANNER].openx
+    }
+
+    def "PBS should pass ext.prebid.bidAdjustmentFactors only bidder related entry for each bidder"() {
+        given: "Default bid request with bid adjustment"
+        def bidAdjustment = roundDecimal(getRandomDecimal(), 0)
+        def mediaTypeBidAdjustment = bidAdjustmentFactor
+        def bidRequest = BidRequest.getDefaultBidRequest(SITE).tap {
+            ext.prebid.bidAdjustmentFactors = new BidAdjustmentFactors().tap {
+                adjustments = [(BidderName.GENERIC): bidAdjustment, (OPENX): bidAdjustment]
+                mediaTypes = [(BANNER): [(BidderName.GENERIC): mediaTypeBidAdjustment],
+                              (BANNER): [(OPENX): mediaTypeBidAdjustment]]
+            }
+        }
+
+        and: "Default bid response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain generic bid adjustment factors"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.ext.prebid.bidAdjustmentFactors.adjustments[BidderName.GENERIC] == bidRequest.ext.prebid.bidAdjustmentFactors.adjustments[BidderName.GENERIC]
+        assert bidderRequest.ext.prebid.bidAdjustmentFactors.mediaTypes[BANNER][GENERIC] == bidRequest.ext.prebid.bidAdjustmentFactors.mediaTypes[BANNER][GENERIC]
+
+        and: "Bidder request shouldn't contain opneX bid adjustment factors for generic call"
+        assert bidderRequest.ext.prebid.bidAdjustmentFactors.adjustments[OPENX]
+        assert bidderRequest.ext.prebid.bidAdjustmentFactors.mediaTypes[BANNER][OPENX]
+
+        where:
+        bidAdjustmentFactor << [0.9, 1.1]
     }
 }
