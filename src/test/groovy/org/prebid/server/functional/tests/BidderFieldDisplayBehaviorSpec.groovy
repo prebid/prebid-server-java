@@ -51,6 +51,7 @@ import static org.prebid.server.functional.model.bidder.BidderName.RUBICON
 import static org.prebid.server.functional.model.mock.services.currencyconversion.CurrencyConversionRatesResponse.defaultConversionRates
 import static org.prebid.server.functional.model.request.auction.AdjustmentType.MULTIPLIER
 import static org.prebid.server.functional.model.request.auction.BidAdjustmentMediaType.BANNER
+import static org.prebid.server.functional.model.request.auction.BidAdjustmentMediaType.VIDEO
 import static org.prebid.server.functional.model.request.auction.DebugCondition.ENABLED
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.DOOH
@@ -61,6 +62,8 @@ import static org.prebid.server.functional.util.PBSUtils.getRandomDecimal
 import static org.prebid.server.functional.util.PBSUtils.roundDecimal
 
 class BidderFieldDisplayBehaviorSpec extends BaseSpec {
+
+    private static final WILDCARD = "*"
 
     def "PBS should pass ext.prebid.createTids to bidder request"() {
         given: "Default bid request"
@@ -575,8 +578,8 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
         given: "Default BidRequest with ext.prebid.bidAdjustments"
         def currency = USD
         def rule = new BidAdjustmentRule().tap {
-            generic = ["*": [new AdjustmentRule(adjustmentType: MULTIPLIER, value: PBSUtils.randomPrice, currency: currency)]]
-            openx = ["*": [new AdjustmentRule(adjustmentType: MULTIPLIER, value: PBSUtils.randomPrice, currency: currency)]]
+            generic = [(WILDCARD): [new AdjustmentRule(adjustmentType: MULTIPLIER, value: PBSUtils.randomPrice, currency: currency)]]
+            openx = [(WILDCARD): [new AdjustmentRule(adjustmentType: MULTIPLIER, value: PBSUtils.randomPrice, currency: currency)]]
         }
         def bidRequest = BidRequest.getDefaultBidRequest().tap {
             ext.prebid.bidAdjustments = BidAdjustment.getDefaultWithSingleMediaTypeRule(BANNER, rule)
@@ -609,7 +612,7 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
             ext.prebid.bidAdjustmentFactors = new BidAdjustmentFactors().tap {
                 adjustments = [(BidderName.GENERIC): bidAdjustment, (OPENX): bidAdjustment]
                 mediaTypes = [(BANNER): [(BidderName.GENERIC): mediaTypeBidAdjustment],
-                              (BANNER): [(OPENX): mediaTypeBidAdjustment]]
+                              (VIDEO): [(OPENX): mediaTypeBidAdjustment]]
             }
         }
 
@@ -626,8 +629,9 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
         assert bidderRequest.ext.prebid.bidAdjustmentFactors.mediaTypes[BANNER][GENERIC] == bidRequest.ext.prebid.bidAdjustmentFactors.mediaTypes[BANNER][GENERIC]
 
         and: "Bidder request shouldn't contain opneX bid adjustment factors for generic call"
-        assert bidderRequest.ext.prebid.bidAdjustmentFactors.adjustments[OPENX]
-        assert bidderRequest.ext.prebid.bidAdjustmentFactors.mediaTypes[BANNER][OPENX]
+        assert !bidderRequest?.ext?.prebid?.bidAdjustmentFactors?.adjustments[OPENX]
+        assert !bidderRequest?.ext?.prebid?.bidAdjustmentFactors?.mediaTypes[BANNER][OPENX]
+        assert !bidderRequest?.ext?.prebid?.bidAdjustmentFactors?.mediaTypes[VIDEO]
 
         where:
         bidAdjustmentFactor << [0.9, 1.1]
