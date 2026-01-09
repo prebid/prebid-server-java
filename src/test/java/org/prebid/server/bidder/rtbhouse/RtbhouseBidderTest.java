@@ -34,7 +34,9 @@ import org.prebid.server.proto.openrtb.ext.request.rtbhouse.ExtImpRtbhouse;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
@@ -521,13 +523,10 @@ public class RtbhouseBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldSetTagidFromGpid() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .id("imp123")
-                        .ext(givenRtbhouseExt(node -> node.put("gpid", "gpid_value")))
-                        .build()))
-                .id("request_id")
-                .build();
+        final BidRequest bidRequest = givenBidRequest(
+                bidReq -> bidReq.id("request_id"),
+                imp -> imp.id("imp123").ext(givenRtbhouseExt(node -> node.put("gpid", "gpid_value"))),
+                identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -544,14 +543,13 @@ public class RtbhouseBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldSetTagidFromAdserverAdslot() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .id("imp123")
-                        .ext(givenRtbhouseExt(node -> node.set("data", mapper.createObjectNode()
-                                .set("adserver", mapper.createObjectNode().put("adslot", "adslot_value")))))
-                        .build()))
-                .id("request_id")
-                .build();
+        final BidRequest bidRequest = givenBidRequest(
+                bidReq -> bidReq.id("request_id"),
+                imp -> imp.id("imp123")
+                        .ext(givenRtbhouseExt(node ->
+                                node.set("data", mapper.valueToTree(
+                                        Map.of("adserver", Map.of("adslot", "adslot_value")))))),
+                identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -568,14 +566,12 @@ public class RtbhouseBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldSetTagidFromPbadslot() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .id("imp123")
-                        .ext(givenRtbhouseExt(node -> node.set("data", mapper.createObjectNode()
-                                .put("pbadslot", "pbadslot_value"))))
-                        .build()))
-                .id("request_id")
-                .build();
+        final BidRequest bidRequest = givenBidRequest(
+                bidReq -> bidReq.id("request_id"),
+                imp -> imp.id("imp123")
+                        .ext(givenRtbhouseExt(node ->
+                                node.set("data", mapper.valueToTree(Map.of("pbadslot", "pbadslot_value"))))),
+                identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -612,16 +608,10 @@ public class RtbhouseBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldSetTagidToNullWhenNoFieldsAvailable() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .id(null)
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpRtbhouse.builder()
-                                .publisherId("publisherId")
-                                .region("region")
-                                .build())))
-                        .build()))
-                .id("request_id")
-                .build();
+        final BidRequest bidRequest = givenBidRequest(
+                bidReq -> bidReq.id("request_id"),
+                imp -> imp.id(null),
+                identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -638,14 +628,12 @@ public class RtbhouseBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldPreserveExistingTagid() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .id("imp123")
+        final BidRequest bidRequest = givenBidRequest(
+                bidReq -> bidReq.id("request_id"),
+                imp -> imp.id("imp123")
                         .tagid("existing_tagid")
-                        .ext(givenRtbhouseExt(node -> node.put("gpid", "gpid_value")))
-                        .build()))
-                .id("request_id")
-                .build();
+                        .ext(givenRtbhouseExt(node -> node.put("gpid", "gpid_value"))),
+                identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -704,8 +692,8 @@ public class RtbhouseBidderTest extends VertxTest {
                 .build();
     }
 
-    private static ObjectNode givenRtbhouseExt(Function<ObjectNode, ObjectNode> extCustomizer) {
-        final ObjectNode extNode = (ObjectNode) mapper.valueToTree(ExtPrebid.of(null, ExtImpRtbhouse.builder()
+    private static ObjectNode givenRtbhouseExt(UnaryOperator<ObjectNode> extCustomizer) {
+        final ObjectNode extNode = mapper.valueToTree(ExtPrebid.of(null, ExtImpRtbhouse.builder()
                 .publisherId("publisherId")
                 .region("region")
                 .build()));
