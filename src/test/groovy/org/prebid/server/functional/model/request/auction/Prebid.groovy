@@ -4,9 +4,9 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.databind.annotation.JsonNaming
 import groovy.transform.ToString
-import org.prebid.server.functional.model.ChannelType
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.config.AlternateBidderCodes
+import org.prebid.server.functional.model.request.Channel
 
 @JsonNaming(PropertyNamingStrategies.LowerCaseStrategy)
 @ToString(includeNames = true, ignoreNulls = true)
@@ -26,6 +26,8 @@ class Prebid {
     ExtRequestPrebidData data
     List<ExtPrebidBidderConfig> bidderConfig
     List<PrebidSchain> schains
+    List<String> noSale
+    Long auctionTimestamp
     Amp amp
     Channel channel
     List<MultiBid> multibid
@@ -49,10 +51,7 @@ class Prebid {
     List<String> profileNames
     @JsonProperty("kvps")
     Map<String, String> keyValuePairs
-
-    static class Channel {
-
-        ChannelType name
-        String version
-    }
+    Boolean supportDeals
+    String integration
+    Map<String, String> bidders
 }
