@@ -156,10 +156,6 @@ public class ClydoBidder implements Bidder<BidRequest> {
         for (Imp imp : bidRequest.getImp()) {
             final String impId = imp.getId();
             final BidType bidType = determineBidType(imp);
-            if (bidType == null) {
-                throw new PreBidException("Failed to get media type");
-            }
-
             impIdToBidTypeMap.put(impId, bidType);
         }
 

@@ -9,6 +9,5 @@ public class ExtImpClydo {
     @JsonProperty("partnerId")
     String partnerId;
 
-    @JsonProperty("region")
     String region;
 }

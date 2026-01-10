@@ -29,8 +29,8 @@ public class ClydoConfiguration {
 
     @Bean
     BidderDeps clydoBidderDeps(BidderConfigurationProperties clydoConfigurationProperties,
-                                  @NotBlank @Value("${external-url}") String externalUrl,
-                                  JacksonMapper mapper) {
+                               @NotBlank @Value("${external-url}") String externalUrl,
+                               JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(clydoConfigurationProperties)
