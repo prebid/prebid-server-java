@@ -10,7 +10,6 @@ import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderInfo;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.Result;
 
 import java.util.Collections;
 import java.util.List;
@@ -27,12 +26,12 @@ public class BidderRequestCurrencyBlocker implements BidderRequestPostProcessor 
     }
 
     @Override
-    public Future<Result<BidderRequest>> process(BidderRequest bidderRequest,
-                                                 BidderAliases aliases,
-                                                 AuctionContext auctionContext) {
+    public Future<BidderRequestPostProcessingResult> process(BidderRequest bidderRequest,
+                                                             BidderAliases aliases,
+                                                             AuctionContext auctionContext) {
 
         if (isAcceptableCurrency(bidderRequest.getBidRequest(), aliases.resolveBidder(bidderRequest.getBidder()))) {
-            return Future.succeededFuture(Result.of(bidderRequest, Collections.emptyList()));
+            return Future.succeededFuture(BidderRequestPostProcessingResult.withValue(bidderRequest));
         }
 
         return Future.failedFuture(new BidderRequestRejectedException(

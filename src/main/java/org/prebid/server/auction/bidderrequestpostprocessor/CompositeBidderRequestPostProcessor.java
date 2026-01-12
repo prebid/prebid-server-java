@@ -4,10 +4,8 @@ import io.vertx.core.Future;
 import org.prebid.server.auction.aliases.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderRequest;
-import org.prebid.server.bidder.model.Result;
 import org.prebid.server.util.ListUtil;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -20,11 +18,11 @@ public class CompositeBidderRequestPostProcessor implements BidderRequestPostPro
     }
 
     @Override
-    public Future<Result<BidderRequest>> process(BidderRequest bidderRequest,
-                                                 BidderAliases aliases,
-                                                 AuctionContext auctionContext) {
+    public Future<BidderRequestPostProcessingResult> process(BidderRequest bidderRequest,
+                                                             BidderAliases aliases,
+                                                             AuctionContext auctionContext) {
 
-        Future<Result<BidderRequest>> result = initialResult(bidderRequest);
+        Future<BidderRequestPostProcessingResult> result = initialResult(bidderRequest);
         for (BidderRequestPostProcessor bidderRequestPostProcessor : bidderRequestPostProcessors) {
             result = result.compose(previous ->
                     bidderRequestPostProcessor.process(previous.getValue(), aliases, auctionContext)
@@ -34,11 +32,15 @@ public class CompositeBidderRequestPostProcessor implements BidderRequestPostPro
         return result;
     }
 
-    private static Future<Result<BidderRequest>> initialResult(BidderRequest bidderRequest) {
-        return Future.succeededFuture(Result.of(bidderRequest, Collections.emptyList()));
+    private static Future<BidderRequestPostProcessingResult> initialResult(BidderRequest bidderRequest) {
+        return Future.succeededFuture(BidderRequestPostProcessingResult.withValue(bidderRequest));
     }
 
-    private static Result<BidderRequest> mergeErrors(Result<BidderRequest> previous, Result<BidderRequest> current) {
-        return Result.of(current.getValue(), ListUtil.union(previous.getErrors(), current.getErrors()));
+    private static BidderRequestPostProcessingResult mergeErrors(BidderRequestPostProcessingResult previous,
+                                                                 BidderRequestPostProcessingResult current) {
+
+        return BidderRequestPostProcessingResult.of(
+                current.getValue(),
+                ListUtil.union(previous.getErrors(), current.getErrors()));
     }
 }
