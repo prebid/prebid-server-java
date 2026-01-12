@@ -53,8 +53,8 @@ import org.prebid.server.auction.model.BidRequestCacheInfo;
 import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
-import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.ImpRejection;
+import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.auction.model.TimeoutContext;
 import org.prebid.server.auction.model.debug.DebugContext;
@@ -165,7 +165,6 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
@@ -1239,7 +1238,7 @@ public class ExchangeServiceTest extends VertxTest {
                                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                                         .auctiontimestamp(1000L)
                                         .build()))))
-                        .originalPriceFloors(Collections.emptyMap())
+                        .originalPriceFloors(emptyMap())
                         .build()),
                 any(),
                 any(),
@@ -1262,7 +1261,7 @@ public class ExchangeServiceTest extends VertxTest {
                                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                                         .auctiontimestamp(1000L)
                                         .build()))))
-                        .originalPriceFloors(Collections.emptyMap())
+                        .originalPriceFloors(emptyMap())
                         .build()),
                 any(),
                 any(),
@@ -1502,7 +1501,7 @@ public class ExchangeServiceTest extends VertxTest {
         final ExtRequestPrebidMultiBid multiBid5 = ExtRequestPrebidMultiBid.of("bidder6",
                 Arrays.asList("bidder4", "bidder5"), 0, "bi6");
         final ExtRequestPrebidMultiBid multiBid6 = ExtRequestPrebidMultiBid.of(null,
-                Collections.emptyList(), 0, "bi7");
+                emptyList(), 0, "bi7");
 
         final ExtRequestTargeting targeting = givenTargeting(true);
         final ObjectNode events = mapper.createObjectNode();
@@ -2132,7 +2131,7 @@ public class ExchangeServiceTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .multibid(Collections.singletonList(
+                        .multibid(singletonList(
                                 ExtRequestPrebidMultiBid.of(null, asList("someBidder", "anotherBidder"), 3, null)))
                         .build())));
 
@@ -2231,7 +2230,10 @@ public class ExchangeServiceTest extends VertxTest {
         testUserEidsPermissionFiltering(
                 // given
                 asList(Eid.builder().source("source1").build(), Eid.builder().source("source2").build()),
-                singletonList(ExtRequestPrebidDataEidPermissions.of("source1", singletonList("OtHeRbIdDeR"))),
+                singletonList(ExtRequestPrebidDataEidPermissions.builder()
+                        .source("source1")
+                        .bidders(singletonList("OtHeRbIdDeR"))
+                        .build()),
                 emptyMap(),
                 // expected
                 singletonList(Eid.builder().source("source2").build()));
@@ -2242,7 +2244,10 @@ public class ExchangeServiceTest extends VertxTest {
         testUserEidsPermissionFiltering(
                 // given
                 singletonList(Eid.builder().source("source1").build()),
-                singletonList(ExtRequestPrebidDataEidPermissions.of("source2", singletonList("OtHeRbIdDeR"))),
+                singletonList(ExtRequestPrebidDataEidPermissions.builder()
+                        .source("source2")
+                        .bidders(singletonList("OtHeRbIdDeR"))
+                        .build()),
                 emptyMap(),
                 // expected
                 singletonList(Eid.builder().source("source1").build()));
@@ -2253,7 +2258,10 @@ public class ExchangeServiceTest extends VertxTest {
         testUserEidsPermissionFiltering(
                 // given
                 singletonList(Eid.builder().source("source1").build()),
-                singletonList(ExtRequestPrebidDataEidPermissions.of("source1", singletonList("*"))),
+                singletonList(ExtRequestPrebidDataEidPermissions.builder()
+                        .source("source1")
+                        .bidders(singletonList("*"))
+                        .build()),
                 emptyMap(),
                 // expected
                 singletonList(Eid.builder().source("source1").build()));
@@ -2264,7 +2272,10 @@ public class ExchangeServiceTest extends VertxTest {
         testUserEidsPermissionFiltering(
                 // given
                 singletonList(Eid.builder().source("source1").build()),
-                singletonList(ExtRequestPrebidDataEidPermissions.of("source1", singletonList("SoMeBiDdEr"))),
+                singletonList(ExtRequestPrebidDataEidPermissions.builder()
+                        .source("source1")
+                        .bidders(singletonList("SoMeBiDdEr"))
+                        .build()),
                 emptyMap(),
                 // expected
                 singletonList(Eid.builder().source("source1").build()));
@@ -2281,8 +2292,10 @@ public class ExchangeServiceTest extends VertxTest {
                 builder -> builder
                         .ext(ExtRequest.of(ExtRequestPrebid.builder()
                                 .data(ExtRequestPrebidData.of(null, singletonList(
-                                        ExtRequestPrebidDataEidPermissions.of("source1",
-                                                singletonList("otherBidder")))))
+                                        ExtRequestPrebidDataEidPermissions.builder()
+                                                .source("source1")
+                                                .bidders(singletonList("otherBidder"))
+                                                .build())))
                                 .build()))
                         .user(User.builder()
                                 .eids(singletonList(Eid.builder().source("source1").build()))
@@ -2317,8 +2330,10 @@ public class ExchangeServiceTest extends VertxTest {
                         .ext(ExtRequest.of(ExtRequestPrebid.builder()
                                 .aliases(singletonMap("someBidder", "someBidderAlias"))
                                 .data(ExtRequestPrebidData.of(null, singletonList(
-                                        ExtRequestPrebidDataEidPermissions.of("source1",
-                                                singletonList("someBidderAlias")))))
+                                        ExtRequestPrebidDataEidPermissions.builder()
+                                                .source("source1")
+                                                .bidders(singletonList("someBidderAlias"))
+                                                .build())))
                                 .build()))
                         .user(User.builder()
                                 .eids(singletonList(Eid.builder().source("source1").build()))
@@ -2353,8 +2368,10 @@ public class ExchangeServiceTest extends VertxTest {
                         .ext(ExtRequest.of(ExtRequestPrebid.builder()
                                 .aliases(singletonMap("someBidder", "someBidderAlias"))
                                 .data(ExtRequestPrebidData.of(null, singletonList(
-                                        ExtRequestPrebidDataEidPermissions.of("source1",
-                                                singletonList("someBidder")))))
+                                        ExtRequestPrebidDataEidPermissions.builder()
+                                                .source("source1")
+                                                .bidders(singletonList("someBidder"))
+                                                .build())))
                                 .build()))
                         .user(User.builder()
                                 .eids(singletonList(Eid.builder().source("source1").build()))
@@ -3983,7 +4000,7 @@ public class ExchangeServiceTest extends VertxTest {
         final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder().build();
 
         given(mediaTypeProcessor.process(any(), anyString(), any(), any()))
-                .willReturn(MediaTypeProcessingResult.rejected(Collections.singletonList(
+                .willReturn(MediaTypeProcessingResult.rejected(singletonList(
                         BidderError.badInput("MediaTypeProcessor error."))));
         given(bidResponseCreator.create(
                 argThat(argument -> argument.getAuctionParticipations().getFirst()
@@ -3991,7 +4008,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .equals(BidderResponse.of(
                                 "bidder1",
                                 BidderSeatBid.builder()
-                                        .warnings(Collections.singletonList(
+                                        .warnings(singletonList(
                                                 BidderError.badInput("MediaTypeProcessor error.")))
                                         .build(),
                                 0))),
@@ -4041,7 +4058,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .equals(BidderResponse.of(
                                 "bidder1",
                                 BidderSeatBid.builder()
-                                        .warnings(Collections.singletonList(
+                                        .warnings(singletonList(
                                                 BidderError.generic(
                                                         "No match between the configured currencies and bidRequest.cur"
                                                 )))

@@ -376,7 +376,7 @@ public class RequestValidator {
                                         boolean isDebugEnabled,
                                         List<String> warnings) throws ValidationException {
 
-        if (eidPermissions == null) {
+        if (ObjectUtils.isEmpty(eidPermissions)) {
             return;
         }
 
@@ -385,14 +385,24 @@ public class RequestValidator {
                 throw new ValidationException("request.ext.prebid.data.eidpermissions[i] can't be null");
             }
 
-            validateEidPermissionSource(eidPermission.getSource());
+            validateEidPermissionCriteria(eidPermission.getInserter(),
+                    eidPermission.getSource(),
+                    eidPermission.getMatcher(),
+                    eidPermission.getMm());
             validateEidPermissionBidders(eidPermission.getBidders(), aliases, isDebugEnabled, warnings);
         }
     }
 
-    private void validateEidPermissionSource(String source) throws ValidationException {
-        if (StringUtils.isEmpty(source)) {
-            throw new ValidationException("Missing required value request.ext.prebid.data.eidPermissions[].source");
+    private void validateEidPermissionCriteria(String inserter,
+                                               String source,
+                                               String matcher,
+                                               Integer mm) throws ValidationException {
+        if (StringUtils.isEmpty(inserter)
+                && StringUtils.isEmpty(source)
+                && StringUtils.isEmpty(matcher)
+                && mm == null) {
+            throw new ValidationException("Missing required parameter(s) in request.ext.prebid.data.eidPermissions[]. "
+                    + "Either one or a combination of inserter, source, matcher, or mm should be defined.");
         }
     }
 
