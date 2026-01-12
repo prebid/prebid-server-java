@@ -8,7 +8,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.BidderRequest;
-import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 
@@ -32,7 +31,7 @@ public class BidderRequestCleanerTest extends VertxTest {
         final BidderRequest bidderRequest = givenBidderRequest(null);
 
         // when
-        final Result<BidderRequest> result = target.process(bidderRequest, null, null).result();
+        final BidderRequestPostProcessingResult result = target.process(bidderRequest, null, null).result();
 
         // then
         assertThat(result.getValue()).isSameAs(bidderRequest);
@@ -45,7 +44,7 @@ public class BidderRequestCleanerTest extends VertxTest {
         final BidderRequest bidderRequest = givenBidderRequest(mapper.createObjectNode());
 
         // when
-        final Result<BidderRequest> result = target.process(bidderRequest, null, null).result();
+        final BidderRequestPostProcessingResult result = target.process(bidderRequest, null, null).result();
 
         // then
         assertThat(result.getValue())

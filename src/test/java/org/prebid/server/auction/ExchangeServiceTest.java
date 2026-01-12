@@ -43,6 +43,7 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
+import org.prebid.server.auction.bidderrequestpostprocessor.BidderRequestPostProcessingResult;
 import org.prebid.server.auction.bidderrequestpostprocessor.BidderRequestPostProcessor;
 import org.prebid.server.auction.bidderrequestpostprocessor.BidderRequestRejectedException;
 import org.prebid.server.auction.externalortb.StoredResponseProcessor;
@@ -71,7 +72,6 @@ import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.bidder.model.Price;
-import org.prebid.server.bidder.model.Result;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
@@ -367,7 +367,8 @@ public class ExchangeServiceTest extends VertxTest {
                 .willAnswer(invocation -> invocation.getArgument(0));
 
         given(bidderRequestPostProcessor.process(any(), any(), any()))
-                .willAnswer(invocation -> Future.succeededFuture(Result.of(invocation.getArgument(0), emptyList())));
+                .willAnswer(invocation -> Future.succeededFuture(
+                        BidderRequestPostProcessingResult.withValue(invocation.getArgument(0))));
 
         given(uidUpdater.updateUid(any(), any(), any()))
                 .willAnswer(inv -> Optional.ofNullable((AuctionContext) inv.getArgument(1))
@@ -3986,7 +3987,7 @@ public class ExchangeServiceTest extends VertxTest {
         final AuctionContext auctionContext = givenRequestContext(bidRequest);
 
         given(bidderRequestPostProcessor.process(any(), any(), any()))
-                .willAnswer(invocation -> Future.succeededFuture(Result.of(
+                .willAnswer(invocation -> Future.succeededFuture(BidderRequestPostProcessingResult.of(
                         invocation.getArgument(0),
                         singletonList(BidderError.badInput("BidderRequestPostProcessor error.")))));
         givenBidder(givenSeatBid(emptyList()));

@@ -23,7 +23,6 @@ import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderInfo;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.Result;
 import org.prebid.server.spring.config.bidder.model.CompressionType;
 import org.prebid.server.spring.config.bidder.model.MediaType;
 import org.prebid.server.spring.config.bidder.model.Ortb;
@@ -71,7 +70,7 @@ public class BidderRequestMediaFilterTest extends VertxTest {
         final BidderRequest bidderRequest = givenBidderRequest(identity(), givenImp(BANNER));
 
         // when
-        final Future<Result<BidderRequest>> result = target.process(bidderRequest, bidderAliases, null);
+        final Future<BidderRequestPostProcessingResult> result = target.process(bidderRequest, bidderAliases, null);
 
         // then
         assertThat(result.failed()).isTrue();
@@ -95,7 +94,7 @@ public class BidderRequestMediaFilterTest extends VertxTest {
                 givenImp(BANNER));
 
         // when
-        final Result<BidderRequest> result = target.process(bidderRequest, bidderAliases, null).result();
+        final BidderRequestPostProcessingResult result = target.process(bidderRequest, bidderAliases, null).result();
 
         // then
         assertThat(result.getValue()).isEqualTo(bidderRequest);
@@ -113,7 +112,7 @@ public class BidderRequestMediaFilterTest extends VertxTest {
                 givenImp(BANNER, VIDEO));
 
         // when
-        final Result<BidderRequest> result = target.process(bidderRequest, bidderAliases, null).result();
+        final BidderRequestPostProcessingResult result = target.process(bidderRequest, bidderAliases, null).result();
 
         // then
         assertThat(result.getValue())
@@ -135,7 +134,7 @@ public class BidderRequestMediaFilterTest extends VertxTest {
                 givenImp(BANNER, AUDIO));
 
         // when
-        final Result<BidderRequest> result = target.process(bidderRequest, bidderAliases, null).result();
+        final BidderRequestPostProcessingResult result = target.process(bidderRequest, bidderAliases, null).result();
 
         // then
         assertThat(result.getValue())
@@ -159,7 +158,7 @@ public class BidderRequestMediaFilterTest extends VertxTest {
                 givenImp(NATIVE));
 
         // when
-        final Future<Result<BidderRequest>> result = target.process(bidderRequest, bidderAliases, null);
+        final Future<BidderRequestPostProcessingResult> result = target.process(bidderRequest, bidderAliases, null);
 
         // then
         assertThat(result.failed()).isTrue();
