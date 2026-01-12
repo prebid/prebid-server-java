@@ -7,7 +7,9 @@ import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.collections4.SetUtils;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
@@ -42,6 +44,8 @@ import org.prebid.server.util.ListUtil;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -61,7 +65,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
     private final HttpClient httpClient;
     private final UserFpdActivityMask userFpdActivityMask;
     private final double logSamplingRate;
-    private final List<String> targetBidders;
+    private final Set<String> targetBidders;
 
     public LiveIntentOmniChannelIdentityProcessedAuctionRequestHook(LiveIntentOmniChannelProperties config,
                                                                     UserFpdActivityMask userFpdActivityMask,
@@ -75,7 +79,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
         this.httpClient = Objects.requireNonNull(httpClient);
         this.logSamplingRate = logSamplingRate;
         this.userFpdActivityMask = Objects.requireNonNull(userFpdActivityMask);
-        this.targetBidders = ListUtils.emptyIfNull(config.getTargetBidders());
+        this.targetBidders = new HashSet<>(ListUtils.emptyIfNull(config.getTargetBidders()));
     }
 
     @Override
@@ -198,7 +202,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
     }
 
     private BidRequest updateAllowedBidders(BidRequest bidRequest, List<Eid> resolvedEids) {
-        if (targetBidders.isEmpty() || resolvedEids == null || resolvedEids.isEmpty()) {
+        if (CollectionUtils.isEmpty(targetBidders) || resolvedEids == null || CollectionUtils.isEmpty(resolvedEids)) {
             return bidRequest;
         }
 
@@ -207,10 +211,10 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
         final ExtRequestPrebidData extPrebidData = extPrebid != null ? extPrebid.getData() : null;
 
         final List<ExtRequestPrebidDataEidPermissions> existingPerms = extPrebidData != null
-                ? ListUtils.emptyIfNull(extPrebidData.getEidPermissions())
-                : List.of();
+                ? extPrebidData.getEidPermissions()
+                : null;
 
-        if (existingPerms.isEmpty()) {
+        if (CollectionUtils.isEmpty(existingPerms)) {
             return bidRequest;
         }
 
@@ -237,7 +241,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
 
         final List<ExtRequestPrebidDataEidPermissions> initialPermissions = Optional.ofNullable(extPrebidData)
                 .map(ExtRequestPrebidData::getEidPermissions)
-                .orElse(List.of());
+                .orElse(Collections.emptyList());
 
         final List<ExtRequestPrebidDataEidPermissions> updatedPermissions = initialPermissions.stream()
                 .map(permission -> restrictEidPermission(permission, resolvedSources))
@@ -254,10 +258,10 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
             return permission;
         }
 
-        final List<String> current = ListUtils.emptyIfNull(permission.getBidders());
-        final List<String> finalBidders = ListUtils.intersection(current, targetBidders);
+        final Set<String> current = new HashSet<>(ListUtils.emptyIfNull(permission.getBidders()));
+        final List<String> finalBidders = SetUtils.intersection(current, targetBidders).stream().toList();
 
-        return finalBidders.isEmpty()
+        return CollectionUtils.isEmpty(finalBidders)
                 ? null
                 : ExtRequestPrebidDataEidPermissions.of(permission.getSource(), finalBidders);
     }
