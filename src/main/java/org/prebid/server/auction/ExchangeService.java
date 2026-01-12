@@ -584,6 +584,7 @@ public class ExchangeService {
         return Optional.ofNullable(prebid)
                 .map(ExtRequestPrebid::getData)
                 .map(ExtRequestPrebidData::getEidPermissions)
+                .map(CollectionUtils::emptyIfNull)
                 .map(EidPermissionIndex::build)
                 .orElse(null);
     }
@@ -680,10 +681,7 @@ public class ExchangeService {
     private boolean isUserEidAllowed(Eid eid,
                                      EidPermissionIndex eidPermissionIndex,
                                      String bidder) {
-        if (eidPermissionIndex == null) {
-            return true;
-        }
-        return eidPermissionIndex.isAllowed(eid, bidder);
+        return eidPermissionIndex == null || eidPermissionIndex.isAllowed(eid, bidder);
     }
 
     private List<AuctionParticipation> getAuctionParticipation(
