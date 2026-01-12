@@ -58,7 +58,7 @@ public class ClydoBidderTest extends VertxTest {
                                 .of(null, ExtImpClydo.of("parentId", "us")))))))
                 .build();
 
-        //when
+        // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         //then
@@ -82,7 +82,7 @@ public class ClydoBidderTest extends VertxTest {
                 .imp(asList(givenImp(UnaryOperator.identity()), givenBadImp(UnaryOperator.identity())))
                 .build();
 
-        //when
+        // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         //then
@@ -91,7 +91,6 @@ public class ClydoBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getId)
                 .containsExactly("123");
-
     }
 
     @Test
@@ -139,7 +138,6 @@ public class ClydoBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().getFirst().getMessage()).startsWith("found no valid impressions");
-
     }
 
     @Test
@@ -261,61 +259,76 @@ public class ClydoBidderTest extends VertxTest {
 
     @Test
     public void makeBidsShouldReturnBannerBid() throws JsonProcessingException {
+        // given
         final BidRequest bidRequest = givenBidRequest(imp -> imp
                 .banner(Banner.builder().w(300).h(250).build()));
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidResponse(bidBuilder -> bidBuilder.impid("123")));
 
+        // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
+        // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).extracting(BidderBid::getType).containsExactly(banner);
     }
 
     @Test
     public void makeBidsShouldReturnVideoBid() throws JsonProcessingException {
+        // given
         final BidRequest bidRequest = givenBidRequest(imp -> imp
                 .video(Video.builder().mimes(singletonList("video/mp4")).build()));
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(bidBuilder -> bidBuilder.impid("123")));
 
+        // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
+        // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).extracting(BidderBid::getType).containsExactly(video);
     }
 
     @Test
     public void makeBidsShouldReturnNativeBid() throws JsonProcessingException {
+        // given
         final BidRequest bidRequest = givenBidRequest(imp -> imp
                 .xNative(Native.builder().request("{\"assets\":[]}").build()));
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(bidBuilder -> bidBuilder.impid("123")));
 
+        // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
+        // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).extracting(BidderBid::getType).containsExactly(xNative);
     }
 
     @Test
     public void makeBidsShouldReturnAudioBid() throws JsonProcessingException {
+        // given
         final BidRequest bidRequest = givenBidRequest(imp -> imp
                 .banner(null)
                 .audio(Audio.builder().mimes(singletonList("audio/mp3")).build()));
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(bidBuilder -> bidBuilder.impid("123")));
 
+        // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
+        // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).extracting(BidderBid::getType).containsExactly(audio);
     }
 
     @Test
     public void makeBidsShouldReturnErrorWhenImpHasNoMediaType() throws JsonProcessingException {
+        // given
         final BidRequest bidRequest = givenBidRequest(imp -> imp.banner(null).video(null).xNative(null).audio(null));
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(bidBuilder -> bidBuilder.impid("123")));
 
+        // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
+        // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1).first()
                 .satisfies(error -> {
