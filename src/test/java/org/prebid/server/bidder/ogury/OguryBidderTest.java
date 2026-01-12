@@ -240,7 +240,7 @@ public class OguryBidderTest extends VertxTest {
         final ObjectNode emptyImpExt = givenEmptyImpExt();
 
         final BidRequest bidrequest = givenBidRequest(
-                bidRequest -> bidRequest.app(App.builder().bundle("app_bundle").build()), // without publisher id
+                bidRequest -> bidRequest.app(App.builder().bundle("app_bundle").build()),
                 givenImp(imp -> imp.id("id1").ext(emptyImpExt)),
                 givenImp(imp -> imp.id("id2").ext(emptyImpExt)));
 
