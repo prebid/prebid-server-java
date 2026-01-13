@@ -61,7 +61,7 @@ public class ClydoBidderTest extends VertxTest {
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
-        //then
+        // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(2)
                 .extracting(HttpRequest::getPayload)
@@ -85,7 +85,7 @@ public class ClydoBidderTest extends VertxTest {
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
-        //then
+        // then
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
@@ -138,20 +138,6 @@ public class ClydoBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().getFirst().getMessage()).startsWith("found no valid impressions");
-    }
-
-    @Test
-    public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
-        // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                mapper.writeValueAsString(null));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
@@ -209,23 +195,6 @@ public class ClydoBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
-        // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall("invalid");
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1)
-                .allSatisfy(error -> {
-                    assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token 'invalid':");
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
-                });
-    }
-
-    @Test
     public void makeHttpRequestsShouldUseDefaultRegionUsWhenRegionIsNull() {
         // given
         final BidRequest bidRequest = givenBidRequest(imp -> imp
@@ -241,6 +210,37 @@ public class ClydoBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1).first()
                 .extracting(HttpRequest::getUri)
                 .isEqualTo("http://region=us.clydo.io/partnerId=partner123");
+    }
+
+    @Test
+    public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                mapper.writeValueAsString(null));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall("invalid");
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token 'invalid':");
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                });
     }
 
     @Test
