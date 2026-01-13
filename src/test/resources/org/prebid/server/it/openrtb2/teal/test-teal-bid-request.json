@@ -1,0 +1,94 @@
+{
+  "bidRequests": [
+    {
+      "bidId": "test-imp-banner",
+      "bidder": "teal",
+      "params": {
+        "account": "test-account",
+        "placement": "test-placement300x250"
+      }
+    }
+  ],
+  "bidderRequest": {
+    "bidderCode": "teal"
+  },
+  "ortb2": {
+    "id": "test-request-banner",
+    "imp": [
+      {
+        "id": "test-imp-banner",
+        "banner": {
+          "format": [
+            {
+              "w": 300,
+              "h": 250
+            }
+          ]
+        },
+        "secure": 1,
+        "ext": {
+          "tid": "${json-unit.any-string}",
+          "bidder": {
+            "account": "test-account",
+            "placement": "test-placement300x250"
+          },
+          "prebid": {
+            "storedrequest": {
+              "id": "test-placement300x250"
+            }
+          }
+        }
+      }
+    ],
+    "site": {
+      "id": "demo-site",
+      "domain": "example.com",
+      "page": "https://example.com/demo",
+      "publisher": {
+        "id": "test-account",
+        "domain": "example.com"
+      },
+      "ext": {
+        "amp": 0
+      }
+    },
+    "device": {
+      "dnt": 0,
+      "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      "ip": "192.0.2.1",
+      "language": "en"
+    },
+    "user": {
+      "id": "demo-user"
+    },
+    "at": 1,
+    "tmax": "${json-unit.any-number}",
+    "cur": [
+      "USD"
+    ],
+    "source": {
+      "tid": "${json-unit.any-string}"
+    },
+    "regs": {
+      "ext": {
+        "gdpr": 0
+      }
+    },
+    "ext": {
+      "prebid": {
+        "channel": {
+          "name": "web"
+        },
+        "server": {
+          "externalurl": "http://localhost:8080",
+          "gvlid": 1,
+          "datacenter": "local",
+          "endpoint": "/openrtb2/auction"
+        },
+        "bids": {
+          "pbs": 1
+        }
+      }
+    }
+  }
+}
