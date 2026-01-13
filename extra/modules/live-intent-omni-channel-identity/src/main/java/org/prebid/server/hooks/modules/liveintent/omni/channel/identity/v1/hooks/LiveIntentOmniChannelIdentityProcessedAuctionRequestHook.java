@@ -44,7 +44,6 @@ import org.prebid.server.util.ListUtil;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -79,7 +78,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
         this.httpClient = Objects.requireNonNull(httpClient);
         this.logSamplingRate = logSamplingRate;
         this.userFpdActivityMask = Objects.requireNonNull(userFpdActivityMask);
-        this.targetBidders = new HashSet<>(ListUtils.emptyIfNull(config.getTargetBidders()));
+        this.targetBidders = SetUtils.emptyIfNull(config.getTargetBidders());
     }
 
     @Override
@@ -202,7 +201,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
     }
 
     private BidRequest updateAllowedBidders(BidRequest bidRequest, List<Eid> resolvedEids) {
-        if (CollectionUtils.isEmpty(targetBidders) || resolvedEids == null || CollectionUtils.isEmpty(resolvedEids)) {
+        if (CollectionUtils.isEmpty(targetBidders) || CollectionUtils.isEmpty(resolvedEids)) {
             return bidRequest;
         }
 
@@ -239,11 +238,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
                 .map(Eid::getSource)
                 .collect(Collectors.toSet());
 
-        final List<ExtRequestPrebidDataEidPermissions> initialPermissions = Optional.ofNullable(extPrebidData)
-                .map(ExtRequestPrebidData::getEidPermissions)
-                .orElse(Collections.emptyList());
-
-        final List<ExtRequestPrebidDataEidPermissions> updatedPermissions = initialPermissions.stream()
+        final List<ExtRequestPrebidDataEidPermissions> updatedPermissions = extPrebidData.getEidPermissions().stream()
                 .map(permission -> restrictEidPermission(permission, resolvedSources))
                 .filter(Objects::nonNull)
                 .toList();
@@ -259,7 +254,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
         }
 
         final Set<String> current = new HashSet<>(ListUtils.emptyIfNull(permission.getBidders()));
-        final List<String> finalBidders = SetUtils.intersection(current, targetBidders).stream().toList();
+        final List<String> finalBidders = SetUtils.intersection(targetBidders, current).stream().toList();
 
         return CollectionUtils.isEmpty(finalBidders)
                 ? null

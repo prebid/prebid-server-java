@@ -36,6 +36,7 @@ import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeoutException;
 
 import static java.util.Collections.singletonList;
@@ -74,11 +75,11 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
 
     private LiveIntentOmniChannelIdentityProcessedAuctionRequestHook target;
 
-    private List<String> configuredBidders;
+    private Set<String> configuredBidders;
 
     @BeforeEach
     public void setUp() {
-        configuredBidders = List.of("bidder1", "bidder2");
+        configuredBidders = Set.of("bidder1", "bidder2");
         given(properties.getRequestTimeoutMs()).willReturn(5L);
         given(properties.getIdentityResolutionEndpoint()).willReturn("https://test.com/idres");
         given(properties.getAuthToken()).willReturn("auth_token");
