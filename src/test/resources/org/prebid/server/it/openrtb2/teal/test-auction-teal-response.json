@@ -5,7 +5,7 @@
       "seat": "teal",
       "bid": [
         {
-          "id": "teal-test-imp-banner",
+          "id": "test-imp-banner",
           "impid": "test-imp-banner",
           "price": 2.50,
           "adm": "<div style=\"width:300px;height:250px;background:#f0f0f0;text-align:center;line-height:250px;\">Teal Demo Ad</div>",

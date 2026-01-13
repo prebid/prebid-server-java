@@ -1,14 +1,29 @@
-[
-  {
-    "cpm": 2.50,
-    "width": 300,
-    "height": 250,
-    "currency": "USD",
-    "requestId": "test-imp-banner",
-    "adm": "<div style=\"width:300px;height:250px;background:#f0f0f0;text-align:center;line-height:250px;\">Teal Demo Ad</div>",
-    "ttl": 300,
-    "creativeId": "demo-creative-123",
-    "netRevenue": true,
-    "mediaType": "banner"
-  }
-]
+{
+  "id": "test-request-banner",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "test-imp-banner",
+          "impid": "test-imp-banner",
+          "price": 2.50,
+          "adm": "<div style=\"width:300px;height:250px;background:#f0f0f0;text-align:center;line-height:250px;\">Teal Demo Ad</div>",
+          "w": 300,
+          "h": 250,
+          "crid": "demo-creative-123",
+          "exp": 300,
+          "ext": {
+            "origbidcpm": 2.50,
+            "origbidcur": "USD",
+            "prebid": {
+              "type": "banner",
+              "meta": {
+                "adaptercode": "teal"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
