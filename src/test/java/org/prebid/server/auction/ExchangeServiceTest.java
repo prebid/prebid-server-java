@@ -43,18 +43,21 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
+import org.prebid.server.auction.bidderrequestpostprocessor.BidderRequestPostProcessingResult;
+import org.prebid.server.auction.bidderrequestpostprocessor.BidderRequestPostProcessor;
+import org.prebid.server.auction.bidderrequestpostprocessor.BidderRequestRejectedException;
 import org.prebid.server.auction.externalortb.StoredResponseProcessor;
-import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessingResult;
-import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessor;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionParticipation;
+import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.BidRequestCacheInfo;
 import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
-import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.ImpRejection;
+import org.prebid.server.auction.model.MultiBidConfig;
+import org.prebid.server.auction.model.Rejection;
 import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.auction.model.TimeoutContext;
 import org.prebid.server.auction.model.debug.DebugContext;
@@ -208,7 +211,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.prebid.server.auction.model.BidRejectionReason.NO_BID;
-import static org.prebid.server.auction.model.BidRejectionReason.REQUEST_BLOCKED_UNACCEPTABLE_CURRENCY;
+import static org.prebid.server.auction.model.BidRejectionReason.REQUEST_BLOCKED_UNSUPPORTED_MEDIA_TYPE;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
@@ -237,7 +240,7 @@ public class ExchangeServiceTest extends VertxTest {
     private DebugResolver debugResolver;
 
     @Mock(strictness = LENIENT)
-    private MediaTypeProcessor mediaTypeProcessor;
+    private BidderRequestPostProcessor bidderRequestPostProcessor;
 
     @Mock(strictness = LENIENT)
     private UidUpdater uidUpdater;
@@ -363,8 +366,9 @@ public class ExchangeServiceTest extends VertxTest {
         given(bidsAdjuster.validateAndAdjustBids(any(), any(), any()))
                 .willAnswer(invocation -> invocation.getArgument(0));
 
-        given(mediaTypeProcessor.process(any(), anyString(), any(), any()))
-                .willAnswer(invocation -> MediaTypeProcessingResult.succeeded(invocation.getArgument(0), emptyList()));
+        given(bidderRequestPostProcessor.process(any(), any(), any()))
+                .willAnswer(invocation -> Future.succeededFuture(
+                        BidderRequestPostProcessingResult.withValue(invocation.getArgument(0))));
 
         given(uidUpdater.updateUid(any(), any(), any()))
                 .willAnswer(inv -> Optional.ofNullable((AuctionContext) inv.getArgument(1))
@@ -3923,7 +3927,7 @@ public class ExchangeServiceTest extends VertxTest {
                                         Deal.builder().id("dealId2").build()))
                                 .build()));
         final BidRequest bidRequest = givenBidRequest(singletonList(imp), identity());
-        final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder().build();
+        final AuctionContext auctionContext = givenRequestContext(bidRequest);
 
         final BidderBid bidderBid = givenBidderBid(
                 Bid.builder().id("bidId2").impid("impId1").dealid("dealId2").price(BigDecimal.ONE).build());
@@ -3958,7 +3962,7 @@ public class ExchangeServiceTest extends VertxTest {
                                         Deal.builder().id("dealId2").build()))
                                 .build()));
         final BidRequest bidRequest = givenBidRequest(singletonList(imp), identity());
-        final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder().build();
+        final AuctionContext auctionContext = givenRequestContext(bidRequest);
 
         givenBidder(givenSeatBid(emptyList()));
 
@@ -3976,75 +3980,52 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldResponseWithEmptySeatBidIfBidderNotSupportProvidedMediaTypes() {
+    public void shouldResponseWithAddedWarningsFromBidderRequestPostProcessor() {
         // given
         final Imp imp = givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1"));
         final BidRequest bidRequest = givenBidRequest(singletonList(imp), identity());
-        final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder().build();
+        final AuctionContext auctionContext = givenRequestContext(bidRequest);
 
-        given(mediaTypeProcessor.process(any(), anyString(), any(), any()))
-                .willReturn(MediaTypeProcessingResult.rejected(Collections.singletonList(
-                        BidderError.badInput("MediaTypeProcessor error."))));
-        given(bidResponseCreator.create(
-                argThat(argument -> argument.getAuctionParticipations().getFirst()
-                        .getBidderResponse()
-                        .equals(BidderResponse.of(
-                                "bidder1",
-                                BidderSeatBid.builder()
-                                        .warnings(Collections.singletonList(
-                                                BidderError.badInput("MediaTypeProcessor error.")))
-                                        .build(),
-                                0))),
-                any(),
-                any()))
-                .willReturn(Future.succeededFuture(BidResponse.builder().id("uniqId").build()));
+        given(bidderRequestPostProcessor.process(any(), any(), any()))
+                .willAnswer(invocation -> Future.succeededFuture(BidderRequestPostProcessingResult.of(
+                        invocation.getArgument(0),
+                        singletonList(BidderError.badInput("BidderRequestPostProcessor error.")))));
+        givenBidder(givenSeatBid(emptyList()));
 
         // when
-        final Future<AuctionContext> result = target.holdAuction(auctionContext);
+        target.holdAuction(auctionContext);
 
         // then
-        assertThat(result.result())
-                .extracting(AuctionContext::getBidResponse)
-                .isEqualTo(BidResponse.builder().id("uniqId").build());
+        verify(httpBidderRequester).requestBids(any(), any(), any(), any(), any(), any(), anyBoolean());
+
+        final ArgumentCaptor<List<AuctionParticipation>> captor = ArgumentCaptor.forClass(List.class);
+        verify(storedResponseProcessor).updateStoredBidResponse(captor.capture());
+        assertThat(captor.getValue())
+                .extracting(AuctionParticipation::getBidderResponse)
+                .extracting(BidderResponse::getSeatBid)
+                .flatExtracting(BidderSeatBid::getWarnings)
+                .containsExactly(BidderError.badInput("BidderRequestPostProcessor error."));
     }
 
     @Test
-    public void shouldResponseWithEmptySeatBidIfBidderNotSupportRequestCurrency() {
+    public void shouldResponseWithEmptySeatBidIfRejectedByBidderRequestPostProcessor() {
         // given
         final Imp imp = givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1"));
-        final BidRequest bidRequest = givenBidRequest(singletonList(imp),
-                bidRequestBuilder -> bidRequestBuilder.cur(singletonList("USD")));
+        final BidRequest bidRequest = givenBidRequest(singletonList(imp), identity());
         final AuctionContext auctionContext = givenRequestContext(bidRequest);
 
-        given(bidderCatalog.bidderInfoByName(anyString())).willReturn(BidderInfo.create(
-                true,
-                null,
-                false,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                0,
-                singletonList("CAD"),
-                false,
-                false,
-                CompressionType.NONE,
-                Ortb.of(false),
-                0L));
-
+        given(bidderRequestPostProcessor.process(any(), any(), any()))
+                .willReturn(Future.failedFuture(new BidderRequestRejectedException(
+                        BidRejectionReason.REQUEST_BLOCKED_UNSUPPORTED_MEDIA_TYPE,
+                        singletonList(BidderError.badInput("BidderRequestPostProcessor error.")))));
         given(bidResponseCreator.create(
                 argThat(argument -> argument.getAuctionParticipations().getFirst()
                         .getBidderResponse()
                         .equals(BidderResponse.of(
                                 "bidder1",
                                 BidderSeatBid.builder()
-                                        .warnings(Collections.singletonList(
-                                                BidderError.generic(
-                                                        "No match between the configured currencies and bidRequest.cur"
-                                                )))
+                                        .warnings(singletonList(
+                                                BidderError.badInput("BidderRequestPostProcessor error.")))
                                         .build(),
                                 0))),
                 any(),
@@ -4055,14 +4036,17 @@ public class ExchangeServiceTest extends VertxTest {
         final Future<AuctionContext> result = target.holdAuction(auctionContext);
 
         // then
+        verifyNoInteractions(httpBidderRequester);
         assertThat(result.result())
                 .extracting(AuctionContext::getBidResponse)
                 .isEqualTo(BidResponse.builder().id("uniqId").build());
         assertThat(result.result())
                 .extracting(AuctionContext::getBidRejectionTrackers)
-                .extracting(rejectionTrackers -> rejectionTrackers.get("bidder1"))
-                .extracting(BidRejectionTracker::getRejected)
-                .isEqualTo(Set.of(ImpRejection.of("bidder1", "impId1", REQUEST_BLOCKED_UNACCEPTABLE_CURRENCY)));
+                .extracting(trackers -> trackers.get("bidder1"))
+                .extracting(BidRejectionTracker::getAllRejected)
+                .extracting(rejections -> rejections.get("impId1"))
+                .asInstanceOf(InstanceOfAssertFactories.list(Rejection.class))
+                .containsExactly(ImpRejection.of("bidder1", "impId1", REQUEST_BLOCKED_UNSUPPORTED_MEDIA_TYPE));
     }
 
     @Test
@@ -4249,7 +4233,7 @@ public class ExchangeServiceTest extends VertxTest {
                 fpdResolver,
                 impAdjuster, supplyChainResolver,
                 debugResolver,
-                mediaTypeProcessor,
+                bidderRequestPostProcessor,
                 uidUpdater,
                 timeoutResolver,
                 timeoutFactory,

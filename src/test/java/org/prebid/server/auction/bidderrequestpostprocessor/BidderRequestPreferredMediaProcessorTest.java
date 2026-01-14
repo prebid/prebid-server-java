@@ -1,4 +1,4 @@
-package org.prebid.server.auction.mediatypeprocessor;
+package org.prebid.server.auction.bidderrequestpostprocessor;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Audio;
@@ -7,6 +7,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Video;
+import io.vertx.core.Future;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,6 +16,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.aliases.BidderAliases;
+import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.BidRejectionReason;
+import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderInfo;
@@ -44,7 +48,7 @@ import static org.prebid.server.spring.config.bidder.model.MediaType.NATIVE;
 import static org.prebid.server.spring.config.bidder.model.MediaType.VIDEO;
 
 @ExtendWith(MockitoExtension.class)
-public class MultiFormatMediaTypeProcessorTest extends VertxTest {
+public class BidderRequestPreferredMediaProcessorTest extends VertxTest {
 
     private static final String BIDDER = "bidder";
 
@@ -53,11 +57,11 @@ public class MultiFormatMediaTypeProcessorTest extends VertxTest {
     @Mock
     private BidderAliases bidderAliases;
 
-    private MultiFormatMediaTypeProcessor target;
+    private BidderRequestPreferredMediaProcessor target;
 
     @BeforeEach
     public void setUp() {
-        target = new MultiFormatMediaTypeProcessor(bidderCatalog);
+        target = new BidderRequestPreferredMediaProcessor(bidderCatalog);
         when(bidderAliases.resolveBidder(anyString())).thenAnswer(invocation -> invocation.getArgument(0));
     }
 
@@ -65,14 +69,13 @@ public class MultiFormatMediaTypeProcessorTest extends VertxTest {
     public void processShouldReturnSameBidRequestIfMultiFormatSupported() {
         // given
         given(bidderCatalog.bidderInfoByName(BIDDER)).willReturn(givenBidderInfo(true));
-        final BidRequest bidRequest = givenBidRequest(identity(), givenImp(BANNER, VIDEO));
+        final BidderRequest bidderRequest = givenBidderRequest(identity(), givenImp(BANNER, VIDEO));
 
         // when
-        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, bidderAliases, null);
+        final BidderRequestPostProcessingResult result = target.process(bidderRequest, bidderAliases, null).result();
 
         // then
-        assertThat(result.isRejected()).isFalse();
-        assertThat(result.getBidRequest()).isEqualTo(bidRequest);
+        assertThat(result.getValue()).isEqualTo(bidderRequest);
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -80,15 +83,15 @@ public class MultiFormatMediaTypeProcessorTest extends VertxTest {
     public void processShouldReturnSameBidRequestIfPreferredMediaTypeNotSpecified() {
         // given
         given(bidderCatalog.bidderInfoByName(BIDDER)).willReturn(givenBidderInfo(false));
-        final BidRequest bidRequest = givenBidRequest(identity(), givenImp(BANNER, VIDEO));
-        final Account account = givenAccount(null);
+        final BidderRequest bidderRequest = givenBidderRequest(identity(), givenImp(BANNER, VIDEO));
+        final AuctionContext auctionContext = givenAuctionContext(null);
 
         // when
-        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, bidderAliases, account);
+        final BidderRequestPostProcessingResult result =
+                target.process(bidderRequest, bidderAliases, auctionContext).result();
 
         // then
-        assertThat(result.isRejected()).isFalse();
-        assertThat(result.getBidRequest()).isEqualTo(bidRequest);
+        assertThat(result.getValue()).isEqualTo(bidderRequest);
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -96,15 +99,16 @@ public class MultiFormatMediaTypeProcessorTest extends VertxTest {
     public void processShouldReturnImpWithPreferredMediaType() {
         // given
         given(bidderCatalog.bidderInfoByName(BIDDER)).willReturn(givenBidderInfo(false));
-        final BidRequest bidRequest = givenBidRequest(identity(), givenImp(BANNER, VIDEO, AUDIO, NATIVE));
-        final Account account = givenAccount(Map.of(BIDDER, VIDEO));
+        final BidderRequest bidderRequest = givenBidderRequest(identity(), givenImp(BANNER, VIDEO, AUDIO, NATIVE));
+        final AuctionContext auctionContext = givenAuctionContext(Map.of(BIDDER, VIDEO));
 
         // when
-        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, bidderAliases, account);
+        final BidderRequestPostProcessingResult result =
+                target.process(bidderRequest, bidderAliases, auctionContext).result();
 
         // then
-        assertThat(result.isRejected()).isFalse();
-        assertThat(result.getBidRequest())
+        assertThat(result.getValue())
+                .extracting(BidderRequest::getBidRequest)
                 .extracting(BidRequest::getImp)
                 .asInstanceOf(InstanceOfAssertFactories.list(Imp.class))
                 .containsExactly(givenImp(VIDEO));
@@ -120,28 +124,24 @@ public class MultiFormatMediaTypeProcessorTest extends VertxTest {
         final ObjectNode bidderControls = mapper.createObjectNode();
         bidderControls.putObject(BIDDER).put("prefmtype", "video");
 
-        final BidRequest bidRequest = givenBidRequest(
+        final BidderRequest bidderRequest = givenBidderRequest(
                 request -> request.ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .biddercontrols(bidderControls)
                         .build())),
                 givenImp(BANNER, VIDEO, AUDIO, NATIVE));
 
-        final Account account = givenAccount(Map.of("resolvedBidderName", AUDIO));
+        final AuctionContext auctionContext = givenAuctionContext(Map.of("resolvedBidderName", AUDIO));
 
         // when
-        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, bidderAliases, account);
+        final BidderRequestPostProcessingResult result =
+                target.process(bidderRequest, bidderAliases, auctionContext).result();
 
         // then
-        assertThat(result.isRejected()).isFalse();
-        assertThat(result.getBidRequest())
+        assertThat(result.getValue())
+                .extracting(BidderRequest::getBidRequest)
                 .extracting(BidRequest::getImp)
                 .asInstanceOf(InstanceOfAssertFactories.list(Imp.class))
                 .containsExactly(givenImp(VIDEO));
-        assertThat(result.getBidRequest())
-                .extracting(BidRequest::getExt)
-                .extracting(ExtRequest::getPrebid)
-                .extracting(ExtRequestPrebid::getBiddercontrols)
-                .isNull();
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -154,28 +154,24 @@ public class MultiFormatMediaTypeProcessorTest extends VertxTest {
         final ObjectNode bidderControls = mapper.createObjectNode();
         bidderControls.putObject(BIDDER.toUpperCase()).put("prefmtype", "video");
 
-        final BidRequest bidRequest = givenBidRequest(
+        final BidderRequest bidderRequest = givenBidderRequest(
                 request -> request.ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .biddercontrols(bidderControls)
                         .build())),
                 givenImp(BANNER, VIDEO, AUDIO, NATIVE));
 
-        final Account account = givenAccount(Map.of("resolvedBidderName", AUDIO));
+        final AuctionContext auctionContext = givenAuctionContext(Map.of("resolvedBidderName", AUDIO));
 
         // when
-        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, bidderAliases, account);
+        final BidderRequestPostProcessingResult result =
+                target.process(bidderRequest, bidderAliases, auctionContext).result();
 
         // then
-        assertThat(result.isRejected()).isFalse();
-        assertThat(result.getBidRequest())
+        assertThat(result.getValue())
+                .extracting(BidderRequest::getBidRequest)
                 .extracting(BidRequest::getImp)
                 .asInstanceOf(InstanceOfAssertFactories.list(Imp.class))
                 .containsExactly(givenImp(VIDEO));
-        assertThat(result.getBidRequest())
-                .extracting(BidRequest::getExt)
-                .extracting(ExtRequest::getPrebid)
-                .extracting(ExtRequestPrebid::getBiddercontrols)
-                .isNull();
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -183,21 +179,22 @@ public class MultiFormatMediaTypeProcessorTest extends VertxTest {
     public void processShouldSkipImpsWithSingleMediaType() {
         // given
         given(bidderCatalog.bidderInfoByName(BIDDER)).willReturn(givenBidderInfo(false));
-        final BidRequest bidRequest = givenBidRequest(
+        final BidderRequest bidderRequest = givenBidderRequest(
                 identity(),
                 givenImp(BANNER),
                 givenImp(VIDEO),
                 givenImp(BANNER, VIDEO, AUDIO, NATIVE),
                 givenImp(AUDIO),
                 givenImp(NATIVE));
-        final Account account = givenAccount(Map.of(BIDDER, VIDEO));
+        final AuctionContext auctionContext = givenAuctionContext(Map.of(BIDDER, VIDEO));
 
         // when
-        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, bidderAliases, account);
+        final BidderRequestPostProcessingResult result =
+                target.process(bidderRequest, bidderAliases, auctionContext).result();
 
         // then
-        assertThat(result.isRejected()).isFalse();
-        assertThat(result.getBidRequest())
+        assertThat(result.getValue())
+                .extracting(BidderRequest::getBidRequest)
                 .extracting(BidRequest::getImp)
                 .asInstanceOf(InstanceOfAssertFactories.list(Imp.class))
                 .containsExactly(
@@ -213,7 +210,7 @@ public class MultiFormatMediaTypeProcessorTest extends VertxTest {
     public void processShouldFilterMultiFormatImpsWithoutPreferredMediaType() {
         // given
         given(bidderCatalog.bidderInfoByName(BIDDER)).willReturn(givenBidderInfo(false));
-        final BidRequest bidRequest = givenBidRequest(
+        final BidderRequest bidderRequest = givenBidderRequest(
                 identity(),
                 givenImp(BANNER, AUDIO),
                 givenImp(BANNER, VIDEO),
@@ -221,14 +218,15 @@ public class MultiFormatMediaTypeProcessorTest extends VertxTest {
                 givenImp(VIDEO, AUDIO),
                 givenImp(VIDEO, NATIVE),
                 givenImp(AUDIO, NATIVE));
-        final Account account = givenAccount(Map.of(BIDDER, VIDEO));
+        final AuctionContext auctionContext = givenAuctionContext(Map.of(BIDDER, VIDEO));
 
         // when
-        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, bidderAliases, account);
+        final BidderRequestPostProcessingResult result =
+                target.process(bidderRequest, bidderAliases, auctionContext).result();
 
         // then
-        assertThat(result.isRejected()).isFalse();
-        assertThat(result.getBidRequest())
+        assertThat(result.getValue())
+                .extracting(BidderRequest::getBidRequest)
                 .extracting(BidRequest::getImp)
                 .asInstanceOf(InstanceOfAssertFactories.list(Imp.class))
                 .containsExactly(
@@ -248,18 +246,25 @@ public class MultiFormatMediaTypeProcessorTest extends VertxTest {
     public void processShouldRejectEmptyRequestAfterFiltering() {
         // given
         given(bidderCatalog.bidderInfoByName(BIDDER)).willReturn(givenBidderInfo(false));
-        final BidRequest bidRequest = givenBidRequest(identity(), givenImp(BANNER, AUDIO, NATIVE));
-        final Account account = givenAccount(Map.of(BIDDER, VIDEO));
+        final BidderRequest bidderRequest = givenBidderRequest(identity(), givenImp(BANNER, AUDIO, NATIVE));
+        final AuctionContext auctionContext = givenAuctionContext(Map.of(BIDDER, VIDEO));
 
         // when
-        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, bidderAliases, account);
+        final Future<BidderRequestPostProcessingResult> result =
+                target.process(bidderRequest, bidderAliases, auctionContext);
 
         // then
-        assertThat(result.isRejected()).isTrue();
-        assertThat(result.getErrors()).containsExactly(
-                BidderError.badInput("Imp null does not have a media type after filtering"
-                        + " and has been removed from the request for this bidder."),
-                BidderError.badInput("Bid request contains 0 impressions after filtering."));
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause())
+                .asInstanceOf(InstanceOfAssertFactories.type(BidderRequestRejectedException.class))
+                .satisfies(e -> {
+                    assertThat(e.getRejectionReason())
+                            .isEqualTo(BidRejectionReason.REQUEST_BLOCKED_UNSUPPORTED_MEDIA_TYPE);
+                    assertThat(e.getErrors()).containsExactly(
+                            BidderError.badInput("Imp null does not have a media type after filtering"
+                                    + " and has been removed from the request for this bidder."),
+                            BidderError.badInput("Bid request contains 0 impressions after filtering."));
+                });
     }
 
     private static BidderInfo givenBidderInfo(boolean multiFormatSupported) {
@@ -283,10 +288,13 @@ public class MultiFormatMediaTypeProcessorTest extends VertxTest {
                 0L);
     }
 
-    private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
-                                              Imp... imps) {
+    private static BidderRequest givenBidderRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
+                                                    Imp... imps) {
 
-        return bidRequestCustomizer.apply(BidRequest.builder()).imp(asList(imps)).build();
+        return BidderRequest.builder()
+                .bidder(BIDDER)
+                .bidRequest(bidRequestCustomizer.apply(BidRequest.builder()).imp(asList(imps)).build())
+                .build();
     }
 
     private static Imp givenImp(MediaType... mediaTypes) {
@@ -309,10 +317,12 @@ public class MultiFormatMediaTypeProcessorTest extends VertxTest {
         return impBuilder.build();
     }
 
-    private static Account givenAccount(Map<String, MediaType> bidderToPreferredMediaType) {
-        return Account.builder()
-                .auction(AccountAuctionConfig.builder()
-                        .preferredMediaTypes(bidderToPreferredMediaType)
+    private static AuctionContext givenAuctionContext(Map<String, MediaType> bidderToPreferredMediaType) {
+        return AuctionContext.builder()
+                .account(Account.builder()
+                        .auction(AccountAuctionConfig.builder()
+                                .preferredMediaTypes(bidderToPreferredMediaType)
+                                .build())
                         .build())
                 .build();
     }
