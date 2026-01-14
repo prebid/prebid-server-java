@@ -2240,6 +2240,152 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
+    public void shouldFilterUserExtEidsWhenBidderIsNotAllowedForInserterIgnoringCase() {
+        testUserEidsPermissionFiltering(
+                // given
+                asList(Eid.builder().inserter("inserter1").build(), Eid.builder().inserter("inserter2").build()),
+                singletonList(ExtRequestPrebidDataEidPermissions.builder()
+                        .inserter("inserter1")
+                        .bidders(singletonList("OtHeRbIdDeR"))
+                        .build()),
+                emptyMap(),
+                // expected
+                singletonList(Eid.builder().inserter("inserter2").build()));
+    }
+
+    @Test
+    public void shouldFilterUserExtEidsWhenBidderIsNotAllowedForMatcherIgnoringCase() {
+        testUserEidsPermissionFiltering(
+                // given
+                asList(Eid.builder().matcher("matcher1").build(), Eid.builder().matcher("matcher2").build()),
+                singletonList(ExtRequestPrebidDataEidPermissions.builder()
+                        .matcher("matcher1")
+                        .bidders(singletonList("OtHeRbIdDeR"))
+                        .build()),
+                emptyMap(),
+                // expected
+                singletonList(Eid.builder().matcher("matcher2").build()));
+    }
+
+    @Test
+    public void shouldFilterUserExtEidsWhenBidderIsNotAllowedForMm() {
+        testUserEidsPermissionFiltering(
+                // given
+                asList(Eid.builder().mm(1).build(), Eid.builder().mm(2).build()),
+                singletonList(ExtRequestPrebidDataEidPermissions.builder()
+                        .mm(1)
+                        .bidders(singletonList("OtHeRbIdDeR"))
+                        .build()),
+                emptyMap(),
+                // expected
+                singletonList(Eid.builder().mm(2).build()));
+    }
+
+    @Test
+    public void shouldFilterUserExtEidsWhenBidderIsNotAllowedUsingMultipleCriteria() {
+        testUserEidsPermissionFiltering(
+                // given
+                asList(Eid.builder().inserter("inserter1").source("source1").matcher("matcher1").mm(1).build(),
+                        Eid.builder().inserter("inserter2").source("source2").matcher("matcher2").mm(2).build()),
+                singletonList(ExtRequestPrebidDataEidPermissions.builder()
+                        .inserter("inserter1")
+                        .source("source1")
+                        .matcher("matcher1")
+                        .mm(1)
+                        .bidders(singletonList("OtHeRbIdDeR"))
+                        .build()),
+                emptyMap(),
+                // expected
+                singletonList(Eid.builder().inserter("inserter2").source("source2").matcher("matcher2").mm(2).build()));
+    }
+
+    @Test
+    public void shouldFilterUserExtEidsWhenEveryCriteriaMatches() {
+        testUserEidsPermissionFiltering(
+                // given
+                asList(Eid.builder().inserter("inserter1").source("source1").matcher("matcher1").mm(1).build(),
+                        Eid.builder().inserter("inserter2").source("source2").matcher("matcher2").mm(2).build()),
+                singletonList(ExtRequestPrebidDataEidPermissions.builder()
+                        .inserter("inserter1")
+                        .source("source2")
+                        .matcher("matcher3")
+                        .mm(4)
+                        .bidders(singletonList("OtHeRbIdDeR"))
+                        .build()),
+                emptyMap(),
+                // expected
+                asList(Eid.builder().inserter("inserter1").source("source1").matcher("matcher1").mm(1).build(),
+                        Eid.builder().inserter("inserter2").source("source2").matcher("matcher2").mm(2).build()));
+    }
+
+    @Test
+    public void shouldFilterUserExtEidsWhenBidderIsNotAllowedUsingTheMostSpecificRule() {
+        testUserEidsPermissionFiltering(
+                // given
+                asList(Eid.builder().inserter("inserter1").source("source1").matcher("matcher1").mm(1).build(),
+                        Eid.builder().inserter("inserter2").source("source2").matcher("matcher2").mm(2).build()),
+                asList(ExtRequestPrebidDataEidPermissions.builder()
+                                .inserter("inserter1")
+                                .bidders(singletonList("someBidder"))
+                                .build(),
+                        ExtRequestPrebidDataEidPermissions.builder()
+                                .inserter("inserter1")
+                                .source("source1")
+                                .matcher("matcher1")
+                                .mm(1)
+                                .bidders(singletonList("OtHeRbIdDeR"))
+                                .build()),
+                emptyMap(),
+                // expected
+                singletonList(Eid.builder().inserter("inserter2").source("source2").matcher("matcher2").mm(2).build()));
+    }
+
+    @Test
+    public void shouldNotFilterUserExtEidsWhenBidderIsAllowedUsingTheMostSpecificRule() {
+        testUserEidsPermissionFiltering(
+                // given
+                asList(Eid.builder().inserter("inserter1").source("source1").matcher("matcher1").mm(1).build(),
+                        Eid.builder().inserter("inserter2").source("source2").matcher("matcher2").mm(2).build()),
+                asList(ExtRequestPrebidDataEidPermissions.builder()
+                                .inserter("inserter1")
+                                .bidders(singletonList("OtHeRbIdDeR"))
+                                .build(),
+                        ExtRequestPrebidDataEidPermissions.builder()
+                                .inserter("inserter1")
+                                .source("source1")
+                                .matcher("matcher1")
+                                .mm(1)
+                                .bidders(singletonList("someBidder"))
+                                .build()),
+                emptyMap(),
+                // expected
+                asList(Eid.builder().inserter("inserter1").source("source1").matcher("matcher1").mm(1).build(),
+                        Eid.builder().inserter("inserter2").source("source2").matcher("matcher2").mm(2).build()));
+    }
+
+    @Test
+    public void shouldNotFilterUserExtEidsWhenBidderIsAllowedUsingMultipleSameSpecificityRules() {
+        testUserEidsPermissionFiltering(
+                // given
+                asList(Eid.builder().inserter("inserter1").source("source1").matcher("matcher1").mm(1).build(),
+                        Eid.builder().inserter("inserter2").source("source2").matcher("matcher2").mm(2).build()),
+                asList(ExtRequestPrebidDataEidPermissions.builder()
+                                .inserter("inserter1")
+                                .source("source1")
+                                .bidders(singletonList("OtHeRbIdDeR"))
+                                .build(),
+                        ExtRequestPrebidDataEidPermissions.builder()
+                                .matcher("matcher1")
+                                .mm(1)
+                                .bidders(singletonList("someBidder"))
+                                .build()),
+                emptyMap(),
+                // expected
+                asList(Eid.builder().inserter("inserter1").source("source1").matcher("matcher1").mm(1).build(),
+                        Eid.builder().inserter("inserter2").source("source2").matcher("matcher2").mm(2).build()));
+    }
+
+    @Test
     public void shouldNotFilterUserExtEidsWhenEidsPermissionDoesNotContainSourceIgnoringCase() {
         testUserEidsPermissionFiltering(
                 // given
