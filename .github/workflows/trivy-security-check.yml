@@ -8,11 +8,12 @@ on:
 
 permissions:
   contents: read
-  security-events: write
 
 jobs:
   build:
     name: Trivy security check
+    permissions:
+      security-events: write
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code

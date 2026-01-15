@@ -45,3 +45,18 @@ jobs:
           -DdockerfileName=Dockerfile \
           -Dcheckstyle.skip \
           --file extra/pom.xml 
+
+      - name: Emitting run result of functional test
+        if: always()
+        uses: dorny/test-reporter@v2.5.0
+        with:
+          name: 'Functional tests'
+          working-directory: 'target/failsafe-reports'
+          path: 'TEST-*.xml'
+          reporter: java-junit
+          use-actions-summary: 'true'
+          list-suites: 'failed'
+          list-tests: 'failed'
+          fail-on-error: true
+          fail-on-empty: true
+          token: ${{ secrets.GITHUB_TOKEN }}

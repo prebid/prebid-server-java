@@ -5,9 +5,14 @@ on:
     tags:
       - '*'
 
+permissions:
+  contents: read
+
 jobs:
   update_release_draft:
     name: Publish release with notes
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     steps:
       - name: Create and publish release
