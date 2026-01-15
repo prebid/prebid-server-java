@@ -11,6 +11,12 @@ on:
     types:
       - created
 
+permissions:
+  contents: read
+  actions: read
+  checks: write
+  pull-requests: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -20,10 +26,10 @@ jobs:
         java: [ 21 ]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up JDK
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           cache: 'maven'
@@ -43,18 +49,3 @@ jobs:
           -DdockerfileName=Dockerfile-modules \
           -Dcheckstyle.skip \
           --file extra/pom.xml
-
-      - name: Emitting run result of functional test
-        if: always()
-        uses: dorny/test-reporter@v2.1.1
-        with:
-          name: 'Module functional tests'
-          working-directory: 'target/failsafe-reports'
-          path: 'TEST-*.xml'
-          reporter: java-junit
-          use-actions-summary: 'true'
-          list-suites: 'failed'
-          list-tests: 'failed'
-          fail-on-error: true
-          fail-on-empty: true
-          token: ${{ secrets.GITHUB_TOKEN }}

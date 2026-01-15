@@ -11,6 +11,12 @@ on:
     types:
       - created
 
+permissions:
+  contents: read
+  actions: read
+  checks: write
+  pull-requests: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -20,10 +26,10 @@ jobs:
         java: [ 21 ]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up JDK
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           cache: 'maven'
@@ -32,12 +38,3 @@ jobs:
 
       - name: Build with Maven
         run: mvn -B package --file extra/pom.xml
-
-      - name: Publish JUnit Report
-        uses: mikepenz/action-junit-report@v5
-        if: always()
-        with:
-          check_name: 'JUnit Test Report'
-          report_paths: '**/target/surefire-reports/TEST-*.xml'
-          fail_on_failure: true
-          annotate_only: true

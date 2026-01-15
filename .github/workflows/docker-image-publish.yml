@@ -9,17 +9,18 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   build:
     name: Publish Docker image for new tag/release
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
     strategy:
       matrix:
         java: [ 21 ]
-        dockerfile-path: [Dockerfile, Dockerfile-modules]
+        dockerfile-path: [ Dockerfile, Dockerfile-modules ]
         include:
           - dockerfile-path: Dockerfile
             build-cmd: mvn clean package -Dcheckstyle.skip -Dmaven.test.skip=true
@@ -30,10 +31,10 @@ jobs:
             package-name: ghcr.io/${{ github.repository }}-bundle
     steps:
       - name: Check out Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up JDK
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           cache: 'maven'
@@ -56,13 +57,13 @@ jobs:
           images: ${{ matrix.package-name }}
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ${{ matrix.dockerfile-path }}
