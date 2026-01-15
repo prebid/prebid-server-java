@@ -68,7 +68,7 @@ public class BidderRequestCleanerTest extends VertxTest {
         final BidderRequest bidderRequest = givenBidderRequest(extPrebid -> extPrebid.bidadjustmentfactors(factors));
 
         // when
-        final Result<BidderRequest> result = target.process(bidderRequest, null, null).result();
+        final BidderRequestPostProcessingResult result = target.process(bidderRequest, null, null).result();
 
         // then
         assertThat(result.getValue())
@@ -97,7 +97,7 @@ public class BidderRequestCleanerTest extends VertxTest {
         final BidderRequest bidderRequest = givenBidderRequest(extPrebid -> extPrebid.bidadjustmentfactors(factors));
 
         // when
-        final Result<BidderRequest> result = target.process(bidderRequest, null, null).result();
+        final BidderRequestPostProcessingResult result = target.process(bidderRequest, null, null).result();
 
         // then
         assertThat(result.getValue())
@@ -120,7 +120,7 @@ public class BidderRequestCleanerTest extends VertxTest {
         final BidderRequest bidderRequest = givenBidderRequest(extPrebid -> extPrebid.bidadjustments(bidAdjustments));
 
         // when
-        final Result<BidderRequest> result = target.process(bidderRequest, null, null).result();
+        final BidderRequestPostProcessingResult result = target.process(bidderRequest, null, null).result();
 
         // then
         assertThat(result.getValue())
@@ -141,7 +141,7 @@ public class BidderRequestCleanerTest extends VertxTest {
         final BidderRequest bidderRequest = givenBidderRequest(extPrebid -> extPrebid.bidadjustments(bidAdjustments));
 
         // when
-        final Result<BidderRequest> result = target.process(bidderRequest, null, null).result();
+        final BidderRequestPostProcessingResult result = target.process(bidderRequest, null, null).result();
 
         // then
         assertThat(result.getValue())
@@ -164,7 +164,7 @@ public class BidderRequestCleanerTest extends VertxTest {
         final BidderRequest bidderRequest = givenBidderRequest(extPrebid -> extPrebid.alternateBidderCodes(codes));
 
         // when
-        final Result<BidderRequest> result = target.process(bidderRequest, null, null).result();
+        final BidderRequestPostProcessingResult result = target.process(bidderRequest, null, null).result();
 
         // then
         assertThat(result.getValue())
@@ -183,7 +183,7 @@ public class BidderRequestCleanerTest extends VertxTest {
         final BidderRequest bidderRequest = givenBidderRequest(extPrebid -> extPrebid.returnallbidstatus(true));
 
         // when
-        final Result<BidderRequest> result = target.process(bidderRequest, null, null).result();
+        final BidderRequestPostProcessingResult result = target.process(bidderRequest, null, null).result();
 
         // then
         assertThat(result.getValue())
@@ -201,7 +201,7 @@ public class BidderRequestCleanerTest extends VertxTest {
         final BidderRequest bidderRequest = givenBidderRequest(extPrebid -> extPrebid.aliasgvlids(emptyMap()));
 
         // when
-        final Result<BidderRequest> result = target.process(bidderRequest, null, null).result();
+        final BidderRequestPostProcessingResult result = target.process(bidderRequest, null, null).result();
 
         // then
         assertThat(result.getValue())
@@ -219,7 +219,7 @@ public class BidderRequestCleanerTest extends VertxTest {
         final BidderRequest bidderRequest = givenBidderRequest(extPrebid -> extPrebid.adservertargeting(emptyList()));
 
         // when
-        final Result<BidderRequest> result = target.process(bidderRequest, null, null).result();
+        final BidderRequestPostProcessingResult result = target.process(bidderRequest, null, null).result();
 
         // then
         assertThat(result.getValue())
@@ -238,7 +238,7 @@ public class BidderRequestCleanerTest extends VertxTest {
                 extPrebid -> extPrebid.cache(ExtRequestPrebidCache.EMPTY));
 
         // when
-        final Result<BidderRequest> result = target.process(bidderRequest, null, null).result();
+        final BidderRequestPostProcessingResult result = target.process(bidderRequest, null, null).result();
 
         // then
         assertThat(result.getValue())
@@ -257,7 +257,7 @@ public class BidderRequestCleanerTest extends VertxTest {
                 extPrebid -> extPrebid.events(mapper.createObjectNode()));
 
         // when
-        final Result<BidderRequest> result = target.process(bidderRequest, null, null).result();
+        final BidderRequestPostProcessingResult result = target.process(bidderRequest, null, null).result();
 
         // then
         assertThat(result.getValue())
@@ -275,7 +275,7 @@ public class BidderRequestCleanerTest extends VertxTest {
         final BidderRequest bidderRequest = givenBidderRequest(extPrebid -> extPrebid.nosale(emptyList()));
 
         // when
-        final Result<BidderRequest> result = target.process(bidderRequest, null, null).result();
+        final BidderRequestPostProcessingResult result = target.process(bidderRequest, null, null).result();
 
         // then
         assertThat(result.getValue())
@@ -313,7 +313,7 @@ public class BidderRequestCleanerTest extends VertxTest {
                 extPrebid -> extPrebid.analytics(mapper.createObjectNode()));
 
         // when
-        final Result<BidderRequest> result = target.process(bidderRequest, null, null).result();
+        final BidderRequestPostProcessingResult result = target.process(bidderRequest, null, null).result();
 
         // then
         assertThat(result.getValue())
@@ -332,7 +332,7 @@ public class BidderRequestCleanerTest extends VertxTest {
                 extPrebid -> extPrebid.passthrough(mapper.createObjectNode()));
 
         // when
-        final Result<BidderRequest> result = target.process(bidderRequest, null, null).result();
+        final BidderRequestPostProcessingResult result = target.process(bidderRequest, null, null).result();
 
         // then
         assertThat(result.getValue())
@@ -351,7 +351,7 @@ public class BidderRequestCleanerTest extends VertxTest {
                 extPrebid -> extPrebid.kvps(mapper.createObjectNode()));
 
         // when
-        final Result<BidderRequest> result = target.process(bidderRequest, null, null).result();
+        final BidderRequestPostProcessingResult result = target.process(bidderRequest, null, null).result();
 
         // then
         assertThat(result.getValue())
