@@ -9,7 +9,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.aliases.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderRequest;
-import org.prebid.server.bidder.model.Result;
 import org.prebid.server.model.UpdateResult;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidAdjustmentFactors;
@@ -27,9 +26,9 @@ import java.util.Map;
 public class BidderRequestCleaner implements BidderRequestPostProcessor {
 
     @Override
-    public Future<Result<BidderRequest>> process(BidderRequest bidderRequest,
-                                                 BidderAliases aliases,
-                                                 AuctionContext auctionContext) {
+    public Future<BidderRequestPostProcessingResult> process(BidderRequest bidderRequest,
+                                                             BidderAliases aliases,
+                                                             AuctionContext auctionContext) {
 
         final BidRequest bidRequest = bidderRequest.getBidRequest();
         final UpdateResult<ExtRequest> cleanedExt = cleanExt(bidRequest.getExt(), bidderRequest.getBidder());
@@ -38,7 +37,7 @@ public class BidderRequestCleaner implements BidderRequestPostProcessor {
                 ? bidderRequest.with(bidRequest.toBuilder().ext(cleanedExt.getValue()).build())
                 : bidderRequest;
 
-        return Future.succeededFuture(Result.of(cleanedBidderRequest, Collections.emptyList()));
+        return Future.succeededFuture(BidderRequestPostProcessingResult.withValue(cleanedBidderRequest));
     }
 
     private UpdateResult<ExtRequest> cleanExt(ExtRequest ext, String bidder) {
