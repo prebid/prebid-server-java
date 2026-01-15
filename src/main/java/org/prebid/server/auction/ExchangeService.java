@@ -581,8 +581,8 @@ public class ExchangeService {
         return Optional.ofNullable(prebid)
                 .map(ExtRequestPrebid::getData)
                 .map(ExtRequestPrebidData::getEidPermissions)
-                .map(EidPermissionHolder::new)
-                .orElse(null);
+                .map(EidPermissionHolder::of)
+                .orElse(EidPermissionHolder.empty());
     }
 
     private static List<String> firstPartyDataBidders(ExtRequest requestExt) {
@@ -670,14 +670,8 @@ public class ExchangeService {
     private List<Eid> resolveAllowedEids(List<Eid> userEids, String bidder, EidPermissionHolder eidPermissionHolder) {
         return CollectionUtils.emptyIfNull(userEids)
                 .stream()
-                .filter(userEid -> isUserEidAllowed(userEid, eidPermissionHolder, bidder))
+                .filter(userEid -> eidPermissionHolder.isAllowed(userEid, bidder))
                 .toList();
-    }
-
-    private boolean isUserEidAllowed(Eid eid,
-                                     EidPermissionHolder eidPermissionHolder,
-                                     String bidder) {
-        return eidPermissionHolder == null || eidPermissionHolder.isAllowed(eid, bidder);
     }
 
     private List<AuctionParticipation> getAuctionParticipation(

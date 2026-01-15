@@ -1,65 +1,60 @@
 package org.prebid.server.auction.model;
 
 import com.iab.openrtb.request.Eid;
-import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidDataEidPermissions;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public final class EidPermissionHolder {
 
     private static final String WILDCARD_BIDDER = "*";
 
+    private static final ExtRequestPrebidDataEidPermissions DEFAULT_RULE = ExtRequestPrebidDataEidPermissions.builder()
+            .bidders(Collections.singletonList(WILDCARD_BIDDER))
+            .build();
+
+    private static final EidPermissionHolder EMPTY = new EidPermissionHolder(Collections.emptyList());
+
     private final List<ExtRequestPrebidDataEidPermissions> eidPermissions;
 
-    public EidPermissionHolder(List<ExtRequestPrebidDataEidPermissions> eidPermissions) {
-        this.eidPermissions = eidPermissions;
+    private EidPermissionHolder(List<ExtRequestPrebidDataEidPermissions> eidPermissions) {
+        this.eidPermissions = new ArrayList<>(eidPermissions);
+        this.eidPermissions.add(DEFAULT_RULE);
+    }
+
+    public static EidPermissionHolder of(List<ExtRequestPrebidDataEidPermissions> eidPermissions) {
+        return new EidPermissionHolder(eidPermissions);
+    }
+
+    public static EidPermissionHolder empty() {
+        return EMPTY;
     }
 
     public boolean isAllowed(Eid eid, String bidder) {
-        if (ObjectUtils.isEmpty(eidPermissions)) {
-            return true;
-        }
+        final Map<Integer, List<ExtRequestPrebidDataEidPermissions>> matchingRulesBySpecificity = eidPermissions
+                .stream()
+                .filter(rule -> isRuleMatched(eid, rule))
+                .collect(Collectors.groupingBy(this::getRuleSpecificity));
 
-        boolean isBestMatch = false;
-        int bestSpecificity = -1;
-
-        for (ExtRequestPrebidDataEidPermissions eidPermission : eidPermissions) {
-            if (!isRuleMatched(eid, eidPermission)) {
-                continue;
-            }
-
-            final int ruleSpecificity = getRuleSpecificity(eidPermission);
-
-            final boolean isBidderAllowed = isBidderAllowed(bidder, eidPermission.getBidders());
-
-            if (ruleSpecificity > bestSpecificity) {
-                bestSpecificity = ruleSpecificity;
-                isBestMatch = isBidderAllowed;
-            } else if (ruleSpecificity == bestSpecificity) {
-                isBestMatch |= isBidderAllowed;
-            }
-        }
-
-        return bestSpecificity == -1 || isBestMatch;
+        final int highestSpecificityMatchingRules = Collections.max(matchingRulesBySpecificity.keySet());
+        return matchingRulesBySpecificity.get(highestSpecificityMatchingRules).stream()
+                .anyMatch(eidPermission -> isBidderAllowed(bidder, eidPermission.getBidders()));
     }
 
     private int getRuleSpecificity(ExtRequestPrebidDataEidPermissions eidPermission) {
-        int specificity = 0;
-        if (eidPermission.getInserter() != null) {
-            specificity++;
-        }
-        if (eidPermission.getSource() != null) {
-            specificity++;
-        }
-        if (eidPermission.getMatcher() != null) {
-            specificity++;
-        }
-        if (eidPermission.getMm() != null) {
-            specificity++;
-        }
-        return specificity;
+        return (int) Stream.of(eidPermission.getInserter(),
+                        eidPermission.getSource(),
+                        eidPermission.getMatcher(),
+                        eidPermission.getMm())
+                .filter(Objects::nonNull)
+                .count();
     }
 
     private boolean isRuleMatched(Eid eid, ExtRequestPrebidDataEidPermissions eidPermission) {
