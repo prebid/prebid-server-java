@@ -44,7 +44,6 @@ import org.prebid.server.util.ListUtil;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -253,8 +252,9 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
             return permission;
         }
 
-        final Set<String> current = new HashSet<>(ListUtils.emptyIfNull(permission.getBidders()));
-        final List<String> finalBidders = SetUtils.intersection(targetBidders, current).stream().toList();
+        final List<String> finalBidders = ListUtils.emptyIfNull(permission.getBidders()).stream()
+                .filter(targetBidders::contains)
+                .toList();
 
         return CollectionUtils.isEmpty(finalBidders)
                 ? null
