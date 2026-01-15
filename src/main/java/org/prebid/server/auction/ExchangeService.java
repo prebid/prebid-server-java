@@ -19,7 +19,6 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -32,9 +31,9 @@ import org.prebid.server.activity.infrastructure.payload.impl.ActivityInvocation
 import org.prebid.server.activity.infrastructure.payload.impl.BidRequestActivityInvocationPayload;
 import org.prebid.server.auction.aliases.AlternateBidderCodesConfig;
 import org.prebid.server.auction.aliases.BidderAliases;
+import org.prebid.server.auction.bidderrequestpostprocessor.BidderRequestPostProcessor;
+import org.prebid.server.auction.bidderrequestpostprocessor.BidderRequestRejectedException;
 import org.prebid.server.auction.externalortb.StoredResponseProcessor;
-import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessingResult;
-import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessor;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionParticipation;
 import org.prebid.server.auction.model.BidRejectionReason;
@@ -52,7 +51,6 @@ import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversio
 import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.bidder.BidderInfo;
 import org.prebid.server.bidder.HttpBidderRequester;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.model.BidderBid;
@@ -143,7 +141,7 @@ public class ExchangeService {
     private final ImpAdjuster impAdjuster;
     private final SupplyChainResolver supplyChainResolver;
     private final DebugResolver debugResolver;
-    private final MediaTypeProcessor mediaTypeProcessor;
+    private final BidderRequestPostProcessor bidderRequestPostProcessor;
     private final UidUpdater uidUpdater;
     private final TimeoutResolver timeoutResolver;
     private final TimeoutFactory timeoutFactory;
@@ -170,7 +168,7 @@ public class ExchangeService {
                            ImpAdjuster impAdjuster,
                            SupplyChainResolver supplyChainResolver,
                            DebugResolver debugResolver,
-                           MediaTypeProcessor mediaTypeProcessor,
+                           BidderRequestPostProcessor bidderRequestPostProcessor,
                            UidUpdater uidUpdater,
                            TimeoutResolver timeoutResolver,
                            TimeoutFactory timeoutFactory,
@@ -197,7 +195,7 @@ public class ExchangeService {
         this.impAdjuster = Objects.requireNonNull(impAdjuster);
         this.supplyChainResolver = Objects.requireNonNull(supplyChainResolver);
         this.debugResolver = Objects.requireNonNull(debugResolver);
-        this.mediaTypeProcessor = Objects.requireNonNull(mediaTypeProcessor);
+        this.bidderRequestPostProcessor = Objects.requireNonNull(bidderRequestPostProcessor);
         this.uidUpdater = Objects.requireNonNull(uidUpdater);
         this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
@@ -491,13 +489,12 @@ public class ExchangeService {
                 .filter(bidder -> isBidderCallActivityAllowed(bidder, context))
                 .distinct()
                 .toList();
-        final Map<String, Map<String, String>> impBidderToStoredBidResponse =
-                storedResponseResult.getImpBidderToStoredBidResponse();
+
         return makeAuctionParticipation(
                 bidders,
                 context,
                 aliases,
-                impBidderToStoredBidResponse,
+                storedResponseResult.getImpBidderToStoredBidResponse(),
                 imps,
                 bidderToMultiBid);
     }
@@ -538,7 +535,7 @@ public class ExchangeService {
 
         final BidRequest bidRequest = context.getBidRequest();
         final ExtRequest requestExt = bidRequest.getExt();
-        final ExtRequestPrebid prebid = requestExt == null ? null : requestExt.getPrebid();
+        final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
         final Map<String, ExtBidderConfigOrtb> biddersToConfigs = getBiddersToConfigs(prebid);
         final EidPermissionHolder eidPermissionHolder = getEidPermissions(prebid);
         final Map<String, Pair<User, Device>> bidderToUserAndDevice =
@@ -1154,67 +1151,37 @@ public class ExchangeService {
                                                          Timeout timeout,
                                                          BidderAliases aliases) {
 
-        final String bidderName = bidderRequest.getBidder();
-        final MediaTypeProcessingResult mediaTypeProcessingResult = mediaTypeProcessor.process(
-                bidderRequest.getBidRequest(), bidderName, aliases, auctionContext.getAccount());
-        final List<BidderError> mediaTypeProcessingErrors = mediaTypeProcessingResult.getErrors();
-        if (mediaTypeProcessingResult.isRejected()) {
-            return processReject(
-                    auctionContext,
-                    BidRejectionReason.REQUEST_BLOCKED_UNSUPPORTED_MEDIA_TYPE,
-                    mediaTypeProcessingErrors,
-                    bidderName);
-        }
-        if (isUnacceptableCurrency(auctionContext, aliases.resolveBidder(bidderName))) {
-            return processReject(
-                    auctionContext,
-                    BidRejectionReason.REQUEST_BLOCKED_UNACCEPTABLE_CURRENCY,
-                    List.of(BidderError.generic("No match between the configured currencies and bidRequest.cur")),
-                    bidderName);
-        }
-
-        return Future.succeededFuture(mediaTypeProcessingResult.getBidRequest())
-                .map(bidderRequest::with)
-                .compose(modifiedBidderRequest -> invokeHooksAndRequestBids(
-                        auctionContext, modifiedBidderRequest, timeout, aliases))
-                .map(bidderResponse -> bidderResponse.with(
-                        addWarnings(bidderResponse.getSeatBid(), mediaTypeProcessingErrors)));
-    }
-
-    private boolean isUnacceptableCurrency(AuctionContext auctionContext, String originalBidderName) {
-        final List<String> requestCurrencies = auctionContext.getBidRequest().getCur();
-        final List<String> bidAcceptableCurrencies =
-                Optional.ofNullable(bidderCatalog.bidderInfoByName(originalBidderName))
-                        .map(BidderInfo::getCurrencyAccepted)
-                        .orElse(null);
-
-        if (CollectionUtils.isEmpty(requestCurrencies) || CollectionUtils.isEmpty(bidAcceptableCurrencies)) {
-            return false;
-        }
-
-        return !CollectionUtils.containsAny(requestCurrencies, bidAcceptableCurrencies);
-    }
-
-    private static Future<BidderResponse> processReject(AuctionContext auctionContext,
-                                                        BidRejectionReason bidRejectionReason,
-                                                        List<BidderError> warnings,
-                                                        String bidderName) {
-
-        auctionContext.getBidRejectionTrackers()
-                .get(bidderName)
-                .rejectAll(bidRejectionReason);
-        final BidderSeatBid bidderSeatBid = BidderSeatBid.builder()
-                .warnings(warnings)
-                .build();
-        return Future.succeededFuture(BidderResponse.of(bidderName, bidderSeatBid, 0));
+        return bidderRequestPostProcessor.process(bidderRequest, aliases, auctionContext)
+                .compose(result -> invokeHooksAndRequestBids(auctionContext, result.getValue(), timeout, aliases)
+                        .map(response -> response.with(addWarnings(response.getSeatBid(), result.getErrors()))))
+                .recover(throwable -> recoverBidderRequestRejection(
+                        auctionContext, bidderRequest.getBidder(), throwable));
     }
 
     private static BidderSeatBid addWarnings(BidderSeatBid seatBid, List<BidderError> warnings) {
         return CollectionUtils.isNotEmpty(warnings)
                 ? seatBid.toBuilder()
-                .warnings(ListUtils.union(warnings, seatBid.getWarnings()))
+                .warnings(ListUtil.union(warnings, seatBid.getWarnings()))
                 .build()
                 : seatBid;
+    }
+
+    private static Future<BidderResponse> recoverBidderRequestRejection(AuctionContext auctionContext,
+                                                                        String bidderName,
+                                                                        Throwable throwable) {
+
+        if (throwable instanceof BidderRequestRejectedException rejection) {
+            auctionContext.getBidRejectionTrackers()
+                    .get(bidderName)
+                    .rejectAll(rejection.getRejectionReason());
+            final BidderSeatBid bidderSeatBid = BidderSeatBid.builder()
+                    .warnings(rejection.getErrors())
+                    .build();
+
+            return Future.succeededFuture(BidderResponse.of(bidderName, bidderSeatBid, 0));
+        }
+
+        return Future.failedFuture(throwable);
     }
 
     private Future<BidderResponse> invokeHooksAndRequestBids(AuctionContext auctionContext,
