@@ -42,7 +42,6 @@ import org.prebid.server.auction.model.BidRequestCacheInfo;
 import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
-import org.prebid.server.auction.model.EidPermissionHolder;
 import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.auction.model.TimeoutContext;
@@ -537,9 +536,9 @@ public class ExchangeService {
         final ExtRequest requestExt = bidRequest.getExt();
         final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
         final Map<String, ExtBidderConfigOrtb> biddersToConfigs = getBiddersToConfigs(prebid);
-        final EidPermissionHolder eidPermissionHolder = getEidPermissions(prebid);
+        final EidPermissionResolver eidPermissionResolver = getEidPermissions(prebid);
         final Map<String, Pair<User, Device>> bidderToUserAndDevice =
-                prepareUsersAndDevices(bidders, context, aliases, biddersToConfigs, eidPermissionHolder);
+                prepareUsersAndDevices(bidders, context, aliases, biddersToConfigs, eidPermissionResolver);
 
         return privacyEnforcementService.mask(context, bidderToUserAndDevice, aliases)
                 .map(bidderToPrivacyResult -> getAuctionParticipation(
@@ -577,12 +576,12 @@ public class ExchangeService {
         return bidderToConfig;
     }
 
-    private EidPermissionHolder getEidPermissions(ExtRequestPrebid prebid) {
+    private EidPermissionResolver getEidPermissions(ExtRequestPrebid prebid) {
         return Optional.ofNullable(prebid)
                 .map(ExtRequestPrebid::getData)
                 .map(ExtRequestPrebidData::getEidPermissions)
-                .map(EidPermissionHolder::of)
-                .orElse(EidPermissionHolder.empty());
+                .map(EidPermissionResolver::of)
+                .orElse(EidPermissionResolver.empty());
     }
 
     private static List<String> firstPartyDataBidders(ExtRequest requestExt) {
@@ -596,7 +595,7 @@ public class ExchangeService {
             AuctionContext context,
             BidderAliases aliases,
             Map<String, ExtBidderConfigOrtb> biddersToConfigs,
-            EidPermissionHolder eidPermissionHolder) {
+            EidPermissionResolver eidPermissionResolver) {
 
         final BidRequest bidRequest = context.getBidRequest();
         final List<String> firstPartyDataBidders = firstPartyDataBidders(bidRequest.getExt());
@@ -608,7 +607,7 @@ public class ExchangeService {
             final boolean useFirstPartyData = firstPartyDataBidders == null || firstPartyDataBidders.stream()
                     .anyMatch(fpdBidder -> StringUtils.equalsIgnoreCase(fpdBidder, bidder));
             final User preparedUser = prepareUser(
-                    bidder, context, aliases, useFirstPartyData, fpdConfig, eidPermissionHolder);
+                    bidder, context, aliases, useFirstPartyData, fpdConfig, eidPermissionResolver);
             final Device preparedDevice = prepareDevice(
                     bidRequest.getDevice(), fpdConfig, useFirstPartyData);
             bidderToUserAndDevice.put(bidder, Pair.of(preparedUser, preparedDevice));
@@ -621,13 +620,13 @@ public class ExchangeService {
                              BidderAliases aliases,
                              boolean useFirstPartyData,
                              ExtBidderConfigOrtb fpdConfig,
-                             EidPermissionHolder eidPermissionHolder) {
+                             EidPermissionResolver eidPermissionResolver) {
 
         final User user = context.getBidRequest().getUser();
         final ExtUser extUser = user != null ? user.getExt() : null;
         final UpdateResult<String> buyerUidUpdateResult = uidUpdater.updateUid(bidder, context, aliases);
         final List<Eid> userEids = extractUserEids(user);
-        final List<Eid> allowedUserEids = eidPermissionHolder.resolveAllowedEids(userEids, bidder);
+        final List<Eid> allowedUserEids = eidPermissionResolver.resolveAllowedEids(userEids, bidder);
         final boolean shouldUpdateUserEids = allowedUserEids.size() != CollectionUtils.emptyIfNull(userEids).size();
         final boolean shouldCleanExtPrebid = extUser != null && extUser.getPrebid() != null;
         final boolean shouldCleanExtData = extUser != null && extUser.getData() != null && !useFirstPartyData;
