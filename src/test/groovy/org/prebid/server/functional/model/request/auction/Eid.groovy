@@ -25,4 +25,14 @@ class Eid {
             it.matchMethod = PBSUtils.randomNumber
         }
     }
+
+    static Eid from(EidPermission eidPermission, List<Uid> uids = [Uid.defaultUid]) {
+        new Eid().tap {
+            it.source = eidPermission.source
+            it.uids = uids
+            it.inserter = eidPermission.inserter
+            it.matcher = eidPermission.matcher
+            it.matchMethod = eidPermission.matchMethod
+        }
+    }
 }
