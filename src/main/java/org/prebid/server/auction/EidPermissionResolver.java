@@ -74,7 +74,7 @@ public class EidPermissionResolver {
     }
 
     private boolean isBidderAllowed(String bidder, List<String> ruleBidders) {
-        return CollectionUtils.emptyIfNull(ruleBidders).stream()
+        return ruleBidders == null || ruleBidders.stream()
                 .anyMatch(allowedBidder -> StringUtils.equalsIgnoreCase(allowedBidder, bidder)
                         || WILDCARD_BIDDER.equals(allowedBidder));
     }
