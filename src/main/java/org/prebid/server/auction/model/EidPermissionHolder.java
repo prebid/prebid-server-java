@@ -38,7 +38,14 @@ public final class EidPermissionHolder {
         return EMPTY;
     }
 
-    public boolean isAllowed(Eid eid, String bidder) {
+    public List<Eid> resolveAllowedEids(List<Eid> userEids, String bidder) {
+        return CollectionUtils.emptyIfNull(userEids)
+                .stream()
+                .filter(userEid -> isAllowed(userEid, bidder))
+                .toList();
+    }
+
+    private boolean isAllowed(Eid eid, String bidder) {
         final Map<Integer, List<ExtRequestPrebidDataEidPermissions>> matchingRulesBySpecificity = eidPermissions
                 .stream()
                 .filter(rule -> isRuleMatched(eid, rule))

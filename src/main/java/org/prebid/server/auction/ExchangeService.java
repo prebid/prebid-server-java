@@ -627,7 +627,7 @@ public class ExchangeService {
         final ExtUser extUser = user != null ? user.getExt() : null;
         final UpdateResult<String> buyerUidUpdateResult = uidUpdater.updateUid(bidder, context, aliases);
         final List<Eid> userEids = extractUserEids(user);
-        final List<Eid> allowedUserEids = resolveAllowedEids(userEids, bidder, eidPermissionHolder);
+        final List<Eid> allowedUserEids = eidPermissionHolder.resolveAllowedEids(userEids, bidder);
         final boolean shouldUpdateUserEids = allowedUserEids.size() != CollectionUtils.emptyIfNull(userEids).size();
         final boolean shouldCleanExtPrebid = extUser != null && extUser.getPrebid() != null;
         final boolean shouldCleanExtData = extUser != null && extUser.getData() != null && !useFirstPartyData;
@@ -665,13 +665,6 @@ public class ExchangeService {
 
     private List<Eid> extractUserEids(User user) {
         return user != null ? user.getEids() : null;
-    }
-
-    private List<Eid> resolveAllowedEids(List<Eid> userEids, String bidder, EidPermissionHolder eidPermissionHolder) {
-        return CollectionUtils.emptyIfNull(userEids)
-                .stream()
-                .filter(userEid -> eidPermissionHolder.isAllowed(userEid, bidder))
-                .toList();
     }
 
     private List<AuctionParticipation> getAuctionParticipation(
