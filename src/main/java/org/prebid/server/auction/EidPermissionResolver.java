@@ -1,4 +1,4 @@
-package org.prebid.server.auction.model;
+package org.prebid.server.auction;
 
 import com.iab.openrtb.request.Eid;
 import org.apache.commons.collections4.CollectionUtils;
@@ -13,7 +13,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public final class EidPermissionHolder {
+public class EidPermissionResolver {
 
     private static final String WILDCARD_BIDDER = "*";
 
@@ -21,20 +21,20 @@ public final class EidPermissionHolder {
             .bidders(Collections.singletonList(WILDCARD_BIDDER))
             .build();
 
-    private static final EidPermissionHolder EMPTY = new EidPermissionHolder(Collections.emptyList());
+    private static final EidPermissionResolver EMPTY = new EidPermissionResolver(Collections.emptyList());
 
     private final List<ExtRequestPrebidDataEidPermissions> eidPermissions;
 
-    private EidPermissionHolder(List<ExtRequestPrebidDataEidPermissions> eidPermissions) {
+    private EidPermissionResolver(List<ExtRequestPrebidDataEidPermissions> eidPermissions) {
         this.eidPermissions = new ArrayList<>(eidPermissions);
         this.eidPermissions.add(DEFAULT_RULE);
     }
 
-    public static EidPermissionHolder of(List<ExtRequestPrebidDataEidPermissions> eidPermissions) {
-        return new EidPermissionHolder(eidPermissions);
+    public static EidPermissionResolver of(List<ExtRequestPrebidDataEidPermissions> eidPermissions) {
+        return new EidPermissionResolver(eidPermissions);
     }
 
-    public static EidPermissionHolder empty() {
+    public static EidPermissionResolver empty() {
         return EMPTY;
     }
 
