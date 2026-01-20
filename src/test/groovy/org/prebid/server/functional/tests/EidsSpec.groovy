@@ -227,7 +227,7 @@ class EidsSpec extends BaseSpec {
             imp[0].ext.prebid.bidder.openx = Openx.defaultOpenx
             ext.prebid.data = new ExtRequestPrebidData(
                     eidpermissions: [new EidPermission(source: PBSUtils.randomString, bidders: eidsBidder),
-                                     new EidPermission(source: PBSUtils.randomString)])
+                                     new EidPermission(source: PBSUtils.randomString, bidders: null)])
         }
 
         when: "PBS processes auction request"
