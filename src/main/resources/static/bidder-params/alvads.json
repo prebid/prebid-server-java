@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Alvads Adapter Params",
+  "description": "A schema which validates params accepted by the Alvads adapter",
+  "type": "object",
+
+  "properties": {
+    "publisherUniqueId": {
+      "type": "string",
+      "description": "Publisher Unique Id"
+    }
+  },
+
+  "required": ["publisherUniqueId"]
+}
