@@ -86,7 +86,8 @@ public class HttpInteractionLogHandlerTest {
 
         // then
         verify(httpResponse).setStatusCode(eq(400));
-        verify(httpResponse).end(eq("Invalid 'endpoint' parameter value, allowed values '[auction, amp]'"));
+        verify(httpResponse).end(
+                eq("Invalid 'endpoint' parameter value, allowed values '[auction, amp, get_interface]'"));
 
         verifyNoInteractions(httpInteractionLogger);
     }

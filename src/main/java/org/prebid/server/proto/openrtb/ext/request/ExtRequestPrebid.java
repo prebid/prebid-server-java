@@ -200,4 +200,10 @@ public class ExtRequestPrebid {
     ExtRequestPrebidAlternateBidderCodes alternateBidderCodes;
 
     ObjectNode kvps;
+
+    @JsonProperty("outputformat")
+    String outputFormat;
+
+    @JsonProperty("outputmodule")
+    String outputModule;
 }
