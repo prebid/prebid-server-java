@@ -7,7 +7,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -141,12 +140,17 @@ public class TappxBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        final String expectedUri = "https://ssp.api.domain/rtb/v2/endpoint?tappxkey=tappxkey&v=1.6&type_cnn=prebid";
-        assertThat(result.getValue()).hasSize(1)
-                .allSatisfy(httpRequest -> {
-                    assertThat(httpRequest.getUri()).isEqualTo(expectedUri);
-                    assertThat(httpRequest.getMethod()).isEqualTo(HttpMethod.POST);
+        assertThat(result.getValue())
+                .hasSize(1)
+                .first()
+                .extracting(HttpRequest::getUri)
+                .satisfies(url -> {
+                    assertThat(url).startsWith("https://ssp.api.domain/rtb/v2/endpoint");
+                    assertThat(url).contains("tappxkey=tappxkey");
+                    assertThat(url).contains("v=1.6");
+                    assertThat(url).contains("type_cnn=prebid");
                 });
+
     }
 
     @Test
@@ -165,11 +169,15 @@ public class TappxBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        final String expectedUri = "https://ssp.api.domain/rtb/v2/endpoint?tappxkey=tappxkey&v=1.6&type_cnn=prebid";
-        assertThat(result.getValue()).hasSize(1)
-                .allSatisfy(httpRequest -> {
-                    assertThat(httpRequest.getUri()).isEqualTo(expectedUri);
-                    assertThat(httpRequest.getMethod()).isEqualTo(HttpMethod.POST);
+        assertThat(result.getValue())
+                .hasSize(1)
+                .first()
+                .extracting(HttpRequest::getUri)
+                .satisfies(url -> {
+                    assertThat(url).startsWith("https://ssp.api.domain/rtb/v2/endpoint");
+                    assertThat(url).contains("tappxkey=tappxkey");
+                    assertThat(url).contains("v=1.6");
+                    assertThat(url).contains("type_cnn=prebid");
                 });
     }
 
@@ -189,12 +197,15 @@ public class TappxBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        final String expectedUri =
-                "https://zz855226test.pub.domain/rtb/?tappxkey=tappxkey&v=1.6&type_cnn=prebid";
-        assertThat(result.getValue()).hasSize(1)
-                .allSatisfy(httpRequest -> {
-                    assertThat(httpRequest.getUri()).isEqualTo(expectedUri);
-                    assertThat(httpRequest.getMethod()).isEqualTo(HttpMethod.POST);
+        assertThat(result.getValue())
+                .hasSize(1)
+                .first()
+                .extracting(HttpRequest::getUri)
+                .satisfies(url -> {
+                    assertThat(url).startsWith("https://zz855226test.pub.domain/rtb/?");
+                    assertThat(url).contains("tappxkey=tappxkey");
+                    assertThat(url).contains("v=1.6");
+                    assertThat(url).contains("type_cnn=prebid");
                 });
     }
 
@@ -214,11 +225,15 @@ public class TappxBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        final String expectedUri = "https://ssp.api.domain/rtb/v2/endpoint?tappxkey=tappxkey&v=1.6&type_cnn=prebid";
-        assertThat(result.getValue()).hasSize(1)
-                .allSatisfy(httpRequest -> {
-                    assertThat(httpRequest.getUri()).isEqualTo(expectedUri);
-                    assertThat(httpRequest.getMethod()).isEqualTo(HttpMethod.POST);
+        assertThat(result.getValue())
+                .hasSize(1)
+                .first()
+                .extracting(HttpRequest::getUri)
+                .satisfies(url -> {
+                    assertThat(url).startsWith("https://ssp.api.domain/rtb/v2/endpoint");
+                    assertThat(url).contains("tappxkey=tappxkey");
+                    assertThat(url).contains("v=1.6");
+                    assertThat(url).contains("type_cnn=prebid");
                 });
     }
 

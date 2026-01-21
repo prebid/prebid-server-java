@@ -441,7 +441,7 @@ public class SovrnBidderTest extends VertxTest {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123")
-                        .adm("encoded+url+test"))));
+                        .adm("encoded%20url%20test"))));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
