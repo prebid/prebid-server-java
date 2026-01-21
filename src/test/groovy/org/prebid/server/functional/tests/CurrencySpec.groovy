@@ -26,6 +26,10 @@ class CurrencySpec extends BaseSpec {
         pbsService = pbsServiceFactory.getService(PbsConfig.currencyConverterConfig)
     }
 
+    def cleanupSpec() {
+        pbsServiceFactory.removeContainer(PbsConfig.currencyConverterConfig)
+    }
+
     def "PBS should return currency rates"() {
         when: "PBS processes bidders params request"
         def response = pbsService.withWarmup().sendCurrencyRatesRequest()

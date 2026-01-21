@@ -147,7 +147,8 @@ class SeatNonBidSpec extends BaseSpec {
 
     def "PBS should populate seatNonBid when returnAllBidStatus=true and requested bidder responded with not secure status code"() {
         given: "PBS with secure-markup enforcement"
-        def pbsService = pbsServiceFactory.getService(["auction.validations.secure-markup": ENFORCE.value])
+        def pbsConfig = ["auction.validations.secure-markup": ENFORCE.value]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "A bid request with secure and returnAllBidStatus flags set"
         def bidRequest = requestWithAllBidStatus.tap {
@@ -177,6 +178,9 @@ class SeatNonBidSpec extends BaseSpec {
 
         and: "PBS response shouldn't contain seatBid"
         assert !response.seatbid
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS shouldn't populate seatNonBid when returnAllBidStatus=true and bidder successfully bids"() {
@@ -258,7 +262,8 @@ class SeatNonBidSpec extends BaseSpec {
     def "PBS should populate seatNonBid when bidder is rejected due to timeout"() {
         given: "PBS config with min and max time-out"
         def timeout = 50
-        def pbsService = pbsServiceFactory.getService(["auction.biddertmax.min": timeout as String])
+        def pbsConfig = ["auction.biddertmax.min": timeout as String]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request with max timeout"
         def bidRequest = requestWithAllBidStatus.tap {
@@ -282,13 +287,16 @@ class SeatNonBidSpec extends BaseSpec {
         assert seatNonBid.seat == BidderName.GENERIC
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == ERROR_TIMED_OUT
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS should populate seatNonBid when filter-imp-media-type=true and imp doesn't contain supported media type"() {
         given: "Pbs config"
-        def pbsService = pbsServiceFactory.getService(
-                ["auction.filter-imp-media-type.enabled"      : "true",
-                 "adapters.generic.meta-info.site-media-types": "banner"])
+        def pbsConfig = ["auction.filter-imp-media-type.enabled"      : "true",
+                         "adapters.generic.meta-info.site-media-types": "banner"]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default basic BidRequest with banner"
         def bidRequest = BidRequest.defaultVideoRequest.tap {
@@ -309,6 +317,9 @@ class SeatNonBidSpec extends BaseSpec {
 
         and: "seatbid should be empty"
         assert response.seatbid.isEmpty()
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS shouldn't populate seatNonBid when returnAllBidStatus=true and storedAuctionResponse present"() {
