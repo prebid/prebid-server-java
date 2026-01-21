@@ -11,11 +11,9 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class PrioritizedCoopSyncProvider {
@@ -23,14 +21,13 @@ public class PrioritizedCoopSyncProvider {
     private static final Logger logger = LoggerFactory.getLogger(PrioritizedCoopSyncProvider.class);
 
     private final Set<String> prioritizedBidders;
-    private final Map<String, String> prioritizedCookieFamilyNameToBidderName;
+    private final Set<String> prioritizedCookieFamilyNames;
 
     public PrioritizedCoopSyncProvider(Set<String> bidders, BidderCatalog bidderCatalog) {
         this.prioritizedBidders = validCoopSyncBidders(Objects.requireNonNull(bidders), bidderCatalog);
-        this.prioritizedCookieFamilyNameToBidderName = prioritizedBidders.stream()
-                .collect(Collectors.toMap(
-                        bidder -> bidderCatalog.cookieFamilyName(bidder).orElseThrow(),
-                        Function.identity()));
+        this.prioritizedCookieFamilyNames = prioritizedBidders.stream()
+                .map(bidder -> bidderCatalog.cookieFamilyName(bidder).orElseThrow())
+                .collect(Collectors.toSet());
     }
 
     private static Set<String> validCoopSyncBidders(Set<String> bidders, BidderCatalog bidderCatalog) {
@@ -71,7 +68,6 @@ public class PrioritizedCoopSyncProvider {
     }
 
     public boolean isPrioritizedFamily(String cookieFamilyName) {
-        final String bidder = prioritizedCookieFamilyNameToBidderName.get(cookieFamilyName);
-        return prioritizedBidders.contains(bidder);
+        return prioritizedCookieFamilyNames.contains(cookieFamilyName);
     }
 }
