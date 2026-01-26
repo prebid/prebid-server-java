@@ -258,7 +258,11 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
 
         return CollectionUtils.isEmpty(finalBidders)
                 ? null
-                : ExtRequestPrebidDataEidPermissions.of(permission.getSource(), finalBidders);
+                : ExtRequestPrebidDataEidPermissions
+                .builder()
+                .bidders(finalBidders)
+                .source(permission.getSource())
+                .build();
     }
 
     @Override
