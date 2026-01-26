@@ -106,10 +106,6 @@ public class StroeerCoreBidder implements Bidder<BidRequest> {
             return null;
         }
 
-        final ObjectNode bidExt = stroeercoreBid.getDsa() != null
-                ? mapper.mapper().createObjectNode().set("dsa", stroeercoreBid.getDsa())
-                : null;
-
         return BidderBid.of(
                 Bid.builder()
                         .id(stroeercoreBid.getId())
@@ -121,10 +117,22 @@ public class StroeerCoreBidder implements Bidder<BidRequest> {
                         .crid(stroeercoreBid.getCreativeId())
                         .adomain(stroeercoreBid.getAdomain())
                         .mtype(bidType.ordinal() + 1)
-                        .ext(bidExt)
+                        .ext(getBidExt(stroeercoreBid))
                         .build(),
                 bidType,
                 BIDDER_CURRENCY);
+    }
+
+    private ObjectNode getBidExt(StroeerCoreBid stroeercoreBid) {
+        final ObjectNode dsa = stroeercoreBid.getDsa();
+        ObjectNode ext = stroeercoreBid.getExt();
+        if (dsa == null) {
+            return ext;
+        }
+        if (ext == null) {
+            ext = mapper.mapper().createObjectNode();
+        }
+        return ext.set("dsa", dsa);
     }
 
     private static BidType getBidType(String mtype) {

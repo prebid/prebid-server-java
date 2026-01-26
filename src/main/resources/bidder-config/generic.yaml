@@ -86,6 +86,17 @@ adapters:
             - banner
           supported-vendors:
           vendor-id: 1081
+        usersync:
+          enabled: true
+          cookie-family-name: cwire
+          redirect:
+            url: https://prebid.cwi.re/v1/usersync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&rd={{redirect_url}}
+            support-cors: false
+            uid-macro: '$UID'
+          iframe:
+            url:  https://prebid.cwi.re/v1/usersync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&rd={{redirect_url}}
+            support-cors: false
+            uid-macro: '$UID'
       adsinteractive:
         enabled: false
         endpoint: http://bid.adsinteractive.com/prebid

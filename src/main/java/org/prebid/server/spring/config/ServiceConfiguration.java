@@ -33,6 +33,11 @@ import org.prebid.server.auction.UidUpdater;
 import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.VideoStoredRequestProcessor;
 import org.prebid.server.auction.WinningBidComparatorFactory;
+import org.prebid.server.auction.bidderrequestpostprocessor.BidderRequestCleaner;
+import org.prebid.server.auction.bidderrequestpostprocessor.BidderRequestCurrencyBlocker;
+import org.prebid.server.auction.bidderrequestpostprocessor.BidderRequestMediaFilter;
+import org.prebid.server.auction.bidderrequestpostprocessor.BidderRequestPreferredMediaProcessor;
+import org.prebid.server.auction.bidderrequestpostprocessor.CompositeBidderRequestPostProcessor;
 import org.prebid.server.auction.categorymapping.BasicCategoryMappingService;
 import org.prebid.server.auction.categorymapping.CategoryMappingService;
 import org.prebid.server.auction.categorymapping.NoOpCategoryMappingService;
@@ -47,10 +52,6 @@ import org.prebid.server.auction.gpp.SetuidGppService;
 import org.prebid.server.auction.gpp.processor.GppContextProcessor;
 import org.prebid.server.auction.gpp.processor.tcfeuv2.TcfEuV2ContextProcessor;
 import org.prebid.server.auction.gpp.processor.uspv1.UspV1ContextProcessor;
-import org.prebid.server.auction.mediatypeprocessor.BidderMediaTypeProcessor;
-import org.prebid.server.auction.mediatypeprocessor.CompositeMediaTypeProcessor;
-import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessor;
-import org.prebid.server.auction.mediatypeprocessor.MultiFormatMediaTypeProcessor;
 import org.prebid.server.auction.privacy.contextfactory.AmpPrivacyContextFactory;
 import org.prebid.server.auction.privacy.contextfactory.AuctionPrivacyContextFactory;
 import org.prebid.server.auction.privacy.contextfactory.CookieSyncPrivacyContextFactory;
@@ -145,6 +146,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -792,19 +794,40 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    BidderRequestCurrencyBlocker bidderRequestCurrencyBlocker(BidderCatalog bidderCatalog) {
+        return new BidderRequestCurrencyBlocker(bidderCatalog);
+    }
+
+    @Bean
     @ConditionalOnProperty(prefix = "auction.filter-imp-media-type", name = "enabled", havingValue = "true")
-    MediaTypeProcessor bidderMediaTypeProcessor(BidderCatalog bidderCatalog) {
-        return new BidderMediaTypeProcessor(bidderCatalog);
+    BidderRequestMediaFilter bidderRequestMediaFilter(BidderCatalog bidderCatalog) {
+        return new BidderRequestMediaFilter(bidderCatalog);
     }
 
     @Bean
-    MediaTypeProcessor multiFormatMediaTypeProcessor(BidderCatalog bidderCatalog) {
-        return new MultiFormatMediaTypeProcessor(bidderCatalog);
+    BidderRequestPreferredMediaProcessor bidderRequestPreferredMediaProcessor(BidderCatalog bidderCatalog) {
+        return new BidderRequestPreferredMediaProcessor(bidderCatalog);
     }
 
     @Bean
-    CompositeMediaTypeProcessor compositeMediaTypeProcessor(List<MediaTypeProcessor> mediaTypeProcessors) {
-        return new CompositeMediaTypeProcessor(mediaTypeProcessors);
+    BidderRequestCleaner bidderRequestCleaner() {
+        return new BidderRequestCleaner();
+    }
+
+    @Bean
+    CompositeBidderRequestPostProcessor compositeBidderRequestPostProcessor(
+            BidderRequestCurrencyBlocker bidderRequestCurrencyBlocker,
+            @Autowired(required = false) BidderRequestMediaFilter bidderRequestMediaFilter,
+            BidderRequestPreferredMediaProcessor bidderRequestPreferredMediaProcessor,
+            BidderRequestCleaner bidderRequestCleaner) {
+
+        return new CompositeBidderRequestPostProcessor(Stream.of(
+                        bidderRequestCurrencyBlocker,
+                        bidderRequestMediaFilter,
+                        bidderRequestPreferredMediaProcessor,
+                        bidderRequestCleaner)
+                .filter(Objects::nonNull)
+                .toList());
     }
 
     @Bean
@@ -916,7 +939,7 @@ public class ServiceConfiguration {
             ImpAdjuster impAdjuster,
             SupplyChainResolver supplyChainResolver,
             DebugResolver debugResolver,
-            CompositeMediaTypeProcessor mediaTypeProcessor,
+            CompositeBidderRequestPostProcessor bidderRequestPostProcessor,
             UidUpdater uidUpdater,
             TimeoutResolver timeoutResolver,
             TimeoutFactory timeoutFactory,
@@ -944,7 +967,7 @@ public class ServiceConfiguration {
                 impAdjuster,
                 supplyChainResolver,
                 debugResolver,
-                mediaTypeProcessor,
+                bidderRequestPostProcessor,
                 uidUpdater,
                 timeoutResolver,
                 timeoutFactory,

@@ -1,0 +1,23 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "banner": {
+        "w": 100,
+        "h": 200
+      },
+      "ext": {
+        "elementaltv": {
+          "adunit": "adunit"
+        }
+      }
+    }
+  ],
+  "tmax": 5000,
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}
