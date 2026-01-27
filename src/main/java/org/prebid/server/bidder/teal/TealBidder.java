@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.teal;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
@@ -9,8 +10,8 @@ import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -33,80 +34,48 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 public class TealBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpTeal>> TYPE_REFERENCE = new TypeReference<>() {
     };
+
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
-    public TealBidder(String endpointUrl,
-                      JacksonMapper mapper) {
-
+    public TealBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final ExtImpTeal params;
-        try {
-            params = parseImpExt(request.getImp().getFirst());
-        } catch (PreBidException e) {
-            return Result.withError(BidderError.badInput(e.getMessage()));
-        }
-        final String account = params.getAccount();
-        if (!isParameterValid(account)) {
-            return Result.withError(BidderError.badInput("account parameter failed validation"));
-        }
-
         final List<Imp> modifiedImps = new ArrayList<>();
         final List<BidderError> errors = new ArrayList<>();
+        String account = null;
 
         for (Imp imp : request.getImp()) {
-            final ExtImpTeal impParams;
+            final ExtImpTeal extImpTeal;
             try {
-                impParams = parseImpExt(imp);
+                extImpTeal = parseImpExt(imp);
+                validateImpExt(extImpTeal);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
                 continue;
             }
 
-            final String placement = impParams.getPlacement();
-            final boolean passedValidation = placement == null || isParameterValid(placement);
-
-            if (placement != null && !passedValidation) {
-                errors.add(BidderError.badInput("placement parameter failed validation"));
-                continue;
-            }
-
-            if (placement != null) {
-                final ObjectNode ext = Optional.ofNullable(imp.getExt()).orElse(mapper.mapper().createObjectNode());
-                final ObjectNode prebid = ext.has("prebid") && ext.get("prebid").isObject()
-                        ? (ObjectNode) ext.get("prebid")
-                        : ext.putObject("prebid");
-                prebid.putObject("storedrequest").put("id", placement);
-                modifiedImps.add(imp.toBuilder().ext(ext).build());
-            } else {
-                modifiedImps.add(imp);
-            }
+            account = account == null ? extImpTeal.getAccount() : account;
+            modifiedImps.add(modifyImp(imp, extImpTeal.getPlacement()));
         }
 
-        if (CollectionUtils.isEmpty(modifiedImps)) {
+        if (modifiedImps.isEmpty()) {
             return Result.withErrors(errors);
         }
 
-        final BidRequest modifiedRequest = enrichRequest(request, account, modifiedImps);
-        return Result.of(List.of(HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(endpointUrl)
-                .impIds(BidderUtil.impIds(modifiedRequest))
-                .body(mapper.encodeToBytes(modifiedRequest))
-                .payload(modifiedRequest)
-                .build()), errors);
+        final BidRequest modifiedRequest = modifyBidRequest(request, account, modifiedImps);
+        return Result.of(
+                Collections.singletonList(BidderUtil.defaultRequest(modifiedRequest, endpointUrl, mapper)),
+                errors);
     }
 
     private ExtImpTeal parseImpExt(Imp imp) {
@@ -117,15 +86,40 @@ public class TealBidder implements Bidder<BidRequest> {
         }
     }
 
-    private boolean isParameterValid(String parameter) {
-        return !StringUtils.isBlank(parameter);
+    private static void validateImpExt(ExtImpTeal extImpTeal) {
+        if (StringUtils.isBlank(extImpTeal.getAccount())) {
+            throw new PreBidException("account parameter failed validation");
+        }
+
+        final String placement = extImpTeal.getPlacement();
+        if (placement != null && StringUtils.isBlank(placement)) {
+            throw new PreBidException("placement parameter failed validation");
+        }
     }
 
-    private BidRequest enrichRequest(BidRequest request, String account, List<Imp> modifiedImps) {
-        final ExtRequest ext = Optional.ofNullable(request.getExt()).orElse(ExtRequest.empty());
-        final ObjectNode bids = mapper.mapper().createObjectNode();
-        bids.put("pbs", 1);
-        ext.addProperty("bids", bids);
+    private static Imp modifyImp(Imp imp, String placement) {
+        if (placement == null) {
+            return imp;
+        }
+
+        final ObjectNode modifiedExt = imp.getExt().deepCopy();
+        getOrCreate(getOrCreate(modifiedExt, "prebid"), "storedrequest")
+                .put("id", placement);
+
+        return imp.toBuilder().ext(modifiedExt).build();
+    }
+
+    private static ObjectNode getOrCreate(ObjectNode parent, String field) {
+        final JsonNode child = parent.get(field);
+        return child != null && child.isObject()
+                ? (ObjectNode) child
+                : parent.putObject(field);
+    }
+
+    private BidRequest modifyBidRequest(BidRequest request, String account, List<Imp> modifiedImps) {
+        final ExtRequest ext = ObjectUtils.defaultIfNull(request.getExt(), ExtRequest.empty());
+        ext.addProperty("bids", mapper.mapper().createObjectNode().put("pbs", 1));
+
         return request.toBuilder()
                 .site(modifySite(request.getSite(), account))
                 .app(modifyApp(request.getApp(), account))
@@ -161,7 +155,7 @@ public class TealBidder implements Bidder<BidRequest> {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
-        } catch (DecodeException | PreBidException e) {
+        } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
@@ -179,8 +173,9 @@ public class TealBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
                 .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static BidType getBidType(String impId, List<Imp> imps) {

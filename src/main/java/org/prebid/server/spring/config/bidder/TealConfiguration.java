@@ -29,8 +29,8 @@ public class TealConfiguration {
 
     @Bean
     BidderDeps tealBidderDeps(BidderConfigurationProperties tealConfigurationProperties,
-                                  @NotBlank @Value("${external-url}") String externalUrl,
-                                  JacksonMapper mapper) {
+                              @NotBlank @Value("${external-url}") String externalUrl,
+                              JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(tealConfigurationProperties)
