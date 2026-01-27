@@ -138,17 +138,17 @@ public class Nexx360BidderTest extends VertxTest {
     public void makeHttpRequestsShouldPreserveCustomFieldsInImpExt() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                imp -> imp.id("imp1").ext(mapper.valueToTree(
-                        Map.of("bidder", ExtImpNexx360.of("tag1", "p1"),
-                                "customField", "customValue"))));
+                imp -> imp.id("imp1").ext(mapper.valueToTree(Map.of(
+                        "bidder", ExtImpNexx360.of("tag1", "p1"),
+                        "customField", "customValue"))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        final ObjectNode expectedExt = mapper.valueToTree(
-                Map.of("nexx360", ExtImpNexx360.of("tag1", "p1"),
-                        "customField", "customValue"));
+        final ObjectNode expectedExt = mapper.valueToTree(Map.of(
+                "nexx360", ExtImpNexx360.of("tag1", "p1"),
+                "customField", "customValue"));
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
