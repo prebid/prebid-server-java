@@ -97,24 +97,6 @@ adapters:
             url:  https://prebid.cwi.re/v1/usersync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&rd={{redirect_url}}
             support-cors: false
             uid-macro: '$UID'
-      adsinteractive:
-        enabled: false
-        endpoint: http://bid.adsinteractive.com/prebid
-        modifying-vast-xml-allowed: false
-        meta-info:
-          maintainer-email: it@adsinteractive.com
-          app-media-types:
-            - banner
-          site-media-types:
-            - banner
-          supported-vendors:
-          vendor-id: 1212
-        usersync:
-          cookie-family-name: adsinteractive
-          redirect:
-            url: https://sync.adsinteractive.com/getuid?{{redirect_url}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}
-            support-cors: false
-            uid-macro: '$AUID'
       nativo:
         enabled: false
         endpoint: https://exchange.postrelease.com/esi?ntv_epid=7
