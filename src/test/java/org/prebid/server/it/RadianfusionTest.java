@@ -24,7 +24,8 @@ public class RadianfusionTest extends IntegrationTest {
                 .withQueryParam("accountId", equalTo("someSeat"))
                 .withQueryParam("sourceId", equalTo("someToken"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/radianfusion/test-radianfusion-bid-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/radianfusion/test-radianfusion-bid-response.json"))));
+                .willReturn(aResponse().withBody(
+                        jsonFrom("openrtb2/radianfusion/test-radianfusion-bid-response.json"))));
 
         // when
         final Response response = responseFor("openrtb2/radianfusion/test-auction-radianfusion-request.json",
