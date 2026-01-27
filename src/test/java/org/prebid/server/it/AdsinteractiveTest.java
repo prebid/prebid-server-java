@@ -20,14 +20,15 @@ public class AdsinteractiveTest extends IntegrationTest {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/adsinteractive-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/adsinteractive/test-adsinteractive-bid-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/adsinteractive/test-adsinteractive-bid-response.json"))));
+                .willReturn(aResponse().withBody(
+                        jsonFrom("openrtb2/adsinteractive/test-adsinteractive-bid-response.json"))));
 
         // when
         final Response response = responseFor("openrtb2/adsinteractive/test-auction-adsinteractive-request.json",
                 Endpoint.openrtb2_auction);
 
         // then
-        assertJsonEquals(
-                "openrtb2/adsinteractive/test-auction-adsinteractive-response.json", response, singletonList("adsinteractive"));
+        assertJsonEquals("openrtb2/adsinteractive/test-auction-adsinteractive-response.json",
+                response, singletonList("adsinteractive"));
     }
 }
