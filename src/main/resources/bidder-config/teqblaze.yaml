@@ -2,6 +2,19 @@ adapters:
   teqblaze:
     endpoint: http://
     aliases:
+      360playvid:
+        enabled: false
+        endpoint: https://ssp.360playvid.com/pserver
+        meta-info:
+          maintainer-email: prebid@360playvid.com
+        usersync:
+          enabled: true
+          redirect:
+            url: https://cookie.360playvid.com/pbserver?gdpr={{.GDPR}}&gdpr_consent={{.GDPRConsent}}&coppa={{.USPrivacy}}&gpp={{.GPP}}&gpp_sid={{.GPPSID}}&redir={{.RedirectURL}}
+            uid-macro: '[UID]'
+          iframe:
+            url: https://cookie.360playvid.com/pbserverIframe?gdpr={{.GDPR}}&gdpr_consent={{.GDPRConsent}}&ccpa={{.USPrivacy}}&gpp={{.GPP}}&gpp_sid={{.GPPSID}}&pbserverUrl={{.RedirectURL}}
+            uid-macro: '[UID]'
       pinkLion:
         enabled: false
         endpoint: https://us-east-ep.pinklion.io/pserver
