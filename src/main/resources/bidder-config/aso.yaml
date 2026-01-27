@@ -30,7 +30,7 @@ adapters:
         meta-info:
           maintainer-email: ssp@kuantyx.com
         usersync:
-          cookie-family-name: bidagency
+          cookie-family-name: kuantyx
           redirect:
             url: https://track.kntxy.com/sync/v2?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redir={{redirect_url}}
             support-cors: false
