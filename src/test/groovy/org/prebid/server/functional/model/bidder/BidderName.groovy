@@ -30,6 +30,7 @@ enum BidderName {
     AMX("amx"),
     AMX_CAMEL_CASE("AmX"),
     AMX_UPPER_CASE("AMX"),
+    ADTRGTME("adtrgtme")
 
     @JsonValue
     final String value

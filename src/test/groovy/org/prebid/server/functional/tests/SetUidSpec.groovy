@@ -9,12 +9,14 @@ import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.TcfConsent
 import org.prebid.server.util.ResourceUtil
+import spock.lang.IgnoreRest
 import spock.lang.Shared
 
 import java.time.Clock
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 
+import static org.prebid.server.functional.model.bidder.BidderName.ADTRGTME
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS_CAMEL_CASE
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
@@ -38,21 +40,36 @@ class SetUidSpec extends BaseSpec {
     private static final boolean CORS_SUPPORT = false
     private static final Integer RANDOM_EXPIRE_DAY = PBSUtils.getRandomNumber(1, 10)
     private static final String USER_SYNC_URL = "$networkServiceContainer.rootUri/generic-usersync"
-    private static final Map<String, String> PBS_CONFIG =
-            ["host-cookie.max-cookie-size-bytes"                                      : MAX_COOKIE_SIZE as String,
-             "adapters.${RUBICON.value}.enabled"                                      : "true",
-             "adapters.${RUBICON.value}.usersync.cookie-family-name"                  : RUBICON.value,
-             "adapters.${OPENX.value}.enabled"                                        : "true",
-             "adapters.${OPENX.value}.usersync.cookie-family-name"                    : OPENX.value,
-             "adapters.${APPNEXUS.value}.enabled"                                     : "true",
-             "adapters.${APPNEXUS.value}.usersync.cookie-family-name"                 : APPNEXUS.value,
-             "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url"         : USER_SYNC_URL,
-             "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.support-cors": CORS_SUPPORT.toString()]
+    private static final String GENERIC_COOKIE_FAMILY_NAME = GENERIC.value
+    private static final String VENDOR_ID = PBSUtils.randomNumber as String
     private static final Map<String, String> UID_COOKIES_CONFIG = ['setuid.number-of-uid-cookies': MAX_NUMBER_OF_UID_COOKIES.toString()]
     private static final Map<String, String> GENERIC_ALIAS_CONFIG = ["adapters.generic.aliases.alias.enabled" : "true",
                                                                      "adapters.generic.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
     private static final String TCF_ERROR_MESSAGE = "The gdpr_consent param prevents cookies from being saved"
     private static final int UNAVAILABLE_FOR_LEGAL_REASONS_CODE = 451
+    private static final Map<String, String> PBS_CONFIG =
+            ["host-cookie.max-cookie-size-bytes"                                      : MAX_COOKIE_SIZE as String,
+
+             "adapters.${RUBICON.value}.enabled"                                      : "true",
+             "adapters.${RUBICON.value}.usersync.cookie-family-name"                  : RUBICON.value,
+
+             "adapters.${OPENX.value}.enabled"                                        : "true",
+             "adapters.${OPENX.value}.usersync.cookie-family-name"                    : OPENX.value,
+
+             "adapters.${APPNEXUS.value}.enabled"                                     : "true",
+             "adapters.${APPNEXUS.value}.usersync.cookie-family-name"                 : APPNEXUS.value,
+
+             "adapters.${GENERIC.value}.meta-info.vendor-id"                          : VENDOR_ID,
+             "adapters.${GENERIC.value}.usersync.cookie-family-name"                  : GENERIC_COOKIE_FAMILY_NAME,
+             "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url"         : USER_SYNC_URL,
+             "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.support-cors": CORS_SUPPORT.toString(),
+
+             "adapters.${ADTRGTME}.enabled"                                           : "true",
+             "adapters.${ADTRGTME}.endpoint"                                          : "$networkServiceContainer.rootUri/auction".toString(),
+             "adapters.${ADTRGTME}.meta-info.vendor-id"                               : VENDOR_ID,
+             "adapters.${ADTRGTME}.usersync.cookie-family-name"                       : GENERIC_COOKIE_FAMILY_NAME,
+             "adapters.${ADTRGTME}.usersync.${USER_SYNC_TYPE.value}.url"              : USER_SYNC_URL,
+             "adapters.${ADTRGTME}.usersync.${USER_SYNC_TYPE.value}.support-cors"     : CORS_SUPPORT.toString()]
 
     @Shared
     PrebidServerService singleCookiesPbsService = pbsServiceFactory.getService(PBS_CONFIG + GENERIC_ALIAS_CONFIG)
@@ -511,6 +528,22 @@ class SetUidSpec extends BaseSpec {
         and: "Headers uids cookies should contain same cookie as response"
         assert getSetUidsHeaders(response).size() == 1
         assert getSetUidsHeaders(response, true).size() == MAX_NUMBER_OF_UID_COOKIES
+    }
+
+    def "PBS shouldn't failed with error when adapters has same user sync and vendor id config"() {
+        given: "Default set uid request"
+        def request = SetuidRequest.defaultSetuidRequest
+
+        and: "Default uids cookie generic and adtrgtme"
+        def genericUidsCookie = UidsCookie.getDefaultUidsCookie(GENERIC)
+        def adtrgtmeUidsCookie = UidsCookie.getDefaultUidsCookie(ADTRGTME)
+
+        when: "PBS processes auction request"
+        def response = singleCookiesPbsService.sendSetUidRequest(request, [genericUidsCookie, adtrgtmeUidsCookie])
+
+        then: "Response should contain requested tempUIDs"
+        assert response.uidsCookie.tempUIDs[GENERIC]
+        assert response.uidsCookie.tempUIDs[ADTRGTME]
     }
 
     List<String> getSetUidsHeaders(SetuidResponse response, boolean includeEmpty = false) {
