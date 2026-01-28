@@ -1,7 +1,6 @@
 package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.model.UidsCookie
-import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.request.setuid.SetuidRequest
 import org.prebid.server.functional.model.response.cookiesync.UserSyncInfo
 import org.prebid.server.functional.model.response.setuid.SetuidResponse
@@ -10,14 +9,12 @@ import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.TcfConsent
 import org.prebid.server.util.ResourceUtil
-import spock.lang.IgnoreRest
 import spock.lang.Shared
 
 import java.time.Clock
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 
-import static org.prebid.server.functional.model.bidder.BidderName.*
 import static org.prebid.server.functional.model.bidder.BidderName.ADTRGTME
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS_CAMEL_CASE
@@ -29,6 +26,7 @@ import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.bidder.BidderName.RUBICON
 import static org.prebid.server.functional.model.bidder.BidderName.UNKNOWN
 import static org.prebid.server.functional.model.bidder.BidderName.WILDCARD
+import static org.prebid.server.functional.model.bidder.BidderName.CWIRE
 import static org.prebid.server.functional.model.request.setuid.UidWithExpiry.defaultUidWithExpiry
 import static org.prebid.server.functional.model.response.cookiesync.UserSyncInfo.Type.REDIRECT
 import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
