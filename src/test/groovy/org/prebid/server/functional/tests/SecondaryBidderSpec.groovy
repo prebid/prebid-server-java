@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests
 
+import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.bidder.Openx
 import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountConfig
@@ -10,9 +11,9 @@ import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.scaffolding.Bidder
 import spock.lang.Shared
 
+import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
-import static org.prebid.server.functional.model.bidder.BidderName.OPENX_ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.UNKNOWN
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.ERROR_TIMED_OUT
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
@@ -23,22 +24,22 @@ class SecondaryBidderSpec extends BaseSpec {
             "adapters.${OPENX.value}.enabled" : "true",
             "adapters.${OPENX.value}.endpoint": "$networkServiceContainer.rootUri/openx-auction".toString()]
 
-    private static final Map<String, String> OPENX_ALIAS_CONFIG = [
-            "adapters.${OPENX.value}.aliases.${OPENX_ALIAS}.enabled" : "true",
-            "adapters.${OPENX.value}.aliases.${OPENX_ALIAS}.endpoint": "$networkServiceContainer.rootUri/openx-alias-auction".toString()]
+    private static final Map<String, String> GENERIC_ALIAS_CONFIG = [
+            "adapters.${GENERIC.value}.aliases.${ALIAS}.enabled" : "true",
+            "adapters.${GENERIC.value}.aliases.${ALIAS}.endpoint": "$networkServiceContainer.rootUri/generic-alias-auction".toString()]
     private static final String WARNING_TIME_OUT_MESSAGE = "secondary bidder timed out, auction proceeded"
     private static final Integer RESPONSE_DELAY_SECONDS = 5
     private static final Bidder openXBidder = new Bidder(networkServiceContainer, "/openx-auction")
-    private static final Bidder openXAliasBidder = new Bidder(networkServiceContainer, "/openx-alias-auction")
+    private static final Bidder genericAliasBidder = new Bidder(networkServiceContainer, "/generic-alias-auction")
 
     @Shared
-    PrebidServerService pbsServiceWithOpenXBidder = pbsServiceFactory.getService(OPENX_CONFIG + OPENX_ALIAS_CONFIG)
+    PrebidServerService pbsServiceWithOpenXBidder = pbsServiceFactory.getService(OPENX_CONFIG + GENERIC_ALIAS_CONFIG)
 
     @Override
     def cleanupSpec() {
         openXBidder.reset()
-        openXAliasBidder.reset()
-        pbsServiceFactory.removeContainer(OPENX_CONFIG + OPENX_ALIAS_CONFIG)
+        genericAliasBidder.reset()
+        pbsServiceFactory.removeContainer(OPENX_CONFIG + GENERIC_ALIAS_CONFIG)
     }
 
     def "PBS should proceed as default when secondaryBidders not define in config"() {
@@ -201,9 +202,9 @@ class SecondaryBidderSpec extends BaseSpec {
         def bidRequest = BidRequest.defaultBidRequest.tap {
             it.imp[0].ext.prebid.bidder.tap {
                 it.openx = Openx.defaultOpenx
-                it.openxAlias = Openx.defaultOpenx
+                it.alias = new Generic()
             }
-            it.ext.prebid.aliases = [(OPENX_ALIAS.value): OPENX]
+            it.ext.prebid.aliases = [(ALIAS.value): OPENX]
             enabledReturnAllBidStatus()
         }
 
@@ -218,21 +219,21 @@ class SecondaryBidderSpec extends BaseSpec {
         openXBidder.setResponseWithDelay(RESPONSE_DELAY_SECONDS)
 
         and: "Set up openx alias bidder response"
-        openXAliasBidder.setResponse()
+        genericAliasBidder.setResponse()
 
         when: "PBS processes auction request"
         def bidResponse = pbsServiceWithOpenXBidder.sendAuctionRequest(bidRequest)
 
         then: "PBs should processed bidder request"
         def genericBidderRequests = bidder.getBidderRequests(bidRequest.id)
-        def openXAliasBidderRequests = openXAliasBidder.getBidderRequests(bidRequest.id)
+        def openXAliasBidderRequests = genericAliasBidder.getBidderRequests(bidRequest.id)
         def openXBidderRequests = openXBidder.getBidderRequests(bidRequest.id)
         assert genericBidderRequests.size() == 1
         assert openXBidderRequests.size() == 1
         assert openXAliasBidderRequests.size() == 1
 
         and: "PBs response should contain openX alias and generic"
-        assert bidResponse.seatbid.seat == [OPENX_ALIAS, GENERIC]
+        assert bidResponse.seatbid.seat == [ALIAS, GENERIC]
 
         and: "PBs repose shouldn't contain response body from openX bidder"
         assert !bidResponse?.ext?.debug?.httpcalls[OPENX]?.responseBody
@@ -251,7 +252,7 @@ class SecondaryBidderSpec extends BaseSpec {
 
         cleanup: "Reset mock"
         openXBidder.reset()
-        openXAliasBidder.reset()
+        genericAliasBidder.reset()
     }
 
     def "PBS shouldn't wait on secondary bidder when alias bidder respond with delay"() {
@@ -259,21 +260,21 @@ class SecondaryBidderSpec extends BaseSpec {
         def bidRequest = BidRequest.defaultBidRequest.tap {
             it.imp[0].ext.prebid.bidder.tap {
                 it.openx = Openx.defaultOpenx
-                it.openxAlias = Openx.defaultOpenx
+                it.alias = new Generic()
             }
-            it.ext.prebid.aliases = [(OPENX_ALIAS.value): OPENX]
+            it.ext.prebid.aliases = [(ALIAS.value): OPENX]
             enabledReturnAllBidStatus()
         }
 
         and: "Account in the DB"
         def accountConfig = AccountConfig.defaultAccountConfig.tap {
-            it.auction = new AccountAuctionConfig(secondaryBidders: [OPENX_ALIAS])
+            it.auction = new AccountAuctionConfig(secondaryBidders: [ALIAS])
         }
         def account = new Account(uuid: bidRequest.accountId, config: accountConfig)
         accountDao.save(account)
 
         and: "Set up openx bidder response with delay"
-        openXAliasBidder.setResponseWithDelay(RESPONSE_DELAY_SECONDS)
+        genericAliasBidder.setResponseWithDelay(RESPONSE_DELAY_SECONDS)
 
         and: "Set up openx alias bidder response"
         openXBidder.setResponse()
@@ -283,29 +284,29 @@ class SecondaryBidderSpec extends BaseSpec {
 
         then: "PBs should processed bidder request"
         def genericBidderRequests = bidder.getBidderRequests(bidRequest.id)
-        def openXAliasBidderRequests = openXAliasBidder.getBidderRequests(bidRequest.id)
+        def openXAliasBidderRequests = genericAliasBidder.getBidderRequests(bidRequest.id)
         def openXBidderRequests = openXBidder.getBidderRequests(bidRequest.id)
         assert genericBidderRequests.size() == 1
         assert openXBidderRequests.size() == 1
         assert openXAliasBidderRequests.size() == 1
 
         and: "PBs repose shouldn't contain response body from openX bidder"
-        assert !bidResponse?.ext?.debug?.httpcalls[OPENX_ALIAS]?.responseBody
+        assert !bidResponse?.ext?.debug?.httpcalls[ALIAS]?.responseBody
 
         and: "PBS should contain error for openX due to timeout"
         assert !bidResponse.ext?.errors
 
         and: "PBs should respond with warning for openx alias"
-        assert bidResponse.ext?.warnings[ErrorType.OPENX_ALIAS].message == [WARNING_TIME_OUT_MESSAGE]
+        assert bidResponse.ext?.warnings[ErrorType.ALIAS].message == [WARNING_TIME_OUT_MESSAGE]
 
         and: "PBs should populate seatNonBid"
         def seatNonBid = bidResponse.ext.seatnonbid[0]
-        assert seatNonBid.seat == OPENX_ALIAS
+        assert seatNonBid.seat == ALIAS
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == ERROR_TIMED_OUT
 
         cleanup: "Reset mock"
-        openXAliasBidder.reset()
+        genericAliasBidder.reset()
     }
 
     def "PBS should pass auction as usual when secondary bidder respond first and primary with delay"() {
@@ -325,6 +326,38 @@ class SecondaryBidderSpec extends BaseSpec {
         and: "Set up openx bidder response with delay"
         openXBidder.reset()
         openXBidder.setResponseWithDelay(2)
+
+        when: "PBS processes auction request"
+        def bidResponse = pbsServiceWithOpenXBidder.sendAuctionRequest(bidRequest)
+
+        then: "PBs should processed bidder request"
+        def genericBidderRequests = bidder.getBidderRequests(bidRequest.id)
+        def openXBidderRequests = openXBidder.getBidderRequests(bidRequest.id)
+        assert genericBidderRequests.size() == 1
+        assert openXBidderRequests.size() == 1
+
+        and: "PBs response should contain openX alias and generic"
+        assert bidResponse.seatbid.seat.sort() == [OPENX, GENERIC].sort()
+
+        and: "PBS shouldn't contain errors, warnings and seat non bid"
+        assert !bidResponse.ext?.warnings
+        assert !bidResponse.ext?.errors
+        assert !bidResponse.ext?.seatnonbid
+    }
+
+    def "PBS should pass auction as usual when secondary bidder respond all primary bidders"() {
+        given: "Default bid request with generic and openX bidders"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            it.imp[0].ext.prebid.bidder.openx = Openx.defaultOpenx
+            enabledReturnAllBidStatus()
+        }
+
+        and: "Account in the DB"
+        def accountConfig = AccountConfig.defaultAccountConfig.tap {
+            it.auction = new AccountAuctionConfig(secondaryBidders: [GENERIC, OPENX])
+        }
+        def account = new Account(uuid: bidRequest.accountId, config: accountConfig)
+        accountDao.save(account)
 
         when: "PBS processes auction request"
         def bidResponse = pbsServiceWithOpenXBidder.sendAuctionRequest(bidRequest)
