@@ -15,10 +15,8 @@ import java.time.Clock
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 
-import static org.prebid.server.functional.model.bidder.BidderName.ACEEX
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS_CAMEL_CASE
-import static org.prebid.server.functional.model.bidder.BidderName.ALIAS_UPPER_CASE
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC_CAMEL_CASE
@@ -65,13 +63,6 @@ class SetUidSpec extends BaseSpec {
              "adapters.${GENERIC.value}.usersync.cookie-family-name"                                   : GENERIC_COOKIE_FAMILY_NAME,
              "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url"                          : USER_SYNC_URL,
              "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.support-cors"                 : CORS_SUPPORT.toString(),
-
-             "adapters.${ACEEX}.enabled"                                                               : "true",
-             "adapters.${ACEEX}.endpoint"                                                              : "$networkServiceContainer.rootUri/auction".toString(),
-             "adapters.${ACEEX}.meta-info.vendor-id"                                                   : VENDOR_ID,
-             "adapters.${ACEEX}.usersync.cookie-family-name"                                           : GENERIC_COOKIE_FAMILY_NAME,
-             "adapters.${ACEEX}.usersync.${USER_SYNC_TYPE.value}.url"                                  : USER_SYNC_URL,
-             "adapters.${ACEEX}.usersync.${USER_SYNC_TYPE.value}.support-cors"                         : CORS_SUPPORT.toString(),
 
              "adapters.${GENERIC}.aliases.${ALIAS}.enabled"                                            : "true",
              "adapters.${GENERIC}.aliases.${ALIAS}.endpoint"                                           : "$networkServiceContainer.rootUri/auction".toString(),
