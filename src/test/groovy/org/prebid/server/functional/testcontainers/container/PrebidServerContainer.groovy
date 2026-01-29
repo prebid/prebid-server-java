@@ -75,6 +75,10 @@ class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
         getMappedPort(PROMETHEUS_PORT)
     }
 
+    String getInfluxUri() {
+        return "http://$host:$Dependencies.influxdbContainer.firstMappedPort"
+    }
+
     String getRootUri() {
         return "http://$host:$port"
     }
