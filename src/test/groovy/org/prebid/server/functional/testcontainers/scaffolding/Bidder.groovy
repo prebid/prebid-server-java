@@ -48,7 +48,7 @@ class Bidder extends NetworkScaffolding {
                                 : HttpResponse.notFoundResponse()}
     }
 
-    void setResponseWithDilay(Integer dilayTimeout = 5) {
+    void setResponseWithDelay(Integer dilayTimeout = 5) {
         mockServerClient.when(request().withPath(endpoint), Times.unlimited(), TimeToLive.unlimited(), -10)
                 .respond {request -> request.withPath(endpoint)
                         ? response().withDelay(SECONDS, dilayTimeout).withStatusCode(OK_200.code()).withBody(getBodyByRequest(request))
