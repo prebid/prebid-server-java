@@ -2,9 +2,12 @@ name: Cross-repo Issue Creation
 
 on:
   pull_request_target:
-    types: [closed]
+    types: [ closed ]
     branches:
-      - "master"
+      - 'master'
+
+permissions:
+  contents: read
 
 jobs:
   cross-repo:
@@ -12,7 +15,7 @@ jobs:
     steps:
       - name: Generate token
         id: generate_token
-        uses: tibdex/github-app-token@v1
+        uses: tibdex/github-app-token@v2.1.0
         with:
           app_id: ${{ secrets.XREPO_APP_ID }}
           private_key: ${{ secrets.XREPO_PEM }}
