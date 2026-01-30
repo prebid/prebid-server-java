@@ -4,11 +4,10 @@ import io.vertx.core.Future;
 import org.prebid.server.auction.aliases.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderRequest;
-import org.prebid.server.bidder.model.Result;
 
 public interface BidderRequestPostProcessor {
 
-    Future<Result<BidderRequest>> process(BidderRequest bidderRequest,
-                                          BidderAliases aliases,
-                                          AuctionContext auctionContext);
+    Future<BidderRequestPostProcessingResult> process(BidderRequest bidderRequest,
+                                                      BidderAliases aliases,
+                                                      AuctionContext auctionContext);
 }

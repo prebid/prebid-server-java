@@ -16,16 +16,14 @@ import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.spring.config.bidder.model.MediaType;
+import org.prebid.server.util.StreamUtil;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -42,9 +40,9 @@ public class BidderRequestPreferredMediaProcessor implements BidderRequestPostPr
     }
 
     @Override
-    public Future<Result<BidderRequest>> process(BidderRequest bidderRequest,
-                                                 BidderAliases aliases,
-                                                 AuctionContext auctionContext) {
+    public Future<BidderRequestPostProcessingResult> process(BidderRequest bidderRequest,
+                                                             BidderAliases aliases,
+                                                             AuctionContext auctionContext) {
 
         final String bidderName = bidderRequest.getBidder();
         final BidRequest bidRequest = bidderRequest.getBidRequest();
@@ -62,15 +60,18 @@ public class BidderRequestPreferredMediaProcessor implements BidderRequestPostPr
 
         final List<BidderError> errors = new ArrayList<>();
         final BidRequest modifiedBidRequest = processBidRequest(bidRequest, preferredMediaType.get(), errors);
+        final BidderRequest modifiedBidderRequest = modifiedBidRequest != null
+                ? bidderRequest.with(modifiedBidRequest)
+                : null;
 
-        return modifiedBidRequest != null
-                ? Future.succeededFuture(Result.of(bidderRequest.with(modifiedBidRequest), errors))
+        return modifiedBidderRequest != null
+                ? Future.succeededFuture(BidderRequestPostProcessingResult.of(modifiedBidderRequest, errors))
                 : Future.failedFuture(new BidderRequestRejectedException(
                 BidRejectionReason.REQUEST_BLOCKED_UNSUPPORTED_MEDIA_TYPE, errors));
     }
 
-    private static Future<Result<BidderRequest>> noAction(BidderRequest bidderRequest) {
-        return Future.succeededFuture(Result.of(bidderRequest, Collections.emptyList()));
+    private static Future<BidderRequestPostProcessingResult> noAction(BidderRequest bidderRequest) {
+        return Future.succeededFuture(BidderRequestPostProcessingResult.withValue(bidderRequest));
     }
 
     private boolean isMultiFormatSupported(String bidder) {
@@ -81,7 +82,7 @@ public class BidderRequestPreferredMediaProcessor implements BidderRequestPostPr
         return Optional.ofNullable(bidRequest.getExt())
                 .map(ExtRequest::getPrebid)
                 .map(ExtRequestPrebid::getBiddercontrols)
-                .map(bidders -> getBidder(bidderName, bidders))
+                .flatMap(bidders -> getBidder(bidderName, bidders))
                 .map(bidder -> bidder.get(PREF_MTYPE_FIELD))
                 .filter(JsonNode::isTextual)
                 .map(JsonNode::textValue)
@@ -94,16 +95,11 @@ public class BidderRequestPreferredMediaProcessor implements BidderRequestPostPr
                 .map(preferredMediaTypes -> preferredMediaTypes.get(bidderName));
     }
 
-    private static JsonNode getBidder(String bidderName, JsonNode biddersNode) {
-        final Iterator<String> fieldNames = biddersNode.fieldNames();
-        while (fieldNames.hasNext()) {
-            final String fieldName = fieldNames.next();
-            if (StringUtils.equalsIgnoreCase(bidderName, fieldName)) {
-                return biddersNode.get(fieldName);
-            }
-        }
-
-        return null;
+    private static Optional<JsonNode> getBidder(String bidderName, JsonNode biddersNode) {
+        return StreamUtil.asStream(biddersNode.fieldNames())
+                .filter(fieldName -> StringUtils.equalsIgnoreCase(bidderName, fieldName))
+                .map(biddersNode::get)
+                .findAny();
     }
 
     private static BidRequest processBidRequest(BidRequest bidRequest,

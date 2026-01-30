@@ -8,9 +8,8 @@
         "h": 200
       },
       "ext": {
-        "adoppler": {
-          "adunit": "adunit",
-          "client": "testClient"
+        "elementaltv": {
+          "adunit": "adunit"
         }
       }
     }

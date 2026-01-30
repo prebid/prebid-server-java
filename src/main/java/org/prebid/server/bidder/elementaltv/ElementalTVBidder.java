@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.adoppler;
+package org.prebid.server.bidder.elementaltv;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -12,9 +12,9 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.adoppler.model.AdopplerResponseAdsExt;
-import org.prebid.server.bidder.adoppler.model.AdopplerResponseExt;
-import org.prebid.server.bidder.adoppler.model.AdopplerResponseVideoAdsExt;
+import org.prebid.server.bidder.elementaltv.model.ElementalTVResponseAdsExt;
+import org.prebid.server.bidder.elementaltv.model.ElementalTVResponseExt;
+import org.prebid.server.bidder.elementaltv.model.ElementalTVResponseVideoAdsExt;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
@@ -24,7 +24,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.adoppler.ExtImpAdoppler;
+import org.prebid.server.proto.openrtb.ext.request.elementaltv.ExtImpElementalTV;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
@@ -36,17 +36,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-public class AdopplerBidder implements Bidder<BidRequest> {
+public class ElementalTVBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpAdoppler>> ADOPPLER_EXT_TYPE_REFERENCE =
+    private static final TypeReference<ExtPrebid<?, ExtImpElementalTV>> ELEMENTALTV_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
-    private static final String DEFAULT_CLIENT = "app";
 
     private final String endpointTemplate;
     private final JacksonMapper mapper;
 
-    public AdopplerBidder(String endpointTemplate, JacksonMapper mapper) {
+    public ElementalTVBidder(String endpointTemplate, JacksonMapper mapper) {
         this.endpointTemplate = HttpUtil.validateUrl(Objects.requireNonNull(endpointTemplate));
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -58,7 +57,7 @@ public class AdopplerBidder implements Bidder<BidRequest> {
 
         for (Imp imp : request.getImp()) {
             try {
-                final ExtImpAdoppler validExtImp = parseAndValidateImpExt(imp);
+                final ExtImpElementalTV validExtImp = parseAndValidateImpExt(imp);
                 final String updateRequestId = request.getId() + "-" + validExtImp.getAdunit();
                 final BidRequest updateRequest = request.toBuilder().id(updateRequestId).build();
                 final String url = resolveUrl(validExtImp);
@@ -71,29 +70,22 @@ public class AdopplerBidder implements Bidder<BidRequest> {
         return Result.of(result, errors);
     }
 
-    private ExtImpAdoppler parseAndValidateImpExt(Imp imp) {
-        final ExtImpAdoppler extImpAdoppler;
+    private ExtImpElementalTV parseAndValidateImpExt(Imp imp) {
+        final ExtImpElementalTV extImpElementalTV;
         try {
-            extImpAdoppler = mapper.mapper().convertValue(imp.getExt(), ADOPPLER_EXT_TYPE_REFERENCE).getBidder();
+            extImpElementalTV = mapper.mapper().convertValue(imp.getExt(), ELEMENTALTV_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage());
         }
-        if (StringUtils.isBlank(extImpAdoppler.getAdunit())) {
-            throw new PreBidException("adunit parameter is required for adoppler bidder");
+        if (StringUtils.isBlank(extImpElementalTV.getAdunit())) {
+            throw new PreBidException("adunit parameter is required for elementaltv bidder");
         }
-        return extImpAdoppler;
+        return extImpElementalTV;
     }
 
-    private String resolveUrl(ExtImpAdoppler extImp) {
-        final String client = extImp.getClient();
-
+    private String resolveUrl(ExtImpElementalTV extImp) {
         try {
-            final String accountIdMacro = StringUtils.isBlank(client)
-                    ? DEFAULT_CLIENT
-                    : HttpUtil.encodeUrl(client);
-
             return endpointTemplate
-                    .replace("{{AccountID}}", accountIdMacro)
                     .replace("{{AdUnit}}", HttpUtil.encodeUrl(extImp.getAdunit()));
         } catch (Exception e) {
             throw new PreBidException(e.getMessage());
@@ -171,17 +163,17 @@ public class AdopplerBidder implements Bidder<BidRequest> {
 
     private void validateVideoBidExt(Bid bid) {
         final ObjectNode extNode = bid.getExt();
-        final AdopplerResponseExt ext = extNode != null ? parseResponseExt(extNode) : null;
-        final AdopplerResponseAdsExt adsExt = ext != null ? ext.getAds() : null;
-        final AdopplerResponseVideoAdsExt videoAdsExt = adsExt != null ? adsExt.getVideo() : null;
+        final ElementalTVResponseExt ext = extNode != null ? parseResponseExt(extNode) : null;
+        final ElementalTVResponseAdsExt adsExt = ext != null ? ext.getAds() : null;
+        final ElementalTVResponseVideoAdsExt videoAdsExt = adsExt != null ? adsExt.getVideo() : null;
         if (videoAdsExt == null) {
             throw new PreBidException("$.seatbid.bid.ext.ads.video required");
         }
     }
 
-    private AdopplerResponseExt parseResponseExt(ObjectNode ext) {
+    private ElementalTVResponseExt parseResponseExt(ObjectNode ext) {
         try {
-            return mapper.mapper().treeToValue(ext, AdopplerResponseExt.class);
+            return mapper.mapper().treeToValue(ext, ElementalTVResponseExt.class);
         } catch (JsonProcessingException e) {
             throw new PreBidException(e.getMessage(), e);
         }
