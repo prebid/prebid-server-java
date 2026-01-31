@@ -34,6 +34,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 public class TealBidder implements Bidder<BidRequest> {
 
@@ -129,32 +130,34 @@ public class TealBidder implements Bidder<BidRequest> {
     }
 
     private static Site modifySite(Site site, String account) {
-        return account != null && site != null
+        return site != null
                 ? site.toBuilder()
                 .publisher(modifyPublisher(site.getPublisher(), account))
                 .build()
-                : site;
+                : null;
     }
 
     private static App modifyApp(App app, String account) {
-        return account != null && app != null
+        return app != null
                 ? app.toBuilder()
                 .publisher(modifyPublisher(app.getPublisher(), account))
                 .build()
-                : app;
+                : null;
     }
 
     private static Publisher modifyPublisher(Publisher publisher, String account) {
-        return publisher != null
-                ? publisher.toBuilder().id(account).build()
-                : Publisher.builder().id(account).build();
+        return Optional.ofNullable(publisher)
+                .map(Publisher::toBuilder)
+                .orElseGet(Publisher::builder)
+                .id(account)
+                .build();
     }
 
     @Override
     public final Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
+            return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
         } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
