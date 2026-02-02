@@ -42,6 +42,7 @@ import org.prebid.server.hooks.execution.model.ExecutionStatus;
 import org.prebid.server.hooks.execution.model.GroupExecutionOutcome;
 import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.hooks.execution.model.HookExecutionOutcome;
+import org.prebid.server.hooks.execution.model.HookHttpEndpoint;
 import org.prebid.server.hooks.execution.model.HookId;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
 import org.prebid.server.hooks.execution.model.Stage;
@@ -55,7 +56,6 @@ import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
-import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
@@ -1004,9 +1004,7 @@ public class AuctionHandlerTest extends VertxTest {
     public void shouldReturnSendAuctionEventWithAuctionContextBidResponseDebugInfoHoldingExitpointHookOutcome() {
         // given
         final AuctionContext auctionContext = givenAuctionContext(identity()).toBuilder()
-                .hookExecutionContext(HookExecutionContext.of(
-                        Endpoint.openrtb2_amp,
-                        stageOutcomes()))
+                .hookExecutionContext(HookExecutionContext.of(HookHttpEndpoint.AMP, stageOutcomes()))
                 .build();
 
         given(auctionRequestFactory.parseRequest(any(), anyLong()))
@@ -1120,9 +1118,7 @@ public class AuctionHandlerTest extends VertxTest {
                 request -> request.ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .analytics(analyticsNode)
                         .build()))).toBuilder()
-                .hookExecutionContext(HookExecutionContext.of(
-                        Endpoint.openrtb2_amp,
-                        stageOutcomes()))
+                .hookExecutionContext(HookExecutionContext.of(HookHttpEndpoint.AMP, stageOutcomes()))
                 .build();
 
         given(auctionRequestFactory.parseRequest(any(), anyLong()))
@@ -1257,7 +1253,7 @@ public class AuctionHandlerTest extends VertxTest {
                 .bidRequest(bidRequest)
                 .requestTypeMetric(MetricName.openrtb2web)
                 .debugContext(DebugContext.of(true, false, TraceLevel.verbose))
-                .hookExecutionContext(HookExecutionContext.of(Endpoint.openrtb2_auction))
+                .hookExecutionContext(HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION))
                 .timeoutContext(TimeoutContext.of(0, timeout, 0));
 
         return auctionContextCustomizer.apply(auctionContextBuilder)
