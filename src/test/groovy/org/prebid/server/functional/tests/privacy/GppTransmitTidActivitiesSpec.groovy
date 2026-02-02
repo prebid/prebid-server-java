@@ -87,7 +87,6 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
 
         then: "Bidder request should generate (source/imp.ext).tid"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-
         verifyAll {
             bidderRequest.imp[0].ext.tid
             bidderRequest.source.tid

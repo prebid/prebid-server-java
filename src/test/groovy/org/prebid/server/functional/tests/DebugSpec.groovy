@@ -362,7 +362,7 @@ class DebugSpec extends BaseSpec {
         assert !response.ext?.warnings
     }
 
-    def "PBS should return STORED_BID_RESPONSE call type when call from stored bid response "() {
+    def "PBS should return STORED_BID_RESPONSE call type when call from stored bid response"() {
         given: "Default basic BidRequest with stored response"
         def bidRequest = BidRequest.defaultBidRequest
         def storedResponseId = PBSUtils.randomNumber

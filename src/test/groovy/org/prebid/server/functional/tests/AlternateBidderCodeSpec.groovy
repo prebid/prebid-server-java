@@ -3,7 +3,7 @@ package org.prebid.server.functional.tests
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AlternateBidderCodes
-import org.prebid.server.functional.model.config.BidderConfig
+import org.prebid.server.functional.model.config.CodesBidderConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredImp
 import org.prebid.server.functional.model.db.StoredResponse
@@ -417,8 +417,8 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         where:
         requestAlternateBidderCode                                                                                                  | accountAlternateBidderCodes
-        new AlternateBidderCodes(enabled: true, bidders: [(ALIAS): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])]) | null
-        null                                                                                                                        | new AlternateBidderCodes(enabled: true, bidders: [(ALIAS): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])])
+        new AlternateBidderCodes(enabled: true, bidders: [(ALIAS): new CodesBidderConfig(enabled: true, allowedBidderCodes: [GENERIC])]) | null
+        null                                                                                                                             | new AlternateBidderCodes(enabled: true, bidders: [(ALIAS): new CodesBidderConfig(enabled: true, allowedBidderCodes: [GENERIC])])
     }
 
     def "PBS shouldn't discard bid amx alias requested when imp[].bidder is same as in bid.ext.bidderCode"() {
@@ -534,18 +534,18 @@ class AlternateBidderCodeSpec extends BaseSpec {
                                         new AlternateBidderCodes(),
                                         new AlternateBidderCodes(enabled: true),
                                         new AlternateBidderCodes(enabled: false),
-                                        new AlternateBidderCodes(bidders: [(AMX): new BidderConfig()]),
-                                        new AlternateBidderCodes(bidders: [(UNKNOWN): new BidderConfig()]),
-                                        new AlternateBidderCodes(enabled: true, bidders: [(AMX): new BidderConfig()]),
-                                        new AlternateBidderCodes(enabled: true, bidders: [(UNKNOWN): new BidderConfig()]),
-                                        new AlternateBidderCodes(enabled: false, bidders: [(UNKNOWN): new BidderConfig()]),
-                                        new AlternateBidderCodes(enabled: false, bidders: [(AMX): new BidderConfig()]),
-                                        new AlternateBidderCodes(bidders: [(AMX): new BidderConfig(enabled: false, allowedBidderCodes: [UNKNOWN])]),
-                                        new AlternateBidderCodes(bidders: [(UNKNOWN): new BidderConfig(enabled: false, allowedBidderCodes: [AMX])]),
-                                        new AlternateBidderCodes(enabled: false, bidders: [(AMX): new BidderConfig(enabled: false, allowedBidderCodes: [UNKNOWN])]),
-                                        new AlternateBidderCodes(enabled: false, bidders: [(UNKNOWN): new BidderConfig(enabled: false, allowedBidderCodes: [AMX])]),
-                                        new AlternateBidderCodes(enabled: true, bidders: [(AMX): new BidderConfig(enabled: false, allowedBidderCodes: [UNKNOWN])]),
-                                        new AlternateBidderCodes(enabled: true, bidders: [(UNKNOWN): new BidderConfig(enabled: false, allowedBidderCodes: [AMX])])]
+                                        new AlternateBidderCodes(bidders: [(AMX): new CodesBidderConfig()]),
+                                        new AlternateBidderCodes(bidders: [(UNKNOWN): new CodesBidderConfig()]),
+                                        new AlternateBidderCodes(enabled: true, bidders: [(AMX): new CodesBidderConfig()]),
+                                        new AlternateBidderCodes(enabled: true, bidders: [(UNKNOWN): new CodesBidderConfig()]),
+                                        new AlternateBidderCodes(enabled: false, bidders: [(UNKNOWN): new CodesBidderConfig()]),
+                                        new AlternateBidderCodes(enabled: false, bidders: [(AMX): new CodesBidderConfig()]),
+                                        new AlternateBidderCodes(bidders: [(AMX): new CodesBidderConfig(enabled: false, allowedBidderCodes: [UNKNOWN])]),
+                                        new AlternateBidderCodes(bidders: [(UNKNOWN): new CodesBidderConfig(enabled: false, allowedBidderCodes: [AMX])]),
+                                        new AlternateBidderCodes(enabled: false, bidders: [(AMX): new CodesBidderConfig(enabled: false, allowedBidderCodes: [UNKNOWN])]),
+                                        new AlternateBidderCodes(enabled: false, bidders: [(UNKNOWN): new CodesBidderConfig(enabled: false, allowedBidderCodes: [AMX])]),
+                                        new AlternateBidderCodes(enabled: true, bidders: [(AMX): new CodesBidderConfig(enabled: false, allowedBidderCodes: [UNKNOWN])]),
+                                        new AlternateBidderCodes(enabled: true, bidders: [(UNKNOWN): new CodesBidderConfig(enabled: false, allowedBidderCodes: [AMX])])]
     }
 
     def "PBS shouldn't discard the bid or emit a response warning when request alternate bidder codes not fully configured"() {
@@ -602,12 +602,12 @@ class AlternateBidderCodeSpec extends BaseSpec {
                                           new AlternateBidderCodes(),
                                           new AlternateBidderCodes(enabled: true),
                                           new AlternateBidderCodes(enabled: false),
-                                          new AlternateBidderCodes(bidders: [(AMX): new BidderConfig()]),
-                                          new AlternateBidderCodes(enabled: true, bidders: [(AMX): new BidderConfig()]),
-                                          new AlternateBidderCodes(enabled: false, bidders: [(AMX): new BidderConfig()]),
-                                          new AlternateBidderCodes(bidders: [(AMX): new BidderConfig(enabled: false, allowedBidderCodes: [UNKNOWN])]),
-                                          new AlternateBidderCodes(enabled: false, bidders: [(AMX): new BidderConfig(enabled: false, allowedBidderCodes: [UNKNOWN])]),
-                                          new AlternateBidderCodes(enabled: true, bidders: [(AMX): new BidderConfig(enabled: false, allowedBidderCodes: [UNKNOWN])]),]
+                                          new AlternateBidderCodes(bidders: [(AMX): new CodesBidderConfig()]),
+                                          new AlternateBidderCodes(enabled: true, bidders: [(AMX): new CodesBidderConfig()]),
+                                          new AlternateBidderCodes(enabled: false, bidders: [(AMX): new CodesBidderConfig()]),
+                                          new AlternateBidderCodes(bidders: [(AMX): new CodesBidderConfig(enabled: false, allowedBidderCodes: [UNKNOWN])]),
+                                          new AlternateBidderCodes(enabled: false, bidders: [(AMX): new CodesBidderConfig(enabled: false, allowedBidderCodes: [UNKNOWN])]),
+                                          new AlternateBidderCodes(enabled: true, bidders: [(AMX): new CodesBidderConfig(enabled: false, allowedBidderCodes: [UNKNOWN])]),]
     }
 
     def "PBS should validate and throw error when request alternate bidder codes not fully configured"() {
@@ -636,12 +636,12 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
 
         where:
-        requestedAlternateBidderCodes << [new AlternateBidderCodes(bidders: [(UNKNOWN): new BidderConfig()]),
-                                          new AlternateBidderCodes(enabled: true, bidders: [(UNKNOWN): new BidderConfig()]),
-                                          new AlternateBidderCodes(enabled: false, bidders: [(UNKNOWN): new BidderConfig()]),
-                                          new AlternateBidderCodes(bidders: [(UNKNOWN): new BidderConfig(enabled: false, allowedBidderCodes: [AMX])]),
-                                          new AlternateBidderCodes(enabled: false, bidders: [(UNKNOWN): new BidderConfig(enabled: false, allowedBidderCodes: [AMX])]),
-                                          new AlternateBidderCodes(enabled: true, bidders: [(UNKNOWN): new BidderConfig(enabled: false, allowedBidderCodes: [AMX])])]
+        requestedAlternateBidderCodes << [new AlternateBidderCodes(bidders: [(UNKNOWN): new CodesBidderConfig()]),
+                                          new AlternateBidderCodes(enabled: true, bidders: [(UNKNOWN): new CodesBidderConfig()]),
+                                          new AlternateBidderCodes(enabled: false, bidders: [(UNKNOWN): new CodesBidderConfig()]),
+                                          new AlternateBidderCodes(bidders: [(UNKNOWN): new CodesBidderConfig(enabled: false, allowedBidderCodes: [AMX])]),
+                                          new AlternateBidderCodes(enabled: false, bidders: [(UNKNOWN): new CodesBidderConfig(enabled: false, allowedBidderCodes: [AMX])]),
+                                          new AlternateBidderCodes(enabled: true, bidders: [(UNKNOWN): new CodesBidderConfig(enabled: false, allowedBidderCodes: [AMX])])]
     }
 
     def "PBS shouldn't discard bid when alternate bidder code allows bidder codes fully configured and bidder requested in uppercase"() {
@@ -753,9 +753,9 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         where:
         configAccountAlternateBidderCodes << [
-                new AccountConfig(alternateBidderCodesSnakeCase: new AlternateBidderCodes(enabled: true, bidders: [(AMX): new BidderConfig(enabled: true, allowedBidderCodesSnakeCase: [GENERIC])])),
-                new AccountConfig(alternateBidderCodes: new AlternateBidderCodes(enabled: true, bidders: [(AMX): new BidderConfig(enabled: true, allowedBidderCodesSnakeCase: [GENERIC])])),
-                new AccountConfig(alternateBidderCodesSnakeCase: new AlternateBidderCodes(enabled: true, bidders: [(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])]))]
+                new AccountConfig(alternateBidderCodesSnakeCase: new AlternateBidderCodes(enabled: true, bidders: [(AMX): new CodesBidderConfig(enabled: true, allowedBidderCodesSnakeCase: [GENERIC])])),
+                new AccountConfig(alternateBidderCodes: new AlternateBidderCodes(enabled: true, bidders: [(AMX): new CodesBidderConfig(enabled: true, allowedBidderCodesSnakeCase: [GENERIC])])),
+                new AccountConfig(alternateBidderCodesSnakeCase: new AlternateBidderCodes(enabled: true, bidders: [(AMX): new CodesBidderConfig(enabled: true, allowedBidderCodes: [GENERIC])]))]
     }
 
     def "PBS should take precede of request and discard the bid and emit a response error when alternate bidder codes enabled and bidder came with different bidder code"() {
@@ -1035,10 +1035,10 @@ class AlternateBidderCodeSpec extends BaseSpec {
         assert !metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(AMX)]
 
         where:
-        requestAlternateBidders << [[(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])],
-                                    [(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC_CAMEL_CASE])],
-                                    [(AMX_CAMEL_CASE): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC_CAMEL_CASE])],
-                                    [(AMX_CAMEL_CASE): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])]]
+        requestAlternateBidders << [[(AMX): new CodesBidderConfig(enabled: true, allowedBidderCodes: [GENERIC])],
+                                    [(AMX): new CodesBidderConfig(enabled: true, allowedBidderCodes: [GENERIC_CAMEL_CASE])],
+                                    [(AMX_CAMEL_CASE): new CodesBidderConfig(enabled: true, allowedBidderCodes: [GENERIC_CAMEL_CASE])],
+                                    [(AMX_CAMEL_CASE): new CodesBidderConfig(enabled: true, allowedBidderCodes: [GENERIC])]]
     }
 
     def "PBS shouldn't discard the bid or emit a response warning when account alternate bidder codes are enabled and the allowed bidder codes is same as bidder's request"() {
@@ -1095,10 +1095,10 @@ class AlternateBidderCodeSpec extends BaseSpec {
         assert !metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(AMX)]
 
         where:
-        accountAlternateBidders << [[(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])],
-                                    [(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC_CAMEL_CASE])],
-                                    [(AMX_CAMEL_CASE): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC_CAMEL_CASE])],
-                                    [(AMX_CAMEL_CASE): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])]]
+        accountAlternateBidders << [[(AMX): new CodesBidderConfig(enabled: true, allowedBidderCodes: [GENERIC])],
+                                    [(AMX): new CodesBidderConfig(enabled: true, allowedBidderCodes: [GENERIC_CAMEL_CASE])],
+                                    [(AMX_CAMEL_CASE): new CodesBidderConfig(enabled: true, allowedBidderCodes: [GENERIC_CAMEL_CASE])],
+                                    [(AMX_CAMEL_CASE): new CodesBidderConfig(enabled: true, allowedBidderCodes: [GENERIC])]]
     }
 
     def "PBS shouldn't discard the bid or emit a response warning when default account alternate bidder codes are enabled and the allowed bidder codes match the bidder's request"() {
@@ -1106,7 +1106,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
         def defaultAccountConfig = AccountConfig.defaultAccountConfig.tap {
             alternateBidderCodes = new AlternateBidderCodes().tap {
                 it.enabled = true
-                it.bidders = [(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [AMX])]
+                it.bidders = [(AMX): new CodesBidderConfig(enabled: true, allowedBidderCodes: [AMX])]
             }
         }
         def config = AMX_CONFIG + ["settings.default-account-config": encode(defaultAccountConfig)]
@@ -1275,7 +1275,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
         def defaultAccountConfig = AccountConfig.defaultAccountConfig.tap {
             alternateBidderCodes = new AlternateBidderCodes().tap {
                 it.enabled = true
-                it.bidders = [(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [AMX])]
+                it.bidders = [(AMX): new CodesBidderConfig(enabled: true, allowedBidderCodes: [AMX])]
             }
         }
         def pbsConfig = AMX_CONFIG + ["settings.default-account-config": encode(defaultAccountConfig)]
@@ -1349,7 +1349,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
                 amx = null
                 alias = new Generic()
             }
-            ext.prebid.alternateBidderCodes.bidders = [(ALIAS): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])]
+            ext.prebid.alternateBidderCodes.bidders = [(ALIAS): new CodesBidderConfig(enabled: true, allowedBidderCodes: [GENERIC])]
         }
 
         and: "Bid response with bidder code"
@@ -1453,8 +1453,8 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         where:
         requestAlternateBidderCode                                                                                                  | accountAlternateBidderCodes
-        new AlternateBidderCodes(enabled: true, bidders: [(ALIAS): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])]) | null
-        null                                                                                                                        | new AlternateBidderCodes(enabled: true, bidders: [(ALIAS): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])])
+        new AlternateBidderCodes(enabled: true, bidders: [(ALIAS): new CodesBidderConfig(enabled: true, allowedBidderCodes: [GENERIC])]) | null
+        null                                                                                                                             | new AlternateBidderCodes(enabled: true, bidders: [(ALIAS): new CodesBidderConfig(enabled: true, allowedBidderCodes: [GENERIC])])
     }
 
     def "PBS shouldn't discard bid when alternate bidder code allow and soft alias with case with base bidder in alternate bidder code"() {
@@ -1519,8 +1519,8 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         where:
         requestAlternateBidderCode                                                                                                | accountAlternateBidderCodes
-        new AlternateBidderCodes(enabled: true, bidders: [(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])]) | null
-        null                                                                                                                      | new AlternateBidderCodes(enabled: true, bidders: [(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])])
+        new AlternateBidderCodes(enabled: true, bidders: [(AMX): new CodesBidderConfig(enabled: true, allowedBidderCodes: [GENERIC])]) | null
+        null                                                                                                                           | new AlternateBidderCodes(enabled: true, bidders: [(AMX): new CodesBidderConfig(enabled: true, allowedBidderCodes: [GENERIC])])
     }
 
     def "PBS should populate adapter code with requested bidder when conflict soft and hard alias and alternate bidder code"() {
@@ -1535,7 +1535,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
             imp[0].ext.prebid.bidder.amx = null
             imp[0].ext.prebid.bidder.generic = null
             it.ext.prebid.aliases = [(ALIAS.value): GENERIC]
-            it.ext.prebid.alternateBidderCodes.bidders = [(ALIAS): new BidderConfig(enabled: true, allowedBidderCodesLowerCase: [GENERIC])]
+            it.ext.prebid.alternateBidderCodes.bidders = [(ALIAS): new CodesBidderConfig(enabled: true, allowedBidderCodesLowerCase: [GENERIC])]
         }
 
         and: "Bid response with bidder code"
@@ -1581,7 +1581,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
         given: "Default bid request with amx and generic bidder"
         def bidRequest = getBidRequestWithAmxBidderAndAlternateBidderCode().tap {
             imp[0].ext.prebid.bidder.generic = new Generic()
-            ext.prebid.alternateBidderCodes.bidders = [(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])]
+            ext.prebid.alternateBidderCodes.bidders = [(AMX): new CodesBidderConfig(enabled: true, allowedBidderCodes: [GENERIC])]
         }
 
         and: "Bid response with bidder code"
@@ -1637,7 +1637,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
             imp.add(Imp.getDefaultImpression())
             imp[1].ext.prebid.bidder.amx = new Amx()
             imp[1].ext.prebid.bidder.generic = null
-            ext.prebid.alternateBidderCodes.bidders = [(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC, AMX])]
+            ext.prebid.alternateBidderCodes.bidders = [(AMX): new CodesBidderConfig(enabled: true, allowedBidderCodes: [GENERIC, AMX])]
         }
 
         and: "Bid response with bidder code"
@@ -1696,7 +1696,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
         def storedResponseId = PBSUtils.randomNumber
         def bidRequest = getBidRequestWithAmxBidderAndAlternateBidderCode().tap {
             imp[0].ext.prebid.storedBidResponse = [new StoredBidResponse(id: storedResponseId, bidder: AMX)]
-            ext.prebid.alternateBidderCodes.bidders = [(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])]
+            ext.prebid.alternateBidderCodes.bidders = [(AMX): new CodesBidderConfig(enabled: true, allowedBidderCodes: [GENERIC])]
         }
 
         and: "Stored bid response in DB"
@@ -1751,7 +1751,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
         given: "Default bid request"
         def bidRequest = getBidRequestWithAmxBidderAndAlternateBidderCode().tap {
             imp[0].ext.prebid.storedRequest = new PrebidStoredRequest(id: PBSUtils.randomString)
-            ext.prebid.alternateBidderCodes.bidders = [(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])]
+            ext.prebid.alternateBidderCodes.bidders = [(AMX): new CodesBidderConfig(enabled: true, allowedBidderCodes: [GENERIC])]
         }
 
         and: "Save storedImp into DB"
@@ -1804,7 +1804,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
             it.uuid = bidRequest.accountId
             it.config = new AccountConfig(status: ACTIVE, alternateBidderCodes: new AlternateBidderCodes().tap {
                 it.enabled = true
-                it.bidders = [(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [AMX])]
+                it.bidders = [(AMX): new CodesBidderConfig(enabled: true, allowedBidderCodes: [AMX])]
             })
         }
     }
@@ -1813,7 +1813,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
         getBidRequestWithAmxBidder().tap {
             it.ext.prebid.alternateBidderCodes = new AlternateBidderCodes().tap {
                 enabled = true
-                bidders = [(AMX): new BidderConfig(enabled: true, allowedBidderCodesLowerCase: [AMX])]
+                bidders = [(AMX): new CodesBidderConfig(enabled: true, allowedBidderCodesLowerCase: [AMX])]
             }
         }
     }
