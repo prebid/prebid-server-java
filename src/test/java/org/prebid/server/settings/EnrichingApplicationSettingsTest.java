@@ -83,7 +83,8 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
                 "{}",
                 delegate,
                 priceFloorsConfigResolver,
-                activitiesConfigResolver, jsonMerger,
+                activitiesConfigResolver,
+                jsonMerger,
                 jacksonMapper);
 
         final Account returnedAccount = Account.builder().build();

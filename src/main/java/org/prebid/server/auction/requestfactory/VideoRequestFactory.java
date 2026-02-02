@@ -25,6 +25,7 @@ import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.auction.privacy.contextfactory.AuctionPrivacyContextFactory;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.exception.InvalidRequestException;
+import org.prebid.server.hooks.execution.model.HookHttpEndpoint;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
@@ -105,7 +106,7 @@ public class VideoRequestFactory {
         final List<PodError> podErrors = new ArrayList<>();
 
         final AuctionContext initialAuctionContext = ortb2RequestFactory.createAuctionContext(
-                Endpoint.openrtb2_video, MetricName.video);
+                HookHttpEndpoint.VIDEO, MetricName.video);
 
         return ortb2RequestFactory.executeEntrypointHooks(routingContext, body, initialAuctionContext)
                 .compose(httpRequest -> createBidRequest(httpRequest)
@@ -120,9 +121,9 @@ public class VideoRequestFactory {
                 .map(auctionContext -> auctionContext.with(debugResolver.debugContextFrom(auctionContext)))
 
                 .compose(auctionContext -> ortb2RequestFactory.limitImpressions(
-                        auctionContext.getAccount(),
-                        auctionContext.getBidRequest(),
-                        auctionContext.getDebugWarnings())
+                                auctionContext.getAccount(),
+                                auctionContext.getBidRequest(),
+                                auctionContext.getDebugWarnings())
                         .map(auctionContext::with))
 
                 .compose(auctionContext -> ortb2RequestFactory.validateRequest(
