@@ -68,7 +68,7 @@ public class ExecutionPlanEndpointsConfigDeserializer
                                                                             DeserializationContext context)
             throws JsonMappingException {
 
-        EnumMap<HookHttpEndpoint, EndpointExecutionPlan> result = new EnumMap<>(HookHttpEndpoint.class);
+        final Map<HookHttpEndpoint, EndpointExecutionPlan> result = new EnumMap<>(HookHttpEndpoint.class);
         for (Map.Entry<ConfigKey, EndpointExecutionPlan> entry : map.entrySet()) {
             result.put(convertKey(entry.getKey(), context), entry.getValue());
         }
@@ -87,7 +87,7 @@ public class ExecutionPlanEndpointsConfigDeserializer
                         configKey.toString(),
                         HookHttpEndpoint.class,
                         "not one of the values accepted for Enum class: %s"
-                                .formatted((Object) HookHttpEndpoint.values())));
+                                .formatted(Arrays.toString(HookHttpEndpoint.values()))));
     }
 
     private record ConfigKey(HttpMethod httpMethod, Endpoint endpoint) {
