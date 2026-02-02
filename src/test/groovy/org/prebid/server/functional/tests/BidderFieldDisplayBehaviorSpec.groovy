@@ -1,8 +1,10 @@
 package org.prebid.server.functional.tests
 
+import org.prebid.server.functional.model.ChannelType
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.config.AlternateBidderCodes
+import org.prebid.server.functional.model.config.CodesBidderConfig
 import org.prebid.server.functional.model.request.Channel
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.AdServerTargeting
@@ -44,7 +46,6 @@ import org.prebid.server.functional.model.request.auction.UserTime
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
 
-import static org.prebid.server.functional.model.ChannelType.WEB
 import static org.prebid.server.functional.model.Currency.USD
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.bidder.BidderName.RUBICON
@@ -57,9 +58,7 @@ import static org.prebid.server.functional.model.request.auction.DistributionCha
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.DOOH
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 import static org.prebid.server.functional.model.request.auction.TraceLevel.BASIC
-import static org.prebid.server.functional.model.response.auction.ErrorType.GENERIC
 import static org.prebid.server.functional.util.PBSUtils.getRandomDecimal
-import static org.prebid.server.functional.util.PBSUtils.roundDecimal
 
 class BidderFieldDisplayBehaviorSpec extends BaseSpec {
 
@@ -187,10 +186,11 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
         assert !bidderRequest.ext.prebid.cache
     }
 
+
     def "PBS should pass ext.prebid.channel to bidder request when channel specified"() {
         given: "Default bid request"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.channel = new Channel(name: WEB)
+            ext.prebid.channel = new Channel(name: channelType)
         }
 
         and: "Default bid response"
@@ -203,6 +203,9 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
         then: "Bidder request should contain ext.prebid.channel"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.ext.prebid.channel == bidRequest.ext.prebid.channel
+
+        where:
+        channelType << ChannelType.values()
     }
 
     def "PBS should pass ext.prebid.currency.{usePbsRates/rates} to bidder request when usePbsRates or rates specified"() {
@@ -224,7 +227,7 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
     def "PBS shouldn't pass ext.prebid.data.{bidders,eidpermissions} to bidder request"() {
         given: "Default bid request"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.data = new ExtRequestPrebidData(bidders: [GENERIC.value],
+            ext.prebid.data = new ExtRequestPrebidData(bidders: [BidderName.GENERIC.value],
                     eidpermissions: [new EidPermission(source: PBSUtils.randomString, bidders: [BidderName.GENERIC])])
         }
 
@@ -357,10 +360,10 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
 
         then: "Bidder request should contain sdk value same in request"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        verifyAll {
-            bidderRequest.ext.prebid.sdk.renderers.name == bidRequest.ext.prebid.sdk.renderers.name
-            bidderRequest.ext.prebid.sdk.renderers.version == bidRequest.ext.prebid.sdk.renderers.version
-            bidderRequest.ext.prebid.sdk.renderers.data.any == bidRequest.ext.prebid.sdk.renderers.data.any
+        verifyAll(bidderRequest.ext.prebid.sdk.renderers) {
+            it.name == bidRequest.ext.prebid.sdk.renderers.name
+            it.version == bidRequest.ext.prebid.sdk.renderers.version
+            it.data.any == bidRequest.ext.prebid.sdk.renderers.data.any
         }
     }
 
@@ -397,8 +400,8 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.alternateBidderCodes = new AlternateBidderCodes().tap {
                 it.enabled = true
-                it.bidders = [(BidderName.GENERIC): new org.prebid.server.functional.model.config.BidderConfig(enabled: true, allowedBidderCodes: [BidderName.GENERIC]),
-                              (RUBICON)           : new org.prebid.server.functional.model.config.BidderConfig(enabled: true, allowedBidderCodes: [RUBICON])]
+                it.bidders = [(BidderName.GENERIC): new CodesBidderConfig(enabled: true, allowedBidderCodes: [BidderName.GENERIC]),
+                              (RUBICON)           : new CodesBidderConfig(enabled: true, allowedBidderCodes: [RUBICON])]
             }
         }
 
@@ -408,18 +411,19 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
         then: "Bidder request should contain ext.prebid.alternateBidderCodes"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.ext.prebid.alternateBidderCodes.enabled == bidRequest.ext.prebid.alternateBidderCodes.enabled
-        assert bidderRequest.ext.prebid.alternateBidderCodes.bidders == [(BidderName.GENERIC): new org.prebid.server.functional.model.config.BidderConfig(enabled: true)]
+        assert bidderRequest.ext.prebid.alternateBidderCodes.bidders == [(BidderName.GENERIC): new CodesBidderConfig(enabled: true)]
     }
 
     def "PBS should pass user.ext to bidder request when user.ext specified"() {
         given: "Default basic BidRequest with generic bidder"
+        def userExt = new UserExt().tap {
+            fcapids = [PBSUtils.randomString]
+            time = new UserTime(userdow: PBSUtils.randomNumber, userhour: PBSUtils.randomNumber)
+            prebid = new UserExtPrebid(buyeruids: [(BidderName.GENERIC): PBSUtils.randomString])
+            consentedProvidersSettings = new ConsentedProvidersSettings(consentedProviders: PBSUtils.randomString)
+        }
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            user = new User(ext: new UserExt().tap {
-                fcapids = [PBSUtils.randomString]
-                time = new UserTime(userdow: PBSUtils.randomNumber, userhour: PBSUtils.randomNumber)
-                prebid = new UserExtPrebid(buyeruids: [(BidderName.GENERIC): PBSUtils.randomString])
-                consentedProvidersSettings = new ConsentedProvidersSettings(consentedProviders: PBSUtils.randomString)
-            })
+            user = new User(ext: userExt)
         }
 
         when: "PBS processes auction request"
@@ -430,10 +434,10 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
         assert !bidderRequest?.user?.ext?.prebid?.buyeruids
 
         and: "Bidder request should contain user.ext.{fcapid,time,consentedProvidersSettings}"
-        verifyAll(bidderRequest) {
-            bidderRequest.user.ext.fcapids == bidRequest.user.ext.fcapids
-            bidderRequest.user.ext.time == bidRequest.user.ext.time
-            bidderRequest.user.ext.consentedProvidersSettings == bidRequest.user.ext.consentedProvidersSettings
+        verifyAll(bidderRequest.user.ext) {
+            it.fcapids == userExt.fcapids
+            it.time == userExt.time
+            it.consentedProvidersSettings == userExt.consentedProvidersSettings
         }
     }
 
@@ -505,10 +509,11 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
         assert !bidderRequest.ext.prebid.bidderConfig
     }
 
-    def "PBS shouldn't pass bidder param to the bidder when bidder param bidder not requested"() {
+    def "PBS shouldn't pass bidder param and bidders to the bidder when bidder param and bidder not related to the bidder call"() {
         given: "Default bid request with populated ext.prebid.bidderParams"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.bidderParams = [(RUBICON.value): PBSUtils.randomString]
+            ext.prebid.bidderParams = [(OPENX.value): PBSUtils.randomString]
+            ext.prebid.bidders = [(OPENX.value): PBSUtils.randomString]
         }
 
         when: "PBS processes auction request"
@@ -518,8 +523,9 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
         assert !response.ext?.errors
 
         and: "Generic bidder request shouldn't contain bidder param"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert !bidderRequest.ext.prebid.bidderParams
+        def bidderRequest = bidder.getBidderRequests(bidRequest.id)
+        assert bidderRequest.ext.prebid.bidderParams == [null]
+        assert bidderRequest.ext.prebid.bidders == [null]
     }
 
     def "PBS should pass bidder app.ext to the bidder request when app ext specified"() {
@@ -606,13 +612,12 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
 
     def "PBS should pass ext.prebid.bidAdjustmentFactors only bidder related entry for each bidder"() {
         given: "Default bid request with bid adjustment"
-        def bidAdjustment = roundDecimal(getRandomDecimal(), 0)
-        def mediaTypeBidAdjustment = bidAdjustmentFactor
+        def bidAdjustment = getRandomDecimal()
         def bidRequest = BidRequest.getDefaultBidRequest(SITE).tap {
             ext.prebid.bidAdjustmentFactors = new BidAdjustmentFactors().tap {
                 adjustments = [(BidderName.GENERIC): bidAdjustment, (OPENX): bidAdjustment]
                 mediaTypes = [(BANNER): [(BidderName.GENERIC): mediaTypeBidAdjustment],
-                              (VIDEO): [(OPENX): mediaTypeBidAdjustment]]
+                              (VIDEO) : [(OPENX): mediaTypeBidAdjustment]]
             }
         }
 
@@ -625,8 +630,10 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
 
         then: "Bidder request should contain generic bid adjustment factors"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.ext.prebid.bidAdjustmentFactors.adjustments[BidderName.GENERIC] == bidRequest.ext.prebid.bidAdjustmentFactors.adjustments[BidderName.GENERIC]
-        assert bidderRequest.ext.prebid.bidAdjustmentFactors.mediaTypes[BANNER][GENERIC] == bidRequest.ext.prebid.bidAdjustmentFactors.mediaTypes[BANNER][GENERIC]
+        assert bidderRequest.ext.prebid.bidAdjustmentFactors.adjustments[BidderName.GENERIC]
+                == bidRequest.ext.prebid.bidAdjustmentFactors.adjustments[BidderName.GENERIC]
+        assert bidderRequest.ext.prebid.bidAdjustmentFactors.mediaTypes[BANNER][BidderName.GENERIC]
+                == bidRequest.ext.prebid.bidAdjustmentFactors.mediaTypes[BANNER][BidderName.GENERIC]
 
         and: "Bidder request shouldn't contain opneX bid adjustment factors for generic call"
         assert !bidderRequest?.ext?.prebid?.bidAdjustmentFactors?.adjustments[OPENX]
@@ -634,6 +641,6 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
         assert !bidderRequest?.ext?.prebid?.bidAdjustmentFactors?.mediaTypes[VIDEO]
 
         where:
-        bidAdjustmentFactor << [0.9, 1.1]
+        mediaTypeBidAdjustment << [0.9, 1.1]
     }
 }

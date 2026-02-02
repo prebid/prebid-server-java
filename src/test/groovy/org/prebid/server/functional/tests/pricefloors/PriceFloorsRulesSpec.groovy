@@ -5,7 +5,7 @@ import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.bidder.Openx
 import org.prebid.server.functional.model.bidderspecific.BidderRequest
 import org.prebid.server.functional.model.config.AlternateBidderCodes
-import org.prebid.server.functional.model.config.BidderConfig
+import org.prebid.server.functional.model.config.CodesBidderConfig
 import org.prebid.server.functional.model.db.StoredImp
 import org.prebid.server.functional.model.pricefloors.Country
 import org.prebid.server.functional.model.pricefloors.FloorModelGroup
@@ -1179,7 +1179,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
                 returnAllBidStatus = true
                 alternateBidderCodes = new AlternateBidderCodes(
                         enabled: true,
-                        bidders: [(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])])
+                        bidders: [(AMX): new CodesBidderConfig(enabled: true, allowedBidderCodes: [GENERIC])])
             }
         }
 

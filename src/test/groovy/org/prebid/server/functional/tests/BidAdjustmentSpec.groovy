@@ -4,7 +4,7 @@ import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AlternateBidderCodes
-import org.prebid.server.functional.model.config.BidderConfig
+import org.prebid.server.functional.model.config.CodesBidderConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.AdjustmentRule
 import org.prebid.server.functional.model.request.auction.AdjustmentType
@@ -52,7 +52,6 @@ import static org.prebid.server.functional.model.request.auction.VideoPlcmtSubty
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 import static org.prebid.server.functional.util.PBSUtils.getRandomDecimal
-import static org.prebid.server.functional.util.PBSUtils.roundDecimal
 
 class BidAdjustmentSpec extends BaseSpec {
 
@@ -106,8 +105,7 @@ class BidAdjustmentSpec extends BaseSpec {
 
     def "PBS should prefer bid price adjustment based on media type when request has per-media-type bid adjustment factors"() {
         given: "Default bid request with bid adjustment"
-        def bidAdjustment = roundDecimal(getRandomDecimal(), 0)
-        def mediaTypeBidAdjustment = bidAdjustmentFactor
+        def bidAdjustment = getRandomDecimal()
         def bidRequest = BidRequest.getDefaultBidRequest(SITE).tap {
             ext.prebid.bidAdjustmentFactors = new BidAdjustmentFactors().tap {
                 adjustments = [(GENERIC): bidAdjustment]
@@ -131,7 +129,7 @@ class BidAdjustmentSpec extends BaseSpec {
         assert bidderRequest.ext.prebid.bidAdjustmentFactors == bidRequest.ext.prebid.bidAdjustmentFactors
 
         where:
-        bidAdjustmentFactor << [0.9, 1.1]
+        mediaTypeBidAdjustment << [0.9, 1.1]
     }
 
     def "PBS should adjust bid price for bidder only when request contains bid adjustment for corresponding bidder"() {
@@ -1256,7 +1254,7 @@ class BidAdjustmentSpec extends BaseSpec {
             it.ext.prebid.tap {
                 alternateBidderCodes = new AlternateBidderCodes().tap {
                     enabled = true
-                    bidders = [(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])]
+                    bidders = [(AMX): new CodesBidderConfig(enabled: true, allowedBidderCodes: [GENERIC])]
                 }
                 bidAdjustmentFactors = new BidAdjustmentFactors(adjustments: [(GENERIC): bidAdjustmentFactor])
             }
@@ -1294,7 +1292,7 @@ class BidAdjustmentSpec extends BaseSpec {
                 }
                 alternateBidderCodes = new AlternateBidderCodes().tap {
                     enabled = true
-                    bidders = [(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])]
+                    bidders = [(AMX): new CodesBidderConfig(enabled: true, allowedBidderCodes: [GENERIC])]
                 }
             }
         }
@@ -1333,7 +1331,7 @@ class BidAdjustmentSpec extends BaseSpec {
                 }
                 alternateBidderCodes = new AlternateBidderCodes().tap {
                     enabled = true
-                    bidders = [(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])]
+                    bidders = [(AMX): new CodesBidderConfig(enabled: true, allowedBidderCodes: [GENERIC])]
                 }
             }
         }
@@ -1372,7 +1370,7 @@ class BidAdjustmentSpec extends BaseSpec {
                 bidAdjustments = new BidAdjustment(mediaType: [(BANNER): bidAdjustmentRule])
                 alternateBidderCodes = new AlternateBidderCodes().tap {
                     enabled = true
-                    bidders = [(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [AMX])]
+                    bidders = [(AMX): new CodesBidderConfig(enabled: true, allowedBidderCodes: [AMX])]
                 }
             }
         }
@@ -1430,7 +1428,7 @@ class BidAdjustmentSpec extends BaseSpec {
                                                                (ANY)   : secondBidAdjustmentRule])
                 alternateBidderCodes = new AlternateBidderCodes().tap {
                     enabled = true
-                    bidders = [(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [AMX])]
+                    bidders = [(AMX): new CodesBidderConfig(enabled: true, allowedBidderCodes: [AMX])]
                 }
             }
         }
@@ -1483,7 +1481,7 @@ class BidAdjustmentSpec extends BaseSpec {
                 bidAdjustments = new BidAdjustment(mediaType: [(BANNER): bidAdjustmentRule])
                 alternateBidderCodes = new AlternateBidderCodes().tap {
                     enabled = true
-                    bidders = [(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [AMX])]
+                    bidders = [(AMX): new CodesBidderConfig(enabled: true, allowedBidderCodes: [AMX])]
                 }
             }
         }
@@ -1537,7 +1535,7 @@ class BidAdjustmentSpec extends BaseSpec {
                 bidAdjustments = new BidAdjustment(mediaType: [(BANNER): exactRule])
                 alternateBidderCodes = new AlternateBidderCodes().tap {
                     enabled = true
-                    bidders = [(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [AMX])]
+                    bidders = [(AMX): new CodesBidderConfig(enabled: true, allowedBidderCodes: [AMX])]
                 }
             }
         }
@@ -1588,7 +1586,7 @@ class BidAdjustmentSpec extends BaseSpec {
                 bidAdjustments = new BidAdjustment(mediaType: [(BANNER): exactRule])
                 alternateBidderCodes = new AlternateBidderCodes().tap {
                     enabled = true
-                    bidders = [(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [AMX])]
+                    bidders = [(AMX): new CodesBidderConfig(enabled: true, allowedBidderCodes: [AMX])]
                 }
             }
         }
@@ -1639,7 +1637,7 @@ class BidAdjustmentSpec extends BaseSpec {
                 bidAdjustments = new BidAdjustment(mediaType: [(BANNER): exactRule])
                 alternateBidderCodes = new AlternateBidderCodes().tap {
                     enabled = true
-                    bidders = [(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [AMX])]
+                    bidders = [(AMX): new CodesBidderConfig(enabled: true, allowedBidderCodes: [AMX])]
                 }
             }
         }

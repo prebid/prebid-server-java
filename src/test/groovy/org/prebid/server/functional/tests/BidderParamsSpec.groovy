@@ -34,7 +34,6 @@ import org.prebid.server.functional.model.response.auction.BidExt
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.CcpaConsent
-import spock.lang.IgnoreRest
 
 import static org.prebid.server.functional.model.Currency.CHF
 import static org.prebid.server.functional.model.Currency.EUR
