@@ -10,7 +10,7 @@ adapters:
         usersync:
           cookie-family-name: bcmint
           redirect:
-            url: https://track.datacygnal.io/sync/v2?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redir={{redirect_url}}
+            url: https://track.datacygnal.io/sync/v2?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&usp={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redir={{redirect_url}}
             support-cors: false
             uid-macro: '[UID]'
       bidagency:
@@ -21,7 +21,7 @@ adapters:
         usersync:
           cookie-family-name: bidagency
           redirect:
-            url: https://track.bidgx.com/sync/v2?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redir={{redirect_url}}
+            url: https://track.bidgx.com/sync/v2?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&usp={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redir={{redirect_url}}
             support-cors: false
             uid-macro: '[UID]'
       kuantyx:
@@ -32,7 +32,7 @@ adapters:
         usersync:
           cookie-family-name: kuantyx
           redirect:
-            url: https://track.kntxy.com/sync/v2?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redir={{redirect_url}}
+            url: https://track.kntxy.com/sync/v2?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&usp={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redir={{redirect_url}}
             support-cors: false
             uid-macro: '[UID]'
     meta-info:
@@ -49,6 +49,6 @@ adapters:
     usersync:
       cookie-family-name: aso
       redirect:
-        url: https://track.aso1.net/sync/v2?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redir={{redirect_url}}
+        url: https://track.aso1.net/sync/v2?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&usp={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redir={{redirect_url}}
         support-cors: false
         uid-macro: '[UID]'
