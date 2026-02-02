@@ -53,7 +53,7 @@ adapters:
           enabled: true
           cookie-family-name: adsinteractive
           redirect:
-            url: https://cstb.adsinteractive.com/pbserver?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&pbserverUrl={{redirect_url}}
+            url: https://cstb.adsinteractive.com/pbserver?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redir={{redirect_url}}
             support-cors: false
             uid-macro: '[UID]'
           iframe:
