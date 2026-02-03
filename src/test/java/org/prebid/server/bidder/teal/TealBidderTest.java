@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.teal;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -103,33 +104,36 @@ public class TealBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 Site.builder().publisher(Publisher.builder().domain("mydomain.com").build()).build(),
-                        imp -> imp.id("imp1").ext(givenImpExt("account", "placement1")),
-                        imp -> imp.id("imp2").ext(givenImpExt("account", null)));
+                imp -> imp.id("imp1").ext(givenImpExt("account", "placement1")),
+                imp -> imp.id("imp2").ext(givenImpExt("account", null)));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         //then
-        final BidRequest outgoingPayload = result.getValue().getFirst().getPayload();
-
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1).first()
-                .satisfies(httpRequest -> {
-                    assertThat(outgoingPayload.getSite().getPublisher().getId()).isEqualTo("account");
-                    assertThat(outgoingPayload.getImp().getFirst().getExt()).isNotNull();
-                    assertThat(outgoingPayload.getImp().getFirst().getExt().get("prebid")).isNotNull();
-                    assertThat(outgoingPayload.getImp().getFirst().getExt().get("prebid").get("storedrequest"))
-                            .isNotNull();
-                    assertThat(outgoingPayload.getImp().getFirst().getExt().get("prebid").get("storedrequest")
-                            .get("id")).isNotNull();
-                    assertThat(outgoingPayload.getImp().getFirst().getExt()
-                            .get("prebid").get("storedrequest").get("id").asText()).isEqualTo("placement1");
-                    assertThat(outgoingPayload.getImp().getLast()).satisfiesAnyOf(
-                            imp -> assertThat(imp.getExt()).isNull(),
-                            imp -> assertThat(imp.getExt().get("prebid")).isNull(),
-                            imp -> assertThat(imp.getExt().get("prebid").get("storedrequest")).isNull()
-                    );
-                });
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getSite)
+                .extracting(Site::getPublisher)
+                .extracting(Publisher::getId)
+                .containsExactly("account");
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .element(0)
+                .extracting(ext -> ext.get("prebid"))
+                .extracting(prebid -> prebid.get("storedrequest"))
+                .extracting(storedRequest -> storedRequest.get("id"))
+                .extracting(JsonNode::textValue)
+                .isEqualTo("placement1");
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .element(1)
+                .isNull();
     }
 
     @Test
@@ -142,16 +146,18 @@ public class TealBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         //then
-        final BidRequest outgoingPayload = result.getValue().getFirst().getPayload();
-
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1).first()
-                .satisfies(httpRequest -> {
-                    assertThat(outgoingPayload.getExt()).isNotNull();
-                    assertThat(outgoingPayload.getExt().getProperty("bids")).isNotNull();
-                    assertThat(outgoingPayload.getExt().getProperty("bids").get("pbs")).isNotNull();
-                    assertThat(outgoingPayload.getExt().getProperty("bids").get("pbs").toString()).isEqualTo("1");
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getExt)
+                .element(0)
+                .satisfies(ext -> {
+                    assertThat(ext).isNotNull();
+                    assertThat(ext.getProperty("bids")).isNotNull();
+                    assertThat(ext.getProperty("bids").get("pbs")).isNotNull();
+                    assertThat(ext.getProperty("bids").get("pbs").toString()).isEqualTo("1");
                 });
+
     }
 
     @Test
@@ -186,17 +192,7 @@ public class TealBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
-        final Bid expectedBid = Bid.builder()
-                .id("teal-imp1")
-                .impid("imp1")
-                .mtype(1)
-                .price(BigDecimal.ONE)
-                .adm("adm")
-                .w(300)
-                .h(250)
-                .adomain(singletonList("adomain.com"))
-                .ext(mapper.createObjectNode())
-                .build();
+        final Bid expectedBid = givenBid("imp1", 1, 1);
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).containsExactly(BidderBid.of(expectedBid, BidType.banner, "USD"));
@@ -206,25 +202,14 @@ public class TealBidderTest extends VertxTest {
     public void makeBidsShouldReturnVideoBid() throws JsonProcessingException {
         // given
         final Bid responseBid = givenBid("imp1", 2, 1);
-        final BidRequest bidRequest = BidRequest.builder().imp(singletonList(
-                Imp.builder().id("imp1").video(Video.builder().pos(1).build()).build())).build();
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.id("imp1").video(Video.builder().pos(1).build()));
         final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, singletonList(responseBid));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
-        final Bid expectedBid = Bid.builder()
-                .id("teal-imp1")
-                .impid("imp1")
-                .mtype(2)
-                .price(BigDecimal.ONE)
-                .adm("adm")
-                .w(300)
-                .h(250)
-                .adomain(singletonList("adomain.com"))
-                .ext(mapper.createObjectNode())
-                .build();
+        final Bid expectedBid = givenBid("imp1", 2, 1);
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).containsExactly(BidderBid.of(expectedBid, BidType.video, "USD"));
@@ -234,39 +219,28 @@ public class TealBidderTest extends VertxTest {
     public void makeBidsShouldReturnNativeBid() throws JsonProcessingException {
         // given
         final Bid responseBid = givenBid("imp1", 4, 1);
-        final BidRequest bidRequest = BidRequest.builder().imp(singletonList(
-                Imp.builder().id("imp1").xNative(Native.builder().ver("1").build()).build())).build();
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.id("imp1").xNative(Native.builder().ver("1").build()));
         final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, singletonList(responseBid));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
-        final Bid expectedBid = Bid.builder()
-                .id("teal-imp1")
-                .impid("imp1")
-                .mtype(4)
-                .price(BigDecimal.ONE)
-                .adm("adm")
-                .w(300)
-                .h(250)
-                .adomain(singletonList("adomain.com"))
-                .ext(mapper.createObjectNode())
-                .build();
+        final Bid expectedBid = givenBid("imp1", 4, 1);
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).containsExactly(BidderBid.of(expectedBid, BidType.xNative, "USD"));
     }
 
-    private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder>... impCustomizers) {
-        return givenBidRequest(null, impCustomizers);
+    private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
+        final List<Imp> imps = singletonList(impCustomizer.apply(Imp.builder().id("impId")).build());
+        return BidRequest.builder().imp(imps).build();
     }
 
     private static BidRequest givenBidRequest(Site site, UnaryOperator<Imp.ImpBuilder>... impCustomizers) {
         final List<Imp> imps = Stream.of(impCustomizers)
                 .map(customizer -> customizer.apply(Imp.builder().id("impId")).build())
                 .toList();
-
         return BidRequest.builder().imp(imps).site(site).build();
     }
 
@@ -291,8 +265,7 @@ public class TealBidderTest extends VertxTest {
     private static BidResponse givenBidResponse(List<Bid> bids) {
         return BidResponse.builder()
                 .cur("USD")
-                .seatbid(singletonList(SeatBid.builder().bid(bids)
-                        .build()))
+                .seatbid(singletonList(SeatBid.builder().bid(bids).build()))
                 .build();
     }
 
@@ -300,8 +273,7 @@ public class TealBidderTest extends VertxTest {
             throws JsonProcessingException {
         return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
-                HttpResponse.of(200, null,
-                        mapper.writeValueAsString(givenBidResponse(bids))
-                ), null);
+                HttpResponse.of(200, null, mapper.writeValueAsString(givenBidResponse(bids))),
+                null);
     }
 }
