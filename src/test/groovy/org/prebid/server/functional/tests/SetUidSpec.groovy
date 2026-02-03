@@ -64,6 +64,12 @@ class SetUidSpec extends BaseSpec {
              "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url"                          : USER_SYNC_URL,
              "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.support-cors"                 : CORS_SUPPORT.toString(),
 
+             "adapters.${GRID.value}.enabled"                                                          : "true",
+             "adapters.${GRID.value}.meta-info.vendor-id"                                              : VENDOR_ID,
+             "adapters.${GRID.value}.usersync.cookie-family-name"                                      : GENERIC_COOKIE_FAMILY_NAME,
+             "adapters.${GRID.value}.usersync.${USER_SYNC_TYPE.value}.url"                             : USER_SYNC_URL,
+             "adapters.${GRID.value}.usersync.${USER_SYNC_TYPE.value}.support-cors"                    : CORS_SUPPORT.toString(),
+
              "adapters.${GENERIC}.aliases.${ALIAS}.enabled"                                            : "true",
              "adapters.${GENERIC}.aliases.${ALIAS}.endpoint"                                           : "$networkServiceContainer.rootUri/auction".toString(),
              "adapters.${GENERIC}.aliases.${ALIAS}.meta-info.vendor-id"                                : VENDOR_ID,
