@@ -459,9 +459,12 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
 
         final List<ExtRequestPrebidDataEidPermissions> bidders = List.of(bidder1, bidder2);
 
-        final BidRequest givenBidRequest = BidRequest.builder().id("request").user(givenUser).ext(ExtRequest.of(
-                        ExtRequestPrebid.builder().data(
-                                ExtRequestPrebidData.of(singletonList("bidder3"), bidders)).build()))
+        final BidRequest givenBidRequest = BidRequest.builder()
+                .id("request")
+                .user(givenUser)
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .data(ExtRequestPrebidData.of(singletonList("bidder3"), bidders))
+                        .build()))
                 .build();
 
         final ExtRequestPrebidData expectedData = ExtRequestPrebidData.of(List.of("bidder3"), bidders);
@@ -509,10 +512,14 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
         final ExtRequestPrebidData givenData = ExtRequestPrebidData.of(
                 List.of("bidderGlobal"),
                 List.of(
-                        ExtRequestPrebidDataEidPermissions.builder().source("liveintent.com")
-                                .bidders(singletonList("not-allowed")).build(),
-                        ExtRequestPrebidDataEidPermissions.builder().source("keep.com")
-                                .bidders(singletonList("bidderGlobal")).build()
+                        ExtRequestPrebidDataEidPermissions.builder()
+                                .source("liveintent.com")
+                                .bidders(singletonList("not-allowed"))
+                                .build(),
+                        ExtRequestPrebidDataEidPermissions.builder()
+                                .source("keep.com")
+                                .bidders(singletonList("bidderGlobal"))
+                                .build()
                 ));
 
         final BidRequest givenBidRequest = BidRequest.builder()
@@ -542,7 +549,9 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
         final ExtRequestPrebidData expectedData = ExtRequestPrebidData.of(
                 List.of("bidderGlobal"),
                 List.of(ExtRequestPrebidDataEidPermissions.builder()
-                        .source("keep.com").bidders(singletonList("bidderGlobal")).build()));
+                        .source("keep.com")
+                        .bidders(singletonList("bidderGlobal"))
+                        .build()));
 
         assertThat(result.status()).isEqualTo(InvocationStatus.success);
         assertThat(result.payloadUpdate().apply(AuctionRequestPayloadImpl.of(givenBidRequest)))
