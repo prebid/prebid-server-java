@@ -519,8 +519,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
                         ExtRequestPrebidDataEidPermissions.builder()
                                 .source("keep.com")
                                 .bidders(singletonList("bidderGlobal"))
-                                .build()
-                ));
+                                .build()));
 
         final BidRequest givenBidRequest = BidRequest.builder()
                 .id("request")
