@@ -150,14 +150,9 @@ public class TealBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getExt)
-                .element(0)
-                .satisfies(ext -> {
-                    assertThat(ext).isNotNull();
-                    assertThat(ext.getProperty("bids")).isNotNull();
-                    assertThat(ext.getProperty("bids").get("pbs")).isNotNull();
-                    assertThat(ext.getProperty("bids").get("pbs").toString()).isEqualTo("1");
-                });
-
+                .extracting(ext -> ext.getProperty("bids"))
+                .extracting(bids -> bids.get("pbs").toString())
+                .containsExactly("1");
     }
 
     @Test
@@ -184,8 +179,7 @@ public class TealBidderTest extends VertxTest {
     public void makeBidsShouldReturnBannerBid() throws JsonProcessingException {
         // given
         final Bid responseBid = givenBid("imp1", 1, 1);
-        final BidRequest bidRequest = BidRequest.builder().imp(singletonList(
-                Imp.builder().id("imp1").banner(Banner.builder().id("id").build()).build())).build();
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.id("imp1").banner(Banner.builder().id("id").build()));
         final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, singletonList(responseBid));
 
         // when
@@ -233,8 +227,7 @@ public class TealBidderTest extends VertxTest {
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
-        final List<Imp> imps = singletonList(impCustomizer.apply(Imp.builder().id("impId")).build());
-        return BidRequest.builder().imp(imps).build();
+        return givenBidRequest(null, impCustomizer);
     }
 
     private static BidRequest givenBidRequest(Site site, UnaryOperator<Imp.ImpBuilder>... impCustomizers) {
