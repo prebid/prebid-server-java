@@ -9,6 +9,7 @@
       },
       "secure": 1,
       "ext": {
+        "tid": "${json-unit.any-string}",
         "nexx360": {
           "placement": "placement"
         }

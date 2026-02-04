@@ -19,4 +19,4 @@ adapters:
         - native
         - audio
       supported-vendors:
-      vendor-id: 0
+      vendor-id: 965
