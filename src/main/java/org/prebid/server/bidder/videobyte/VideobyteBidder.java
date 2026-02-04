@@ -8,9 +8,10 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.uritemplate.UriTemplate;
+import io.vertx.uritemplate.Variables;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -24,12 +25,14 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.videobyte.ExtImpVideobyte;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.UriTemplateUtil;
 
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 public class VideobyteBidder implements Bidder<BidRequest> {
@@ -39,11 +42,12 @@ public class VideobyteBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private final String endpointUrl;
+    private final UriTemplate endpointUrlTemplate;
     private final JacksonMapper mapper;
 
     public VideobyteBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrlTemplate = UriTemplateUtil.createTemplate(endpointUrl, "queryParams");
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -86,26 +90,20 @@ public class VideobyteBidder implements Bidder<BidRequest> {
     }
 
     private String createUri(ExtImpVideobyte extImpVideobyte) {
-        final URIBuilder uriBuilder;
-        try {
-            uriBuilder = new URIBuilder(endpointUrl);
-        } catch (URISyntaxException e) {
-            throw new PreBidException(e.getMessage());
+        final Map<String, String> queryParams = new HashMap<>();
+
+        queryParams.put("source", "pbs");
+        queryParams.put("pid", extImpVideobyte.getPublisherId());
+
+        if (StringUtils.isNotEmpty(extImpVideobyte.getPlacementId())) {
+            queryParams.put("placementId", extImpVideobyte.getPlacementId());
         }
 
-        uriBuilder.addParameter("source", "pbs")
-                .addParameter("pid", extImpVideobyte.getPublisherId());
-
-        addUriParameterIfNotEmpty(uriBuilder, "placementId", extImpVideobyte.getPlacementId());
-        addUriParameterIfNotEmpty(uriBuilder, "nid", extImpVideobyte.getNetworkId());
-
-        return uriBuilder.toString();
-    }
-
-    private static void addUriParameterIfNotEmpty(URIBuilder uriBuilder, String parameter, String value) {
-        if (StringUtils.isNotEmpty(value)) {
-            uriBuilder.addParameter(parameter, value);
+        if (StringUtils.isNotEmpty(extImpVideobyte.getNetworkId())) {
+            queryParams.put("nid", extImpVideobyte.getNetworkId());
         }
+
+        return endpointUrlTemplate.expandToString(Variables.variables().set("queryParams", queryParams));
     }
 
     private static MultiMap headers(BidRequest bidRequest) {

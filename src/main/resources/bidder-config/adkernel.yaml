@@ -1,6 +1,6 @@
 adapters:
   adkernel:
-    endpoint: http://pbs.adksrv.com/hb?zone=%s
+    endpoint: http://pbs.adksrv.com/hb?zone={{ZoneId}}
     endpoint-compression: gzip
     aliases:
       rxnetwork: ~

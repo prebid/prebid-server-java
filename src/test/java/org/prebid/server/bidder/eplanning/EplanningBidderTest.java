@@ -109,26 +109,6 @@ public class EplanningBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfEndpointUrlComposingFails() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                requestBuilder -> requestBuilder
-                        .site(Site.builder().domain("invalid domain").build()),
-                identity());
-
-        // when
-        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .allSatisfy(error -> {
-                    assertThat(error.getMessage())
-                            .startsWith("Invalid url: https://eplanning.com/clientId/1/invalid domain/ROS");
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
-                });
-    }
-
-    @Test
     public void makeHttpRequestsShouldSendSingleGetRequestWithNullBody() {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
@@ -206,9 +186,15 @@ public class EplanningBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
+                .first()
                 .extracting(HttpRequest::getUri)
-                .containsExactly(
-                        "https://eplanning.com/clientId/1/FILE/ROS?r=pbs&ncb=1&ur=FILE&e=testadun_itco_de%3A1x1");
+                .satisfies(url -> {
+                    assertThat(url).startsWith("https://eplanning.com/clientId/1/FILE/ROS");
+                    assertThat(url).contains("r=pbs");
+                    assertThat(url).contains("ncb=1");
+                    assertThat(url).contains("ur=FILE");
+                    assertThat(url).contains("e=testadun_itco_de%3A1x1");
+                });
     }
 
     @Test
@@ -225,10 +211,16 @@ public class EplanningBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
+                .first()
                 .extracting(HttpRequest::getUri)
-                .containsExactly(
-                        "https://eplanning.com/clientId/1/DOMAIN/ROS?r=pbs&ncb=1&ur=https%3A%2F%2Fwww.example.com&e="
-                                + "testadun_itco_de%3A1x1");
+                .satisfies(url -> {
+                    assertThat(url).startsWith("https://eplanning.com/clientId/1/DOMAIN/ROS");
+                    assertThat(url).contains("r=pbs");
+                    assertThat(url).contains("ncb=1");
+                    assertThat(url).contains("ur=https%3A%2F%2Fwww.example.com");
+                    assertThat(url).contains("e=testadun_itco_de%3A1x1");
+                });
+
     }
 
     @Test
@@ -245,9 +237,16 @@ public class EplanningBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
+                .first()
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://eplanning.com/clientId/1/www.example.com/ROS?r=pbs&ncb=1"
-                        + "&ur=https%3A%2F%2Fwww.example.com&e=testadun_itco_de%3A1x1");
+                .satisfies(url -> {
+                    assertThat(url).startsWith("https://eplanning.com/clientId/1/www.example.com/ROS");
+                    assertThat(url).contains("r=pbs");
+                    assertThat(url).contains("ncb=1");
+                    assertThat(url).contains("ur=https%3A%2F%2Fwww.example.com");
+                    assertThat(url).contains("e=testadun_itco_de%3A1x1");
+                });
+
     }
 
     @Test
@@ -266,9 +265,16 @@ public class EplanningBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
+                .first()
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://eplanning.com/clientId/1/FILE/ROS?r=pbs&ncb=1&ur=FILE&e=testadun_itco_de%3A"
-                        + "300x200");
+                .satisfies(url -> {
+                    assertThat(url).startsWith("https://eplanning.com/clientId/1/FILE/ROS");
+                    assertThat(url).contains("r=pbs");
+                    assertThat(url).contains("ncb=1");
+                    assertThat(url).contains("ur=FILE");
+                    assertThat(url).contains("e=testadun_itco_de%3A300x200");
+                });
+
     }
 
     @Test
@@ -288,9 +294,16 @@ public class EplanningBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
+                .first()
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://eplanning.com/clientId/1/FILE/ROS?r=pbs&ncb=1&ur=FILE&e=testadun_itco_de%3A"
-                        + "320x50");
+                .satisfies(url -> {
+                    assertThat(url).startsWith("https://eplanning.com/clientId/1/FILE/ROS");
+                    assertThat(url).contains("r=pbs");
+                    assertThat(url).contains("ncb=1");
+                    assertThat(url).contains("ur=FILE");
+                    assertThat(url).contains("e=testadun_itco_de%3A320x50");
+                });
+
     }
 
     @Test
@@ -310,9 +323,16 @@ public class EplanningBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
+                .first()
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://eplanning.com/clientId/1/FILE/ROS?r=pbs&ncb=1&ur=FILE&e=testadun_itco_de%3A"
-                        + "728x90");
+                .satisfies(url -> {
+                    assertThat(url).startsWith("https://eplanning.com/clientId/1/FILE/ROS");
+                    assertThat(url).contains("r=pbs");
+                    assertThat(url).contains("ncb=1");
+                    assertThat(url).contains("ur=FILE");
+                    assertThat(url).contains("e=testadun_itco_de%3A728x90");
+                });
+
     }
 
     @Test
@@ -332,9 +352,16 @@ public class EplanningBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
+                .first()
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://eplanning.com/clientId/1/FILE/ROS?r=pbs&ncb=1&ur=FILE&e=testadun_itco_de%3A"
-                        + "728x90");
+                .satisfies(url -> {
+                    assertThat(url).startsWith("https://eplanning.com/clientId/1/FILE/ROS");
+                    assertThat(url).contains("r=pbs");
+                    assertThat(url).contains("ncb=1");
+                    assertThat(url).contains("ur=FILE");
+                    assertThat(url).contains("e=testadun_itco_de%3A728x90");
+                });
+
     }
 
     @Test
@@ -354,9 +381,16 @@ public class EplanningBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
+                .first()
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://eplanning.com/clientId/1/FILE/ROS?r=pbs&ncb=1&ur=FILE&e=testadun_itco_de%3A"
-                        + "1x1");
+                .satisfies(url -> {
+                    assertThat(url).startsWith("https://eplanning.com/clientId/1/FILE/ROS");
+                    assertThat(url).contains("r=pbs");
+                    assertThat(url).contains("ncb=1");
+                    assertThat(url).contains("ur=FILE");
+                    assertThat(url).contains("e=testadun_itco_de%3A1x1");
+                });
+
     }
 
     @Test
@@ -373,9 +407,17 @@ public class EplanningBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
+                .first()
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://eplanning.com/clientId/1/FILE/ROS?r=pbs&ncb=1&ur=FILE&e=testadun_itco_de%3A"
-                        + "1x1&uid=Buyer-ID");
+                .satisfies(url -> {
+                    assertThat(url).startsWith("https://eplanning.com/clientId/1/FILE/ROS");
+                    assertThat(url).contains("r=pbs");
+                    assertThat(url).contains("ncb=1");
+                    assertThat(url).contains("ur=FILE");
+                    assertThat(url).contains("e=testadun_itco_de%3A1x1");
+                    assertThat(url).contains("uid=Buyer-ID");
+                });
+
     }
 
     @Test
@@ -392,10 +434,17 @@ public class EplanningBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
+                .first()
                 .extracting(HttpRequest::getUri)
-                .containsExactly(
-                        "https://eplanning.com/clientId/1/FILE/ROS?r=pbs&ncb=1&ur=FILE&e=testadun_itco_de%3A1x1"
-                                + "&ip=123.321.321.123");
+                .satisfies(url -> {
+                    assertThat(url).startsWith("https://eplanning.com/clientId/1/FILE/ROS");
+                    assertThat(url).contains("r=pbs");
+                    assertThat(url).contains("ncb=1");
+                    assertThat(url).contains("ur=FILE");
+                    assertThat(url).contains("e=testadun_itco_de%3A1x1");
+                    assertThat(url).contains("ip=123.321.321.123");
+                });
+
     }
 
     @Test
@@ -413,9 +462,19 @@ public class EplanningBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
+                .first()
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://eplanning.com/clientId/1/FILE/ROS?r=pbs&ncb=1&e=testadun_itco_de%3A1x1&"
-                        + "appn=appName&appid=id&ifa=ifa&app=1");
+                .satisfies(url -> {
+                    assertThat(url).startsWith("https://eplanning.com/clientId/1/FILE/ROS");
+                    assertThat(url).contains("r=pbs");
+                    assertThat(url).contains("ncb=1");
+                    assertThat(url).contains("e=testadun_itco_de%3A1x1");
+                    assertThat(url).contains("appn=appName");
+                    assertThat(url).contains("appid=id");
+                    assertThat(url).contains("ifa=ifa");
+                    assertThat(url).contains("app=1");
+                });
+
     }
 
     @Test

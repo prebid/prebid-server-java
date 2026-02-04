@@ -10,6 +10,7 @@ import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.CircuitBreaker;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
@@ -146,7 +147,7 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
 
     private static URL parseUrl(String url) {
         try {
-            return new URL(url);
+            return HttpUtil.parseUrl(url);
         } catch (MalformedURLException e) {
             throw new PreBidException("Invalid url: " + url, e);
         }

@@ -6,8 +6,9 @@ import com.scientiamobile.wurfl.core.cache.LRUMapCacheProvider;
 import com.scientiamobile.wurfl.core.cache.NullCacheProvider;
 import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.config.WURFLDeviceDetectionConfigProperties;
 import org.prebid.server.hooks.modules.com.scientiamobile.wurfl.devicedetection.exc.WURFLDeviceDetectionException;
+import org.prebid.server.util.HttpUtil;
 
-import java.net.URI;
+import java.net.URL;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -56,8 +57,8 @@ public class WURFLEngineUtils {
 
     public static String extractWURFLFileName(String wurflSnapshotUrl) {
         try {
-            final URI uri = new URI(wurflSnapshotUrl);
-            final String path = uri.getPath();
+            final URL url = HttpUtil.parseUrl(wurflSnapshotUrl);
+            final String path = url.getPath();
             return path.substring(path.lastIndexOf('/') + 1);
         } catch (Exception e) {
             throw new IllegalArgumentException("Invalid WURFL snapshot URL: " + wurflSnapshotUrl, e);

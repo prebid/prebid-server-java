@@ -459,7 +459,7 @@ public class AppnexusBidderTest extends VertxTest {
         // then
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://endpoint.com/?member_id=me+mber");
+                .containsExactly("https://endpoint.com/?member_id=me%20mber");
         assertThat(result.getErrors()).isEmpty();
     }
 

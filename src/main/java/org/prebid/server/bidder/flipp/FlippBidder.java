@@ -16,8 +16,6 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.utils.URLEncodedUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.flipp.model.request.CampaignRequestBody;
 import org.prebid.server.bidder.flipp.model.request.CampaignRequestBodyUser;
@@ -47,7 +45,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
 
-import java.nio.charset.StandardCharsets;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -168,11 +166,17 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
                 .map(Site::getPage)
                 .orElse(null);
 
-        return URLEncodedUtils.parse(pageUrl, StandardCharsets.UTF_8)
-                .stream()
-                .filter(nameValuePair -> nameValuePair.getName().contains("flipp-content-code"))
-                .map(NameValuePair::getValue)
-                .findFirst()
+        if (pageUrl == null) {
+            return null;
+        }
+
+        return Optional.of(site)
+                .map(Site::getPage)
+                .map(URI::create)
+                .map(URI::getQuery)
+                .map(HttpUtil::parseQuery)
+                .map(params -> params.get("flipp-content-code"))
+                .flatMap(values -> values.stream().findFirst())
                 .orElse(null);
     }
 

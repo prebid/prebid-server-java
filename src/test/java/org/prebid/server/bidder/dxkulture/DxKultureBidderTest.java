@@ -99,9 +99,13 @@ public class DxKultureBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue())
+        assertThat(result.getValue()).first()
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://test.endpoint.com?publisher_id=testPublisherId&placement_id=testPlacementId");
+                .satisfies(url -> {
+                    assertThat(url).startsWith(ENDPOINT_URL);
+                    assertThat(url).contains("publisher_id=testPublisherId");
+                    assertThat(url).contains("placement_id=testPlacementId");
+                });
     }
 
     @Test

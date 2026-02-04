@@ -10,6 +10,7 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.RequestOptions;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.net.MalformedURLException;
@@ -54,7 +55,7 @@ public class BasicHttpClient implements HttpClient {
 
         final URL absoluteUrl;
         try {
-            absoluteUrl = new URL(url);
+            absoluteUrl = HttpUtil.parseUrl(url);
         } catch (MalformedURLException e) {
             return Future.failedFuture(e);
         }

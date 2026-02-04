@@ -13,7 +13,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.amx.model.AmxBidExt;
 import org.prebid.server.bidder.model.BidderBid;
@@ -32,7 +31,6 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidMeta;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -57,15 +55,9 @@ public class AmxBidder implements Bidder<BidRequest> {
     }
 
     private static String resolveEndpointUrl(String url) {
-        final URIBuilder uriBuilder;
-        try {
-            uriBuilder = new URIBuilder(HttpUtil.validateUrl(Objects.requireNonNull(url)));
-        } catch (URISyntaxException e) {
-            throw new IllegalArgumentException("Invalid url: %s, error: %s".formatted(url, e.getMessage()));
-        }
-        return uriBuilder
-                .addParameter(VERSION_PARAM, ADAPTER_VERSION)
-                .toString();
+        return HttpUtil.validateUrl(Objects.requireNonNull(url))
+                + (url.contains("?") ? "&" : "?")
+                + VERSION_PARAM + "=" + ADAPTER_VERSION;
     }
 
     @Override

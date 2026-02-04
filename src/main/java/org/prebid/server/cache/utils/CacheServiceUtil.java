@@ -17,15 +17,10 @@ public class CacheServiceUtil {
 
     public static URL getCacheEndpointUrl(String cacheSchema, String cacheHost, String path) {
         try {
-            final URL baseUrl = getCacheBaseUrl(cacheSchema, cacheHost);
-            return new URL(baseUrl, path);
+            return HttpUtil.parseUrl(cacheSchema + "://" + cacheHost + (path.startsWith("/") ? "" : "/") + path);
         } catch (MalformedURLException e) {
             throw new IllegalArgumentException("Could not get cache endpoint for prebid cache service", e);
         }
-    }
-
-    private static URL getCacheBaseUrl(String cacheSchema, String cacheHost) throws MalformedURLException {
-        return new URL(cacheSchema + "://" + cacheHost);
     }
 
     public static String getCachedAssetUrlTemplate(String cacheSchema,
@@ -34,11 +29,11 @@ public class CacheServiceUtil {
                                                    String cacheQuery) {
 
         try {
-            final URL baseUrl = getCacheBaseUrl(cacheSchema, cacheHost);
-            return new URL(baseUrl, path + "?" + cacheQuery).toString();
+            return HttpUtil.parseUrl(cacheSchema + "://" + cacheHost
+                    + (path.startsWith("/") ? "" : "/") + path
+                    + (cacheQuery.startsWith("?") ? "" : "?") + cacheQuery).toString();
         } catch (MalformedURLException e) {
             throw new IllegalArgumentException("Could not get cached asset url template for prebid cache service", e);
         }
     }
-
 }

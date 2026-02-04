@@ -606,7 +606,7 @@ public class YandexBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().getFirst().getType()).isEqualTo(video); // Video has highest priority
+        assertThat(result.getValue().getFirst().getType()).isEqualTo(video);
     }
 
     private static BidRequest givenBidRequest(

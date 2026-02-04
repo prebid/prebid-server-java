@@ -53,23 +53,26 @@ public class AudienceNetworkBidder implements Bidder<BidRequest> {
 
     private static final List<Integer> SUPPORTED_BANNER_HEIGHT = Arrays.asList(250, 50);
 
+    private static final String PLATFORM_MACRO = "{{PlatformId}}";
+    private static final String REQUEST_MACRO = "{{RequestId}}";
+    private static final String PUBLISHER_MACRO = "{{PublisherId}}";
+
     private final String endpointUrl;
     private final String platformId;
     private final String appSecret;
-    private final String timeoutNotificationUrlTemplate;
+    private final String timeoutNotificationUrl;
     private final JacksonMapper mapper;
 
     public AudienceNetworkBidder(String endpointUrl,
                                  String platformId,
                                  String appSecret,
-                                 String timeoutNotificationUrlTemplate,
+                                 String timeoutNotificationUrl,
                                  JacksonMapper mapper) {
 
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.platformId = checkBlankString(Objects.requireNonNull(platformId), "platform-id");
         this.appSecret = checkBlankString(Objects.requireNonNull(appSecret), "app-secret");
-        this.timeoutNotificationUrlTemplate = HttpUtil.validateUrl(
-                Objects.requireNonNull(timeoutNotificationUrlTemplate));
+        this.timeoutNotificationUrl = HttpUtil.validateUrl(Objects.requireNonNull(timeoutNotificationUrl));
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -343,7 +346,9 @@ public class AudienceNetworkBidder implements Bidder<BidRequest> {
 
         return HttpRequest.<Void>builder()
                 .method(HttpMethod.GET)
-                .uri(timeoutNotificationUrlTemplate.formatted(platformId, publisherId, requestId))
+                .uri(timeoutNotificationUrl.replace(PLATFORM_MACRO, HttpUtil.encodeUrl(platformId))
+                        .replace(PUBLISHER_MACRO, HttpUtil.encodeUrl(publisherId))
+                        .replace(REQUEST_MACRO, HttpUtil.encodeUrl(requestId)))
                 .build();
     }
 }

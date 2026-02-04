@@ -5,8 +5,10 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
+import io.vertx.uritemplate.UriTemplate;
+import io.vertx.uritemplate.Variables;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.http.client.utils.URIBuilder;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.model.NotificationEvent;
@@ -27,9 +29,12 @@ import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.UriTemplateUtil;
 import org.prebid.server.vertx.httpclient.HttpClient;
 
-import java.net.URISyntaxException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
@@ -44,6 +49,7 @@ public class LiveIntentAnalyticsReporter implements AnalyticsReporter {
     private final HttpClient httpClient;
     private final LiveIntentAnalyticsProperties properties;
     private final JacksonMapper jacksonMapper;
+    private final UriTemplate uriTemplate;
 
     public LiveIntentAnalyticsReporter(
             LiveIntentAnalyticsProperties properties,
@@ -53,6 +59,21 @@ public class LiveIntentAnalyticsReporter implements AnalyticsReporter {
         this.httpClient = Objects.requireNonNull(httpClient);
         this.properties = Objects.requireNonNull(properties);
         this.jacksonMapper = Objects.requireNonNull(jacksonMapper);
+
+        final URL url;
+        try {
+            url = HttpUtil.parseUrl(properties.getAnalyticsEndpoint());
+        } catch (MalformedURLException e) {
+            throw new IllegalArgumentException(e);
+        }
+
+        final String query = url.getQuery() != null ? "?" + url.getQuery() : StringUtils.EMPTY;
+        this.uriTemplate = UriTemplateUtil.createTemplate(
+                url.getProtocol() + "://" + url.getAuthority() + "/analytic-events{/path}" + query,
+                query.contains("?"),
+                "b",
+                "bidId");
+
     }
 
     @Override
@@ -96,10 +117,7 @@ public class LiveIntentAnalyticsReporter implements AnalyticsReporter {
 
         try {
             return httpClient.post(
-                    new URIBuilder(properties.getAnalyticsEndpoint())
-                            .setPath("/analytic-events/pbsj-bids")
-                            .build()
-                            .toString(),
+                    uriTemplate.expandToString(Variables.variables().set("path", "pbsj-bids")),
                     jacksonMapper.encodeToString(pbsjBids),
                     properties.getTimeoutMs())
                     .mapEmpty();
@@ -169,18 +187,11 @@ public class LiveIntentAnalyticsReporter implements AnalyticsReporter {
     }
 
     private Future<Void> processNotificationEvent(NotificationEvent notificationEvent) {
-        try {
-            final String url = new URIBuilder(properties.getAnalyticsEndpoint())
-                    .setPath("/analytic-events/pbsj-winning-bid")
-                    .setParameter("b", notificationEvent.getBidder())
-                    .setParameter("bidId", notificationEvent.getBidId())
-                    .build()
-                    .toString();
-            return httpClient.get(url, properties.getTimeoutMs()).mapEmpty();
-        } catch (URISyntaxException e) {
-            logger.error("Error composing url for notification event: {}", e.getMessage());
-            return Future.failedFuture(e);
-        }
+        final String url = uriTemplate.expandToString(Variables.variables()
+                .set("path", "pbsj-winning-bid")
+                .set("b", notificationEvent.getBidder())
+                .set("bidId", notificationEvent.getBidId()));
+        return httpClient.get(url, properties.getTimeoutMs()).mapEmpty();
     }
 
     @Override

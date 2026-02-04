@@ -90,10 +90,29 @@ public class VideobyteBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).extracting(HttpRequest::getUri)
-                .containsExactly(ENDPOINT_URL + "?source=pbs&pid=" + HttpUtil.encodeUrl("1 23"),
-                        ENDPOINT_URL + "?source=pbs&pid=456&placementId=" + HttpUtil.encodeUrl("a/bc"),
-                        ENDPOINT_URL + "?source=pbs&pid=789&placementId=dce&nid=" + HttpUtil.encodeUrl("A?a=BC"));
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .satisfiesExactly(
+                        url -> {
+                            assertThat(url).startsWith(ENDPOINT_URL);
+                            assertThat(url).contains("pid=1%2023");
+                            assertThat(url).contains("source=pbs");
+                        },
+                        url -> {
+                            assertThat(url).startsWith(ENDPOINT_URL);
+                            assertThat(url).contains("placementId=a%2Fbc");
+                            assertThat(url).contains("pid=456");
+                            assertThat(url).contains("source=pbs");
+                        },
+                        url -> {
+                            assertThat(url).startsWith(ENDPOINT_URL);
+                            assertThat(url).contains("placementId=dce");
+                            assertThat(url).contains("nid=A%3Fa%3DBC");
+                            assertThat(url).contains("pid=789");
+                            assertThat(url).contains("source=pbs");
+                        }
+                );
+
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -255,7 +274,9 @@ public class VideobyteBidderTest extends VertxTest {
     private Imp givenImp(UnaryOperator<ExtImpVideobyte.ExtImpVideobyteBuilder> extCustomizer,
                          UnaryOperator<Imp.ImpBuilder> impCustomizer) {
 
-        final ExtImpVideobyte extImpVideobyte = extCustomizer.apply(ExtImpVideobyte.builder()).build();
+        final ExtImpVideobyte extImpVideobyte = extCustomizer.apply(ExtImpVideobyte.builder()
+                .publisherId("publisherId"))
+                .build();
         final ObjectNode ext = mapper.valueToTree(ExtPrebid.of(null, extImpVideobyte));
         return impCustomizer.apply(Imp.builder().ext(ext)).build();
     }

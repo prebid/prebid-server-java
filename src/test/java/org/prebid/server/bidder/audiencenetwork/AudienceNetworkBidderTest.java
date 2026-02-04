@@ -46,7 +46,8 @@ public class AudienceNetworkBidderTest extends VertxTest {
     private static final String PLATFORM_ID = "101";
     private static final String APP_SECRET = "6237";
     private static final String DEFAULT_BID_CURRENCY = "USD";
-    public static final String TIMEOUT_NOTIFICATION_URL_TEMPLATE = "https://url/?p=%s&a=%s&auction=%s&ortb_loss_code=2";
+    public static final String TIMEOUT_NOTIFICATION_URL_TEMPLATE =
+            "https://url/?p={{PlatformId}}&a={{PublisherId}}&auction={{RequestId}}&ortb_loss_code=2";
 
     private final AudienceNetworkBidder target = new AudienceNetworkBidder(
             ENDPOINT_URL,

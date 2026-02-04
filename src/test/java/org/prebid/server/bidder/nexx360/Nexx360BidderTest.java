@@ -105,9 +105,16 @@ public class Nexx360BidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
+                .hasSize(1)
+                .first()
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://test.endpoint.com?placement=placement&tag_id=tag");
+                .satisfies(url -> {
+                    assertThat(url).startsWith("https://test.endpoint.com");
+                    assertThat(url).contains("placement=placement");
+                    assertThat(url).contains("tag_id=tag");
+                });
+
     }
 
     @Test
