@@ -11,9 +11,6 @@ adapters:
       tredio:
         enabled: false
         endpoint: https://tredio-prebid.attekmi.com/pbserver/?seat={{AccountID}}&token={{SourceId}}
-      vimayx:
-        enabled: false
-        endpoint: https://vimayx-prebid.attekmi.com/pbserver/?seat={{AccountID}}&token={{SourceId}}
       felixads:
         enabled: false
         endpoint: https://felixads-prebid.attekmi.com/pbserver/?seat={{AccountID}}&token={{SourceId}}
