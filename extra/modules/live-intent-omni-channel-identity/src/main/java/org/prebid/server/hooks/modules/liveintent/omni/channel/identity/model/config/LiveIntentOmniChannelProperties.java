@@ -2,7 +2,7 @@ package org.prebid.server.hooks.modules.liveintent.omni.channel.identity.model.c
 
 import lombok.Data;
 
-import java.util.List;
+import java.util.Set;
 
 @Data
 public final class LiveIntentOmniChannelProperties {
@@ -15,5 +15,5 @@ public final class LiveIntentOmniChannelProperties {
 
     float treatmentRate;
 
-    List<String> targetBidders;
+    Set<String> targetBidders;
 }
