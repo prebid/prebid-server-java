@@ -137,7 +137,7 @@ public class ExecutionPlanEndpointsConfigDeserializerTest extends VertxTest {
         // when
         final ExecutionPlan result = mapper.readValue(executionPlan, ExecutionPlan.class);
 
-        // when and then
+        // then
         assertThat(result.getEndpoints()).containsExactlyInAnyOrderEntriesOf(
                 Map.of(POST_AUCTION, givenEndpointExecutionPlan(POST_AUCTION.toString())));
     }
