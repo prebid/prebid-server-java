@@ -133,6 +133,7 @@ public class TealBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
                 .element(1)
+                .extracting(ext -> ext.get("prebid"))
                 .isNull();
     }
 
