@@ -84,7 +84,7 @@
           "gvlid": 1,
           "datacenter": "local",
           "http_method": "POST",
-        "endpoint": "/openrtb2/auction"
+          "endpoint": "/openrtb2/auction"
         }
       }
     }

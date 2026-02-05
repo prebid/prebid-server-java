@@ -1,5 +1,5 @@
 {
-  "bidRequest" : {
+  "bidRequest": {
     "id": "request_id",
     "imp": [
       {
@@ -15,9 +15,9 @@
           "h": 250
         },
         "tagid": "tagid",
-        "secure" : 1,
+        "secure": 1,
         "ext": {
-          "tid" : "${json-unit.any-string}",
+          "tid": "${json-unit.any-string}",
           "bidder": {
             "siteId": "siteId",
             "id": "anyId",
@@ -60,7 +60,7 @@
           "gvlid": 1,
           "datacenter": "local",
           "http_method": "POST",
-        "endpoint": "/openrtb2/auction"
+          "endpoint": "/openrtb2/auction"
         }
       }
     }
