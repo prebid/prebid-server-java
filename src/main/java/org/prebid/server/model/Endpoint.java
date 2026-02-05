@@ -38,7 +38,6 @@ public enum Endpoint {
         return value;
     }
 
-    @SuppressWarnings("unused")
     @JsonCreator
     public static Endpoint fromString(String value) {
         return Arrays.stream(values())
