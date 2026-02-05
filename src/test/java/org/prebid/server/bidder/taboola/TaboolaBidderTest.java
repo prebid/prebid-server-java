@@ -606,7 +606,7 @@ public class TaboolaBidderTest extends VertxTest {
                                               Imp... imps) {
         return bidRequestCustomizer.apply(BidRequest.builder()
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .server(ExtRequestPrebidServer.of(null, 1, null, null))
+                        .server(ExtRequestPrebidServer.of(null, 1, null, null,null))
                         .build())).imp(List.of(imps))).build();
     }
 
