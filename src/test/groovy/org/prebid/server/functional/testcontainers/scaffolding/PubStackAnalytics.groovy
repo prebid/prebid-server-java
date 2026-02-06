@@ -1,5 +1,6 @@
 package org.prebid.server.functional.testcontainers.scaffolding
 
+import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder
 import org.mockserver.model.HttpRequest
 import org.testcontainers.containers.MockServerContainer
 
@@ -17,6 +18,16 @@ class PubStackAnalytics extends NetworkScaffolding {
     @Override
     protected HttpRequest getRequest() {
         request().withPath(ANALYTICS_ENDPOINT)
+    }
+
+    @Override
+    protected RequestPatternBuilder getRequestPattern() {
+        return null
+    }
+
+    @Override
+    protected RequestPatternBuilder getRequestPattern(String value) {
+        return null
     }
 
     @Override

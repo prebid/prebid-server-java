@@ -1,5 +1,13 @@
 package org.prebid.server.functional.testcontainers.scaffolding
 
+import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder
+import com.github.tomakehurst.wiremock.client.WireMock
+import com.github.tomakehurst.wiremock.http.ResponseDefinition
+import com.github.tomakehurst.wiremock.matching.RequestPattern
+import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder
+import com.github.tomakehurst.wiremock.stubbing.ServeEvent
+import com.github.tomakehurst.wiremock.stubbing.StubMapping
+import com.github.tomakehurst.wiremock.verification.LoggedRequest
 import org.mockserver.client.MockServerClient
 import org.mockserver.matchers.Times
 import org.mockserver.model.ClearType
@@ -8,10 +16,11 @@ import org.mockserver.model.HttpRequest
 import org.mockserver.model.HttpStatusCode
 import org.prebid.server.functional.model.ResponseModel
 import org.prebid.server.functional.util.ObjectMapperWrapper
-import org.testcontainers.containers.MockServerContainer
+import org.wiremock.integrations.testcontainers.WireMockContainer
 
 import java.util.concurrent.TimeUnit
 
+import static com.github.tomakehurst.wiremock.client.WireMock.*
 import static java.util.concurrent.TimeUnit.SECONDS
 import static org.mockserver.model.ClearType.ALL
 import static org.mockserver.model.HttpRequest.request
@@ -22,10 +31,11 @@ import static org.mockserver.model.MediaType.APPLICATION_JSON
 abstract class NetworkScaffolding implements ObjectMapperWrapper {
 
     protected MockServerClient mockServerClient
+    protected WireMock wireMockClient
     protected String endpoint
 
-    NetworkScaffolding(MockServerContainer mockServerContainer, String endpoint) {
-        this.mockServerClient = new MockServerClient(mockServerContainer.host, mockServerContainer.serverPort)
+    NetworkScaffolding(WireMockContainer wireMockContainer, String endpoint) {
+        this.wireMockClient = new WireMock(wireMockContainer.host, wireMockContainer.port)
         this.endpoint = endpoint
     }
 
@@ -33,21 +43,21 @@ abstract class NetworkScaffolding implements ObjectMapperWrapper {
 
     abstract protected HttpRequest getRequest()
 
+    abstract protected RequestPatternBuilder getRequestPattern()
+
+    abstract protected RequestPatternBuilder getRequestPattern(String value)
+
     abstract void setResponse()
 
     int getRequestCount(HttpRequest httpRequest) {
-        mockServerClient.retrieveRecordedRequests(httpRequest)
-                .size()
+        return wireMockClient.find(getRequestPattern()).size()
+
+        /*  mockServerClient.retrieveRecordedRequests(httpRequest)
+                  .size()*/
     }
 
     int getRequestCount(String value) {
-        mockServerClient.retrieveRecordedRequests(getRequest(value))
-                .size()
-    }
-
-    int getRequestCount() {
-        mockServerClient.retrieveRecordedRequests(request)
-                .size()
+        return wireMockClient.find(getRequestPattern(value)).size()
     }
 
     void setResponse(HttpRequest httpRequest,
@@ -70,12 +80,24 @@ abstract class NetworkScaffolding implements ObjectMapperWrapper {
                      ResponseModel responseModel,
                      HttpStatusCode statusCode = OK_200,
                      Map<String, String> headers = [:]) {
-        def responseHeaders = headers.collect { new Header(it.key, it.value) }
+
+        def responseBuilder = ResponseDefinitionBuilder.responseDefinition()
+                .withStatus(statusCode.code())
+                .withHeader("Content-Type", "application/json")
+                .withBody(encode(responseModel))
+
+        headers.each { k, v ->
+            responseBuilder.withHeader(k, v)
+        }
+
+        wireMockClient.register(new StubMapping(getRequestPattern(value).build(), responseBuilder.build()))
+
+        /*def responseHeaders = headers.collect { new Header(it.key, it.value) }
         def mockResponse = encode(responseModel)
         mockServerClient.when(getRequest(value), Times.unlimited())
                 .respond(response().withStatusCode(statusCode.code())
                         .withBody(mockResponse, APPLICATION_JSON)
-                        .withHeaders(responseHeaders))
+                        .withHeaders(responseHeaders))*/
     }
 
     void setResponse(String value,
@@ -127,12 +149,12 @@ abstract class NetworkScaffolding implements ObjectMapperWrapper {
 
     List<String> getRecordedRequestsBody(HttpRequest httpRequest) {
         mockServerClient.retrieveRecordedRequests(httpRequest)
-                        .collect { it.body.toString() }
+                .collect { it.body.toString() }
     }
 
     String getRecordedRequestsQueryParameters(HttpRequest httpRequest) {
         mockServerClient.retrieveRecordedRequests(httpRequest)
-                .collect { it -> it.queryStringParameters.multimap.toString()}
+                .collect { it -> it.queryStringParameters.multimap.toString() }
     }
 
     List<String> getRecordedRequestsBody(String value) {

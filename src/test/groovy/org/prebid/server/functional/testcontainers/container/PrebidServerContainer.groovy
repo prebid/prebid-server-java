@@ -33,6 +33,7 @@ class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
                        .forPort(PORT)
                        .forStatusCode(200))
         withDebug()
+        withNetworkAliases("backend")
         withNetwork(Dependencies.network)
         def commonConfig = [:] << DEFAULT_ENV
                 << PbsConfig.defaultBiddersConfig
@@ -43,6 +44,7 @@ class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
                 << PbsConfig.prebidCacheConfig
                 << PbsConfig.mySqlConfig
                 << PbsConfig.targetingConfig
+                << PbsConfig.httpSettingsConfig
         withConfig(commonConfig)
         withConfig(customConfig)
     }

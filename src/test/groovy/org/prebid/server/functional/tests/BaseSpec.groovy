@@ -53,16 +53,16 @@ abstract class BaseSpec extends Specification implements ObjectMapperWrapper {
     protected static final PrebidServerService defaultPbsService = pbsServiceFactory.getService([:])
 
     def setupSpec() {
-        prebidCache.setResponse()
+     //   prebidCache.setResponse()
         bidder.setResponse()
-        vendorList.setResponse()
+        //   vendorList.setResponse()
     }
 
     def cleanupSpec() {
-        bidder.reset()
-        prebidCache.reset()
-        repository.removeAllDatabaseData()
-        vendorList.reset()
+        /* bidder.reset()
+         prebidCache.reset()
+         repository.removeAllDatabaseData()
+         vendorList.reset()*/
     }
 
     protected static int getRandomTimeout() {

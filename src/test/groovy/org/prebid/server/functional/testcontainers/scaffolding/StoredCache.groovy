@@ -1,5 +1,7 @@
 package org.prebid.server.functional.testcontainers.scaffolding
 
+import com.github.tomakehurst.wiremock.WireMockServer
+import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder
 import org.mockserver.matchers.TimeToLive
 import org.mockserver.matchers.Times
 import org.mockserver.model.HttpRequest
@@ -13,7 +15,6 @@ import org.prebid.server.functional.model.config.TargetingResult
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.util.PBSUtils
-import org.testcontainers.containers.MockServerContainer
 
 import java.nio.charset.StandardCharsets
 
@@ -26,7 +27,7 @@ class StoredCache extends NetworkScaffolding {
 
     private static final String CACHE_ENDPOINT = "/stored-cache"
 
-    StoredCache(MockServerContainer mockServerContainer) {
+    StoredCache(WireMockServer mockServerContainer) {
         super(mockServerContainer, CACHE_ENDPOINT)
     }
 
@@ -37,6 +38,16 @@ class StoredCache extends NetworkScaffolding {
     HttpRequest getRequest() {
         request().withMethod("GET")
                 .withPath(endpoint)
+    }
+
+    @Override
+    protected RequestPatternBuilder getRequestPattern() {
+        return null
+    }
+
+    @Override
+    protected RequestPatternBuilder getRequestPattern(String value) {
+        return null
     }
 
     @Override

@@ -1,5 +1,6 @@
 package org.prebid.server.functional.testcontainers.scaffolding
 
+import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder
 import org.mockserver.matchers.TimeToLive
 import org.mockserver.matchers.Times
 import org.mockserver.model.HttpRequest
@@ -10,6 +11,7 @@ import org.prebid.server.functional.model.request.cache.BidCacheRequest
 import org.prebid.server.functional.model.response.vtrack.TransferValue
 import org.prebid.server.functional.util.PBSUtils
 import org.testcontainers.containers.MockServerContainer
+import org.wiremock.integrations.testcontainers.WireMockContainer
 
 import java.util.stream.Stream
 
@@ -23,8 +25,8 @@ class PrebidCache extends NetworkScaffolding {
 
     private static final String CACHE_ENDPOINT = "/cache"
 
-    PrebidCache(MockServerContainer mockServerContainer) {
-        super(mockServerContainer, CACHE_ENDPOINT)
+    PrebidCache(WireMockContainer wireMockContainer) {
+        super(wireMockContainer, CACHE_ENDPOINT)
     }
 
     String getVTracGetRequestParams() {
@@ -68,6 +70,16 @@ class PrebidCache extends NetworkScaffolding {
     HttpRequest getRequest() {
         request().withMethod("POST")
                 .withPath(CACHE_ENDPOINT)
+    }
+
+    @Override
+    protected RequestPatternBuilder getRequestPattern() {
+        return null
+    }
+
+    @Override
+    protected RequestPatternBuilder getRequestPattern(String value) {
+        return null
     }
 
     @Override

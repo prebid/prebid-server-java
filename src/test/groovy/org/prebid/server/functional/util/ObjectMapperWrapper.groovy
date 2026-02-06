@@ -10,7 +10,7 @@ import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL
 
 trait ObjectMapperWrapper {
 
-    private static final ObjectMapper mapper = new ObjectMapper().setSerializationInclusion(NON_NULL)
+    static final ObjectMapper mapper = new ObjectMapper().setSerializationInclusion(NON_NULL)
                                                                  .registerModule(new ZonedDateTimeModule())
     private static final YAMLMapper yamlMapper = new YAMLMapper().setSerializationInclusion(NON_NULL) as YAMLMapper
     private static final XmlMapper xmlMapper = new XmlMapper()

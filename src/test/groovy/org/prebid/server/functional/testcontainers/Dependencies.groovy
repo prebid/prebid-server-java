@@ -52,13 +52,15 @@ class Dependencies {
             localStackContainer = new LocalStackContainer(DockerImageName.parse("localstack/localstack:s3-latest"))
                     .withNetwork(network)
                     .withServices(S3)
-            Startables.deepStart([networkServiceContainer, mysqlContainer, localStackContainer, influxdbContainer]).join()
+            Startables.deepStart([networkServiceContainer, mysqlContainer, localStackContainer,
+                                  influxdbContainer]).join()
         }
     }
 
     static void stop() {
         if (IS_LAUNCH_CONTAINERS) {
-            [networkServiceContainer, mysqlContainer, localStackContainer, influxdbContainer].parallelStream()
+            [networkServiceContainer, mysqlContainer, localStackContainer,
+             influxdbContainer].parallelStream()
                     .forEach({ it.stop() })
         }
     }

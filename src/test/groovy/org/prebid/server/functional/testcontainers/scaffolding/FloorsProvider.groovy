@@ -1,11 +1,12 @@
 package org.prebid.server.functional.testcontainers.scaffolding
 
+import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder
 import org.mockserver.matchers.TimeToLive
 import org.mockserver.matchers.Times
 import org.mockserver.model.HttpRequest
 import org.mockserver.model.HttpResponse
 import org.prebid.server.functional.model.pricefloors.PriceFloorData
-import org.testcontainers.containers.MockServerContainer
+import org.wiremock.integrations.testcontainers.WireMockContainer
 
 import static org.mockserver.model.HttpRequest.request
 import static org.mockserver.model.HttpResponse.response
@@ -15,8 +16,8 @@ class FloorsProvider extends NetworkScaffolding {
 
     public static final String FLOORS_ENDPOINT = "/floors-provider/"
 
-    FloorsProvider(MockServerContainer mockServerContainer) {
-        super(mockServerContainer, FLOORS_ENDPOINT)
+    FloorsProvider(WireMockContainer wireMockContainer) {
+        super(wireMockContainer, FLOORS_ENDPOINT)
     }
 
     @Override
@@ -27,6 +28,16 @@ class FloorsProvider extends NetworkScaffolding {
     @Override
     protected HttpRequest getRequest() {
         request().withPath(FLOORS_ENDPOINT)
+    }
+
+    @Override
+    protected RequestPatternBuilder getRequestPattern() {
+        return null
+    }
+
+    @Override
+    protected RequestPatternBuilder getRequestPattern(String value) {
+        return null
     }
 
     @Override

@@ -355,6 +355,20 @@
             <artifactId>mockserver-client-java</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- Source: https://mvnrepository.com/artifact/org.wiremock/wiremock -->
+        <dependency>
+            <groupId>org.wiremock</groupId>
+            <artifactId>wiremock</artifactId>
+            <version>3.13.1</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- Source: https://mvnrepository.com/artifact/org.wiremock.integrations.testcontainers/wiremock-testcontainers-module -->
+        <dependency>
+            <groupId>org.wiremock.integrations.testcontainers</groupId>
+            <artifactId>wiremock-testcontainers-module</artifactId>
+            <version>1.0-alpha-15</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.influxdb</groupId>
             <artifactId>influxdb-java</artifactId>
@@ -367,6 +381,18 @@
         <finalName>${project.name}</finalName>
         <pluginManagement>
             <plugins>
+                <plugin>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <executions>
+                        <execution>
+                            <id>build-test-jar</id>
+                            <phase>package</phase>
+                            <goals>
+                                <goal>test-jar</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
@@ -383,7 +409,7 @@
                     <version>${maven-surefire-plugin.version}</version>
                     <configuration>
                         <systemPropertyVariables>
-                            <launchContainers>false</launchContainers>
+                            <launchContainers>true</launchContainers>
                         </systemPropertyVariables>
                         <skipTests>${skipUnitTests}</skipTests>
                     </configuration>

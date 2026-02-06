@@ -1,11 +1,13 @@
 package org.prebid.server.functional.testcontainers.scaffolding
 
+import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder
 import org.mockserver.matchers.TimeToLive
 import org.mockserver.matchers.Times
 import org.mockserver.model.Delay
 import org.mockserver.model.HttpRequest
 import org.mockserver.model.HttpResponse
 import org.testcontainers.containers.MockServerContainer
+import org.wiremock.integrations.testcontainers.WireMockContainer
 
 import static org.mockserver.model.HttpRequest.request
 import static org.mockserver.model.HttpResponse.response
@@ -22,8 +24,8 @@ class VendorList extends NetworkScaffolding {
 
     private static final String VENDOR_LIST_ENDPOINT = "/v{TCF_POLICY}/vendor-list.json"
 
-    VendorList(MockServerContainer mockServerContainer) {
-        super(mockServerContainer, VENDOR_LIST_ENDPOINT)
+    VendorList(WireMockContainer wireMockContainer) {
+        super(wireMockContainer, VENDOR_LIST_ENDPOINT)
     }
 
     @Override
@@ -34,6 +36,16 @@ class VendorList extends NetworkScaffolding {
     @Override
     protected HttpRequest getRequest() {
         request().withPath(VENDOR_LIST_ENDPOINT)
+    }
+
+    @Override
+    protected RequestPatternBuilder getRequestPattern() {
+        return null
+    }
+
+    @Override
+    protected RequestPatternBuilder getRequestPattern(String value) {
+        return null
     }
 
     @Override
