@@ -2,6 +2,7 @@ package org.prebid.server.hooks.modules.ortb2.blocking.v1.model;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
+import io.vertx.core.http.HttpMethod;
 import lombok.Builder;
 import lombok.Value;
 import lombok.experimental.Accessors;
@@ -20,6 +21,8 @@ import java.util.Map;
 public class BidderInvocationContextImpl implements BidderInvocationContext {
 
     Timeout timeout;
+
+    HttpMethod httpMethod;
 
     Endpoint endpoint;
 
