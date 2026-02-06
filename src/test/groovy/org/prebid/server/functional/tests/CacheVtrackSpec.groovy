@@ -5,6 +5,7 @@ import org.prebid.server.functional.model.config.AccountCacheConfig
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountEventsConfig
 import org.prebid.server.functional.model.config.AccountVtrackConfig
+import org.prebid.server.functional.model.config.Endpoint
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.vtrack.VtrackRequest
 import org.prebid.server.functional.model.request.vtrack.xml.Vast
@@ -89,7 +90,7 @@ class CacheVtrackSpec extends BaseSpec {
         then: "Vast xml is modified"
         def prebidCacheRequest = prebidCache.getXmlRecordedRequestsBody(payload)
         assert prebidCacheRequest.size() == 1
-        assert prebidCacheRequest[0].contains("/event?t=imp&b=${request.puts[0].bidid}&a=$accountId&bidder=${request.puts[0].bidder}")
+        assert prebidCacheRequest[0].contains("${Endpoint.EVENT}?t=imp&b=${request.puts[0].bidid}&a=$accountId&bidder=${request.puts[0].bidder}")
 
         and: "prebid_cache.creative_size.xml metric should be updated"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
