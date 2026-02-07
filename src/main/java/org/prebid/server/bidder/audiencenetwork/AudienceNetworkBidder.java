@@ -117,8 +117,9 @@ public class AudienceNetworkBidder implements Bidder<BidRequest> {
         final BidRequest outgoingRequest = bidRequest.toBuilder()
                 .imp(Collections.singletonList(modifiedImp))
                 .app(makeApp(bidRequest.getApp(), publisherId))
-                .ext(mapper.fillExtension(
-                        ExtRequest.empty(), AudienceNetworkExt.of(platformId, makeAuthId(bidRequest.getId()))))
+                .ext(mapper.fillExtension(ExtRequest.empty(),
+                        AudienceNetworkExt.of(platformId, makeAuthId(bidRequest.getId()),
+                                platformId)))
                 .build();
 
         return HttpRequest.<BidRequest>builder()
