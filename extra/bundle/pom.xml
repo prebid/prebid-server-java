@@ -62,6 +62,11 @@
         </dependency>
         <dependency>
             <groupId>org.prebid.server.hooks.modules</groupId>
+            <artifactId>id5-user-id</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.prebid.server.hooks.modules</groupId>
             <artifactId>wurfl-devicedetection</artifactId>
             <version>${project.version}</version>
         </dependency>
