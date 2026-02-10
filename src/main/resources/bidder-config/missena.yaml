@@ -13,6 +13,6 @@ adapters:
     usersync:
       cookie-family-name: missena
       iframe:
-        url: https://sync.missena.io/iframe?gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+        url: https://sync.missena.io/iframe?gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redirect={{redirect_url}}
         support-cors: false
         uid-macro: '$UID'
