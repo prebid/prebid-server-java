@@ -27,7 +27,6 @@ import org.prebid.server.functional.model.response.auction.Adm
 import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidMediaType
 import org.prebid.server.functional.model.response.auction.BidResponse
-import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.model.response.auction.MediaType
 import org.prebid.server.functional.model.response.auction.SeatBid
 import org.prebid.server.functional.service.PrebidServerService
@@ -38,7 +37,7 @@ import static org.prebid.server.functional.model.ModuleName.ORTB2_BLOCKING
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.IX
-import static org.prebid.server.functional.model.config.Endpoint.OPENRTB2_AUCTION
+import static org.prebid.server.functional.model.config.HookHttpEndpoint.AUCTION
 import static org.prebid.server.functional.model.config.Ortb2BlockingAttribute.AUDIO_BATTR
 import static org.prebid.server.functional.model.config.Ortb2BlockingAttribute.BADV
 import static org.prebid.server.functional.model.config.Ortb2BlockingAttribute.BAPP
@@ -1532,7 +1531,7 @@ class Ortb2BlockingSpec extends ModuleBaseSpec {
 
     private static Account getAccountWithOrtb2BlockingConfig(String accountId, Map<Ortb2BlockingAttribute, Ortb2BlockingAttributeConfig> attributes) {
         def blockingConfig = new Ortb2BlockingConfig(attributes: attributes)
-        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB2_BLOCKING, [BIDDER_REQUEST, RAW_BIDDER_RESPONSE])
+        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(AUCTION, ORTB2_BLOCKING, [BIDDER_REQUEST, RAW_BIDDER_RESPONSE])
         def moduleConfig = new PbsModulesConfig(ortb2Blocking: blockingConfig)
         def accountHooksConfig = new AccountHooksConfiguration(executionPlan: executionPlan, modules: moduleConfig)
         def accountConfig = new AccountConfig(hooks: accountHooksConfig)

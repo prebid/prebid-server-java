@@ -3,6 +3,7 @@ package org.prebid.server.functional.tests
 import org.prebid.server.functional.model.bidder.AppNexus
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.bidder.Generic
+import org.prebid.server.functional.model.config.Endpoint
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredImp
 import org.prebid.server.functional.model.db.StoredRequest
@@ -145,7 +146,7 @@ class BidderParamsSpec extends BaseSpec {
         then: "vast xml is modified"
         def prebidCacheRequest = prebidCache.getXmlRecordedRequestsBody(payload)
         assert prebidCacheRequest.size() == 1
-        assert prebidCacheRequest.first().contains("/event?t=imp&b=${request.puts[0].bidid}&a=$accountId&bidder=${request.puts[0].bidder}")
+        assert prebidCacheRequest.first().contains("${Endpoint.EVENT}?t=imp&b=${request.puts[0].bidid}&a=$accountId&bidder=${request.puts[0].bidder}")
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsConfig)
@@ -177,7 +178,7 @@ class BidderParamsSpec extends BaseSpec {
         then: "vast xml is not modified"
         def prebidCacheRequest = prebidCache.getXmlRecordedRequestsBody(payload)
         assert prebidCacheRequest.size() == 1
-        assert !prebidCacheRequest.first().contains("/event?t=imp&b=${request.puts[0].bidid}&a=$accountId&bidder=${request.puts[0].bidder}")
+        assert !prebidCacheRequest.first().contains("${Endpoint.EVENT}?t=imp&b=${request.puts[0].bidid}&a=$accountId&bidder=${request.puts[0].bidder}")
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsConfig)
