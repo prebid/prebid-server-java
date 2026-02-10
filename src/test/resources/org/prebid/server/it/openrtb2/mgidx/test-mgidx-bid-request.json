@@ -49,7 +49,8 @@
         "externalurl": "http://localhost:8080",
         "gvlid": 1,
         "datacenter": "local",
-        "endpoint" : "/openrtb2/auction"
+        "http_method": "POST",
+        "endpoint": "/openrtb2/auction"
       }
     }
   }
