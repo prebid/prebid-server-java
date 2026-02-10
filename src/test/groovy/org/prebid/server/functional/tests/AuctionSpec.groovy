@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests
 
+import org.apache.http.client.methods.HttpPost
 import org.prebid.server.functional.model.UidsCookie
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.config.AccountAuctionConfig
@@ -330,6 +331,7 @@ class AuctionSpec extends BaseSpec {
         then: "BidderRequest should contain endpoint in ext.prebid.server.endpoint instead of ext.prebid.pbs.endpoint"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest?.ext?.prebid?.server?.endpoint == "/openrtb2/auction"
+        assert bidderRequest?.ext?.prebid?.server?.httpMethod == HttpPost.METHOD_NAME
         assert !bidderRequest?.ext?.prebid?.pbs?.endpoint
 
         and: "BidderRequest shouldn't populate fields"
