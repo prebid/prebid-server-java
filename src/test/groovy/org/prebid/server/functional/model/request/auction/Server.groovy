@@ -12,4 +12,5 @@ class Server {
     Integer gvlId
     String datacenter
     String endpoint
+    String httpMethod
 }

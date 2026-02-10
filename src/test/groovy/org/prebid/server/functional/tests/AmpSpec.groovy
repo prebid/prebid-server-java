@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests
 
+import org.apache.http.client.methods.HttpGet
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.db.StoredResponse
 import org.prebid.server.functional.model.request.amp.AmpRequest
@@ -15,6 +16,7 @@ import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
 
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
+import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
 
 class AmpSpec extends BaseSpec {
@@ -257,5 +259,29 @@ class AmpSpec extends BaseSpec {
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
         assert !bidderRequest.user.ext.consentedProvidersSettingsCamelCase.consentedProviders
         assert !bidderRequest.user.ext.consentedProvidersSettings.consentedProviders
+    }
+
+    def "PBS should move and not populate certain fields when debug enabled"() {
+        given: "Default amp request"
+        def ampRequest = AmpRequest.defaultAmpRequest
+
+        and: "Save storedRequest into DB"
+        def ampStoredRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.aliases = [(PBSUtils.randomString): GENERIC]
+        }
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        defaultPbsService.sendAmpRequest(ampRequest)
+
+        then: "BidderRequest should contain endpoint in ext.prebid.server.endpoint instead of ext.prebid.pbs.endpoint"
+        def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
+        assert bidderRequest?.ext?.prebid?.server?.endpoint == "/openrtb2/amp"
+        assert bidderRequest?.ext?.prebid?.server?.httpMethod == HttpGet.METHOD_NAME
+        assert !bidderRequest?.ext?.prebid?.pbs?.endpoint
+
+        and: "BidderRequest shouldn't populate fields"
+        assert !bidderRequest.ext.prebid.aliases
     }
 }
