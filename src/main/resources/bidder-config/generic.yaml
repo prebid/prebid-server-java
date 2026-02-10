@@ -115,19 +115,6 @@ adapters:
             url: https://sync.adsinteractive.com/getuid?{{redirect_url}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}
             support-cors: false
             uid-macro: '$AUID'
-      360playvid:
-        enabled: false
-        endpoint: https://ssp.360playvid.com/pserver
-        meta-info:
-          maintainer-email: prebid@360playvid.com
-        usersync:
-          enabled: true
-          redirect:
-            url: https://cookie.360playvid.com/pbserver?gdpr={{.GDPR}}&gdpr_consent={{.GDPRConsent}}&coppa={{.USPrivacy}}&gpp={{.GPP}}&gpp_sid={{.GPPSID}}&redir={{.RedirectURL}}
-            uid-macro: '[UID]'
-          iframe:
-            url: https://cookie.360playvid.com/pbserverIframe?gdpr={{.GDPR}}&gdpr_consent={{.GDPRConsent}}&ccpa={{.USPrivacy}}&gpp={{.GPP}}&gpp_sid={{.GPPSID}}&pbserverUrl={{.RedirectURL}}
-            uid-macro: '[UID]'
       nativo:
         enabled: false
         endpoint: https://exchange.postrelease.com/esi?ntv_epid=7
