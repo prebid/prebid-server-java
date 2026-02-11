@@ -1,0 +1,40 @@
+{
+  "id": "723f8906-7f59-4f50-bba9-ed9115ab1663",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "b334cb75-41d8-4f61-801c-1e785a2fe38d",
+          "impid": "test-imp-123",
+          "price": 2.5,
+          "adm": "test-ad-content",
+          "adid": "456",
+          "cid": "1234",
+          "crid": "1234",
+          "exp": 300,
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "meta": {
+                "adaptercode": "goldbach"
+              }
+            },
+            "origbidcpm": 2.5
+          }
+        }
+      ],
+      "seat": "goldbach",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "goldbach": "{{ goldbach.response_time_ms }}"
+    },
+    "tmaxrequest": 5000,
+    "prebid": {
+      "auctiontimestamp": 0
+    }
+  }
+}
