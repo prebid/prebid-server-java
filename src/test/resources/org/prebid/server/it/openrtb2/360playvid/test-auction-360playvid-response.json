@@ -15,20 +15,20 @@
             "prebid": {
               "type": "banner",
               "meta": {
-                "adaptercode": "teqblaze"
+                "adaptercode": "360playvid"
               }
             }
           }
         }
       ],
-      "seat": "teqblaze",
+      "seat": "360playvid",
       "group": 0
     }
   ],
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "teqblaze": "{{ teqblaze.response_time_ms }}"
+      "360playvid": "{{ 360playvid.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 0
