@@ -31,20 +31,6 @@ adapters:
             url: https://taetee.com/usync?type=image&gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
             uid-macro: '$UID'
             support-cors: false
-      mobupps:
-        enabled: false
-        endpoint: https://mobupps.pbsadverxo.com/auction?id={{adUnitId}}&auth={{auth}}
-        usersync:
-          enabled: false
-          cookie-family-name: mobupps
-          iframe:
-            url: https://mobupps.pbsadverxo.com/usync?type=iframe&gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
-            uid-macro: '$UID'
-            support-cors: false
-          redirect:
-            url: https://mobupps.pbsadverxo.com/usync?type=image&gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
-            uid-macro: '$UID'
-            support-cors: false
     meta-info:
       maintainer-email: developer@adverxo.com
       app-media-types:

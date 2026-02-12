@@ -8,8 +8,10 @@
         "h": 250
       },
       "ext": {
-        "progx": {
-          "placementId": "testPlacementId"
+        "radianfusion": {
+          "partnerName": "someUniquePartnerName",
+          "seat": "someSeat",
+          "token": "someToken"
         }
       }
     }

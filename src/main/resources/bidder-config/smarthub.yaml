@@ -11,9 +11,6 @@ adapters:
       tredio:
         enabled: false
         endpoint: https://tredio-prebid.attekmi.com/pbserver/?seat={{AccountID}}&token={{SourceId}}
-      vimayx:
-        enabled: false
-        endpoint: https://vimayx-prebid.attekmi.com/pbserver/?seat={{AccountID}}&token={{SourceId}}
       felixads:
         enabled: false
         endpoint: https://felixads-prebid.attekmi.com/pbserver/?seat={{AccountID}}&token={{SourceId}}
@@ -29,6 +26,9 @@ adapters:
       addigi:
         enabled: false
         endpoint: https://addigi-prebid.attekmi.com/pbserver/?seat={{AccountID}}&token={{SourceId}}
+      radianfusion:
+        enabled: false
+        endpoint: https://radiantfusion-prebid.attekmi.co/pbserver/?seat={{AccountID}}&token={{SourceId}}
     meta-info:
       maintainer-email: prebid@attekmi.com
       app-media-types:

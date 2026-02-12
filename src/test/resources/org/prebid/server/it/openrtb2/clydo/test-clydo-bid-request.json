@@ -3,15 +3,16 @@
   "imp": [
     {
       "id": "imp_id",
+      "secure": 1,
       "banner": {
         "w": 300,
         "h": 250
       },
-      "secure": 1,
       "ext": {
         "tid": "${json-unit.any-string}",
-        "nexx360": {
-          "placement": "placement"
+        "bidder": {
+          "region": "us",
+          "partnerId": "testPartnerId"
         }
       }
     }
@@ -44,14 +45,13 @@
     }
   },
   "ext": {
-    "nexx360": {
-      "caller": [
-        {
-          "name": "Prebid-Server",
-          "version": "${json-unit.any-string}"
-        }
-      ]
+    "prebid": {
+      "server": {
+        "externalurl": "http://localhost:8080",
+        "gvlid": 1,
+        "datacenter": "local",
+        "endpoint": "/openrtb2/auction"
+      }
     }
   }
 }
-

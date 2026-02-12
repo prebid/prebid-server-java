@@ -6,34 +6,33 @@
         {
           "id": "bid_id",
           "impid": "imp_id",
-          "exp": 1500,
+          "exp": 300,
           "price": 3.33,
           "adm": "adm001",
-          "adid": "adid001",
-          "cid": "cid001",
-          "crid": "crid001",
+          "adid": "adid",
+          "cid": "cid",
+          "crid": "crid",
           "w": 300,
           "h": 250,
           "ext": {
-            "mediaType": "video",
-            "origbidcpm": 3.33,
             "prebid": {
-              "type": "video",
+              "type": "banner",
               "meta": {
-                "adaptercode": "vimayx"
+                "adaptercode": "clydo"
               }
-            }
+            },
+            "origbidcpm": 3.33
           }
         }
       ],
-      "seat": "vimayx",
+      "seat": "clydo",
       "group": 0
     }
   ],
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "vimayx": "{{ vimayx.response_time_ms }}"
+      "clydo": "{{ clydo.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 0

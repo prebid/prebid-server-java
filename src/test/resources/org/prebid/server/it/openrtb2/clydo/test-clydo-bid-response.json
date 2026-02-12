@@ -7,13 +7,12 @@
           "id": "bid_id",
           "impid": "imp_id",
           "price": 3.33,
-          "crid": "creativeId",
-          "mtype": 1,
-          "ext": {
-            "prebid": {
-              "type": "banner"
-            }
-          }
+          "adid": "adid",
+          "crid": "crid",
+          "cid": "cid",
+          "adm": "adm001",
+          "h": 250,
+          "w": 300
         }
       ]
     }

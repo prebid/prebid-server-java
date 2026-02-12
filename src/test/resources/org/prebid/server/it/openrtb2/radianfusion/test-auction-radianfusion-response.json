@@ -6,29 +6,34 @@
         {
           "id": "bid_id",
           "impid": "imp_id",
-          "exp": 300,
+          "exp": 1500,
           "price": 3.33,
-          "crid": "creativeId",
-          "mtype": 1,
+          "adm": "adm001",
+          "adid": "adid001",
+          "cid": "cid001",
+          "crid": "crid001",
+          "w": 300,
+          "h": 250,
           "ext": {
+            "mediaType": "video",
             "origbidcpm": 3.33,
             "prebid": {
-              "type": "banner",
+              "type": "video",
               "meta": {
-                "adaptercode": "progx"
+                "adaptercode": "radianfusion"
               }
             }
           }
         }
       ],
-      "seat": "progx",
+      "seat": "radianfusion",
       "group": 0
     }
   ],
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "progx": "{{ progx.response_time_ms }}"
+      "radianfusion": "{{ radianfusion.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 0

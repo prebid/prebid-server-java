@@ -1,7 +1,7 @@
 package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.adocean.AdoceanBidder;
+import org.prebid.server.bidder.clydo.ClydoBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -16,26 +16,26 @@ import org.springframework.context.annotation.PropertySource;
 import jakarta.validation.constraints.NotBlank;
 
 @Configuration
-@PropertySource(value = "classpath:/bidder-config/adocean.yaml", factory = YamlPropertySourceFactory.class)
-public class AdoceanConfiguration {
+@PropertySource(value = "classpath:/bidder-config/clydo.yaml", factory = YamlPropertySourceFactory.class)
+public class ClydoConfiguration {
 
-    private static final String BIDDER_NAME = "adocean";
+    private static final String BIDDER_NAME = "clydo";
 
-    @Bean("adoceanConfigurationProperties")
-    @ConfigurationProperties("adapters.adocean")
+    @Bean("clydoConfigurationProperties")
+    @ConfigurationProperties("adapters.clydo")
     BidderConfigurationProperties configurationProperties() {
         return new BidderConfigurationProperties();
     }
 
     @Bean
-    BidderDeps adoceanBidderDeps(BidderConfigurationProperties adoceanConfigurationProperties,
-                                 @NotBlank @Value("${external-url}") String externalUrl,
-                                 JacksonMapper mapper) {
+    BidderDeps clydoBidderDeps(BidderConfigurationProperties clydoConfigurationProperties,
+                               @NotBlank @Value("${external-url}") String externalUrl,
+                               JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
-                .withConfig(adoceanConfigurationProperties)
+                .withConfig(clydoConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new AdoceanBidder(config.getEndpoint(), mapper))
+                .bidderCreator(config -> new ClydoBidder(config.getEndpoint(), mapper))
                 .assemble();
     }
 }
