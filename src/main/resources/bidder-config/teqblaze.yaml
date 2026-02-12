@@ -43,6 +43,23 @@ adapters:
         mata-info:
           maintainer-email: support@gravite.net
           vendor-id: 377
+      adsinteractive:
+        enabled: false
+        endpoint: https://bntb.adsinteractive.com/pserver
+        meta-info:
+          maintainer-email: it@adsinteractive.com
+          vendor-id: 1212
+        usersync:
+          enabled: true
+          cookie-family-name: adsinteractive
+          redirect:
+            url: https://cstb.adsinteractive.com/pbserver?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redir={{redirect_url}}
+            support-cors: false
+            uid-macro: '[UID]'
+          iframe:
+            url: https://cstb.adsinteractive.com/pbserverIframe?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&pbserverUrl={{redirect_url}}
+            support-cors: false
+            uid-macro: '[UID]'
       progx:
         enabled: false
         endpoint: https://us-east.progrtb.com/pserver
