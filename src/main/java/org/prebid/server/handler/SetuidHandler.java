@@ -10,10 +10,10 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
+import lombok.Value;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
@@ -54,19 +54,16 @@ import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.util.HttpUtil;
-import org.prebid.server.util.StreamUtil;
 import org.prebid.server.vertx.verticles.server.HttpEndpoint;
 import org.prebid.server.vertx.verticles.server.application.ApplicationResource;
 
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class SetuidHandler implements ApplicationResource {
@@ -89,7 +86,7 @@ public class SetuidHandler implements ApplicationResource {
     private final AnalyticsReporterDelegator analyticsDelegator;
     private final Metrics metrics;
     private final TimeoutFactory timeoutFactory;
-    private final Map<String, Pair<String, UsersyncMethodType>> cookieNameToBidderAndSyncType;
+    private final Map<String, UsersyncConfig> cookieFamilyNameToUsersyncConfig;
 
     public SetuidHandler(long defaultTimeout,
                          UidsCookieService uidsCookieService,
@@ -113,49 +110,58 @@ public class SetuidHandler implements ApplicationResource {
         this.analyticsDelegator = Objects.requireNonNull(analyticsDelegator);
         this.metrics = Objects.requireNonNull(metrics);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
-        this.cookieNameToBidderAndSyncType = collectUsersyncers(bidderCatalog);
+        this.cookieFamilyNameToUsersyncConfig = collectUserSyncConfigs(bidderCatalog);
     }
 
-    private static Map<String, Pair<String, UsersyncMethodType>> collectUsersyncers(BidderCatalog bidderCatalog) {
-        validateUsersyncersDuplicates(bidderCatalog);
-
+    private static Map<String, UsersyncConfig> collectUserSyncConfigs(BidderCatalog bidderCatalog) {
         return bidderCatalog.usersyncReadyBidders().stream()
-                .sorted(Comparator.comparing(bidderName -> BooleanUtils.toInteger(bidderCatalog.isAlias(bidderName))))
-                .filter(StreamUtil.distinctBy(bidderCatalog::cookieFamilyName))
-                .map(bidderName -> bidderCatalog.usersyncerByName(bidderName)
-                        .map(usersyncer -> Pair.of(bidderName, usersyncer)))
-                .flatMap(Optional::stream)
-                .collect(Collectors.toMap(
-                        pair -> pair.getRight().getCookieFamilyName(),
-                        pair -> Pair.of(pair.getLeft(), preferredUserSyncType(pair.getRight()))));
+                .collect(Collectors.groupingBy(
+                        bidderName -> bidderCatalog.cookieFamilyName(bidderName).orElseThrow(),
+                        Collectors.collectingAndThen(Collectors.toSet(), bidderNames ->
+                                usersyncConfigForSingleCookieFamilyName(bidderNames, bidderCatalog))));
     }
 
-    private static void validateUsersyncersDuplicates(BidderCatalog bidderCatalog) {
-        final List<String> duplicatedCookieFamilyNames = bidderCatalog.usersyncReadyBidders().stream()
-                .filter(bidderName -> !isAliasWithRootCookieFamilyName(bidderCatalog, bidderName))
-                .map(bidderCatalog::usersyncerByName)
-                .flatMap(Optional::stream)
-                .map(Usersyncer::getCookieFamilyName)
-                .filter(Predicate.not(StreamUtil.distinctBy(Function.identity())))
-                .distinct()
-                .sorted()
-                .toList();
+    private static UsersyncConfig usersyncConfigForSingleCookieFamilyName(Set<String> bidderNames,
+                                                                          BidderCatalog bidderCatalog) {
 
-        if (!duplicatedCookieFamilyNames.isEmpty()) {
+        final Set<String> biddersWithoutAliases = bidderNames.stream()
+                .filter(bidderName -> bidderCatalog.aliasOf(bidderName).filter(bidderNames::contains).isEmpty())
+                .collect(Collectors.toSet());
+
+        validateBiddersHaveTheSameVendorId(biddersWithoutAliases, bidderCatalog);
+        validateBiddersHaveTheSameUsersyncConfig(biddersWithoutAliases, bidderCatalog);
+
+        final Usersyncer usersyncer = biddersWithoutAliases.stream()
+                .map(bidderCatalog::usersyncerByName)
+                .map(Optional::orElseThrow)
+                .findAny().orElseThrow();
+
+        return UsersyncConfig.of(biddersWithoutAliases, preferredUserSyncType(usersyncer));
+    }
+
+    private static void validateBiddersHaveTheSameVendorId(Set<String> bidders, BidderCatalog bidderCatalog) {
+        final Set<Integer> vendorIds = bidders.stream()
+                .map(bidderCatalog::vendorIdByName)
+                .collect(Collectors.toSet());
+
+        if (vendorIds.size() > 1) {
             throw new IllegalArgumentException(
-                    "Duplicated \"cookie-family-name\" found, values: "
-                            + String.join(", ", duplicatedCookieFamilyNames));
+                    "Found bidders with the same cookie family name but different vendor ids. "
+                            + "Bidders: %s. Vendor ids: %s".formatted(bidders, vendorIds));
         }
     }
 
-    private static boolean isAliasWithRootCookieFamilyName(BidderCatalog bidderCatalog, String bidder) {
-        final String bidderCookieFamilyName = bidderCatalog.cookieFamilyName(bidder).orElse(StringUtils.EMPTY);
-        final String parentCookieFamilyName =
-                bidderCatalog.cookieFamilyName(bidderCatalog.resolveBaseBidder(bidder)).orElse(null);
+    private static void validateBiddersHaveTheSameUsersyncConfig(Set<String> bidders, BidderCatalog bidderCatalog) {
+        final Set<Usersyncer> usersyncers = bidders.stream()
+                .map(bidderCatalog::usersyncerByName)
+                .map(Optional::orElseThrow)
+                .collect(Collectors.toSet());
 
-        return bidderCatalog.isAlias(bidder)
-                && parentCookieFamilyName != null
-                && parentCookieFamilyName.equals(bidderCookieFamilyName);
+        if (usersyncers.size() > 1) {
+            throw new IllegalArgumentException(
+                    "Found bidders with the same cookie family name but different usersync configs. "
+                            + "Bidders: %s. Usersync configs: %s".formatted(bidders, usersyncers));
+        }
     }
 
     private static UsersyncMethodType preferredUserSyncType(Usersyncer usersyncer) {
@@ -181,8 +187,8 @@ public class SetuidHandler implements ApplicationResource {
         final Timeout timeout = timeoutFactory.create(defaultTimeout);
 
         final UsersyncMethodType syncType = Optional.ofNullable(cookieName)
-                .map(cookieNameToBidderAndSyncType::get)
-                .map(Pair::getRight)
+                .map(cookieFamilyNameToUsersyncConfig::get)
+                .map(UsersyncConfig::getUsersyncMethodType)
                 .orElse(null);
 
         return accountById(requestAccount, timeout)
@@ -236,15 +242,14 @@ public class SetuidHandler implements ApplicationResource {
             final AccountPrivacyConfig privacyConfig = setuidContext.getAccount().getPrivacy();
             final AccountGdprConfig accountGdprConfig = privacyConfig != null ? privacyConfig.getGdpr() : null;
 
-            final String bidderName = cookieNameToBidderAndSyncType.get(bidderCookieFamily).getLeft();
+            final Set<String> bidderNames = cookieFamilyNameToUsersyncConfig.get(bidderCookieFamily).getBidders();
 
             Future.all(
                             tcfDefinerService.isAllowedForHostVendorId(tcfContext),
-                            tcfDefinerService.resultForBidderNames(
-                                    Collections.singleton(bidderName), tcfContext, accountGdprConfig))
+                            tcfDefinerService.resultForBidderNames(bidderNames, tcfContext, accountGdprConfig))
                     .onComplete(hostTcfResponseResult -> respondByTcfResponse(
                             hostTcfResponseResult,
-                            bidderName,
+                            bidderNames,
                             setuidContext));
         } else {
             final Throwable error = setuidContextResult.cause();
@@ -255,7 +260,7 @@ public class SetuidHandler implements ApplicationResource {
     private void validateSetuidContext(SetuidContext setuidContext, String bidderCookieFamily) {
         final String cookieName = setuidContext.getCookieName();
         final boolean isCookieNameBlank = StringUtils.isBlank(cookieName);
-        if (isCookieNameBlank || !cookieNameToBidderAndSyncType.containsKey(cookieName)) {
+        if (isCookieNameBlank || !cookieFamilyNameToUsersyncConfig.containsKey(cookieName)) {
             final String cookieNameError = isCookieNameBlank ? "required" : "invalid";
             throw new InvalidRequestException("\"bidder\" query param is " + cookieNameError);
         }
@@ -282,7 +287,7 @@ public class SetuidHandler implements ApplicationResource {
     }
 
     private void respondByTcfResponse(AsyncResult<CompositeFuture> hostTcfResponseResult,
-                                      String bidderName,
+                                      Set<String> bidderNames,
                                       SetuidContext setuidContext) {
 
         final TcfContext tcfContext = setuidContext.getPrivacyContext().getTcfContext();
@@ -293,9 +298,11 @@ public class SetuidHandler implements ApplicationResource {
             final HostVendorTcfResponse hostVendorTcfResponse = compositeFuture.resultAt(0);
             final TcfResponse<String> bidderTcfResponse = compositeFuture.resultAt(1);
 
+            // bidders corresponding to the same cookie family name should have the same vendor id
+            // so we can use any one of them here
             final Map<String, PrivacyEnforcementAction> vendorIdToAction = bidderTcfResponse.getActions();
             final PrivacyEnforcementAction action = vendorIdToAction != null
-                    ? vendorIdToAction.get(bidderName)
+                    ? vendorIdToAction.get(bidderNames.iterator().next())
                     : null;
 
             final boolean notInGdprScope = BooleanUtils.isFalse(bidderTcfResponse.getUserInGdprScope());
@@ -415,5 +422,13 @@ public class SetuidHandler implements ApplicationResource {
 
     private void addCookie(RoutingContext routingContext, Cookie cookie) {
         routingContext.response().headers().add(HttpUtil.SET_COOKIE_HEADER, cookie.encode());
+    }
+
+    @Value(staticConstructor = "of")
+    private static class UsersyncConfig {
+
+        Set<String> bidders;
+
+        UsersyncMethodType usersyncMethodType;
     }
 }
