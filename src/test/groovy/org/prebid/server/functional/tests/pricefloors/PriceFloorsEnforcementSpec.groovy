@@ -12,6 +12,7 @@ import org.prebid.server.functional.model.request.auction.ExtPrebidPriceFloorEnf
 import org.prebid.server.functional.model.request.auction.MultiBid
 import org.prebid.server.functional.model.request.auction.StoredAuctionResponse
 import org.prebid.server.functional.model.request.auction.Targeting
+import org.prebid.server.functional.model.response.BidderErrorCode
 import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
@@ -85,7 +86,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         }
 
         and: "PBS should log warning about bid suppression"
-        assert response.ext?.warnings[ErrorType.ALIAS]*.code == [6]
+        assert response.ext?.warnings[ErrorType.ALIAS]*.code == [BidderErrorCode.REJECTED_IPF]
         assert response.ext?.warnings[ErrorType.ALIAS]*.message ==
                 ["Bid with id '${aliasBidResponse.seatbid[0].bid[0].id}' was rejected by floor enforcement: " +
                          "price $lowerPrice is below the floor ${floorValue.stripTrailingZeros()}" as String]
@@ -136,7 +137,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
 
         and: "PBS should log warning about suppression all bids below the floor value "
         def impId = bidRequest.imp[0].id
-        assert response.ext?.warnings[ErrorType.GENERIC]*.code == [6, 6]
+        assert response.ext?.warnings[ErrorType.GENERIC]*.code == [BidderErrorCode.REJECTED_IPF, BidderErrorCode.REJECTED_IPF]
         assert response.ext?.warnings[ErrorType.GENERIC]*.message ==
                 ["Bid with id '${bidResponse.seatbid[0].bid[1].id}' was rejected by floor enforcement: " +
                          "price ${bidResponse.seatbid[0].bid[1].price} is below the floor ${floorValue.stripTrailingZeros()}" as String,
@@ -249,7 +250,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
 
         and: "Response should contain specific code and text in ext.warnings.prebid"
         verifyAll(bidResponse.ext.warnings[PREBID]) {
-            it.code == [999]
+            it.code == [BidderErrorCode.GENERIC]
             it.message == ["noFloorSignal to bidder generic"]
         }
 
@@ -370,7 +371,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
 
         and: "Response should contain specific code and text in ext.warnings.prebid"
         verifyAll(bidResponse.ext.warnings[PREBID]) {
-            it.code == [999]
+            it.code == [BidderErrorCode.GENERIC]
             it.message == ["noFloorSignal to bidder generic"]
         }
 
@@ -491,7 +492,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
 
         and: "Response should contain specific code and text in ext.warnings.prebid"
         verifyAll(bidResponse.ext.warnings[PREBID]) {
-            it.code == [999]
+            it.code == [BidderErrorCode.GENERIC]
             it.message == ["noFloorSignal to bidder generic"]
         }
 
@@ -660,7 +661,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
 
         and: "Response should contain specific code and text in ext.warnings.prebid"
         verifyAll(bidResponse.ext.warnings[PREBID]) {
-            it.code == [999]
+            it.code == [BidderErrorCode.GENERIC]
             it.message == ["noFloorSignal to bidder generic"]
         }
     }
@@ -739,7 +740,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
 
         and: "Response should contain specific code and text in ext.warnings.prebid"
         verifyAll(bidResponse.ext.warnings[PREBID]) {
-            it.code == [999]
+            it.code == [BidderErrorCode.GENERIC]
             it.message == ["noFloorSignal to bidder generic"]
         }
     }

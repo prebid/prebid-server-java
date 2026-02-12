@@ -4,12 +4,13 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Regs
 import org.prebid.server.functional.model.request.auction.RegsExt
 import org.prebid.server.functional.model.request.auction.User
+import org.prebid.server.functional.model.response.BidderErrorCode
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.CcpaConsent
 import org.prebid.server.functional.util.privacy.TcfConsent
-import org.prebid.server.functional.util.privacy.gpp.v2.TcfEuV2Consent
 import org.prebid.server.functional.util.privacy.gpp.v1.UspV1Consent
+import org.prebid.server.functional.util.privacy.gpp.v2.TcfEuV2Consent
 
 import static org.prebid.server.functional.model.request.GppSectionId.TCF_EU_V2
 import static org.prebid.server.functional.model.request.GppSectionId.USP_V1
@@ -69,7 +70,7 @@ class GppAuctionSpec extends PrivacyBaseSpec {
         def response = privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain warning"
-        assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.code } == [999]
+        assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.code } == [BidderErrorCode.GENERIC]
         assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.message } ==
                 ["GPP scope does not match TCF2 scope"]
 
@@ -92,7 +93,7 @@ class GppAuctionSpec extends PrivacyBaseSpec {
         def response = privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain warning"
-        assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.code } == [999]
+        assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.code } == [BidderErrorCode.GENERIC]
         assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.message } ==
                 ["GPP scope does not match TCF2 scope"]
 
@@ -117,7 +118,7 @@ class GppAuctionSpec extends PrivacyBaseSpec {
         def response = privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain warning"
-        assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.code } == [999]
+        assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.code } == [BidderErrorCode.GENERIC]
         response.ext?.warnings[ErrorType.PREBID]?.collect { it.message }
                 .any { it.contains("GPP string invalid:") }
 
@@ -161,7 +162,7 @@ class GppAuctionSpec extends PrivacyBaseSpec {
         def response = privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain warning"
-        assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.code } == [999]
+        assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.code } == [BidderErrorCode.GENERIC]
         assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.message } ==
                 ["GPP TCF2 string does not match user.consent"]
 
@@ -222,7 +223,7 @@ class GppAuctionSpec extends PrivacyBaseSpec {
         def response = privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain warning"
-        assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.code } == [999]
+        assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.code } == [BidderErrorCode.GENERIC]
         assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.message } ==
                 ["USP string does not match regs.us_privacy"]
 

@@ -5,8 +5,8 @@ import org.prebid.server.functional.util.SystemProperties
 import org.testcontainers.containers.InfluxDBContainer
 import org.testcontainers.containers.MySQLContainer
 import org.testcontainers.containers.Network
-import org.testcontainers.containers.localstack.LocalStackContainer
 import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.containers.localstack.LocalStackContainer
 import org.testcontainers.lifecycle.Startables
 import org.testcontainers.utility.DockerImageName
 

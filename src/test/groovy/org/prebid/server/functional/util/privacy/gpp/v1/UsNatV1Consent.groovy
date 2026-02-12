@@ -7,8 +7,8 @@ import org.prebid.server.functional.model.privacy.gpp.MspaMode
 import org.prebid.server.functional.model.privacy.gpp.Notice
 import org.prebid.server.functional.model.privacy.gpp.OptOut
 import org.prebid.server.functional.model.privacy.gpp.UsNationalV1ChildSensitiveData
-import org.prebid.server.functional.util.privacy.gpp.GppConsent
 import org.prebid.server.functional.model.privacy.gpp.UsNationalV1SensitiveData
+import org.prebid.server.functional.util.privacy.gpp.GppConsent
 
 class UsNatV1Consent extends GppConsent {
 

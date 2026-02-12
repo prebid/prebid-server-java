@@ -20,6 +20,7 @@ import org.prebid.server.functional.model.request.auction.MultiBid
 import org.prebid.server.functional.model.request.auction.Native
 import org.prebid.server.functional.model.request.auction.VideoPlacementSubtypes
 import org.prebid.server.functional.model.request.auction.VideoPlcmtSubtype
+import org.prebid.server.functional.model.response.BidderErrorCode
 import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidExt
 import org.prebid.server.functional.model.response.auction.BidMediaType
@@ -845,7 +846,7 @@ class PriceFloorsAdjustmentSpec extends PriceFloorsBaseSpec {
         and: "Should add a warning when in debug mode"
         def errorMessage = "bid adjustment from request was invalid: the found rule [adjtype=${adjustmentType}, " +
                 "value=${ruleValue}, currency=${currency}] in ${mediaType.value}.generic.* is invalid" as String
-        assert response.ext.warnings[PREBID]?.code == [999]
+        assert response.ext.warnings[PREBID]?.code == [BidderErrorCode.GENERIC]
         assert response.ext.warnings[PREBID]?.message == [errorMessage]
 
         and: "Original bid price and currency should be presented in bid.ext"
@@ -996,7 +997,7 @@ class PriceFloorsAdjustmentSpec extends PriceFloorsBaseSpec {
         and: "Should add a warning when in debug mode"
         def errorMessage = "bid adjustment from request was invalid: the found rule [adjtype=${adjustmentType}, " +
                 "value=${adjustmentPrice}, currency=null] in banner.generic.* is invalid" as String
-        assert response.ext.warnings[PREBID]?.code == [999]
+        assert response.ext.warnings[PREBID]?.code == [BidderErrorCode.GENERIC]
         assert response.ext.warnings[PREBID]?.message == [errorMessage]
 
         and: "Original bid price and currency should be presented in bid.ext"
@@ -1096,7 +1097,7 @@ class PriceFloorsAdjustmentSpec extends PriceFloorsBaseSpec {
         and: "Should add a warning when in debug mode"
         def errorMessage = "bid adjustment from request was invalid: the found rule [adjtype=UNKNOWN, " +
                 "value=$adjustmentPrice, currency=$currency] in banner.generic.* is invalid" as String
-        assert response.ext.warnings[PREBID]?.code == [999]
+        assert response.ext.warnings[PREBID]?.code == [BidderErrorCode.GENERIC]
         assert response.ext.warnings[PREBID]?.message == [errorMessage]
 
         and: "Original bid price and currency should be presented in bid.ext"

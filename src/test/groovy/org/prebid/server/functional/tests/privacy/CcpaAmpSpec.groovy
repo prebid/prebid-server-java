@@ -6,6 +6,7 @@ import org.prebid.server.functional.model.config.AccountPrivacyConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
+import org.prebid.server.functional.model.response.BidderErrorCode
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.util.privacy.BogusConsent
 import org.prebid.server.functional.util.privacy.CcpaConsent
@@ -199,7 +200,7 @@ class CcpaAmpSpec extends PrivacyBaseSpec {
         def response = defaultPbsService.sendAmpRequest(ampRequest)
 
         then: "Response should contain error"
-        assert response.ext?.errors[ErrorType.PREBID]*.code == [999]
+        assert response.ext?.errors[ErrorType.PREBID]*.code == [BidderErrorCode.GENERIC]
         assert response.ext?.errors[ErrorType.PREBID]*.message ==
                 ["CCPA consent $invalidCcpa has invalid format: us_privacy must contain 4 characters" as String]
 
@@ -227,7 +228,7 @@ class CcpaAmpSpec extends PrivacyBaseSpec {
         def response = defaultPbsService.sendAmpRequest(ampRequest)
 
         then: "Response should contain error"
-        assert response.ext?.errors[ErrorType.PREBID]*.code == [999]
+        assert response.ext?.errors[ErrorType.PREBID]*.code == [BidderErrorCode.GENERIC]
         assert response.ext?.errors[ErrorType.PREBID]*.message == ["Invalid consent_type param passed"]
     }
 
@@ -249,7 +250,7 @@ class CcpaAmpSpec extends PrivacyBaseSpec {
         def response = defaultPbsService.sendAmpRequest(ampRequest)
 
         then: "Response should contain error"
-        assert response.ext?.errors[ErrorType.PREBID]*.code == [999]
+        assert response.ext?.errors[ErrorType.PREBID]*.code == [BidderErrorCode.GENERIC]
         assert response.ext?.errors[ErrorType.PREBID]*.message == ["Consent type tcfV1 is no longer supported"]
     }
 
@@ -273,7 +274,7 @@ class CcpaAmpSpec extends PrivacyBaseSpec {
         def response = defaultPbsService.sendAmpRequest(ampRequest)
 
         then: "Response should contain error"
-        assert response.ext?.errors[ErrorType.PREBID]*.code == [999]
+        assert response.ext?.errors[ErrorType.PREBID]*.code == [BidderErrorCode.GENERIC]
         assert response.ext?.errors[ErrorType.PREBID]*.message ==
                 ["CCPA consent $tcfConsent has invalid format: us_privacy must contain 4 characters" as String]
     }

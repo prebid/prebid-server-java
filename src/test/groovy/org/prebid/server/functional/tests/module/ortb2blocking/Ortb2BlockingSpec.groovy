@@ -7,8 +7,8 @@ import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountHooksConfiguration
 import org.prebid.server.functional.model.config.ExecutionPlan
 import org.prebid.server.functional.model.config.Ortb2BlockingActionOverride
-import org.prebid.server.functional.model.config.Ortb2BlockingAttributeConfig
 import org.prebid.server.functional.model.config.Ortb2BlockingAttribute
+import org.prebid.server.functional.model.config.Ortb2BlockingAttributeConfig
 import org.prebid.server.functional.model.config.Ortb2BlockingConditions
 import org.prebid.server.functional.model.config.Ortb2BlockingConfig
 import org.prebid.server.functional.model.config.Ortb2BlockingOverride
@@ -17,17 +17,16 @@ import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.Asset
 import org.prebid.server.functional.model.request.auction.Audio
 import org.prebid.server.functional.model.request.auction.Banner
+import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.BidderControls
 import org.prebid.server.functional.model.request.auction.GenericPreferredBidder
-import org.prebid.server.functional.model.request.auction.Ix
-import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Imp
+import org.prebid.server.functional.model.request.auction.Ix
 import org.prebid.server.functional.model.request.auction.Video
 import org.prebid.server.functional.model.response.auction.Adm
 import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidMediaType
 import org.prebid.server.functional.model.response.auction.BidResponse
-import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.model.response.auction.MediaType
 import org.prebid.server.functional.model.response.auction.SeatBid
 import org.prebid.server.functional.service.PrebidServerService
@@ -41,8 +40,8 @@ import static org.prebid.server.functional.model.bidder.BidderName.IX
 import static org.prebid.server.functional.model.config.Endpoint.OPENRTB2_AUCTION
 import static org.prebid.server.functional.model.config.Ortb2BlockingAttribute.AUDIO_BATTR
 import static org.prebid.server.functional.model.config.Ortb2BlockingAttribute.BADV
-import static org.prebid.server.functional.model.config.Ortb2BlockingAttribute.BAPP
 import static org.prebid.server.functional.model.config.Ortb2BlockingAttribute.BANNER_BATTR
+import static org.prebid.server.functional.model.config.Ortb2BlockingAttribute.BAPP
 import static org.prebid.server.functional.model.config.Ortb2BlockingAttribute.BCAT
 import static org.prebid.server.functional.model.config.Ortb2BlockingAttribute.BTYPE
 import static org.prebid.server.functional.model.config.Ortb2BlockingAttribute.VIDEO_BATTR

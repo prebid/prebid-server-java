@@ -13,6 +13,7 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.DistributionChannel
 import org.prebid.server.functional.model.request.auction.Regs
 import org.prebid.server.functional.model.request.auction.RegsExt
+import org.prebid.server.functional.model.response.BidderErrorCode
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.BogusConsent
 import org.prebid.server.functional.util.privacy.CcpaConsent
@@ -146,7 +147,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         def response = privacyPbsService.sendAmpRequest(ampRequest)
 
         then: "Response should contain error"
-        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
         assert response.ext?.warnings[PREBID]*.message[0].startsWith("Parsing consent string:\"${invalidTcfConsent}\"")
 
         where:
@@ -173,7 +174,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         def response = privacyPbsService.sendAmpRequest(ampRequest)
 
         then: "Response should contain error"
-        assert response.ext?.errors[PREBID]*.code == [999]
+        assert response.ext?.errors[PREBID]*.code == [BidderErrorCode.GENERIC]
         assert response.ext?.errors[PREBID]*.message == ["Consent type tcfV1 is no longer supported"]
     }
 
@@ -197,7 +198,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         def response = defaultPbsService.sendAmpRequest(ampRequest)
 
         then: "Response should contain error"
-        assert response.ext?.errors[PREBID]*.code == [999]
+        assert response.ext?.errors[PREBID]*.code == [BidderErrorCode.GENERIC]
         assert response.ext?.errors[PREBID]*.message ==
                 ["CCPA consent $consentString has invalid format: " +
                          "us_privacy must contain 4 characters"]
@@ -223,7 +224,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         def response = privacyPbsService.sendAmpRequest(ampRequest)
 
         then: "Response should contain error"
-        assert response.ext?.errors[PREBID]*.code == [999]
+        assert response.ext?.errors[PREBID]*.code == [BidderErrorCode.GENERIC]
         assert response.ext?.errors[PREBID]*.message == ["Invalid consent_type param passed"]
     }
 
@@ -245,7 +246,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         def response = privacyPbsService.sendAmpRequest(ampRequest)
 
         then: "Response should contain error"
-        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
         assert response.ext?.warnings[PREBID]*.message[0] ==~ /Parsing consent string:"$ccpaConsent" - failed.*/
     }
 
@@ -388,7 +389,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         def response = privacyPbsService.sendAmpRequest(ampRequest)
 
         then: "Bid response should contain warning"
-        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
         assert response.ext?.warnings[PREBID]*.message ==
                 ["Unknown tcfPolicyVersion ${invalidTcfPolicyVersion}, defaulting to gvlSpecificationVersion=3" as String]
 

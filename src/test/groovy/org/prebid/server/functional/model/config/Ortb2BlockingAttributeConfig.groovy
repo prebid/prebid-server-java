@@ -6,8 +6,8 @@ import groovy.transform.ToString
 
 import static org.prebid.server.functional.model.config.Ortb2BlockingAttribute.AUDIO_BATTR
 import static org.prebid.server.functional.model.config.Ortb2BlockingAttribute.BADV
-import static org.prebid.server.functional.model.config.Ortb2BlockingAttribute.BAPP
 import static org.prebid.server.functional.model.config.Ortb2BlockingAttribute.BANNER_BATTR
+import static org.prebid.server.functional.model.config.Ortb2BlockingAttribute.BAPP
 import static org.prebid.server.functional.model.config.Ortb2BlockingAttribute.BCAT
 import static org.prebid.server.functional.model.config.Ortb2BlockingAttribute.BTYPE
 import static org.prebid.server.functional.model.config.Ortb2BlockingAttribute.VIDEO_BATTR

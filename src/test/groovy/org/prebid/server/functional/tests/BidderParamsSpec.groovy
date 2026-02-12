@@ -9,11 +9,11 @@ import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.Adrino
 import org.prebid.server.functional.model.request.auction.Amx
+import org.prebid.server.functional.model.request.auction.AnyUnsupportedBidder
 import org.prebid.server.functional.model.request.auction.AuctionEnvironment
 import org.prebid.server.functional.model.request.auction.Banner
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Device
-import org.prebid.server.functional.model.request.auction.AnyUnsupportedBidder
 import org.prebid.server.functional.model.request.auction.Geo
 import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.ImpExt
@@ -28,6 +28,7 @@ import org.prebid.server.functional.model.request.auction.Source
 import org.prebid.server.functional.model.request.auction.Targeting
 import org.prebid.server.functional.model.request.vtrack.VtrackRequest
 import org.prebid.server.functional.model.request.vtrack.xml.Vast
+import org.prebid.server.functional.model.response.BidderErrorCode
 import org.prebid.server.functional.model.response.auction.Adm
 import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidExt
@@ -335,7 +336,7 @@ class BidderParamsSpec extends BaseSpec {
         def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should contain error"
-        assert response.ext?.errors[GENERIC]*.code == [999]
+        assert response.ext?.errors[GENERIC]*.code == [BidderErrorCode.GENERIC]
         assert response.ext?.errors[GENERIC]*.message == ["host name must not be empty"]
 
         cleanup: "Stop and remove pbs container"
@@ -359,7 +360,7 @@ class BidderParamsSpec extends BaseSpec {
         assert bidder.getRequestCount(bidRequest.id) == 1
 
         and: "Bidder with invalid params should be dropped"
-        assert response.ext?.warnings[PREBID]*.code == [999, 999]
+        assert response.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC, BidderErrorCode.GENERIC]
         assert response.ext?.warnings[PREBID]*.message ==
                 ["WARNING: request.imp[0].ext.prebid.bidder.generic was dropped with a reason: " +
                          "request.imp[0].ext.prebid.bidder.generic failed validation.\n" +
@@ -387,7 +388,7 @@ class BidderParamsSpec extends BaseSpec {
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder should be dropped"
-        assert response.ext?.warnings[PREBID]*.code == [999, 999]
+        assert response.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC, BidderErrorCode.GENERIC]
         assert response.ext?.warnings[PREBID]*.message ==
                 ["WARNING: request.imp[0].ext.prebid.bidder.generic was dropped with a reason: " +
                          "request.imp[0].ext.prebid.bidder.generic failed validation.\n" +
@@ -417,7 +418,7 @@ class BidderParamsSpec extends BaseSpec {
         def response = defaultPbsService.sendAmpRequest(ampRequest)
 
         then: "Bidder should be dropped"
-        assert response.ext?.warnings[PREBID]*.code == [999, 999]
+        assert response.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC, BidderErrorCode.GENERIC]
         assert response.ext?.warnings[PREBID]*.message ==
                 ["WARNING: request.imp[0].ext.prebid.bidder.generic was dropped with a reason: " +
                          "request.imp[0].ext.prebid.bidder.generic failed validation.\n" +
@@ -444,7 +445,7 @@ class BidderParamsSpec extends BaseSpec {
         assert response.seatbid.isEmpty()
 
         and: "Response should contain error"
-        assert response.ext?.warnings[GENERIC]*.code == [2]
+        assert response.ext?.warnings[GENERIC]*.code == [BidderErrorCode.BAD_INPUT]
         assert response.ext?.warnings[GENERIC]*.message == ["Bidder does not support any media types."]
 
         cleanup: "Stop and remove pbs container"
@@ -573,7 +574,7 @@ class BidderParamsSpec extends BaseSpec {
         assert bidderRequest.imp[0].nativeObj
 
         and: "Response should contain error"
-        assert response.ext?.warnings[GENERIC]*.code == [2]
+        assert response.ext?.warnings[GENERIC]*.code == [BidderErrorCode.BAD_INPUT]
         assert response.ext?.warnings[GENERIC]*.message ==
                 ["Imp ${bidRequest.imp[0].id} does not have a supported media type and has been removed from the " +
                          "request for this bidder." as String]
@@ -670,7 +671,7 @@ class BidderParamsSpec extends BaseSpec {
         assert bidder.getRequestCount(bidRequest.id) == 0
 
         and: "Response should contain errors"
-        assert response.ext?.warnings[GENERIC]*.code == [2, 2]
+        assert response.ext?.warnings[GENERIC]*.code == [BidderErrorCode.BAD_INPUT, BidderErrorCode.BAD_INPUT]
         assert response.ext?.warnings[GENERIC]*.message ==
                 ["Imp ${bidRequest.imp[0].id} does not have a supported media type and has been removed from " +
                          "the request for this bidder.",
@@ -849,7 +850,7 @@ class BidderParamsSpec extends BaseSpec {
         assert bidderRequest.imp[0].ext.anyUnsupportedBidder == unsupportedBidder
 
         and: "PBS should emit an warning"
-        assert response?.ext?.warnings[PREBID]*.code == [999]
+        assert response?.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
         assert response?.ext?.warnings[PREBID]*.message ==
                 ["WARNING: request.imp[0].ext.prebid.bidder.anyUnsupportedBidder was dropped with a reason: " +
                          "request.imp[0].ext.prebid.bidder contains unknown bidder: anyUnsupportedBidder"]
@@ -870,7 +871,7 @@ class BidderParamsSpec extends BaseSpec {
         assert !response.ext?.errors
 
         and: "PBS should emit an warning"
-        assert response?.ext?.warnings[PREBID]*.code == [999]
+        assert response?.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
         assert response?.ext?.warnings[PREBID]*.message ==
                 ["WARNING: request.imp[0].ext.prebid.bidder.adUnitCode was dropped with a reason: " +
                          "request.imp[0].ext.prebid.bidder contains unknown bidder: adUnitCode"]
@@ -1140,7 +1141,7 @@ class BidderParamsSpec extends BaseSpec {
         assert response.ext.seatnonbid.size() == 1
 
         and: "PBS should emit an warnings"
-        assert response.ext?.warnings[GENERIC]*.code == [999]
+        assert response.ext?.warnings[GENERIC]*.code == [BidderErrorCode.GENERIC]
         assert response.ext?.warnings[GENERIC]*.message ==
                 ["No match between the configured currencies and bidRequest.cur"]
 
@@ -1234,7 +1235,7 @@ class BidderParamsSpec extends BaseSpec {
         assert !response.ext?.errors
 
         and: "PBS should emit an warnings"
-        assert response.ext?.warnings[ALIAS]*.code == [999]
+        assert response.ext?.warnings[ALIAS]*.code == [BidderErrorCode.GENERIC]
         assert response.ext?.warnings[ALIAS]*.message ==
                 ["No match between the configured currencies and bidRequest.cur"]
 
@@ -1326,7 +1327,7 @@ class BidderParamsSpec extends BaseSpec {
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder should be dropped"
-        assert response.ext?.warnings[PREBID]*.code == [999, 999, 999]
+        assert response.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC, BidderErrorCode.GENERIC, BidderErrorCode.GENERIC]
         assert response.ext?.warnings[PREBID]*.message ==
                 ["WARNING: request.imp[0].ext.prebid.bidder.generic was dropped with a reason: " +
                          "request.imp[0].ext.prebid.bidder.generic failed validation.\n" +
@@ -1357,7 +1358,7 @@ class BidderParamsSpec extends BaseSpec {
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder should be dropped"
-        assert response.ext?.warnings[PREBID]*.code == [999, 999, 999]
+        assert response.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC, BidderErrorCode.GENERIC, BidderErrorCode.GENERIC]
         assert response.ext?.warnings[PREBID]*.message ==
                 ["WARNING: request.imp[0].ext.prebid.bidder.generic was dropped with a reason: " +
                          "request.imp[0].ext.prebid.bidder.generic failed validation.\n" +
