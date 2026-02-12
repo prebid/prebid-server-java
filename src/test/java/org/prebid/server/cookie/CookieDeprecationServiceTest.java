@@ -303,7 +303,7 @@ public class CookieDeprecationServiceTest extends VertxTest {
         final List<String> debugWarnings = new ArrayList<>();
         final Account givenAccount = givenAccount(true, 100L);
         final AuctionContext auctionContext = givenContext(headers, givenAccount, debugWarnings);
-        final ExtDevice extDevice = ExtDevice.of(1, ExtDevicePrebid.of(ExtDeviceInt.of(2, 3)));
+        final ExtDevice extDevice = ExtDevice.of(1, null, ExtDevicePrebid.of(ExtDeviceInt.of(2, 3)));
         extDevice.addProperty("some_property", TextNode.valueOf("some_property_value"));
         final BidRequest bidRequest = givenBidRequest(builder -> builder.ext(extDevice).ip("ip"));
 
@@ -311,7 +311,7 @@ public class CookieDeprecationServiceTest extends VertxTest {
         final BidRequest actualBidRequest = target.updateBidRequestDevice(bidRequest, auctionContext);
 
         // then
-        final ExtDevice expectedExtDevice = ExtDevice.of(1, ExtDevicePrebid.of(ExtDeviceInt.of(2, 3)));
+        final ExtDevice expectedExtDevice = ExtDevice.of(1, null, ExtDevicePrebid.of(ExtDeviceInt.of(2, 3)));
         expectedExtDevice.addProperty("cdep", TextNode.valueOf(cdep));
         expectedExtDevice.addProperty("some_property", TextNode.valueOf("some_property_value"));
 
