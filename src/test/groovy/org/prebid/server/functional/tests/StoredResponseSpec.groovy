@@ -1,20 +1,23 @@
 package org.prebid.server.functional.tests
 
+
 import org.prebid.server.functional.model.db.StoredResponse
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.StoredAuctionResponse
 import org.prebid.server.functional.model.request.auction.StoredBidResponse
+import org.prebid.server.functional.model.response.BidderErrorCode
 import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
-import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.model.response.auction.SeatBid
-import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.PendingFeature
 
+import static org.apache.http.HttpStatus.SC_BAD_REQUEST
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
+import static org.prebid.server.functional.model.response.auction.NoBidResponse.UNKNOWN_ERROR
 
 class StoredResponseSpec extends BaseSpec {
 
@@ -146,8 +149,8 @@ class StoredResponseSpec extends BaseSpec {
         def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should contain warning information"
-        assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
-        assert response.ext?.warnings[ErrorType.PREBID]*.message ==
+        assert response.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
+        assert response.ext?.warnings[PREBID]*.message ==
                 ['WARNING: request.imp[0].ext.prebid.storedauctionresponse.seatbidarr is not supported at the imp level']
 
         and: "PBS not send request to bidder"
@@ -170,8 +173,8 @@ class StoredResponseSpec extends BaseSpec {
         assert response.seatbid == [storedAuctionResponse]
 
         and: "PBs should emit warning"
-        assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
-        assert response.ext?.warnings[ErrorType.PREBID]*.message ==
+        assert response.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
+        assert response.ext?.warnings[PREBID]*.message ==
                 ["no auction. response defined by storedauctionresponse" as String]
 
         and: "PBS not send request to bidder"
@@ -250,7 +253,7 @@ class StoredResponseSpec extends BaseSpec {
         def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should contain warning information"
-        assert response.ext?.warnings[ErrorType.PREBID]*.message.contains('SeatBid can\'t be null in stored response')
+        assert response.ext?.warnings[PREBID]*.message.contains('SeatBid can\'t be null in stored response')
 
         and: "PBS not send request to bidder"
         assert bidder.getRequestCount(bidRequest.id) == 0
@@ -278,12 +281,14 @@ class StoredResponseSpec extends BaseSpec {
         bidRequest.imp[0].ext.prebid.storedAuctionResponse = new StoredAuctionResponse(seatBidObject: new SeatBid())
 
         when: "PBS processes auction request"
-        pbsService.sendAuctionRequest(bidRequest)
+        def response = pbsService.sendAuctionRequest(bidRequest, SC_BAD_REQUEST)
 
         then: "PBS throws an exception"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == 400
-        assert exception.responseBody == 'Invalid request format: Seat can\'t be empty in stored response seatBid'
+        assert response.noBidResponse == UNKNOWN_ERROR
+        verifyAll(response.ext.errors[PREBID]) {
+            it.code == [BidderErrorCode.GENERIC]
+            it.errorMassage == ['Invalid request format: Seat can\'t be empty in stored response seatBid']
+        }
 
         and: "PBS not send request to bidder"
         assert bidder.getRequestCount(bidRequest.id) == 0
@@ -295,12 +300,14 @@ class StoredResponseSpec extends BaseSpec {
         bidRequest.imp[0].ext.prebid.storedAuctionResponse = new StoredAuctionResponse(seatBidObject: new SeatBid(bid: [], seat: GENERIC))
 
         when: "PBS processes auction request"
-        pbsService.sendAuctionRequest(bidRequest)
+        def response = pbsService.sendAuctionRequest(bidRequest, SC_BAD_REQUEST)
 
         then: "PBS throws an exception"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == 400
-        assert exception.responseBody == 'Invalid request format: There must be at least one bid in stored response seatBid'
+        assert response.noBidResponse == UNKNOWN_ERROR
+        verifyAll(response.ext.errors[PREBID]) {
+            it.code == [BidderErrorCode.GENERIC]
+            it.errorMassage == ['Invalid request format: There must be at least one bid in stored response seatBid']
+        }
 
         and: "PBS not send request to bidder"
         assert bidder.getRequestCount(bidRequest.id) == 0

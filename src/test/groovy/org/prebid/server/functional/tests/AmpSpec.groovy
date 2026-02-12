@@ -10,11 +10,12 @@ import org.prebid.server.functional.model.request.auction.Site
 import org.prebid.server.functional.model.request.auction.StoredAuctionResponse
 import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.model.request.auction.UserExt
+import org.prebid.server.functional.model.response.BidderErrorCode
 import org.prebid.server.functional.model.response.auction.SeatBid
-import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
 
-import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
+import static org.apache.http.HttpStatus.SC_BAD_REQUEST
+import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
 
 class AmpSpec extends BaseSpec {
@@ -51,13 +52,13 @@ class AmpSpec extends BaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        defaultPbsService.sendAmpRequest(ampRequest)
+        def response = defaultPbsService.sendAmpRequest(ampRequest, SC_BAD_REQUEST)
 
         then: "Request should fail with an error"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == BAD_REQUEST.code()
-        assert exception.responseBody == "Invalid request format: request.${channel.value.toLowerCase()} must not exist in AMP stored requests."
-
+        verifyAll(response.ext.errors[PREBID]) {
+            it.code == [BidderErrorCode.GENERIC]
+            it.errorMassage == ["Invalid request format: request.${channel.value.toLowerCase()} must not exist in AMP stored requests."]
+        }
         where:
         channel << [DistributionChannel.APP, DistributionChannel.DOOH]
     }

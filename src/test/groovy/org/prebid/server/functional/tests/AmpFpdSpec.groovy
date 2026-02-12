@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests
 
+
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
@@ -16,15 +17,16 @@ import org.prebid.server.functional.model.request.auction.ImpExtContextDataAdSer
 import org.prebid.server.functional.model.request.auction.Publisher
 import org.prebid.server.functional.model.request.auction.Site
 import org.prebid.server.functional.model.request.auction.User
-import org.prebid.server.functional.service.PrebidServerException
+import org.prebid.server.functional.model.response.BidderErrorCode
 import org.prebid.server.functional.util.PBSUtils
 
-import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
+import static org.apache.http.HttpStatus.SC_BAD_REQUEST
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.BOGUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC_CAMEL_CASE
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
+import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 
 class AmpFpdSpec extends BaseSpec {
 
@@ -125,13 +127,14 @@ class AmpFpdSpec extends BaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        defaultPbsService.sendAmpRequest(ampRequest)
+        def response = defaultPbsService.sendAmpRequest(ampRequest, SC_BAD_REQUEST)
 
         then: "Request should fail with an error"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == BAD_REQUEST.code()
-        assert exception.responseBody.startsWith("Invalid request format: " +
-                "Error reading targeting json Unrecognized token '$invalidTargeting': was expecting")
+        verifyAll(response.ext.errors[PREBID]) {
+            it.code == [BidderErrorCode.GENERIC]
+            it.errorMassage.any { it.startsWith("Invalid request format: " +
+                    "Error reading targeting json Unrecognized token '$invalidTargeting': was expecting") }
+        }
     }
 
     def "PBS shouldn't populate FPD field via targeting when targeting field is absent"() {

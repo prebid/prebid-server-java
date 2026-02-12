@@ -8,13 +8,14 @@ import org.prebid.server.functional.model.request.auction.Asset
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.Targeting
+import org.prebid.server.functional.model.response.BidderErrorCode
 import org.prebid.server.functional.model.response.auction.Adm
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
 
-import static org.prebid.server.functional.model.response.auction.ErrorType.CACHE
 import static org.prebid.server.functional.model.AccountStatus.ACTIVE
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.response.auction.ErrorType.CACHE
 import static org.prebid.server.functional.model.response.auction.MediaType.BANNER
 import static org.prebid.server.functional.model.response.auction.MediaType.VIDEO
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
@@ -499,7 +500,7 @@ class CacheSpec extends BaseSpec {
         def bidResponse = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should contain error"
-        assert bidResponse.ext?.errors[CACHE]*.code == [999]
+        assert bidResponse.ext?.errors[CACHE]*.code == [BidderErrorCode.GENERIC]
         assert bidResponse.ext?.errors[CACHE]*.message[0] == ("Failed to resolve '${CACHE_HOST.tokenize(":")[0]}' [A(1)]")
 
         and: "Bid response targeting should contain value"
@@ -542,7 +543,7 @@ class CacheSpec extends BaseSpec {
         assert cacheCall.uri == "${HTTP_SCHEME}://${networkServiceContainer.hostAndPort + INTERNAL_CACHE_PATH}"
 
         then: "Response should contain error"
-        assert bidResponse.ext?.errors[CACHE]*.code == [999]
+        assert bidResponse.ext?.errors[CACHE]*.code == [BidderErrorCode.GENERIC]
         assert bidResponse.ext?.errors[CACHE]*.message[0] == ("Failed to resolve '${CACHE_HOST.tokenize(":")[0]}' [A(1)]")
 
         cleanup: "Stop and remove pbs container"

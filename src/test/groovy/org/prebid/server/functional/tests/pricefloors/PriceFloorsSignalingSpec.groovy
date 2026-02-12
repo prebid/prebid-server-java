@@ -14,6 +14,7 @@ import org.prebid.server.functional.model.request.auction.ExtPrebidFloors
 import org.prebid.server.functional.model.request.auction.ExtPrebidPriceFloorEnforcement
 import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.Video
+import org.prebid.server.functional.model.response.BidderErrorCode
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.MediaType
 import org.prebid.server.functional.util.PBSUtils
@@ -606,7 +607,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
         then: "PBS should log a warning"
         def message = "Price floor rules number ${getRuleSize(bidRequest)} exceeded its maximum number ${MAX_RULES_SIZE}"
-        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
         assert response.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE(message)]
 
         and: "Alerts.general metrics should be populated"
@@ -647,7 +648,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
         then: "PBS should log a warning"
         def message = "Price floor schema dimensions ${getSchemaSize(bidRequest)} exceeded its maximum number ${MAX_SCHEMA_DIMENSIONS_SIZE}"
-        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
         assert response.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE(message)]
 
         and: "Alerts.general metrics should be populated"
@@ -694,7 +695,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
         then: "PBS should log a warning"
         def message = "Price floor schema dimensions ${getSchemaSize(bidRequest)} exceeded its maximum number ${MAX_SCHEMA_DIMENSIONS_SIZE}"
-        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
         assert response.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE(message)]
 
         and: "PBS should log a errors"
@@ -747,7 +748,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
         then: "Response should includer error warning"
         def message = "Price floor schema dimensions ${getSchemaSize(bidRequest)} exceeded its maximum number ${MAX_SCHEMA_DIMENSIONS_SIZE}"
-        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
         assert response.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE(message)]
 
         and: "PBS shouldn't log a errors"
@@ -788,7 +789,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
         then: "PBS should log a warning"
         def message = "Price floor schema dimensions ${getSchemaSize(bidRequest)} exceeded its maximum number ${MAX_SCHEMA_DIMENSIONS_SIZE}"
-        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
         assert response.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE(message)]
 
         and: "PBS should log a errors"
@@ -833,7 +834,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         then: "PBS should log a warning"
         def message = "Price floor schema dimensions ${floorSchemaFilesSize} " +
                 "exceeded its maximum number ${MAX_SCHEMA_DIMENSIONS_SIZE}"
-        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
         assert response.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE(message)]
 
         and: "PBS should log a errors"
@@ -906,7 +907,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         then: "PBS should log a warning"
         def message = "Price floor rules number ${getRuleSize(ampStoredRequest)} " +
                 "exceeded its maximum number ${MAX_RULES_SIZE}"
-        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
         assert response.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE(message)]
 
         and: "PBS should log a errors"
@@ -944,7 +945,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
         then: "PBS should log a warning"
         def message = "Price floor data skipRate must be in range(0-100), but was $requestSkipRate"
-        assert bidResponse.ext?.warnings[PREBID]*.code == [999]
+        assert bidResponse.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
         assert bidResponse.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE(message)]
 
         and: "PBS should log a errors"
@@ -978,7 +979,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
         then: "PBS should log a warning"
         def message = "Price floor rules should contain at least one model group"
-        assert bidResponse.ext?.warnings[PREBID]*.code == [999]
+        assert bidResponse.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
         assert bidResponse.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE(message)]
 
         and: "PBS should log a errors"
@@ -1014,7 +1015,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
         then: "PBS should log a warning"
         def message = "Price floor modelGroup modelWeight must be in range(1-100), but was $requestModelWeight"
-        assert bidResponse.ext?.warnings[PREBID]*.code == [999]
+        assert bidResponse.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
         assert bidResponse.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE(message)]
 
         and: "PBS should log a errors"
@@ -1051,7 +1052,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
         then: "PBS should log a warning"
         def message = "Price floor modelGroup skipRate must be in range(0-100), but was $requestModelGroupsSkipRate"
-        assert bidResponse.ext?.warnings[PREBID]*.code == [999]
+        assert bidResponse.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
         assert bidResponse.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE(message)]
 
         and: "PBS should log an errors"
@@ -1086,7 +1087,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
         then: "PBS should log a warning"
         def message = "Price floor modelGroup default must be positive float, but was $requestModelGroupsSkipRate"
-        assert bidResponse.ext?.warnings[PREBID]*.code == [999]
+        assert bidResponse.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
         assert bidResponse.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE(message)]
 
         and: "PBS should log a errors"
@@ -1126,7 +1127,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
         then: "PBS should log a warning"
         def message = "Price floor rules data must be present"
-        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
         assert response.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE(message)]
 
         and: "PBS should log a errors"

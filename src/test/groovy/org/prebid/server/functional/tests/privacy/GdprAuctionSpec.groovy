@@ -11,6 +11,7 @@ import org.prebid.server.functional.model.pricefloors.Country
 import org.prebid.server.functional.model.request.auction.DistributionChannel
 import org.prebid.server.functional.model.request.auction.Regs
 import org.prebid.server.functional.model.request.auction.RegsExt
+import org.prebid.server.functional.model.response.BidderErrorCode
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.BogusConsent
@@ -23,7 +24,6 @@ import java.time.Instant
 import static org.prebid.server.functional.model.ChannelType.PBJS
 import static org.prebid.server.functional.model.ChannelType.WEB
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
-
 import static org.prebid.server.functional.model.config.AccountMetricsVerbosityLevel.DETAILED
 import static org.prebid.server.functional.model.config.Purpose.P1
 import static org.prebid.server.functional.model.config.Purpose.P2
@@ -336,7 +336,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         def response = privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain warning"
-        assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
+        assert response.ext?.warnings[ErrorType.PREBID]*.code == [BidderErrorCode.GENERIC]
         assert response.ext?.warnings[ErrorType.PREBID]*.message ==
                 ["Unknown tcfPolicyVersion ${invalidTcfPolicyVersion}, defaulting to gvlSpecificationVersion=3" as String]
 

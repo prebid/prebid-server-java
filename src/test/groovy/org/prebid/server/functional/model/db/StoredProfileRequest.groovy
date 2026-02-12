@@ -6,13 +6,13 @@ import jakarta.persistence.Convert
 import jakarta.persistence.Entity
 import jakarta.persistence.Id
 import jakarta.persistence.Table
+import org.prebid.server.functional.model.db.typeconverter.BidRequestConfigTypeConverter
 import org.prebid.server.functional.model.db.typeconverter.ProfileMergePrecedenceConvert
 import org.prebid.server.functional.model.db.typeconverter.ProfileTypeConvert
-import org.prebid.server.functional.model.db.typeconverter.BidRequestConfigTypeConverter
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.profile.ProfileMergePrecedence
-import org.prebid.server.functional.model.request.profile.RequestProfile
 import org.prebid.server.functional.model.request.profile.ProfileType
+import org.prebid.server.functional.model.request.profile.RequestProfile
 
 @Entity
 @Table(name = "profiles")

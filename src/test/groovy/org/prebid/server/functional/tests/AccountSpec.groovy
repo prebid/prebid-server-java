@@ -7,10 +7,12 @@ import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Site
-import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
 
-import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED
+import static org.apache.http.HttpStatus.SC_UNAUTHORIZED
+import static org.prebid.server.functional.model.response.BidderErrorCode.BAD_INPUT
+import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
+import static org.prebid.server.functional.model.response.auction.NoBidResponse.UNKNOWN_ERROR
 
 class AccountSpec extends BaseSpec {
 
@@ -30,12 +32,14 @@ class AccountSpec extends BaseSpec {
         }
 
         when: "PBS processes auction request"
-        pbsService.sendAuctionRequest(bidRequest)
+        def response = pbsService.sendAuctionRequest(bidRequest, SC_UNAUTHORIZED)
 
         then: "PBS should reject the entire auction"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == UNAUTHORIZED.code()
-        assert exception.responseBody == "Account $accountId is inactive"
+        assert response.noBidResponse == UNKNOWN_ERROR
+        verifyAll(response.ext.errors[PREBID]) {
+            it.code == [BAD_INPUT]
+            it.errorMassage == ["Account $accountId is inactive"]
+        }
 
         where:
         enforceValidAccount << [true, false]
@@ -56,12 +60,14 @@ class AccountSpec extends BaseSpec {
         }
 
         when: "PBS processes auction request"
-        pbsService.sendAuctionRequest(bidRequest)
+        def response = pbsService.sendAuctionRequest(bidRequest, SC_UNAUTHORIZED)
 
         then: "Request should fail with an error"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == UNAUTHORIZED.code()
-        assert exception.responseBody == "Unauthorized account id: $accountId"
+        assert response.noBidResponse == UNKNOWN_ERROR
+        verifyAll(response.ext.errors[PREBID]) {
+            it.code == [BAD_INPUT]
+            it.errorMassage == ["Unauthorized account id: $accountId"]
+        }
 
         where:
         defaultAccountConfig << [null, AccountConfig.defaultAccountConfig]
@@ -79,12 +85,14 @@ class AccountSpec extends BaseSpec {
         }
 
         when: "PBS processes auction request"
-        pbsService.sendAuctionRequest(bidRequest)
+        def response = pbsService.sendAuctionRequest(bidRequest, SC_UNAUTHORIZED)
 
         then: "Request should fail with an error"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == UNAUTHORIZED.code()
-        assert exception.responseBody == "Unauthorized account id: "
+        assert response.noBidResponse == UNKNOWN_ERROR
+        verifyAll(response.ext.errors[PREBID]) {
+            it.code == [BAD_INPUT]
+            it.errorMassage == ["Unauthorized account id: "]
+        }
 
         where:
         defaultAccountConfig << [null, AccountConfig.defaultAccountConfig]
@@ -137,13 +145,14 @@ class AccountSpec extends BaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        pbsService.sendAmpRequest(ampRequest)
+        def response = pbsService.sendAmpRequest(ampRequest, SC_UNAUTHORIZED)
 
         then: "Request should fail with an error"
-        def exception = thrown(PrebidServerException)
         def resolvedAccount = requestAccount ?: storedRequestAccount
-        assert exception.statusCode == UNAUTHORIZED.code()
-        assert exception.responseBody == "Unauthorized account id: $resolvedAccount"
+        verifyAll(response.ext.errors[PREBID]) {
+            it.code == [BAD_INPUT]
+            it.errorMassage == ["Unauthorized account id: $resolvedAccount"]
+        }
 
         where:
         defaultAccountConfig               || requestAccount        || storedRequestAccount
@@ -175,12 +184,13 @@ class AccountSpec extends BaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        pbsService.sendAmpRequest(ampRequest)
+        def response = pbsService.sendAmpRequest(ampRequest, SC_UNAUTHORIZED)
 
         then: "Request should fail with an error"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == UNAUTHORIZED.code()
-        assert exception.responseBody == "Unauthorized account id: "
+        verifyAll(response.ext.errors[PREBID]) {
+            it.code == [BAD_INPUT]
+            it.errorMassage == ["Unauthorized account id: "]
+        }
 
         where:
         defaultAccountConfig << [null, AccountConfig.defaultAccountConfig]

@@ -19,6 +19,7 @@ import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.model.request.auction.UserExt
 import org.prebid.server.functional.model.request.auction.UserExtPrebid
 import org.prebid.server.functional.model.request.cookiesync.CookieSyncRequest
+import org.prebid.server.functional.model.response.BidderErrorCode
 import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
@@ -321,7 +322,7 @@ class BidderInsensitiveCaseSpec extends BaseSpec {
         assert response.seatbid.isEmpty()
 
         and: "Response should contain error"
-        assert response.ext?.warnings[ErrorType.GENERIC_CAMEL_CASE]*.code == [2]
+        assert response.ext?.warnings[ErrorType.GENERIC_CAMEL_CASE]*.code == [BidderErrorCode.BAD_INPUT]
         assert response.ext?.warnings[ErrorType.GENERIC_CAMEL_CASE]*.message ==
                 ["Bidder does not support any media types."]
     }

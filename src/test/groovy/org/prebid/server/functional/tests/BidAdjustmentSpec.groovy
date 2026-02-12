@@ -17,16 +17,16 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.VideoPlacementSubtypes
 import org.prebid.server.functional.model.request.auction.VideoPlcmtSubtype
+import org.prebid.server.functional.model.response.BidderErrorCode
 import org.prebid.server.functional.model.response.auction.BidExt
 import org.prebid.server.functional.model.response.auction.BidResponse
-import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.PbsConfig
 import org.prebid.server.functional.testcontainers.scaffolding.CurrencyConversion
 import org.prebid.server.functional.util.CurrencyUtil
 import org.prebid.server.functional.util.PBSUtils
 
-import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
+import static org.apache.http.HttpStatus.SC_BAD_REQUEST
 import static org.prebid.server.functional.model.Currency.EUR
 import static org.prebid.server.functional.model.Currency.GBP
 import static org.prebid.server.functional.model.Currency.USD
@@ -51,6 +51,7 @@ import static org.prebid.server.functional.model.request.auction.DistributionCha
 import static org.prebid.server.functional.model.request.auction.VideoPlacementSubtypes.IN_STREAM as IN_PLACEMENT_STREAM
 import static org.prebid.server.functional.model.request.auction.VideoPlcmtSubtype.IN_STREAM as IN_PLCMT_STREAM
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
+import static org.prebid.server.functional.model.response.auction.NoBidResponse.UNKNOWN_ERROR
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 import static org.prebid.server.functional.util.PBSUtils.getRandomDecimal
 
@@ -187,13 +188,14 @@ class BidAdjustmentSpec extends BaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
-        pbsService.sendAuctionRequest(bidRequest)
+        def response = pbsService.sendAuctionRequest(bidRequest, SC_BAD_REQUEST)
 
         then: "PBS should fail the request"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == BAD_REQUEST.code()
-        assert exception.responseBody.contains("Invalid request format: request.ext.prebid.bidadjustmentfactors.$bidderName.value must be a positive number")
-
+        assert response.noBidResponse == UNKNOWN_ERROR
+        verifyAll(response.ext.errors[PREBID]) {
+            it.code == [BidderErrorCode.GENERIC]
+            it.errorMassage.any { it.contains("Invalid request format: request.ext.prebid.bidadjustmentfactors.$bidderName.value must be a positive number") }
+        }
         where:
         bidAdjustmentFactor << [MIN_ADJUST_VALUE, PBSUtils.randomNegativeNumber]
     }
@@ -886,7 +888,7 @@ class BidAdjustmentSpec extends BaseSpec {
         and: "Should add a warning when in debug mode"
         def errorMessage = "bid adjustment from request was invalid: the found rule [adjtype=${adjustmentType}, " +
                 "value=${ruleValue}, currency=${currency}] in ${mediaType.value}.generic.* is invalid" as String
-        assert response.ext.warnings[PREBID]?.code == [999]
+        assert response.ext.warnings[PREBID]?.code == [BidderErrorCode.GENERIC]
         assert response.ext.warnings[PREBID]?.message == [errorMessage]
 
         and: "Original bid price and currency should be presented in bid.ext"
@@ -1065,7 +1067,7 @@ class BidAdjustmentSpec extends BaseSpec {
         and: "Should add a warning when in debug mode"
         def errorMessage = "bid adjustment from request was invalid: the found rule [adjtype=${adjustmentType}, " +
                 "value=${adjustmentPrice}, currency=null] in banner.generic.* is invalid" as String
-        assert response.ext.warnings[PREBID]?.code == [999]
+        assert response.ext.warnings[PREBID]?.code == [BidderErrorCode.GENERIC]
         assert response.ext.warnings[PREBID]?.message == [errorMessage]
 
         and: "Original bid price and currency should be presented in bid.ext"
@@ -1165,7 +1167,7 @@ class BidAdjustmentSpec extends BaseSpec {
         and: "Should add a warning when in debug mode"
         def errorMessage = "bid adjustment from request was invalid: the found rule [adjtype=UNKNOWN, " +
                 "value=$adjustmentPrice, currency=$currency] in banner.generic.* is invalid" as String
-        assert response.ext.warnings[PREBID]?.code == [999]
+        assert response.ext.warnings[PREBID]?.code == [BidderErrorCode.GENERIC]
         assert response.ext.warnings[PREBID]?.message == [errorMessage]
 
         and: "Original bid price and currency should be presented in bid.ext"

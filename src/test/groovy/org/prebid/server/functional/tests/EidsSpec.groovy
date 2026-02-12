@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests
 
+
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.bidder.Openx
 import org.prebid.server.functional.model.request.auction.BidRequest
@@ -10,10 +11,10 @@ import org.prebid.server.functional.model.request.auction.Uid
 import org.prebid.server.functional.model.request.auction.UidExt
 import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.model.request.auction.UserExt
-import org.prebid.server.functional.service.PrebidServerException
+import org.prebid.server.functional.model.response.BidderErrorCode
 import org.prebid.server.functional.util.PBSUtils
 
-import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
+import static org.apache.http.HttpStatus.SC_BAD_REQUEST
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC_CAMEL_CASE
@@ -24,6 +25,7 @@ import static org.prebid.server.functional.model.bidder.BidderName.WILDCARD
 import static org.prebid.server.functional.model.request.auction.DebugCondition.DISABLED
 import static org.prebid.server.functional.model.request.auction.DebugCondition.ENABLED
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
+import static org.prebid.server.functional.model.response.auction.NoBidResponse.UNKNOWN_ERROR
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 
 class EidsSpec extends BaseSpec {
@@ -141,7 +143,7 @@ class EidsSpec extends BaseSpec {
         assert !bidderRequest.user.eids
 
         and: "Bid response should contain warning"
-        assert bidResponse.ext.warnings[PREBID]?.code == [999]
+        assert bidResponse.ext.warnings[PREBID]?.code == [BidderErrorCode.GENERIC]
         assert bidResponse.ext.warnings[PREBID]?.message ==
                 ["request.ext.prebid.data.eidPermissions[].bidders[] unrecognized biddercode: '$UNKNOWN'"]
 
@@ -231,12 +233,15 @@ class EidsSpec extends BaseSpec {
         }
 
         when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = defaultPbsService.sendAuctionRequest(bidRequest, SC_BAD_REQUEST)
 
         then: "PBS should throw error"
-        def exception = thrown(PrebidServerException)
-        assert exception.responseBody == "Invalid request format: request.ext.prebid.data.eidpermissions[].bidders[] " +
-                "required values but was empty or null"
+        assert response.noBidResponse == UNKNOWN_ERROR
+        verifyAll(response.ext.errors[PREBID]) {
+            it.code == [BidderErrorCode.GENERIC]
+            it.errorMassage == ["Invalid request format: request.ext.prebid.data.eidpermissions[].bidders[] " +
+                                        "required values but was empty or null"]
+        }
 
         where:
         eidsBidder << [[WILDCARD], [], null]
@@ -288,7 +293,7 @@ class EidsSpec extends BaseSpec {
         assert bidderRequest.user.eids.uids.id.flatten() == [validUidId]
 
         and: "Bid response should contain warning"
-        assert bidResponse.ext.warnings[PREBID]?.code == [999]
+        assert bidResponse.ext.warnings[PREBID]?.code == [BidderErrorCode.GENERIC]
         assert bidResponse.ext.warnings[PREBID]?.message ==
                 ["removed EID ${sourceId} due to empty ID" as String]
 
@@ -313,7 +318,7 @@ class EidsSpec extends BaseSpec {
         assert !bidderRequest.user.eids
 
         and: "Bid response should contain warnings"
-        assert bidResponse.ext.warnings[PREBID]?.code == [999, 999, 999]
+        assert bidResponse.ext.warnings[PREBID]?.code == [BidderErrorCode.GENERIC, BidderErrorCode.GENERIC, BidderErrorCode.GENERIC]
         assert bidResponse.ext.warnings[PREBID]?.message ==
                 ["removed EID ${sourceId} due to empty ID" as String,
                  "removed EID ${sourceId} due to empty ID" as String,
@@ -584,13 +589,15 @@ class EidsSpec extends BaseSpec {
         }
 
         when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = defaultPbsService.sendAuctionRequest(bidRequest, SC_BAD_REQUEST)
 
         then: "PBS should throw error"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == BAD_REQUEST.code()
-        assert exception.responseBody == "Invalid request format: " +
-                "Missing required parameter(s) in request.ext.prebid.data.eidPermissions[]. " +
-                "Either one or a combination of inserter, source, matcher, or mm should be defined."
+        assert response.noBidResponse == UNKNOWN_ERROR
+        verifyAll(response.ext.errors[PREBID]) {
+            it.code == [BidderErrorCode.GENERIC]
+            it.errorMassage == ["Invalid request format: " +
+                                        "Missing required parameter(s) in request.ext.prebid.data.eidPermissions[]. " +
+                                        "Either one or a combination of inserter, source, matcher, or mm should be defined."]
+        }
     }
 }

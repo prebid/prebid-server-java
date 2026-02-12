@@ -4,6 +4,7 @@ import org.prebid.server.functional.model.config.AccountPriceFloorsConfig
 import org.prebid.server.functional.model.config.PriceFloorsFetch
 import org.prebid.server.functional.model.pricefloors.PriceFloorData
 import org.prebid.server.functional.model.request.auction.ImpExtPrebidFloors
+import org.prebid.server.functional.model.response.BidderErrorCode
 import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
@@ -207,13 +208,13 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS should log an error"
-        assert response.ext?.errors[ErrorType.GENERIC]*.code == [999]
+        assert response.ext?.errors[ErrorType.GENERIC]*.code == [BidderErrorCode.GENERIC]
         assert response.ext?.errors[ErrorType.GENERIC]*.message ==
                 ["Unable to convert from currency $bidRequest.ext.prebid.floors.floorMinCur to desired ad server" +
                          " currency ${floorsResponse.modelGroups[0].currency}" as String]
 
         and: "PBS should log a warning"
-        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
         assert response.ext?.warnings[PREBID]*.message ==
                 ["Error occurred while resolving floor for imp: ${bidRequest.imp[0].id}, cause: Unable " +
                          "to convert from currency $requestFloorCur to desired ad server currency $floorsProviderCur"]
@@ -402,7 +403,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         def response = currencyFloorsPbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS should log a warning"
-        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
         assert response.ext?.warnings[PREBID]*.message ==
                 ["Error occurred while resolving floor for imp: ${bidRequest.imp[0].id}, cause: Unable " +
                          "to convert from currency $requestFloorCur to desired ad server currency $floorsProviderCur"]
@@ -463,7 +464,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         def response = currencyFloorsPbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS should log a warning"
-        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
         assert response.ext?.warnings[PREBID]*.message ==
                 ["imp[].ext.prebid.floors.floorMinCur and ext.prebid.floors.floorMinCur has different values"]
 

@@ -10,10 +10,10 @@ import org.prebid.server.functional.model.request.auction.PrebidCacheSettings
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
 
-import static org.prebid.server.functional.model.response.auction.MediaType.BANNER
-import static org.prebid.server.functional.model.response.auction.MediaType.VIDEO
-import static org.prebid.server.functional.model.response.auction.MediaType.NATIVE
 import static org.prebid.server.functional.model.response.auction.MediaType.AUDIO
+import static org.prebid.server.functional.model.response.auction.MediaType.BANNER
+import static org.prebid.server.functional.model.response.auction.MediaType.NATIVE
+import static org.prebid.server.functional.model.response.auction.MediaType.VIDEO
 
 class BidExpResponseSpec extends BaseSpec {
 

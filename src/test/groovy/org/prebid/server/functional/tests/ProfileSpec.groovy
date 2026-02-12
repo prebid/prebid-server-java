@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests
 
+
 import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountProfilesConfigs
@@ -17,31 +18,33 @@ import org.prebid.server.functional.model.request.auction.Format
 import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.ImpExt
 import org.prebid.server.functional.model.request.auction.ImpExtPrebid
+import org.prebid.server.functional.model.request.auction.Site
 import org.prebid.server.functional.model.request.auction.StoredAuctionResponse
 import org.prebid.server.functional.model.request.auction.StoredBidResponse
-import org.prebid.server.functional.model.request.profile.Profile
 import org.prebid.server.functional.model.request.profile.ImpProfile
+import org.prebid.server.functional.model.request.profile.Profile
 import org.prebid.server.functional.model.request.profile.ProfileMergePrecedence
-import org.prebid.server.functional.model.request.profile.RequestProfile
 import org.prebid.server.functional.model.request.profile.ProfileType
-import org.prebid.server.functional.model.request.auction.Site
+import org.prebid.server.functional.model.request.profile.RequestProfile
+import org.prebid.server.functional.model.response.BidderErrorCode
 import org.prebid.server.functional.model.response.auction.BidResponse
-import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.model.response.auction.SeatBid
 import org.prebid.server.functional.repository.dao.ProfileImpDao
 import org.prebid.server.functional.repository.dao.ProfileRequestDao
-import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
 import org.prebid.server.functional.util.PBSUtils
 import org.testcontainers.images.builder.Transferable
 import spock.lang.PendingFeature
 
+import static org.apache.http.HttpStatus.SC_BAD_REQUEST
 import static org.prebid.server.functional.model.AccountStatus.ACTIVE
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.request.profile.ProfileMergePrecedence.PROFILE
 import static org.prebid.server.functional.model.request.profile.ProfileMergePrecedence.REQUEST
+import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 import static org.prebid.server.functional.model.response.auction.MediaType.VIDEO
+import static org.prebid.server.functional.model.response.auction.NoBidResponse.UNKNOWN_ERROR
 
 class ProfileSpec extends BaseSpec {
 
@@ -637,8 +640,8 @@ class ProfileSpec extends BaseSpec {
         def response = pbsWithStoredProfiles.sendAuctionRequest(bidRequest)
 
         then: "PBS should emit proper warning"
-        assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
-        assert response.ext?.warnings[ErrorType.PREBID]*.message == [LIMIT_ERROR_MESSAGE]
+        assert response.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
+        assert response.ext?.warnings[PREBID]*.message == [LIMIT_ERROR_MESSAGE]
 
         and: "Response should contain error"
         assert !response.ext?.errors
@@ -808,7 +811,7 @@ class ProfileSpec extends BaseSpec {
         def response = pbsWithStoredProfiles.sendAuctionRequest(bidRequest)
 
         then: "PBS should emit proper warning"
-        assert response.ext?.warnings[ErrorType.PREBID]*.message.contains(LIMIT_ERROR_MESSAGE)
+        assert response.ext?.warnings[PREBID]*.message.contains(LIMIT_ERROR_MESSAGE)
 
         and: "Response should contain error"
         assert !response.ext?.errors
@@ -928,12 +931,14 @@ class ProfileSpec extends BaseSpec {
         }
 
         when: "PBS processes auction request"
-        prebidServerService.sendAuctionRequest(bidRequest)
+        def response = prebidServerService.sendAuctionRequest(bidRequest, SC_BAD_REQUEST)
 
         then: "PBs should throw error due to invalid profile"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == 400
-        assert exception.responseBody == INVALID_REQUEST_PREFIX + NO_IMP_PROFILE_MESSAGE.formatted(invalidProfileId)
+        assert response.noBidResponse == UNKNOWN_ERROR
+        verifyAll(response.ext.errors[PREBID]) {
+            it.code == [BidderErrorCode.GENERIC]
+            it.errorMassage == [INVALID_REQUEST_PREFIX + NO_IMP_PROFILE_MESSAGE.formatted(invalidProfileId)]
+        }
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(PROFILES_CONFIG + ['auction.profiles.fail-on-unknown': 'true'])
@@ -954,12 +959,14 @@ class ProfileSpec extends BaseSpec {
         }
 
         when: "PBS processes auction request"
-        prebidServerService.sendAuctionRequest(bidRequest)
+        def response = prebidServerService.sendAuctionRequest(bidRequest, SC_BAD_REQUEST)
 
         then: "PBs should throw error due to invalid profile"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == 400
-        assert exception.responseBody == INVALID_REQUEST_PREFIX + NO_IMP_PROFILE_MESSAGE.formatted(invalidProfileId)
+        assert response.noBidResponse == UNKNOWN_ERROR
+        verifyAll(response.ext.errors[PREBID]) {
+            it.code == [BidderErrorCode.GENERIC]
+            it.errorMassage == [INVALID_REQUEST_PREFIX + NO_IMP_PROFILE_MESSAGE.formatted(invalidProfileId)]
+        }
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(PROFILES_CONFIG + ['auction.profiles.fail-on-unknown': null])
@@ -986,12 +993,14 @@ class ProfileSpec extends BaseSpec {
         flushMetrics(pbsWithStoredProfiles)
 
         when: "PBS processes auction request"
-        pbsWithStoredProfiles.sendAuctionRequest(bidRequest)
+        def response = pbsWithStoredProfiles.sendAuctionRequest(bidRequest, SC_BAD_REQUEST)
 
         then: "PBs should throw error due to invalid profile"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == 400
-        assert exception.responseBody == INVALID_REQUEST_PREFIX + NO_IMP_PROFILE_MESSAGE.formatted(invalidProfileId)
+        assert response.noBidResponse == UNKNOWN_ERROR
+        verifyAll(response.ext.errors[PREBID]) {
+            it.code == [BidderErrorCode.GENERIC]
+            it.errorMassage == [INVALID_REQUEST_PREFIX + NO_IMP_PROFILE_MESSAGE.formatted(invalidProfileId)]
+        }
 
         and: "Missing metric should increments"
         def metrics = pbsWithStoredProfiles.sendCollectedMetricsRequest()
@@ -1102,12 +1111,14 @@ class ProfileSpec extends BaseSpec {
         profileImpDao.save(StoredProfileImp.getProfile(impProfile))
 
         when: "PBS processes auction request"
-        pbsWithStoredProfiles.sendAuctionRequest(bidRequest)
+        def response = pbsWithStoredProfiles.sendAuctionRequest(bidRequest, SC_BAD_REQUEST)
 
         then: "PBs should throw error due to invalid request"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == 400
-        assert exception.responseBody == 'Invalid request format: request.imp[0].banner.format[0] must define a valid "h" and "w" properties'
+        assert response.noBidResponse == UNKNOWN_ERROR
+        verifyAll(response.ext.errors[PREBID]) {
+            it.code == [BidderErrorCode.GENERIC]
+            it.errorMassage == ['Invalid request format: request.imp[0].banner.format[0] must define a valid "h" and "w" properties']
+        }
     }
 
     def "PBS shouldn't emit error or warnings when bidRequest contains multiple imps with same profile"() {
@@ -1190,8 +1201,8 @@ class ProfileSpec extends BaseSpec {
         def response = pbsWithStoredProfiles.sendAuctionRequest(bidRequest)
 
         then: "PBS should emit proper warning"
-        assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
-        assert response.ext?.warnings[ErrorType.PREBID]*.message == [LIMIT_ERROR_MESSAGE]
+        assert response.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
+        assert response.ext?.warnings[PREBID]*.message == [LIMIT_ERROR_MESSAGE]
 
         and: "Response should contain error"
         assert !response.ext?.errors
@@ -1234,8 +1245,8 @@ class ProfileSpec extends BaseSpec {
         def response = pbsWithStoredProfiles.sendAuctionRequest(bidRequest)
 
         then: "PBS should emit proper warning"
-        assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
-        assert response.ext?.warnings[ErrorType.PREBID]*.message == [NO_PROFILE_MESSAGE.formatted(requestProfile.id)]
+        assert response.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
+        assert response.ext?.warnings[PREBID]*.message == [NO_PROFILE_MESSAGE.formatted(requestProfile.id)]
 
         and: "Response should contain error"
         assert !response.ext?.errors
@@ -1288,8 +1299,8 @@ class ProfileSpec extends BaseSpec {
         def response = pbsWithStoredProfiles.sendAuctionRequest(bidRequest)
 
         then: "PBS should emit proper warning"
-        assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
-        assert response.ext?.warnings[ErrorType.PREBID]*.message == [NO_PROFILE_MESSAGE.formatted(requestProfile.id)]
+        assert response.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
+        assert response.ext?.warnings[PREBID]*.message == [NO_PROFILE_MESSAGE.formatted(requestProfile.id)]
 
         and: "Response should contain error"
         assert !response.ext?.errors
@@ -1337,8 +1348,8 @@ class ProfileSpec extends BaseSpec {
         def response = pbsWithStoredProfiles.sendAuctionRequest(bidRequest)
 
         then: "PBS should emit proper warning"
-        assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
-        assert response.ext?.warnings[ErrorType.PREBID]*.message == [NO_IMP_PROFILE_MESSAGE.formatted(invalidProfileId)]
+        assert response.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
+        assert response.ext?.warnings[PREBID]*.message == [NO_IMP_PROFILE_MESSAGE.formatted(invalidProfileId)]
 
         and: "Response should contain error"
         assert !response.ext?.errors
@@ -1369,8 +1380,8 @@ class ProfileSpec extends BaseSpec {
         def response = pbsWithStoredProfiles.sendAuctionRequest(bidRequest)
 
         then: "PBS should emit proper warning"
-        assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
-        assert response.ext?.warnings[ErrorType.PREBID]*.message == [NO_REQUEST_PROFILE_MESSAGE.formatted(invalidProfileId)]
+        assert response.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
+        assert response.ext?.warnings[PREBID]*.message == [NO_REQUEST_PROFILE_MESSAGE.formatted(invalidProfileId)]
 
         and: "Response should contain error"
         assert !response.ext?.errors
@@ -1417,8 +1428,8 @@ class ProfileSpec extends BaseSpec {
         def response = pbsWithStoredProfiles.sendAuctionRequest(bidRequest)
 
         then: "PBS should emit proper warning"
-        assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
-        assert response.ext?.warnings[ErrorType.PREBID]*.message == [NO_IMP_PROFILE_MESSAGE.formatted(invalidProfile.id)]
+        assert response.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
+        assert response.ext?.warnings[PREBID]*.message == [NO_IMP_PROFILE_MESSAGE.formatted(invalidProfile.id)]
 
         and: "Response should contain error"
         assert !response.ext?.errors
@@ -1457,8 +1468,8 @@ class ProfileSpec extends BaseSpec {
         def response = pbsWithStoredProfiles.sendAuctionRequest(bidRequest)
 
         then: "PBS should emit proper warning"
-        assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
-        assert response.ext?.warnings[ErrorType.PREBID]*.message == [NO_REQUEST_PROFILE_MESSAGE.formatted(invalidProfileId)]
+        assert response.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
+        assert response.ext?.warnings[PREBID]*.message == [NO_REQUEST_PROFILE_MESSAGE.formatted(invalidProfileId)]
 
         and: "Response should contain error"
         assert !response.ext?.errors
@@ -1500,12 +1511,14 @@ class ProfileSpec extends BaseSpec {
 
     def "PBS should throw exception when profiles are not configured and request contain profileId"() {
         when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(requestWithProfile)
+        def response = defaultPbsService.sendAuctionRequest(requestWithProfile, SC_BAD_REQUEST)
 
         then: "PBs should throw error due to invalid profile config"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == 400
-        assert exception.responseBody == INVALID_REQUEST_PREFIX + CONFIG_ERROR_MESSAGE
+        assert response.noBidResponse == UNKNOWN_ERROR
+        verifyAll(response.ext.errors[PREBID]) {
+            it.code == [BidderErrorCode.GENERIC]
+            it.errorMassage == [INVALID_REQUEST_PREFIX + CONFIG_ERROR_MESSAGE]
+        }
 
         where:
         requestWithProfile << [
@@ -1538,12 +1551,14 @@ class ProfileSpec extends BaseSpec {
         }
 
         when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(requestWithProfile)
+        def response = defaultPbsService.sendAuctionRequest(requestWithProfile, SC_BAD_REQUEST)
 
         then: "PBs should throw error due to invalid profile config"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == 400
-        assert exception.responseBody == INVALID_REQUEST_PREFIX + CONFIG_ERROR_MESSAGE
+        assert response.noBidResponse == UNKNOWN_ERROR
+        verifyAll(response.ext.errors[PREBID]) {
+            it.code == [BidderErrorCode.GENERIC]
+            it.errorMassage == [INVALID_REQUEST_PREFIX + CONFIG_ERROR_MESSAGE]
+        }
 
         cleanup: "Stop and remove pbs container"
         pbsContainer.stop()

@@ -20,7 +20,6 @@ import org.prebid.server.functional.model.request.auction.Condition
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.Geo
 import org.prebid.server.functional.model.request.auction.RegsExt
-import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.gpp.v1.UsCaV1Consent
 import org.prebid.server.functional.util.privacy.gpp.v1.UsCoV1Consent
@@ -32,7 +31,7 @@ import org.prebid.server.functional.util.privacy.gpp.v2.UsNatV2Consent
 
 import java.time.Instant
 
-import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED
+import static org.apache.http.HttpStatus.SC_UNAUTHORIZED
 import static org.prebid.server.functional.model.config.ConfigCase.CAMEL_CASE
 import static org.prebid.server.functional.model.config.ConfigCase.KEBAB_CASE
 import static org.prebid.server.functional.model.config.ConfigCase.SNAKE_CASE
@@ -79,6 +78,9 @@ import static org.prebid.server.functional.model.request.auction.PrivacyModule.I
 import static org.prebid.server.functional.model.request.auction.PrivacyModule.IAB_US_CUSTOM_LOGIC
 import static org.prebid.server.functional.model.request.auction.PrivacyModule.IAB_US_GENERAL
 import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
+import static org.prebid.server.functional.model.response.BidderErrorCode.BAD_INPUT
+import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
+import static org.prebid.server.functional.model.response.auction.NoBidResponse.UNKNOWN_ERROR
 import static org.prebid.server.functional.util.privacy.model.State.ALABAMA
 import static org.prebid.server.functional.util.privacy.model.State.ONTARIO
 
@@ -814,12 +816,14 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(genericBidRequest)
+        def response = activityPbsService.sendAuctionRequest(genericBidRequest, SC_UNAUTHORIZED)
 
         then: "Response should contain error"
-        def error = thrown(PrebidServerException)
-        assert error.statusCode == UNAUTHORIZED.code()
-        assert error.responseBody == "Unauthorized account id: ${accountId}"
+        assert response.noBidResponse == UNKNOWN_ERROR
+        verifyAll(response.ext.errors[PREBID]) {
+            it.code == [BAD_INPUT]
+            it.errorMassage == ["Unauthorized account id: ${accountId}"]
+        }
     }
 
     def "PBS auction call when privacy regulation don't match custom requirement should call to bidder"() {
@@ -1606,12 +1610,13 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        activityPbsService.sendAmpRequest(ampRequest)
+        def response = activityPbsService.sendAmpRequest(ampRequest, SC_UNAUTHORIZED)
 
         then: "Response should contain error"
-        def error = thrown(PrebidServerException)
-        assert error.statusCode == UNAUTHORIZED.code()
-        assert error.responseBody == "Unauthorized account id: ${accountId}"
+        verifyAll(response.ext.errors[PREBID]) {
+            it.code == [BAD_INPUT]
+            it.errorMassage == ["Unauthorized account id: ${accountId}"]
+        }
     }
 
     def "PBS amp call when privacy regulation don't match custom requirement should call to bidder"() {

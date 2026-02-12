@@ -24,6 +24,7 @@ import org.prebid.server.functional.model.request.auction.StoredAuctionResponse
 import org.prebid.server.functional.model.request.auction.StoredBidResponse
 import org.prebid.server.functional.model.request.auction.Targeting
 import org.prebid.server.functional.model.request.auction.Video
+import org.prebid.server.functional.model.response.BidderErrorCode
 import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidExt
 import org.prebid.server.functional.model.response.auction.BidMediaType
@@ -32,7 +33,6 @@ import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.model.response.auction.MediaType
 import org.prebid.server.functional.model.response.auction.Prebid
 import org.prebid.server.functional.model.response.auction.SeatBid
-import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.PbsConfig
 import org.prebid.server.functional.testcontainers.scaffolding.Bidder
@@ -41,14 +41,16 @@ import org.prebid.server.functional.util.PBSUtils
 import java.math.RoundingMode
 import java.nio.charset.StandardCharsets
 
-import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
+import static org.apache.http.HttpStatus.SC_BAD_REQUEST
 import static org.prebid.server.functional.model.AccountStatus.ACTIVE
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.bidder.BidderName.WILDCARD
 import static org.prebid.server.functional.model.config.PriceGranularityType.UNKNOWN
+import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 import static org.prebid.server.functional.model.response.auction.ErrorType.TARGETING
 import static org.prebid.server.functional.model.response.auction.MediaType.VIDEO
+import static org.prebid.server.functional.model.response.auction.NoBidResponse.UNKNOWN_ERROR
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 
 class TargetingSpec extends BaseSpec {
@@ -1159,12 +1161,14 @@ class TargetingSpec extends BaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction request"
-        pbsWithDefaultTargetingLength.sendAuctionRequest(bidRequest)
+        def response = pbsWithDefaultTargetingLength.sendAuctionRequest(bidRequest, SC_BAD_REQUEST)
 
         then: "Request should fail with an error"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == BAD_REQUEST.code()
-        assert exception.responseBody == 'Invalid request format: Price granularity error: empty granularity definition supplied'
+        assert response.noBidResponse == UNKNOWN_ERROR
+        verifyAll(response.ext.errors[PREBID]) {
+            it.code == [BidderErrorCode.GENERIC]
+            it.errorMassage == ['Invalid request format: Price granularity error: empty granularity definition supplied']
+        }
     }
 
     def "PBS auction should prioritize price granularity from original request over account config"() {
@@ -1333,12 +1337,13 @@ class TargetingSpec extends BaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction request"
-        pbsWithDefaultTargetingLength.sendAmpRequest(ampRequest)
+        def response = pbsWithDefaultTargetingLength.sendAmpRequest(ampRequest, SC_BAD_REQUEST)
 
         then: "Request should fail with an error"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == BAD_REQUEST.code()
-        assert exception.responseBody == 'Invalid request format: Price granularity error: empty granularity definition supplied'
+        verifyAll(response.ext.errors[PREBID]) {
+            it.code == [BidderErrorCode.GENERIC]
+            it.errorMassage == ['Invalid request format: Price granularity error: empty granularity definition supplied']
+        }
     }
 
     def "PBS amp should include price granularity from account config when original request doesn't contain price granularity"() {

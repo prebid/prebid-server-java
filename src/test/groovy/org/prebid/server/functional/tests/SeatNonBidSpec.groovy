@@ -23,7 +23,6 @@ import static org.mockserver.model.HttpStatusCode.OK_200
 import static org.mockserver.model.HttpStatusCode.PROCESSING_102
 import static org.mockserver.model.HttpStatusCode.SERVICE_UNAVAILABLE_503
 import static org.prebid.server.functional.model.AccountStatus.ACTIVE
-
 import static org.prebid.server.functional.model.config.BidValidationEnforcement.ENFORCE
 import static org.prebid.server.functional.model.request.auction.DebugCondition.DISABLED
 import static org.prebid.server.functional.model.request.auction.DebugCondition.ENABLED
@@ -32,11 +31,10 @@ import static org.prebid.server.functional.model.request.auction.SecurityLevel.S
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.ERROR_BIDDER_UNREACHABLE
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.ERROR_INVALID_BID_RESPONSE
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.ERROR_NO_BID
+import static org.prebid.server.functional.model.response.auction.BidRejectionReason.ERROR_TIMED_OUT
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.REQUEST_BLOCKED_UNSUPPORTED_MEDIA_TYPE
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_NOT_SECURE
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE_SIZE
-import static org.prebid.server.functional.model.response.auction.BidRejectionReason.ERROR_TIMED_OUT
-import static org.prebid.server.functional.model.response.auction.ErrorType.GENERIC
 
 class SeatNonBidSpec extends BaseSpec {
 

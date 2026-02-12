@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests
 
+
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountBidValidationConfig
@@ -15,13 +16,14 @@ import org.prebid.server.functional.model.request.auction.Format
 import org.prebid.server.functional.model.request.auction.Native
 import org.prebid.server.functional.model.request.auction.StoredBidResponse
 import org.prebid.server.functional.model.request.auction.Video
+import org.prebid.server.functional.model.response.BidderErrorCode
 import org.prebid.server.functional.model.response.auction.Adm
 import org.prebid.server.functional.model.response.auction.BidResponse
-import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.PendingFeature
 import spock.lang.Shared
 
+import static org.apache.http.HttpStatus.SC_BAD_REQUEST
 import static org.prebid.server.functional.model.AccountStatus.ACTIVE
 import static org.prebid.server.functional.model.config.BidValidationEnforcement.ENFORCE
 import static org.prebid.server.functional.model.config.BidValidationEnforcement.SKIP
@@ -29,6 +31,8 @@ import static org.prebid.server.functional.model.config.BidValidationEnforcement
 import static org.prebid.server.functional.model.request.auction.SecurityLevel.NON_SECURE
 import static org.prebid.server.functional.model.request.auction.SecurityLevel.SECURE
 import static org.prebid.server.functional.model.response.auction.ErrorType.GENERIC
+import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
+import static org.prebid.server.functional.model.response.auction.NoBidResponse.UNKNOWN_ERROR
 
 class BidderFormatSpec extends BaseSpec {
 
@@ -50,7 +54,7 @@ class BidderFormatSpec extends BaseSpec {
         assert bidderRequest?.imp[0]?.banner?.format[0].height == bannerFormatHeight
 
         where:
-        bannerFormatWidth    | bannerFormatHeight
+        bannerFormatWidth     | bannerFormatHeight
         1                     | 1
         PBSUtils.randomNumber | PBSUtils.randomNumber
     }
@@ -62,16 +66,18 @@ class BidderFormatSpec extends BaseSpec {
         }
 
         when: "Requesting PBS auction"
-        defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = defaultPbsService.sendAuctionRequest(bidRequest, SC_BAD_REQUEST)
 
         then: "PBs should throw error due to banner.format{w.h} validation"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == 400
-        assert exception.responseBody == "Invalid request format: " +
-                "request.imp[0].banner.format[0] must define a valid \"h\" and \"w\" properties"
+        assert response.noBidResponse == UNKNOWN_ERROR
+        verifyAll(response.ext.errors[PREBID]) {
+            it.code == [BidderErrorCode.GENERIC]
+            it.errorMassage == ["Invalid request format: " +
+                                        "request.imp[0].banner.format[0] must define a valid \"h\" and \"w\" properties"]
+        }
 
         where:
-        bannerFormatWidth            | bannerFormatHeight
+        bannerFormatWidth             | bannerFormatHeight
         0                             | PBSUtils.randomNumber
         PBSUtils.randomNumber         | 0
         null                          | PBSUtils.randomNumber
@@ -87,17 +93,19 @@ class BidderFormatSpec extends BaseSpec {
         }
 
         when: "Requesting PBS auction"
-        defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = defaultPbsService.sendAuctionRequest(bidRequest, SC_BAD_REQUEST)
 
         then: "PBs should throw error due to banner.format{w.h} validation"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == 400
-        assert exception.responseBody == "Invalid request format: request.imp[0].banner.format[0] " +
-                "should define *either* {w, h} (for static size requirements) " +
-                "*or* {wmin, wratio, hratio} (for flexible sizes) to be non-zero positive"
+        assert response.noBidResponse == UNKNOWN_ERROR
+        verifyAll(response.ext.errors[PREBID]) {
+            it.code == [BidderErrorCode.GENERIC]
+            it.errorMassage == ["Invalid request format: request.imp[0].banner.format[0] " +
+                                        "should define *either* {w, h} (for static size requirements) " +
+                                        "*or* {wmin, wratio, hratio} (for flexible sizes) to be non-zero positive"]
+        }
 
         where:
-        bannerFormatWidth            | bannerFormatHeight
+        bannerFormatWidth             | bannerFormatHeight
         0                             | 0
         0                             | null
         0                             | PBSUtils.randomNegativeNumber
@@ -121,7 +129,7 @@ class BidderFormatSpec extends BaseSpec {
         assert bidderRequest?.imp[0]?.banner?.height == bannerFormatHeight
 
         where:
-        bannerFormatWidth    | bannerFormatHeight
+        bannerFormatWidth     | bannerFormatHeight
         1                     | 1
         PBSUtils.randomNumber | PBSUtils.randomNumber
     }
@@ -133,16 +141,18 @@ class BidderFormatSpec extends BaseSpec {
         }
 
         when: "Requesting PBS auction"
-        defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = defaultPbsService.sendAuctionRequest(bidRequest, SC_BAD_REQUEST)
 
-        then: "PBs should throw error due to banner{w.h} validation"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == 400
-        assert exception.responseBody == "Invalid request format: " +
-                "request.imp[0].banner has no sizes. Define \"w\" and \"h\", or include \"format\" elements"
+        then: "PBs should throw error due to banner.format{w.h} validation"
+        assert response.noBidResponse == UNKNOWN_ERROR
+        verifyAll(response.ext.errors[PREBID]) {
+            it.code == [BidderErrorCode.GENERIC]
+            it.errorMassage == ["Invalid request format: " +
+                                        "request.imp[0].banner has no sizes. Define \"w\" and \"h\", or include \"format\" elements"]
+        }
 
         where:
-        bannerFormatWidth            | bannerFormatHeight
+        bannerFormatWidth             | bannerFormatHeight
         0                             | 0
         0                             | PBSUtils.randomNumber
         PBSUtils.randomNumber         | 0
@@ -212,7 +222,7 @@ class BidderFormatSpec extends BaseSpec {
         assert !bidder.getBidderRequests(bidRequest.id)
 
         where:
-        accountCretiveMaxSize | configCreativeMaxSize | responseWidth    | responseHeight
+        accountCretiveMaxSize | configCreativeMaxSize | responseWidth     | responseHeight
         null                  | WARN.value            | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
         null                  | WARN.value            | RANDOM_NUMBER + 1 | RANDOM_NUMBER
         null                  | WARN.value            | RANDOM_NUMBER     | RANDOM_NUMBER + 1
@@ -270,7 +280,7 @@ class BidderFormatSpec extends BaseSpec {
         assert !bidder.getBidderRequests(bidRequest.id)
 
         where:
-        accountCretiveMaxSizeSnakeCase | accountCretiveMaxSize | configCreativeMaxSize | responseWidth    | responseHeight
+        accountCretiveMaxSizeSnakeCase | accountCretiveMaxSize | configCreativeMaxSize | responseWidth     | responseHeight
         null                           | null                  | SKIP.value            | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
         null                           | null                  | SKIP.value            | RANDOM_NUMBER + 1 | RANDOM_NUMBER
         null                           | null                  | SKIP.value            | RANDOM_NUMBER     | RANDOM_NUMBER + 1
@@ -341,7 +351,7 @@ class BidderFormatSpec extends BaseSpec {
         assert !bidder.getBidderRequests(bidRequest.id)
 
         where:
-        accountCretiveMaxSize | configCreativeMaxSize | responseWidth    | responseHeight
+        accountCretiveMaxSize | configCreativeMaxSize | responseWidth     | responseHeight
         null                  | ENFORCE.value         | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
         null                  | ENFORCE.value         | RANDOM_NUMBER + 1 | RANDOM_NUMBER
         null                  | ENFORCE.value         | RANDOM_NUMBER     | RANDOM_NUMBER + 1
@@ -451,7 +461,7 @@ class BidderFormatSpec extends BaseSpec {
         assert !bidder.getBidderRequests(bidRequest.id)
 
         where:
-        accountCretiveMaxSize | configCreativeMaxSize | responseWidth    | responseHeight
+        accountCretiveMaxSize | configCreativeMaxSize | responseWidth     | responseHeight
         null                  | ENFORCE.value         | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
         null                  | ENFORCE.value         | RANDOM_NUMBER + 1 | RANDOM_NUMBER
         null                  | ENFORCE.value         | RANDOM_NUMBER     | RANDOM_NUMBER + 1
@@ -528,7 +538,7 @@ class BidderFormatSpec extends BaseSpec {
         assert !bidder.getBidderRequests(bidRequest.id)
 
         where:
-        accountCretiveMaxSize | configCreativeMaxSize | responseWidth    | responseHeight
+        accountCretiveMaxSize | configCreativeMaxSize | responseWidth     | responseHeight
         ENFORCE               | WARN.value            | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
         ENFORCE               | WARN.value            | RANDOM_NUMBER + 1 | RANDOM_NUMBER
         ENFORCE               | WARN.value            | RANDOM_NUMBER     | RANDOM_NUMBER + 1

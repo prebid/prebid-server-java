@@ -58,8 +58,8 @@ import static org.prebid.server.functional.model.config.PurposeEnforcement.BASIC
 import static org.prebid.server.functional.model.config.PurposeEnforcement.FULL
 import static org.prebid.server.functional.model.config.PurposeEnforcement.NO
 import static org.prebid.server.functional.model.mock.services.vendorlist.VendorListResponse.getDefaultVendorListResponse
-import static org.prebid.server.functional.model.pricefloors.Country.USA
 import static org.prebid.server.functional.model.pricefloors.Country.BULGARIA
+import static org.prebid.server.functional.model.pricefloors.Country.USA
 import static org.prebid.server.functional.model.request.GppSectionId.US_CA_V1
 import static org.prebid.server.functional.model.request.GppSectionId.US_CO_V1
 import static org.prebid.server.functional.model.request.GppSectionId.US_CT_V1

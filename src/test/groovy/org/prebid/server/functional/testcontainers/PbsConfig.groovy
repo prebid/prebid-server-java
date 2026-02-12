@@ -1,6 +1,6 @@
 package org.prebid.server.functional.testcontainers
 
-import org.testcontainers.containers.InfluxDBContainer
+
 import org.testcontainers.containers.MySQLContainer
 import org.testcontainers.containers.PostgreSQLContainer
 
@@ -33,6 +33,7 @@ LIMIT 1
             "logging.sampling-rate"                      : "1.0",
             "auction.ad-server-currency"                 : DEFAULT_CURRENCY.value,
             "auction.stored-requests-timeout-ms"         : "1000",
+            "auction.ortb-error-response"                : "true",
             "metrics.prefix"                             : "prebid",
             "status-response"                            : "ok",
             "gdpr.default-value"                         : "0",
@@ -101,6 +102,7 @@ LIMIT 1
          "settings.database.idle-connection-timeout": "300"
         ].asImmutable()
     }
+
     static Map<String, String> getPostgreSqlConfig(PostgreSQLContainer postgres = Dependencies.postgresqlContainer) {
         ["settings.database.type"                   : "postgres",
          "settings.database.host"                   : postgres.getNetworkAliases().get(0),

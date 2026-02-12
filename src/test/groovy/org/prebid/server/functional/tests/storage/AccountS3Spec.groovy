@@ -1,15 +1,18 @@
 package org.prebid.server.functional.tests.storage
 
+import org.apache.http.HttpStatus
 import org.prebid.server.functional.model.AccountStatus
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.request.auction.BidRequest
-import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.service.S3Service
 import org.prebid.server.functional.testcontainers.PbsServiceFactory
 import org.prebid.server.functional.util.PBSUtils
 
-import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED
+import static org.apache.http.HttpStatus.SC_UNAUTHORIZED
+import static org.prebid.server.functional.model.response.BidderErrorCode.BAD_INPUT
+import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
+import static org.prebid.server.functional.model.response.auction.NoBidResponse.UNKNOWN_ERROR
 
 class AccountS3Spec extends StorageBaseSpec {
 
@@ -51,12 +54,14 @@ class AccountS3Spec extends StorageBaseSpec {
         s3Service.uploadAccount(DEFAULT_BUCKET, account)
 
         when: "PBS processes auction request"
-        s3StorageAccountPbsService.sendAuctionRequest(bidRequest)
+        def response = s3StorageAccountPbsService.sendAuctionRequest(bidRequest, HttpStatus.SC_UNAUTHORIZED)
 
         then: "PBS should reject the entire auction"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == UNAUTHORIZED.code()
-        assert exception.responseBody == "Account $accountId is inactive"
+        assert response.noBidResponse == UNKNOWN_ERROR
+        verifyAll(response.ext.errors[PREBID]) {
+            it.code == [BAD_INPUT]
+            it.errorMassage == ["Account $accountId is inactive"]
+        }
     }
 
     def "PBS should throw exception when account id isn't match with bid request account id"() {
@@ -73,12 +78,14 @@ class AccountS3Spec extends StorageBaseSpec {
         s3Service.uploadAccount(DEFAULT_BUCKET, account, accountId)
 
         when: "PBS processes auction request"
-        s3StorageAccountPbsService.sendAuctionRequest(bidRequest)
+        def response = s3StorageAccountPbsService.sendAuctionRequest(bidRequest, HttpStatus.SC_UNAUTHORIZED)
 
         then: "PBS should reject the entire auction"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == UNAUTHORIZED.code()
-        assert exception.responseBody == "Unauthorized account id: ${accountId}"
+        assert response.noBidResponse == UNKNOWN_ERROR
+        verifyAll(response.ext.errors[PREBID]) {
+            it.code == [BAD_INPUT]
+            it.errorMassage == ["Unauthorized account id: ${accountId}"]
+        }
     }
 
     def "PBS should throw exception when account is invalid in S3 storage json file"() {
@@ -92,12 +99,14 @@ class AccountS3Spec extends StorageBaseSpec {
         s3Service.uploadFile(DEFAULT_BUCKET, INVALID_FILE_BODY, "${S3Service.DEFAULT_ACCOUNT_DIR}/${accountId}.json")
 
         when: "PBS processes auction request"
-        s3StorageAccountPbsService.sendAuctionRequest(bidRequest)
+        def response = s3StorageAccountPbsService.sendAuctionRequest(bidRequest, SC_UNAUTHORIZED)
 
         then: "PBS should reject the entire auction"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == UNAUTHORIZED.code()
-        assert exception.responseBody == "Unauthorized account id: ${accountId}"
+        assert response.noBidResponse == UNKNOWN_ERROR
+        verifyAll(response.ext.errors[PREBID]) {
+            it.code == [BAD_INPUT]
+            it.errorMassage == ["Unauthorized account id: ${accountId}"]
+        }
     }
 
     def "PBS should throw exception when account is not present in S3 storage and valid account enforced"() {
@@ -108,11 +117,13 @@ class AccountS3Spec extends StorageBaseSpec {
         }
 
         when: "PBS processes auction request"
-        s3StorageAccountPbsService.sendAuctionRequest(bidRequest)
+        def response = s3StorageAccountPbsService.sendAuctionRequest(bidRequest, SC_UNAUTHORIZED)
 
         then: "PBS should reject the entire auction"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == UNAUTHORIZED.code()
-        assert exception.responseBody == "Unauthorized account id: ${accountId}"
+        assert response.noBidResponse == UNKNOWN_ERROR
+        verifyAll(response.ext.errors[PREBID]) {
+            it.code == [BAD_INPUT]
+            it.errorMassage == ["Unauthorized account id: ${accountId}"]
+        }
     }
 }

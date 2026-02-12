@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests
 
+
 import org.prebid.server.functional.model.UidsCookie
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.config.AccountAuctionConfig
@@ -17,24 +18,27 @@ import org.prebid.server.functional.model.request.auction.Sdk
 import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.model.request.auction.UserExt
 import org.prebid.server.functional.model.request.auction.UserExtPrebid
+import org.prebid.server.functional.model.response.BidderErrorCode
 import org.prebid.server.functional.model.response.auction.BidExt
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.Meta
 import org.prebid.server.functional.model.response.auction.Prebid
 import org.prebid.server.functional.model.response.cookiesync.UserSyncInfo
-import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.HttpUtil
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Shared
 
+import static org.apache.http.HttpStatus.SC_UNAUTHORIZED
 import static org.prebid.server.functional.model.AccountStatus.ACTIVE
 import static org.prebid.server.functional.model.AccountStatus.INACTIVE
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC_CAMEL_CASE
+import static org.prebid.server.functional.model.response.BidderErrorCode.BAD_INPUT
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
+import static org.prebid.server.functional.model.response.auction.NoBidResponse.UNKNOWN_ERROR
 import static org.prebid.server.functional.model.response.cookiesync.UserSyncInfo.Type.REDIRECT
 import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
 import static org.prebid.server.functional.util.HttpUtil.COOKIE_DEPRECATION_HEADER
@@ -83,12 +87,14 @@ class AuctionSpec extends BaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = defaultPbsService.sendAuctionRequest(bidRequest, SC_UNAUTHORIZED)
 
         then: "Request should fail with error"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == 401
-        assert exception.responseBody == "Account ${accountId} is inactive"
+        assert response.noBidResponse == UNKNOWN_ERROR
+        verifyAll(response.ext.errors[PREBID]) {
+            it.code == [BAD_INPUT]
+            it.errorMassage == ["Account ${accountId} is inactive"]
+        }
 
         and: "account.<account-id>.requests.rejected.invalid-account metric should be updated"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
@@ -108,13 +114,14 @@ class AuctionSpec extends BaseSpec {
         def initialMetricCount = getCurrentMetricValue(defaultPbsService, fullMetricName)
 
         when: "Requesting PBS auction"
-        defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = defaultPbsService.sendAuctionRequest(bidRequest, SC_UNAUTHORIZED)
 
         then: "Request fails with an stored request id is not found error"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == 400
-        assert exception.responseBody ==
-                "Invalid request format: Stored request processing failed: Id is not found in storedRequest"
+        assert response.noBidResponse == UNKNOWN_ERROR
+        verifyAll(response.ext.errors[PREBID]) {
+            it.code == [BAD_INPUT]
+            it.errorMassage == ["Account ${accountId} is inactive"]
+        }
 
         and: "Metric count is updated"
         assert getCurrentMetricValue(defaultPbsService, fullMetricName) == initialMetricCount + 1
@@ -591,7 +598,7 @@ class AuctionSpec extends BaseSpec {
         then: "PBS should include warning in responce"
         def auctionWarnings = response.ext?.warnings?.get(PREBID)
         assert auctionWarnings.size() == 1
-        assert auctionWarnings[0].code == 999
+        assert auctionWarnings[0].code == BidderErrorCode.GENERIC
         assert auctionWarnings[0].message == 'Sec-Cookie-Deprecation header has invalid value'
 
         and: "BidderRequest shouldn't have device.ext.cdep"
@@ -747,7 +754,7 @@ class AuctionSpec extends BaseSpec {
         assert !response?.ext?.seatnonbid
 
         and: "PBS should emit an warning"
-        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
         assert response.ext?.warnings[PREBID]*.message ==
                 ["Only first $IMP_LIMIT impressions were kept due to the limit, " +
                          "all the subsequent impressions have been dropped for the auction" as String]

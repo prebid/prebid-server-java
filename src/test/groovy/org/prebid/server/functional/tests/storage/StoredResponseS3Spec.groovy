@@ -4,12 +4,14 @@ import org.prebid.server.functional.model.db.StoredResponse
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.StoredAuctionResponse
 import org.prebid.server.functional.model.response.auction.SeatBid
-import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.S3Service
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.PendingFeature
 
-import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
+import static org.apache.http.HttpStatus.SC_BAD_REQUEST
+import static org.prebid.server.functional.model.response.BidderErrorCode.GENERIC
+import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
+import static org.prebid.server.functional.model.response.auction.NoBidResponse.UNKNOWN_ERROR
 
 class StoredResponseS3Spec extends StorageBaseSpec {
 
@@ -54,13 +56,15 @@ class StoredResponseS3Spec extends StorageBaseSpec {
         s3Service.uploadStoredResponse(DEFAULT_BUCKET, storedResponse, storedResponseId as String)
 
         when: "PBS processes auction request"
-        s3StoragePbsService.sendAuctionRequest(bidRequest)
+        def response = s3StoragePbsService.sendAuctionRequest(bidRequest, SC_BAD_REQUEST)
 
         then: "PBS should throw request format error"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == BAD_REQUEST.code()
-        assert exception.responseBody == "Invalid request format: Failed to fetch stored auction response for " +
-                "impId = ${bidRequest.imp[0].id} and storedAuctionResponse id = ${storedResponseId}."
+        assert response.noBidResponse == UNKNOWN_ERROR
+        verifyAll(response.ext.errors[PREBID]) {
+            it.code == [GENERIC]
+            it.errorMassage == ["Invalid request format: Failed to fetch stored auction response for " +
+                                       "impId = ${bidRequest.imp[0].id} and storedAuctionResponse id = ${storedResponseId}."]
+        }
     }
 
     def "PBS should throw request format exception when invalid stored auction response defined in S3 storage"() {
@@ -73,12 +77,14 @@ class StoredResponseS3Spec extends StorageBaseSpec {
         s3Service.uploadFile(DEFAULT_BUCKET, INVALID_FILE_BODY, "${S3Service.DEFAULT_RESPONSE_DIR}/${storedResponseId}.json")
 
         when: "PBS processes auction request"
-        s3StoragePbsService.sendAuctionRequest(bidRequest)
+        def response = s3StoragePbsService.sendAuctionRequest(bidRequest, SC_BAD_REQUEST)
 
         then: "PBS should throw request format error"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == BAD_REQUEST.code()
-        assert exception.responseBody == "Invalid request format: Can't parse Json for stored response with id ${storedResponseId}"
+        assert response.noBidResponse == UNKNOWN_ERROR
+        verifyAll(response.ext.errors[PREBID]) {
+            it.code == [GENERIC]
+            it.errorMassage == ["Invalid request format: Can't parse Json for stored response with id ${storedResponseId}"]
+        }
     }
 
     def "PBS should throw request format exception when stored auction response defined in request but not defined in S3 storage"() {
@@ -88,12 +94,14 @@ class StoredResponseS3Spec extends StorageBaseSpec {
         bidRequest.imp[0].ext.prebid.storedAuctionResponse = new StoredAuctionResponse(id: storedResponseId)
 
         when: "PBS processes auction request"
-        s3StoragePbsService.sendAuctionRequest(bidRequest)
+        def response = s3StoragePbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS should throw request format error"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == BAD_REQUEST.code()
-        assert exception.responseBody == "Invalid request format: Failed to fetch stored auction response for " +
-                "impId = ${bidRequest.imp[0].id} and storedAuctionResponse id = ${storedResponseId}."
+        assert response.noBidResponse == UNKNOWN_ERROR
+        verifyAll(response.ext.errors[PREBID]) {
+            it.code == [GENERIC]
+            it.errorMassage == ["Invalid request format: Failed to fetch stored auction response for " +
+                                        "impId = ${bidRequest.imp[0].id} and storedAuctionResponse id = ${storedResponseId}."]
+        }
     }
 }

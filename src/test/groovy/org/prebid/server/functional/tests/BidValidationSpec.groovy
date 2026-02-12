@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests
 
+import org.apache.http.HttpStatus
 import org.prebid.server.functional.model.request.auction.App
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.DistributionChannel
@@ -8,19 +9,22 @@ import org.prebid.server.functional.model.request.auction.Eid
 import org.prebid.server.functional.model.request.auction.MultiBid
 import org.prebid.server.functional.model.request.auction.Site
 import org.prebid.server.functional.model.request.auction.User
+import org.prebid.server.functional.model.response.BidderErrorCode
 import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
-import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.PendingFeature
 
 import java.time.Instant
 
+import static org.apache.http.HttpStatus.SC_BAD_REQUEST
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.request.auction.DebugCondition.DISABLED
 import static org.prebid.server.functional.model.request.auction.DebugCondition.ENABLED
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.DOOH
+import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
+import static org.prebid.server.functional.model.response.auction.NoBidResponse.UNKNOWN_ERROR
 import static org.prebid.server.functional.util.HttpUtil.REFERER_HEADER
 
 class BidValidationSpec extends BaseSpec {
@@ -54,12 +58,14 @@ class BidValidationSpec extends BaseSpec {
         flushMetrics(strictPrebidService)
 
         when: "PBS processes auction request"
-        strictPrebidService.sendAuctionRequest(bidRequest)
+        def response = strictPrebidService.sendAuctionRequest(bidRequest, SC_BAD_REQUEST)
 
         then: "PBS throws an exception"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == 400
-        assert exception.responseBody.contains("no more than one of request.site or request.app or request.dooh can be defined")
+        assert response.noBidResponse == UNKNOWN_ERROR
+        verifyAll(response.ext.errors[PREBID]) {
+            it.code == [BidderErrorCode.GENERIC]
+            it.errorMassage.any { it.contains("no more than one of request.site or request.app or request.dooh can be defined") }
+        }
 
         and: "Bid validation metric value is incremented"
         def metrics = strictPrebidService.sendCollectedMetricsRequest()
@@ -99,8 +105,8 @@ class BidValidationSpec extends BaseSpec {
 
         then: "Response should contain warning"
         def warningChannelsValues = requestDistributionChannels.collect { "${it.value.toLowerCase()}" }.join(" and ")
-        assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
-        assert response.ext?.warnings[ErrorType.PREBID]*.message ==
+        assert response.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
+        assert response.ext?.warnings[PREBID]*.message ==
                 ["BidRequest contains $warningChannelsValues. Only the first one is applicable, the others are ignored" as String]
 
         and: "Bid validation metric value is incremented"
@@ -138,12 +144,15 @@ class BidValidationSpec extends BaseSpec {
         bidDoohRequest.ext.prebid.debug = ENABLED
 
         when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidDoohRequest)
+        def response = defaultPbsService.sendAuctionRequest(bidDoohRequest, SC_BAD_REQUEST)
 
         then: "Request should fail with error"
-        def exception = thrown(PrebidServerException)
-        assert exception.responseBody.contains("request.dooh should include at least one of request.dooh.id " +
-                "or request.dooh.venuetype.")
+        assert response.noBidResponse == UNKNOWN_ERROR
+        verifyAll(response.ext.errors[PREBID]) {
+            it.code == [BidderErrorCode.GENERIC]
+            it.errorMassage.any { it.contains("request.dooh should include at least one of request.dooh.id " +
+                    "or request.dooh.venuetype.") }
+        }
     }
 
     def "PBS should validate site when it is present"() {
@@ -153,11 +162,14 @@ class BidValidationSpec extends BaseSpec {
         bidRequest.ext.prebid.debug = ENABLED
 
         when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = defaultPbsService.sendAuctionRequest(bidRequest, HttpStatus.SC_BAD_REQUEST)
 
         then: "Request should fail with error"
-        def exception = thrown(PrebidServerException)
-        assert exception.responseBody.contains("request.site should include at least one of request.site.id or request.site.page")
+        assert response.noBidResponse == UNKNOWN_ERROR
+        verifyAll(response.ext.errors[PREBID]) {
+            it.code == [BidderErrorCode.GENERIC]
+            it.errorMassage.any { it.contains("request.site should include at least one of request.site.id or request.site.page") }
+        }
     }
 
     def "PBS should treat bids with 0 price as valid when deal id is present"() {
@@ -212,8 +224,8 @@ class BidValidationSpec extends BaseSpec {
         assert !response.ext.seatnonbid
 
         and: "PBS should emit an error"
-        assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
-        assert response.ext?.warnings[ErrorType.PREBID]*.message ==
+        assert response.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
+        assert response.ext?.warnings[PREBID]*.message ==
                 ["Dropped bid '$bidId'. Does not contain a positive (or zero if there is a deal) 'price'" as String]
 
         where:
@@ -298,8 +310,8 @@ class BidValidationSpec extends BaseSpec {
         assert response.seatbid?.first()?.bid*.id == [validBidId]
 
         and: "PBS should emit an error"
-        assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
-        assert response.ext?.warnings[ErrorType.PREBID]*.message ==
+        assert response.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
+        assert response.ext?.warnings[PREBID]*.message ==
                 ["Dropped bid '$invalidBid.id'. Does not contain a positive (or zero if there is a deal) 'price'" as String]
 
         where:

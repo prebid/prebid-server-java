@@ -1,16 +1,19 @@
 package org.prebid.server.functional.tests.storage
 
+import org.apache.http.HttpStatus
 import org.prebid.server.functional.model.db.StoredImp
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
 import org.prebid.server.functional.model.request.auction.SecurityLevel
-import org.prebid.server.functional.service.PrebidServerException
+import org.prebid.server.functional.model.response.auction.ErrorType
+import org.prebid.server.functional.model.response.auction.NoBidResponse
 import org.prebid.server.functional.service.S3Service
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.PendingFeature
 
-import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
+import static org.apache.http.HttpStatus.SC_BAD_REQUEST
+import static org.prebid.server.functional.model.response.BidderErrorCode.GENERIC
 
 class AuctionS3Spec extends StorageBaseSpec {
 
@@ -63,13 +66,15 @@ class AuctionS3Spec extends StorageBaseSpec {
         s3Service.uploadStoredImp(DEFAULT_BUCKET, storedImp, storedRequestId)
 
         when: "Requesting PBS auction"
-        s3StoragePbsService.sendAuctionRequest(bidRequest)
+        def response = s3StoragePbsService.sendAuctionRequest(bidRequest, SC_BAD_REQUEST)
 
         then: "PBS should throw request format error"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == BAD_REQUEST.code()
-        assert exception.responseBody == "Invalid request format: Stored request processing failed: " +
-                "No stored impression found for id: ${storedRequestId}"
+        assert response.noBidResponse == NoBidResponse.UNKNOWN_ERROR
+        verifyAll(response.ext.errors[ErrorType.PREBID]) {
+            it.code == [GENERIC]
+            it.errorMassage == ["Invalid request format: Stored request processing failed: " +
+                                        "No stored impression found for id: ${storedRequestId}"]
+        }
     }
 
     def "PBS should throw exception when trying to populate imp[0].secure from invalid imp stored request on S3 service"() {
@@ -86,13 +91,15 @@ class AuctionS3Spec extends StorageBaseSpec {
         s3Service.uploadFile(DEFAULT_BUCKET, INVALID_FILE_BODY, "${S3Service.DEFAULT_IMPS_DIR}/${storedRequestId}.json" )
 
         when: "Requesting PBS auction"
-        s3StoragePbsService.sendAuctionRequest(bidRequest)
+        def response = s3StoragePbsService.sendAuctionRequest(bidRequest, HttpStatus.SC_BAD_REQUEST)
 
         then: "PBS should throw request format error"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == BAD_REQUEST.code()
-        assert exception.responseBody == "Invalid request format: Stored request processing failed: " +
-                "Can't parse Json for stored request with id ${storedRequestId}"
+        assert response.noBidResponse == NoBidResponse.UNKNOWN_ERROR
+        verifyAll(response.ext.errors[ErrorType.PREBID]) {
+            it.code == [GENERIC]
+            it.errorMassage == ["Invalid request format: Stored request processing failed: " +
+                                        "Can't parse Json for stored request with id ${storedRequestId}"]
+        }
     }
 
     def "PBS should throw exception when trying to populate imp[0].secure from unexciting imp stored request on S3 service"() {
@@ -106,12 +113,14 @@ class AuctionS3Spec extends StorageBaseSpec {
         }
 
         when: "Requesting PBS auction"
-        s3StoragePbsService.sendAuctionRequest(bidRequest)
+        def response = s3StoragePbsService.sendAuctionRequest(bidRequest, HttpStatus.SC_BAD_REQUEST)
 
         then: "PBS should throw request format error"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == BAD_REQUEST.code()
-        assert exception.responseBody == "Invalid request format: Stored request processing failed: " +
-                "No stored impression found for id: ${storedRequestId}"
+        assert response.noBidResponse == NoBidResponse.UNKNOWN_ERROR
+        verifyAll(response.ext.errors[ErrorType.PREBID]) {
+            it.code == [GENERIC]
+            it.errorMassage == ["Invalid request format: Stored request processing failed: " +
+                                        "No stored impression found for id: ${storedRequestId}"]
+        }
     }
 }

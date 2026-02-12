@@ -13,6 +13,7 @@ import org.prebid.server.functional.model.request.auction.FetchStatus
 import org.prebid.server.functional.model.request.auction.PrebidAnalytics
 import org.prebid.server.functional.model.request.auction.RichmediaFilter
 import org.prebid.server.functional.model.request.auction.StoredBidResponse
+import org.prebid.server.functional.model.response.BidderErrorCode
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ModuleActivityName
 import org.prebid.server.functional.service.PrebidServerService
@@ -271,7 +272,7 @@ class AnalyticsTagsModuleSpec extends ModuleBaseSpec {
         assert !bidResponse?.ext?.prebid?.analytics?.tags
 
         and: "Bid response should contain warning"
-        assert bidResponse.ext.warnings[PREBID]?.code == [999]
+        assert bidResponse.ext.warnings[PREBID]?.code == [BidderErrorCode.GENERIC]
         assert bidResponse.ext.warnings[PREBID]?.message == ["analytics.options.enableclientdetails not enabled for account"]
     }
 

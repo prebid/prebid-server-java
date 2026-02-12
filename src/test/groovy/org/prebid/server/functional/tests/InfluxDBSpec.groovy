@@ -4,10 +4,12 @@ import org.prebid.server.functional.model.AccountStatus
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.BidRequest
-import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
 
-import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED
+import static org.apache.http.HttpStatus.SC_UNAUTHORIZED
+import static org.prebid.server.functional.model.response.BidderErrorCode.BAD_INPUT
+import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
+import static org.prebid.server.functional.model.response.auction.NoBidResponse.UNKNOWN_ERROR
 import static org.prebid.server.functional.testcontainers.Dependencies.influxdbContainer
 
 class InfluxDBSpec extends BaseSpec {
@@ -43,12 +45,14 @@ class InfluxDBSpec extends BaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction request"
-        pbsServiceWithEnforceValidAccount.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithEnforceValidAccount.sendAuctionRequest(bidRequest, SC_UNAUTHORIZED)
 
         then: "PBS should reject the entire auction"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == UNAUTHORIZED.code()
-        assert exception.responseBody == "Account $bidRequest.accountId is inactive"
+        assert response.noBidResponse == UNKNOWN_ERROR
+        verifyAll(response.ext.errors[PREBID]) {
+            it.code == [BAD_INPUT]
+            it.errorMassage == ["Account $bidRequest.accountId is inactive"]
+        }
 
         and: "PBS wait until get metric"
         assert pbsServiceWithEnforceValidAccount.isContainMetricByValue(ACCOUNT_REJECTED_METRIC.formatted(bidRequest.accountId))

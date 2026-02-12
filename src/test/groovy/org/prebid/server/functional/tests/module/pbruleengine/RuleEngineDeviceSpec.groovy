@@ -6,7 +6,6 @@ import org.prebid.server.functional.model.pricefloors.Country
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.DeviceType
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.RepeatUntilFailure
 
 import java.time.Instant
 

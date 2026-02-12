@@ -12,10 +12,10 @@ import org.prebid.server.functional.util.PBSUtils
 
 import java.time.Instant
 
-import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ACCOUNT_DISALLOWED_COUNT
 import static org.prebid.server.functional.model.privacy.Metric.ACCOUNT_PROCESSED_RULES_COUNT
-import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ADAPTER_DISALLOWED_COUNT
 import static org.prebid.server.functional.model.privacy.Metric.PROCESSED_ACTIVITY_RULES_COUNT
+import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ACCOUNT_DISALLOWED_COUNT
+import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ADAPTER_DISALLOWED_COUNT
 import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_REQUEST_DISALLOWED_COUNT
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_TID
 import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE

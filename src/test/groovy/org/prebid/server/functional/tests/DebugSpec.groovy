@@ -11,12 +11,12 @@ import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Site
 import org.prebid.server.functional.model.request.auction.StoredBidResponse
+import org.prebid.server.functional.model.response.BidderErrorCode
 import org.prebid.server.functional.model.response.auction.BidResponse
-import org.prebid.server.functional.model.response.auction.ErrorType
-import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.PendingFeature
 
+import static org.apache.http.HttpStatus.SC_BAD_REQUEST
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.config.AccountMetricsVerbosityLevel.BASIC
 import static org.prebid.server.functional.model.config.AccountMetricsVerbosityLevel.DETAILED
@@ -24,6 +24,8 @@ import static org.prebid.server.functional.model.config.AccountMetricsVerbosityL
 import static org.prebid.server.functional.model.request.auction.DebugCondition.DISABLED
 import static org.prebid.server.functional.model.request.auction.DebugCondition.ENABLED
 import static org.prebid.server.functional.model.response.auction.BidderCallType.STORED_BID_RESPONSE
+import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
+import static org.prebid.server.functional.model.response.auction.NoBidResponse.UNKNOWN_ERROR
 
 class DebugSpec extends BaseSpec {
 
@@ -106,8 +108,8 @@ class DebugSpec extends BaseSpec {
         assert !response.ext?.debug?.httpcalls
 
         and: "Response should contain specific code and text in ext.warnings.general"
-        assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.code } == [999] // [10003]
-        assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.message } ==
+        assert response.ext?.warnings[PREBID]?.collect { it.code } == [BidderErrorCode.GENERIC] // [10003]
+        assert response.ext?.warnings[PREBID]?.collect { it.message } ==
                 ["Debug turned off for bidder: $GENERIC.value" as String]
     }
 
@@ -149,9 +151,9 @@ class DebugSpec extends BaseSpec {
 
         and: "Response should contain specific code and text in ext.warnings.general"
         //TODO change to 10002 after updating debug warnings
-        assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.code } == [999]
+        assert response.ext?.warnings[PREBID]?.collect { it.code } == [BidderErrorCode.GENERIC]
         //TODO possibly change message after clarifications
-        assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.message } ==
+        assert response.ext?.warnings[PREBID]?.collect { it.message } ==
                 ["Debug turned off for account"]
 
         where:
@@ -179,8 +181,8 @@ class DebugSpec extends BaseSpec {
 
         and: "Response should contain specific code and text in ext.warnings.general"
         //TODO change to 10003 after updating debug warnings
-        assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.code } == [999]
-        assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.message } ==
+        assert response.ext?.warnings[PREBID]?.collect { it.code } == [BidderErrorCode.GENERIC]
+        assert response.ext?.warnings[PREBID]?.collect { it.message } ==
                 ["Debug turned off for bidder: $GENERIC.value" as String]
 
         where:
@@ -209,8 +211,8 @@ class DebugSpec extends BaseSpec {
 
         and: "Response should contain specific code and text in ext.warnings.general"
         //TODO change to 10002 after updating debug warnings
-        assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.code } == [999]
-        assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.message } == ["Debug turned off for account"]
+        assert response.ext?.warnings[PREBID]?.collect { it.code } == [BidderErrorCode.GENERIC]
+        assert response.ext?.warnings[PREBID]?.collect { it.message } == ["Debug turned off for account"]
     }
 
     def "PBS should use default values = true for bidder-level setting debug.allow and account-level setting debug-allowed when they are not specified"() {
@@ -281,8 +283,8 @@ class DebugSpec extends BaseSpec {
 
         and: "Response should contain specific code and text in ext.warnings.general"
         //TODO change to 10002 after updating debug warnings
-        assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.code } == [999]
-        assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.message } == ["Debug turned off for account"]
+        assert response.ext?.warnings[PREBID]?.collect { it.code } == [BidderErrorCode.GENERIC]
+        assert response.ext?.warnings[PREBID]?.collect { it.message } == ["Debug turned off for account"]
 
         where:
         headerValue << [StringUtils.swapCase(overrideToken), PBSUtils.randomString]
@@ -521,11 +523,14 @@ class DebugSpec extends BaseSpec {
         flushMetrics(defaultPbsService)
 
         when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = defaultPbsService.sendAuctionRequest(bidRequest, SC_BAD_REQUEST)
 
         then: "Request should fail with error"
-        def exception = thrown(PrebidServerException)
-        assert exception.responseBody.contains("request.site should include at least one of request.site.id or request.site.page")
+        assert response.noBidResponse == UNKNOWN_ERROR
+        verifyAll(response.ext.errors[PREBID]) {
+            it.code == [BidderErrorCode.GENERIC]
+            it.errorMassage.any { it.contains("request.site should include at least one of request.site.id or request.site.page") }
+        }
 
         and: "Debug metrics shouldn't be populated"
         def metricsRequest = defaultPbsService.sendCollectedMetricsRequest()

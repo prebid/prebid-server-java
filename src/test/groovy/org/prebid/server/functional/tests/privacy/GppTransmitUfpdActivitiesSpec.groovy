@@ -15,6 +15,7 @@ import org.prebid.server.functional.model.privacy.gpp.MspaMode
 import org.prebid.server.functional.model.privacy.gpp.Notice
 import org.prebid.server.functional.model.privacy.gpp.OptOut
 import org.prebid.server.functional.model.privacy.gpp.UsNationalV1ChildSensitiveData
+import org.prebid.server.functional.model.privacy.gpp.UsNationalV1SensitiveData
 import org.prebid.server.functional.model.privacy.gpp.UsNationalV2ChildSensitiveData
 import org.prebid.server.functional.model.privacy.gpp.UsNationalV2SensitiveData
 import org.prebid.server.functional.model.request.amp.AmpRequest
@@ -25,7 +26,8 @@ import org.prebid.server.functional.model.request.auction.Condition
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.Geo
 import org.prebid.server.functional.model.request.auction.RegsExt
-import org.prebid.server.functional.service.PrebidServerException
+import org.prebid.server.functional.model.response.auction.ErrorType
+import org.prebid.server.functional.model.response.auction.NoBidResponse
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.gpp.v1.UsCaV1Consent
 import org.prebid.server.functional.util.privacy.gpp.v1.UsCoV1Consent
@@ -33,12 +35,11 @@ import org.prebid.server.functional.util.privacy.gpp.v1.UsCtV1Consent
 import org.prebid.server.functional.util.privacy.gpp.v1.UsNatV1Consent
 import org.prebid.server.functional.util.privacy.gpp.v1.UsUtV1Consent
 import org.prebid.server.functional.util.privacy.gpp.v1.UsVaV1Consent
-import org.prebid.server.functional.model.privacy.gpp.UsNationalV1SensitiveData
 import org.prebid.server.functional.util.privacy.gpp.v2.UsNatV2Consent
 
 import java.time.Instant
 
-import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED
+import static org.apache.http.HttpStatus.SC_UNAUTHORIZED
 import static org.prebid.server.functional.model.config.LogicalRestrictedRule.LogicalOperation.AND
 import static org.prebid.server.functional.model.config.LogicalRestrictedRule.LogicalOperation.OR
 import static org.prebid.server.functional.model.config.UsNationalPrivacySection.CHILD_CONSENTS_BELOW_13
@@ -82,6 +83,7 @@ import static org.prebid.server.functional.model.request.auction.PrivacyModule.I
 import static org.prebid.server.functional.model.request.auction.PrivacyModule.IAB_US_CUSTOM_LOGIC
 import static org.prebid.server.functional.model.request.auction.PrivacyModule.IAB_US_GENERAL
 import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
+import static org.prebid.server.functional.model.response.BidderErrorCode.BAD_INPUT
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 import static org.prebid.server.functional.util.privacy.model.State.ALABAMA
 import static org.prebid.server.functional.util.privacy.model.State.ONTARIO
@@ -1653,12 +1655,14 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(bidRequest)
+        def response = activityPbsService.sendAuctionRequest(bidRequest, SC_UNAUTHORIZED)
 
         then: "Response should contain error"
-        def error = thrown(PrebidServerException)
-        assert error.statusCode == UNAUTHORIZED.code()
-        assert error.responseBody == "Unauthorized account id: ${accountId}"
+        assert response.noBidResponse == NoBidResponse.UNKNOWN_ERROR
+        verifyAll(response.ext.errors[PREBID]) {
+            it.code == [BAD_INPUT]
+            it.errorMassage == ["Unauthorized account id: ${accountId}"]
+        }
     }
 
     def "PBS auction call when privacy regulation don't match custom requirement should leave UFPD fields in request"() {
@@ -3389,12 +3393,13 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        activityPbsService.sendAmpRequest(ampRequest)
+        def response = activityPbsService.sendAmpRequest(ampRequest, SC_UNAUTHORIZED)
 
         then: "Response should contain error"
-        def error = thrown(PrebidServerException)
-        assert error.statusCode == UNAUTHORIZED.code()
-        assert error.responseBody == "Unauthorized account id: ${accountId}"
+        verifyAll(response.ext.errors[ErrorType.PREBID]) {
+            it.code == [BAD_INPUT]
+            it.errorMassage == ["Unauthorized account id: ${accountId}"]
+        }
     }
 
     def "PBS amp call when privacy regulation don't match custom requirement should leave UFPD fields in request"() {

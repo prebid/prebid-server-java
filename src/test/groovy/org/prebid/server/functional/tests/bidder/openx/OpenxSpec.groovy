@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests.bidder.openx
 
+
 import org.prebid.server.functional.model.Currency
 import org.prebid.server.functional.model.bidder.Openx
 import org.prebid.server.functional.model.config.AccountAuctionConfig
@@ -9,13 +10,13 @@ import org.prebid.server.functional.model.request.auction.AuctionEnvironment
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.InterestGroupAuctionSupport
 import org.prebid.server.functional.model.request.auction.PaaFormat
+import org.prebid.server.functional.model.response.BidderErrorCode
 import org.prebid.server.functional.model.response.auction.InterestGroupAuctionBuyer
 import org.prebid.server.functional.model.response.auction.InterestGroupAuctionBuyerExt
 import org.prebid.server.functional.model.response.auction.InterestGroupAuctionIntent
 import org.prebid.server.functional.model.response.auction.InterestGroupAuctionSeller
 import org.prebid.server.functional.model.response.auction.OpenxBidResponse
 import org.prebid.server.functional.model.response.auction.OpenxBidResponseExt
-import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.tests.BaseSpec
 import org.prebid.server.functional.util.PBSUtils
@@ -23,6 +24,7 @@ import spock.lang.Shared
 
 import java.time.Instant
 
+import static org.apache.http.HttpStatus.SC_BAD_REQUEST
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX_ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.WILDCARD
@@ -33,6 +35,7 @@ import static org.prebid.server.functional.model.request.auction.AuctionEnvironm
 import static org.prebid.server.functional.model.request.auction.PaaFormat.IAB
 import static org.prebid.server.functional.model.request.auction.PaaFormat.ORIGINAL
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
+import static org.prebid.server.functional.model.response.auction.NoBidResponse.UNKNOWN_ERROR
 import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
 
 class OpenxSpec extends BaseSpec {
@@ -438,7 +441,7 @@ class OpenxSpec extends BaseSpec {
         assert getLogsByText(logs, "ExtIgiIgs with absent impId from bidder: ${OPENX.value}")
 
         and: "Bid response should contain warning"
-        assert response.ext.warnings[PREBID]?.code == [999]
+        assert response.ext.warnings[PREBID]?.code == [BidderErrorCode.GENERIC]
         assert response.ext.warnings[PREBID]?.message ==
                 ["ExtIgiIgs with absent impId from bidder: ${OPENX.value}" as String]
 
@@ -506,13 +509,16 @@ class OpenxSpec extends BaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
-        pbsService.sendAuctionRequest(bidRequest)
+        def response = pbsService.sendAuctionRequest(bidRequest, SC_BAD_REQUEST)
 
         then: "Request should fail with error"
-        def exception = thrown(PrebidServerException)
-        assert exception.responseBody.startsWith("Invalid request format: Error decoding bidRequest: " +
-                "Cannot deserialize value of type `org.prebid.server.auction.model.PaaFormat` " +
-                "from String \"invalid\": not one of the values accepted for Enum class: [original, iab]")
+        assert response.noBidResponse == UNKNOWN_ERROR
+        verifyAll(response.ext.errors[PREBID]) {
+            it.code == [BidderErrorCode.GENERIC]
+            it.errorMassage.any { it.startsWith("Invalid request format: Error decoding bidRequest: " +
+                    "Cannot deserialize value of type `org.prebid.server.auction.model.PaaFormat` " +
+                    "from String \"invalid\": not one of the values accepted for Enum class: [original, iab]") }
+        }
     }
 
     def "PBS shouldn't cause error when igs and igb empty array"() {
