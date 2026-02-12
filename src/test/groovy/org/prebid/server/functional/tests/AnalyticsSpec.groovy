@@ -28,7 +28,6 @@ class AnalyticsSpec extends BaseSpec {
             ENABLED_DEBUG_LOG_MODE + ['analytics.log.enabled'    : 'true',
                                       'analytics.global.adapters': ''])
 
-
     @Shared
     PubStackAnalytics analytics = new PubStackAnalytics(Dependencies.networkServiceContainer).tap {
         it.setResponse(PubStackResponse.getDefaultPubStackResponse(SCOPE_ID, Dependencies.networkServiceContainer.rootUri))

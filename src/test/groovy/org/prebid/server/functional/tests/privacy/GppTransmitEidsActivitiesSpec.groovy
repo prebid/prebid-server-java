@@ -898,7 +898,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
     def "PBS auction call when privacy module contain invalid GPP string shouldn't remove EIDS fields in request and emit warning in response"() {
         given: "Default Generic BidRequests with EIDS fields and account id"
         def accountId = PBSUtils.randomNumber as String
-        def invalidGpp = PBSUtils.randomString
+        def invalidGpp = invalidGppString
         def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             regs.gppSid = [US_NAT_V1.intValue]
             regs.gpp = invalidGpp
@@ -2076,7 +2076,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
         and: "Default amp request with link to account"
-        def invalidGpp = PBSUtils.randomString
+        def invalidGpp = invalidGppString
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
             it.gppSid = US_NAT_V1.value

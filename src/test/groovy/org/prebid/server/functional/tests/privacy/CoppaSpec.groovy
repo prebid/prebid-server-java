@@ -185,14 +185,14 @@ class CoppaSpec extends PrivacyBaseSpec {
             bidderRequest.device.geo.ext == bidRequest.device.geo.ext
 
             bidderRequest.user.id == bidRequest.user.id
-            bidderRequest.user.buyeruid == bidRequest.user.buyeruid
+            bidderRequest.user.buyerUid == bidRequest.user.buyerUid
             bidderRequest.user.yob == bidRequest.user.yob
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.eids[0].source == bidRequest.user.eids[0].source
             bidderRequest.user.data == bidRequest.user.data
             bidderRequest.user.geo.lat == bidRequest.user.geo.lat
             bidderRequest.user.geo.lon == bidRequest.user.geo.lon
-            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == bidRequest.user.ext.data.buyerUid
         }
 
         and: "Metrics processed across activities shouldn't be updated"
@@ -254,7 +254,7 @@ class CoppaSpec extends PrivacyBaseSpec {
         and: "Bidder request should mask user personal data"
         verifyAll(bidderRequest.user) {
             !id
-            !buyeruid
+            !buyerUid
             !yob
             !gender
             !eids
@@ -324,7 +324,7 @@ class CoppaSpec extends PrivacyBaseSpec {
         and: "Bidder request should mask user personal data"
         verifyAll(bidderRequest.user) {
             !id
-            !buyeruid
+            !buyerUid
             !yob
             !gender
             !eids
@@ -389,14 +389,14 @@ class CoppaSpec extends PrivacyBaseSpec {
             bidderRequest.device.geo.ext == ampStoredRequest.device.geo.ext
 
             bidderRequest.user.id == ampStoredRequest.user.id
-            bidderRequest.user.buyeruid == ampStoredRequest.user.buyeruid
+            bidderRequest.user.buyerUid == ampStoredRequest.user.buyerUid
             bidderRequest.user.yob == ampStoredRequest.user.yob
             bidderRequest.user.gender == ampStoredRequest.user.gender
             bidderRequest.user.eids[0].source == ampStoredRequest.user.eids[0].source
             bidderRequest.user.data == ampStoredRequest.user.data
             bidderRequest.user.geo.lat == ampStoredRequest.user.geo.lat
             bidderRequest.user.geo.lon == ampStoredRequest.user.geo.lon
-            bidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == ampStoredRequest.user.ext.data.buyerUid
         }
 
         and: "Metrics processed across activities shouldn't be updated"
@@ -462,7 +462,7 @@ class CoppaSpec extends PrivacyBaseSpec {
         and: "Bidder request should mask user personal data"
         verifyAll(bidderRequest.user) {
             !id
-            !buyeruid
+            !buyerUid
             !yob
             !gender
             !eids

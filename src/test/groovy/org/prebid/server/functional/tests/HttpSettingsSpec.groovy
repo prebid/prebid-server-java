@@ -1,6 +1,7 @@
 package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.model.UidsCookie
+import org.prebid.server.functional.model.config.ModuleName
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.mock.services.httpsettings.HttpAccountsResponse
 import org.prebid.server.functional.model.request.amp.AmpRequest

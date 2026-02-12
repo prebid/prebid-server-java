@@ -1,7 +1,6 @@
 package org.prebid.server.functional.model.config
 
 import groovy.transform.ToString
-import org.prebid.server.functional.model.ModuleName
 
 @ToString(includeNames = true, ignoreNulls = true)
 class StageExecutionPlan {
@@ -10,5 +9,14 @@ class StageExecutionPlan {
 
     static StageExecutionPlan getModuleStageExecutionPlan(ModuleName name, Stage stage) {
         new StageExecutionPlan(groups: [ExecutionGroup.getModuleExecutionGroup(name, stage)])
+    }
+
+    static StageExecutionPlan getModuleStageExecutionPlan(List<ModuleHookImplementation> modulesHooks) {
+        new StageExecutionPlan(groups: modulesHooks.collect { ExecutionGroup.getModuleExecutionGroup(it) })
+    }
+
+    StageExecutionPlan addGroup(ModuleHookImplementation moduleHook) {
+        (groups ?: (groups = [])).add(ExecutionGroup.getModuleExecutionGroup(moduleHook))
+        this
     }
 }

@@ -356,19 +356,12 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
     }
 
     def "PBS should update imp[0].bidFloor when ext.prebid.bidadjustmentfactors is defined"() {
-        given: "Pbs with PF configuration with minMaxAgeSec"
-        def defaultAccountConfigSettings = defaultAccountConfigSettings.tap {
-            auction.priceFloors.adjustForBidAdjustment = pbsConfigBidAdjustmentFlag
-        }
-        def pbsService = pbsServiceFactory.getService(FLOORS_CONFIG +
-                ["settings.default-account-config": encode(defaultAccountConfigSettings)])
-
-        and: "BidRequest with bidAdjustment"
+        given: "BidRequest with bidAdjustment"
         def floorsProviderFloorValue = PBSUtils.randomFloorValue
         BigDecimal bidAdjustment = 0.1
         def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
-            ext.prebid.floors = new ExtPrebidFloors(enforcement: new ExtPrebidPriceFloorEnforcement(bidAdjustment: requestBidAdjustmentFlag))
-            ext.prebid.bidAdjustmentFactors = new BidAdjustmentFactors(adjustments: [(GENERIC): bidAdjustment])
+            it.ext.prebid.floors = new ExtPrebidFloors(enforcement: new ExtPrebidPriceFloorEnforcement(bidAdjustment: requestBidAdjustmentFlag))
+            it.ext.prebid.bidAdjustmentFactors = new BidAdjustmentFactors(adjustments: [(GENERIC): bidAdjustment])
         }
 
         and: "Account with adjustForBidAdjustment in the DB"
@@ -384,7 +377,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.app.publisher.id, floorsResponse)
 
         when: "PBS cache rules and processes auction request"
-        cacheFloorsProviderRules(bidRequest, floorsProviderFloorValue / bidAdjustment, pbsService)
+        cacheFloorsProviderRules(bidRequest, floorsProviderFloorValue / bidAdjustment, floorsPbsService)
 
         then: "Bidder request bidFloor should be update according to bidAdjustment"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
@@ -394,47 +387,37 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         assert !bidderRequest.imp[0].ext.prebid.floors
 
         where:
-        pbsConfigBidAdjustmentFlag | requestBidAdjustmentFlag | accountBidAdjustmentFlag
-        true                       | true                     | null
-        true                       | null                     | null
-        false                      | null                     | true
+        requestBidAdjustmentFlag | accountBidAdjustmentFlag
+        true                     | null
+        null                     | null
+        null                     | true
     }
 
     def "PBS should not update imp[0].bidFloor when bidadjustment is disallowed"() {
-        given: "Pbs with PF configuration with adjustForBidAdjustment"
-        def defaultAccountConfigSettings = defaultAccountConfigSettings.tap {
-            auction.priceFloors.tap {
-                adjustForBidAdjustment = pbsConfigBidAdjustmentFlag
-                adjustForBidAdjustmentSnakeCase = pbsConfigBidAdjustmentFlagSnakeCase
-            }
-        }
-        def pbsService = pbsServiceFactory.getService(FLOORS_CONFIG +
-                ["settings.default-account-config": encode(defaultAccountConfigSettings)])
-
-        and: "Default BidRequest"
+        given: "Default BidRequest"
         def floorsProviderFloorValue = 0.8
         def bidAdjustment = 0.1
         def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
-            ext.prebid.floors = new ExtPrebidFloors(enforcement: new ExtPrebidPriceFloorEnforcement(bidAdjustment: requestBidAdjustmentFlag))
-            ext.prebid.bidAdjustmentFactors = new BidAdjustmentFactors(adjustments: [(GENERIC): bidAdjustment])
+            it.ext.prebid.floors = new ExtPrebidFloors(enforcement: new ExtPrebidPriceFloorEnforcement(bidAdjustment: requestBidAdjustmentFlag))
+            it.ext.prebid.bidAdjustmentFactors = new BidAdjustmentFactors(adjustments: [(GENERIC): bidAdjustment])
         }
 
         and: "Account in the DB"
         def accountId = bidRequest.app.publisher.id
         def account = getAccountWithEnabledFetch(accountId).tap {
-            config.auction.priceFloors.adjustForBidAdjustment = accountBidAdjustmentFlag
-            config.auction.priceFloors.adjustForBidAdjustmentSnakeCase = accountBidAdjustmentFlagSnakeCase
+            it.config.auction.priceFloors.adjustForBidAdjustment = accountBidAdjustmentFlag
+            it.config.auction.priceFloors.adjustForBidAdjustmentSnakeCase = accountBidAdjustmentFlagSnakeCase
         }
         accountDao.save(account)
 
         and: "Set Floors Provider response"
         def floorsResponse = PriceFloorData.priceFloorData.tap {
-            modelGroups[0].values = [(rule): floorsProviderFloorValue]
+            it.modelGroups[0].values = [(rule): floorsProviderFloorValue]
         }
         floorsProvider.setResponse(accountId, floorsResponse)
 
         when: "PBS cache rules and processes auction request"
-        cacheFloorsProviderRules(bidRequest, floorsProviderFloorValue, pbsService)
+        cacheFloorsProviderRules(bidRequest, floorsProviderFloorValue, floorsPbsService)
 
         then: "Bidder request bidFloor should be changed"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
@@ -444,11 +427,56 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         assert !bidderRequest.imp[0].ext.prebid.floors
 
         where:
-        pbsConfigBidAdjustmentFlagSnakeCase | pbsConfigBidAdjustmentFlag | requestBidAdjustmentFlag | accountBidAdjustmentFlag | accountBidAdjustmentFlagSnakeCase
-        null                                | false                      | false                    | null                     | false
-        null                                | true                       | null                     | false                    | null
-        false                               | null                       | false                    | null                     | false
-        true                                | null                       | null                     | false                    | null
+        requestBidAdjustmentFlag | accountBidAdjustmentFlag | accountBidAdjustmentFlagSnakeCase
+        false                    | null                     | false
+        null                     | false                    | null
+        false                    | null                     | false
+        null                     | false                    | null
+    }
+
+    def "PBS should priorities account config over default account config and update imp[0].bidFloor"() {
+        given: "Pbs with PF configuration with adjustForBidAdjustment"
+        def accountConfig = defaultAccountConfigSettings.tap {
+            it.auction.priceFloors.tap {
+                it.adjustForBidAdjustment = false
+                adjustForBidAdjustmentSnakeCase = null
+            }
+        }
+        def pbsConfig = FLOORS_CONFIG +
+                ["settings.default-account-config": encode(accountConfig)]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
+
+        and: "BidRequest with bidAdjustment"
+        def floorsProviderFloorValue = PBSUtils.randomFloorValue
+        BigDecimal bidAdjustment = 0.1
+        def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
+            ext.prebid.floors = new ExtPrebidFloors(enforcement: new ExtPrebidPriceFloorEnforcement(bidAdjustment: null))
+            ext.prebid.bidAdjustmentFactors = new BidAdjustmentFactors(adjustments: [(GENERIC): bidAdjustment])
+        }
+        and: "Account with adjustForBidAdjustment in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.app.publisher.id).tap {
+            config.auction.priceFloors.adjustForBidAdjustment = null
+            config.auction.priceFloors.adjustForBidAdjustmentSnakeCase = true
+        }
+        accountDao.save(account)
+
+        and: "Set Floors Provider response"
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].values = [(rule): floorsProviderFloorValue]
+        }
+        floorsProvider.setResponse(bidRequest.app.publisher.id, floorsResponse)
+        when: "PBS cache rules and processes auction request"
+        cacheFloorsProviderRules(bidRequest, floorsProviderFloorValue / bidAdjustment, pbsService)
+
+        then: "Bidder request bidFloor should be update according to bidAdjustment"
+        def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
+        assert bidderRequest.imp[0].bidFloor == floorsProviderFloorValue / bidAdjustment
+
+        and: "Bidder request shouldn't include imp.ext.prebid.floors"
+        assert !bidderRequest.imp[0].ext.prebid.floors
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS should choose most aggressive adjustment when request contains multiple media-types"() {
@@ -717,10 +745,10 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
         and: "Floor config with default account"
         def accountConfig = getDefaultAccountConfigSettings().tap {
-            auction.priceFloors.fetch.enabled = false
-            auction.priceFloors.fetch.url = BASIC_FETCH_URL + bidRequest.site.publisher.id
-            auction.priceFloors.fetch.maxSchemaDims = MAX_SCHEMA_DIMENSIONS_SIZE
-            auction.priceFloors.maxSchemaDims = MAX_SCHEMA_DIMENSIONS_SIZE
+            it.auction.priceFloors.fetch.enabled = false
+            it.auction.priceFloors.fetch.url = BASIC_FETCH_URL + bidRequest.site.publisher.id
+            it.auction.priceFloors.fetch.maxSchemaDims = MAX_SCHEMA_DIMENSIONS_SIZE
+            it.auction.priceFloors.maxSchemaDims = MAX_SCHEMA_DIMENSIONS_SIZE
         }
         def pbsFloorConfig = GENERIC_ALIAS_CONFIG + ["price-floors.enabled"           : "true",
                                                      "settings.default-account-config": encode(accountConfig)]

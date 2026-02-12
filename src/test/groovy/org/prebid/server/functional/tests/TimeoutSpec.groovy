@@ -24,6 +24,10 @@ class TimeoutSpec extends BaseSpec {
     @Shared
     PrebidServerService prebidServerService = pbsServiceFactory.getService(PBS_CONFIG)
 
+    def cleanupSpec() {
+        pbsServiceFactory.removeContainer(PBS_CONFIG)
+    }
+
     def "PBS should apply timeout from stored request when it's not specified in the auction request"() {
         given: "Default basic BidRequest with generic bidder"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -287,9 +291,9 @@ class TimeoutSpec extends BaseSpec {
     def "PBS should choose min timeout form config for bidder request when in request value lowest that in auction.biddertmax.min"() {
         given: "PBS config with percent"
         def minBidderTmax = PBSUtils.getRandomNumber(MIN_TIMEOUT, MAX_TIMEOUT)
-        def prebidServerService = pbsServiceFactory.getService(
-                ["auction.biddertmax.min": minBidderTmax as String,
-                 "auction.biddertmax.max": MAX_TIMEOUT as String])
+        def pbsConfig = ["auction.biddertmax.min": minBidderTmax as String,
+                         "auction.biddertmax.max": MAX_TIMEOUT as String]
+        def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default basic BidRequest"
         def timeout = PBSUtils.getRandomNumber(0, minBidderTmax)
@@ -306,6 +310,9 @@ class TimeoutSpec extends BaseSpec {
 
         and: "PBS response should contain tmax from request"
         assert bidResponse?.ext?.tmaxrequest == timeout as Long
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS should change timeout for bidder due to percent in auction.biddertmax.percent"() {

@@ -49,6 +49,12 @@ abstract class BaseSpec extends Specification implements ObjectMapperWrapper {
     protected static final String ALERT_GENERAL = "alerts.general"
     protected static final Map<String, String> GENERIC_ALIAS_CONFIG = ["adapters.generic.aliases.alias.enabled" : "true",
                                                                        "adapters.generic.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
+    protected static final Map<String, String> EMPTY_CACHE_TTL_CONFIG = ["cache.default-ttl-seconds.banner": "",
+                                                                         "cache.default-ttl-seconds.video" : "",
+                                                                         "cache.default-ttl-seconds.native": "",
+                                                                         "cache.default-ttl-seconds.audio" : ""]
+    protected static final Map<String, String> EMPTY_CACHE_TTL_HOST_CONFIG = ["cache.banner-ttl-seconds": "",
+                                                                              "cache.video-ttl-seconds" : ""]
 
     protected static final PrebidServerService defaultPbsService = pbsServiceFactory.getService([:])
 

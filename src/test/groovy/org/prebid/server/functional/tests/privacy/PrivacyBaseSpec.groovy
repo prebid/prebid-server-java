@@ -186,11 +186,11 @@ abstract class PrivacyBaseSpec extends BaseSpec {
                 customdata = PBSUtils.randomString
                 eids = [Eid.defaultEid]
                 data = [new Data(name: PBSUtils.randomString)]
-                buyeruid = PBSUtils.randomString
+                buyerUid = PBSUtils.randomString
                 yob = PBSUtils.randomNumber
                 gender = PBSUtils.randomString
                 geo = Geo.FPDGeo
-                ext = new UserExt(data: new UserExtData(buyeruid: PBSUtils.randomString))
+                ext = new UserExt(data: new UserExtData(buyerUid: PBSUtils.randomString))
             }
         }
     }
@@ -668,6 +668,16 @@ abstract class PrivacyBaseSpec extends BaseSpec {
             it.tcfPolicyVersion = TCF_POLICY_V2.vendorListVersion
             it.vendors = [(GENERIC_VENDOR_ID): vendor]
         })
+    }
+
+    protected static String getInvalidGppString(int stringLength = 20) {
+        // Random string can potentially generate deprecated v1 value with specific starting values
+        def gppV1Prefix = ['A', 'B', 'C', 'D']
+        def invalidGPPValue
+        do {
+            invalidGPPValue = PBSUtils.getRandomString(stringLength)
+        } while (gppV1Prefix.contains(invalidGPPValue[0].toUpperCase()))
+        return invalidGPPValue
     }
 
     private static Purpose getRandomPurposeWithExclusion(Purpose excludeFromRandom) {

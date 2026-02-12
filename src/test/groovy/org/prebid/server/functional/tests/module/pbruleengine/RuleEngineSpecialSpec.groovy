@@ -5,14 +5,14 @@ import org.prebid.server.functional.util.PBSUtils
 
 import java.time.Instant
 
-import static org.prebid.server.functional.model.ModuleName.PB_RULE_ENGINE
+import static org.prebid.server.functional.model.config.ModuleName.PB_RULE_ENGINE
 import static org.prebid.server.functional.model.bidder.BidderName.AMX
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.config.PbRulesEngine.createRulesEngineWithRule
 import static org.prebid.server.functional.model.config.RuleEngineFunction.PERCENT
 import static org.prebid.server.functional.model.config.RuleEngineFunction.PREBID_KEY
-import static org.prebid.server.functional.model.request.auction.FetchStatus.SUCCESS
+import static org.prebid.server.functional.model.response.auction.AnalyticTagStatus.SUCCESS
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
 
 class RuleEngineSpecialSpec extends RuleEngineBaseSpec {
@@ -40,7 +40,7 @@ class RuleEngineSpecialSpec extends RuleEngineBaseSpec {
         waitUntilFailedParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBs should perform bidder request"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -59,7 +59,7 @@ class RuleEngineSpecialSpec extends RuleEngineBaseSpec {
         assert !bidResponse.ext?.errors
 
         and: "Logs should contain error"
-        def logs = pbsServiceWithRulesEngineModule.getLogsByTime(startTime)
+        def logs = pbsServiceWithMultipleModules.getLogsByTime(startTime)
         assert getLogsByText(logs, INVALID_CONFIGURATION_FOR_SINGLE_INTEGER_LOG_WARNING(bidRequest.accountId, PERCENT))
     }
 
@@ -83,7 +83,7 @@ class RuleEngineSpecialSpec extends RuleEngineBaseSpec {
         waitUntilSuccessfullyParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
         assert bidResponse.seatbid.seat.sort() == [GENERIC, AMX].sort()
@@ -143,7 +143,7 @@ class RuleEngineSpecialSpec extends RuleEngineBaseSpec {
         waitUntilSuccessfullyParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
         assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
@@ -188,7 +188,7 @@ class RuleEngineSpecialSpec extends RuleEngineBaseSpec {
         waitUntilFailedParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBs should perform bidder request"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -207,7 +207,7 @@ class RuleEngineSpecialSpec extends RuleEngineBaseSpec {
         assert !getAnalyticResults(bidResponse)
 
         and: "Logs should contain error"
-        def logs = pbsServiceWithRulesEngineModule.getLogsByTime(startTime)
+        def logs = pbsServiceWithMultipleModules.getLogsByTime(startTime)
         assert getLogsByText(logs, INVALID_CONFIGURATION_FOR_SINGLE_STRING_LOG_WARNING(bidRequest.accountId, PREBID_KEY))
     }
 
@@ -236,7 +236,7 @@ class RuleEngineSpecialSpec extends RuleEngineBaseSpec {
         waitUntilSuccessfullyParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
         assert bidResponse.seatbid.seat.sort() == [GENERIC, AMX].sort()
@@ -300,7 +300,7 @@ class RuleEngineSpecialSpec extends RuleEngineBaseSpec {
         waitUntilSuccessfullyParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
         assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS

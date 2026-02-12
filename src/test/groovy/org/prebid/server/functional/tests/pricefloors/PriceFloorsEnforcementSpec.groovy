@@ -781,14 +781,14 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
 
     def "PBS should suppress deal that are below the matched floor when enforce-deal-floors = true"() {
         given: "Pbs with PF configuration with enforceDealFloors"
-        def defaultAccountConfigSettings = defaultAccountConfigSettings.tap {
+        def accountConfig = defaultAccountConfigSettings.tap {
             auction.priceFloors.tap {
                 enforceDealFloors = defaultAccountEnforeDealFloors
                 enforceDealFloorsSnakeCase = defaultAccountEnforeDealFloorsSnakeCase
             }
         }
-        def pbsService = pbsServiceFactory.getService(FLOORS_CONFIG +
-                ["settings.default-account-config": encode(defaultAccountConfigSettings)])
+        def pbsConfig = FLOORS_CONFIG + ["settings.default-account-config": encode(accountConfig)]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default basic  BidRequest with generic bidder with preferdeals = true"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -833,6 +833,9 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         assert response.seatbid?.first()?.bid?.collect { it.id } == [bidResponse.seatbid.first().bid.last().id]
         assert response.seatbid.first().bid.collect { it.price } == [floorValue]
 
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
+
         where:
         defaultAccountEnforeDealFloors | defaultAccountEnforeDealFloorsSnakeCase | accountEnforeDealFloors | accountEnforeDealFloorsSnakeCase
         false                          | null                                    | true                    | null
@@ -843,11 +846,11 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
 
     def "PBS should not suppress deal that are below the matched floor according to ext.prebid.floors.enforcement.enforcePBS"() {
         given: "Pbs with PF configuration with enforceDealFloors"
-        def defaultAccountConfigSettings = defaultAccountConfigSettings.tap {
+        def accountConfig = defaultAccountConfigSettings.tap {
             auction.priceFloors.enforceDealFloors = pbsConfigEnforceDealFloors
         }
-        def pbsService = pbsServiceFactory.getService(FLOORS_CONFIG +
-                ["settings.default-account-config": encode(defaultAccountConfigSettings)])
+        def pbsConfig = FLOORS_CONFIG + ["settings.default-account-config": encode(accountConfig)]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default basic BidRequest with generic bidder with preferdeals = true"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -890,6 +893,9 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         assert response.seatbid?.first()?.bid?.first()?.id == bidResponse.seatbid.first().bid.first().id
         assert response.seatbid.first().bid.collect { it.price } == [dealBidPrice]
 
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
+
         where:
         pbsConfigEnforceDealFloors | enforcePbs | accountEnforceDealFloors | floorDeals
         true                       | null       | false                    | true
@@ -899,11 +905,11 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
 
     def "PBS should suppress any bids below the matched floor when fetch.enforce-floors-rate = 100 in account config"() {
         given: "Pbs with PF configuration with minMaxAgeSec"
-        def defaultAccountConfigSettings = defaultAccountConfigSettings.tap {
+        def accountConfig = defaultAccountConfigSettings.tap {
             auction.priceFloors.enforceFloorsRate = pbsConfigEnforceRate
         }
-        def pbsService = pbsServiceFactory.getService(FLOORS_CONFIG +
-                ["settings.default-account-config": encode(defaultAccountConfigSettings)])
+        def pbsConfig = FLOORS_CONFIG + ["settings.default-account-config": encode(accountConfig)]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default BidRequest"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -945,6 +951,9 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         assert response.seatbid?.first()?.bid?.first()?.id == bidResponse.seatbid.first().bid.last().id
         assert response.seatbid.first().bid.collect { it.price } == [floorValue]
 
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
+
         where:
         pbsConfigEnforceRate             | requestEnforceRate | accountEnforceRate
         PBSUtils.getRandomNumber(0, 100) | null               | 100
@@ -954,11 +963,11 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
 
     def "PBS should not suppress any bids below the matched floor when fetch.enforce-floors-rate = 0 in account config"() {
         given: "Pbs with PF configuration with minMaxAgeSec"
-        def defaultAccountConfigSettings = defaultAccountConfigSettings.tap {
+        def accountConfig = defaultAccountConfigSettings.tap {
             auction.priceFloors.enforceFloorsRate = pbsConfigEnforceFloorsRate
         }
-        def pbsService = pbsServiceFactory.getService(FLOORS_CONFIG +
-                ["settings.default-account-config": encode(defaultAccountConfigSettings)])
+        def pbsConfig = FLOORS_CONFIG + ["settings.default-account-config": encode(accountConfig)]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default BidRequest"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -998,6 +1007,9 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         then: "PBS should not suppress bids"
         assert response.seatbid?.first()?.bid?.size() == 2
         assert response.seatbid.first().bid.collect { it.price } == [floorValue, floorValue - 0.1]
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
 
         where:
         pbsConfigEnforceFloorsRate       | enforceRate | accountEnforceFloorsRate
