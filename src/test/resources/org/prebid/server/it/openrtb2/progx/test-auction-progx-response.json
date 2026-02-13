@@ -7,19 +7,17 @@
           "id": "bid_id",
           "impid": "imp_id",
           "exp": 300,
-          "price": 0.01,
-          "adid": "2068416",
-          "cid": "8048",
-          "crid": "24080",
+          "price": 3.33,
+          "crid": "creativeId",
           "mtype": 1,
           "ext": {
+            "origbidcpm": 3.33,
             "prebid": {
               "type": "banner",
               "meta": {
                 "adaptercode": "progx"
               }
-            },
-            "origbidcpm": 0.01
+            }
           }
         }
       ],
