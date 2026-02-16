@@ -3,6 +3,7 @@ package org.prebid.server.hooks.modules.id5.userid.v1.filter;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 
+import java.util.Objects;
 import java.util.Random;
 
 public class SamplingFetchFilter implements FetchActionFilter {
@@ -12,7 +13,7 @@ public class SamplingFetchFilter implements FetchActionFilter {
 
     public SamplingFetchFilter(Random random, double sampleRate) {
         this.sampleRate = sampleRate;
-        this.random = random;
+        this.random = Objects.requireNonNull(random);
     }
 
     @Override

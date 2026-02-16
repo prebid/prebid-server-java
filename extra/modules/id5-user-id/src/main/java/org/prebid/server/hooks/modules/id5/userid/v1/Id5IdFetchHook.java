@@ -2,25 +2,28 @@ package org.prebid.server.hooks.modules.id5.userid.v1;
 
 import com.google.common.collect.ImmutableList;
 import io.vertx.core.Future;
-import lombok.extern.slf4j.Slf4j;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.modules.id5.userid.v1.fetch.FetchClient;
 import org.prebid.server.hooks.modules.id5.userid.v1.filter.FetchActionFilter;
 import org.prebid.server.hooks.modules.id5.userid.v1.filter.FilterResult;
-import org.prebid.server.hooks.modules.id5.userid.v1.model.Id5UserId;
 import org.prebid.server.hooks.modules.id5.userid.v1.model.Id5PartnerIdProvider;
+import org.prebid.server.hooks.modules.id5.userid.v1.model.Id5UserId;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.ProcessedAuctionRequestHook;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
-@Slf4j
 public class Id5IdFetchHook implements ProcessedAuctionRequestHook {
+
+    private static final Logger LOG = LoggerFactory.getLogger(Id5IdFetchHook.class);
 
     public static final String CODE = "id5-user-id-fetch-hook";
     private final FetchClient fetchClient;
@@ -30,11 +33,11 @@ public class Id5IdFetchHook implements ProcessedAuctionRequestHook {
     public Id5IdFetchHook(FetchClient fetchClient,
                           List<FetchActionFilter> filters,
                           Id5PartnerIdProvider partnerIdProvider) {
-        this.fetchClient = fetchClient;
+        this.fetchClient = Objects.requireNonNull(fetchClient);
         this.filters = ImmutableList.<FetchActionFilter>builder()
-                .addAll(filters)
+                .addAll(Objects.requireNonNull(filters))
                 .build();
-        this.partnerIdProvider = partnerIdProvider;
+        this.partnerIdProvider = Objects.requireNonNull(partnerIdProvider);
     }
 
     @Override
@@ -61,7 +64,7 @@ public class Id5IdFetchHook implements ProcessedAuctionRequestHook {
                             .debugMessages(List.of("id5-user-id-fetch: id5id fetched"))
                             .build());
         } catch (Exception e) {
-            log.error("id5-user-id-fetch: failed to fetch id5id", e);
+            LOG.error("id5-user-id-fetch: failed to fetch id5id", e);
             return Future.succeededFuture(InvocationResultImpl.<AuctionRequestPayload>builder()
                     .status(InvocationStatus.failure)
                     .action(InvocationAction.no_invocation)
@@ -87,7 +90,7 @@ public class Id5IdFetchHook implements ProcessedAuctionRequestHook {
     }
 
     private static Future<InvocationResult<AuctionRequestPayload>> noInvocation(String msg) {
-        log.debug("id5-user-id-fetch: skipped, {}", msg);
+        LOG.debug("id5-user-id-fetch: skipped, {}", msg);
         return Future.succeededFuture(InvocationResultImpl.<AuctionRequestPayload>builder()
                 .status(InvocationStatus.success)
                 .action(InvocationAction.no_invocation)

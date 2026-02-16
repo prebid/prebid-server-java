@@ -1,6 +1,5 @@
 package org.prebid.server.hooks.modules.id5.userid.config;
 
-import lombok.extern.slf4j.Slf4j;
 import org.prebid.server.hooks.modules.id5.userid.v1.Id5IdFetchHook;
 import org.prebid.server.hooks.modules.id5.userid.v1.Id5IdInjectHook;
 import org.prebid.server.hooks.modules.id5.userid.v1.Id5IdModule;
@@ -15,13 +14,17 @@ import org.prebid.server.hooks.modules.id5.userid.v1.filter.SelectedBidderFilter
 import org.prebid.server.hooks.modules.id5.userid.v1.model.ConstantId5PartnerId;
 import org.prebid.server.hooks.modules.id5.userid.v1.model.Id5PartnerIdProvider;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.util.VersionInfo;
 import org.prebid.server.vertx.httpclient.HttpClient;
+import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.PropertySource;
 
 import java.time.Clock;
 import java.util.List;
@@ -30,34 +33,38 @@ import java.util.Random;
 @Configuration
 @EnableConfigurationProperties(Id5IdModuleProperties.class)
 @ConditionalOnProperty(prefix = "hooks." + Id5IdModule.CODE, name = "enabled", havingValue = "true")
-@Slf4j
+@PropertySource(
+        value = "classpath:/module-config/id5-user-id.yaml",
+        factory = YamlPropertySourceFactory.class)
 public class Id5UserIdModuleConfiguration {
+
+    private static final Logger LOG = LoggerFactory.getLogger(Id5UserIdModuleConfiguration.class);
 
     @Bean
     @ConditionalOnProperty(prefix = "hooks." + Id5IdModule.CODE, name = "fetch-sampling-rate")
     SamplingFetchFilter fetchSampler(Id5IdModuleProperties properties) {
-        log.debug("id5-user-id-fetch-sampling-rate enabled with rate {}", properties.getFetchSamplingRate());
+        LOG.debug("id5-user-id-fetch-sampling-rate enabled with rate {}", properties.getFetchSamplingRate());
         return new SamplingFetchFilter(new Random(), properties.getFetchSamplingRate());
     }
 
     @Bean
     @ConditionalOnProperty(prefix = "hooks." + Id5IdModule.CODE, name = "bidder-filter.values")
     SelectedBidderFilter selectedBidderFilter(Id5IdModuleProperties properties) {
-        log.debug("id5-user-id-bidder-filter enabled, {}", properties.getBidderFilter());
+        LOG.debug("id5-user-id-bidder-filter enabled, {}", properties.getBidderFilter());
         return new SelectedBidderFilter(properties.getBidderFilter());
     }
 
     @Bean
     @ConditionalOnProperty(prefix = "hooks." + Id5IdModule.CODE, name = "account-filter.values")
     AccountFetchFilter accountFetchFilter(Id5IdModuleProperties properties) {
-        log.debug("id5-user-id-account-filter enabled, {}", properties.getAccountFilter());
+        LOG.debug("id5-user-id-account-filter enabled, {}", properties.getAccountFilter());
         return new AccountFetchFilter(properties.getAccountFilter());
     }
 
     @Bean
     @ConditionalOnProperty(prefix = "hooks." + Id5IdModule.CODE, name = "country-filter.values")
     CountryFetchFilter countryFetchFilter(Id5IdModuleProperties properties) {
-        log.debug("id5-user-id-country-filter enabled, {}", properties.getCountryFilter());
+        LOG.debug("id5-user-id-country-filter enabled, {}", properties.getCountryFilter());
         return new CountryFetchFilter(properties.getCountryFilter());
     }
 
@@ -73,27 +80,35 @@ public class Id5UserIdModuleConfiguration {
     }
 
     @Bean
-    Id5IdFetchHook id5UserIdFetchHook(Id5IdModuleProperties properties,
-                                      VersionInfo versionInfo,
-                                      HttpClient httpClient,
-                                      JacksonMapper jacksonMapper,
-                                      List<FetchActionFilter> filters,
-                                      Id5PartnerIdProvider id5PartnerIdProvider) {
-        final HttpFetchClient client = new HttpFetchClient(
+    HttpFetchClient fetchClient(Id5IdModuleProperties properties,
+                                VersionInfo versionInfo,
+                                HttpClient httpClient,
+                                JacksonMapper jacksonMapper,
+                                Clock clock) {
+
+        LOG.debug("id5-user-id-fetch hook enabled, endpoint: {}", properties.getFetchEndpoint());
+        return new HttpFetchClient(
                 properties.getFetchEndpoint(),
                 httpClient,
                 jacksonMapper,
-                Clock.systemUTC(),
+                clock,
                 versionInfo,
                 properties);
-        log.debug("id5-user-id-fetch hook enabled, endpoint: {}", properties.getFetchEndpoint());
-        return new Id5IdFetchHook(client, filters, id5PartnerIdProvider);
+    }
+
+    @Bean
+    Id5IdFetchHook id5UserIdFetchHook(HttpFetchClient fetchClient,
+                                      List<FetchActionFilter> filters,
+                                      Id5PartnerIdProvider id5PartnerIdProvider) {
+
+        return new Id5IdFetchHook(fetchClient, filters, id5PartnerIdProvider);
     }
 
     @Bean
     Id5IdInjectHook id5UserIdInjectHook(Id5IdModuleProperties properties,
                                         List<InjectActionFilter> injectFilters) {
-        log.debug("id5-user-id-inject hook enabled");
+
+        LOG.debug("id5-user-id-inject hook enabled");
         return new Id5IdInjectHook(properties.getInserterName(), injectFilters);
     }
 

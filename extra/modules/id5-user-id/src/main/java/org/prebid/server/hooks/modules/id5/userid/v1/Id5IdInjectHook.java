@@ -4,10 +4,11 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.execution.v1.bidder.BidderRequestPayloadImpl;
+import org.prebid.server.hooks.modules.id5.userid.v1.filter.FilterResult;
+import org.prebid.server.hooks.modules.id5.userid.v1.filter.InjectActionFilter;
 import org.prebid.server.hooks.modules.id5.userid.v1.model.Id5UserId;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
@@ -15,15 +16,17 @@ import org.prebid.server.hooks.v1.InvocationStatus;
 import org.prebid.server.hooks.v1.bidder.BidderInvocationContext;
 import org.prebid.server.hooks.v1.bidder.BidderRequestHook;
 import org.prebid.server.hooks.v1.bidder.BidderRequestPayload;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.util.ListUtil;
-import org.prebid.server.hooks.modules.id5.userid.v1.filter.InjectActionFilter;
-import org.prebid.server.hooks.modules.id5.userid.v1.filter.FilterResult;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
-@Slf4j
 public class Id5IdInjectHook implements BidderRequestHook {
+
+    private static final Logger LOG = LoggerFactory.getLogger(Id5IdInjectHook.class);
 
     public static final String CODE = "id5-user-id-inject-hook";
     private final String inserter;
@@ -35,7 +38,7 @@ public class Id5IdInjectHook implements BidderRequestHook {
 
     public Id5IdInjectHook(String inserter, List<InjectActionFilter> filters) {
         this.inserter = inserter;
-        this.filters = List.copyOf(filters);
+        this.filters = List.copyOf(Objects.requireNonNull(filters));
     }
 
     @Override
@@ -58,10 +61,10 @@ public class Id5IdInjectHook implements BidderRequestHook {
             }
 
             final String bidder = invocationContext.bidder();
-            log.debug("id5-user-id-inject: remaining time: {}ms for bidder {}", remainingMs, bidder);
+            LOG.debug("id5-user-id-inject: remaining time: {}ms for bidder {}", remainingMs, bidder);
             final Future<Id5UserId> userIdFuture = Id5IdModuleContext.from(invocationContext).getId5UserIdFuture();
             return userIdFuture.map(id5UserId -> {
-                log.debug("id5-user-id-inject: resolved userId for bidder {}", bidder);
+                LOG.debug("id5-user-id-inject: resolved userId for bidder {}", bidder);
                 if (id5UserId == null || CollectionUtils.isEmpty(id5UserId.toEIDs())) {
                     return resultBuilder(invocationContext)
                             .status(InvocationStatus.success)
@@ -81,7 +84,7 @@ public class Id5IdInjectHook implements BidderRequestHook {
                 final BidRequest updatedBidRequest = payload.bidRequest().toBuilder()
                         .user(updatedUser)
                         .build();
-                log.debug("id5-user-id-inject: user updated with {} eid(s)", eIDs.size());
+                LOG.debug("id5-user-id-inject: user updated with {} eid(s)", eIDs.size());
                 return resultBuilder(invocationContext)
                         .status(InvocationStatus.success)
                         .action(InvocationAction.update)
@@ -91,7 +94,7 @@ public class Id5IdInjectHook implements BidderRequestHook {
                         .build();
             });
         } catch (Exception e) {
-            log.error("id5-user-id-inject: failed to inject id5id", e);
+            LOG.error("id5-user-id-inject: failed to inject id5id", e);
             return Future.succeededFuture(resultBuilder(invocationContext)
                     .status(InvocationStatus.failure)
                     .action(InvocationAction.no_invocation)
@@ -128,7 +131,7 @@ public class Id5IdInjectHook implements BidderRequestHook {
 
     private static Future<InvocationResult<BidderRequestPayload>> noInvocation(
             String reason, BidderInvocationContext invocationContext) {
-        log.debug("id5-user-id-inject: skipped, {}", reason);
+        LOG.debug("id5-user-id-inject: skipped, {}", reason);
         return Future.succeededFuture(resultBuilder(invocationContext)
                 .status(InvocationStatus.success)
                 .action(InvocationAction.no_invocation)

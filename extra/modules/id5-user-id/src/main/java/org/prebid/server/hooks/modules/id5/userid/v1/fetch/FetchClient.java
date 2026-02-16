@@ -7,6 +7,5 @@ import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 
 public interface FetchClient {
 
-    Future<Id5UserId> fetch(long partnerId, AuctionRequestPayload payload,
-                            AuctionInvocationContext invocationContext);
+    Future<Id5UserId> fetch(long partnerId, AuctionRequestPayload payload, AuctionInvocationContext invocationContext);
 }

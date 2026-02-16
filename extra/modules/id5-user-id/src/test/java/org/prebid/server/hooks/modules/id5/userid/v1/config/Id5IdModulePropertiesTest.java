@@ -1,8 +1,11 @@
 package org.prebid.server.hooks.modules.id5.userid.v1.config;
 
 import org.junit.jupiter.api.Test;
+import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.PropertySource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -11,7 +14,11 @@ class Id5IdModulePropertiesTest {
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
             .withUserConfiguration(TestPropsConfig.class);
 
+    @Configuration
     @EnableConfigurationProperties(Id5IdModuleProperties.class)
+    @PropertySource(
+            value = "classpath:/module-config/id5-user-id.yaml",
+            factory = YamlPropertySourceFactory.class)
     static class TestPropsConfig { }
 
     @Test

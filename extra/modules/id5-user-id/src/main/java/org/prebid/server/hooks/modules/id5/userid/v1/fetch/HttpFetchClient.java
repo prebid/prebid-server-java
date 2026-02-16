@@ -6,7 +6,6 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Site;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
-import lombok.extern.slf4j.Slf4j;
 import org.prebid.server.hooks.modules.id5.userid.v1.config.Id5IdModuleProperties;
 import org.prebid.server.hooks.modules.id5.userid.v1.model.FetchRequest;
 import org.prebid.server.hooks.modules.id5.userid.v1.model.FetchRequest.PrebidServerMetadata;
@@ -17,6 +16,8 @@ import org.prebid.server.hooks.modules.id5.userid.v1.model.Id5UserId;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.privacy.model.PrivacyContext;
@@ -30,11 +31,13 @@ import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.time.Clock;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-@Slf4j
 public class HttpFetchClient implements FetchClient {
+
+    private static final Logger LOG = LoggerFactory.getLogger(HttpFetchClient.class);
 
     private final String fetchUrl;
     private final HttpClient httpClient;
@@ -49,33 +52,30 @@ public class HttpFetchClient implements FetchClient {
                            Clock clock,
                            VersionInfo versionInfo,
                            Id5IdModuleProperties id5IdModuleProperties) {
-        this.fetchUrl = endpoint;
-        this.httpClient = httpClient;
-        this.mapper = mapper;
-        this.clock = clock;
-        this.versionInfo = versionInfo;
-        this.id5IdModuleProperties = id5IdModuleProperties;
+        this.fetchUrl = Objects.requireNonNull(endpoint);
+        this.httpClient = Objects.requireNonNull(httpClient);
+        this.mapper = Objects.requireNonNull(mapper);
+        this.clock = Objects.requireNonNull(clock);
+        this.versionInfo = Objects.requireNonNull(versionInfo);
+        this.id5IdModuleProperties = Objects.requireNonNull(id5IdModuleProperties);
     }
 
     @Override
-    public Future<Id5UserId> fetch(long partnerId, AuctionRequestPayload payload,
+    public Future<Id5UserId> fetch(long partnerId,
+                                   AuctionRequestPayload payload,
                                    AuctionInvocationContext invocationContext) {
         final FetchRequest fetchRequest = createFetchRequest(partnerId, payload, invocationContext);
-        try {
-            final String body = mapper.encodeToString(fetchRequest);
-            final MultiMap headers = HttpUtil.headers();
-            final String url = String.format("%s/%s.json", fetchUrl, partnerId);
-            final long timeoutMs = invocationContext.timeout().remaining();
-            log.debug("id5-user-id: fetching id5Id from endpoint {} with timeout {}. Headers {}, body {}",
-                    url, timeoutMs, headers, body);
+        final String body = mapper.encodeToString(fetchRequest);
+        final MultiMap headers = HttpUtil.headers();
+        final String url = String.format("%s/%s.json", fetchUrl, partnerId);
+        final long timeoutMs = invocationContext.timeout().remaining();
+        LOG.debug("id5-user-id: fetching id5Id from endpoint {} with timeout {}. Headers {}, body {}",
+                url, timeoutMs, headers, body);
 
-            return httpClient
-                    .post(url, headers, body, timeoutMs)
-                    .map(this::parseResponse)
-                    .recover(this::handleError);
-        } catch (Exception e) {
-            return handleError(e);
-        }
+        return httpClient
+                .post(url, headers, body, timeoutMs)
+                .map(this::parseResponse)
+                .recover(this::handleError);
     }
 
     private FetchRequest createFetchRequest(long partnerId,
@@ -153,7 +153,7 @@ public class HttpFetchClient implements FetchClient {
     }
 
     private Future<Id5UserId> handleError(Throwable exception) {
-        log.error("id5-user-id: failed to fetch id5Id from endpoint {}", fetchUrl, exception);
+        LOG.error("id5-user-id: failed to fetch id5Id from endpoint {}", fetchUrl, exception);
         return Future.succeededFuture(Id5UserId.empty());
     }
 
@@ -161,10 +161,10 @@ public class HttpFetchClient implements FetchClient {
         final String body = response.getBody();
         final int statusCode = response.getStatusCode();
         if (response.getStatusCode() == 200) {
-            log.debug("id5-user-id: fetched id5Id succeeded, body {}", body);
+            LOG.debug("id5-user-id: fetched id5Id succeeded, body {}", body);
             return mapper.decodeValue(body, FetchResponse.class);
         } else {
-            log.error("id5-user-id: fetched id5Id failed, status {}, body {}", statusCode, body);
+            LOG.error("id5-user-id: fetched id5Id failed, status {}, body {}", statusCode, body);
             return Id5UserId.empty();
         }
     }

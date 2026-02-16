@@ -11,9 +11,6 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.DecimalMax;
 
-/**
- * Configuration model for the ID5 ID module.
- */
 @Data
 @NoArgsConstructor
 @ConfigurationProperties(prefix = "hooks." + Id5IdModule.CODE)
@@ -29,13 +26,15 @@ public class Id5IdModuleProperties {
 
     @NotBlank
     @Pattern(regexp = "https?://.+", message = "must be a valid http(s) URL")
-    private String fetchEndpoint = "https://api.id5-sync.com/gs/v2";
+    private String fetchEndpoint;
 
     @PositiveOrZero
     @DecimalMax(value = "1.0")
     private double fetchSamplingRate;
 
     private ValuesFilter<String> bidderFilter;
+
     private ValuesFilter<String> accountFilter;
+
     private ValuesFilter<String> countryFilter;
 }
