@@ -26,6 +26,7 @@ class AccountConfig {
     AlternateBidderCodes alternateBidderCodes
     @JsonProperty("alternate_bidder_codes")
     AlternateBidderCodes alternateBidderCodesSnakeCase
+    AccountVtrackConfig vtrack
 
     static getDefaultAccountConfig() {
         new AccountConfig(status: AccountStatus.ACTIVE)

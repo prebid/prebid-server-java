@@ -45,6 +45,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsa;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.adnuntius.ExtImpAdnuntius;
+import org.prebid.server.proto.openrtb.ext.request.adnuntius.ExtImpAdnuntiusTargeting;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
@@ -199,6 +200,49 @@ public class AdnuntiusBidderTest extends VertxTest {
                 .flatExtracting(AdnuntiusRequest::getAdUnits)
                 .extracting(AdnuntiusRequestAdUnit::getAdType)
                 .containsNull();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnTargetingFieldsWhenTargetingIsPresent() {
+        // given
+        final ExtImpAdnuntiusTargeting targeting = ExtImpAdnuntiusTargeting.builder()
+                .category(List.of("1", "2"))
+                .keywords(List.of("3", "4"))
+                .segments(List.of("5", "6"))
+                .adUnitMatchingLabel(List.of("7", "8"))
+                .keyValues(Map.of("9", List.of("10", "11")))
+                .build();
+        final BidRequest bidRequest = givenBidRequest(givenBannerAndNativeImp(
+                ExtImpAdnuntius.builder().targeting(targeting).build(),
+                identity()));
+
+        // when
+        final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(AdnuntiusRequest::getAdUnits)
+                .extracting(
+                        AdnuntiusRequestAdUnit::getCategory,
+                        AdnuntiusRequestAdUnit::getKeywords,
+                        AdnuntiusRequestAdUnit::getSegments,
+                        AdnuntiusRequestAdUnit::getKeyValues,
+                        AdnuntiusRequestAdUnit::getAdUnitMatchingLabel)
+                .containsExactly(
+                        tuple(
+                                List.of("1", "2"),
+                                List.of("3", "4"),
+                                List.of("5", "6"),
+                                Map.of("9", List.of("10", "11")),
+                                List.of("7", "8")),
+                        tuple(
+                                List.of("1", "2"),
+                                List.of("3", "4"),
+                                List.of("5", "6"),
+                                Map.of("9", List.of("10", "11")),
+                                List.of("7", "8")));
     }
 
     @Test

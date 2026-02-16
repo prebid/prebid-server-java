@@ -7,8 +7,8 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Regs
 import org.prebid.server.functional.model.request.auction.RegsExt
 import org.prebid.server.functional.util.PBSUtils
-import org.prebid.server.functional.util.privacy.gpp.TcfEuV2Consent
-import org.prebid.server.functional.util.privacy.gpp.UsV1Consent
+import org.prebid.server.functional.util.privacy.gpp.v2.TcfEuV2Consent
+import org.prebid.server.functional.util.privacy.gpp.v1.UspV1Consent
 
 import static org.prebid.server.functional.model.request.GppSectionId.TCF_EU_V2
 import static org.prebid.server.functional.model.request.GppSectionId.USP_V1
@@ -133,7 +133,7 @@ class GppAmpSpec extends PrivacyBaseSpec {
 
         where:
         gppConsent << [new TcfEuV2Consent.Builder().build(),
-                       new UsV1Consent.Builder().build()]
+                       new UspV1Consent.Builder().build()]
     }
 
     def "PBS should copy consent_string to user.consent and set gdpr=1 when consent_string is valid and gppSid contains 2"() {
@@ -165,7 +165,7 @@ class GppAmpSpec extends PrivacyBaseSpec {
 
     def "PBS should copy consent_string to user.us_privacy when consent_string contains us_privacy and gppSid contains 6"() {
         given: "Default amp request with valid consent_string and gpp consent_type"
-        def gppConsent = new UsV1Consent.Builder().build()
+        def gppConsent = new UspV1Consent.Builder().build()
         def gppSidIds = USP_V1.value
         def ampRequest = getGppAmpRequest(gppConsent.consentString, gppSidIds)
 

@@ -1,0 +1,30 @@
+adapters:
+  teal:
+    ortb-version: "2.6"
+    endpoint: https://a.bids.ws/openrtb2/auction
+    modifying-vast-xml-allowed: true
+    endpoint-compression: gzip
+    geoscope:
+      - global
+    aliases:
+      tealplus:
+        enabled: false
+    ortb:
+      multiformat-supported: true
+    meta-info:
+      maintainer-email: prebid@teal.works
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 1378
+    usersync:
+      cookie-family-name: teal
+      iframe:
+        url: https://bids.ws/load-pbs.html?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect_url={{redirect_url}}
+        support-cors: false

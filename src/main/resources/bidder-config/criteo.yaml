@@ -2,6 +2,8 @@ adapters:
   criteo:
     ortb-version: "2.6"
     endpoint: https://ssp-bidder.criteo.com/openrtb/pbs/auction/request?profile=230
+    geoscope:
+      - global
     ortb:
       multiformat-supported: true
     meta-info:

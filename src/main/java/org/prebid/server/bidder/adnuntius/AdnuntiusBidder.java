@@ -53,6 +53,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsa;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.adnuntius.ExtImpAdnuntius;
+import org.prebid.server.proto.openrtb.ext.request.adnuntius.ExtImpAdnuntiusTargeting;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidDsa;
 import org.prebid.server.util.BidderUtil;
@@ -163,12 +164,8 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
     }
 
     private static AdnuntiusRequestAdUnit makeBannerAdUnit(Imp imp, ExtImpAdnuntius extImpAdnuntius) {
-        final String auId = extImpAdnuntius.getAuId();
-        return AdnuntiusRequestAdUnit.builder()
-                .auId(auId)
-                .targetId(targetId(auId, imp.getId(), "banner"))
+        return makeAdUnitBuilder(imp, extImpAdnuntius, "banner")
                 .dimensions(createDimensions(imp.getBanner()))
-                .maxDeals(resolveMaxDeals(extImpAdnuntius))
                 .build();
     }
 
@@ -202,13 +199,9 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
     }
 
     private AdnuntiusRequestAdUnit makeNativeAdUnit(Imp imp, ExtImpAdnuntius extImpAdnuntius) {
-        final String auId = extImpAdnuntius.getAuId();
-        return AdnuntiusRequestAdUnit.builder()
-                .auId(auId)
-                .adType("NATIVE")
-                .targetId(targetId(auId, imp.getId(), "native"))
-                .maxDeals(resolveMaxDeals(extImpAdnuntius))
+        return makeAdUnitBuilder(imp, extImpAdnuntius, "native")
                 .nativeRequest(AdnuntiusNativeRequest.of(parseNativeRequest(imp)))
+                .adType("NATIVE")
                 .build();
     }
 
@@ -218,6 +211,26 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
         } catch (IllegalArgumentException | JsonProcessingException e) {
             throw new PreBidException("Unmarshalling Native error " + e.getMessage());
         }
+    }
+
+    private static AdnuntiusRequestAdUnit.AdnuntiusRequestAdUnitBuilder makeAdUnitBuilder(
+            Imp imp,
+            ExtImpAdnuntius extImpAdnuntius,
+            String bidType) {
+
+        final String auId = extImpAdnuntius.getAuId();
+        final ExtImpAdnuntiusTargeting targeting = ObjectUtils.defaultIfNull(
+                extImpAdnuntius.getTargeting(),
+                ExtImpAdnuntiusTargeting.builder().build());
+        return AdnuntiusRequestAdUnit.builder()
+                .auId(auId)
+                .targetId(targetId(auId, imp.getId(), bidType))
+                .maxDeals(resolveMaxDeals(extImpAdnuntius))
+                .category(targeting.getCategory())
+                .segments(targeting.getSegments())
+                .keywords(targeting.getKeywords())
+                .keyValues(targeting.getKeyValues())
+                .adUnitMatchingLabel(targeting.getAdUnitMatchingLabel());
     }
 
     private static Integer resolveMaxDeals(ExtImpAdnuntius extImpAdnuntius) {
