@@ -33,13 +33,20 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 public class MinuteMediaBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://randomurl.com/exchange?publisherId={{PublisherId}}";
+    private static final String TEST_ENDPOINT_URL = "https://test.com/exchange?publisherId={{PublisherId}}";
 
-    private final MinuteMediaBidder target = new MinuteMediaBidder(ENDPOINT_URL, jacksonMapper);
+    private final MinuteMediaBidder target = new MinuteMediaBidder(ENDPOINT_URL, TEST_ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new MinuteMediaBidder("invalid_url", jacksonMapper));
+                .isThrownBy(() -> new MinuteMediaBidder("invalid_url", TEST_ENDPOINT_URL, jacksonMapper));
+    }
+
+    @Test
+    public void creationShouldFailOnInvalidTestEndpointUrl() {
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> new MinuteMediaBidder(ENDPOINT_URL, "invalid_url", jacksonMapper));
     }
 
     @Test
@@ -73,6 +80,26 @@ public class MinuteMediaBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
                 .containsExactly("https://randomurl.com/exchange?publisherId=123");
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldResolveTestEndpointUrlWhenTestIsOne() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.ext(givenImpExt("123")),
+                impBuilder -> impBuilder.ext(givenImpExt("456")))
+                .toBuilder()
+                .test(1)
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://test.com/exchange?publisherId=123");
         assertThat(result.getErrors()).isEmpty();
     }
 

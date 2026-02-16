@@ -12,6 +12,7 @@
           "crid":"banner_creative_id",
           "w": 300,
           "h": 250,
+          "mtype": 1,
           "ext": {
             "origbidcpm": 6.77,
             "origbidcur": "EUR",
@@ -30,6 +31,7 @@
           "price": 6.494,
           "adm": "<vast><div>video</div></vast>",
           "crid":"video_creative_id",
+          "mtype": 2,
           "ext": {
             "origbidcpm": 5.7,
             "origbidcur": "EUR",

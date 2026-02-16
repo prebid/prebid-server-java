@@ -350,6 +350,35 @@ public class ConnatixBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldIncludeEntireImpExt() {
+        // given
+        final ObjectNode impExt = mapper.createObjectNode();
+        impExt.set("bidder", mapper.valueToTree(ExtImpConnatix.of("placementId", null)));
+        impExt.put("gpid", "test-gpid");
+        impExt.put("random", "test-random");
+
+        final BidRequest bidRequest = givenBidRequest(
+                UnaryOperator.identity(),
+                givenImp(impBuilder -> impBuilder.ext(impExt)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        final ObjectNode expectedExt = mapper.createObjectNode();
+        expectedExt.set("connatix", mapper.valueToTree(ExtImpConnatix.of("placementId", null)));
+        expectedExt.put("gpid", "test-gpid");
+        expectedExt.put("random", "test-random");
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .containsExactly(expectedExt);
+    }
+
+    @Test
     public void makeBidsShouldErrorIfResponseBodyCannotBeParsed() {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall("invalid");

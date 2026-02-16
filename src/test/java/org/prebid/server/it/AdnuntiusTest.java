@@ -18,7 +18,7 @@ public class AdnuntiusTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromAdnuntius() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/adnuntius-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/adnuntius-exchange-eu"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/adnuntius/test-adnuntius-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/adnuntius/test-adnuntius-bid-response.json"))));
 

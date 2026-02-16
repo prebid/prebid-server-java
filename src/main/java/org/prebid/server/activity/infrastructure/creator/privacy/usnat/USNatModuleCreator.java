@@ -11,6 +11,11 @@ import org.prebid.server.activity.infrastructure.privacy.PrivacyModuleQualifier;
 import org.prebid.server.activity.infrastructure.privacy.PrivacySection;
 import org.prebid.server.activity.infrastructure.privacy.usnat.USNatModule;
 import org.prebid.server.auction.gpp.model.GppContext;
+import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
+import org.prebid.server.metric.MetricName;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.model.activity.privacy.AccountUSNatModuleConfig;
 
 import java.util.List;
@@ -20,15 +25,22 @@ import java.util.stream.Collectors;
 
 public class USNatModuleCreator implements PrivacyModuleCreator {
 
+    private static final Logger logger = LoggerFactory.getLogger(USNatModuleCreator.class);
+    private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
+
     private static final Set<Integer> ALLOWED_SECTIONS_IDS =
             PrivacySection.US_PRIVACY_SECTIONS.stream()
                     .map(PrivacySection::sectionId)
                     .collect(Collectors.toSet());
 
     private final USNatGppReaderFactory gppReaderFactory;
+    private final Metrics metrics;
+    private final double samplingRate;
 
-    public USNatModuleCreator(USNatGppReaderFactory gppReaderFactory) {
+    public USNatModuleCreator(USNatGppReaderFactory gppReaderFactory, Metrics metrics, double samplingRate) {
         this.gppReaderFactory = Objects.requireNonNull(gppReaderFactory);
+        this.metrics = Objects.requireNonNull(metrics);
+        this.samplingRate = samplingRate;
     }
 
     @Override
@@ -48,6 +60,7 @@ public class USNatModuleCreator implements PrivacyModuleCreator {
                         sectionId,
                         scope.getGppModel(),
                         moduleConfig.getConfig()))
+                .filter(Objects::nonNull)
                 .toList();
 
         return new AndPrivacyModules(innerPrivacyModules);
@@ -70,6 +83,16 @@ public class USNatModuleCreator implements PrivacyModuleCreator {
                                      GppModel gppModel,
                                      AccountUSNatModuleConfig.Config config) {
 
-        return new USNatModule(activity, gppReaderFactory.forSection(sectionId, gppModel), config);
+        try {
+            return new USNatModule(activity, gppReaderFactory.forSection(sectionId, gppModel), config);
+        } catch (Exception e) {
+            conditionalLogger.error(
+                    "UsNat privacy module creation failed: %s. Activity: %s. Section: %s. Gpp: %s.".formatted(
+                            e.getMessage(), activity, sectionId, gppModel != null ? gppModel.encode() : null),
+                    samplingRate);
+            metrics.updateAlertsMetrics(MetricName.general);
+
+            return null;
+        }
     }
 }

@@ -1,0 +1,19 @@
+{
+  "sp": [
+    {
+      "k": "testadunitcode",
+      "a": [
+        {
+          "i": "bid_id",
+          "pr": "0.5",
+          "adm": "<div>test</div>",
+          "crid": "crid",
+          "id": "imp_id",
+          "adom": "test.com",
+          "w": 600,
+          "h": 300
+        }
+      ]
+    }
+  ]
+}

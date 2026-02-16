@@ -282,8 +282,8 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                 .skipped(false)
                 .location(PriceFloorLocation.noData)
                 .build());
-        verify(metrics).updateAlertsMetrics(MetricName.general);
-        assertThat(warnings).containsExactly("Using dynamic data is not allowed");
+        verifyNoInteractions(metrics);
+        assertThat(warnings).isEmpty();
     }
 
     @Test
@@ -313,8 +313,8 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                 .build());
 
         verify(metrics).updateAlertsMetrics(MetricName.general);
-        assertThat(warnings).containsExactly("Using dynamic data is not allowed. "
-                + "Following parsing of request price floors is failed: Price floor rules data must be present");
+        assertThat(warnings).containsExactly("Price floors processing failed: "
+                + "parsing of request price floors is failed: Price floor rules data must be present");
     }
 
     @Test
@@ -366,8 +366,8 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                 .skipped(false)
                 .location(PriceFloorLocation.noData)
                 .build());
-        verify(metrics).updateAlertsMetrics(MetricName.general);
-        assertThat(warnings).containsExactly("errorMessage");
+        verifyNoInteractions(metrics);
+        assertThat(warnings).isEmpty();
     }
 
     @Test
@@ -392,8 +392,8 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                 .location(PriceFloorLocation.noData)
                 .build());
         verify(metrics).updateAlertsMetrics(MetricName.general);
-        assertThat(warnings).containsExactly("errorMessage. "
-                + "Following parsing of request price floors is failed: Price floor rules data must be present");
+        assertThat(warnings).containsExactly("Price floors processing failed: "
+                + "parsing of request price floors is failed: Price floor rules data must be present");
     }
 
     @Test
@@ -417,8 +417,8 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                 .skipped(false)
                 .location(PriceFloorLocation.noData)
                 .build());
-        verify(metrics).updateAlertsMetrics(MetricName.general);
-        assertThat(warnings).containsExactly("errorMessage");
+        verifyNoInteractions(metrics);
+        assertThat(warnings).isEmpty();
     }
 
     @Test
@@ -443,8 +443,8 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                 .location(PriceFloorLocation.noData)
                 .build());
         verify(metrics).updateAlertsMetrics(MetricName.general);
-        assertThat(warnings).containsExactly("errorMessage. "
-                + "Following parsing of request price floors is failed: Price floor rules data must be present");
+        assertThat(warnings).containsExactly("Price floors processing failed: "
+                + "parsing of request price floors is failed: Price floor rules data must be present");
     }
 
     @Test
@@ -469,8 +469,8 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                 .skipped(false)
                 .location(PriceFloorLocation.noData)
                 .build());
-        verify(metrics).updateAlertsMetrics(MetricName.general);
-        assertThat(warnings).containsExactly("errorMessage");
+        verifyNoInteractions(metrics);
+        assertThat(warnings).isEmpty();
     }
 
     @Test
@@ -497,8 +497,8 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                 .extracting(PriceFloorRules::getLocation)
                 .isEqualTo(PriceFloorLocation.noData);
         verify(metrics).updateAlertsMetrics(MetricName.general);
-        assertThat(warnings).containsExactly("errorMessage. "
-                + "Following parsing of request price floors is failed: Price floor rules data must be present");
+        assertThat(warnings).containsExactly("Price floors processing failed: "
+                + "parsing of request price floors is failed: Price floor rules data must be present");
     }
 
     @Test
@@ -713,8 +713,8 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                 .location(PriceFloorLocation.noData)
                 .build());
 
-        assertThat(warnings).containsOnly("errorMessage. "
-                + "Following parsing of request price floors is failed: "
+        assertThat(warnings).containsOnly("Price floors processing failed: "
+                + "parsing of request price floors is failed: "
                 + "Price floor rules number 2 exceeded its maximum number 1");
     }
 
@@ -747,8 +747,8 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                 .location(PriceFloorLocation.noData)
                 .build());
 
-        assertThat(warnings).containsOnly("errorMessage. "
-                + "Following parsing of request price floors is failed: "
+        assertThat(warnings).containsOnly("Price floors processing failed: "
+                + "parsing of request price floors is failed: "
                 + "Price floor schema dimensions 2 exceeded its maximum number 1");
     }
 
@@ -1086,6 +1086,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
             UnaryOperator<PriceFloorRules.PriceFloorRulesBuilder> floorsCustomizer) {
 
         return floorsCustomizer.apply(PriceFloorRules.builder()
+                .enabled(true)
                 .data(PriceFloorData.builder()
                         .modelGroups(singletonList(PriceFloorModelGroup.builder()
                                 .value("someKey", BigDecimal.ONE)

@@ -1,0 +1,34 @@
+{
+  "id": "test-auction-request",
+  "imp": [
+    {
+      "id": "imp1",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          }
+        ]
+      },
+      "ext": {
+        "akcelo": {
+          "adUnitId": 1,
+          "siteId": 2
+        }
+      }
+    }
+  ],
+  "site": {
+    "page": "http://testpage.com"
+  },
+  "device": {
+    "ua": "Mozilla/5.0"
+  },
+  "tmax": 5000,
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

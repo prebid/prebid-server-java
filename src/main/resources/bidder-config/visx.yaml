@@ -1,6 +1,6 @@
 adapters:
   visx:
-    endpoint: https://t.visx.net/s2s_bid?wrapperType=s2s_prebid_java
+    endpoint: https://t.visx.net/s2s_bid?wrapperType=s2s_prebid_standard:0.1.2
     meta-info:
       maintainer-email: supply.partners@yoc.com
       app-media-types:

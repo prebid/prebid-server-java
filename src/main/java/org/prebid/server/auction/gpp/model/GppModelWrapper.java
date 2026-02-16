@@ -17,33 +17,7 @@ public class GppModelWrapper extends GppModel {
     private IntObjectMap<String> sectionIdToEncodedString;
 
     public GppModelWrapper(String encodedString) throws DecodingException {
-        super(padSections(encodedString));
-    }
-
-    private static String padSections(String gpp) {
-        final StringBuilder gppBuilder = new StringBuilder(gpp);
-
-        int subsectionStart = 0;
-        int offset = 0;
-        for (int i = 1; i < gpp.length(); i++) {
-            final char currentChar = gpp.charAt(i);
-
-            if (currentChar == '~' || currentChar == '.') {
-                if ((i - subsectionStart) % 4 != 0 && gpp.charAt(i - 1) != '=') {
-                    gppBuilder.insert(i + offset, "A");
-                    offset++;
-                }
-
-                subsectionStart = i + 1;
-            }
-        }
-
-        final int lastSubsectionLength = gpp.length() - subsectionStart;
-        if (lastSubsectionLength > 0 && lastSubsectionLength % 4 != 0 && !gpp.endsWith("=")) {
-            gppBuilder.append("A");
-        }
-
-        return gppBuilder.toString();
+        super(encodedString);
     }
 
     private void init() {

@@ -3,8 +3,11 @@ package org.prebid.server.bidder.rtbhouse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Publisher;
+import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -22,6 +25,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.rtbhouse.ExtImpRtbhouse;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
@@ -34,6 +38,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 public class RtbhouseBidder implements Bidder<BidRequest> {
 
@@ -60,6 +65,7 @@ public class RtbhouseBidder implements Bidder<BidRequest> {
 
         final List<Imp> modifiedImps = new ArrayList<>();
         final List<BidderError> errors = new ArrayList<>();
+        String publisherId = null;
 
         for (Imp imp : bidRequest.getImp()) {
             try {
@@ -67,6 +73,9 @@ public class RtbhouseBidder implements Bidder<BidRequest> {
                 final Price bidFloorPrice = resolveBidFloor(imp, impExt, bidRequest);
 
                 modifiedImps.add(modifyImp(imp, bidFloorPrice));
+                if (publisherId == null) {
+                    publisherId = impExt.getPublisherId();
+                }
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -78,10 +87,115 @@ public class RtbhouseBidder implements Bidder<BidRequest> {
 
         final BidRequest outgoingRequest = bidRequest.toBuilder()
                 .cur(Collections.singletonList(BIDDER_CURRENCY))
+                .site(modifySite(bidRequest.getSite(), publisherId))
                 .imp(modifiedImps)
                 .build();
 
         return Result.withValue(BidderUtil.defaultRequest(outgoingRequest, endpointUrl, mapper));
+    }
+
+    private ExtImpRtbhouse parseImpExt(Imp imp) {
+        try {
+            return mapper.mapper().convertValue(imp.getExt(), RTBHOUSE_EXT_TYPE_REFERENCE).getBidder();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(e.getMessage());
+        }
+    }
+
+    private Price resolveBidFloor(Imp imp, ExtImpRtbhouse impExt, BidRequest bidRequest) {
+        final List<String> brCur = bidRequest.getCur();
+        final Price initialBidFloorPrice = Price.of(imp.getBidfloorcur(), imp.getBidfloor());
+
+        final BigDecimal impExtBidFloor = impExt.getBidFloor();
+        final String impExtCurrency = impExtBidFloor != null && brCur != null && !brCur.isEmpty()
+                ? brCur.getFirst() : null;
+        final Price impExtBidFloorPrice = Price.of(impExtCurrency, impExtBidFloor);
+        final Price resolvedPrice = initialBidFloorPrice.getValue() == null
+                ? impExtBidFloorPrice : initialBidFloorPrice;
+
+        return BidderUtil.isValidPrice(resolvedPrice)
+                && !StringUtils.equalsIgnoreCase(resolvedPrice.getCurrency(), BIDDER_CURRENCY)
+                ? convertBidFloor(resolvedPrice, imp.getId(), bidRequest)
+                : resolvedPrice;
+    }
+
+    private Price convertBidFloor(Price bidFloorPrice, String impId, BidRequest bidRequest) {
+        final String bidFloorCur = bidFloorPrice.getCurrency();
+        try {
+            final BigDecimal convertedPrice = currencyConversionService
+                    .convertCurrency(bidFloorPrice.getValue(), bidRequest, bidFloorCur, BIDDER_CURRENCY);
+
+            return Price.of(BIDDER_CURRENCY, convertedPrice);
+        } catch (PreBidException e) {
+            throw new PreBidException(String.format(
+                    "Unable to convert provided bid floor currency from %s to %s for imp `%s`",
+                    bidFloorCur, BIDDER_CURRENCY, impId));
+        }
+    }
+
+    private static Imp modifyImp(Imp imp, Price bidFloorPrice) {
+        return imp.toBuilder()
+                .tagid(extractTagId(imp))
+                .bidfloorcur(ObjectUtil.getIfNotNull(bidFloorPrice, Price::getCurrency))
+                .bidfloor(ObjectUtil.getIfNotNull(bidFloorPrice, Price::getValue))
+                .pmp(null)
+                .build();
+    }
+
+    private static String extractTagId(Imp imp) {
+        return Optional.ofNullable(imp.getTagid())
+                .filter(StringUtils::isNotBlank)
+                .or(() -> extractGpid(imp))
+                .or(() -> extractAdslot(imp))
+                .or(() -> extractPbadslot(imp))
+                .or(() -> Optional.ofNullable(imp.getId())
+                        .filter(StringUtils::isNotBlank))
+                .orElse(null);
+    }
+
+    private static Optional<String> extractGpid(Imp imp) {
+        return Optional.ofNullable(imp.getExt())
+                .map(ext -> ext.get("gpid"))
+                .map(JsonNode::textValue)
+                .filter(StringUtils::isNotBlank);
+    }
+
+    private static Optional<String> extractAdslot(Imp imp) {
+        return Optional.ofNullable(imp.getExt())
+                .map(ext -> ext.get("data"))
+                .map(data -> data.get("adserver"))
+                .map(adserver -> adserver.get("adslot"))
+                .map(JsonNode::textValue)
+                .filter(StringUtils::isNotBlank);
+    }
+
+    private static Optional<String> extractPbadslot(Imp imp) {
+        return Optional.ofNullable(imp.getExt())
+                .map(ext -> ext.get("data"))
+                .map(data -> data.get("pbadslot"))
+                .map(JsonNode::textValue)
+                .filter(StringUtils::isNotBlank);
+    }
+
+    private Site modifySite(Site site, String publisherId) {
+        final ObjectNode prebidNode = mapper.mapper().createObjectNode();
+        prebidNode.put("publisherId", publisherId);
+
+        final ExtPublisher extPublisher = ExtPublisher.empty();
+        extPublisher.addProperty("prebid", prebidNode);
+
+        final Publisher publisher = Optional.ofNullable(site)
+                .map(Site::getPublisher)
+                .map(Publisher::toBuilder)
+                .orElseGet(Publisher::builder)
+                .ext(extPublisher)
+                .build();
+
+        return Optional.ofNullable(site)
+                .map(Site::toBuilder)
+                .orElseGet(Site::builder)
+                .publisher(publisher)
+                .build();
     }
 
     @Override
@@ -134,6 +248,21 @@ public class RtbhouseBidder implements Bidder<BidRequest> {
                 .build();
     }
 
+    private static BidType getBidType(String impId, List<Imp> imps) {
+        for (Imp imp : imps) {
+            if (imp.getId().equals(impId)) {
+                if (imp.getBanner() != null) {
+                    return BidType.banner;
+                } else if (imp.getXNative() != null) {
+                    return BidType.xNative;
+                } else if (imp.getVideo() != null) {
+                    return BidType.video;
+                }
+            }
+        }
+        return BidType.banner;
+    }
+
     private String resolveNativeAdm(String adm, List<BidderError> bidderErrors) {
         final JsonNode admNode;
         try {
@@ -151,68 +280,6 @@ public class RtbhouseBidder implements Bidder<BidRequest> {
         return adm;
     }
 
-    private static BidType getBidType(String impId, List<Imp> imps) {
-        for (Imp imp : imps) {
-            if (imp.getId().equals(impId)) {
-                if (imp.getBanner() != null) {
-                    return BidType.banner;
-                } else if (imp.getXNative() != null) {
-                    return BidType.xNative;
-                } else if (imp.getVideo() != null) {
-                    return BidType.video;
-                }
-            }
-        }
-        return BidType.banner;
-    }
-
-    private ExtImpRtbhouse parseImpExt(Imp imp) {
-        try {
-            return mapper.mapper().convertValue(imp.getExt(), RTBHOUSE_EXT_TYPE_REFERENCE).getBidder();
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage());
-        }
-    }
-
-    private static Imp modifyImp(Imp imp, Price bidFloorPrice) {
-
-        return imp.toBuilder()
-                .bidfloorcur(ObjectUtil.getIfNotNull(bidFloorPrice, Price::getCurrency))
-                .bidfloor(ObjectUtil.getIfNotNull(bidFloorPrice, Price::getValue))
-                .build();
-    }
-
-    private Price resolveBidFloor(Imp imp, ExtImpRtbhouse impExt, BidRequest bidRequest) {
-        final List<String> brCur = bidRequest.getCur();
-        final Price initialBidFloorPrice = Price.of(imp.getBidfloorcur(), imp.getBidfloor());
-
-        final BigDecimal impExtBidFloor = impExt.getBidFloor();
-        final String impExtCurrency = impExtBidFloor != null && brCur != null && !brCur.isEmpty()
-                ? brCur.getFirst() : null;
-        final Price impExtBidFloorPrice = Price.of(impExtCurrency, impExtBidFloor);
-        final Price resolvedPrice = initialBidFloorPrice.getValue() == null
-                ? impExtBidFloorPrice : initialBidFloorPrice;
-
-        return BidderUtil.isValidPrice(resolvedPrice)
-                && !StringUtils.equalsIgnoreCase(resolvedPrice.getCurrency(), BIDDER_CURRENCY)
-                ? convertBidFloor(resolvedPrice, imp.getId(), bidRequest)
-                : resolvedPrice;
-    }
-
-    private Price convertBidFloor(Price bidFloorPrice, String impId, BidRequest bidRequest) {
-        final String bidFloorCur = bidFloorPrice.getCurrency();
-        try {
-            final BigDecimal convertedPrice = currencyConversionService
-                    .convertCurrency(bidFloorPrice.getValue(), bidRequest, bidFloorCur, BIDDER_CURRENCY);
-
-            return Price.of(BIDDER_CURRENCY, convertedPrice);
-        } catch (PreBidException e) {
-            throw new PreBidException(String.format(
-                    "Unable to convert provided bid floor currency from %s to %s for imp `%s`",
-                    bidFloorCur, BIDDER_CURRENCY, impId));
-        }
-    }
-
     private static Bid resolveMacros(Bid bid) {
         final BigDecimal price = bid.getPrice();
         final String priceAsString = price != null ? price.toPlainString() : "0";
@@ -222,5 +289,4 @@ public class RtbhouseBidder implements Bidder<BidRequest> {
                 .adm(StringUtils.replace(bid.getAdm(), PRICE_MACRO, priceAsString))
                 .build();
     }
-
 }

@@ -1,0 +1,47 @@
+{
+  "id": "test-request-banner",
+  "seatbid": [
+    {
+      "seat": "contxtful",
+      "bid": [
+        {
+          "id": "contxtful-test-imp-banner",
+          "impid": "test-imp-banner",
+          "price": 2.50,
+          "adm": "<div style=\"width:300px;height:250px;background:#f0f0f0;text-align:center;line-height:250px;\">Contxtful Demo Ad</div>",
+          "w": 300,
+          "h": 250,
+          "crid": "demo-creative-123",
+          "nurl": "https://monitoring.receptivity.io/v1/pbs/DEMO123/pbs-impression?b=contxtful-test-imp-banner&a=DEMO123&bidder=contxtful&impId=test-imp-banner&price=2.50&traceId=&random=0.000000&domain=example.com&adRequestId=test-request-banner&w=300&h=250&f=b",
+          "burl": "https://monitoring.receptivity.io/v1/pbs/DEMO123/pbs-billing?b=contxtful-test-imp-banner&a=DEMO123&bidder=contxtful&impId=test-imp-banner&price=2.50&traceId=&random=0.000000&domain=example.com&adRequestId=test-request-banner&w=300&h=250&f=b",
+          "exp": 300,
+          "ext": {
+            "contxtful": {
+              "reseller": "demo-reseller",
+              "version": "v1.0"
+            },
+            "origbidcpm": 2.50,
+            "origbidcur": "USD",
+            "prebid": {
+              "type": "banner",
+              "meta": {
+                "adaptercode": "contxtful"
+              }
+            }
+          }
+        }
+      ],
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "contxtful": "{{ contxtful.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}

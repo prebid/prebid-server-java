@@ -21,7 +21,6 @@ import com.iab.openrtb.response.Response;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
 import org.apache.commons.collections4.MapUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,10 +34,10 @@ import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.activity.infrastructure.rule.Rule;
 import org.prebid.server.auction.categorymapping.CategoryMappingService;
+import org.prebid.server.auction.externalortb.StoredRequestProcessor;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionParticipation;
 import org.prebid.server.auction.model.BidInfo;
-import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.BidRequestCacheInfo;
 import org.prebid.server.auction.model.BidderResponse;
@@ -46,6 +45,7 @@ import org.prebid.server.auction.model.CachedDebugLog;
 import org.prebid.server.auction.model.CategoryMappingResult;
 import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.PaaFormat;
+import org.prebid.server.auction.model.ImpRejection;
 import org.prebid.server.auction.model.TargetingInfo;
 import org.prebid.server.auction.model.TimeoutContext;
 import org.prebid.server.auction.model.debug.DebugContext;
@@ -88,7 +88,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredRequest;
 import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
-import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.CacheAsset;
 import org.prebid.server.proto.openrtb.ext.response.Events;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
@@ -118,6 +117,7 @@ import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountAuctionEventConfig;
+import org.prebid.server.settings.model.AccountBidRankingConfig;
 import org.prebid.server.settings.model.AccountEventsConfig;
 import org.prebid.server.settings.model.VideoStoredDataResult;
 import org.prebid.server.spring.config.model.CacheDefaultTtlProperties;
@@ -141,6 +141,7 @@ import java.util.stream.IntStream;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
+import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static java.util.function.UnaryOperator.identity;
@@ -161,8 +162,8 @@ import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.prebid.server.auction.model.BidRejectionReason.NO_BID;
 import static org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAdservertargetingRule.Source.xStatic;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.audio;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
@@ -229,7 +230,7 @@ public class BidResponseCreatorTest extends VertxTest {
         given(cacheDefaultProperties.getAudioTtl()).willReturn(null);
         given(cacheDefaultProperties.getNativeTtl()).willReturn(null);
 
-        given(categoryMappingService.createCategoryMapping(any(), any(), any()))
+        given(categoryMappingService.createCategoryMapping(any(), any(), any(), any()))
                 .willAnswer(invocationOnMock -> Future.succeededFuture(
                         CategoryMappingResult.of(emptyMap(), emptyMap(), invocationOnMock.getArgument(0), null)));
 
@@ -244,11 +245,12 @@ public class BidResponseCreatorTest extends VertxTest {
                         false,
                         BidderResponsePayloadImpl.of(((BidderResponse) invocation.getArgument(0))
                                 .getSeatBid()
-                                .getBids()))));
+                                .getBids()),
+                        null)));
         given(hookStageExecutor.executeAllProcessedBidResponsesStage(any(), any()))
                 .willAnswer(invocation -> Future.succeededFuture(
                         HookStageExecutionResult.of(
-                                false, AllProcessedBidResponsesPayloadImpl.of(invocation.getArgument(0)))));
+                                false, AllProcessedBidResponsesPayloadImpl.of(invocation.getArgument(0)), null)));
 
         clock = Clock.fixed(Instant.ofEpochMilli(1000L), ZoneOffset.UTC);
 
@@ -304,14 +306,28 @@ public class BidResponseCreatorTest extends VertxTest {
                         .put("origbidcur", "test")
                         .set("prebid", mapper.valueToTree(extBidPrebid)))
                 .build();
-        final BidInfo bidInfo = toBidInfo(expectedBid, imp, bidder, "seat", banner, true);
-        verify(coreCacheService).cacheBidsOpenrtb(eq(singletonList(bidInfo)), any(), any(), any());
+        final BidInfo expectedBidInfo = BidInfo.builder()
+                .bid(expectedBid)
+                .correspondingImp(imp)
+                .bidder("bidder1")
+                .seat("seat")
+                .bidType(banner)
+                .targetingInfo(TargetingInfo.builder()
+                        .bidderCode("bidder1")
+                        .seat("seat")
+                        .isTargetingEnabled(true)
+                        .isWinningBid(true)
+                        .isAddTargetBidderCode(false)
+                        .build())
+                .rank(1)
+                .build();
+        verify(coreCacheService).cacheBidsOpenrtb(eq(singletonList(expectedBidInfo)), any(), any(), any());
     }
 
     @Test
     public void shouldSkipBidderWhenRejectedByProcessedBidderResponseHooks() {
         // given
-        doAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(true, null)))
+        doAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(true, null, null)))
                 .when(hookStageExecutor).executeProcessedBidderResponseStage(any(), any());
 
         final Bid bid = Bid.builder()
@@ -337,8 +353,7 @@ public class BidResponseCreatorTest extends VertxTest {
 
     @Test
     public void shouldPassRequestModifiedByBidderRequestHooks() {
-        doAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
-                false,
+        doAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.success(
                 BidderResponsePayloadImpl.of(singletonList(BidderBid.of(
                         Bid.builder()
                                 .id("bidIdModifiedByHook")
@@ -955,7 +970,22 @@ public class BidResponseCreatorTest extends VertxTest {
                 .ext(mapper.createObjectNode().set("prebid", mapper.valueToTree(extBidPrebid)))
                 .build();
 
-        final BidInfo expectedBidInfo = toBidInfo(expectedBid, imp, bidder, "seat", banner, true);
+        final BidInfo expectedBidInfo = BidInfo.builder()
+                .bid(expectedBid)
+                .correspondingImp(imp)
+                .bidder("bidder1")
+                .seat("seat")
+                .bidType(banner)
+                .targetingInfo(TargetingInfo.builder()
+                        .bidderCode("bidder1")
+                        .seat("seat")
+                        .isTargetingEnabled(true)
+                        .isWinningBid(true)
+                        .isAddTargetBidderCode(false)
+                        .build())
+                .rank(1)
+                .build();
+
         verify(coreCacheService).cacheBidsOpenrtb(eq(singletonList(expectedBidInfo)), any(), any(), any());
 
         verify(eventsService).createEvent(eq(generatedBidId), anyString(), anyString(), anyBoolean(), any());
@@ -985,7 +1015,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .ext(bidExt)
                 .build();
 
-        final String bidder = "bidder1";
+        final String bidder = "bidder";
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of(
                 bidder,
                 givenSeatBid(
@@ -1038,6 +1068,190 @@ public class BidResponseCreatorTest extends VertxTest {
                                         .price(BigDecimal.ONE)
                                         .adm(BID_ADM)
                                         .ext(expectedBidExt)
+                                        .build()))
+                                .build());
+    }
+
+    @Test
+    public void shouldSetExpectedBidsWithRanksWhenBidRankingEnabled() {
+        // given
+        final ObjectNode bidExt = mapper.createObjectNode()
+                .put("origbidcpm", BigDecimal.ONE)
+                .put("origbidcur", "USD");
+
+        final Bid bid1 = Bid.builder()
+                .id("bidId1")
+                .price(BigDecimal.ONE)
+                .adm(BID_ADM)
+                .impid("impId1")
+                .ext(bidExt)
+                .build();
+
+        final Bid bid2 = Bid.builder()
+                .id("bidId2")
+                .price(BigDecimal.ONE)
+                .adm(BID_ADM)
+                .impid("impId2")
+                .ext(bidExt)
+                .build();
+
+        final String bidder = "bidder";
+        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of(
+                bidder,
+                givenSeatBid(
+                        BidderBid.of(bid1, banner, "seat1", "USD"),
+                        BidderBid.of(bid2, banner, "seat2", "USD")),
+                100));
+
+        final AuctionContext auctionContext = givenAuctionContext(
+                givenBidRequest(givenImp("impId1"), givenImp("impId2")),
+                contextBuilder -> contextBuilder
+                        .auctionParticipations(toAuctionParticipant(bidderResponses))
+                        .account(Account.builder().auction(AccountAuctionConfig.builder()
+                                        .ranking(AccountBidRankingConfig.of(true))
+                                        .build())
+                                .build()));
+
+        final BidRequestCacheInfo cacheInfo = BidRequestCacheInfo.builder().doCaching(true).build();
+        givenCacheServiceResult(emptyList());
+
+        // when
+        final BidResponse bidResponse = target.create(auctionContext, cacheInfo, MULTI_BIDS).result();
+
+        // then
+        final ObjectNode expectedBidExtToCache = mapper.createObjectNode();
+        expectedBidExtToCache.set("prebid", mapper.valueToTree(ExtBidPrebid.builder().type(banner).build()));
+        expectedBidExtToCache.put("origbidcpm", BigDecimal.ONE);
+        expectedBidExtToCache.put("origbidcur", "USD");
+
+        final ArgumentCaptor<List<BidInfo>> bidsArgumentCaptor = ArgumentCaptor.forClass(List.class);
+        verify(coreCacheService).cacheBidsOpenrtb(bidsArgumentCaptor.capture(), any(), any(), any());
+
+        assertThat(bidsArgumentCaptor.getValue())
+                .extracting(bidInfo -> bidInfo.getBid().getExt())
+                .containsOnly(expectedBidExtToCache);
+
+        final ObjectNode expectedBidExt = mapper.createObjectNode();
+        expectedBidExt.set("prebid", mapper.valueToTree(ExtBidPrebid.builder().rank(1).type(banner).build()));
+        expectedBidExt.put("origbidcpm", BigDecimal.ONE);
+        expectedBidExt.put("origbidcur", "USD");
+
+        assertThat(bidResponse.getSeatbid())
+                .containsOnly(
+                        SeatBid.builder()
+                                .seat("seat1")
+                                .group(0)
+                                .bid(singletonList(Bid.builder()
+                                        .id("bidId1")
+                                        .impid("impId1")
+                                        .price(BigDecimal.ONE)
+                                        .adm(BID_ADM)
+                                        .ext(expectedBidExt)
+                                        .build()))
+                                .build(),
+                        SeatBid.builder()
+                                .seat("seat2")
+                                .group(0)
+                                .bid(singletonList(Bid.builder()
+                                        .id("bidId2")
+                                        .impid("impId2")
+                                        .price(BigDecimal.ONE)
+                                        .adm(BID_ADM)
+                                        .ext(expectedBidExt)
+                                        .build()))
+                                .build());
+    }
+
+    @Test
+    public void shouldSetExpectedBidsWithRanksWhenBidHasSameImpIdAndBidRankingEnabled() {
+        // given
+        final ObjectNode bidExt = mapper.createObjectNode()
+                .put("origbidcpm", BigDecimal.ONE)
+                .put("origbidcur", "USD");
+
+        final Bid bid1 = Bid.builder()
+                .id("bidId1")
+                .price(BigDecimal.ONE)
+                .adm(BID_ADM)
+                .impid("impId")
+                .ext(bidExt)
+                .build();
+
+        final Bid bid2 = Bid.builder()
+                .id("bidId2")
+                .price(BigDecimal.TWO)
+                .adm(BID_ADM)
+                .impid("impId")
+                .ext(bidExt)
+                .build();
+
+        final String bidder = "bidder";
+        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of(
+                bidder,
+                givenSeatBid(
+                        BidderBid.of(bid1, banner, "seat1", "USD"),
+                        BidderBid.of(bid2, banner, "seat2", "USD")),
+                100));
+
+        final AuctionContext auctionContext = givenAuctionContext(
+                givenBidRequest(givenImp("impId")),
+                contextBuilder -> contextBuilder
+                        .auctionParticipations(toAuctionParticipant(bidderResponses))
+                        .account(Account.builder().auction(AccountAuctionConfig.builder()
+                                        .ranking(AccountBidRankingConfig.of(true)).build())
+                                .build()));
+
+        final BidRequestCacheInfo cacheInfo = BidRequestCacheInfo.builder().doCaching(true).build();
+        givenCacheServiceResult(emptyList());
+
+        // when
+        final BidResponse bidResponse = target.create(auctionContext, cacheInfo, MULTI_BIDS).result();
+
+        // then
+        final ObjectNode expectedBidExtToCache = mapper.createObjectNode();
+        expectedBidExtToCache.set("prebid", mapper.valueToTree(ExtBidPrebid.builder().type(banner).build()));
+        expectedBidExtToCache.put("origbidcpm", BigDecimal.ONE);
+        expectedBidExtToCache.put("origbidcur", "USD");
+
+        final ArgumentCaptor<List<BidInfo>> bidsArgumentCaptor = ArgumentCaptor.forClass(List.class);
+        verify(coreCacheService).cacheBidsOpenrtb(bidsArgumentCaptor.capture(), any(), any(), any());
+
+        assertThat(bidsArgumentCaptor.getValue())
+                .extracting(bidInfo -> bidInfo.getBid().getExt())
+                .containsOnly(expectedBidExtToCache);
+
+        final ObjectNode expectedBidExtWithRank1 = mapper.createObjectNode();
+        expectedBidExtWithRank1.set("prebid", mapper.valueToTree(ExtBidPrebid.builder().rank(1).type(banner).build()));
+        expectedBidExtWithRank1.put("origbidcpm", BigDecimal.ONE);
+        expectedBidExtWithRank1.put("origbidcur", "USD");
+
+        final ObjectNode expectedBidExtWithRank2 = mapper.createObjectNode();
+        expectedBidExtWithRank2.set("prebid", mapper.valueToTree(ExtBidPrebid.builder().rank(2).type(banner).build()));
+        expectedBidExtWithRank2.put("origbidcpm", BigDecimal.ONE);
+        expectedBidExtWithRank2.put("origbidcur", "USD");
+
+        assertThat(bidResponse.getSeatbid())
+                .containsOnly(
+                        SeatBid.builder()
+                                .seat("seat1")
+                                .group(0)
+                                .bid(singletonList(Bid.builder()
+                                        .id("bidId1")
+                                        .impid("impId")
+                                        .price(BigDecimal.ONE)
+                                        .adm(BID_ADM)
+                                        .ext(expectedBidExtWithRank2)
+                                        .build()))
+                                .build(),
+                        SeatBid.builder()
+                                .seat("seat2")
+                                .group(0)
+                                .bid(singletonList(Bid.builder()
+                                        .id("bidId2")
+                                        .impid("impId")
+                                        .price(BigDecimal.TWO)
+                                        .adm(BID_ADM)
+                                        .ext(expectedBidExtWithRank1)
                                         .build()))
                                 .build());
     }
@@ -1102,7 +1316,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 bidRequest,
                 contextBuilder -> contextBuilder.auctionParticipations(toAuctionParticipant(bidderResponses)));
 
-        given(categoryMappingService.createCategoryMapping(any(), any(), any()))
+        given(categoryMappingService.createCategoryMapping(any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(CategoryMappingResult.of(emptyMap(), emptyMap(),
                         singletonList(BidderResponse.of(
                                 "bidder1",
@@ -1133,7 +1347,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 givenBidRequest(identity(), identity(), givenImp()),
                 contextBuilder -> contextBuilder.auctionParticipations(toAuctionParticipant(bidderResponses)));
 
-        given(categoryMappingService.createCategoryMapping(any(), any(), any()))
+        given(categoryMappingService.createCategoryMapping(any(), any(), any(), any()))
                 .willReturn(Future.failedFuture(new InvalidRequestException("category exception")));
 
         // when
@@ -1647,7 +1861,7 @@ public class BidResponseCreatorTest extends VertxTest {
         target.create(auctionContext, CACHE_INFO, MULTI_BIDS).result();
 
         // then
-        verify(winningBidComparatorFactory, times(2)).create(eq(true));
+        verify(winningBidComparatorFactory).create(eq(true));
     }
 
     @Test
@@ -1667,7 +1881,7 @@ public class BidResponseCreatorTest extends VertxTest {
         target.create(auctionContext, CACHE_INFO, MULTI_BIDS).result();
 
         // then
-        verify(winningBidComparatorFactory, times(2)).create(eq(false));
+        verify(winningBidComparatorFactory).create(eq(false));
     }
 
     @Test
@@ -2456,7 +2670,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 givenBidRequest(Imp.builder().id("i1").build()),
                 contextBuilder -> contextBuilder.auctionParticipations(toAuctionParticipant(bidderResponses)));
 
-        given(categoryMappingService.createCategoryMapping(any(), any(), any()))
+        given(categoryMappingService.createCategoryMapping(any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(CategoryMappingResult.of(emptyMap(),
                         Collections.singletonMap(bid, true),
                         bidderResponses, emptyList())));
@@ -4180,8 +4394,7 @@ public class BidResponseCreatorTest extends VertxTest {
     public void shouldPopulateExtPrebidSeatNonBidWhenReturnAllBidStatusFlagIsTrue() {
         // given
         final BidRejectionTracker bidRejectionTracker = mock(BidRejectionTracker.class);
-        given(bidRejectionTracker.getRejectedImps())
-                .willReturn(singletonMap("impId2", Pair.of("someBidder", BidRejectionReason.NO_BID)));
+        given(bidRejectionTracker.getRejected()).willReturn(singleton(ImpRejection.of("someBidder", "impId2", NO_BID)));
 
         final Bid bid = Bid.builder().id("bidId").price(BigDecimal.valueOf(3.67)).impid("impId").build();
         final List<BidderResponse> bidderResponses = singletonList(
@@ -4206,7 +4419,7 @@ public class BidResponseCreatorTest extends VertxTest {
 
         // then
         final SeatNonBid expectedSeatNonBid = SeatNonBid.of(
-                "someBidder", singletonList(NonBid.of("impId2", BidRejectionReason.NO_BID)));
+                "someBidder", singletonList(NonBid.of("impId2", NO_BID)));
 
         assertThat(bidResponse.getExt())
                 .extracting(ExtBidResponse::getSeatnonbid)
@@ -5454,30 +5667,6 @@ public class BidResponseCreatorTest extends VertxTest {
         return IntStream.range(0, Math.min(bidInfos.size(), cacheInfos.size()))
                 .boxed()
                 .collect(Collectors.toMap(i -> bidInfos.get(i).getBid(), cacheInfos::get));
-    }
-
-    private static BidInfo toBidInfo(Bid bid,
-                                     Imp correspondingImp,
-                                     String bidder,
-                                     String seat,
-                                     BidType bidType,
-                                     boolean isWinningBid) {
-
-        return BidInfo.builder()
-                .bid(bid)
-                .correspondingImp(correspondingImp)
-                .bidder(bidder)
-                .seat(seat)
-                .bidType(bidType)
-                .targetingInfo(TargetingInfo.builder()
-                        .bidderCode(bidder)
-                        .seat(seat)
-                        .isTargetingEnabled(true)
-                        .isWinningBid(isWinningBid)
-                        .isBidderWinningBid(true)
-                        .isAddTargetBidderCode(false)
-                        .build())
-                .build();
     }
 
     private static Imp givenImp() {

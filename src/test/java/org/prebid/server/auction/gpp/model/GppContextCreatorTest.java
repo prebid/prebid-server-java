@@ -37,7 +37,7 @@ public class GppContextCreatorTest {
             assertThat(gppContext.regions()).isEqualTo(GppContext.Regions.builder().build());
         });
         assertThat(gppContextWrapper.getErrors())
-                .containsExactly("GPP string invalid: Unable to decode 'invalidA'");
+                .containsExactly("GPP string invalid: Unable to decode 'invalid'");
     }
 
     @Test

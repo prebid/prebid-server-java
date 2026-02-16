@@ -53,6 +53,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToIgnoreCase;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static io.restassured.RestAssured.given;
@@ -397,7 +398,7 @@ public class ApplicationTest extends IntegrationTest {
     }
 
     @Test
-    public void vtrackShouldReturnJsonWithUids() throws JSONException, IOException {
+    public void vtrackShouldPutBidsAndReturnUids() throws JSONException, IOException {
         // given and when
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToBidCacheRequest(jsonFrom("vtrack/test-cache-request.json")))
@@ -411,6 +412,24 @@ public class ApplicationTest extends IntegrationTest {
 
         // then
         assertJsonEquals("vtrack/test-vtrack-response.json", response, emptyList());
+    }
+
+    @Test
+    public void vtrackShouldReturnCachedObjects() throws IOException {
+        // given and when
+        WIRE_MOCK_RULE.stubFor(get(urlPathEqualTo("/cache"))
+                .withQueryParam("uuid", equalTo("key"))
+                .withQueryParam("ch", equalTo("test.com"))
+                .willReturn(aResponse().withBody(xmlFrom("vtrack/test-vtrack-response.xml"))));
+
+        final Response response = given(SPEC)
+                .when()
+                .queryParam("uuid", "key")
+                .queryParam("ch", "test.com")
+                .get("/vtrack");
+
+        // then
+        assertThat(response.asString()).isEqualTo(xmlFrom("vtrack/test-vtrack-response.xml"));
     }
 
     @Test

@@ -13,9 +13,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static java.util.Collections.singletonList;
 
-/**
- * Algorix Test in org.prebid.server.it
- */
 public class AlgorixTest extends IntegrationTest {
 
     @Test

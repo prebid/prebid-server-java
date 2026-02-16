@@ -19,25 +19,23 @@ import static org.mockserver.model.JsonPathBody.jsonPath
 
 class Bidder extends NetworkScaffolding {
 
-    private static final String AUCTION_ENDPOINT = "/auction"
-
-    Bidder(MockServerContainer mockServerContainer) {
-        super(mockServerContainer, AUCTION_ENDPOINT)
+    Bidder(MockServerContainer mockServerContainer, String endpoint = "/auction") {
+        super(mockServerContainer, endpoint)
     }
 
     @Override
     protected HttpRequest getRequest(String bidRequestId) {
-        request().withPath(AUCTION_ENDPOINT)
+        request().withPath(endpoint)
                  .withBody(jsonPath("\$[?(@.id == '$bidRequestId')]"))
     }
 
     @Override
     protected HttpRequest getRequest() {
-        request().withPath(AUCTION_ENDPOINT)
+        request().withPath(endpoint)
     }
 
     HttpRequest getRequest(String bidRequestId, String requestMatchPath) {
-        request().withPath(AUCTION_ENDPOINT)
+        request().withPath(endpoint)
                  .withBody(jsonPath("\$[?(@.$requestMatchPath == '$bidRequestId')]"))
     }
 
@@ -77,7 +75,7 @@ class Bidder extends NetworkScaffolding {
             def formatNode = it.get("banner") != null ? it.get("banner").get("format") : null
             new Imp(id: it.get("id").asText(),
                     banner: formatNode != null
-                            ? new Banner(format: [new Format(weight: formatNode.first().get("w").asInt(), height: formatNode.first().get("h").asInt())])
+                            ? new Banner(format: [new Format(width: formatNode.first().get("w").asInt(), height: formatNode.first().get("h").asInt())])
                             : null)}
         def bidRequest = new BidRequest(id: id, imp: imps)
         def response = BidResponse.getDefaultBidResponse(bidRequest)

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
@@ -77,9 +78,12 @@ public class KoblerBidder implements Bidder<BidRequest> {
             }
         }
 
+        final Device device = bidRequest.getDevice();
         final BidRequest modifiedRequest = bidRequest.toBuilder()
                 .imp(modifiedImps)
                 .cur(normalizeCurrencies(bidRequest))
+                .device(device != null ? device.toBuilder().ipv6(null).ip(null).build() : null)
+                .user(null)
                 .build();
 
         final String endpoint = isTest(imps.getFirst(), errors) ? devEndpoint : endpointUrl;

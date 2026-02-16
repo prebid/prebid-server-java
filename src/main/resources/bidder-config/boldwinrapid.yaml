@@ -1,0 +1,11 @@
+adapters:
+  boldwin_rapid:
+    endpoint: https://rtb.beardfleet.com/auction/bid?pid={{PublisherID}}&tid={{PlacementID}}
+    meta-info:
+      maintainer-email: info@bold-win.com
+      app-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 0

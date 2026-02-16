@@ -2,6 +2,7 @@ package org.prebid.server.bidder.ogury;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
@@ -123,10 +124,9 @@ public class OguryBidderTest extends VertxTest {
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidrequest);
-
         // then
         assertThat(result.getErrors()).containsExactly(
-                BidderError.badInput("Invalid request. assetKey/adUnitId or request.site.publisher.id required"));
+                BidderError.badInput("Invalid request. assetKey/adUnitId or request.site/app.publisher.id required"));
     }
 
     @Test
@@ -188,7 +188,70 @@ public class OguryBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
 
         assertThat(result.getErrors()).containsExactly(
-                BidderError.badInput("Invalid request. assetKey/adUnitId or request.site.publisher.id required"));
+                BidderError.badInput("Invalid request. assetKey/adUnitId or request.site/app.publisher.id required"));
+    }
+
+    @Test
+    public void makeHttpRequestsAppShouldSendOnlyImpsWithOguryParamsIfPresent() {
+        // given
+        final BidRequest bidrequest = givenBidRequest(
+                bidRequest -> bidRequest.app(givenApp()),
+                givenImp(imp -> imp.id("without_ogury_keys").ext(givenEmptyImpExt())),
+                givenImp(imp -> imp.id("with_ogury_keys").ext(givenImpExtWithOguryKeys())));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidrequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getId)
+                .containsExactly("with_ogury_keys");
+
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsAppShouldSendAllImpsWhenHasPublisherIdAndImpsWithOguryIsEmpty() {
+        // given
+        final ObjectNode emptyImpExt = givenEmptyImpExt();
+
+        final BidRequest bidrequest = givenBidRequest(
+                bidRequest -> bidRequest.app(givenApp()),
+                givenImp(imp -> imp.id("id1").ext(emptyImpExt)),
+                givenImp(imp -> imp.id("id2").ext(emptyImpExt)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidrequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .hasSize(2);
+
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsAppShouldNotSendImpsWhenHasNotPublisherIdAndImpsWithOguryIsEmpty() {
+        // given
+        final ObjectNode emptyImpExt = givenEmptyImpExt();
+
+        final BidRequest bidrequest = givenBidRequest(
+                bidRequest -> bidRequest.app(App.builder().bundle("app_bundle").build()),
+                givenImp(imp -> imp.id("id1").ext(emptyImpExt)),
+                givenImp(imp -> imp.id("id2").ext(emptyImpExt)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidrequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+
+        assertThat(result.getErrors()).containsExactly(
+                BidderError.badInput("Invalid request. assetKey/adUnitId or request.site/app.publisher.id required"));
     }
 
     @Test
@@ -218,7 +281,7 @@ public class OguryBidderTest extends VertxTest {
         extWithOguryKeys.put("extra_field", "extra_value");
 
         final BidRequest bidrequest = givenBidRequest(
-                identity(),
+                bidRequest -> bidRequest.site(givenSite()),
                 givenImp(imp -> imp.id("id1").ext(extWithOguryKeys)));
 
         // when
@@ -558,6 +621,15 @@ public class OguryBidderTest extends VertxTest {
 
     private Site givenSite() {
         return Site.builder()
+                .publisher(Publisher.builder()
+                        .id("publiser_id")
+                        .build())
+                .build();
+    }
+
+    private App givenApp() {
+        return App.builder()
+                .bundle("app_bundle")
                 .publisher(Publisher.builder()
                         .id("publiser_id")
                         .build())

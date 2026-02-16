@@ -77,6 +77,11 @@ public class ExtRequestPrebid {
     ExtStoredRequest storedrequest;
 
     /**
+     * Defines the contract for bidrequest.ext.prebid.profiles
+     */
+    List<String> profiles;
+
+    /**
      * Defines the contract for bidrequest.ext.prebid.storedauctionresponse
      */
     @JsonProperty("storedauctionresponse")
@@ -193,4 +198,6 @@ public class ExtRequestPrebid {
 
     @JsonProperty("alternatebiddercodes")
     ExtRequestPrebidAlternateBidderCodes alternateBidderCodes;
+
+    ObjectNode kvps;
 }

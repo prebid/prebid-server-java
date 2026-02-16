@@ -1,0 +1,54 @@
+{
+  "responses": [
+    {
+      "id": "1",
+      "ad": "\u003c!-- This is an example --\u003e",
+      "bid_id": "2c35e25e-e7d3-41bf-b810-06a449f456b9",
+      "bidder": "msq_test",
+      "code": "test/publishername_atf_desktop_rg_pave",
+      "cpm": 2,
+      "increment": 2,
+      "currency": "USD",
+      "creative_id": "msq_test|fakeCreative",
+      "width": 250,
+      "net_revenue": true,
+      "transaction_id": "2c35e25e-e7d3-41bf-b810-06a449f456b9",
+      "ttl": 20000,
+      "adomain": [
+        "mediasquare.fr"
+      ],
+      "dsa": {
+        "behalf": "Advertiser",
+        "paid": "Advertiser",
+        "transparency": {
+          "domain": "dsp1domain.com",
+          "dsaparams": [
+            1,
+            2
+          ]
+        },
+        "adrender": 1
+      },
+      "hasConsent": true
+    },
+    {
+      "id": "2",
+      "ad": "\u003c!-- This is an example --\u003e",
+      "bid_id": "2059a3e6-71a3-43ea-8290-b5ceb13d35a8",
+      "bidder": "msq_test",
+      "code": "test/publishername_atf_desktop_rg_pave",
+      "cpm": 0.02,
+      "increment": 0.02,
+      "currency": "USD",
+      "creative_id": "msq_test|fakeCreative",
+      "width": 250,
+      "net_revenue": true,
+      "transaction_id": "2059a3e6-71a3-43ea-8290-b5ceb13d35a8",
+      "ttl": 20000,
+      "adomain": [
+        "mediasquare.fr"
+      ],
+      "hasConsent": true
+    }
+  ]
+}

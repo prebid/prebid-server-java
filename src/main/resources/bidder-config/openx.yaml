@@ -18,9 +18,9 @@ adapters:
     usersync:
       cookie-family-name: openx
       iframe:
-        url: https://u.openx.net/w/1.0/cm?id=891039ac-a916-42bb-a651-4be9e3b201da&ph=a3aece0c-9e80-4316-8deb-faf804779bd1&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&r={{redirect_url}}
+        url: https://u.openx.net/w/1.0/cm?id=891039ac-a916-42bb-a651-4be9e3b201da&ph=a3aece0c-9e80-4316-8deb-faf804779bd1&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&r={{redirect_url}}
         support-cors: false
       redirect:
-        url: https://rtb.openx.net/sync/prebid?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&r={{redirect_url}}
+        url: https://rtb.openx.net/sync/prebid?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&r={{redirect_url}}
         support-cors: false
         uid-macro: '${UID}'

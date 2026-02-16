@@ -16,4 +16,6 @@ public class PubmaticBidderImpExt {
 
     @JsonProperty("gpid")
     String gpId;
+
+    ObjectNode skadn;
 }

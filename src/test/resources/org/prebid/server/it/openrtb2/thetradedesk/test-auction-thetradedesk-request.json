@@ -9,7 +9,8 @@
       },
       "ext": {
         "thetradedesk": {
-          "publisherId": "publisherId"
+          "publisherId": "publisherId",
+          "supplySourceId": "somesupplyid"
         }
       }
     }

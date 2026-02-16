@@ -41,7 +41,6 @@ import java.util.Objects;
 public class SovrnBidder implements Bidder<BidRequest> {
 
     private static final String LJT_READER_COOKIE_NAME = "ljt_reader";
-    private static final String EXT_AD_UNIT_CODE_PARAM = "adunitcode";
 
     private static final TypeReference<ExtPrebid<?, ExtImpSovrn>> SOVRN_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
@@ -91,7 +90,6 @@ public class SovrnBidder implements Bidder<BidRequest> {
         return imp.toBuilder()
                 .bidfloor(resolveBidFloor(imp.getBidfloor(), sovrnExt.getBidfloor()))
                 .tagid(resolveTagId(sovrnExt))
-                .ext(resolveImpExt(sovrnExt, impExt))
                 .build();
     }
 
@@ -115,13 +113,6 @@ public class SovrnBidder implements Bidder<BidRequest> {
             throw new PreBidException("Missing required parameter 'tagid'");
         }
         return tagId;
-    }
-
-    private ObjectNode resolveImpExt(ExtImpSovrn sovrnExt, ObjectNode impExt) {
-        final ObjectNode sovrnImpExt = impExt.deepCopy();
-        return StringUtils.isNotBlank(sovrnExt.getAdunitcode())
-                ? sovrnImpExt.putPOJO(EXT_AD_UNIT_CODE_PARAM, sovrnExt.getAdunitcode())
-                : sovrnImpExt;
     }
 
     private Result<List<HttpRequest<BidRequest>>> makeHttpRequest(BidRequest bidRequest,

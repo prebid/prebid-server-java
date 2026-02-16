@@ -1,0 +1,91 @@
+status-response: "ok"
+adapters:
+  appnexus:
+    enabled: true
+  ix:
+    enabled: true
+  openx:
+    enabled: true
+  pubmatic:
+    enabled: true
+  rubicon:
+    enabled: true
+metrics:
+  prefix: prebid
+cache:
+  scheme: http
+  host: localhost
+  path: /cache
+  query: uuid=
+settings:
+  enforce-valid-account: false
+  generate-storedrequest-bidrequest-id: true
+  filesystem:
+    settings-filename: sample/configs/sample-app-settings.yaml
+    stored-requests-dir: sample
+    profiles-dir: sample
+    stored-imps-dir: sample
+    stored-responses-dir: sample
+    categories-dir:
+gdpr:
+  default-value: 1
+  vendorlist:
+    v2:
+      cache-dir: /var/tmp/vendor2
+    v3:
+      cache-dir: /var/tmp/vendor3
+admin-endpoints:
+  logging-changelevel:
+    enabled: true
+    path: /logging/changelevel
+    on-application-port: true
+    protected: false
+hooks:
+  wurfl-devicedetection:
+    enabled: true
+  host-execution-plan: >
+    {
+      "endpoints": {
+        "/openrtb2/auction": {
+          "stages": {
+            "entrypoint": {
+              "groups": [
+                {
+                  "timeout": 10,
+                  "hook_sequence": [
+                    {
+                      "module_code": "wurfl-devicedetection",
+                      "hook_impl_code": "wurfl-devicedetection-entrypoint-hook"
+                    }
+                  ]
+                }
+              ]
+            },
+            "raw_auction_request": {
+              "groups": [
+                {
+                  "timeout": 10,
+                  "hook_sequence": [
+                    {
+                      "module_code": "wurfl-devicedetection",
+                      "hook_impl_code": "wurfl-devicedetection-raw-auction-request"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+
+
+  modules:
+    wurfl-devicedetection:
+      file-dir-path: </path/to/wurfl_snapshot_dir>
+      # replace with your wurfl file snapshot URL when using a licensed version of wurfl
+      file-snapshot-url: https://httpstat.us/200
+      cache-size: 200000
+      update-frequency-in-hours: 24
+      allowed-publisher-ids: 1
+      ext-caps: true

@@ -42,6 +42,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.settings.ApplicationSettings;
+import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.ObjectUtil;
 
 import java.math.BigDecimal;
@@ -83,6 +84,7 @@ public class BasicCategoryMappingService implements CategoryMappingService {
     @Override
     public Future<CategoryMappingResult> createCategoryMapping(List<BidderResponse> bidderResponses,
                                                                BidRequest bidRequest,
+                                                               Account account,
                                                                Timeout timeout) {
 
         final ExtRequestTargeting targeting = targeting(bidRequest);
@@ -110,9 +112,21 @@ public class BasicCategoryMappingService implements CategoryMappingService {
         final List<RejectedBid> rejectedBids = new ArrayList<>();
 
         return makeBidderToBidCategory(
-                bidderResponses, withCategory, translateCategories, primaryAdServer, publisher, rejectedBids, timeout)
+                bidderResponses,
+                withCategory,
+                translateCategories,
+                primaryAdServer,
+                publisher,
+                rejectedBids,
+                timeout)
                 .map(categoryBidContexts -> resolveBidsCategoriesDurations(
-                        bidderResponses, categoryBidContexts, bidRequest, targeting, withCategory, rejectedBids));
+                        bidderResponses,
+                        categoryBidContexts,
+                        account,
+                        bidRequest,
+                        targeting,
+                        withCategory,
+                        rejectedBids));
     }
 
     private static ExtRequestTargeting targeting(BidRequest bidRequest) {
@@ -326,6 +340,7 @@ public class BasicCategoryMappingService implements CategoryMappingService {
      */
     private CategoryMappingResult resolveBidsCategoriesDurations(List<BidderResponse> bidderResponses,
                                                                  List<CategoryBidContext> categoryBidContexts,
+                                                                 Account account,
                                                                  BidRequest bidRequest,
                                                                  ExtRequestTargeting targeting,
                                                                  boolean withCategory,
@@ -342,8 +357,15 @@ public class BasicCategoryMappingService implements CategoryMappingService {
 
         final boolean appendBidderNames = BooleanUtils.toBooleanDefaultIfNull(targeting.getAppendbiddernames(), false);
         final Map<String, Set<CategoryBidContext>> uniqueCatKeysToCategoryBids = categoryBidContexts.stream()
-                .map(categoryBidContext -> enrichCategoryBidContext(categoryBidContext, durations, priceGranularity,
-                        withCategory, appendBidderNames, impIdToBiddersDealTear, rejectedBids))
+                .map(categoryBidContext -> enrichCategoryBidContext(
+                        categoryBidContext,
+                        account,
+                        durations,
+                        priceGranularity,
+                        withCategory,
+                        appendBidderNames,
+                        impIdToBiddersDealTear,
+                        rejectedBids))
                 .filter(Objects::nonNull)
                 .collect(Collectors.groupingBy(CategoryBidContext::getCategoryUniqueKey,
                         Collectors.mapping(Function.identity(), Collectors.toSet())));
@@ -504,6 +526,7 @@ public class BasicCategoryMappingService implements CategoryMappingService {
      * and creates {@link CategoryBidContext} which is holder for bid category related information.
      */
     private CategoryBidContext enrichCategoryBidContext(CategoryBidContext categoryBidContext,
+                                                        Account account,
                                                         List<Integer> durations,
                                                         PriceGranularity priceGranularity,
                                                         boolean withCategory,
@@ -522,7 +545,7 @@ public class BasicCategoryMappingService implements CategoryMappingService {
             return null;
         }
 
-        final BigDecimal price = CpmRange.fromCpmAsNumber(bid.getPrice(), priceGranularity);
+        final BigDecimal price = CpmRange.fromCpmAsNumber(bid.getPrice(), priceGranularity, account);
         final String rowPrice = CpmRange.format(price, priceGranularity.getPrecision());
         final String category = categoryBidContext.getCategory();
         final String categoryUniqueKey = createCategoryUniqueKey(withCategory, category, rowPrice, duration);

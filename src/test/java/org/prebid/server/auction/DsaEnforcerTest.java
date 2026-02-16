@@ -14,6 +14,7 @@ import org.prebid.server.auction.model.AuctionParticipation;
 import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.BidderResponse;
+import org.prebid.server.auction.model.BidRejection;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
@@ -104,7 +105,7 @@ public class DsaEnforcerTest extends VertxTest {
                 .bidderResponse(BidderResponse.of("bidder", expectedSeatBid, 100))
                 .build();
         assertThat(actual).isEqualTo(expectedParticipation);
-        verify(bidRejectionTracker).rejectBid(bid, BidRejectionReason.RESPONSE_REJECTED_DSA_PRIVACY);
+        verify(bidRejectionTracker).reject(BidRejection.of(bid, BidRejectionReason.RESPONSE_REJECTED_DSA_PRIVACY));
     }
 
     @Test
@@ -137,7 +138,7 @@ public class DsaEnforcerTest extends VertxTest {
                 .bidderResponse(BidderResponse.of("bidder", expectedSeatBid, 100))
                 .build();
         assertThat(actual).isEqualTo(expectedParticipation);
-        verify(bidRejectionTracker).rejectBid(bid, BidRejectionReason.RESPONSE_REJECTED_DSA_PRIVACY);
+        verify(bidRejectionTracker).reject(BidRejection.of(bid, BidRejectionReason.RESPONSE_REJECTED_DSA_PRIVACY));
     }
 
     @Test
@@ -333,7 +334,7 @@ public class DsaEnforcerTest extends VertxTest {
                 .bidderResponse(BidderResponse.of("bidder", expectedSeatBid, 100))
                 .build();
         assertThat(actual).isEqualTo(expectedParticipation);
-        verify(bidRejectionTracker).rejectBid(bid, BidRejectionReason.RESPONSE_REJECTED_DSA_PRIVACY);
+        verify(bidRejectionTracker).reject(BidRejection.of(bid, BidRejectionReason.RESPONSE_REJECTED_DSA_PRIVACY));
     }
 
     @Test
@@ -367,7 +368,7 @@ public class DsaEnforcerTest extends VertxTest {
                 .bidderResponse(BidderResponse.of("bidder", expectedSeatBid, 100))
                 .build();
         assertThat(actual).isEqualTo(expectedParticipation);
-        verify(bidRejectionTracker).rejectBid(bid, BidRejectionReason.RESPONSE_REJECTED_DSA_PRIVACY);
+        verify(bidRejectionTracker).reject(BidRejection.of(bid, BidRejectionReason.RESPONSE_REJECTED_DSA_PRIVACY));
     }
 
     @Test
@@ -401,7 +402,7 @@ public class DsaEnforcerTest extends VertxTest {
                 .bidderResponse(BidderResponse.of("bidder", expectedSeatBid, 100))
                 .build();
         assertThat(actual).isEqualTo(expectedParticipation);
-        verify(bidRejectionTracker).rejectBid(bid, BidRejectionReason.RESPONSE_REJECTED_DSA_PRIVACY);
+        verify(bidRejectionTracker).reject(BidRejection.of(bid, BidRejectionReason.RESPONSE_REJECTED_DSA_PRIVACY));
     }
 
     @Test
@@ -436,7 +437,7 @@ public class DsaEnforcerTest extends VertxTest {
                 .bidderResponse(BidderResponse.of("bidder", expectedSeatBid, 100))
                 .build();
         assertThat(actual).isEqualTo(expectedParticipation);
-        verify(bidRejectionTracker).rejectBid(bid, BidRejectionReason.RESPONSE_REJECTED_DSA_PRIVACY);
+        verify(bidRejectionTracker).reject(BidRejection.of(bid, BidRejectionReason.RESPONSE_REJECTED_DSA_PRIVACY));
     }
 
     @Test
@@ -471,7 +472,7 @@ public class DsaEnforcerTest extends VertxTest {
                 .bidderResponse(BidderResponse.of("bidder", expectedSeatBid, 100))
                 .build();
         assertThat(actual).isEqualTo(expectedParticipation);
-        verify(bidRejectionTracker).rejectBid(bid, BidRejectionReason.RESPONSE_REJECTED_DSA_PRIVACY);
+        verify(bidRejectionTracker).reject(BidRejection.of(bid, BidRejectionReason.RESPONSE_REJECTED_DSA_PRIVACY));
     }
 
     @Test
@@ -505,7 +506,7 @@ public class DsaEnforcerTest extends VertxTest {
                 .bidderResponse(BidderResponse.of("bidder", expectedSeatBid, 100))
                 .build();
         assertThat(actual).isEqualTo(expectedParticipation);
-        verify(bidRejectionTracker).rejectBid(bid, BidRejectionReason.RESPONSE_REJECTED_DSA_PRIVACY);
+        verify(bidRejectionTracker).reject(BidRejection.of(bid, BidRejectionReason.RESPONSE_REJECTED_DSA_PRIVACY));
     }
 
     private static ExtRegs givenExtRegs(DsaRequired dsaRequired, DsaPublisherRender pubRender) {

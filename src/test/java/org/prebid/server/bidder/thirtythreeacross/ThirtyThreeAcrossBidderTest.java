@@ -32,7 +32,6 @@ import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.assertj.core.api.Assertions.tuple;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
@@ -197,30 +196,6 @@ public class ThirtyThreeAcrossBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldUpdateNotPresentPlacement() {
-        // given
-        final ExtPrebid<?, ExtImpThirtyThreeAcross> ext = ExtPrebid.of(null,
-                ExtImpThirtyThreeAcross.of("11", null, "3"));
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(givenImp(impBuilder -> impBuilder
-                        .video(validVideo())
-                        .ext(mapper.valueToTree(ext)))))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getVideo)
-                .extracting(Video::getPlacement)
-                .containsExactly(2);
-    }
-
-    @Test
     public void makeHttpRequestsShouldNotUpdatePlacementWhenProductIdIsNotInstreamAndPlacementIsNotZero() {
         // given
         final ExtPrebid<?, ExtImpThirtyThreeAcross> ext = ExtPrebid.of(null,
@@ -245,7 +220,7 @@ public class ThirtyThreeAcrossBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldUpdatePlacementAndStartDelayIfProdIsInstream() {
+    public void makeHttpRequestsShouldUpdateStartDelayIfProdIsInstream() {
         // given
         final ExtPrebid<?, ExtImpThirtyThreeAcross> ext = ExtPrebid.of(null,
                 ExtImpThirtyThreeAcross.of("11", null, "instream"));
@@ -264,8 +239,8 @@ public class ThirtyThreeAcrossBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getVideo)
-                .extracting(Video::getPlacement, Video::getStartdelay)
-                .containsExactly(tuple(1, 0));
+                .extracting(Video::getStartdelay)
+                .containsExactly(0);
     }
 
     @Test

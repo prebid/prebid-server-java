@@ -1,0 +1,13 @@
+adapters:
+  mediasquare:
+    endpoint: "https://pbs-front.mediasquare.fr/msq_prebid"
+    endpoint-compression: gzip
+    modifying-vast-xml-allowed: true
+    meta-info:
+      maintainer-email: tech@mediasquare.fr
+      app-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 791

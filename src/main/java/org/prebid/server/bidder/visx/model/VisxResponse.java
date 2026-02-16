@@ -8,4 +8,6 @@ import java.util.List;
 public class VisxResponse {
 
     List<VisxSeatBid> seatbid;
+
+    String cur;
 }

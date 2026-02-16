@@ -1,0 +1,12 @@
+adapters:
+  nativery:
+    endpoint: "https://hb.nativery.com/openrtb2/auction"
+    ortb-version: "2.6"
+    meta-info:
+      maintainer-email: "developer@nativery.com"
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 1133

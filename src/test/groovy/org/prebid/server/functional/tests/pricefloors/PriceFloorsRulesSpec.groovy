@@ -8,8 +8,8 @@ import org.prebid.server.functional.model.config.AlternateBidderCodes
 import org.prebid.server.functional.model.config.BidderConfig
 import org.prebid.server.functional.model.db.StoredImp
 import org.prebid.server.functional.model.pricefloors.Country
+import org.prebid.server.functional.model.pricefloors.FloorModelGroup
 import org.prebid.server.functional.model.pricefloors.MediaType
-import org.prebid.server.functional.model.pricefloors.ModelGroup
 import org.prebid.server.functional.model.pricefloors.PriceFloorData
 import org.prebid.server.functional.model.pricefloors.PriceFloorSchema
 import org.prebid.server.functional.model.pricefloors.Rule
@@ -28,6 +28,8 @@ import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
 import org.prebid.server.functional.model.response.auction.BidExt
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
+
+import java.time.Instant
 
 import static org.prebid.server.functional.model.ChannelType.WEB
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
@@ -61,7 +63,6 @@ import static org.prebid.server.functional.model.request.auction.FetchStatus.ERR
 import static org.prebid.server.functional.model.request.auction.Location.NO_DATA
 import static org.prebid.server.functional.model.request.auction.Prebid.Channel
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.RESPONSE_REJECTED_DUE_TO_PRICE_FLOOR
-import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 
 class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
@@ -177,7 +178,10 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
     }
 
     def "PBS should consider rules file invalid when rules file contains an unrecognized dimension in the schema"() {
-        given: "BidRequest with domain"
+        given: "Test start time"
+        def startTime = Instant.now()
+
+        and: "BidRequest with domain"
         def domain = PBSUtils.randomString
         def accountId = PBSUtils.randomString
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -192,7 +196,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         and: "Set Floors Provider response"
         def floorValue = PBSUtils.randomFloorValue
         def floorsResponse = PriceFloorData.priceFloorData.tap {
-            modelGroups << ModelGroup.modelGroup
+            modelGroups << FloorModelGroup.modelGroup
             modelGroups[0].schema = new PriceFloorSchema(fields: [BOGUS])
             modelGroups[0].values = [(new Rule(domain: domain).rule): floorValue + 0.1]
             modelGroups[1].schema = new PriceFloorSchema(fields: [DOMAIN])
@@ -218,14 +222,15 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         assert bidderRequest.ext?.prebid?.floors?.location == NO_DATA
         assert bidderRequest.ext?.prebid?.floors?.fetchStatus == ERROR
 
-        and: "PBS should not contain errors"
+        and: "PBS should not contain errors or warnings"
         assert !response.ext?.errors
+        assert !response.ext?.warnings
 
         and: "PBS should log a warning"
-        assert response.ext?.warnings[PREBID]*.code == [999]
-        assert response.ext?.warnings[PREBID]*.message.first.contains("Cannot deserialize value of type " +
+        def logs = floorsPbsService.getLogsByTime(startTime)
+        assert getLogsByText(logs, "Cannot deserialize value of type " +
                 "`org.prebid.server.floors.model.PriceFloorField` " +
-                "from String \"bogus\": not one of the values accepted for Enum class")
+                "from String \"bogus\": not one of the values accepted for Enum class").size() == 1
 
         and: "PBS should not reject the entire auction"
         assert !response.seatbid.isEmpty()
@@ -301,8 +306,8 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         def higherWidth = lowerWidth + 1
         def higherHigh = lowerHigh + 1
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp[0].banner.format = [new Format(weight: lowerWidth, height: lowerHigh),
-                                    new Format(weight: higherWidth, height: higherHigh)]
+            imp[0].banner.format = [new Format(width: lowerWidth, height: lowerHigh),
+                                    new Format(width: higherWidth, height: higherHigh)]
         }
 
         and: "Account with enabled fetch, fetch.url in the DB"
@@ -369,19 +374,19 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         mediaType                                                            | impClosure
         org.prebid.server.functional.model.response.auction.MediaType.BANNER | { int widthVal, int heightVal ->
             Imp.getDefaultImpression(mediaType).tap {
-                banner.format = [new Format(weight: widthVal, height: heightVal)]
+                banner.format = [new Format(width: widthVal, height: heightVal)]
             }
         }
         org.prebid.server.functional.model.response.auction.MediaType.BANNER | { int widthVal, int heightVal ->
             Imp.getDefaultImpression(mediaType).tap {
                 banner.format = null
-                banner.weight = widthVal
+                banner.width = widthVal
                 banner.height = heightVal
             }
         }
         org.prebid.server.functional.model.response.auction.MediaType.VIDEO  | { int widthVal, int heightVal ->
             Imp.getDefaultImpression(mediaType).tap {
-                video.weight = widthVal
+                video.width = widthVal
                 video.height = heightVal
             }
         }
@@ -962,7 +967,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         assert seatNonBids.size() == 1
 
         def seatNonBid = seatNonBids[0]
-        assert seatNonBid.seat == GENERIC.value
+        assert seatNonBid.seat == GENERIC
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == RESPONSE_REJECTED_DUE_TO_PRICE_FLOOR
         assert seatNonBid.nonBid.size() == bidResponse.seatbid[0].bid.size()
@@ -1209,7 +1214,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         assert seatNonBids.size() == 1
 
         def seatNonBid = seatNonBids[0]
-        assert seatNonBid.seat == GENERIC.value
+        assert seatNonBid.seat == GENERIC
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == RESPONSE_REJECTED_DUE_TO_PRICE_FLOOR
         assert seatNonBid.nonBid.size() == bidResponse.seatbid[0].bid.size()

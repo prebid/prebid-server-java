@@ -25,6 +25,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.gumgum.ExtImpGumgum;
 import org.prebid.server.proto.openrtb.ext.request.gumgum.ExtImpGumgumBanner;
 import org.prebid.server.proto.openrtb.ext.request.gumgum.ExtImpGumgumVideo;
@@ -40,12 +41,13 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 public class GumgumBidder implements Bidder<BidRequest> {
 
     private static final String REQUEST_EXT_PRODUCT = "product";
 
-    private static final TypeReference<ExtPrebid<?, ExtImpGumgum>> GUMGUM_EXT_TYPE_REFERENCE =
+    private static final TypeReference<ExtPrebid<ExtImpPrebid, ExtImpGumgum>> GUMGUM_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
 
@@ -80,17 +82,24 @@ public class GumgumBidder implements Bidder<BidRequest> {
 
         for (Imp imp : bidRequest.getImp()) {
             try {
-                final ExtImpGumgum extImp = parseImpExt(imp);
-                modifiedImps.add(modifyImp(imp, extImp));
+                final ExtPrebid<ExtImpPrebid, ExtImpGumgum> extImp = parseImpExt(imp);
+                final ExtImpGumgum extImpGumgum = extImp.getBidder();
+                final String adUnitCode = Optional.ofNullable(extImp.getPrebid())
+                        .map(ExtImpPrebid::getAdUnitCode)
+                        .orElse(null);
 
-                final String extZone = extImp.getZone();
+                modifiedImps.add(modifyImp(imp, extImpGumgum, adUnitCode));
+
+                final String extZone = extImpGumgum.getZone();
                 if (StringUtils.isNotEmpty(extZone)) {
                     zone = extZone;
                 }
-                final BigInteger extPubId = extImp.getPubId();
+
+                final BigInteger extPubId = extImpGumgum.getPubId();
                 if (extPubId != null && !extPubId.equals(BigInteger.ZERO)) {
                     pubId = extPubId;
                 }
+
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -106,21 +115,25 @@ public class GumgumBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private ExtImpGumgum parseImpExt(Imp imp) {
+    private ExtPrebid<ExtImpPrebid, ExtImpGumgum> parseImpExt(Imp imp) {
         try {
-            return mapper.mapper().convertValue(imp.getExt(), GUMGUM_EXT_TYPE_REFERENCE).getBidder();
+            return mapper.mapper().convertValue(imp.getExt(), GUMGUM_EXT_TYPE_REFERENCE);
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage());
         }
     }
 
-    private Imp modifyImp(Imp imp, ExtImpGumgum extImp) {
+    private Imp modifyImp(Imp imp, ExtImpGumgum extImp, String adUnitCode) {
         final Imp.ImpBuilder impBuilder = imp.toBuilder();
 
         final String product = extImp.getProduct();
         if (StringUtils.isNotEmpty(product)) {
             final ObjectNode productExt = mapper.mapper().createObjectNode().put(REQUEST_EXT_PRODUCT, product);
             impBuilder.ext(productExt);
+        }
+
+        if (StringUtils.isNotEmpty(adUnitCode)) {
+            impBuilder.tagid(adUnitCode);
         }
 
         final Banner banner = imp.getBanner();
@@ -139,6 +152,7 @@ public class GumgumBidder implements Bidder<BidRequest> {
                 impBuilder.video(resolvedVideo);
             }
         }
+
         return impBuilder.build();
     }
 

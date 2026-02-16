@@ -6,6 +6,7 @@ import groovy.transform.ToString
 class IxDiag {
 
     String pbsv
+    String pbsp
     String pbjsv
     String multipleSiteIds
 }

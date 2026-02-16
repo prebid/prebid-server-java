@@ -12,12 +12,13 @@
           "crid": "crid9",
           "w": 300,
           "h": 600,
+          "mtype": 2,
           "ext": {
-            "bidtype": 1,
             "prebid": {
               "type": "video",
               "meta": {
-                "adaptercode": "pubmatic"
+                "adaptercode": "pubmatic",
+                "mediaType": "video"
               }
             },
             "origbidcpm": 4.75

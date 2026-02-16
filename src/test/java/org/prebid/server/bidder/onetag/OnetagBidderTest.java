@@ -104,29 +104,6 @@ public class OnetagBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldUpdateImpExt() {
-        // given
-        final ObjectNode oneTagExt = mapper.createObjectNode();
-        oneTagExt.put("someField", "someName");
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpOnetag.of("somePubId", oneTagExt))))
-                        .build()))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getExt)
-                .containsExactly(oneTagExt);
-    }
-
-    @Test
     public void makeHttpRequestsShouldReturnErrorIfPubIdNotPresent() {
         // given
         final ObjectNode oneTagExt = mapper.createObjectNode();

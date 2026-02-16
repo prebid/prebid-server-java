@@ -108,6 +108,7 @@ public class PriceFloorFetcher {
         final String accountId = account.getId();
         final String fetchUrl = ObjectUtil.getIfNotNull(fetchConfig, AccountPriceFloorsFetchConfig::getUrl);
         if (!isUrlValid(fetchUrl)) {
+            logger.error("Malformed fetch.url: '%s' passed for account %s".formatted(fetchUrl, accountId));
             return FetchResult.error("Malformed fetch.url '%s' passed".formatted(fetchUrl));
         }
         if (!fetchInProgress.contains(accountId)) {
@@ -151,7 +152,7 @@ public class PriceFloorFetcher {
         fetchInProgress.add(accountId);
         httpClient.get(fetchUrl, timeout, resolveMaxFileSize(maxFetchFileSizeKb))
                 .map(httpClientResponse -> parseFloorResponse(httpClientResponse, fetchConfig))
-                .recover(throwable -> recoverFromFailedFetching(throwable, fetchUrl))
+                .recover(throwable -> recoverFromFailedFetching(throwable, fetchUrl, accountId))
                 .map(cacheInfo -> updateCache(cacheInfo, fetchConfig, accountId))
                 .map(priceFloorData -> createPeriodicTimerForRulesFetch(priceFloorData, fetchConfig, accountId));
     }
@@ -270,7 +271,10 @@ public class PriceFloorFetcher {
         return vertx.setTimer(TimeUnit.SECONDS.toMillis(effectiveCacheTtl), id -> fetchedData.remove(accountId));
     }
 
-    private Future<ResponseCacheInfo> recoverFromFailedFetching(Throwable throwable, String fetchUrl) {
+    private Future<ResponseCacheInfo> recoverFromFailedFetching(Throwable throwable,
+                                                                String fetchUrl,
+                                                                String accountId) {
+
         metrics.updatePriceFloorFetchMetric(MetricName.failure);
 
         final FetchStatus fetchStatus;
@@ -284,6 +288,7 @@ public class PriceFloorFetcher {
                     .formatted(fetchUrl, throwable.getMessage());
         }
 
+        logger.error("Price floor fetching failed for account %s: %s".formatted(accountId, errorMessage));
         return Future.succeededFuture(ResponseCacheInfo.withError(fetchStatus, errorMessage));
     }
 

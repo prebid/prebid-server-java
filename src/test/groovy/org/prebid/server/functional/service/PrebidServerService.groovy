@@ -25,11 +25,14 @@ import org.prebid.server.functional.model.response.cookiesync.CookieSyncResponse
 import org.prebid.server.functional.model.response.cookiesync.RawCookieSyncResponse
 import org.prebid.server.functional.model.response.currencyrates.CurrencyRatesResponse
 import org.prebid.server.functional.model.response.getuids.GetuidResponse
+import org.prebid.server.functional.model.response.influx.InfluxResponse
 import org.prebid.server.functional.model.response.infobidders.BidderInfoResponse
 import org.prebid.server.functional.model.response.setuid.SetuidResponse
 import org.prebid.server.functional.model.response.status.StatusResponse
+import org.prebid.server.functional.model.response.vtrack.TransferValue
 import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
 import org.prebid.server.functional.util.ObjectMapperWrapper
+import org.prebid.server.functional.util.PBSUtils
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -40,6 +43,8 @@ import java.time.format.DateTimeFormatter
 
 import static io.restassured.RestAssured.given
 import static java.time.ZoneOffset.UTC
+import static org.prebid.server.functional.testcontainers.Dependencies.influxdbContainer
+
 
 class PrebidServerService implements ObjectMapperWrapper {
 
@@ -57,10 +62,12 @@ class PrebidServerService implements ObjectMapperWrapper {
     static final String HTTP_INTERACTION_ENDPOINT = "/logging/httpinteraction"
     static final String COLLECTED_METRICS_ENDPOINT = "/collected-metrics"
     static final String PROMETHEUS_METRICS_ENDPOINT = "/metrics"
+    static final String INFLUX_DB_ENDPOINT = "/query"
     static final String UIDS_COOKIE_NAME = "uids"
 
     private final PrebidServerContainer pbsContainer
     private final RequestSpecification requestSpecification
+    private final RequestSpecification influxRequestSpecification
     private final RequestSpecification adminRequestSpecification
     private final RequestSpecification prometheusRequestSpecification
 
@@ -72,7 +79,9 @@ class PrebidServerService implements ObjectMapperWrapper {
         authenticationScheme.password = pbsContainer.ADMIN_ENDPOINT_PASSWORD
         this.pbsContainer = pbsContainer
         requestSpecification = new RequestSpecBuilder().setBaseUri(pbsContainer.rootUri)
-                                                       .build()
+                .build()
+        influxRequestSpecification = new RequestSpecBuilder().setBaseUri(pbsContainer.influxUri)
+                .build()
         adminRequestSpecification = buildAndGetRequestSpecification(pbsContainer.adminRootUri, authenticationScheme)
         prometheusRequestSpecification = buildAndGetRequestSpecification(pbsContainer.prometheusRootUri, authenticationScheme)
     }
@@ -197,7 +206,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         def uidsCookieAsEncodedJson = Base64.urlEncoder.encodeToString(uidsCookieAsJson.bytes)
 
         def response = given(requestSpecification).cookie(UIDS_COOKIE_NAME, uidsCookieAsEncodedJson)
-                                                  .get(GET_UIDS_ENDPOINT)
+                .get(GET_UIDS_ENDPOINT)
 
         checkResponseStatusCode(response)
         decode(response.body.asString(), GetuidResponse)
@@ -205,20 +214,29 @@ class PrebidServerService implements ObjectMapperWrapper {
 
     byte[] sendEventRequest(EventRequest eventRequest, Map<String, String> headers = [:]) {
         def response = given(requestSpecification).headers(headers)
-                                                  .queryParams(toMap(eventRequest))
-                                                  .get(EVENT_ENDPOINT)
+                .queryParams(toMap(eventRequest))
+                .get(EVENT_ENDPOINT)
 
         checkResponseStatusCode(response)
         response.body.asByteArray()
     }
 
-    PrebidCacheResponse sendVtrackRequest(VtrackRequest request, String account) {
-        def response = given(requestSpecification).queryParam("a", account)
-                                                  .body(request)
-                                                  .post(VTRACK_ENDPOINT)
+    PrebidCacheResponse sendPostVtrackRequest(VtrackRequest request, String account) {
+        def response = given(requestSpecification).queryParams(["a": account])
+                .body(request)
+                .post(VTRACK_ENDPOINT)
 
         checkResponseStatusCode(response)
         decode(response.body.asString(), PrebidCacheResponse)
+    }
+
+    TransferValue sendGetVtrackRequest(Map<String, Object> parameters) {
+        def response = given(requestSpecification)
+                .queryParams(parameters)
+                .get(VTRACK_ENDPOINT)
+
+        checkResponseStatusCode(response)
+        decode(response.body.asString(), TransferValue)
     }
 
     StatusResponse sendStatusRequest() {
@@ -266,7 +284,7 @@ class PrebidServerService implements ObjectMapperWrapper {
 
     String sendLoggingHttpInteractionRequest(HttpInteractionRequest httpInteractionRequest) {
         def response = given(adminRequestSpecification).queryParams(toMap(httpInteractionRequest))
-                                                       .get(HTTP_INTERACTION_ENDPOINT)
+                .get(HTTP_INTERACTION_ENDPOINT)
 
         checkResponseStatusCode(response)
         response.body().asString()
@@ -277,6 +295,16 @@ class PrebidServerService implements ObjectMapperWrapper {
 
         checkResponseStatusCode(response)
         decode(response.asString(), new TypeReference<Map<String, Number>>() {})
+    }
+
+    Map<String, Number> sendInfluxMetricsRequest() {
+        def response = given(influxRequestSpecification)
+                .queryParams(["db": influxdbContainer.getDatabase(),
+                              "q" : "SELECT COUNT(count) FROM /.*/  WHERE count >= 1 GROUP BY \"measurement\""])
+                .get(INFLUX_DB_ENDPOINT)
+
+        checkResponseStatusCode(response)
+        collectInToMap(decode(response.getBody().asString(), InfluxResponse))
     }
 
     String sendPrometheusMetricsRequest() {
@@ -295,8 +323,8 @@ class PrebidServerService implements ObjectMapperWrapper {
         def payload = encode(bidRequest)
 
         given(requestSpecification).headers(headers)
-                                   .body(payload)
-                                   .post(AUCTION_ENDPOINT)
+                .body(payload)
+                .post(AUCTION_ENDPOINT)
     }
 
     private Response postCookieSync(CookieSyncRequest cookieSyncRequest,
@@ -387,7 +415,7 @@ class PrebidServerService implements ObjectMapperWrapper {
             throw new IllegalArgumentException("The end time of the test is less than the start time")
         }
         def formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
-                                         .withZone(ZoneId.from(UTC))
+                .withZone(ZoneId.from(UTC))
         def logs = Arrays.asList(pbsContainer.logs.split("\n"))
         def filteredLogs = []
 
@@ -412,7 +440,21 @@ class PrebidServerService implements ObjectMapperWrapper {
     }
 
     Boolean isContainLogsByValue(String value) {
-        getPbsLogsByValue(value) != null
+        try {
+            PBSUtils.waitUntil({ getPbsLogsByValue(value) != null })
+            true
+        } catch (IllegalStateException ignored) {
+            false
+        }
+    }
+
+    Boolean isContainMetricByValue(String value) {
+        try {
+            PBSUtils.waitUntil({ sendInfluxMetricsRequest()[value] != null })
+            true
+        } catch (IllegalStateException ignored) {
+            false
+        }
     }
 
     private String getPbsLogsByValue(String value) {
@@ -435,7 +477,13 @@ class PrebidServerService implements ObjectMapperWrapper {
 
     private static RequestSpecification buildAndGetRequestSpecification(String uri, AuthenticationScheme authScheme) {
         new RequestSpecBuilder().setBaseUri(uri)
-                                .setAuth(authScheme)
-                                .build()
+                .setAuth(authScheme)
+                .build()
+    }
+
+    private static Map<String, Number> collectInToMap(InfluxResponse responseBody) {
+        responseBody?.results?.first()?.series?.collectEntries {
+            [(it.name): it.values?.first()?.getAt(1) as Integer]
+        } ?: [:]
     }
 }

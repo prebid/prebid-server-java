@@ -464,6 +464,7 @@ public class YieldlabBidder implements Bidder<Void> {
         }
 
         final Format adsize = resolveAdSize(yieldlabBid.getAdSize());
+        final String advertiser = yieldlabBid.getAdvertiser();
         final Bid bid = Bid.builder()
                 .id(adSlotId)
                 .price(BigDecimal.valueOf(yieldlabBid.getPrice() / 100))
@@ -476,6 +477,7 @@ public class YieldlabBidder implements Bidder<Void> {
                         : makeBanner(bidRequest, extImp, yieldlabBid))
                 .w(adsize.getW())
                 .h(adsize.getH())
+                .adomain(advertiser != null ? Collections.singletonList(advertiser) : null)
                 .ext(resolveBidExt(yieldlabBid, errors))
                 .build();
 

@@ -3,6 +3,18 @@ adapters:
     endpoint: https://ads.stickyadstv.com/openrtb/dsp
     ortb-version: "2.6"
     modifying-vast-xml-allowed: true
+    aliases:
+      fwssp:
+        enabled: false
+        endpoint: "https://prebid.v.fwmrm.net/ortb/ssp"
+        endpoint-compression: gzip
+        usersync:
+          enabled: true
+          cookie-family-name: fwssp
+          iframe:
+            url: https://user-sync.fwmrm.net/ad/u?mode=pbs-user-sync&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&pbs_redirect={{redirect_url}}
+            support-cors: false
+            uid-macro: '#{user.id}'
     meta-info:
       maintainer-email: prebid-maintainer@freewheel.com
       app-media-types:

@@ -35,8 +35,11 @@ public class ActivityInfrastructureConfiguration {
             }
 
             @Bean
-            USNatModuleCreator usNatModuleCreator(USNatGppReaderFactory gppReaderFactory) {
-                return new USNatModuleCreator(gppReaderFactory);
+            USNatModuleCreator usNatModuleCreator(USNatGppReaderFactory gppReaderFactory,
+                                                  Metrics metrics,
+                                                  @Value("${logging.sampling-rate:0.01}") double logSamplingRate) {
+
+                return new USNatModuleCreator(gppReaderFactory, metrics, logSamplingRate);
             }
         }
 
@@ -54,9 +57,16 @@ public class ActivityInfrastructureConfiguration {
                     JsonLogic jsonLogic,
                     @Value("${settings.in-memory-cache.ttl-seconds:#{null}}") Integer ttlSeconds,
                     @Value("${settings.in-memory-cache.cache-size:#{null}}") Integer cacheSize,
-                    Metrics metrics) {
+                    Metrics metrics,
+                    @Value("${logging.sampling-rate:0.01}") double logSamplingRate) {
 
-                return new USCustomLogicModuleCreator(gppReaderFactory, jsonLogic, ttlSeconds, cacheSize, metrics);
+                return new USCustomLogicModuleCreator(
+                        gppReaderFactory,
+                        jsonLogic,
+                        ttlSeconds,
+                        cacheSize,
+                        metrics,
+                        logSamplingRate);
             }
         }
     }
@@ -65,13 +75,15 @@ public class ActivityInfrastructureConfiguration {
     static class RuleCreatorConfiguration {
 
         @Bean
-        ConditionsRuleCreator geoRuleCreator() {
+        ConditionsRuleCreator conditionsRuleCreator() {
             return new ConditionsRuleCreator();
         }
 
         @Bean
-        PrivacyModulesRuleCreator privacyModulesRuleCreator(List<PrivacyModuleCreator> privacyModuleCreators) {
-            return new PrivacyModulesRuleCreator(privacyModuleCreators);
+        PrivacyModulesRuleCreator privacyModulesRuleCreator(List<PrivacyModuleCreator> privacyModuleCreators,
+                                                            Metrics metrics) {
+
+            return new PrivacyModulesRuleCreator(privacyModuleCreators, metrics);
         }
     }
 

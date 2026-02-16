@@ -408,6 +408,8 @@ public class VideoRequestFactoryTest extends VertxTest {
                         .build());
         given(ortb2RequestFactory.fetchAccountWithoutStoredRequestLookup(any())).willReturn(Future.succeededFuture());
 
+        given(ortb2RequestFactory.limitImpressions(any(), any(), any()))
+                .willAnswer(invocationOnMock -> Future.succeededFuture(invocationOnMock.getArgument(1)));
         given(ortb2RequestFactory.validateRequest(any(), any(), any(), any(), any()))
                 .willAnswer(invocation -> Future.succeededFuture((BidRequest) invocation.getArgument(1)));
 
