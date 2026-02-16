@@ -3,6 +3,7 @@ package org.prebid.server.hooks.modules.id5.userid.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
 import org.prebid.server.hooks.modules.id5.userid.v1.Id5IdFetchHook;
 import org.prebid.server.hooks.modules.id5.userid.v1.Id5IdInjectHook;
 import org.prebid.server.hooks.modules.id5.userid.v1.Id5IdModule;
@@ -27,12 +28,14 @@ class Id5UserIdModuleConfigurationTest {
 
         final HttpClient httpClient = Mockito.mock(HttpClient.class);
         final JacksonMapper jacksonMapper = new JacksonMapper(new ObjectMapper());
+        final UserFpdActivityMask userFpdActivityMask = Mockito.mock(UserFpdActivityMask.class);
 
         return new ApplicationContextRunner()
                 .withBean(VersionInfo.class, () -> versionInfo)
                 .withBean(HttpClient.class, () -> httpClient)
                 .withBean(JacksonMapper.class, () -> jacksonMapper)
                 .withBean(Clock.class, Clock::systemUTC)
+                .withBean(UserFpdActivityMask.class, () -> userFpdActivityMask)
                 .withUserConfiguration(Id5UserIdModuleConfiguration.class);
     }
 

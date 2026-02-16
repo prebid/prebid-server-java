@@ -19,12 +19,18 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.prebid.server.activity.Activity;
+import org.prebid.server.activity.ComponentType;
+import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
+import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
 import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.hooks.execution.v1.InvocationContextImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionInvocationContextImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
+import org.prebid.server.hooks.modules.id5.userid.v1.Id5IdModule;
 import org.prebid.server.hooks.modules.id5.userid.v1.config.Id5IdModuleProperties;
 import org.prebid.server.hooks.modules.id5.userid.v1.fetch.HttpFetchClient;
 import org.prebid.server.hooks.modules.id5.userid.v1.model.FetchResponse;
@@ -72,6 +78,8 @@ class HttpFetchClientTest {
     private VersionInfo versionInfo;
     private Clock fixedClock;
     private Id5IdModuleProperties props;
+    private UserFpdActivityMask userFpdActivityMask;
+    private ActivityInfrastructure activityInfrastructure;
 
     @BeforeEach
     void setUp() {
@@ -82,6 +90,11 @@ class HttpFetchClientTest {
         fixedClock = Clock.fixed(Instant.parse("2025-01-01T00:00:00Z"), ZoneOffset.UTC);
         props = new Id5IdModuleProperties();
         props.setProviderName("pbs");
+        activityInfrastructure = Mockito.mock(ActivityInfrastructure.class);
+        when(activityInfrastructure.isAllowed(any(), any())).thenReturn(true);
+        userFpdActivityMask = Mockito.mock(UserFpdActivityMask.class);
+        when(userFpdActivityMask.maskDevice(any(), any(Boolean.class), any(Boolean.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
     }
 
     @Test
@@ -94,7 +107,8 @@ class HttpFetchClientTest {
                         HttpClientResponse.of(503, MultiMap.caseInsensitiveMultiMap(), "oops"))
                 );
 
-        final HttpFetchClient client = new HttpFetchClient(URL, httpClient, mapper, fixedClock, versionInfo, props);
+        final HttpFetchClient client = new HttpFetchClient(
+                URL, httpClient, mapper, fixedClock, versionInfo, props, userFpdActivityMask);
 
         final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(BidRequest.builder().id("r1").build());
         final Timeout timeout = new TimeoutFactory(Clock.systemUTC()).create(1000);
@@ -116,7 +130,8 @@ class HttpFetchClientTest {
         when(httpClient.post(eq(expectedUrl), any(MultiMap.class), anyString(), anyLong()))
                 .thenReturn(Future.failedFuture(new RuntimeException("boom")));
 
-        final HttpFetchClient client = new HttpFetchClient(URL, httpClient, mapper, fixedClock, versionInfo, props);
+        final HttpFetchClient client = new HttpFetchClient(
+                URL, httpClient, mapper, fixedClock, versionInfo, props, userFpdActivityMask);
 
         final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(BidRequest.builder().id("r1").build());
         final Timeout timeout = new TimeoutFactory(Clock.systemUTC()).create(1000);
@@ -146,7 +161,7 @@ class HttpFetchClientTest {
                 );
 
         final HttpFetchClient client = new HttpFetchClient(URL, httpClient, mapper,
-                fixedClock, versionInfo, props);
+                fixedClock, versionInfo, props, userFpdActivityMask);
 
         final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(BidRequest.builder().id("r1").build());
         final Timeout timeout = new TimeoutFactory(Clock.systemUTC()).create(1000);
@@ -174,7 +189,7 @@ class HttpFetchClientTest {
                         MultiMap.caseInsensitiveMultiMap(), mapper.encodeToString(new FetchResponse(null)))));
 
         final HttpFetchClient client = new HttpFetchClient(URL, httpClient, mapper,
-                fixedClock, versionInfo, props);
+                fixedClock, versionInfo, props, userFpdActivityMask);
 
         final BidRequest bidRequest = BidRequest.builder()
                 .app(App.builder().bundle("com.example.app").build())
@@ -254,7 +269,8 @@ class HttpFetchClientTest {
                 .thenReturn(Future.succeededFuture(HttpClientResponse.of(200,
                         MultiMap.caseInsensitiveMultiMap(), mapper.encodeToString(new FetchResponse(null)))));
 
-        final HttpFetchClient client = new HttpFetchClient(URL, httpClient, mapper, fixedClock, versionInfo, props);
+        final HttpFetchClient client = new HttpFetchClient(
+                URL, httpClient, mapper, fixedClock, versionInfo, props, userFpdActivityMask);
 
         final AuctionInvocationContext invocation = auctionInvocationContext(timeout,
                 AuctionContext.builder().account(Account.builder().id("acc").build()).build(), true);
@@ -278,7 +294,7 @@ class HttpFetchClientTest {
                         MultiMap.caseInsensitiveMultiMap(), mapper.encodeToString(new FetchResponse(null)))));
 
         final HttpFetchClient client = new HttpFetchClient(URL, httpClient, mapper,
-                fixedClock, versionInfo, props);
+                fixedClock, versionInfo, props, userFpdActivityMask);
 
         final Privacy privacy = Privacy.builder()
                 .gpp("GPP_STRING")
@@ -329,7 +345,7 @@ class HttpFetchClientTest {
                         MultiMap.caseInsensitiveMultiMap(), mapper.encodeToString(new FetchResponse(null)))));
 
         final HttpFetchClient client = new HttpFetchClient(URL, httpClient, mapper,
-                fixedClock, versionInfo, props);
+                fixedClock, versionInfo, props, userFpdActivityMask);
 
         final BidRequestBuilder bidRequestBuilder = BidRequest.builder();
         publisherSetter.accept(bidRequestBuilder, Publisher.builder()
@@ -375,7 +391,7 @@ class HttpFetchClientTest {
         moduleProps.setPartner(789L);
 
         final HttpFetchClient client = new HttpFetchClient(URL, httpClient, mapper,
-                fixedClock, versionInfo, moduleProps);
+                fixedClock, versionInfo, moduleProps, userFpdActivityMask);
 
         final BidRequest bidRequest = BidRequest.builder()
                 .app(App.builder()
@@ -423,13 +439,70 @@ class HttpFetchClientTest {
         assertThat(bidders).containsExactly("bidder1", "bidder2");
     }
 
-    private static AuctionInvocationContextImpl auctionInvocationContext(Timeout timeout,
-                                                                         AuctionContext auctionContext,
-                                                                         boolean debugEnabled) {
+    @Test
+    void shouldUseMaskedPersonalDataWhenDisallowed() {
+        // given
+        final ArgumentCaptor<String> bodyCaptor = ArgumentCaptor.forClass(String.class);
+        when(httpClient.post(anyString(), any(MultiMap.class), bodyCaptor.capture(), anyLong()))
+                .thenReturn(Future.succeededFuture(HttpClientResponse.of(200,
+                        MultiMap.caseInsensitiveMultiMap(), mapper.encodeToString(new FetchResponse(null)))));
+
+        final Device originalDevice = Device.builder()
+                .ip("203.0.113.10")
+                .ipv6("2001:0db8:85a3::8a2e:0370:7334")
+                .build();
+
+        final Device maskedDevice = Device.builder()
+                .ip("192.0.2.1")
+                .ipv6("2001:db8::1")
+                .build();
+
+        Mockito.reset(userFpdActivityMask);
+        when(userFpdActivityMask.maskDevice(any(), any(Boolean.class), any(Boolean.class)))
+                .thenReturn(maskedDevice);
+
+        final HttpFetchClient client = new HttpFetchClient(
+                URL, httpClient, mapper, fixedClock, versionInfo, props, userFpdActivityMask);
+
+        final BidRequest bidRequest = BidRequest.builder().device(originalDevice).build();
+        final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(bidRequest);
+        final AuctionInvocationContext invocation = auctionInvocationContext(
+                new TimeoutFactory(Clock.systemUTC()).create(1000),
+                AuctionContext.builder().account(Account.builder().id("acc").build()).build(),
+                false);
+
+        // when
+        client.fetch(999L, payload, invocation).result();
+
+        // then
+        final ArgumentCaptor<ActivityInvocationPayload> payloadCaptor =
+                ArgumentCaptor.forClass(ActivityInvocationPayload.class);
+        verify(activityInfrastructure).isAllowed(eq(Activity.TRANSMIT_UFPD), payloadCaptor.capture());
+        verify(activityInfrastructure).isAllowed(eq(Activity.TRANSMIT_GEO), payloadCaptor.capture());
+
+        final ActivityInvocationPayload capturedPayload = payloadCaptor.getValue();
+        assertThat(capturedPayload.componentType()).isEqualTo(ComponentType.RTD_MODULE);
+        assertThat(capturedPayload.componentName()).isEqualTo(Id5IdModule.CODE);
+
+        // verify request uses masked data
+        final String captured = bodyCaptor.getValue();
+        final Map<String, Object> json = mapper.decodeValue(captured, new TypeReference<>() {
+        });
+        assertThat(json.get("ipv4")).isEqualTo(maskedDevice.getIp());
+        assertThat(json.get("ipv6")).isEqualTo(maskedDevice.getIpv6());
+    }
+
+    private AuctionInvocationContextImpl auctionInvocationContext(Timeout timeout,
+                                                                  AuctionContext auctionContext,
+                                                                  boolean debugEnabled) {
+        final AuctionContext contextWithActivity = auctionContext.toBuilder()
+                .activityInfrastructure(activityInfrastructure)
+                .build();
+
         return AuctionInvocationContextImpl.of(
                 InvocationContextImpl.of(timeout,
                         org.prebid.server.model.Endpoint.openrtb2_auction),
-                auctionContext, debugEnabled, null, null);
+                contextWithActivity, debugEnabled, null, null);
     }
 
 }

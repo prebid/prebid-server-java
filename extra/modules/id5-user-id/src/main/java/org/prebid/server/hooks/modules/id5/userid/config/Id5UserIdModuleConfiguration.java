@@ -1,5 +1,6 @@
 package org.prebid.server.hooks.modules.id5.userid.config;
 
+import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
 import org.prebid.server.hooks.modules.id5.userid.v1.Id5IdFetchHook;
 import org.prebid.server.hooks.modules.id5.userid.v1.Id5IdInjectHook;
 import org.prebid.server.hooks.modules.id5.userid.v1.Id5IdModule;
@@ -84,7 +85,8 @@ public class Id5UserIdModuleConfiguration {
                                 VersionInfo versionInfo,
                                 HttpClient httpClient,
                                 JacksonMapper jacksonMapper,
-                                Clock clock) {
+                                Clock clock,
+                                UserFpdActivityMask userFpdActivityMask) {
 
         LOG.debug("id5-user-id-fetch hook enabled, endpoint: {}", properties.getFetchEndpoint());
         return new HttpFetchClient(
@@ -93,7 +95,8 @@ public class Id5UserIdModuleConfiguration {
                 jacksonMapper,
                 clock,
                 versionInfo,
-                properties);
+                properties,
+                userFpdActivityMask);
     }
 
     @Bean

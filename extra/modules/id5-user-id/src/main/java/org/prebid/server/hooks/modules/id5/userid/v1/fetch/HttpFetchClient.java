@@ -6,6 +6,14 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Site;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
+import org.prebid.server.activity.Activity;
+import org.prebid.server.activity.ComponentType;
+import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
+import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
+import org.prebid.server.activity.infrastructure.payload.impl.ActivityInvocationPayloadImpl;
+import org.prebid.server.activity.infrastructure.payload.impl.BidRequestActivityInvocationPayload;
+import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
+import org.prebid.server.hooks.modules.id5.userid.v1.Id5IdModule;
 import org.prebid.server.hooks.modules.id5.userid.v1.config.Id5IdModuleProperties;
 import org.prebid.server.hooks.modules.id5.userid.v1.model.FetchRequest;
 import org.prebid.server.hooks.modules.id5.userid.v1.model.FetchRequest.PrebidServerMetadata;
@@ -45,19 +53,22 @@ public class HttpFetchClient implements FetchClient {
     private final JacksonMapper mapper;
     private final VersionInfo versionInfo;
     private final Id5IdModuleProperties id5IdModuleProperties;
+    private final UserFpdActivityMask userFpdActivityMask;
 
     public HttpFetchClient(String endpoint,
                            HttpClient httpClient,
                            JacksonMapper mapper,
                            Clock clock,
                            VersionInfo versionInfo,
-                           Id5IdModuleProperties id5IdModuleProperties) {
+                           Id5IdModuleProperties id5IdModuleProperties,
+                           UserFpdActivityMask userFpdActivityMask) {
         this.fetchUrl = Objects.requireNonNull(endpoint);
         this.httpClient = Objects.requireNonNull(httpClient);
         this.mapper = Objects.requireNonNull(mapper);
         this.clock = Objects.requireNonNull(clock);
         this.versionInfo = Objects.requireNonNull(versionInfo);
         this.id5IdModuleProperties = Objects.requireNonNull(id5IdModuleProperties);
+        this.userFpdActivityMask = Objects.requireNonNull(userFpdActivityMask);
     }
 
     @Override
@@ -81,7 +92,7 @@ public class HttpFetchClient implements FetchClient {
     private FetchRequest createFetchRequest(long partnerId,
                                             AuctionRequestPayload payload,
                                             AuctionInvocationContext invocationContext) {
-        final BidRequest bidRequest = payload.bidRequest();
+        final BidRequest bidRequest = getMaskedBidRequest(payload.bidRequest(), invocationContext);
         final PrivacyContext privacyContext = invocationContext.auctionContext().getPrivacyContext();
         final Optional<Device> maybeDevice = Optional.ofNullable(bidRequest.getDevice());
         final FetchRequest.FetchRequestBuilder fetchRequestBuilder = FetchRequest.builder()
@@ -120,6 +131,28 @@ public class HttpFetchClient implements FetchClient {
                     .gdprConsent(privacy.getConsentString());
         }
         return fetchRequestBuilder.build();
+    }
+
+    private BidRequest getMaskedBidRequest(BidRequest bidRequest, AuctionInvocationContext invocationContext) {
+        final ActivityInvocationPayload activityInvocationPayload = BidRequestActivityInvocationPayload.of(
+                ActivityInvocationPayloadImpl.of(
+                        ComponentType.RTD_MODULE,
+                        Id5IdModule.CODE),
+                bidRequest);
+        final ActivityInfrastructure activityInfrastructure =
+                invocationContext.auctionContext().getActivityInfrastructure();
+
+        final boolean disallowTransmitUfpd = !activityInfrastructure.isAllowed(
+                Activity.TRANSMIT_UFPD, activityInvocationPayload);
+        final boolean disallowTransmitGeo = !activityInfrastructure.isAllowed(
+                Activity.TRANSMIT_GEO, activityInvocationPayload);
+
+        final Device maskedDevice = userFpdActivityMask.maskDevice(
+                bidRequest.getDevice(), disallowTransmitUfpd, disallowTransmitGeo);
+
+        return bidRequest.toBuilder()
+                .device(maskedDevice)
+                .build();
     }
 
     private PrebidServerMetadata createProviderMetadata(BidRequest bidRequest) {
