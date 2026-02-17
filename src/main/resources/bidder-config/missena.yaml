@@ -1,6 +1,7 @@
 adapters:
   missena:
     endpoint: https://bid.missena.io/?t={{PublisherID}}
+    endpoint-compression: gzip
     meta-info:
       maintainer-email: prebid@missena.com
       modifying-vast-xml-allowed: true
