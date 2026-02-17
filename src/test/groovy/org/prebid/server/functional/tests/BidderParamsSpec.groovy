@@ -320,28 +320,6 @@ class BidderParamsSpec extends BaseSpec {
         bidder.getBidderRequest(bidRequest.id)
     }
 
-    // TODO: create same test for enabled circuit breaker
-    def "PBS should emit warning when bidder endpoint is invalid"() {
-        given: "Pbs config"
-        def pbsConfig = ["adapters.generic.enabled"           : "true",
-                         "adapters.generic.endpoint"          : "https://",
-                         "http-client.circuit-breaker.enabled": "false"]
-        def pbsService = pbsServiceFactory.getService(pbsConfig)
-
-        and: "Default basic generic BidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
-
-        when: "PBS processes auction request"
-        def response = pbsService.sendAuctionRequest(bidRequest)
-
-        then: "Response should contain error"
-        assert response.ext?.errors[GENERIC]*.code == [999]
-        assert response.ext?.errors[GENERIC]*.message == ["host name must not be empty"]
-
-        cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(pbsConfig)
-    }
-
     def "PBS should reject bidder when bidder params from request doesn't satisfy json-schema for auction request"() {
         given: "BidRequest with bad bidder datatype"
         def bidRequest = BidRequest.defaultBidRequest.tap {

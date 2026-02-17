@@ -1,6 +1,6 @@
 adapters:
   pangle:
-    endpoint: https://
+    endpoint: https://localhost
     meta-info:
       maintainer-email: pangle_dsp@bytedance.com
       app-media-types:

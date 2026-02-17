@@ -1,6 +1,6 @@
 adapters:
   adxcg:
-    endpoint: http://
+    endpoint: http://localhost
     meta-info:
       maintainer-email: info@adxcg.com
       app-media-types:

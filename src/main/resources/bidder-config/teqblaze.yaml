@@ -1,6 +1,6 @@
 adapters:
   teqblaze:
-    endpoint: http://
+    endpoint: http://localhost
     aliases:
       pinkLion:
         enabled: false
