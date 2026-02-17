@@ -273,7 +273,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
                 .extracting(AuctionRequestPayload::bidRequest)
                 .extracting(BidRequest::getUser)
                 .extracting(User::getEids)
-                .isEqualTo(List.of(givenEid, expectedEid));
+                .isEqualTo(List.of(givenEid, expectedEid.toBuilder().inserter("server").build()));
 
         verify(httpClient).post(
                 eq("https://test.com/idres"),
@@ -315,7 +315,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
                 .extracting(AuctionRequestPayload::bidRequest)
                 .extracting(BidRequest::getUser)
                 .extracting(User::getEids)
-                .isEqualTo(List.of(expectedEid));
+                .isEqualTo(List.of(expectedEid.toBuilder().inserter("server").build()));
 
         verify(httpClient).post(
                 eq("https://test.com/idres"),
