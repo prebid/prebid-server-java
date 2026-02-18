@@ -11,7 +11,6 @@ class NetworkServiceContainer extends GenericContainer<NetworkServiceContainer> 
         def aliasWithTopLevelDomain = "${getNetworkAliases().first()}.com".toString()
         withCreateContainerCmdModifier { it.withHostName(aliasWithTopLevelDomain) }
         setNetworkAliases([aliasWithTopLevelDomain])
-        //withCommand("--use-chunked-encoding", "never","--verbose") // doesn't relevant for us
         withExposedPorts(8080)
     }
 
