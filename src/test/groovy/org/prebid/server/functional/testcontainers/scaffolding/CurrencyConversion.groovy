@@ -7,9 +7,6 @@ import org.prebid.server.functional.testcontainers.container.NetworkServiceConta
 
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
-import static org.mockserver.model.HttpRequest.request
-import static org.mockserver.model.HttpResponse.response
-import static org.mockserver.model.HttpStatusCode.OK_200
 import static org.prebid.server.functional.util.CurrencyUtil.DEFAULT_CURRENCY_RATES
 
 class CurrencyConversion extends NetworkScaffolding {
@@ -17,8 +14,8 @@ class CurrencyConversion extends NetworkScaffolding {
     static final String CURRENCY_ENDPOINT_PATH = "/currency"
     private static final CurrencyConversionRatesResponse DEFAULT_RATES_RESPONSE = CurrencyConversionRatesResponse.getDefaultCurrencyConversionRatesResponse(DEFAULT_CURRENCY_RATES)
 
-    CurrencyConversion(NetworkServiceContainer mockServerContainer) {
-        super(mockServerContainer, CURRENCY_ENDPOINT_PATH)
+    CurrencyConversion(NetworkServiceContainer wireMockContainer) {
+        super(wireMockContainer, CURRENCY_ENDPOINT_PATH)
     }
 
     void setCurrencyConversionRatesResponse(CurrencyConversionRatesResponse conversionRatesResponse = DEFAULT_RATES_RESPONSE) {
@@ -26,15 +23,11 @@ class CurrencyConversion extends NetworkScaffolding {
     }
 
     @Override
-    void setResponse() {
-        mockServerClient.when(request().withPath(endpoint))
-                .respond(response().withStatusCode(OK_200.code()))
-    }
+    void setResponse() {}
 
     @Override
     protected RequestPattern getRequest() {
-        getRequestedFor(urlEqualTo(CURRENCY_ENDPOINT_PATH))
-                .build()
+        getRequestedFor(urlEqualTo(CURRENCY_ENDPOINT_PATH)).build()
     }
 
     @Override

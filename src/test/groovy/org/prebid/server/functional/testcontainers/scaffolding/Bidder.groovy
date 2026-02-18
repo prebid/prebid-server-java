@@ -13,8 +13,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
 import static com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse
-
-import static org.mockserver.model.HttpStatusCode.OK_200
+import static org.prebid.server.functional.model.HttpStatusCode.OK_200
 
 class Bidder extends NetworkScaffolding {
 
@@ -71,7 +70,7 @@ class Bidder extends NetworkScaffolding {
                 .atPriority(Integer.MAX_VALUE)
                 .willReturn(aResponse()
                         .withTransformers("response-template")
-                        .withStatus(OK_200.code())
+                        .withStatus(OK_200.code)
                         .withBody(DEFAULT_BODY_RESPONSE)))
     }
 

@@ -4,7 +4,7 @@ import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder
 import com.github.tomakehurst.wiremock.matching.RequestPattern
 import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
-import org.mockserver.model.HttpStatusCode
+import org.prebid.server.functional.model.HttpStatusCode
 import org.prebid.server.functional.model.ResponseModel
 import org.prebid.server.functional.testcontainers.container.NetworkServiceContainer
 
@@ -12,7 +12,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.anyRequestedFor
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
-import static org.mockserver.model.HttpStatusCode.OK_200
+import static org.prebid.server.functional.model.HttpStatusCode.OK_200
 
 class HttpSettings extends NetworkScaffolding {
 
@@ -49,7 +49,7 @@ class HttpSettings extends NetworkScaffolding {
                         Map<String, String> headers = [:]) {
 
         def responseBuilder = ResponseDefinitionBuilder.responseDefinition()
-                .withStatus(statusCode.code())
+                .withStatus(statusCode.code)
                 .withHeader("Content-Type", "application/json")
                 .withBody(encode(responseModel))
 

@@ -1,6 +1,6 @@
 package org.prebid.server.functional.tests
 
-import org.mockserver.model.HttpStatusCode
+import org.prebid.server.functional.model.HttpStatusCode
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountBidValidationConfig
@@ -16,14 +16,13 @@ import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.SeatBid
 import org.prebid.server.functional.util.PBSUtils
 
-import static org.mockserver.model.HttpStatusCode.BAD_REQUEST_400
-import static org.mockserver.model.HttpStatusCode.INTERNAL_SERVER_ERROR_500
-import static org.mockserver.model.HttpStatusCode.NO_CONTENT_204
-import static org.mockserver.model.HttpStatusCode.OK_200
-import static org.mockserver.model.HttpStatusCode.PROCESSING_102
-import static org.mockserver.model.HttpStatusCode.SERVICE_UNAVAILABLE_503
 import static org.prebid.server.functional.model.AccountStatus.ACTIVE
-
+import static org.prebid.server.functional.model.HttpStatusCode.OK_200
+import static org.prebid.server.functional.model.HttpStatusCode.BAD_REQUEST_400
+import static org.prebid.server.functional.model.HttpStatusCode.NO_CONTENT_204
+import static org.prebid.server.functional.model.HttpStatusCode.PROCESSING_102
+import static org.prebid.server.functional.model.HttpStatusCode.SERVICE_UNAVAILABLE_503
+import static org.prebid.server.functional.model.HttpStatusCode.INTERNAL_SERVER_ERROR_500
 import static org.prebid.server.functional.model.config.BidValidationEnforcement.ENFORCE
 import static org.prebid.server.functional.model.request.auction.DebugCondition.DISABLED
 import static org.prebid.server.functional.model.request.auction.DebugCondition.ENABLED

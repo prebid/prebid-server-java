@@ -1,6 +1,5 @@
 package org.prebid.server.functional.tests.privacy
 
-import org.mockserver.model.Delay
 import org.prebid.server.functional.model.ChannelType
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountGdprConfig

@@ -11,6 +11,7 @@ class NetworkServiceContainer extends GenericContainer<NetworkServiceContainer> 
         def aliasWithTopLevelDomain = "${getNetworkAliases().first()}.com".toString()
         withCreateContainerCmdModifier { it.withHostName(aliasWithTopLevelDomain) }
         setNetworkAliases([aliasWithTopLevelDomain])
+        withCommand("--disable-gzip")
         withExposedPorts(8080)
     }
 

@@ -12,8 +12,8 @@ class PubStackAnalytics extends NetworkScaffolding {
     private static final String CONFIG_ENDPOINT = "/bootstrap"
     private static final String ANALYTICS_ENDPOINT = "/intake/auction"
 
-    PubStackAnalytics(NetworkServiceContainer mockServerContainer) {
-        super(mockServerContainer, CONFIG_ENDPOINT)
+    PubStackAnalytics(NetworkServiceContainer wireMockContainer) {
+        super(wireMockContainer, CONFIG_ENDPOINT)
     }
 
     @Override

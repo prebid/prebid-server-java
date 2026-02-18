@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests.pricefloors
 
+import org.prebid.server.functional.model.HttpStatusCode
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.pricefloors.Country
 import org.prebid.server.functional.model.pricefloors.FloorModelGroup
@@ -21,8 +22,8 @@ import org.prebid.server.functional.util.PBSUtils
 import java.math.RoundingMode
 import java.time.Instant
 
-import static org.mockserver.model.HttpStatusCode.BAD_REQUEST_400
 import static org.prebid.server.functional.model.Currency.USD
+import static org.prebid.server.functional.model.HttpStatusCode.BAD_REQUEST_400
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.pricefloors.MediaType.BANNER
 import static org.prebid.server.functional.model.pricefloors.MediaType.MULTIPLE

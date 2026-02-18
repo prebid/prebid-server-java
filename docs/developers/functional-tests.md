@@ -2,8 +2,8 @@
 
 Main language: Groovy. Project functional tests use [Spock](https://spockframework.org/) as a main testing framework.
 Also used [Docker](https://www.docker.com/) for running PBS and other services.
-[Testcontainers](https://www.testcontainers.org/) is used as provider of lightweight, throwaway instances of PBS, MySQLContainer, MockServerContainer containers.
-And [MockServer](https://www.mock-server.com/) for mocking external services.
+[Testcontainers](https://www.testcontainers.org/) is used as provider of lightweight, throwaway instances of PBS, MySQLContainer, WireMock containers.
+And [WireMock](https://wiremock.org/) for mocking external services.
 
 ## Getting Started
 
@@ -64,12 +64,12 @@ Functional tests need to have name template **.\*Spec.groovy**
 - `/functional/testcontainers/PBSTestExtension` - allows to hook into a spec’s lifecycle to add ErrorListener using annotation `PBSTest`.
 - `/functional/testcontainers/TestcontainersExtension` - allow to hook into a spec’s lifecycle to start and stop support service containers using global extension.
 - `/functional/testcontainers/container` - responsible for creating and configuring containers.
-- `/functional/testcontainers/scaffolding/NetworkScaffolding` -  makes HTTP requests to a MockServer.
+- `/functional/testcontainers/scaffolding/NetworkScaffolding` -  makes HTTP requests to a WireMock.
 
 
 **Properties:**
 
-`launchContainers` - responsible for starting the MockServer and the MySQLContainer container. Default value is false to not launch containers for unit tests.
+`launchContainers` - responsible for starting containers. Default value is false to not launch containers for unit tests.
 `tests.max-container-count` - maximum number of simultaneously running PBS containers. Default value is 5.
 `skipFunctionalTests` - allow to skip funtional tests. Default value is false.
 `skipUnitTests` - allow to skip unit tests. Default value is false.

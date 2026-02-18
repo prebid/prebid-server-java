@@ -5,17 +5,15 @@ import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.matching.RequestPattern
 import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
-import org.mockserver.client.MockServerClient
-import org.mockserver.model.HttpStatusCode
+import org.prebid.server.functional.model.HttpStatusCode
 import org.prebid.server.functional.model.ResponseModel
 import org.prebid.server.functional.testcontainers.container.NetworkServiceContainer
 import org.prebid.server.functional.util.ObjectMapperWrapper
 
-import static org.mockserver.model.HttpStatusCode.OK_200
+import static org.prebid.server.functional.model.HttpStatusCode.OK_200
 
 abstract class NetworkScaffolding implements ObjectMapperWrapper {
 
-    protected MockServerClient mockServerClient
     protected WireMock wireMockClient
     protected String endpoint
 
@@ -43,7 +41,7 @@ abstract class NetworkScaffolding implements ObjectMapperWrapper {
                      HttpStatusCode statusCode = OK_200) {
 
         def responseBuilder = ResponseDefinitionBuilder.responseDefinition()
-                .withStatus(statusCode.code())
+                .withStatus(statusCode.code)
                 .withHeader("Content-Type", "application/json")
                 .withBody(encode(responseModel))
 
@@ -62,7 +60,7 @@ abstract class NetworkScaffolding implements ObjectMapperWrapper {
                      Map<String, String> headers = [:]) {
 
         def responseBuilder = ResponseDefinitionBuilder.responseDefinition()
-                .withStatus(statusCode.code())
+                .withStatus(statusCode.code)
                 .withHeader("Content-Type", "application/json")
                 .withBody(encode(responseModel))
 
@@ -78,7 +76,7 @@ abstract class NetworkScaffolding implements ObjectMapperWrapper {
                      int responseDelay,
                      HttpStatusCode statusCode = OK_200) {
         def responseBuilder = ResponseDefinitionBuilder.responseDefinition()
-                .withStatus(statusCode.code())
+                .withStatus(statusCode.code)
                 .withHeader("Content-Type", "application/json")
                 .withBody(encode(responseModel))
                 .withFixedDelay(responseDelay)
@@ -88,7 +86,7 @@ abstract class NetworkScaffolding implements ObjectMapperWrapper {
 
     void setResponse(String value, String mockResponse) {
         def responseBuilder = ResponseDefinitionBuilder.responseDefinition()
-                .withStatus(OK_200.code())
+                .withStatus(OK_200.code)
                 .withBody(mockResponse)
 
         wireMockClient.register(new StubMapping(getRequest(value).build(), responseBuilder.build()))
@@ -96,7 +94,7 @@ abstract class NetworkScaffolding implements ObjectMapperWrapper {
 
     void setResponse(ResponseModel responseModel) {
         def responseBuilder = ResponseDefinitionBuilder.responseDefinition()
-                .withStatus(OK_200.code())
+                .withStatus(OK_200.code)
                 .withHeader("Content-Type", "application/json")
                 .withBody(encode(responseModel))
 
@@ -105,7 +103,7 @@ abstract class NetworkScaffolding implements ObjectMapperWrapper {
 
     void setResponse(String value, HttpStatusCode httpStatusCode) {
         def responseBuilder = ResponseDefinitionBuilder.responseDefinition()
-                .withStatus(httpStatusCode.code())
+                .withStatus(httpStatusCode.code)
 
         wireMockClient.register(new StubMapping(getRequest(value).build(), responseBuilder.build()))
     }
