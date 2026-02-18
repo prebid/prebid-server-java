@@ -1348,8 +1348,6 @@ class BidderParamsSpec extends BaseSpec {
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].ext.prebid.bidder.tap {
                 it.generic.exampleProperty = PBSUtils.randomNumber
-                //Nativo hard coded bidder alias in generic.yaml
-                it.nativo = new Generic(exampleProperty: PBSUtils.randomNumber)
             }
         }
 
@@ -1357,13 +1355,10 @@ class BidderParamsSpec extends BaseSpec {
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder should be dropped"
-        assert response.ext?.warnings[PREBID]*.code == [999, 999, 999]
+        assert response.ext?.warnings[PREBID]*.code == [999, 999]
         assert response.ext?.warnings[PREBID]*.message ==
                 ["WARNING: request.imp[0].ext.prebid.bidder.generic was dropped with a reason: " +
                          "request.imp[0].ext.prebid.bidder.generic failed validation.\n" +
-                         "\$.exampleProperty: integer found, string expected",
-                 "WARNING: request.imp[0].ext.prebid.bidder.nativo was dropped with a reason: " +
-                         "request.imp[0].ext.prebid.bidder.nativo failed validation.\n" +
                          "\$.exampleProperty: integer found, string expected",
                  "WARNING: request.imp[0].ext must contain at least one valid bidder"]
 

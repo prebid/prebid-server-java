@@ -125,8 +125,6 @@ LIMIT 1
          "adapters.generic.aliases.blue.meta-info.site-media-types"           : "",
          "adapters.generic.aliases.adsinteractive.meta-info.app-media-types"  : "",
          "adapters.generic.aliases.adsinteractive.meta-info.site-media-types" : "",
-         "adapters.generic.aliases.nativo.meta-info.app-media-types"          : "",
-         "adapters.generic.aliases.nativo.meta-info.site-media-types"         : "",
          "adapters.generic.aliases.infytv.meta-info.app-media-types"          : "",
          "adapters.generic.aliases.infytv.meta-info.site-media-types"         : "",
          "adapters.generic.aliases.zeta-global-ssp.meta-info.app-media-types" : "",
