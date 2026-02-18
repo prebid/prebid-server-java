@@ -1,21 +1,18 @@
 package org.prebid.server.functional.testcontainers.container
 
+import org.testcontainers.containers.GenericContainer
 import org.testcontainers.containers.Network
 import org.testcontainers.utility.DockerImageName
-import org.testcontainers.utility.MountableFile
-import org.wiremock.integrations.testcontainers.WireMockContainer
 
-class NetworkServiceContainer extends WireMockContainer {
+class NetworkServiceContainer extends GenericContainer<NetworkServiceContainer> {
 
-    NetworkServiceContainer(String version) {
+    NetworkServiceContainer() {
         super(DockerImageName.parse("wiremock/wiremock:3.3.1"))
         def aliasWithTopLevelDomain = "${getNetworkAliases().first()}.com".toString()
         withCreateContainerCmdModifier { it.withHostName(aliasWithTopLevelDomain) }
         setNetworkAliases([aliasWithTopLevelDomain])
-        withCopyFileToContainer(
-                MountableFile.forHostPath("/home/administrator/wiremock-docker/extensions/wiremock-grpc-extension-standalone-0.5.0.jar"),
-                "/var/wiremock/extensions"
-        )
+        //withCommand("--use-chunked-encoding", "never","--verbose") // doesn't relevant for us
+        withExposedPorts(8080)
     }
 
     String getHostAndPort() {

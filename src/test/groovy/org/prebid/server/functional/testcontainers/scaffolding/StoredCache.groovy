@@ -1,10 +1,7 @@
 package org.prebid.server.functional.testcontainers.scaffolding
 
-import com.github.tomakehurst.wiremock.WireMockServer
+import com.github.tomakehurst.wiremock.matching.RequestPattern
 import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder
-import org.mockserver.matchers.TimeToLive
-import org.mockserver.matchers.Times
-import org.mockserver.model.HttpRequest
 import org.mockserver.model.HttpStatusCode
 import org.prebid.server.functional.model.config.Audience
 import org.prebid.server.functional.model.config.AudienceId
@@ -14,12 +11,17 @@ import org.prebid.server.functional.model.config.TargetingOrtb
 import org.prebid.server.functional.model.config.TargetingResult
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.User
+import org.prebid.server.functional.testcontainers.container.NetworkServiceContainer
 import org.prebid.server.functional.util.PBSUtils
 
 import java.nio.charset.StandardCharsets
 
-import static org.mockserver.model.HttpRequest.request
-import static org.mockserver.model.HttpResponse.response
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse
+import static com.github.tomakehurst.wiremock.client.WireMock.get
+import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor
+import static com.github.tomakehurst.wiremock.client.WireMock.post
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
 import static org.mockserver.model.HttpStatusCode.NO_CONTENT_204
 import static org.mockserver.model.HttpStatusCode.OK_200
 
@@ -27,26 +29,17 @@ class StoredCache extends NetworkScaffolding {
 
     private static final String CACHE_ENDPOINT = "/stored-cache"
 
-    StoredCache(WireMockServer mockServerContainer) {
+    StoredCache(NetworkServiceContainer mockServerContainer) {
         super(mockServerContainer, CACHE_ENDPOINT)
     }
 
-    @Override
-    protected HttpRequest getRequest(String impId) {}
-
-    @Override
-    HttpRequest getRequest() {
-        request().withMethod("GET")
-                .withPath(endpoint)
+    protected RequestPattern getRequest() {
+        getRequestedFor(urlEqualTo(endpoint))
+                .build()
     }
 
     @Override
-    protected RequestPatternBuilder getRequestPattern() {
-        return null
-    }
-
-    @Override
-    protected RequestPatternBuilder getRequestPattern(String value) {
+    protected RequestPatternBuilder getRequest(String bidRequestId) {
         return null
     }
 
@@ -55,27 +48,29 @@ class StoredCache extends NetworkScaffolding {
 
     TargetingResult setTargetingResponse(BidRequest bidRequest, OptableTargetingConfig config) {
         def targetingResult = getBodyByRequest(bidRequest)
-        mockServerClient.when(request()
-                .withMethod("GET")
-                .withPath("$endpoint${QueryBuilder.buildQuery(bidRequest, config)}"), Times.unlimited(), TimeToLive.unlimited(), -10)
-                .respond { response().withStatusCode(OK_200.code()).withBody(encode(targetingResult)) }
+        wireMockClient.register(get(urlPathEqualTo("$endpoint${QueryBuilder.buildQuery(bidRequest, config)}"))
+                .atPriority(Integer.MAX_VALUE)
+                .willReturn(aResponse()
+                        .withStatus(OK_200.code())
+                        .withBody(encode(targetingResult))))
         targetingResult
     }
 
     TargetingResult setCachedTargetingResponse(BidRequest bidRequest) {
         def targetingResult = getBodyByRequest(bidRequest)
-        mockServerClient.when(request()
-                .withMethod("GET")
-                .withPath(endpoint), Times.unlimited(), TimeToLive.unlimited(), -10)
-                .respond { response().withStatusCode(OK_200.code()).withBody(encode(targetingResult)) }
+        wireMockClient.register(get(urlPathEqualTo(endpoint))
+                .atPriority(Integer.MAX_VALUE)
+                .willReturn(aResponse()
+                        .withStatus(OK_200.code())
+                        .withBody(encode(targetingResult))))
         targetingResult
     }
 
     void setCachingResponse(HttpStatusCode statusCode = NO_CONTENT_204) {
-        mockServerClient.when(request()
-                .withMethod("POST")
-                .withPath(endpoint), Times.unlimited(), TimeToLive.unlimited(), -10)
-                .respond { response().withStatusCode(statusCode.code()) }
+        wireMockClient.register(post(urlPathEqualTo(endpoint))
+                .atPriority(Integer.MAX_VALUE)
+                .willReturn(aResponse()
+                        .withStatus(statusCode.code())))
     }
 
     private static TargetingResult getBodyByRequest(BidRequest bidRequest) {

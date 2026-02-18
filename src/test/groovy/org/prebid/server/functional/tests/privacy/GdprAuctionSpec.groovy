@@ -378,7 +378,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         vendorListResponse.reset()
 
         and: "Set vendor list response with delay"
-        vendorListResponse.setResponse(tcfPolicyVersion, Delay.seconds(EXPONENTIAL_BACKOFF_MAX_DELAY + 3))
+        vendorListResponse.setResponse(tcfPolicyVersion, EXPONENTIAL_BACKOFF_MAX_DELAY + 3)
 
         when: "PBS processes auction request"
         defaultPrivacyPbsService.sendAuctionRequest(bidRequest)

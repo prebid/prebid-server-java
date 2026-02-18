@@ -10,7 +10,6 @@ import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.lifecycle.Startables
 import org.testcontainers.utility.DockerImageName
 
-import static org.prebid.server.functional.util.SystemProperties.MOCKSERVER_VERSION
 import static org.testcontainers.containers.localstack.LocalStackContainer.Service.S3
 
 class Dependencies {
@@ -42,7 +41,7 @@ class Dependencies {
             .withDatabase("prebid")
             .withNetwork(network)
 
-    static final NetworkServiceContainer networkServiceContainer = new NetworkServiceContainer(MOCKSERVER_VERSION)
+    static final NetworkServiceContainer networkServiceContainer = new NetworkServiceContainer()
             .withNetwork(network)
 
     static LocalStackContainer localStackContainer

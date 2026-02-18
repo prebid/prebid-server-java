@@ -44,7 +44,6 @@ class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
                 << PbsConfig.prebidCacheConfig
                 << PbsConfig.mySqlConfig
                 << PbsConfig.targetingConfig
-                << PbsConfig.httpSettingsConfig
         withConfig(commonConfig)
         withConfig(customConfig)
     }

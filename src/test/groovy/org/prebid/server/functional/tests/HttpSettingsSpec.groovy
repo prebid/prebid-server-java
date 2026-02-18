@@ -15,7 +15,6 @@ import org.prebid.server.functional.testcontainers.PbsConfig
 import org.prebid.server.functional.testcontainers.scaffolding.HttpSettings
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.util.ResourceUtil
-import spock.lang.IgnoreRest
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
@@ -36,8 +35,6 @@ class HttpSettingsSpec extends BaseSpec {
     def setupSpec() {
         prebidServerService = pbsServiceFactory.getService(PbsConfig.httpSettingsConfig)
         prebidServerServiceWithRfc = pbsServiceFactory.getService(PBS_CONFIG_WITH_RFC)
-        bidder.setResponse()
-        // vendorList.setResponse()
     }
 
     def "PBS should take account information from http data source on auction request"() {
@@ -50,7 +47,7 @@ class HttpSettingsSpec extends BaseSpec {
         httpSettings.setResponse(bidRequest.accountId, httpSettingsResponse)
 
         when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = prebidServerService.sendAuctionRequest(bidRequest)
 
         then: "Response should contain basic fields"
         assert response.id
@@ -291,7 +288,7 @@ class HttpSettingsSpec extends BaseSpec {
 
         and: "Prepare default account response"
         def httpSettingsResponse = HttpAccountsResponse.getDefaultHttpAccountsResponse(accountId)
-        httpSettings.setRfcResponse(accountId, httpSettingsResponse)
+        httpSettingsWithRFC.setRfcResponse(accountId, httpSettingsResponse)
 
         when: "PBS processes vtrack request"
         def response = prebidServerServiceWithRfc.sendPostVtrackRequest(request, accountId)
@@ -300,7 +297,7 @@ class HttpSettingsSpec extends BaseSpec {
         assert response.responses[0]?.uuid
 
         and: "There should be only one account request and pbc request"
-        assert httpSettings.getRfcRequestCount(accountId.toString()) == 1
+        assert httpSettingsWithRFC.getRfcRequestCount(accountId) == 1
         assert prebidCache.getXmlRequestCount(payload) == 1
 
         and: "VastXml that was send to PrebidCache must contain event url"
