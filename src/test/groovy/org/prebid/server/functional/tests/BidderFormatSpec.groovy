@@ -871,7 +871,6 @@ class BidderFormatSpec extends BaseSpec {
         "http://www.w3.org"                                    | SECURE     | ENFORCE.value
         "http%3a://www.quantcast.com/adchoices"                | SECURE     | ENFORCE.value
         "http://"                                              | SECURE     | ENFORCE.value
-
     }
 
     def "PBS should ignore specified secureMarkup #secureMarkup validation when secure is 0"() {
