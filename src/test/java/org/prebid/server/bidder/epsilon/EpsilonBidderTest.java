@@ -31,6 +31,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.epsilon.ExtImpEpsilon;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
+import org.prebid.server.util.VersionInfo;
 
 import java.math.BigDecimal;
 import java.util.Collections;
@@ -224,7 +225,8 @@ public class EpsilonBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldNotSetDisplayManagerVerWhenVersionIsUndefined() {
         // given
-        target = new EpsilonBidder(ENDPOINT_URL, false, "undefined", jacksonMapper, currencyConversionService);
+        target = new EpsilonBidder(
+                ENDPOINT_URL, false, VersionInfo.UNDEFINED, jacksonMapper, currencyConversionService);
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when

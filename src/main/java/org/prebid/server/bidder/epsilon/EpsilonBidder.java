@@ -27,6 +27,7 @@ import org.prebid.server.proto.openrtb.ext.request.epsilon.ExtImpEpsilon;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.VersionInfo;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -58,7 +59,6 @@ public class EpsilonBidder implements Bidder<BidRequest> {
     private static final Set<Integer> AD_POSITIONS = IntStream.range(0, 8).boxed().collect(Collectors.toSet());
 
     private static final String DISPLAY_MANAGER = "prebid-s2s-java";
-    private static final String VERSION_UNDEFINED = "undefined";
 
     private final String endpointUrl;
     private final boolean generateBidId;
@@ -74,7 +74,7 @@ public class EpsilonBidder implements Bidder<BidRequest> {
         this.generateBidId = generateBidId;
         this.mapper = Objects.requireNonNull(mapper);
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
-        this.displayManagerVersion = VERSION_UNDEFINED.equals(pbsVersion) ? null : pbsVersion;
+        this.displayManagerVersion = VersionInfo.UNDEFINED.equals(pbsVersion) ? null : pbsVersion;
     }
 
     @Override
