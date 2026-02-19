@@ -14,23 +14,25 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static java.util.Collections.singletonList;
 
-public class VimayxTest extends IntegrationTest {
+public class RadianfusionTest extends IntegrationTest {
 
     @Test
-    public void openrtb2AuctionShouldRespondWithBidsFromVimayx() throws IOException, JSONException {
+    public void openrtb2AuctionShouldRespondWithBidsFromRadianfusion() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/vimayx-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/radianfusion-exchange"))
                 .withQueryParam("host", equalTo("someUniquePartnerName"))
                 .withQueryParam("accountId", equalTo("someSeat"))
                 .withQueryParam("sourceId", equalTo("someToken"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/vimayx/test-vimayx-bid-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/vimayx/test-vimayx-bid-response.json"))));
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/radianfusion/test-radianfusion-bid-request.json")))
+                .willReturn(aResponse().withBody(
+                        jsonFrom("openrtb2/radianfusion/test-radianfusion-bid-response.json"))));
 
         // when
-        final Response response = responseFor("openrtb2/vimayx/test-auction-vimayx-request.json",
+        final Response response = responseFor("openrtb2/radianfusion/test-auction-radianfusion-request.json",
                 Endpoint.openrtb2_auction);
 
         // then
-        assertJsonEquals("openrtb2/vimayx/test-auction-vimayx-response.json", response, singletonList("vimayx"));
+        assertJsonEquals("openrtb2/radianfusion/test-auction-radianfusion-response.json",
+                response, singletonList("radianfusion"));
     }
 }

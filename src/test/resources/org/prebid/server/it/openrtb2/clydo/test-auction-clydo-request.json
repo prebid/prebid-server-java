@@ -8,10 +8,9 @@
         "h": 250
       },
       "ext": {
-        "vimayx": {
-          "partnerName": "someUniquePartnerName",
-          "seat": "someSeat",
-          "token": "someToken"
+        "clydo": {
+          "region": "us",
+          "partnerId": "testPartnerId"
         }
       }
     }
