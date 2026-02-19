@@ -1,6 +1,7 @@
 adapters:
   nativo:
     endpoint: https://exchange.postrelease.com/esi?ntv_epid=7
+    ortb-version: "2.6"
     pbs-enforces-ccpa: false
     meta-info:
       maintainer-email: prebiddev@nativo.com

@@ -22,7 +22,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSdk;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSdkRenderer;
-import org.prebid.server.proto.openrtb.ext.request.nativo.ExtImpNativo;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.math.BigDecimal;
@@ -263,99 +262,6 @@ public class NativoBidderTest extends VertxTest {
                 });
         assertThat(result.getValue()).hasSize(1);
         assertThat(result.getValue().get(0).getBid().getExt()).isEqualTo(invalidExt);
-    }
-
-    @Test
-    public void makeHttpRequestsShouldPassThroughRequestWithIntegerPlacementId() {
-        // given
-        final ObjectNode impExt = mapper.createObjectNode();
-        impExt.putObject("bidder").put("placementId", 12345678);
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder().id("imp1").banner(Banner.builder().build()).ext(impExt).build()))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().get(0).getPayload().getImp().get(0).getExt()
-                .path("bidder").path("placementId").intValue()).isEqualTo(12345678);
-    }
-
-    @Test
-    public void makeHttpRequestsShouldPassThroughRequestWithStringPlacementId() {
-        // given
-        final ObjectNode impExt = mapper.createObjectNode();
-        impExt.putObject("bidder").put("placementId", "string-placement-id");
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder().id("imp1").banner(Banner.builder().build()).ext(impExt).build()))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().get(0).getPayload().getImp().get(0).getExt()
-                .path("bidder").path("placementId").textValue()).isEqualTo("string-placement-id");
-    }
-
-    @Test
-    public void makeHttpRequestsShouldPassThroughRequestWithAbsentPlacementId() {
-        // given
-        final ObjectNode impExt = mapper.createObjectNode();
-        impExt.putObject("bidder");
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder().id("imp1").banner(Banner.builder().build()).ext(impExt).build()))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().get(0).getPayload().getImp().get(0).getExt()
-                .path("bidder").has("placementId")).isFalse();
-    }
-
-    @Test
-    public void extImpNativoShouldDeserializeIntegerPlacementId() throws JsonProcessingException {
-        // given
-        final String json = "{\"placementId\": 12345678}";
-
-        // when
-        final ExtImpNativo extImpNativo = mapper.readValue(json, ExtImpNativo.class);
-
-        // then
-        assertThat(extImpNativo.getPlacementId()).isEqualTo(12345678);
-    }
-
-    @Test
-    public void extImpNativoShouldDeserializeStringPlacementId() throws JsonProcessingException {
-        // given
-        final String json = "{\"placementId\": \"string-placement-id\"}";
-
-        // when
-        final ExtImpNativo extImpNativo = mapper.readValue(json, ExtImpNativo.class);
-
-        // then
-        assertThat(extImpNativo.getPlacementId()).isEqualTo("string-placement-id");
-    }
-
-    @Test
-    public void extImpNativoShouldDeserializeAbsentPlacementIdAsNull() throws JsonProcessingException {
-        // given
-        final String json = "{}";
-
-        // when
-        final ExtImpNativo extImpNativo = mapper.readValue(json, ExtImpNativo.class);
-
-        // then
-        assertThat(extImpNativo.getPlacementId()).isNull();
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {

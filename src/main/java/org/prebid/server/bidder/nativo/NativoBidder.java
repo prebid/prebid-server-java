@@ -40,8 +40,9 @@ public class NativoBidder implements Bidder<BidRequest> {
 
     private static final String NATIVO_RENDERER_NAME = "NativoRenderer";
     private static final String PREBID_EXT = "prebid";
-    private static final TypeReference<ExtPrebid<ExtBidPrebid, ObjectNode>> EXT_PREBID_TYPE_REFERENCE =
-            new TypeReference<>() { };
+    private static final TypeReference<ExtPrebid<ExtBidPrebid, ?>> EXT_PREBID_TYPE_REFERENCE =
+            new TypeReference<>() {
+            };
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -77,61 +78,18 @@ public class NativoBidder implements Bidder<BidRequest> {
     private List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse, List<BidderError> errors) {
         final Map<String, Imp> impMap = bidRequest.getImp().stream()
                 .collect(Collectors.toMap(Imp::getId, Function.identity()));
+        final String rendererVersion = getNativoRendererVersion(bidRequest);
+
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(seatBid -> seatBid.getBid().stream()
                         .filter(Objects::nonNull)
-                        .map(bid -> updateBid(bid, bidRequest, errors))
+                        .map(bid -> updateBid(bid, rendererVersion, errors))
                         .filter(Objects::nonNull)
                         .map(bid -> BidderBid.of(bid, BidderUtil.getBidType(bid, impMap), bidResponse.getCur()))
                         .toList())
                 .flatMap(Collection::stream)
                 .toList();
-    }
-
-    private Bid updateBid(Bid bid, BidRequest bidRequest, List<BidderError> errors) {
-        final ObjectNode updateBidExt;
-        try {
-            updateBidExt = prepareBidExt(bid, bidRequest);
-        } catch (PreBidException e) {
-            errors.add(BidderError.badServerResponse(e.getMessage()));
-            return bid;
-        }
-
-        return bid.toBuilder()
-                .ext(updateBidExt)
-                .build();
-    }
-
-    private ObjectNode prepareBidExt(Bid bid, BidRequest bidRequest) {
-        final ObjectNode bidExt = bid.getExt();
-
-        final String nativoRendererVersion = getNativoRendererVersion(bidRequest);
-        if (nativoRendererVersion != null) {
-
-            final ExtPrebid<ExtBidPrebid, ObjectNode> extPrebid = getExtPrebid(bidExt, bid.getId());
-            final ExtBidPrebid extBidPrebid = extPrebid != null ? extPrebid.getPrebid() : null;
-
-            final ExtBidPrebidMeta meta = Optional.ofNullable(extBidPrebid)
-                    .map(ExtBidPrebid::getMeta)
-                    .orElse(null);
-
-            final ExtBidPrebidMeta updatedMeta = Optional.ofNullable(meta)
-                    .map(ExtBidPrebidMeta::toBuilder)
-                    .orElseGet(ExtBidPrebidMeta::builder)
-                    .rendererVersion(nativoRendererVersion)
-                    .build();
-
-            final ExtBidPrebid modifiedExtBidPrebid = extBidPrebid != null
-                    ? extBidPrebid.toBuilder().meta(updatedMeta).build()
-                    : ExtBidPrebid.builder().meta(updatedMeta).build();
-
-            final ObjectNode updatedBidExt = Optional.ofNullable(bidExt).orElseGet(mapper.mapper()::createObjectNode);
-            updatedBidExt.set(PREBID_EXT, mapper.mapper().valueToTree(modifiedExtBidPrebid));
-            return updatedBidExt;
-        }
-
-        return bidExt;
     }
 
     private String getNativoRendererVersion(BidRequest bidRequest) {
@@ -147,9 +105,48 @@ public class NativoBidder implements Bidder<BidRequest> {
                 .orElse(null);
     }
 
-    private ExtPrebid<ExtBidPrebid, ObjectNode> getExtPrebid(ObjectNode bidExt, String bidId) {
+    private Bid updateBid(Bid bid, String rendererVersion, List<BidderError> errors) {
+        if (rendererVersion == null) {
+            return bid;
+        }
+
+        final ObjectNode updateBidExt;
         try {
-            return bidExt != null ? mapper.mapper().convertValue(bidExt, EXT_PREBID_TYPE_REFERENCE) : null;
+            updateBidExt = updateBidExt(bid, rendererVersion);
+        } catch (PreBidException e) {
+            errors.add(BidderError.badServerResponse(e.getMessage()));
+            return bid;
+        }
+
+        return bid.toBuilder().ext(updateBidExt).build();
+    }
+
+    private ObjectNode updateBidExt(Bid bid, String rendererVersion) {
+        final ObjectNode bidExt = bid.getExt();
+        final Optional<ExtBidPrebid> extBidPrebid = Optional.ofNullable(bidExt)
+                .map(ext -> parseExtBidPrebid(bidExt, bid.getId()));
+
+        final ExtBidPrebidMeta updatedMeta = extBidPrebid
+                .map(ExtBidPrebid::getMeta)
+                .map(ExtBidPrebidMeta::toBuilder)
+                .orElseGet(ExtBidPrebidMeta::builder)
+                .rendererVersion(rendererVersion)
+                .build();
+
+        final ExtBidPrebid modifiedExtBidPrebid = extBidPrebid
+                .map(ExtBidPrebid::toBuilder)
+                .orElseGet(ExtBidPrebid::builder)
+                .meta(updatedMeta)
+                .build();
+
+        final ObjectNode updatedBidExt = bidExt != null ? bidExt : mapper.mapper().createObjectNode();
+        updatedBidExt.set(PREBID_EXT, mapper.mapper().valueToTree(modifiedExtBidPrebid));
+        return updatedBidExt;
+    }
+
+    private ExtBidPrebid parseExtBidPrebid(ObjectNode bidExt, String bidId) {
+        try {
+            return mapper.mapper().convertValue(bidExt, EXT_PREBID_TYPE_REFERENCE).getPrebid();
         } catch (IllegalArgumentException e) {
             throw new PreBidException("Invalid ext passed in bid with id: " + bidId);
         }
