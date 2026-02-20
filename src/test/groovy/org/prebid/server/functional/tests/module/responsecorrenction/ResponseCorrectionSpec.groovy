@@ -9,9 +9,7 @@ import org.prebid.server.functional.model.config.PbsModulesConfig
 import org.prebid.server.functional.model.config.SuppressIbv
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.Imp
-import org.prebid.server.functional.model.request.auction.Native
 import org.prebid.server.functional.model.response.auction.Adm
-import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidExt
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.Meta
@@ -27,8 +25,7 @@ import static org.prebid.server.functional.model.request.auction.BidRequest.getD
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.DOOH
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
-import static org.prebid.server.functional.model.response.auction.BidRejectionReason.*
-import static org.prebid.server.functional.model.response.auction.ErrorType.GENERIC
+import static org.prebid.server.functional.model.response.auction.BidRejectionReason.RESPONSE_REJECTED_DUE_TO_IN_BANNER_VIDEO
 import static org.prebid.server.functional.model.response.auction.MediaType.AUDIO
 import static org.prebid.server.functional.model.response.auction.MediaType.BANNER
 import static org.prebid.server.functional.model.response.auction.MediaType.NATIVE
@@ -580,7 +577,7 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         assert !response.ext.warnings
     }
 
-    def "PBS shouldn't reject auction with 353 code when enabled response correction is #enabledResponseCorrection and enabled suppress ibv is #enabledSuppressIbv"() {
+    def "PBS should process request without any errors and warning when response correction is #enabledResponseCorrection and suppress ibv is #enabledSuppressIbv"() {
         given: "Default bid request with banner and APP"
         def bidRequest = getDefaultBidRequest(APP).tap {
             ext.prebid.returnAllBidStatus = true
@@ -621,7 +618,7 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         false                     | false
     }
 
-    def "PBS shouldn't reject auction with 353 code when enabled suppress ibv and bid request with imp media type is #mediaType"() {
+    def "PBS should process request without any errors and warning when suppress ibv is enabled and bid request with imp media type is #mediaType"() {
         given: "Default bid request with APP"
         def bidRequest = getDefaultBidRequest(APP).tap {
             imp[0] = Imp.getDefaultImpression(mediaType)
@@ -660,7 +657,7 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         mediaType << [VIDEO, NATIVE, AUDIO]
     }
 
-    def "PBS shouldn't reject auction with 353 code when enabled suppress ibv and bis response with meta media type is #mediaType"() {
+    def "PBS should process request without any errors and warning when suppress ibv is enabled and bis response with meta media type is #mediaType"() {
         given: "Default bid request with banner and APP"
         def bidRequest = getDefaultBidRequest(APP).tap {
             ext.prebid.returnAllBidStatus = true
@@ -698,16 +695,14 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         mediaType << [BANNER, NATIVE, AUDIO]
     }
 
-    def "PBS shouldn't reject auction with 353 code when requested bidder is excluded"() {
+    def "PBS should process request without any errors and warning when requested bidder is excluded"() {
         given: "Default bid request with banner and APP"
         def bidRequest = getDefaultBidRequest(APP).tap {
             ext.prebid.returnAllBidStatus = true
         }
 
         and: "Save account with enabled response correction module and suppress ibv"
-        def accountWithResponseCorrectionModule = accountConfigWithResponseCorrectionModuleAndSuppressIbv(bidRequest.getAccountId()).tap {
-            config.hooks.modules.pbResponseCorrection.suppressInBannerVideo.excludedBidders = bidderName
-        }
+        def accountWithResponseCorrectionModule = accountConfigWithResponseCorrectionModuleAndSuppressIbv(bidRequest.getAccountId(), bidderName)
         accountDao.save(accountWithResponseCorrectionModule)
 
         and: "Set bidder response with meta media type"
@@ -743,16 +738,14 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
                        [BidderName.GENERIC, BidderName.GENERIC_CAMEL_CASE],]
     }
 
-    def "PBS should reject auction with 353 code when enabled suppress ibv and imp with media type Banner and bid response meta media type with Video and excluded bidder are not in case"() {
+    def "PBS should reject auction with 353 code when suppress IBV is enabled, imp media type is Banner, bid response meta media type is Video, and excluded list lacks request bidder"() {
         given: "Default bid request with banner and APP"
         def bidRequest = getDefaultBidRequest(APP).tap {
             ext.prebid.returnAllBidStatus = true
         }
 
         and: "Save account with enabled response correction module and suppress ibv"
-        def accountWithResponseCorrectionModule = accountConfigWithResponseCorrectionModuleAndSuppressIbv(bidRequest.getAccountId()).tap {
-            config.hooks.modules.pbResponseCorrection.suppressInBannerVideo.excludedBidders = bidderName
-        }
+        def accountWithResponseCorrectionModule = accountConfigWithResponseCorrectionModuleAndSuppressIbv(bidRequest.getAccountId(), bidderName)
         accountDao.save(accountWithResponseCorrectionModule)
 
         and: "Set bidder response with meta media type"
@@ -906,19 +899,31 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         assert response.seatbid.isEmpty()
     }
 
-    private static Account accountConfigWithResponseCorrectionModuleAndAppVideoHtml(String accountId, boolean enabledResponseCorrection = true, boolean enabledAppVideoHtml = true) {
-        accountConfigWithResponseCorrectionModule(accountId, enabledResponseCorrection, enabledAppVideoHtml, false)
+    private static Account accountConfigWithResponseCorrectionModuleAndAppVideoHtml(String accountId) {
+        accountConfigWithResponseCorrectionModule(accountId, true, true, false, [])
     }
 
-    private static Account accountConfigWithResponseCorrectionModuleAndSuppressIbv(String accountId, boolean enabledResponseCorrection = true, boolean enabledSuppressIbv = true) {
-        accountConfigWithResponseCorrectionModule(accountId, enabledResponseCorrection, false, enabledSuppressIbv)
+    private static Account accountConfigWithResponseCorrectionModuleAndAppVideoHtml(String accountId, boolean enabledPbResponseCorrection, boolean enabledAppVideoHtml) {
+        accountConfigWithResponseCorrectionModule(accountId, enabledPbResponseCorrection, enabledAppVideoHtml, false, [])
     }
 
-    private static Account accountConfigWithResponseCorrectionModule(String accountId, boolean enabledResponseCorrection, boolean enabledAppVideoHtml = true, boolean enabledSuppressIbv) {
+    private static Account accountConfigWithResponseCorrectionModuleAndSuppressIbv(String accountId, List<BidderName> excludeBidders = []) {
+        accountConfigWithResponseCorrectionModule(accountId, true, false, true, excludeBidders)
+    }
+
+    private static Account accountConfigWithResponseCorrectionModuleAndSuppressIbv(String accountId, boolean enabledPbResponseCorrection, boolean enabledSuppressIbv) {
+        accountConfigWithResponseCorrectionModule(accountId, enabledPbResponseCorrection, false, enabledSuppressIbv, [])
+    }
+
+    private static Account accountConfigWithResponseCorrectionModule(String accountId,
+                                                                     boolean enabledPbResponseCorrection,
+                                                                     boolean enabledAppVideoHtml,
+                                                                     boolean enabledSuppressIbv,
+                                                                     List<BidderName> excludeBidders) {
         def pbResponseCorrection = new PbResponseCorrection().tap {
-            enabled = enabledResponseCorrection
+            enabled = enabledPbResponseCorrection
             appVideoHtml = new AppVideoHtml(enabled: enabledAppVideoHtml)
-            suppressInBannerVideo = new SuppressIbv(enabled: enabledSuppressIbv)
+            suppressInBannerVideo = new SuppressIbv(enabled: enabledSuppressIbv, excludedBidders: excludeBidders)
         }
         def modulesConfig = new PbsModulesConfig(pbResponseCorrection: pbResponseCorrection)
         def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(modules: modulesConfig))
