@@ -594,7 +594,7 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Save account with enabled response correction module"
-        def accountWithResponseCorrectionModule = accountConfigWithResponseCorrectionModule(bidRequest).tap {
+        def accountWithResponseCorrectionModule = accountConfigWithResponseCorrectionModuleAndAppVideoHtml(bidRequest.accountId).tap {
             config.auction = new AccountAuctionConfig(cache: new AccountCacheConfig(enabled: false))
         }
         accountDao.save(accountWithResponseCorrectionModule)
