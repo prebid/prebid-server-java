@@ -23,6 +23,7 @@ import static org.mockserver.model.HttpStatusCode.OK_200
 import static org.mockserver.model.HttpStatusCode.PROCESSING_102
 import static org.mockserver.model.HttpStatusCode.SERVICE_UNAVAILABLE_503
 import static org.prebid.server.functional.model.AccountStatus.ACTIVE
+
 import static org.prebid.server.functional.model.config.BidValidationEnforcement.ENFORCE
 import static org.prebid.server.functional.model.request.auction.DebugCondition.DISABLED
 import static org.prebid.server.functional.model.request.auction.DebugCondition.ENABLED
@@ -119,7 +120,7 @@ class SeatNonBidSpec extends BaseSpec {
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
             seatbid.first.tap {
                 bid.first.height = bidRequest.imp.first.banner.format.first.height + 1
-                bid.first.weight = bidRequest.imp.first.banner.format.first.weight + 1
+                bid.first.width = bidRequest.imp.first.banner.format.first.width + 1
             }
         }
 

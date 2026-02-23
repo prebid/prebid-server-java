@@ -5,7 +5,7 @@
       "bid": [
         {
           "id": "bid_id",
-          "impid": "imp_id",
+          "impid": "anyId",
           "exp": 300,
           "price": 3.33,
           "adm": "<!--preformatted-->",
@@ -14,6 +14,7 @@
           "crid": "crid001",
           "w": 300,
           "h": 250,
+          "mtype": 1,
           "ext": {
             "adlabel": "Reklama",
             "pubid": "431",
@@ -21,7 +22,10 @@
             "slotid": "005",
             "tagid": "slot",
             "prebid": {
-              "type": "banner"
+              "type": "banner",
+              "meta": {
+                "adaptercode": "sspbc"
+              }
             },
             "origbidcpm": 3.33
           }

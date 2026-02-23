@@ -27,7 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class BlockedAttributesResolverTest {
 
-    private static final ObjectMapper mapper = new ObjectMapper()
+    private static final ObjectMapper MAPPER = new ObjectMapper()
             .setPropertyNamingStrategy(PropertyNamingStrategies.KEBAB_CASE)
             .setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
@@ -36,7 +36,7 @@ public class BlockedAttributesResolverTest {
     @Test
     public void shouldReturnEmptyResultWhenInvalidAccountConfigurationAndDebugDisabled() {
         // given
-        final ObjectNode accountConfig = mapper.createObjectNode().put("block-lists", 1);
+        final ObjectNode accountConfig = MAPPER.createObjectNode().put("block-lists", 1);
         final BlockedAttributesResolver resolver = BlockedAttributesResolver.create(
                 emptyRequest(), "bidder1", ORTB_VERSION, accountConfig, false);
 
@@ -47,7 +47,7 @@ public class BlockedAttributesResolverTest {
     @Test
     public void shouldReturnResultWithErrorWhenInvalidAccountConfiguration() {
         // given
-        final ObjectNode accountConfig = mapper.createObjectNode().put("attributes", 1);
+        final ObjectNode accountConfig = MAPPER.createObjectNode().put("attributes", 1);
         final BlockedAttributesResolver resolver = BlockedAttributesResolver.create(
                 emptyRequest(), "bidder1", ORTB_VERSION, accountConfig, true);
 
@@ -83,8 +83,8 @@ public class BlockedAttributesResolverTest {
         // when and then
         assertThat(resolver.resolve()).isEqualTo(ExecutionResult.builder()
                 .value(BlockedAttributes.builder().badv(singletonList("domain3.com")).build())
-                .warnings(singletonList("More than one conditions matches request. Bidder: bidder1, " +
-                        "request media types: [banner, video]"))
+                .warnings(singletonList("More than one conditions matches request. Bidder: bidder1, "
+                        + "request media types: [banner, video]"))
                 .build());
     }
 
@@ -131,6 +131,6 @@ public class BlockedAttributesResolverTest {
     }
 
     private static ObjectNode toObjectNode(ModuleConfig config) {
-        return mapper.valueToTree(config);
+        return MAPPER.valueToTree(config);
     }
 }

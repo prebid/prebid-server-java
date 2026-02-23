@@ -8,4 +8,7 @@ public class ExtImpTheTradeDesk {
 
     @JsonProperty("publisherId")
     String publisherId;
+
+    @JsonProperty("supplySourceId")
+    String supplySourceId;
 }

@@ -8,6 +8,7 @@ import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import org.junit.jupiter.api.Test;
+import org.prebid.server.bidder.model.Price;
 import org.prebid.server.bidder.model.PriceFloorInfo;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
@@ -46,6 +47,18 @@ public class BidderUtilTest {
     public void isValidPriceShouldReturnTrueIfPriceIsGreaterThenZero() {
         // when and then
         assertThat(BidderUtil.isValidPrice(BigDecimal.ONE)).isTrue();
+    }
+
+    @Test
+    public void shouldConvertBidFloorShouldReturnTrueIfCurrenciesAreDifferent() {
+        // when and then
+        assertThat(BidderUtil.shouldConvertBidFloor(Price.of("USD", BigDecimal.ONE), "EUR")).isTrue();
+    }
+
+    @Test
+    public void shouldConvertBidFloorShouldReturnFalseIfCurrenciesAreSameIgnoringCase() {
+        // when and then
+        assertThat(BidderUtil.shouldConvertBidFloor(Price.of("uSd", BigDecimal.ONE), "UsD")).isFalse();
     }
 
     @Test

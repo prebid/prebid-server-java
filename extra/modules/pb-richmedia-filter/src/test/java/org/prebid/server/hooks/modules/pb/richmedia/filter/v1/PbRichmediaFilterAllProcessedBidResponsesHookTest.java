@@ -1,15 +1,16 @@
 package org.prebid.server.hooks.modules.pb.richmedia.filter.v1;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.iab.openrtb.response.Bid;
 import io.vertx.core.Future;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.BidderResponse;
+import org.prebid.server.auction.model.BidRejection;
+import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.hooks.execution.v1.analytics.ActivityImpl;
 import org.prebid.server.hooks.execution.v1.analytics.AppliedToImpl;
@@ -32,15 +33,18 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.prebid.server.auction.model.BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE;
 
 @ExtendWith(MockitoExtension.class)
 public class PbRichmediaFilterAllProcessedBidResponsesHookTest {
@@ -61,15 +65,11 @@ public class PbRichmediaFilterAllProcessedBidResponsesHookTest {
 
     private PbRichmediaFilterAllProcessedBidResponsesHook target;
 
-    private static final Map<String, BidRejectionTracker> BID_REJECTION_TRACKERS = Map.of(
-            "bidder", new BidRejectionTracker("bidder", Collections.emptySet(), 0.1));
-
     @BeforeEach
     public void setUp() {
-        target = new PbRichmediaFilterAllProcessedBidResponsesHook(ObjectMapperProvider.mapper(), mraidFilter, configResolver);
+        target = new PbRichmediaFilterAllProcessedBidResponsesHook(
+                ObjectMapperProvider.mapper(), mraidFilter, configResolver);
         when(configResolver.resolve(any())).thenReturn(PbRichMediaFilterProperties.of(true, "pattern"));
-        when(auctionInvocationContext.auctionContext())
-                .thenReturn(AuctionContext.builder().bidRejectionTrackers(BID_REJECTION_TRACKERS).build());
     }
 
     @Test
@@ -99,6 +99,7 @@ public class PbRichmediaFilterAllProcessedBidResponsesHookTest {
         assertThat(result.status()).isEqualTo(InvocationStatus.success);
         assertThat(result.action()).isEqualTo(InvocationAction.no_action);
         assertThat(result.analyticsTags()).isNull();
+        assertThat(result.rejections()).isNull();
         assertThat(result.payloadUpdate().apply(AllProcessedBidResponsesPayloadImpl.of(List.of())).bidResponses())
                 .isEqualTo(givenResponses);
 
@@ -110,7 +111,7 @@ public class PbRichmediaFilterAllProcessedBidResponsesHookTest {
         // given
         final List<BidderResponse> givenResponses = givenBidderResponses(2);
         doReturn(givenResponses).when(allProcessedBidResponsesPayload).bidResponses();
-        given(mraidFilter.filterByPattern("pattern", givenResponses, BID_REJECTION_TRACKERS))
+        given(mraidFilter.filterByPattern("pattern", givenResponses))
                 .willReturn(MraidFilterResult.of(givenResponses, List.of(givenAnalyticsResult("bidder", "imp_id"))));
 
         // when
@@ -133,7 +134,7 @@ public class PbRichmediaFilterAllProcessedBidResponsesHookTest {
         // given
         final List<BidderResponse> givenResponses = givenBidderResponses(2);
         doReturn(givenResponses).when(allProcessedBidResponsesPayload).bidResponses();
-        given(mraidFilter.filterByPattern("pattern", givenResponses, BID_REJECTION_TRACKERS))
+        given(mraidFilter.filterByPattern("pattern", givenResponses))
                 .willReturn(MraidFilterResult.of(givenResponses, Collections.emptyList()));
 
         // when
@@ -157,7 +158,7 @@ public class PbRichmediaFilterAllProcessedBidResponsesHookTest {
         final List<BidderResponse> givenResponses = givenBidderResponses(3);
         doReturn(givenResponses).when(allProcessedBidResponsesPayload).bidResponses();
         final List<BidderResponse> expectedResponses = givenBidderResponses(2);
-        given(mraidFilter.filterByPattern("pattern", givenResponses, BID_REJECTION_TRACKERS))
+        given(mraidFilter.filterByPattern("pattern", givenResponses))
                 .willReturn(MraidFilterResult.of(expectedResponses, Collections.emptyList()));
 
         // when
@@ -181,7 +182,7 @@ public class PbRichmediaFilterAllProcessedBidResponsesHookTest {
         // given
         final List<BidderResponse> givenResponses = givenBidderResponses(3);
         doReturn(givenResponses).when(allProcessedBidResponsesPayload).bidResponses();
-        given(mraidFilter.filterByPattern("pattern", givenResponses, BID_REJECTION_TRACKERS))
+        given(mraidFilter.filterByPattern("pattern", givenResponses))
                 .willReturn(MraidFilterResult.of(
                         givenResponses,
                         List.of(
@@ -219,6 +220,24 @@ public class PbRichmediaFilterAllProcessedBidResponsesHookTest {
                 "reject-richmedia",
                 "success",
                 List.of(expectedResult1, expectedResult2)))));
+
+        assertThat(result.rejections()).containsOnly(
+                entry("bidderA", List.of(
+                        BidRejection.of(
+                                BidderBid.builder()
+                                        .bid(Bid.builder().id("bid-imp_id1").impid("imp_id1").build())
+                                        .build(),
+                                RESPONSE_REJECTED_INVALID_CREATIVE),
+                        BidRejection.of(
+                                BidderBid.builder()
+                                        .bid(Bid.builder().id("bid-imp_id2").impid("imp_id2").build())
+                                        .build(),
+                                RESPONSE_REJECTED_INVALID_CREATIVE))),
+                entry("bidderB", List.of(
+                        BidRejection.of(BidderBid.builder()
+                                        .bid(Bid.builder().id("bid-imp_id3").impid("imp_id3").build())
+                                        .build(),
+                                RESPONSE_REJECTED_INVALID_CREATIVE))));
     }
 
     @Test
@@ -226,7 +245,7 @@ public class PbRichmediaFilterAllProcessedBidResponsesHookTest {
         // given
         final List<BidderResponse> givenResponses = givenBidderResponses(3);
         doReturn(givenResponses).when(allProcessedBidResponsesPayload).bidResponses();
-        given(mraidFilter.filterByPattern("pattern", givenResponses, BID_REJECTION_TRACKERS))
+        given(mraidFilter.filterByPattern("pattern", givenResponses))
                 .willReturn(MraidFilterResult.of(givenResponses, Collections.emptyList()));
 
         // when
@@ -242,6 +261,7 @@ public class PbRichmediaFilterAllProcessedBidResponsesHookTest {
         assertThat(result).isNotNull();
         assertThat(result.status()).isEqualTo(InvocationStatus.success);
         assertThat(result.analyticsTags()).isNull();
+        assertThat(result.rejections()).isEmpty();
     }
 
     private static List<BidderResponse> givenBidderResponses(int number) {
@@ -251,7 +271,14 @@ public class PbRichmediaFilterAllProcessedBidResponsesHookTest {
     }
 
     private static AnalyticsResult givenAnalyticsResult(String bidder, String... rejectedImpIds) {
-        return AnalyticsResult.of("status", Map.of("key", "value"), bidder, List.of(rejectedImpIds));
+        return AnalyticsResult.of(
+                "status",
+                Map.of("key", "value"),
+                bidder,
+                List.of(rejectedImpIds),
+                Stream.of(rejectedImpIds).map(impId -> BidderBid.builder().bid(
+                        Bid.builder().id("bid-" + impId).impid(impId).build()).build()).toList(),
+                RESPONSE_REJECTED_INVALID_CREATIVE);
     }
 
 }

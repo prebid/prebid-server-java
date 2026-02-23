@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
-import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.json.JacksonMapper;
@@ -56,8 +55,7 @@ public class VersionHandler implements Handler<RoutingContext> {
         }
     }
 
-    @AllArgsConstructor(staticName = "of")
-    @Value
+    @Value(staticConstructor = "of")
     private static class RevisionResponse {
 
         String revision;

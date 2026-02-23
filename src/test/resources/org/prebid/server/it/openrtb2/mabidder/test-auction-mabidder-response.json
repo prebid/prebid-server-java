@@ -20,7 +20,10 @@
             "origbidcpm": 3.5764000415802,
             "origbidcur": "CAD",
             "prebid": {
-              "type": "banner"
+              "type": "banner",
+              "meta": {
+                "adaptercode": "mabidder"
+              }
             }
           }
         }

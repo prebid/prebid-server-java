@@ -8,7 +8,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 @Builder(toBuilder = true)
-@Value(staticConstructor = "of")
+@Value
 public class AdQueryDataResponse {
 
     @JsonProperty("requestId")

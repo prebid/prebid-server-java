@@ -8,6 +8,9 @@ import org.prebid.server.functional.model.config.InequalityValueRule
 import org.prebid.server.functional.model.config.LogicalRestrictedRule
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
+import org.prebid.server.functional.model.privacy.gpp.MspaMode
+import org.prebid.server.functional.model.privacy.gpp.UsNationalV2ChildSensitiveData
+import org.prebid.server.functional.model.privacy.gpp.UsNationalV2SensitiveData
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.Activity
 import org.prebid.server.functional.model.request.auction.ActivityRule
@@ -19,24 +22,20 @@ import org.prebid.server.functional.model.request.auction.Geo
 import org.prebid.server.functional.model.request.auction.RegsExt
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
-import org.prebid.server.functional.util.privacy.gpp.UsCaV1Consent
-import org.prebid.server.functional.util.privacy.gpp.UsCoV1Consent
-import org.prebid.server.functional.util.privacy.gpp.UsCtV1Consent
-import org.prebid.server.functional.util.privacy.gpp.UsNatV1Consent
-import org.prebid.server.functional.util.privacy.gpp.UsUtV1Consent
-import org.prebid.server.functional.util.privacy.gpp.UsVaV1Consent
-import org.prebid.server.functional.util.privacy.gpp.data.UsCaliforniaSensitiveData
-import org.prebid.server.functional.util.privacy.gpp.data.UsUtahSensitiveData
+import org.prebid.server.functional.util.privacy.gpp.v1.UsCaV1Consent
+import org.prebid.server.functional.util.privacy.gpp.v1.UsCoV1Consent
+import org.prebid.server.functional.util.privacy.gpp.v1.UsCtV1Consent
+import org.prebid.server.functional.util.privacy.gpp.v1.UsNatV1Consent
+import org.prebid.server.functional.util.privacy.gpp.v1.UsUtV1Consent
+import org.prebid.server.functional.util.privacy.gpp.v1.UsVaV1Consent
+import org.prebid.server.functional.util.privacy.gpp.v2.UsNatV2Consent
 
 import java.time.Instant
 
-import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED
-import static org.prebid.server.functional.model.config.DataActivity.CONSENT
-import static org.prebid.server.functional.model.config.DataActivity.NOTICE_NOT_PROVIDED
-import static org.prebid.server.functional.model.config.DataActivity.NOTICE_PROVIDED
-import static org.prebid.server.functional.model.config.DataActivity.NOT_APPLICABLE
-import static org.prebid.server.functional.model.config.DataActivity.NO_CONSENT
+import static org.prebid.server.functional.model.config.ConfigCase.CAMEL_CASE
+import static org.prebid.server.functional.model.config.ConfigCase.KEBAB_CASE
+import static org.prebid.server.functional.model.config.ConfigCase.SNAKE_CASE
 import static org.prebid.server.functional.model.config.LogicalRestrictedRule.LogicalOperation.AND
 import static org.prebid.server.functional.model.config.LogicalRestrictedRule.LogicalOperation.OR
 import static org.prebid.server.functional.model.config.UsNationalPrivacySection.CHILD_CONSENTS_BELOW_13
@@ -57,12 +56,14 @@ import static org.prebid.server.functional.model.config.UsNationalPrivacySection
 import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SHARING_NOTICE
 import static org.prebid.server.functional.model.pricefloors.Country.CAN
 import static org.prebid.server.functional.model.pricefloors.Country.USA
-import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ACCOUNT_DISALLOWED_COUNT
 import static org.prebid.server.functional.model.privacy.Metric.ACCOUNT_PROCESSED_RULES_COUNT
-import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ADAPTER_DISALLOWED_COUNT
-import static org.prebid.server.functional.model.privacy.Metric.ALERT_GENERAL
 import static org.prebid.server.functional.model.privacy.Metric.PROCESSED_ACTIVITY_RULES_COUNT
+import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ACCOUNT_DISALLOWED_COUNT
+import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ADAPTER_DISALLOWED_COUNT
 import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_REQUEST_DISALLOWED_COUNT
+import static org.prebid.server.functional.model.privacy.gpp.GppDataActivity.CONSENT
+import static org.prebid.server.functional.model.privacy.gpp.GppDataActivity.NOT_APPLICABLE
+import static org.prebid.server.functional.model.privacy.gpp.GppDataActivity.NO_CONSENT
 import static org.prebid.server.functional.model.request.GppSectionId.USP_V1
 import static org.prebid.server.functional.model.request.GppSectionId.US_CA_V1
 import static org.prebid.server.functional.model.request.GppSectionId.US_CO_V1
@@ -604,10 +605,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         }
 
         and: "Activities set for fetchBid with rejecting privacy regulation"
-        def rule = new ActivityRule().tap {
-            it.privacyRegulation = [privacyAllowRegulations]
-        }
-
+        def rule = new ActivityRule(privacyRegulation: [privacyAllowRegulations])
         def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, Activity.getDefaultActivity([rule]))
 
         and: "Account gpp configuration"
@@ -666,6 +664,91 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         new UsCtV1Consent.Builder().build()  | US_CT_V1
     }
 
+    def "PBS auction call when request have disallow logic US nat v2 validation should call bid adapter"() {
+        given: "Default Generic BidRequests with gppConsent and account id"
+        def accountId = PBSUtils.randomNumber as String
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            it.setAccountId(accountId)
+            regs.gppSid = [US_NAT_V1.intValue]
+            regs.gpp = gppConsent
+        }
+
+        and: "Activities set for fetchBid with rejecting privacy regulation"
+        def rule = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_US_GENERAL]
+        }
+
+        def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, Activity.getDefaultActivity([rule]))
+
+        and: "Account gpp configuration"
+        def accountGppConfig = new AccountGppConfig(code: IAB_US_GENERAL, enabled: true)
+
+        and: "Existed account with privacy regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        activityPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Generic bidder should be called"
+        assert bidder.getBidderRequest(bidRequest.id)
+
+        where:
+        gppConsent << [
+                new UsNatV2Consent.Builder().setSensitiveDataProcessing(
+                        new UsNationalV2SensitiveData(
+                                racialEthnicOrigin: CONSENT,
+                                religiousBeliefs: CONSENT,
+                                healthInfo: CONSENT,
+                                orientation: CONSENT,
+                                citizenshipStatus: CONSENT,
+                                geneticId: CONSENT,
+                                biometricId: CONSENT,
+                                idNumbers: CONSENT,
+                                accountInfo: CONSENT,
+                                unionMembership: CONSENT,
+                                communicationContents: CONSENT,
+                                consumerHealthData: CONSENT,
+                                crimeVictim: CONSENT,
+                                nationalOrigin: CONSENT,
+                                transgenderStatus: CONSENT
+                        )),
+                new UsNatV2Consent.Builder().setSensitiveDataProcessing(
+                        new UsNationalV2SensitiveData(
+                                racialEthnicOrigin: NO_CONSENT,
+                                religiousBeliefs: NO_CONSENT,
+                                healthInfo: NO_CONSENT,
+                                orientation: NO_CONSENT,
+                                citizenshipStatus: NO_CONSENT,
+                                unionMembership: NO_CONSENT,
+                                consumerHealthData: NO_CONSENT,
+                                nationalOrigin: NO_CONSENT
+                        )),
+                new UsNatV2Consent.Builder().setSensitiveDataProcessing(
+                        new UsNationalV2SensitiveData(
+                                geneticId: NO_CONSENT,
+                                biometricId: NO_CONSENT,
+                                idNumbers: NO_CONSENT,
+                                accountInfo: NO_CONSENT,
+                                communicationContents: NO_CONSENT,
+                                crimeVictim: NO_CONSENT,
+                                transgenderStatus: NO_CONSENT
+                        )),
+                new UsNatV2Consent.Builder().setSensitiveDataProcessing(
+                        new UsNationalV2SensitiveData(
+                                geneticId: CONSENT,
+                                biometricId: CONSENT,
+                                idNumbers: CONSENT,
+                                accountInfo: CONSENT,
+                                communicationContents: CONSENT,
+                                crimeVictim: CONSENT,
+                                transgenderStatus: CONSENT
+                        )),
+                new UsNatV2Consent.Builder().setKnownChildSensitiveDataConsents(
+                        new UsNationalV2ChildSensitiveData(childFrom16to17: NO_CONSENT))
+        ]
+    }
+
     def "PBS auction call when privacy regulation have duplicate should process request and update alerts metrics"() {
         given: "Default basic generic BidRequest"
         def accountId = PBSUtils.randomNumber as String
@@ -697,7 +780,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL.getValue()] == 1
+        assert metrics[ALERT_GENERAL] == 1
 
         where:
         gppAccountsConfig << [[new AccountGppConfig(code: IAB_US_GENERAL, config: new GppModuleConfig(skipSids: [US_NAT_V1]), enabled: false),
@@ -756,6 +839,8 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, Activity.getDefaultActivity([rule]))
 
         and: "Account gpp configuration with sid skip"
+        def activityConfig = new ActivityConfig([FETCH_BIDS], LogicalRestrictedRule.generateSingleRestrictedRule(operator, rulesList))
+        def accountLogic = GppModuleConfig.getDefaultModuleConfig(activityConfig, [US_NAT_V1], false, caseType)
         def accountGppConfig = new AccountGppConfig().tap {
             it.code = IAB_US_CUSTOM_LOGIC
             it.enabled = true
@@ -773,16 +858,21 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         assert bidder.getBidderRequest(bidRequest.id)
 
         where:
-        gpcValue | accountLogic
-        false    | GppModuleConfig.getDefaultModuleConfig(new ActivityConfig([FETCH_BIDS], LogicalRestrictedRule.generateSingleRestrictedRule(OR, [new EqualityValueRule(GPC, NOTICE_PROVIDED)])), [US_NAT_V1], false)
-        true     | GppModuleConfig.getDefaultModuleConfig(new ActivityConfig([FETCH_BIDS], LogicalRestrictedRule.generateSingleRestrictedRule(OR, [new InequalityValueRule(GPC, NOTICE_PROVIDED)])), [US_NAT_V1], false)
-        true     | GppModuleConfig.getDefaultModuleConfig(new ActivityConfig([FETCH_BIDS], LogicalRestrictedRule.generateSingleRestrictedRule(AND, [new EqualityValueRule(GPC, NOTICE_PROVIDED), new EqualityValueRule(SHARING_NOTICE, NOTICE_PROVIDED)])), [US_NAT_V1], false)
-        false    | GppModuleConfig.getDefaultModuleConfigKebabCase(new ActivityConfig([FETCH_BIDS], LogicalRestrictedRule.generateSingleRestrictedRule(OR, [new EqualityValueRule(GPC, NOTICE_PROVIDED)])), [US_NAT_V1], false)
-        true     | GppModuleConfig.getDefaultModuleConfigKebabCase(new ActivityConfig([FETCH_BIDS], LogicalRestrictedRule.generateSingleRestrictedRule(OR, [new InequalityValueRule(GPC, NOTICE_PROVIDED)])), [US_NAT_V1], false)
-        true     | GppModuleConfig.getDefaultModuleConfigKebabCase(new ActivityConfig([FETCH_BIDS], LogicalRestrictedRule.generateSingleRestrictedRule(AND, [new EqualityValueRule(GPC, NOTICE_PROVIDED), new EqualityValueRule(SHARING_NOTICE, NOTICE_PROVIDED)])), [US_NAT_V1], false)
-        false    | GppModuleConfig.getDefaultModuleConfigSnakeCase(new ActivityConfig([FETCH_BIDS], LogicalRestrictedRule.generateSingleRestrictedRule(OR, [new EqualityValueRule(GPC, NOTICE_PROVIDED)])), [US_NAT_V1], false)
-        true     | GppModuleConfig.getDefaultModuleConfigSnakeCase(new ActivityConfig([FETCH_BIDS], LogicalRestrictedRule.generateSingleRestrictedRule(OR, [new InequalityValueRule(GPC, NOTICE_PROVIDED)])), [US_NAT_V1], false)
-        true     | GppModuleConfig.getDefaultModuleConfigSnakeCase(new ActivityConfig([FETCH_BIDS], LogicalRestrictedRule.generateSingleRestrictedRule(AND, [new EqualityValueRule(GPC, NOTICE_PROVIDED), new EqualityValueRule(SHARING_NOTICE, NOTICE_PROVIDED)])), [US_NAT_V1], false)
+        gpcValue | operator | caseType   | rulesList
+        false    | OR       | CAMEL_CASE | [new EqualityValueRule(GPC, NO_CONSENT)]
+        true     | OR       | CAMEL_CASE | [new InequalityValueRule(GPC, NO_CONSENT)]
+        true     | AND      | CAMEL_CASE | [new EqualityValueRule(GPC, NO_CONSENT),
+                                            new EqualityValueRule(SHARING_NOTICE, NO_CONSENT)]
+
+        false    | OR       | KEBAB_CASE | [new EqualityValueRule(GPC, NO_CONSENT)]
+        true     | OR       | KEBAB_CASE | [new InequalityValueRule(GPC, NO_CONSENT)]
+        true     | AND      | KEBAB_CASE | [new EqualityValueRule(GPC, NO_CONSENT),
+                                            new EqualityValueRule(SHARING_NOTICE, NO_CONSENT)]
+
+        false    | OR       | SNAKE_CASE | [new EqualityValueRule(GPC, NO_CONSENT)]
+        true     | OR       | SNAKE_CASE | [new InequalityValueRule(GPC, NO_CONSENT)]
+        true     | AND      | SNAKE_CASE | [new EqualityValueRule(GPC, NO_CONSENT),
+                                            new EqualityValueRule(SHARING_NOTICE, NO_CONSENT)]
     }
 
     def "PBS auction call when privacy regulation match custom requirement should ignore call to bidder"() {
@@ -819,18 +909,21 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         assert bidder.getBidderRequests(bidRequest.id).size() == 0
 
         where:
-        gppConsent                                                      | valueRules
-        new UsNatV1Consent.Builder().setPersonalDataConsents(2).build() | [new EqualityValueRule(PERSONAL_DATA_CONSENTS, NOTICE_NOT_PROVIDED)]
-        new UsNatV1Consent.Builder().setGpc(true).build()               | [new EqualityValueRule(GPC, NOTICE_PROVIDED)]
-        new UsNatV1Consent.Builder().setGpc(false).build()              | [new InequalityValueRule(GPC, NOTICE_PROVIDED)]
-        new UsNatV1Consent.Builder().setGpc(true).build()               | [new EqualityValueRule(GPC, NOTICE_PROVIDED),
-                                                                           new EqualityValueRule(SHARING_NOTICE, NOTICE_NOT_PROVIDED)]
-        new UsNatV1Consent.Builder().setPersonalDataConsents(2).build() | [new EqualityValueRule(GPC, NOTICE_PROVIDED),
-                                                                           new EqualityValueRule(PERSONAL_DATA_CONSENTS, NOTICE_NOT_PROVIDED)]
+        gppConsent                                                            | valueRules
+        new UsNatV1Consent.Builder().setPersonalDataConsents(CONSENT).build() | [new EqualityValueRule(PERSONAL_DATA_CONSENTS, CONSENT)]
+        new UsNatV1Consent.Builder().setGpc(true).build()                     | [new EqualityValueRule(GPC, NO_CONSENT)]
+        new UsNatV1Consent.Builder().setGpc(false).build()                    | [new InequalityValueRule(GPC, NO_CONSENT)]
+        new UsNatV1Consent.Builder().setGpc(true).build()                     | [new EqualityValueRule(GPC, NO_CONSENT),
+                                                                                 new EqualityValueRule(SHARING_NOTICE, CONSENT)]
+        new UsNatV1Consent.Builder().setPersonalDataConsents(CONSENT).build() | [new EqualityValueRule(GPC, NO_CONSENT),
+                                                                                 new EqualityValueRule(PERSONAL_DATA_CONSENTS, CONSENT)]
     }
 
-    def "PBS auction call when custom privacy regulation empty and normalize is disabled should respond with an error and update metric"() {
-        given: "Generic BidRequest with gpp and account setup"
+    def "PBS auction call when custom privacy regulation empty and normalize is disabled should process request and emit error log"() {
+        given: "Test start time"
+        def startTime = Instant.now()
+
+        and: "Generic BidRequest with gpp and account setup"
         def gppConsent = new UsNatV1Consent.Builder().setGpc(true).build()
         def accountId = PBSUtils.randomNumber as String
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -864,14 +957,16 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         when: "PBS processes auction requests"
         activityPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Response should contain error"
-        def error = thrown(PrebidServerException)
-        assert error.statusCode == BAD_REQUEST.code()
-        assert error.responseBody == "JsonLogic exception: objects must have exactly 1 key defined, found 0"
+        then: "Generic bidder should be called due to positive allow in activities"
+        assert bidder.getBidderRequest(bidRequest.id)
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL.getValue()] == 1
+        assert metrics[ALERT_GENERAL] == 1
+
+        and: "Logs should contain error"
+        def logs = activityPbsService.getLogsByTime(startTime)
+        assert getLogsByText(logs, "USCustomLogic creation failed: objects must have exactly 1 key defined, found 0").size() == 1
     }
 
     def "PBS auction call when custom privacy regulation with normalizing should ignore call to bidder"() {
@@ -879,7 +974,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def bidRequest = BidRequest.defaultBidRequest.tap {
             regs.gppSid = [gppSid.intValue]
-            regs.gpp = gppStateConsent.build()
+            regs.gpp = gppStateConsent
             setAccountId(accountId)
         }
 
@@ -911,74 +1006,123 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         gppSid   | equalityValueRules                                                      | gppStateConsent
-        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_ID_NUMBERS, CONSENT)]             | new UsCaV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(idNumbers: 2))
-        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_ACCOUNT_INFO, CONSENT)]           | new UsCaV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(accountInfo: 2))
-        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_GEOLOCATION, CONSENT)]            | new UsCaV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(geolocation: 2))
-        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_RACIAL_ETHNIC_ORIGIN, CONSENT)]   | new UsCaV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(racialEthnicOrigin: 2))
-        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_COMMUNICATION_CONTENTS, CONSENT)] | new UsCaV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(communicationContents: 2))
-        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_GENETIC_ID, CONSENT)]             | new UsCaV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(geneticId: 2))
-        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_BIOMETRIC_ID, CONSENT)]           | new UsCaV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(biometricId: 2))
-        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_HEALTH_INFO, CONSENT)]            | new UsCaV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(healthInfo: 2))
-        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_ORIENTATION, CONSENT)]            | new UsCaV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(orientation: 2))
+        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_ID_NUMBERS, CONSENT)]             | generateSensitiveGpp(US_CA_V1, [idNumbers: CONSENT])
+        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_ACCOUNT_INFO, CONSENT)]           | generateSensitiveGpp(US_CA_V1, [accountInfo: CONSENT])
+        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_GEOLOCATION, CONSENT)]            | generateSensitiveGpp(US_CA_V1, [geolocation: CONSENT])
+        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_RACIAL_ETHNIC_ORIGIN, CONSENT)]   | generateSensitiveGpp(US_CA_V1, [racialEthnicOrigin: CONSENT])
+        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_COMMUNICATION_CONTENTS, CONSENT)] | generateSensitiveGpp(US_CA_V1, [communicationContents: CONSENT])
+        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_GENETIC_ID, CONSENT)]             | generateSensitiveGpp(US_CA_V1, [geneticId: CONSENT])
+        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_BIOMETRIC_ID, CONSENT)]           | generateSensitiveGpp(US_CA_V1, [biometricId: CONSENT])
+        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_HEALTH_INFO, CONSENT)]            | generateSensitiveGpp(US_CA_V1, [healthInfo: CONSENT])
+        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_ORIENTATION, CONSENT)]            | generateSensitiveGpp(US_CA_V1, [orientation: CONSENT])
+
         US_CA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UsCaV1Consent.Builder()
-                                                                                              .setKnownChildSensitiveDataConsents(0, 0)
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | generateChildSensitiveGpp(US_CA_V1, [NOT_APPLICABLE, NOT_APPLICABLE])
         US_CA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UsCaV1Consent.Builder()
-                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(1, 2), PBSUtils.getRandomNumber(1, 2))
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CA_V1, [NO_CONSENT, NO_CONSENT])
+        US_CA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CA_V1, [NO_CONSENT, CONSENT])
+        US_CA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CA_V1, [CONSENT, NO_CONSENT])
+        US_CA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CA_V1, [CONSENT, CONSENT])
 
         US_VA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UsVaV1Consent.Builder()
-                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(1, 2))
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_VA_V1, [NO_CONSENT, NO_CONSENT])
+        US_VA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_VA_V1, [NO_CONSENT, CONSENT])
+        US_VA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_VA_V1, [CONSENT, NO_CONSENT])
+        US_VA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_VA_V1, [CONSENT, CONSENT])
         US_VA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UsVaV1Consent.Builder().setKnownChildSensitiveDataConsents(0)
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | generateChildSensitiveGpp(US_VA_V1, [NOT_APPLICABLE, NOT_APPLICABLE])
 
         US_CO_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UsCoV1Consent.Builder()
-                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(1, 2))
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CO_V1, [NO_CONSENT, NO_CONSENT])
+        US_CO_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CO_V1, [NO_CONSENT, CONSENT])
+        US_CO_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CO_V1, [CONSENT, NO_CONSENT])
+        US_CO_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CO_V1, [CONSENT, CONSENT])
         US_CO_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UsCoV1Consent.Builder().setKnownChildSensitiveDataConsents(0)
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | generateChildSensitiveGpp(US_CO_V1, [NOT_APPLICABLE, NOT_APPLICABLE])
 
-        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_RACIAL_ETHNIC_ORIGIN, CONSENT)] | new UsUtV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(racialEthnicOrigin: 2))
-        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_RELIGIOUS_BELIEFS, CONSENT)]    | new UsUtV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(religiousBeliefs: 2))
-        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_ORIENTATION, CONSENT)]          | new UsUtV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(orientation: 2))
-        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_CITIZENSHIP_STATUS, CONSENT)]   | new UsUtV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(citizenshipStatus: 2))
-        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_HEALTH_INFO, CONSENT)]          | new UsUtV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(healthInfo: 2))
-        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_GENETIC_ID, CONSENT)]           | new UsUtV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(geneticId: 2))
-        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_BIOMETRIC_ID, CONSENT)]         | new UsUtV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(biometricId: 2))
-        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_GEOLOCATION, CONSENT)]          | new UsUtV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(geolocation: 2))
+        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_RACIAL_ETHNIC_ORIGIN, CONSENT)]   | generateSensitiveGpp(US_UT_V1, [racialEthnicOrigin: CONSENT])
+        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_RELIGIOUS_BELIEFS, CONSENT)]      | generateSensitiveGpp(US_UT_V1, [religiousBeliefs: CONSENT])
+        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_ORIENTATION, CONSENT)]            | generateSensitiveGpp(US_UT_V1, [orientation: CONSENT])
+        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_CITIZENSHIP_STATUS, CONSENT)]     | generateSensitiveGpp(US_UT_V1, [citizenshipStatus: CONSENT])
+        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_HEALTH_INFO, CONSENT)]            | generateSensitiveGpp(US_UT_V1, [healthInfo: CONSENT])
+        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_GENETIC_ID, CONSENT)]             | generateSensitiveGpp(US_UT_V1, [geneticId: CONSENT])
+        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_BIOMETRIC_ID, CONSENT)]           | generateSensitiveGpp(US_UT_V1, [biometricId: CONSENT])
+        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_GEOLOCATION, CONSENT)]            | generateSensitiveGpp(US_UT_V1, [geolocation: CONSENT])
+
         US_UT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]     | new UsUtV1Consent.Builder().setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(1, 2))
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_UT_V1, [NO_CONSENT, NO_CONSENT])
+        US_UT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_UT_V1, [NO_CONSENT, CONSENT])
+        US_UT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_UT_V1, [CONSENT, NO_CONSENT])
+        US_UT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_UT_V1, [CONSENT, CONSENT])
         US_UT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)] | new UsUtV1Consent.Builder().setKnownChildSensitiveDataConsents(0)
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | generateChildSensitiveGpp(US_UT_V1, [NOT_APPLICABLE, NOT_APPLICABLE])
 
         US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UsCtV1Consent.Builder().setKnownChildSensitiveDataConsents(0, 0, 0)
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | generateChildSensitiveGpp(US_CT_V1, [NOT_APPLICABLE, NOT_APPLICABLE, NOT_APPLICABLE])
         US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, CONSENT)]          | new UsCtV1Consent.Builder().setKnownChildSensitiveDataConsents(0, 2, 2)
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, CONSENT)]          | generateChildSensitiveGpp(US_CT_V1, [NOT_APPLICABLE, CONSENT, CONSENT])
         US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UsCtV1Consent.Builder()
-                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(0, 2), PBSUtils.getRandomNumber(0, 2), 1)
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, CONSENT)]          | generateChildSensitiveGpp(US_CT_V1, [NO_CONSENT, CONSENT, CONSENT])
         US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UsCtV1Consent.Builder()
-                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(0, 2), 1, PBSUtils.getRandomNumber(0, 2))
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, CONSENT)]          | generateChildSensitiveGpp(US_CT_V1, [CONSENT, CONSENT, CONSENT])
+        US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CT_V1, [NOT_APPLICABLE, NOT_APPLICABLE, NO_CONSENT])
+        US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CT_V1, [NOT_APPLICABLE, NOT_APPLICABLE, CONSENT])
+        US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CT_V1, [NOT_APPLICABLE, NO_CONSENT, NOT_APPLICABLE])
+        US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CT_V1, [NOT_APPLICABLE, NO_CONSENT, NO_CONSENT])
+        US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CT_V1, [NOT_APPLICABLE, NO_CONSENT, CONSENT])
+        US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CT_V1, [NOT_APPLICABLE, CONSENT, NOT_APPLICABLE])
+        US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CT_V1, [NOT_APPLICABLE, CONSENT, NO_CONSENT])
+        US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CT_V1, [NO_CONSENT, NOT_APPLICABLE, NOT_APPLICABLE])
+        US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CT_V1, [NO_CONSENT, NOT_APPLICABLE, NO_CONSENT])
+        US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CT_V1, [NO_CONSENT, NOT_APPLICABLE, CONSENT])
+        US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CT_V1, [NO_CONSENT, NO_CONSENT, NOT_APPLICABLE])
+        US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CT_V1, [NO_CONSENT, NO_CONSENT, NO_CONSENT])
+        US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CT_V1, [NO_CONSENT, NO_CONSENT, CONSENT])
+        US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CT_V1, [NO_CONSENT, CONSENT, NOT_APPLICABLE])
+        US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CT_V1, [NO_CONSENT, CONSENT, NO_CONSENT])
+        US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CT_V1, [CONSENT, NOT_APPLICABLE, NOT_APPLICABLE])
+        US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CT_V1, [CONSENT, NOT_APPLICABLE, NO_CONSENT])
+        US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CT_V1, [CONSENT, NOT_APPLICABLE, CONSENT])
+        US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CT_V1, [CONSENT, NO_CONSENT, NOT_APPLICABLE])
+        US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CT_V1, [CONSENT, NO_CONSENT, NO_CONSENT])
+        US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CT_V1, [CONSENT, NO_CONSENT, CONSENT])
+        US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CT_V1, [CONSENT, CONSENT, NOT_APPLICABLE])
+        US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CT_V1, [CONSENT, CONSENT, NO_CONSENT])
     }
 
     def "PBS amp call when bidder allowed in activities should process bid request and proper metrics and update processed metrics"() {
@@ -1312,9 +1456,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         }
 
         and: "Activities set for fetchBid with allowing privacy regulation"
-        def rule = new ActivityRule().tap {
-            it.privacyRegulation = [privacyAllowRegulations]
-        }
+        def rule = new ActivityRule(privacyRegulation: [privacyAllowRegulations])
 
         def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, Activity.getDefaultActivity([rule]))
 
@@ -1379,13 +1521,13 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         assert bidder.getBidderRequest(ampStoredRequest.id)
 
         where:
-        gppConsent                                                                                    | gppSid
-        new UsNatV1Consent.Builder().setMspaServiceProviderMode(1).setMspaOptOutOptionMode(2).build() | US_NAT_V1
-        new UsCaV1Consent.Builder().setMspaServiceProviderMode(1).setMspaOptOutOptionMode(2).build()  | US_CA_V1
-        new UsVaV1Consent.Builder().setMspaServiceProviderMode(1).setMspaOptOutOptionMode(2).build()  | US_VA_V1
-        new UsCoV1Consent.Builder().setMspaServiceProviderMode(1).setMspaOptOutOptionMode(2).build()  | US_CO_V1
-        new UsUtV1Consent.Builder().setMspaServiceProviderMode(1).setMspaOptOutOptionMode(2).build()  | US_UT_V1
-        new UsCtV1Consent.Builder().setMspaServiceProviderMode(1).setMspaOptOutOptionMode(2).build()  | US_CT_V1
+        gppConsent                                                                                                         | gppSid
+        new UsNatV1Consent.Builder().setMspaServiceProviderMode(MspaMode.YES).setMspaOptOutOptionMode(MspaMode.NO).build() | US_NAT_V1
+        new UsCaV1Consent.Builder().setMspaServiceProviderMode(MspaMode.YES).setMspaOptOutOptionMode(MspaMode.NO).build()  | US_CA_V1
+        new UsVaV1Consent.Builder().setMspaServiceProviderMode(MspaMode.YES).setMspaOptOutOptionMode(MspaMode.NO).build()  | US_VA_V1
+        new UsCoV1Consent.Builder().setMspaServiceProviderMode(MspaMode.YES).setMspaOptOutOptionMode(MspaMode.NO).build()  | US_CO_V1
+        new UsUtV1Consent.Builder().setMspaServiceProviderMode(MspaMode.YES).setMspaOptOutOptionMode(MspaMode.NO).build()  | US_UT_V1
+        new UsCtV1Consent.Builder().setMspaServiceProviderMode(MspaMode.YES).setMspaOptOutOptionMode(MspaMode.NO).build()  | US_CT_V1
     }
 
     def "PBS amp call when privacy regulation have duplicate should process request and update alerts metrics"() {
@@ -1430,7 +1572,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL.getValue()] == 1
+        assert metrics[ALERT_GENERAL] == 1
     }
 
     def "PBS amp call when privacy module contain invalid property should respond with an error"() {
@@ -1517,10 +1659,10 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         gpcValue | accountLogic
-        false    | LogicalRestrictedRule.generateSingleRestrictedRule(OR, [new EqualityValueRule(GPC, NOTICE_PROVIDED)])
-        true     | LogicalRestrictedRule.generateSingleRestrictedRule(OR, [new InequalityValueRule(GPC, NOTICE_PROVIDED)])
-        true     | LogicalRestrictedRule.generateSingleRestrictedRule(AND, [new EqualityValueRule(GPC, NOTICE_PROVIDED),
-                                                                            new EqualityValueRule(SHARING_NOTICE, NOTICE_PROVIDED)])
+        false    | LogicalRestrictedRule.generateSingleRestrictedRule(OR, [new EqualityValueRule(GPC, NO_CONSENT)])
+        true     | LogicalRestrictedRule.generateSingleRestrictedRule(OR, [new InequalityValueRule(GPC, NO_CONSENT)])
+        true     | LogicalRestrictedRule.generateSingleRestrictedRule(AND, [new EqualityValueRule(GPC, NO_CONSENT),
+                                                                            new EqualityValueRule(SHARING_NOTICE, NO_CONSENT)])
     }
 
     def "PBS amp call when privacy regulation match custom requirement should ignore call to bidder"() {
@@ -1567,18 +1709,21 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         assert !bidder.getBidderRequests(ampStoredRequest.id).size()
 
         where:
-        gppConsent                                                      | valueRules
-        new UsNatV1Consent.Builder().setPersonalDataConsents(2).build() | [new EqualityValueRule(PERSONAL_DATA_CONSENTS, NOTICE_NOT_PROVIDED)]
-        new UsNatV1Consent.Builder().setGpc(true).build()               | [new EqualityValueRule(GPC, NOTICE_PROVIDED)]
-        new UsNatV1Consent.Builder().setGpc(false).build()              | [new InequalityValueRule(GPC, NOTICE_PROVIDED)]
-        new UsNatV1Consent.Builder().setGpc(true).build()               | [new EqualityValueRule(GPC, NOTICE_PROVIDED),
-                                                                           new EqualityValueRule(SHARING_NOTICE, NOTICE_NOT_PROVIDED)]
-        new UsNatV1Consent.Builder().setPersonalDataConsents(2).build() | [new EqualityValueRule(GPC, NOTICE_PROVIDED),
-                                                                           new EqualityValueRule(PERSONAL_DATA_CONSENTS, NOTICE_NOT_PROVIDED)]
+        gppConsent                                                            | valueRules
+        new UsNatV1Consent.Builder().setPersonalDataConsents(CONSENT).build() | [new EqualityValueRule(PERSONAL_DATA_CONSENTS, CONSENT)]
+        new UsNatV1Consent.Builder().setGpc(true).build()                     | [new EqualityValueRule(GPC, NO_CONSENT)]
+        new UsNatV1Consent.Builder().setGpc(false).build()                    | [new InequalityValueRule(GPC, NO_CONSENT)]
+        new UsNatV1Consent.Builder().setGpc(true).build()                     | [new EqualityValueRule(GPC, NO_CONSENT),
+                                                                                 new EqualityValueRule(SHARING_NOTICE, CONSENT)]
+        new UsNatV1Consent.Builder().setPersonalDataConsents(CONSENT).build() | [new EqualityValueRule(GPC, NO_CONSENT),
+                                                                                 new EqualityValueRule(PERSONAL_DATA_CONSENTS, CONSENT)]
     }
 
-    def "PBS amp call when custom privacy regulation empty and normalize is disabled should respond with an error and update metric"() {
-        given: "Store bid request with gpp string and link for account"
+    def "PBS amp call when custom privacy regulation empty and normalize is disabled should process request and emit error log"() {
+        given: "Test start time"
+        def startTime = Instant.now()
+
+        and: "Store bid request with gpp string and link for account"
         def accountId = PBSUtils.randomNumber as String
         def gppConsent = new UsNatV1Consent.Builder().setGpc(true).build()
         def ampStoredRequest = BidRequest.defaultBidRequest.tap {
@@ -1621,15 +1766,16 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         when: "PBS processes amp requests"
         activityPbsService.sendAmpRequest(ampRequest)
 
-        then: "Response should contain error"
-        def error = thrown(PrebidServerException)
-        assert error.statusCode == BAD_REQUEST.code()
-        assert error.responseBody == "Invalid account configuration: JsonLogic exception: " +
-                "objects must have exactly 1 key defined, found 0"
+        then: "Generic bidder should be called"
+        assert bidder.getBidderRequests(ampStoredRequest.id)
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL.getValue()] == 1
+        assert metrics[ALERT_GENERAL] == 1
+
+        and: "Logs should contain error"
+        def logs = activityPbsService.getLogsByTime(startTime)
+        assert getLogsByText(logs, "USCustomLogic creation failed: objects must have exactly 1 key defined, found 0").size() == 1
     }
 
     def "PBS amp call when custom privacy regulation with normalizing should ignore call to bidder"() {
@@ -1643,7 +1789,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
             it.gppSid = gppSid.intValue
-            it.consentString = gppStateConsent.build()
+            it.consentString = gppStateConsent
             it.consentType = GPP
         }
 
@@ -1682,73 +1828,122 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         gppSid   | equalityValueRules                                                      | gppStateConsent
-        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_ID_NUMBERS, CONSENT)]             | new UsCaV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(idNumbers: 2))
-        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_ACCOUNT_INFO, CONSENT)]           | new UsCaV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(accountInfo: 2))
-        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_GEOLOCATION, CONSENT)]            | new UsCaV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(geolocation: 2))
-        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_RACIAL_ETHNIC_ORIGIN, CONSENT)]   | new UsCaV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(racialEthnicOrigin: 2))
-        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_COMMUNICATION_CONTENTS, CONSENT)] | new UsCaV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(communicationContents: 2))
-        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_GENETIC_ID, CONSENT)]             | new UsCaV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(geneticId: 2))
-        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_BIOMETRIC_ID, CONSENT)]           | new UsCaV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(biometricId: 2))
-        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_HEALTH_INFO, CONSENT)]            | new UsCaV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(healthInfo: 2))
-        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_ORIENTATION, CONSENT)]            | new UsCaV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(orientation: 2))
+        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_ID_NUMBERS, CONSENT)]             | generateSensitiveGpp(US_CA_V1, [idNumbers: CONSENT])
+        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_ACCOUNT_INFO, CONSENT)]           | generateSensitiveGpp(US_CA_V1, [accountInfo: CONSENT])
+        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_GEOLOCATION, CONSENT)]            | generateSensitiveGpp(US_CA_V1, [geolocation: CONSENT])
+        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_RACIAL_ETHNIC_ORIGIN, CONSENT)]   | generateSensitiveGpp(US_CA_V1, [racialEthnicOrigin: CONSENT])
+        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_COMMUNICATION_CONTENTS, CONSENT)] | generateSensitiveGpp(US_CA_V1, [communicationContents: CONSENT])
+        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_GENETIC_ID, CONSENT)]             | generateSensitiveGpp(US_CA_V1, [geneticId: CONSENT])
+        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_BIOMETRIC_ID, CONSENT)]           | generateSensitiveGpp(US_CA_V1, [biometricId: CONSENT])
+        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_HEALTH_INFO, CONSENT)]            | generateSensitiveGpp(US_CA_V1, [healthInfo: CONSENT])
+        US_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_ORIENTATION, CONSENT)]            | generateSensitiveGpp(US_CA_V1, [orientation: CONSENT])
+
         US_CA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UsCaV1Consent.Builder()
-                                                                                              .setKnownChildSensitiveDataConsents(0, 0)
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | generateChildSensitiveGpp(US_CA_V1, [NOT_APPLICABLE, NOT_APPLICABLE])
         US_CA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UsCaV1Consent.Builder()
-                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(1, 2), PBSUtils.getRandomNumber(1, 2))
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CA_V1, [NO_CONSENT, NO_CONSENT])
+        US_CA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CA_V1, [NO_CONSENT, CONSENT])
+        US_CA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CA_V1, [CONSENT, NO_CONSENT])
+        US_CA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CA_V1, [CONSENT, CONSENT])
 
         US_VA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UsVaV1Consent.Builder()
-                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(1, 2))
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_VA_V1, [NO_CONSENT, NO_CONSENT])
+        US_VA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_VA_V1, [NO_CONSENT, CONSENT])
+        US_VA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_VA_V1, [CONSENT, NO_CONSENT])
+        US_VA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_VA_V1, [CONSENT, CONSENT])
         US_VA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UsVaV1Consent.Builder().setKnownChildSensitiveDataConsents(0)
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | generateChildSensitiveGpp(US_VA_V1, [NOT_APPLICABLE, NOT_APPLICABLE])
 
         US_CO_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UsCoV1Consent.Builder()
-                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(1, 2))
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CO_V1, [NO_CONSENT, NO_CONSENT])
+        US_CO_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CO_V1, [NO_CONSENT, CONSENT])
+        US_CO_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CO_V1, [CONSENT, NO_CONSENT])
+        US_CO_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CO_V1, [CONSENT, CONSENT])
         US_CO_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UsCoV1Consent.Builder().setKnownChildSensitiveDataConsents(0)
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | generateChildSensitiveGpp(US_CO_V1, [NOT_APPLICABLE, NOT_APPLICABLE])
 
-        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_RACIAL_ETHNIC_ORIGIN, CONSENT)] | new UsUtV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(racialEthnicOrigin: 2))
-        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_RELIGIOUS_BELIEFS, CONSENT)]    | new UsUtV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(religiousBeliefs: 2))
-        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_ORIENTATION, CONSENT)]          | new UsUtV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(orientation: 2))
-        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_CITIZENSHIP_STATUS, CONSENT)]   | new UsUtV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(citizenshipStatus: 2))
-        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_HEALTH_INFO, CONSENT)]          | new UsUtV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(healthInfo: 2))
-        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_GENETIC_ID, CONSENT)]           | new UsUtV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(geneticId: 2))
-        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_BIOMETRIC_ID, CONSENT)]         | new UsUtV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(biometricId: 2))
-        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_GEOLOCATION, CONSENT)]          | new UsUtV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(geolocation: 2))
+        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_RACIAL_ETHNIC_ORIGIN, CONSENT)]   | generateSensitiveGpp(US_UT_V1, [racialEthnicOrigin: CONSENT])
+        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_RELIGIOUS_BELIEFS, CONSENT)]      | generateSensitiveGpp(US_UT_V1, [religiousBeliefs: CONSENT])
+        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_ORIENTATION, CONSENT)]            | generateSensitiveGpp(US_UT_V1, [orientation: CONSENT])
+        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_CITIZENSHIP_STATUS, CONSENT)]     | generateSensitiveGpp(US_UT_V1, [citizenshipStatus: CONSENT])
+        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_HEALTH_INFO, CONSENT)]            | generateSensitiveGpp(US_UT_V1, [healthInfo: CONSENT])
+        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_GENETIC_ID, CONSENT)]             | generateSensitiveGpp(US_UT_V1, [geneticId: CONSENT])
+        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_BIOMETRIC_ID, CONSENT)]           | generateSensitiveGpp(US_UT_V1, [biometricId: CONSENT])
+        US_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_GEOLOCATION, CONSENT)]            | generateSensitiveGpp(US_UT_V1, [geolocation: CONSENT])
+
         US_UT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]     | new UsUtV1Consent.Builder().setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(1, 2))
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_UT_V1, [NO_CONSENT, NO_CONSENT])
+        US_UT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_UT_V1, [NO_CONSENT, CONSENT])
+        US_UT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_UT_V1, [CONSENT, NO_CONSENT])
+        US_UT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_UT_V1, [CONSENT, CONSENT])
         US_UT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)] | new UsUtV1Consent.Builder().setKnownChildSensitiveDataConsents(0)
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | generateChildSensitiveGpp(US_UT_V1, [NOT_APPLICABLE, NOT_APPLICABLE])
 
         US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UsCtV1Consent.Builder().setKnownChildSensitiveDataConsents(0, 0, 0)
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | generateChildSensitiveGpp(US_CT_V1, [NOT_APPLICABLE, NOT_APPLICABLE, NOT_APPLICABLE])
         US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, CONSENT)]          | new UsCtV1Consent.Builder().setKnownChildSensitiveDataConsents(0, 2, 2)
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, CONSENT)]          | generateChildSensitiveGpp(US_CT_V1, [NOT_APPLICABLE, CONSENT, CONSENT])
         US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UsCtV1Consent.Builder()
-                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(0, 2), PBSUtils.getRandomNumber(0, 2), 1)
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, CONSENT)]          | generateChildSensitiveGpp(US_CT_V1, [NO_CONSENT, CONSENT, CONSENT])
         US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
-                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UsCtV1Consent.Builder()
-                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(0, 2), 1, PBSUtils.getRandomNumber(0, 2))
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, CONSENT)]          | generateChildSensitiveGpp(US_CT_V1, [CONSENT, CONSENT, CONSENT])
+        US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CT_V1, [NOT_APPLICABLE, NOT_APPLICABLE, NO_CONSENT])
+        US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CT_V1, [NOT_APPLICABLE, NOT_APPLICABLE, CONSENT])
+        US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CT_V1, [NOT_APPLICABLE, NO_CONSENT, NOT_APPLICABLE])
+        US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CT_V1, [NOT_APPLICABLE, NO_CONSENT, NO_CONSENT])
+        US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CT_V1, [NOT_APPLICABLE, NO_CONSENT, CONSENT])
+        US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CT_V1, [NOT_APPLICABLE, CONSENT, NOT_APPLICABLE])
+        US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CT_V1, [NOT_APPLICABLE, CONSENT, NO_CONSENT])
+        US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CT_V1, [NO_CONSENT, NOT_APPLICABLE, NOT_APPLICABLE])
+        US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CT_V1, [NO_CONSENT, NOT_APPLICABLE, NO_CONSENT])
+        US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CT_V1, [NO_CONSENT, NOT_APPLICABLE, CONSENT])
+        US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CT_V1, [NO_CONSENT, NO_CONSENT, NOT_APPLICABLE])
+        US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CT_V1, [NO_CONSENT, NO_CONSENT, NO_CONSENT])
+        US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CT_V1, [NO_CONSENT, NO_CONSENT, CONSENT])
+        US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CT_V1, [NO_CONSENT, CONSENT, NOT_APPLICABLE])
+        US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CT_V1, [NO_CONSENT, CONSENT, NO_CONSENT])
+        US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CT_V1, [CONSENT, NOT_APPLICABLE, NOT_APPLICABLE])
+        US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CT_V1, [CONSENT, NOT_APPLICABLE, NO_CONSENT])
+        US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CT_V1, [CONSENT, NOT_APPLICABLE, CONSENT])
+        US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CT_V1, [CONSENT, NO_CONSENT, NOT_APPLICABLE])
+        US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CT_V1, [CONSENT, NO_CONSENT, NO_CONSENT])
+        US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CT_V1, [CONSENT, NO_CONSENT, CONSENT])
+        US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CT_V1, [CONSENT, CONSENT, NOT_APPLICABLE])
+        US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                    new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | generateChildSensitiveGpp(US_CT_V1, [CONSENT, CONSENT, NO_CONSENT])
     }
 }

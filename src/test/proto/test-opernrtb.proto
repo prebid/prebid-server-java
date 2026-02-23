@@ -81,11 +81,6 @@ extend com.iabtechlab.openrtb.v2.NativeRequest.EventTrackers {
     optional TestExt eventTrackers = 8871;
 }
 
-extend com.iabtechlab.openrtb.v2.BidRequest.Imp.Video.CompanionAd {
-
-    optional TestExt companionAd = 8871;
-}
-
 extend com.iabtechlab.openrtb.v2.NativeRequest.Asset.Data {
 
     optional TestExt nativeData = 8871;

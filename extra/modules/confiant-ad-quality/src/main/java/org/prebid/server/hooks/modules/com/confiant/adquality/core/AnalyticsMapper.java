@@ -24,6 +24,9 @@ public class AnalyticsMapper {
     private static final String INSPECTED_HAS_ISSUE = "inspected-has-issue";
     private static final String INSPECTED_NO_ISSUES = "inspected-no-issues";
 
+    private AnalyticsMapper() {
+    }
+
     public static Tags toAnalyticsTags(List<BidderResponse> bidderResponsesWithIssues,
                                        List<BidderResponse> bidderResponsesWithoutIssues,
                                        List<BidderResponse> bidderResponsesNotScanned) {
@@ -31,7 +34,10 @@ public class AnalyticsMapper {
         return TagsImpl.of(Collections.singletonList(ActivityImpl.of(
                 AD_QUALITY_SCAN,
                 SUCCESS_STATUS,
-                toActivityResults(bidderResponsesWithIssues, bidderResponsesWithoutIssues, bidderResponsesNotScanned))));
+                toActivityResults(
+                        bidderResponsesWithIssues,
+                        bidderResponsesWithoutIssues,
+                        bidderResponsesNotScanned))));
     }
 
     private static List<Result> toActivityResults(List<BidderResponse> bidderResponsesWithIssues,

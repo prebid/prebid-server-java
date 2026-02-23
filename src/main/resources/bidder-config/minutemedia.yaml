@@ -1,6 +1,7 @@
 adapters:
   minutemedia:
     endpoint: https://pbs.minutemedia-prebid.com/pbs-mm?publisher_id={{PublisherId}}
+    test-endpoint: https://pbs.minutemedia-prebid.com/pbs-test?publisher_id={{PublisherId}}
     modifying-vast-xml-allowed: true
     meta-info:
       maintainer-email: hb@minutemedia.com

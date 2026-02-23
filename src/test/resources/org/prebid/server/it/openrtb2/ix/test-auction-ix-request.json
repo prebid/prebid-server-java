@@ -20,5 +20,14 @@
     "ext": {
       "gdpr": 0
     }
+  },
+  "ext": {
+    "ixdiag": {
+      "msd": 2,
+      "msi": 2,
+      "mfu": 0,
+      "ren": false,
+      "version": "6.29.1"
+    }
   }
 }

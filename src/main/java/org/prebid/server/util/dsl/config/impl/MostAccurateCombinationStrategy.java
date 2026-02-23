@@ -14,10 +14,10 @@ import org.prebid.server.util.dsl.config.PrebidConfigSource;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * Priority order for four column rule sets:
@@ -174,7 +174,7 @@ public class MostAccurateCombinationStrategy implements PrebidConfigMatchingStra
     }
 
     private static Set<String> toSet(Iterable<String> iterable) {
-        return iterable instanceof Set<String> set ? set : fill(new HashSet<>(), iterable);
+        return fill(new TreeSet<>(String.CASE_INSENSITIVE_ORDER), iterable);
     }
 
     private static <E, C extends Collection<E>> C fill(C destination, Iterable<E> source) {

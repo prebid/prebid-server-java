@@ -1,7 +1,9 @@
 package org.prebid.server.spring.config;
 
 import io.vertx.core.Vertx;
-import org.prebid.server.auction.adjustment.FloorAdjustmentFactorResolver;
+import org.prebid.server.bidadjustments.BidAdjustmentsRulesResolver;
+import org.prebid.server.bidadjustments.FloorAdjustmentFactorResolver;
+import org.prebid.server.bidadjustments.FloorAdjustmentsResolver;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.floors.BasicPriceFloorAdjuster;
@@ -20,6 +22,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.vertx.httpclient.HttpClient;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -52,10 +55,8 @@ public class PriceFloorsConfiguration {
 
     @Bean
     @ConditionalOnProperty(prefix = "price-floors", name = "enabled", havingValue = "true")
-    PriceFloorEnforcer basicPriceFloorEnforcer(CurrencyConversionService currencyConversionService,
-                                               PriceFloorAdjuster priceFloorAdjuster,
-                                               Metrics metrics) {
-        return new BasicPriceFloorEnforcer(currencyConversionService, priceFloorAdjuster, metrics);
+    PriceFloorEnforcer basicPriceFloorEnforcer(CurrencyConversionService currencyConversionService, Metrics metrics) {
+        return new BasicPriceFloorEnforcer(currencyConversionService, metrics);
     }
 
     @Bean
@@ -84,9 +85,11 @@ public class PriceFloorsConfiguration {
     @ConditionalOnProperty(prefix = "price-floors", name = "enabled", havingValue = "true")
     PriceFloorProcessor basicPriceFloorProcessor(PriceFloorFetcher floorFetcher,
                                                  PriceFloorResolver floorResolver,
-                                                 JacksonMapper mapper) {
+                                                 Metrics metrics,
+                                                 JacksonMapper mapper,
+                                                 @Value("${logging.sampling-rate:0.01}") double logSamplingRate) {
 
-        return new BasicPriceFloorProcessor(floorFetcher, floorResolver, mapper);
+        return new BasicPriceFloorProcessor(floorFetcher, floorResolver, metrics, mapper, logSamplingRate);
     }
 
     @Bean
@@ -103,8 +106,18 @@ public class PriceFloorsConfiguration {
 
     @Bean
     @ConditionalOnProperty(prefix = "price-floors", name = "enabled", havingValue = "true")
-    BasicPriceFloorAdjuster basicPriceFloorAdjuster(FloorAdjustmentFactorResolver floorAdjustmentFactorResolver) {
-        return new BasicPriceFloorAdjuster(floorAdjustmentFactorResolver);
+    FloorAdjustmentsResolver floorAdjustmentsResolver(BidAdjustmentsRulesResolver bidAdjustmentsRulesResolver,
+                                                      CurrencyConversionService currencyService) {
+
+        return new FloorAdjustmentsResolver(bidAdjustmentsRulesResolver, currencyService);
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "price-floors", name = "enabled", havingValue = "true")
+    BasicPriceFloorAdjuster basicPriceFloorAdjuster(FloorAdjustmentFactorResolver floorAdjustmentFactorResolver,
+                                                    FloorAdjustmentsResolver floorAdjustmentsResolver) {
+
+        return new BasicPriceFloorAdjuster(floorAdjustmentFactorResolver, floorAdjustmentsResolver);
     }
 
     @Bean

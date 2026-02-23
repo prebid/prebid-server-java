@@ -33,9 +33,7 @@
     "tid": "${json-unit.any-string}"
   },
   "regs": {
-    "ext": {
       "gdpr": 0
-    }
   },
   "ext": {
     "id": 3,

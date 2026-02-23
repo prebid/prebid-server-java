@@ -1,7 +1,6 @@
 package org.prebid.server.proto.openrtb.ext.request.adprime;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
 import lombok.Value;
 
 import java.util.List;
@@ -9,8 +8,7 @@ import java.util.List;
 /**
  * Defines the contract for bidRequest.imp[i].ext.adprime
  */
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class ExtImpAdprime {
 
     @JsonProperty("TagID")

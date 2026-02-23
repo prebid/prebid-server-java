@@ -2,7 +2,7 @@ package org.prebid.server.model;
 
 import lombok.Value;
 
-@Value
+@Value(staticConstructor = "of")
 public class UpdateResult<T> {
 
     boolean updated;

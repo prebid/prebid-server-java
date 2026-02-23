@@ -1,5 +1,6 @@
 package org.prebid.server.bidder.huaweiads;
 
+import com.iab.openrtb.request.Device;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.huaweiads.model.request.CellInfo;
 import org.prebid.server.bidder.huaweiads.model.request.Network;
@@ -11,7 +12,7 @@ public class HuaweiNetworkBuilder {
 
     private static final int DEFAULT_UNKNOWN_NETWORK_TYPE = 0;
 
-    public Network build(com.iab.openrtb.request.Device device) {
+    public Network build(Device device) {
         if (device == null) {
             return null;
         }

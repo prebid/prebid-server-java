@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.blackbird.BlackbirdModule;
 
 public final class ObjectMapperProvider {
@@ -23,6 +24,7 @@ public final class ObjectMapperProvider {
                 .build()
                 .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
                 .setSerializationInclusion(JsonInclude.Include.NON_NULL)
+                .registerModule(new JavaTimeModule())
                 .registerModule(new BlackbirdModule())
                 .registerModule(new ZonedDateTimeModule())
                 .registerModule(new MissingJsonNodeModule())

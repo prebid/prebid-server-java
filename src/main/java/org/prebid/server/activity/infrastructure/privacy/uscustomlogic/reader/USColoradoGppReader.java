@@ -2,7 +2,7 @@
 package org.prebid.server.activity.infrastructure.privacy.uscustomlogic.reader;
 
 import com.iab.gpp.encoder.GppModel;
-import com.iab.gpp.encoder.section.UsCoV1;
+import com.iab.gpp.encoder.section.UsCo;
 import org.prebid.server.activity.infrastructure.privacy.uscustomlogic.USCustomLogicGppReader;
 import org.prebid.server.util.ObjectUtil;
 
@@ -10,20 +10,20 @@ import java.util.List;
 
 public class USColoradoGppReader implements USCustomLogicGppReader {
 
-    private final UsCoV1 consent;
+    private final UsCo consent;
 
     public USColoradoGppReader(GppModel gppModel) {
-        consent = gppModel != null ? gppModel.getUsCoV1Section() : null;
+        consent = gppModel != null ? gppModel.getUsCoSection() : null;
     }
 
     @Override
     public Integer getVersion() {
-        return ObjectUtil.getIfNotNull(consent, UsCoV1::getVersion);
+        return ObjectUtil.getIfNotNull(consent, UsCo::getVersion);
     }
 
     @Override
     public Boolean getGpc() {
-        return ObjectUtil.getIfNotNull(consent, UsCoV1::getGpc);
+        return ObjectUtil.getIfNotNull(consent, UsCo::getGpc);
     }
 
     @Override
@@ -33,22 +33,22 @@ public class USColoradoGppReader implements USCustomLogicGppReader {
 
     @Override
     public Boolean getGpcSegmentIncluded() {
-        return ObjectUtil.getIfNotNull(consent, UsCoV1::getGpcSegmentIncluded);
+        return ObjectUtil.getIfNotNull(consent, UsCo::getGpcSegmentIncluded);
     }
 
     @Override
     public Integer getSaleOptOut() {
-        return ObjectUtil.getIfNotNull(consent, UsCoV1::getSaleOptOut);
+        return ObjectUtil.getIfNotNull(consent, UsCo::getSaleOptOut);
     }
 
     @Override
     public Integer getSaleOptOutNotice() {
-        return ObjectUtil.getIfNotNull(consent, UsCoV1::getSaleOptOutNotice);
+        return ObjectUtil.getIfNotNull(consent, UsCo::getSaleOptOutNotice);
     }
 
     @Override
     public Integer getSharingNotice() {
-        return ObjectUtil.getIfNotNull(consent, UsCoV1::getSharingNotice);
+        return ObjectUtil.getIfNotNull(consent, UsCo::getSharingNotice);
     }
 
     @Override
@@ -63,12 +63,12 @@ public class USColoradoGppReader implements USCustomLogicGppReader {
 
     @Override
     public Integer getTargetedAdvertisingOptOut() {
-        return ObjectUtil.getIfNotNull(consent, UsCoV1::getTargetedAdvertisingOptOut);
+        return ObjectUtil.getIfNotNull(consent, UsCo::getTargetedAdvertisingOptOut);
     }
 
     @Override
     public Integer getTargetedAdvertisingOptOutNotice() {
-        return ObjectUtil.getIfNotNull(consent, UsCoV1::getTargetedAdvertisingOptOutNotice);
+        return ObjectUtil.getIfNotNull(consent, UsCo::getTargetedAdvertisingOptOutNotice);
     }
 
     @Override
@@ -78,7 +78,7 @@ public class USColoradoGppReader implements USCustomLogicGppReader {
 
     @Override
     public List<Integer> getSensitiveDataProcessing() {
-        return ObjectUtil.getIfNotNull(consent, UsCoV1::getSensitiveDataProcessing);
+        return ObjectUtil.getIfNotNull(consent, UsCo::getSensitiveDataProcessing);
     }
 
     @Override
@@ -88,7 +88,7 @@ public class USColoradoGppReader implements USCustomLogicGppReader {
 
     @Override
     public Integer getKnownChildSensitiveDataConsents() {
-        return ObjectUtil.getIfNotNull(consent, UsCoV1::getKnownChildSensitiveDataConsents);
+        return ObjectUtil.getIfNotNull(consent, UsCo::getKnownChildSensitiveDataConsents);
     }
 
     @Override
@@ -98,16 +98,16 @@ public class USColoradoGppReader implements USCustomLogicGppReader {
 
     @Override
     public Integer getMspaCoveredTransaction() {
-        return ObjectUtil.getIfNotNull(consent, UsCoV1::getMspaCoveredTransaction);
+        return ObjectUtil.getIfNotNull(consent, UsCo::getMspaCoveredTransaction);
     }
 
     @Override
     public Integer getMspaServiceProviderMode() {
-        return ObjectUtil.getIfNotNull(consent, UsCoV1::getMspaServiceProviderMode);
+        return ObjectUtil.getIfNotNull(consent, UsCo::getMspaServiceProviderMode);
     }
 
     @Override
     public Integer getMspaOptOutOptionMode() {
-        return ObjectUtil.getIfNotNull(consent, UsCoV1::getMspaOptOutOptionMode);
+        return ObjectUtil.getIfNotNull(consent, UsCo::getMspaOptOutOptionMode);
     }
 }

@@ -1,10 +1,8 @@
 package org.prebid.server.auction.model;
 
-import lombok.AllArgsConstructor;
 import lombok.Value;
 
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class Tuple2<L, R> {
 
     L left;

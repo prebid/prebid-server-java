@@ -12,7 +12,7 @@ public class EventBuffer<T> {
 
     private List<T> events = new ArrayList<>();
 
-    private long byteSize = 0;
+    private long byteSize;
 
     private final long maxEvents;
 

@@ -4,7 +4,7 @@
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "rubicon": 0
+      "generic": 0
     },
     "tmaxrequest": 5000,
     "prebid": {

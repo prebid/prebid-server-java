@@ -1,18 +1,16 @@
 package org.prebid.server.settings.model;
 
-import lombok.AllArgsConstructor;
 import lombok.Value;
 
 import java.util.List;
 import java.util.Map;
 
-@AllArgsConstructor(staticName = "of")
-@Value
-public class StoredDataResult {
+@Value(staticConstructor = "of")
+public class StoredDataResult<T> {
 
-    Map<String, String> storedIdToRequest;
+    Map<String, T> storedIdToRequest;
 
-    Map<String, String> storedIdToImp;
+    Map<String, T> storedIdToImp;
 
     List<String> errors;
 }

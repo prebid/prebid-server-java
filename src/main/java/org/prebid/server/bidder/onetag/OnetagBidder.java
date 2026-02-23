@@ -22,7 +22,6 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -45,20 +44,18 @@ public class OnetagBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final List<Imp> modifiedImps = new ArrayList<>();
         String requestPubId = null;
         for (Imp imp : request.getImp()) {
             try {
                 final ExtImpOnetag impExt = parseImpExt(imp);
                 requestPubId = resolveAndValidatePubId(impExt.getPubId(), requestPubId);
-
-                modifiedImps.add(imp.toBuilder().ext(impExt.getExt()).build());
             } catch (PreBidException e) {
                 return Result.withError(BidderError.badInput(e.getMessage()));
             }
         }
 
-        return Result.withValue(createRequest(request, modifiedImps, requestPubId));
+        final String url = endpointUrl.replace(URL_PUBLISHER_ID_MACRO, StringUtils.defaultString(requestPubId));
+        return Result.withValue(BidderUtil.defaultRequest(request, url, mapper));
     }
 
     private ExtImpOnetag parseImpExt(Imp imp) {
@@ -69,21 +66,14 @@ public class OnetagBidder implements Bidder<BidRequest> {
         }
     }
 
-    private String resolveAndValidatePubId(String impExtPubId, String requestPubId) {
-        if (StringUtils.isEmpty(impExtPubId)) {
+    private static String resolveAndValidatePubId(String impExtPubId, String requestPubId) {
+        if (StringUtils.isBlank(impExtPubId)) {
             throw new PreBidException("The publisher ID must not be empty");
         }
         if (requestPubId != null && !impExtPubId.equals(requestPubId)) {
             throw new PreBidException("There must be only one publisher ID");
         }
         return impExtPubId;
-    }
-
-    private HttpRequest<BidRequest> createRequest(BidRequest request, List<Imp> imps, String pubId) {
-        final String url = endpointUrl.replace(URL_PUBLISHER_ID_MACRO, pubId);
-        final BidRequest outgoingRequest = request.toBuilder().imp(imps).build();
-
-        return BidderUtil.defaultRequest(outgoingRequest, url, mapper);
     }
 
     @Override

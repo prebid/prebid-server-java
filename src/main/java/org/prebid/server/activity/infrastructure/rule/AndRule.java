@@ -8,6 +8,7 @@ import org.prebid.server.activity.infrastructure.debug.ActivityDebugUtils;
 import org.prebid.server.activity.infrastructure.debug.Loggable;
 import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -44,5 +45,9 @@ public class AndRule implements Rule, Loggable {
         arrayNode.addAll(ActivityDebugUtils.asLogEntry(rules, mapper));
 
         return andNode;
+    }
+
+    public List<Rule> rules() {
+        return Collections.unmodifiableList(rules);
     }
 }

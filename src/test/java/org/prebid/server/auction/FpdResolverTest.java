@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Content;
 import com.iab.openrtb.request.Data;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Dooh;
 import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Publisher;
@@ -17,6 +18,9 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtAppPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
+import org.prebid.server.proto.openrtb.ext.request.ExtDeviceInt;
+import org.prebid.server.proto.openrtb.ext.request.ExtDevicePrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtDooh;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
@@ -132,6 +136,80 @@ public class FpdResolverTest extends VertxTest {
         // then
         assertThat(resultUser.getExt().getData() != originExtUserData).isTrue(); // different by reference
         assertThat(resultUser.getExt().getData().equals(originExtUserData)).isTrue(); // but the same by value
+    }
+
+    @Test
+    public void resolveDeviceShouldOverrideFpdFieldsFromFpdDevice() {
+        // given
+        final Device originDevice = Device.builder()
+                .devicetype(1)
+                .make("original_make")
+                .model("original_model")
+                .os("original_os")
+                .osv("original_osv")
+                .hwv("original_hwv")
+                .language("original_language")
+                .h(1111)
+                .js(1)
+                .ip("original_ip")
+                .build();
+
+        final Device fpdDevice = Device.builder()
+                .devicetype(2)
+                .make("fpd_make")
+                .model("fpd_model")
+                .os("fpd_os")
+                .osv("fpd_osv")
+                .hwv("fpd_hwv")
+                .ip("new_ip")
+                .build();
+
+        // when
+        final Device resultDevice = target.resolveDevice(originDevice, mapper.valueToTree(fpdDevice));
+
+        // then
+        assertThat(resultDevice).isEqualTo(Device.builder()
+                .devicetype(2)
+                .make("fpd_make")
+                .model("fpd_model")
+                .os("fpd_os")
+                .osv("fpd_osv")
+                .hwv("fpd_hwv")
+                .language("original_language")
+                .h(1111)
+                .js(1)
+                .ip("new_ip")
+                .build());
+    }
+
+    @Test
+    public void resolveDeviceShouldReturnOriginDeviceIfFpdDeviceIsNull() {
+        assertThat(target.resolveDevice(Device.builder().make("test_make").build(), null))
+                .isEqualTo(Device.builder().make("test_make").build());
+    }
+
+    @Test
+    public void resolveDeviceShouldReturnFpdDeviceIfOriginDeviceIsNull() {
+        assertThat(target.resolveDevice(null, mapper.valueToTree(Device.builder().model("test_model").build())))
+                .isEqualTo(Device.builder().model("test_model").build());
+    }
+
+    @Test
+    public void resolveDeviceShouldNotChangeOriginExtDataIfFPDDoesNotHaveExt() {
+        // given
+        final Device originDevice = Device.builder()
+                .ext(ExtDevice.of(1, ExtDevicePrebid.of(ExtDeviceInt.of(10, 20))))
+                .build();
+
+        final Device fpdDevice = Device.builder().build();
+
+        // when
+        final Device resultDevice = target.resolveDevice(originDevice, mapper.valueToTree(fpdDevice));
+
+        // then
+        assertThat(resultDevice).isEqualTo(Device.builder()
+                .ext(ExtDevice.of(1, ExtDevicePrebid.of(ExtDeviceInt.of(10, 20))))
+                .build());
     }
 
     @Test

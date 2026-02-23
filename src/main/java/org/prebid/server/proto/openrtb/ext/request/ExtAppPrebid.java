@@ -1,6 +1,5 @@
 package org.prebid.server.proto.openrtb.ext.request;
 
-import lombok.AllArgsConstructor;
 import lombok.Value;
 
 /**
@@ -8,8 +7,7 @@ import lombok.Value;
  * We are only enforcing that these two properties be strings if they are provided.
  * They are optional with no current constraints on value.
  */
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class ExtAppPrebid {
 
     String source;

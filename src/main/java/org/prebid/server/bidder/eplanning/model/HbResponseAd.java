@@ -23,6 +23,8 @@ public class HbResponseAd {
     @JsonProperty("crid")
     String crId;
 
+    String adom;
+
     @JsonProperty("w")
     Integer width;
 

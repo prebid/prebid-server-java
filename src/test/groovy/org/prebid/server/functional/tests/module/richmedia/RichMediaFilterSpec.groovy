@@ -454,10 +454,4 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         where:
         admValue << [PATTERN_NAME, "${PBSUtils.randomString}-${PATTERN_NAME}", "${PATTERN_NAME}.${PBSUtils.randomString}"]
     }
-
-    private static List<AnalyticResult> getAnalyticResults(BidResponse response) {
-        response.ext.prebid.modules?.trace?.stages?.first()
-                ?.outcomes?.first()?.groups?.first()
-                ?.invocationResults?.first()?.analyticsTags?.activities
-    }
 }

@@ -170,4 +170,3 @@ public class TeadsBidder implements Bidder<BidRequest> {
     }
 
 }
-

@@ -35,4 +35,3 @@ public class AsoTest extends IntegrationTest {
                 singletonList("aso"));
     }
 }
-

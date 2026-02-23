@@ -16,14 +16,7 @@
         ]
       },
       "ext": {
-        "prebid": {
-          "bidder": {
-            "rubicon": {
-              "accountId": 2001,
-              "siteId": 3001,
-              "zoneId": 4001
-            }
-          }
+        "generic": {
         }
       }
     }
@@ -32,6 +25,15 @@
     "page": "http://www.example.com",
     "publisher": {
       "id": "7001"
+    }
+  },
+  "at": 1,
+  "cur": [
+    "USD"
+  ],
+  "regs": {
+    "ext": {
+      "gdpr": 0
     }
   },
   "tmax": 5000

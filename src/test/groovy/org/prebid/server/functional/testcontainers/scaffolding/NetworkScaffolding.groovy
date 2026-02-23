@@ -37,17 +37,17 @@ abstract class NetworkScaffolding implements ObjectMapperWrapper {
 
     int getRequestCount(HttpRequest httpRequest) {
         mockServerClient.retrieveRecordedRequests(httpRequest)
-                        .size()
+                .size()
     }
 
     int getRequestCount(String value) {
         mockServerClient.retrieveRecordedRequests(getRequest(value))
-                        .size()
+                .size()
     }
 
     int getRequestCount() {
         mockServerClient.retrieveRecordedRequests(request)
-                        .size()
+                .size()
     }
 
     void setResponse(HttpRequest httpRequest,
@@ -56,8 +56,8 @@ abstract class NetworkScaffolding implements ObjectMapperWrapper {
                      Times times = Times.exactly(1)) {
         def mockResponse = encode(responseModel)
         mockServerClient.when(httpRequest, times)
-                        .respond(response().withStatusCode(statusCode.code())
-                                           .withBody(mockResponse, APPLICATION_JSON))
+                .respond(response().withStatusCode(statusCode.code())
+                        .withBody(mockResponse, APPLICATION_JSON))
     }
 
     void setResponse(String value,
@@ -73,9 +73,9 @@ abstract class NetworkScaffolding implements ObjectMapperWrapper {
         def responseHeaders = headers.collect { new Header(it.key, it.value) }
         def mockResponse = encode(responseModel)
         mockServerClient.when(getRequest(value), Times.unlimited())
-                        .respond(response().withStatusCode(statusCode.code())
-                                           .withBody(mockResponse, APPLICATION_JSON)
-                                           .withHeaders(responseHeaders))
+                .respond(response().withStatusCode(statusCode.code())
+                        .withBody(mockResponse, APPLICATION_JSON)
+                        .withHeaders(responseHeaders))
     }
 
     void setResponse(String value,
@@ -86,39 +86,39 @@ abstract class NetworkScaffolding implements ObjectMapperWrapper {
         def responseHeaders = headers.collect { new Header(it.key, it.value) }
         def mockResponse = encode(responseModel)
         mockServerClient.when(getRequest(value), Times.unlimited())
-                        .respond(response().withStatusCode(statusCode.code())
-                                           .withBody(mockResponse, APPLICATION_JSON)
-                                           .withHeaders(responseHeaders)
-                                           .withDelay(TimeUnit.MILLISECONDS, responseDelay))
+                .respond(response().withStatusCode(statusCode.code())
+                        .withBody(mockResponse, APPLICATION_JSON)
+                        .withHeaders(responseHeaders)
+                        .withDelay(TimeUnit.MILLISECONDS, responseDelay))
     }
 
     void setResponse(String value, String mockResponse) {
         mockServerClient.when(getRequest(value), Times.exactly(1))
-                        .respond(response().withStatusCode(OK_200.code())
-                                           .withBody(mockResponse, APPLICATION_JSON))
+                .respond(response().withStatusCode(OK_200.code())
+                        .withBody(mockResponse, APPLICATION_JSON))
     }
 
     void setResponse(ResponseModel responseModel) {
         def mockResponse = encode(responseModel)
         mockServerClient.when(request().withPath(endpoint))
-                        .respond(response().withStatusCode(OK_200.code())
-                                           .withBody(mockResponse, APPLICATION_JSON))
+                .respond(response().withStatusCode(OK_200.code())
+                        .withBody(mockResponse, APPLICATION_JSON))
     }
 
     void setResponse(String value, HttpStatusCode httpStatusCode) {
         mockServerClient.when(getRequest(value), Times.exactly(1))
-                        .respond(response().withStatusCode(httpStatusCode.code()))
+                .respond(response().withStatusCode(httpStatusCode.code()))
     }
 
     void setResponse(String value, HttpStatusCode httpStatusCode, String errorText) {
         mockServerClient.when(getRequest(value), Times.exactly(1))
-                        .respond(response().withStatusCode(httpStatusCode.code())
-                                           .withBody(errorText, APPLICATION_JSON))
+                .respond(response().withStatusCode(httpStatusCode.code())
+                        .withBody(errorText, APPLICATION_JSON))
     }
 
     void setResponseWithTimeout(String value, int timeoutSec = 5) {
         mockServerClient.when(getRequest(value), Times.exactly(1))
-                        .respond(response().withDelay(SECONDS, timeoutSec))
+                .respond(response().withDelay(SECONDS, timeoutSec))
     }
 
     protected def getRequestAndResponse() {
@@ -130,14 +130,19 @@ abstract class NetworkScaffolding implements ObjectMapperWrapper {
                         .collect { it.body.toString() }
     }
 
+    String getRecordedRequestsQueryParameters(HttpRequest httpRequest) {
+        mockServerClient.retrieveRecordedRequests(httpRequest)
+                .collect { it -> it.queryStringParameters.multimap.toString()}
+    }
+
     List<String> getRecordedRequestsBody(String value) {
         mockServerClient.retrieveRecordedRequests(getRequest(value))
-                        .collect { it.body.toString() }
+                .collect { it.body.toString() }
     }
 
     List<String> getRecordedRequestsBody() {
         mockServerClient.retrieveRecordedRequests(request)
-                        .collect { it.body.toString() }
+                .collect { it.body.toString() }
     }
 
     Map<String, List<String>> getLastRecordedRequestHeaders(HttpRequest httpRequest) {

@@ -1,0 +1,16 @@
+adapters:
+  kobler:
+    endpoint: "https://bid.essrtb.com/bid/prebid_server_rtb_call"
+    dev-endpoint: "https://bid-service.dev.essrtb.com/bid/prebid_server_rtb_call"
+    endpoint-compression: gzip
+    geoscope:
+      - NOR
+      - SWE
+      - DNK
+    meta-info:
+      maintainer-email: bidding-support@kobler.no
+      site-media-types:
+      - banner
+      app-media-types:
+      - banner
+      vendor-id: 0

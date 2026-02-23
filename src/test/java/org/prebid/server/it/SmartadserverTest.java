@@ -18,7 +18,7 @@ public class SmartadserverTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromSmartadserver() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/smartadserver-exchange/api/bid"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/smartadserver-secondary-exchange/ortb"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/smartadserver/test-smartadserver-bid-request.json")))
                 .willReturn(aResponse()
                         .withBody(jsonFrom("openrtb2/smartadserver/test-smartadserver-bid-response.json"))));

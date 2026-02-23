@@ -2,6 +2,9 @@ package org.prebid.server.hooks.modules.pb.request.correction.core.util;
 
 public class VersionUtil {
 
+    private VersionUtil() {
+    }
+
     public static boolean isVersionLessThan(String versionAsString, int major, int minor, int patch) {
         return compareVersion(versionAsString, major, minor, patch) < 0;
     }

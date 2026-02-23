@@ -1,0 +1,22 @@
+# Contact support@afront.io to connect with Afront exchange.
+# We have the following regional endpoint sub-domains:
+# US East: snt1
+# APAC: snt2
+# EU: snt3
+# Please deploy this config in each of your datacenters with the appropriate regional subdomain
+adapters:
+  afront:
+    endpoint: https://snt1.afront.io/?rsd={{SourceId}}&sk={{AccountId}}
+    endpoint-compression: gzip
+    meta-info:
+      maintainer-email: support@afront.io
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 0

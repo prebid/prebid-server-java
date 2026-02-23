@@ -1,0 +1,24 @@
+{
+  "id": "some-request-id",
+  "cur": "",
+  "bidid": "some-bid-id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "adm": "<div>Some creative</div>",
+          "id": "some-bid-id",
+          "impid": "some-impression-id",
+          "h": 250,
+          "w": 320,
+          "price": 1,
+          "adid": "some-ad-id",
+          "cid": "test",
+          "crid": "some-creative-id",
+          "mtype": 1
+        }
+      ],
+      "type": "banner"
+    }
+  ]
+}

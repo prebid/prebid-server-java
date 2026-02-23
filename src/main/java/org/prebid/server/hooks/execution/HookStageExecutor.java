@@ -9,12 +9,15 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.collections4.map.DefaultedMap;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
+import org.prebid.server.auction.model.Rejection;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.execution.timeout.TimeoutFactory;
@@ -68,6 +71,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class HookStageExecutor {
@@ -88,6 +92,7 @@ public class HookStageExecutor {
     private final Clock clock;
     private final ObjectMapper mapper;
     private final boolean isConfigToInvokeRequired;
+    private final double logSamplingRate;
 
     private HookStageExecutor(ExecutionPlan hostExecutionPlan,
                               ExecutionPlan defaultAccountExecutionPlan,
@@ -97,7 +102,8 @@ public class HookStageExecutor {
                               Vertx vertx,
                               Clock clock,
                               ObjectMapper mapper,
-                              boolean isConfigToInvokeRequired) {
+                              boolean isConfigToInvokeRequired,
+                              double logSamplingRate) {
 
         this.hostExecutionPlan = hostExecutionPlan;
         this.defaultAccountExecutionPlan = defaultAccountExecutionPlan;
@@ -108,6 +114,7 @@ public class HookStageExecutor {
         this.mapper = mapper;
         this.isConfigToInvokeRequired = isConfigToInvokeRequired;
         this.hostModuleExecution = hostModuleExecution;
+        this.logSamplingRate = logSamplingRate;
     }
 
     public static HookStageExecutor create(String hostExecutionPlan,
@@ -118,7 +125,8 @@ public class HookStageExecutor {
                                            Vertx vertx,
                                            Clock clock,
                                            JacksonMapper mapper,
-                                           boolean isConfigToInvokeRequired) {
+                                           boolean isConfigToInvokeRequired,
+                                           double logSamplingRate) {
 
         Objects.requireNonNull(hookCatalog);
         Objects.requireNonNull(mapper);
@@ -132,7 +140,8 @@ public class HookStageExecutor {
                 Objects.requireNonNull(vertx),
                 Objects.requireNonNull(clock),
                 mapper.mapper(),
-                isConfigToInvokeRequired);
+                isConfigToInvokeRequired,
+                logSamplingRate);
     }
 
     private static ExecutionPlan parseAndValidateExecutionPlan(String executionPlan,
@@ -155,7 +164,7 @@ public class HookStageExecutor {
     }
 
     private static ExecutionPlan validateExecutionPlan(ExecutionPlan plan, HookCatalog hookCatalog) {
-        plan.getEndpoints().values().stream()
+        MapUtils.emptyIfNull(plan.getEndpoints()).values().stream()
                 .map(EndpointExecutionPlan::getStages)
                 .map(Map::entrySet)
                 .flatMap(Collection::stream)
@@ -181,8 +190,9 @@ public class HookStageExecutor {
             CaseInsensitiveMultiMap queryParams,
             CaseInsensitiveMultiMap headers,
             String body,
-            HookExecutionContext context) {
+            AuctionContext auctionContext) {
 
+        final HookExecutionContext context = auctionContext.getHookExecutionContext();
         final Endpoint endpoint = context.getEndpoint();
 
         return stageExecutor(StageWithHookType.ENTRYPOINT, ENTITY_HTTP_REQUEST, context)
@@ -192,7 +202,8 @@ public class HookStageExecutor {
                 .withInvocationContextProvider(invocationContextProvider(endpoint))
                 .withModulesExecution(DefaultedMap.defaultedMap(hostModuleExecution, true))
                 .withRejectAllowed(true)
-                .execute();
+                .execute()
+                .map(result -> rejectAll(auctionContext, result));
     }
 
     public Future<HookStageExecutionResult<AuctionRequestPayload>> executeRawAuctionRequestStage(
@@ -210,7 +221,8 @@ public class HookStageExecutor {
                 .withInitialPayload(AuctionRequestPayloadImpl.of(bidRequest))
                 .withInvocationContextProvider(auctionInvocationContextProvider(endpoint, auctionContext))
                 .withRejectAllowed(true)
-                .execute();
+                .execute()
+                .map(result -> rejectAll(auctionContext, result));
     }
 
     public Future<HookStageExecutionResult<AuctionRequestPayload>> executeProcessedAuctionRequestStage(
@@ -228,7 +240,8 @@ public class HookStageExecutor {
                 .withInitialPayload(AuctionRequestPayloadImpl.of(bidRequest))
                 .withInvocationContextProvider(auctionInvocationContextProvider(endpoint, auctionContext))
                 .withRejectAllowed(true)
-                .execute();
+                .execute()
+                .map(result -> rejectAll(auctionContext, result));
     }
 
     public Future<HookStageExecutionResult<BidderRequestPayload>> executeBidderRequestStage(
@@ -246,7 +259,8 @@ public class HookStageExecutor {
                 .withInitialPayload(BidderRequestPayloadImpl.of(bidderRequest.getBidRequest()))
                 .withInvocationContextProvider(bidderInvocationContextProvider(endpoint, auctionContext, bidder))
                 .withRejectAllowed(true)
-                .execute();
+                .execute()
+                .map(result -> rejectAllIgnoringUnknowns(auctionContext, result));
     }
 
     public Future<HookStageExecutionResult<BidderResponsePayload>> executeRawBidderResponseStage(
@@ -266,7 +280,8 @@ public class HookStageExecutor {
                 .withInitialPayload(BidderResponsePayloadImpl.of(bids))
                 .withInvocationContextProvider(bidderInvocationContextProvider(endpoint, auctionContext, bidder))
                 .withRejectAllowed(true)
-                .execute();
+                .execute()
+                .map(result -> rejectAllIgnoringUnknowns(auctionContext, result));
     }
 
     public Future<HookStageExecutionResult<BidderResponsePayload>> executeProcessedBidderResponseStage(
@@ -285,7 +300,8 @@ public class HookStageExecutor {
                 .withInitialPayload(BidderResponsePayloadImpl.of(bids))
                 .withInvocationContextProvider(bidderInvocationContextProvider(endpoint, auctionContext, bidder))
                 .withRejectAllowed(true)
-                .execute();
+                .execute()
+                .map(result -> rejectAllIgnoringUnknowns(auctionContext, result));
     }
 
     public Future<HookStageExecutionResult<AllProcessedBidResponsesPayload>> executeAllProcessedBidResponsesStage(
@@ -303,7 +319,8 @@ public class HookStageExecutor {
                 .withInitialPayload(AllProcessedBidResponsesPayloadImpl.of(bidderResponses))
                 .withInvocationContextProvider(auctionInvocationContextProvider(endpoint, auctionContext))
                 .withRejectAllowed(false)
-                .execute();
+                .execute()
+                .map(result -> rejectAllIgnoringUnknowns(auctionContext, result));
     }
 
     public Future<HookStageExecutionResult<AuctionResponsePayload>> executeAuctionResponseStage(
@@ -412,8 +429,7 @@ public class HookStageExecutor {
     }
 
     private static StageExecutionPlan stagePlanFrom(ExecutionPlan executionPlan, Endpoint endpoint, Stage stage) {
-        return executionPlan
-                .getEndpoints()
+        return MapUtils.emptyIfNull(executionPlan.getEndpoints())
                 .getOrDefault(endpoint, EndpointExecutionPlan.empty())
                 .getStages()
                 .getOrDefault(stage, StageExecutionPlan.empty());
@@ -542,5 +558,36 @@ public class HookStageExecutor {
     private static boolean isABTestApplicable(ABTest abTest, String account) {
         final Set<String> accounts = abTest.getAccounts();
         return CollectionUtils.isEmpty(accounts) || accounts.contains(account);
+    }
+
+    //todo: should it be more strict? e.g. allowing rejecting only imps/bids on the particular stages
+
+    private <T> HookStageExecutionResult<T> rejectAll(AuctionContext auctionContext,
+                                                      HookStageExecutionResult<T> result) {
+
+        result.getRejections()
+                .forEach((bidder, rejectedList) -> auctionContext.getBidRejectionTrackers().computeIfAbsent(
+                                bidder,
+                                key -> new BidRejectionTracker(
+                                        key,
+                                        rejectedList.stream().map(Rejection::impId).collect(Collectors.toSet()),
+                                        logSamplingRate))
+                        .reject(rejectedList));
+
+        return result;
+    }
+
+    private <T> HookStageExecutionResult<T> rejectAllIgnoringUnknowns(AuctionContext auctionContext,
+                                                                      HookStageExecutionResult<T> result) {
+
+        result.getRejections()
+                .forEach((bidder, rejectedList) -> auctionContext.getBidRejectionTrackers().computeIfPresent(
+                        bidder,
+                        (key, value) -> {
+                            value.reject(rejectedList);
+                            return value;
+                        }));
+
+        return result;
     }
 }

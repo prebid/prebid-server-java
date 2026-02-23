@@ -11,6 +11,7 @@
         "h": 480
       },
       "ext": {
+        "gpid": "640x480",
         "alkimi": {
           "bidFloor": 0.5,
           "token": "XXX"

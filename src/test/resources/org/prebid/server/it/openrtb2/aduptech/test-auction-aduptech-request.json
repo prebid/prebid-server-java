@@ -1,0 +1,22 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "banner": {
+        "w": 320,
+        "h": 250
+      },
+      "ext": {
+        "aduptech": {
+          "placement": "placement",
+          "publisher": "publisher"
+        }
+      }
+    }
+  ],
+  "tmax": 5000,
+  "regs": {
+    "gdpr": 0
+  }
+}

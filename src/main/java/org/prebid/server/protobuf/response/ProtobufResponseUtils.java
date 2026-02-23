@@ -79,7 +79,7 @@ public class ProtobufResponseUtils {
             ProtobufJsonExtensionMapper<OpenRtb.NativeResponse.Asset, ProtobufExtensionType> extensionMapper) {
 
         return (OpenRtb.NativeResponse.Asset asset) ->
-                com.iab.openrtb.response.Asset.builder()
+                Asset.builder()
                         .id(asset.getId())
                         .required(BooleanUtils.toInteger(asset.getRequired()))
                         .title(titleMapper.map(asset.getTitle()))

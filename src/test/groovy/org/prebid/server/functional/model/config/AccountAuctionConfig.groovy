@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming
 import groovy.transform.ToString
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.request.auction.BidAdjustment
+import org.prebid.server.functional.model.request.auction.BidRounding
 import org.prebid.server.functional.model.request.auction.PaaFormat
 import org.prebid.server.functional.model.request.auction.Targeting
 import org.prebid.server.functional.model.response.auction.MediaType
@@ -22,7 +23,10 @@ class AccountAuctionConfig {
     Boolean debugAllow
     AccountBidValidationConfig bidValidations
     AccountEventsConfig events
+    AccountCacheConfig cache
+    AccountRankingConfig ranking
     AccountPriceFloorsConfig priceFloors
+    AccountProfilesConfigs profiles
     Targeting targeting
     PaaFormat paaformat
     @JsonProperty("preferredmediatype")
@@ -31,6 +35,8 @@ class AccountAuctionConfig {
     PrivacySandbox privacySandbox
     @JsonProperty("bidadjustments")
     BidAdjustment bidAdjustments
+    BidRounding bidRounding
+    Integer impressionLimit
 
     @JsonProperty("price_granularity")
     PriceGranularityType priceGranularitySnakeCase
@@ -48,4 +54,9 @@ class AccountAuctionConfig {
     AccountBidValidationConfig bidValidationsSnakeCase
     @JsonProperty("price_floors")
     AccountPriceFloorsConfig priceFloorsSnakeCase
+    @JsonProperty("bid_rounding")
+    BidRounding bidRoundingSnakeCase
+    @JsonProperty("impression_limit")
+    Integer impressionLimitSnakeCase
+
 }

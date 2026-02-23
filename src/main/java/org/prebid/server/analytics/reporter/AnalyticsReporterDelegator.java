@@ -55,7 +55,7 @@ import java.util.stream.Collectors;
 public class AnalyticsReporterDelegator {
 
     private static final Logger logger = LoggerFactory.getLogger(AnalyticsReporterDelegator.class);
-    private static final ConditionalLogger UNKNOWN_ADAPTERS_LOGGER = new ConditionalLogger(logger);
+    private static final ConditionalLogger unknownAdaptersLogger = new ConditionalLogger(logger);
     private static final Set<String> ADAPTERS_PERMITTED_FOR_FULL_DATA = Collections.singleton("logAnalytics");
 
     private final Vertx vertx;
@@ -162,7 +162,7 @@ public class AnalyticsReporterDelegator {
             if (CollectionUtils.isNotEmpty(unknownAdapterNames)) {
                 final Site site = bidRequest.getSite();
                 final String refererUrl = site != null ? site.getPage() : null;
-                UNKNOWN_ADAPTERS_LOGGER.warn("Unknown adapters in ext.prebid.analytics[].adapter: %s, referrer: '%s'"
+                unknownAdaptersLogger.warn("Unknown adapters in ext.prebid.analytics[].adapter: %s, referrer: '%s'"
                         .formatted(unknownAdapterNames, refererUrl), logSamplingRate);
             }
         }

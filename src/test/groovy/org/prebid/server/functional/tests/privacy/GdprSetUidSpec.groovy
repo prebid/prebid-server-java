@@ -58,7 +58,7 @@ class GdprSetUidSpec extends PrivacyBaseSpec {
                     .build()
         }
 
-        and: "Default uids cookie with gener_x bidder"
+        and: "Default uids cookie with generic bidder"
         def uidsCookie = UidsCookie.defaultUidsCookie.tap {
             it.tempUIDs = [(GENERIC): defaultUidWithExpiry]
         }

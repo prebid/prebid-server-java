@@ -1,10 +1,12 @@
 package org.prebid.server.auction.privacy.enforcement;
 
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
-import org.prebid.server.auction.BidderAliases;
+import org.prebid.server.auction.aliases.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderPrivacyResult;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.List;
 import java.util.Map;
@@ -22,14 +24,14 @@ public class PrivacyEnforcementService {
     }
 
     public Future<List<BidderPrivacyResult>> mask(AuctionContext auctionContext,
-                                                  Map<String, User> bidderToUser,
+                                                  Map<String, Pair<User, Device>> bidderToUserAndDevice,
                                                   BidderAliases aliases) {
 
-        final List<BidderPrivacyResult> initialResults = bidderToUser.entrySet().stream()
+        final List<BidderPrivacyResult> initialResults = bidderToUserAndDevice.entrySet().stream()
                 .map(entry -> BidderPrivacyResult.builder()
                         .requestBidder(entry.getKey())
-                        .user(entry.getValue())
-                        .device(auctionContext.getBidRequest().getDevice())
+                        .user(entry.getValue().getLeft())
+                        .device(entry.getValue().getRight())
                         .build())
                 .toList();
 

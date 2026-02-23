@@ -15,7 +15,7 @@ import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Wrapper for geo location service with circuit breaker.
+ * Wrapper for geolocation service with circuit breaker.
  */
 public class CircuitBreakerSecuredGeoLocationService implements GeoLocationService {
 

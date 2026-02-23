@@ -218,7 +218,7 @@ public class BidderCatalogTest {
     @Test
     public void usersyncerByNameShouldReturnUsersyncerForKnownBidderIgnoringCase() {
         // given
-        final Usersyncer usersyncer = Usersyncer.of("name", null, null);
+        final Usersyncer usersyncer = Usersyncer.of("name", null, null, false, null);
         final BidderDeps bidderDeps = BidderDeps.of(singletonList(BidderInstanceDeps.builder()
                 .name("BIDder")
                 .deprecatedNames(emptyList())
@@ -233,7 +233,7 @@ public class BidderCatalogTest {
     @Test
     public void cookieFamilyNameShouldReturnCookieFamilyForKnownBidderIgnoringCase() {
         // given
-        final Usersyncer usersyncer = Usersyncer.of("name", null, null);
+        final Usersyncer usersyncer = Usersyncer.of("name", null, null, false, null);
         final BidderDeps bidderDeps = BidderDeps.of(singletonList(BidderInstanceDeps.builder()
                 .name("BIDder")
                 .deprecatedNames(emptyList())
@@ -310,7 +310,7 @@ public class BidderCatalogTest {
                         .name("bidder-with-usersync")
                         .deprecatedNames(emptyList())
                         .bidderInfo(infoOfBidderWithUsersyncConfig)
-                        .usersyncer(Usersyncer.of("bidder-with-usersync-family", null, null))
+                        .usersyncer(Usersyncer.of("bidder-with-usersync-family", null, null, false, null))
                         .build())),
                 BidderDeps.of(singletonList(BidderInstanceDeps.builder()
                         .name("bidder-without-usersync")
@@ -320,7 +320,7 @@ public class BidderCatalogTest {
                 BidderDeps.of(singletonList(BidderInstanceDeps.builder()
                         .name("disabled-bidder-with-usersync")
                         .bidderInfo(infoOfDisabledBidderWithUsersyncConfig)
-                        .usersyncer(Usersyncer.of("isabled-bidder-with-usersync-family", null, null))
+                        .usersyncer(Usersyncer.of("isabled-bidder-with-usersync-family", null, null, false, null))
                         .deprecatedNames(emptyList())
                         .build())));
 
@@ -394,5 +394,27 @@ public class BidderCatalogTest {
 
         // when and then
         assertThat(target.bidderByName("unknown_bidder")).isNull();
+    }
+
+    @Test
+    public void configuredNameShouldReturnOriginalBidderNameForKnownBidderIgnoringCase() {
+        // given
+        final BidderDeps bidderDeps = BidderDeps.of(singletonList(BidderInstanceDeps.builder()
+                .name("BIDder")
+                .deprecatedNames(emptyList())
+                .build()));
+        target = new BidderCatalog(singletonList(bidderDeps));
+
+        // when and then
+        assertThat(target.configuredName("bidDER")).isEqualTo("BIDder");
+    }
+
+    @Test
+    public void configuredNameShouldReturnNullForUnknownBidder() {
+        // given
+        target = new BidderCatalog(emptyList());
+
+        // when and then
+        assertThat(target.configuredName("unknown_bidder")).isNull();
     }
 }

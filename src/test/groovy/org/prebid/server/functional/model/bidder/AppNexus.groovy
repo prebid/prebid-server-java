@@ -14,6 +14,7 @@ class AppNexus implements BidderAdapter {
     String trafficSourceCode
     Boolean isAmp
     String hbSource
+    Double reserve
 
     static AppNexus getDefault() {
         new AppNexus().tap {

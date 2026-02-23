@@ -4,9 +4,14 @@ import lombok.Data;
 
 @Data
 public final class PerformanceConfig {
+
     String profile;
+
     Integer concurrency;
+
     Integer difference;
+
     Boolean allowUnmatched;
+
     Integer drift;
 }

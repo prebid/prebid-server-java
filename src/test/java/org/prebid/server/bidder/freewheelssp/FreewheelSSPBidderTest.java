@@ -73,13 +73,16 @@ public class FreewheelSSPBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
+        final Map<String, String> expectedImpExt = Map.of(
+                "zoneId", "zoneId",
+                "custom_site_section_id", "customSiteSectionId",
+                "network_id", "networkId",
+                "profile_id", "profileId");
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
-                .containsExactly(
-                        mapper.valueToTree(Map.of("zoneId", "1")),
-                        mapper.valueToTree(Map.of("zoneId", "1")));
+                .containsExactly(mapper.valueToTree(expectedImpExt), mapper.valueToTree(expectedImpExt));
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -197,7 +200,8 @@ public class FreewheelSSPBidderTest extends VertxTest {
     private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                         .id("123")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpFreewheelSSP.of("1")))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpFreewheelSSP.of(
+                                "zoneId", "customSiteSectionId", "networkId", "profileId")))))
                 .build();
     }
 

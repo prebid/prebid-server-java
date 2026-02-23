@@ -342,7 +342,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
 
         and: "Alerts.general metrics should be populated"
         def metrics = privacyPbsService.sendCollectedMetricsRequest()
-        assert metrics["alerts.general"] == 1
+        assert metrics[ALERT_GENERAL] == 1
 
         and: "Bid response should contain seatBid"
         assert response.seatbid.size() == 1

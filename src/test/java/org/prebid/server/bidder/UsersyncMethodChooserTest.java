@@ -58,7 +58,7 @@ public class UsersyncMethodChooserTest extends VertxTest {
                         null,
                         CookieSyncRequest.FilterType.exclude),
                 null);
-        final Usersyncer usersyncer = Usersyncer.of(null, iframeMethod("url"), redirectMethod("url"));
+        final Usersyncer usersyncer = Usersyncer.of(null, iframeMethod("url"), redirectMethod("url"), false, null);
 
         // when
         final UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter)
@@ -93,7 +93,7 @@ public class UsersyncMethodChooserTest extends VertxTest {
                         mapper.createArrayNode().add(BIDDER),
                         CookieSyncRequest.FilterType.exclude),
                 null);
-        final Usersyncer usersyncer = Usersyncer.of(null, iframeMethod("url"), redirectMethod("url"));
+        final Usersyncer usersyncer = Usersyncer.of(null, iframeMethod("url"), redirectMethod("url"), false, null);
 
         // when
         final UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter)
@@ -111,7 +111,7 @@ public class UsersyncMethodChooserTest extends VertxTest {
                         new TextNode("*"),
                         CookieSyncRequest.FilterType.exclude),
                 null);
-        final Usersyncer usersyncer = Usersyncer.of(null, iframeMethod("url"), redirectMethod("url"));
+        final Usersyncer usersyncer = Usersyncer.of(null, iframeMethod("url"), redirectMethod("url"), false, null);
 
         // when
         final UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter)
@@ -180,7 +180,7 @@ public class UsersyncMethodChooserTest extends VertxTest {
                         mapper.createArrayNode().add("anotherbidder"),
                         CookieSyncRequest.FilterType.include),
                 null);
-        final Usersyncer usersyncer = Usersyncer.of(null, iframeMethod("url"), redirectMethod("url"));
+        final Usersyncer usersyncer = Usersyncer.of(null, iframeMethod("url"), redirectMethod("url"), false, null);
 
         // when
         final UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter)
@@ -231,7 +231,7 @@ public class UsersyncMethodChooserTest extends VertxTest {
                         new IntNode(1),
                         CookieSyncRequest.FilterType.include),
                 null);
-        final Usersyncer usersyncer = Usersyncer.of(null, iframeMethod("url"), redirectMethod("url"));
+        final Usersyncer usersyncer = Usersyncer.of(null, iframeMethod("url"), redirectMethod("url"), false, null);
 
         // when
         final UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter).choose(usersyncer, BIDDER);
@@ -248,7 +248,7 @@ public class UsersyncMethodChooserTest extends VertxTest {
                         mapper.createArrayNode().add(1),
                         CookieSyncRequest.FilterType.include),
                 null);
-        final Usersyncer usersyncer = Usersyncer.of(null, iframeMethod("url"), redirectMethod("url"));
+        final Usersyncer usersyncer = Usersyncer.of(null, iframeMethod("url"), redirectMethod("url"), false, null);
 
         // when
         final UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter)
@@ -268,7 +268,7 @@ public class UsersyncMethodChooserTest extends VertxTest {
                 CookieSyncRequest.MethodFilter.of(
                         new TextNode("*"),
                         CookieSyncRequest.FilterType.include));
-        final Usersyncer usersyncer = Usersyncer.of(null, iframeMethod("url"), redirectMethod("url"));
+        final Usersyncer usersyncer = Usersyncer.of(null, iframeMethod("url"), redirectMethod("url"), false, null);
 
         // when
         final UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter)
@@ -288,7 +288,7 @@ public class UsersyncMethodChooserTest extends VertxTest {
                 CookieSyncRequest.MethodFilter.of(
                         new TextNode("*"),
                         CookieSyncRequest.FilterType.exclude));
-        final Usersyncer usersyncer = Usersyncer.of(null, iframeMethod("url"), redirectMethod("url"));
+        final Usersyncer usersyncer = Usersyncer.of(null, iframeMethod("url"), redirectMethod("url"), false, null);
 
         // when
         final UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter)
@@ -329,7 +329,7 @@ public class UsersyncMethodChooserTest extends VertxTest {
     }
 
     private Usersyncer iframeUsersyncer(String url) {
-        return Usersyncer.of(null, iframeMethod(url), null);
+        return Usersyncer.of(null, iframeMethod(url), null, false, null);
     }
 
     private UsersyncMethod iframeMethod(String url) {

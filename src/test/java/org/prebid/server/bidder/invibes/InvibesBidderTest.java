@@ -86,6 +86,23 @@ public class InvibesBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldCreateCorrectURLForNullZone() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                impBuilder -> impBuilder.banner(Banner.builder().h(BANNER_H).w(BANNER_W).build()),
+                ExtImpInvibes.of("12", null, InvibesDebug.of("test", true)));
+
+        // when
+        final Result<List<HttpRequest<InvibesBidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getValue().getFirst().getUri()).isEqualTo("https://bid.videostep.com/bid/");
+    }
+
+    @Test
     public void makeHttpRequestsShouldCreateCorrectURLFor0Zone() {
         // given
         final BidRequest bidRequest = givenBidRequest(

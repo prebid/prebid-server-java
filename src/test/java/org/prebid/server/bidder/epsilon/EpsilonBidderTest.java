@@ -6,6 +6,7 @@ import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
@@ -21,12 +22,15 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
+import org.prebid.server.bidder.model.CompositeBidderResponse;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.epsilon.ExtImpEpsilon;
+import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 
 import java.math.BigDecimal;
 import java.util.Collections;
@@ -514,6 +518,65 @@ public class EpsilonBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldSetImpBidFloorFromImpExtIfPresentAndImpBidFloorIsInvalid() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.bidfloor(BigDecimal.valueOf(-1.00)),
+                extBuilder -> extBuilder.bidfloor(BigDecimal.ONE));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBidfloor)
+                .containsExactly(BigDecimal.ONE);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotSetImpBidFloorFromImpExt() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.bidfloor(BigDecimal.valueOf(-1.00)),
+                extBuilder -> extBuilder.bidfloor(BigDecimal.valueOf(-2.00)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBidfloor)
+                .containsExactly(BigDecimal.valueOf(-1.00));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnConvertedBidFloorCurrency() {
+        // given
+        given(currencyConversionService.convertCurrency(any(), any(), anyString(), anyString()))
+                .willReturn(BigDecimal.ONE);
+
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.bidfloor(BigDecimal.TEN).bidfloorcur("EUR"));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBidfloor, Imp::getBidfloorcur)
+                .containsOnly(AssertionsForClassTypes.tuple(BigDecimal.ONE, "USD"));
+    }
+
+    @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
@@ -654,62 +717,55 @@ public class EpsilonBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSetImpBidFloorFromImpExtIfPresentAndImpBidFloorIsInvalid() {
+    public void makeBidsShouldReturnResultForNativeBidsWithExpectedFields() throws JsonProcessingException {
         // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.bidfloor(BigDecimal.valueOf(-1.00)),
-                extBuilder -> extBuilder.bidfloor(BigDecimal.ONE));
+        final String nativeRequestString =
+                "{\"ver\":\"1.2\",\"assets\":[{\"id\":1,\"required\":1,\"title\":{\"len\":80}}";
+        final String nativeResponseString =
+                "\"native\"{\"assets\": [{\"id\": 1, \"title\": {\"text\": \"Native test (Title)\"}}], "
+                        + "\"link\": {\"url\": \"https://www.epsilon.com/\"}, "
+                        + "\"imptrackers\":[\"https://iad-usadmm.dotomi.com/event\"],\"jstracker\":\"\"}";
+        final BidRequest bidRequest = BidRequest.builder()
+                .id("native-test")
+                .imp(singletonList(Imp.builder()
+                        .id("impid-0")
+                        .xNative(Native.builder()
+                                .request(nativeRequestString)
+                                .ver("1.2")
+                                .build())
+                        .build()))
+                .build();
+
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
+                mapper.writeValueAsString(BidResponse.builder()
+                .seatbid(singletonList(SeatBid.builder()
+                        .bid(singletonList(Bid.builder()
+                                .price(BigDecimal.ONE)
+                                .impid("impid-0")
+                                .adm(nativeResponseString)
+                                .mtype(4)
+                                .cat(singletonList("IAB3"))
+                                .build()))
+                        .build()))
+                .cur("USD")
+                .ext(ExtBidResponse.builder().build())
+                .build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getBidfloor)
-                .containsExactly(BigDecimal.ONE);
-    }
-
-    @Test
-    public void makeHttpRequestsShouldNotSetImpBidFloorFromImpExt() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.bidfloor(BigDecimal.valueOf(-1.00)),
-                extBuilder -> extBuilder.bidfloor(BigDecimal.valueOf(-2.00)));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getBidfloor)
-                .containsExactly(BigDecimal.valueOf(-1.00));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnConvertedBidFloorCurrency() {
-        // given
-        given(currencyConversionService.convertCurrency(any(), any(), anyString(), anyString()))
-                .willReturn(BigDecimal.ONE);
-
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.bidfloor(BigDecimal.TEN).bidfloorcur("EUR"));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getBidfloor, Imp::getBidfloorcur)
-                .containsOnly(AssertionsForClassTypes.tuple(BigDecimal.ONE, "USD"));
+        assertThat(result.getBids()).hasSize(1)
+                .containsOnly(BidderBid.of(
+                        Bid.builder()
+                                .impid("impid-0")
+                                .price(BigDecimal.ONE)
+                                .adm(nativeResponseString)
+                                .cat(singletonList("IAB3"))
+                                .mtype(4)
+                                .build(),
+                        BidType.xNative, "USD"));
     }
 
     private static BidRequest givenBidRequest(

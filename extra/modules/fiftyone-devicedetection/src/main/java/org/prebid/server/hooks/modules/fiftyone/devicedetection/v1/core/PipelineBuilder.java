@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class PipelineBuilder {
+
     private static final Collection<String> PROPERTIES_USED = List.of(
             "devicetype",
             "hardwarevendor",
@@ -199,5 +200,4 @@ public class PipelineBuilder {
             pipelineBuilder.setDrift(drift);
         }
     }
-
 }

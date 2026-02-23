@@ -324,4 +324,3 @@ public class OrakiBidderTest extends VertxTest {
                 JsonNode.class));
     }
 }
-

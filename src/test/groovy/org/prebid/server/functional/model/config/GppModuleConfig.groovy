@@ -4,6 +4,10 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import groovy.transform.ToString
 import org.prebid.server.functional.model.request.GppSectionId
 
+import static org.prebid.server.functional.model.config.ConfigCase.CAMEL_CASE
+import static org.prebid.server.functional.model.config.ConfigCase.KEBAB_CASE
+import static org.prebid.server.functional.model.config.ConfigCase.SNAKE_CASE
+
 @ToString(includeNames = true, ignoreNulls = true)
 class GppModuleConfig {
 
@@ -23,34 +27,31 @@ class GppModuleConfig {
     List<GppSectionId> skipSidsSnakeCase
     @JsonProperty("skip-sids")
     List<GppSectionId> skipSidsKebabCase
+    Boolean allowPersonalDataConsent2
+    @JsonProperty("allow_personal_data_consent_2")
+    Boolean allowPersonalDataConsent2SnakeCase
+    @JsonProperty("allow-personal-data-consent-2")
+    Boolean allowPersonalDataConsent2KebabCase
 
     static GppModuleConfig getDefaultModuleConfig(ActivityConfig activityConfig = ActivityConfig.configWithDefaultRestrictRules,
                                                   List<GppSectionId> sids = [GppSectionId.US_NAT_V1],
-                                                  Boolean normalizeFlags = true) {
-        new GppModuleConfig().tap {
-            it.activityConfig = [activityConfig]
-            it.sids = sids
-            it.normalizeFlags = normalizeFlags
-        }
-    }
-
-    static GppModuleConfig getDefaultModuleConfigSnakeCase(ActivityConfig activityConfig = ActivityConfig.configWithDefaultRestrictRules,
-                                                  List<GppSectionId> sids = [GppSectionId.US_NAT_V1],
-                                                  Boolean normalizeFlags = true) {
-        new GppModuleConfig().tap {
-            it.activityConfigSnakeCase = [activityConfig]
-            it.sids = sids
-            it.normalizeFlagsSnakeCase = normalizeFlags
-        }
-    }
-
-    static GppModuleConfig getDefaultModuleConfigKebabCase(ActivityConfig activityConfig = ActivityConfig.configWithDefaultRestrictRules,
-                                                           List<GppSectionId> sids = [GppSectionId.US_NAT_V1],
-                                                           Boolean normalizeFlags = true) {
-        new GppModuleConfig().tap {
-            it.activityConfigKebabCase = [activityConfig]
-            it.sids = sids
-            it.normalizeFlagsKebabCase = normalizeFlags
+                                                  Boolean normalizeFlags = true,
+                                                  ConfigCase configCase = CAMEL_CASE) {
+        new GppModuleConfig(sids: sids).tap {
+            switch (configCase) {
+                case CAMEL_CASE -> {
+                    it.activityConfig = [activityConfig]
+                    it.normalizeFlags = normalizeFlags
+                }
+                case KEBAB_CASE -> {
+                    it.activityConfigKebabCase = [activityConfig]
+                    it.normalizeFlagsKebabCase = normalizeFlags
+                }
+                case SNAKE_CASE -> {
+                    it.activityConfigSnakeCase = [activityConfig]
+                    it.normalizeFlagsSnakeCase = normalizeFlags
+                }
+            }
         }
     }
 }

@@ -93,7 +93,7 @@ Following metrics are collected and submitted if account is configured with `bas
 Following metrics are collected and submitted if account is configured with `detailed` verbosity:
 - `account.<account-id>.requests.type.(openrtb2-web,openrtb-app,amp,legacy)` - number of requests received from account with `<account-id>` broken down by type of incoming request
 - `account.<account-id>.debug_requests` - number of requests received from account with `<account-id>` broken down by type of incoming request (when debug mode is enabled)
-- `account.<account-id>.requests.rejected` - number of rejected requests caused by incorrect `accountId`
+- `account.<account-id>.requests.rejection` - number of rejection requests caused by incorrect `accountId`
 - `account.<account-id>.requests.disabled_bidder` - number of disabled bidders received within requests from account with `<account-id>`
 - `account.<account-id>.requests.unknown_bidder` - number of unknown bidder names received within requests from account with `<account-id>`
 - `account.<account-id>.adapter.<bidder-name>.request_time` - timer tracking how long did it take to make a request to `<bidder-name>` when incoming request was from `<account-id>` 
@@ -140,7 +140,7 @@ Following metrics are collected and submitted if account is configured with `det
 - `analytics.<reporter-name>.(auction|amp|video|cookie_sync|event|setuid).ok` - number of succeeded processed event requests
 - `analytics.<reporter-name>.(auction|amp|video|cookie_sync|event|setuid).timeout` - number of event requests, failed with timeout cause
 - `analytics.<reporter-name>.(auction|amp|video|cookie_sync|event|setuid).err` - number of event requests, failed with errors
-- `analytics.<reporter-name>.(auction|amp|video|cookie_sync|event|setuid).badinput` - number of event requests, rejected with bad input cause
+- `analytics.<reporter-name>.(auction|amp|video|cookie_sync|event|setuid).badinput` - number of event requests, rejection with bad input cause
 
 ## Modules metrics
 - `modules.module.<module>.stage.<stage>.hook.<hook>.call` - number of times the hook is called

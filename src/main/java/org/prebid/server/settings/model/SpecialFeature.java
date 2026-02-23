@@ -19,4 +19,3 @@ public class SpecialFeature {
     @JsonAlias("vendor-exceptions")
     List<String> vendorExceptions;
 }
-

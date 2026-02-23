@@ -12,6 +12,7 @@ There are two ways to configure application settings: database and file. This do
 - `auction.truncate-target-attr` - Maximum targeting attributes size. Values between 1 and 255.
 - `auction.default-integration` - Default integration to assume.
 - `auction.debug-allow` - enables debug output in the auction response. Default `true`.
+- `auction.impression-limit` - a max number of impressions allowed for the auction, impressions that exceed this limit will be dropped, 0 means no limit.
 - `auction.bid-validations.banner-creative-max-size` - Overrides creative max size validation for banners. Valid values
   are:
     - "skip": don't do anything about creative max size for this publisher
@@ -25,6 +26,11 @@ There are two ways to configure application settings: database and file. This do
 - `auction.bidadjustments.mediatype.*.*.*[].value` - value of the bid adjustment
 - `auction.bidadjustments.mediatype.*.*.*[].currency` - currency of the bid adjustment
 - `auction.events.enabled` - enables events for account if true
+- `auction.bid-rounding` - bid rounding options are:
+  - **down** - rounding down to the lower price bucket
+  - **up** - rounding up to the higher price bucket
+  - **timesplit** - 50% of the time rounding down to the lower PB and 50% of the time rounding up to the higher price bucket
+  - **true** - if the price >= 50% of the range, rounding up to the higher price bucket, otherwise rounding down
 - `auction.price-floors.enabled` - enables price floors for account if true. Defaults to true.
 - `auction.price-floors.fetch.enabled`- enables data fetch for price floors for account if true. Defaults to false.
 - `auction.price-floors.fetch.url` - url to fetch price floors data from.
@@ -50,6 +56,7 @@ Keep in mind following restrictions:
 - `auction.preferredmediatype.<bidder>.<media-type>` - <media-type> that will be left for <bidder> that doesn't support multi-format. Other media types will be removed. Acceptable values: `banner`, `video`, `audio`, `native`.
 - `auction.privacysandbox.cookiedeprecation.enabled` - boolean that turns on setting and reading of the Chrome Privacy Sandbox testing label header. Defaults to false.
 - `auction.privacysandbox.cookiedeprecation.ttlsec` - if the above setting is true, how long to set the receive-cookie-deprecation cookie's expiration
+- `auction.cache.enabled` - enables bids caching for account if true. Defaults to true.
 - `privacy.gdpr.enabled` - enables gdpr verifications if true. Has higher priority than configuration in
   application.yaml.
 - `privacy.gdpr.eea-countries` - overrides the host-level list of 2-letter country codes where TCF processing is applied
@@ -277,8 +284,8 @@ The general idea is that you'll place all the account-specific settings in a sep
 ```yaml
 settings:
   s3:
-      accessKeyId: <S3 access key>
-      secretAccessKey: <S3 access key>
+      accessKeyId: <S3 access key> # optional
+      secretAccessKey: <S3 access key> #optional
       endpoint: <endpoint> # http://s3.storage.com
       bucket: <bucket name> # prebid-application-settings
       region: <region name> # if not provided AWS_GLOBAL will be used. Example value: 'eu-central-1'
@@ -297,6 +304,14 @@ settings:
           refresh-rate: 900000 # Refresh every 15 minutes
           timeout: 5000
 ```
+
+If `accessKeyId` and `secretAccessKey` are not specified in the Prebid Server configuration  then AWS credentials will be looked up in this order:
+- Java System Properties - `aws.accessKeyId` and `aws.secretAccessKey`
+- Environment Variables - `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`
+- Web Identity Token credentials from system properties or environment variables
+- Credential profiles file at the default location (`~/.aws/credentials`) shared by all AWS SDKs and the AWS CLI
+- Credentials delivered through the Amazon EC2 container service if "AWS_CONTAINER_CREDENTIALS_RELATIVE_URI" environment variable is set and security manager has permission to access the variable,
+- Instance profile credentials delivered through the Amazon EC2 metadata service
 
 ### File format
 

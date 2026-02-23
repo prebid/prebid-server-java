@@ -21,6 +21,8 @@ public class BidInfo {
 
     String bidder;
 
+    String seat;
+
     BidType bidType;
 
     CacheInfo cacheInfo;
@@ -34,6 +36,8 @@ public class BidInfo {
     Integer ttl;
 
     Integer vastTtl;
+
+    Integer rank;
 
     public String getBidId() {
         final ObjectNode extNode = bid != null ? bid.getExt() : null;

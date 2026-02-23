@@ -7,6 +7,8 @@ adapters:
       iionads:
         enabled: false
         endpoint: http://ads-pbs.iionads.com/openrtb/{{PublisherID}}?host={{Host}}
+        meta-info:
+          vendor-id: 1358
       evtech:
         enabled: false
         endpoint: http://ads-pbs.direct.e-volution.ai/openrtb/{{PublisherID}}?host={{Host}}
@@ -41,6 +43,21 @@ adapters:
       streamlyn:
         enabled: false
         endpoint: http://rtba.bidsxchange.com/openrtb/{{PublisherID}}?host={{Host}}
+      streamvision:
+        enabled: false
+        endpoint: http://ads-pbs.adops.streamvisionmedia.com/openrtb/{{PublisherID}}?host={{Host}}
+      orangeclickmedia:
+        enabled: false
+        endpoint: http://ads-pbs.scotty.orangeclickmedia.com/openrtb/{{PublisherID}}?host={{Host}}
+      velonium:
+        enabled: false
+        endpoint: http://ads-pbs.adxvel.com/openrtb/{{PublisherID}}?host={{Host}}
+      adtg_org:
+        enabled: false
+        endpoint: http://ads-pbs.rtb.adtarget.org/openrtb/{{PublisherID}}?host={{Host}}
+      performist:
+        enabled: false
+        endpoint: http://ads-pbs.performserv.com/openrtb/{{PublisherID}}
     meta-info:
       maintainer-email: engineering@project-limelight.com
       app-media-types:

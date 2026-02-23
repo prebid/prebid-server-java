@@ -1,6 +1,5 @@
 package org.prebid.server.cache.model;
 
-import lombok.AllArgsConstructor;
 import lombok.Value;
 
 /**
@@ -8,17 +7,10 @@ import lombok.Value;
  * <p>
  * Used for representing configuration.
  */
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class CacheTtl {
-
-    private static final CacheTtl EMPTY = CacheTtl.of(null, null);
 
     Integer bannerCacheTtl;
 
     Integer videoCacheTtl;
-
-    public static CacheTtl empty() {
-        return EMPTY;
-    }
 }

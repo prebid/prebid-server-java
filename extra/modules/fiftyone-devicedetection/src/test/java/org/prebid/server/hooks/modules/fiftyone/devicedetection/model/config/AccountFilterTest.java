@@ -7,10 +7,8 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class AccountFilterTest {
-    private static final List<String> TEST_ALLOW_LIST = List.of(
-            "sister",
-            "cousin"
-    );
+
+    private static final List<String> TEST_ALLOW_LIST = List.of("sister", "cousin");
 
     @Test
     public void shouldReturnAllowList() {

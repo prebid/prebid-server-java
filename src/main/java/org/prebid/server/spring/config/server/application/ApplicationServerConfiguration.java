@@ -34,19 +34,21 @@ import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.handler.BidderParamHandler;
 import org.prebid.server.handler.CookieSyncHandler;
 import org.prebid.server.handler.ExceptionHandler;
+import org.prebid.server.handler.GetVtrackHandler;
 import org.prebid.server.handler.GetuidsHandler;
 import org.prebid.server.handler.NoCacheHandler;
 import org.prebid.server.handler.NotificationEventHandler;
 import org.prebid.server.handler.OptoutHandler;
 import org.prebid.server.handler.SetuidHandler;
 import org.prebid.server.handler.StatusHandler;
-import org.prebid.server.handler.VtrackHandler;
+import org.prebid.server.handler.PostVtrackHandler;
 import org.prebid.server.handler.info.BidderDetailsHandler;
 import org.prebid.server.handler.info.BiddersHandler;
 import org.prebid.server.handler.info.filters.BaseOnlyBidderInfoFilterStrategy;
 import org.prebid.server.handler.info.filters.BidderInfoFilterStrategy;
 import org.prebid.server.handler.info.filters.EnabledOnlyBidderInfoFilterStrategy;
 import org.prebid.server.handler.openrtb2.AmpHandler;
+import org.prebid.server.handler.openrtb2.AuctionHandler;
 import org.prebid.server.handler.openrtb2.VideoHandler;
 import org.prebid.server.health.HealthChecker;
 import org.prebid.server.health.PeriodicHealthChecker;
@@ -150,7 +152,7 @@ public class ApplicationServerConfiguration {
 
             httpServerOptions
                     .setSsl(true)
-                    .setKeyStoreOptions(jksOptions);
+                    .setKeyCertOptions(jksOptions);
         }
 
         return httpServerOptions;
@@ -194,7 +196,8 @@ public class ApplicationServerConfiguration {
 
     @Bean
     CorsHandler corsHandler() {
-        return CorsHandler.create(".*")
+        return CorsHandler.create()
+                .addRelativeOrigin(".*")
                 .allowCredentials(true)
                 .allowedHeaders(new HashSet<>(Arrays.asList(
                         HttpUtil.ORIGIN_HEADER.toString(),
@@ -206,7 +209,7 @@ public class ApplicationServerConfiguration {
     }
 
     @Bean
-    org.prebid.server.handler.openrtb2.AuctionHandler openrtbAuctionHandler(
+    AuctionHandler openrtbAuctionHandler(
             ExchangeService exchangeService,
             SkippedAuctionService skippedAuctionService,
             AuctionRequestFactory auctionRequestFactory,
@@ -219,7 +222,7 @@ public class ApplicationServerConfiguration {
             HookStageExecutor hookStageExecutor,
             JacksonMapper mapper) {
 
-        return new org.prebid.server.handler.openrtb2.AuctionHandler(
+        return new AuctionHandler(
                 logSamplingRate,
                 auctionRequestFactory,
                 exchangeService,
@@ -368,7 +371,7 @@ public class ApplicationServerConfiguration {
     }
 
     @Bean
-    VtrackHandler vtrackHandler(
+    PostVtrackHandler postVtrackHandler(
             @Value("${vtrack.default-timeout-ms}") int defaultTimeoutMs,
             @Value("${vtrack.allow-unknown-bidder}") boolean allowUnknownBidder,
             @Value("${vtrack.modify-vast-for-unknown-bidder}") boolean modifyVastForUnknownBidder,
@@ -378,7 +381,7 @@ public class ApplicationServerConfiguration {
             TimeoutFactory timeoutFactory,
             JacksonMapper mapper) {
 
-        return new VtrackHandler(
+        return new PostVtrackHandler(
                 defaultTimeoutMs,
                 allowUnknownBidder,
                 modifyVastForUnknownBidder,
@@ -387,6 +390,14 @@ public class ApplicationServerConfiguration {
                 coreCacheService,
                 timeoutFactory,
                 mapper);
+    }
+
+    @Bean
+    GetVtrackHandler getVtrackHandler(@Value("${vtrack.default-timeout-ms}") int defaultTimeoutMs,
+                                      CoreCacheService coreCacheService,
+                                      TimeoutFactory timeoutFactory) {
+
+        return new GetVtrackHandler(defaultTimeoutMs, coreCacheService, timeoutFactory);
     }
 
     @Bean

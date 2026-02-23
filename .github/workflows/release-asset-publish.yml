@@ -2,7 +2,7 @@ name: Publish release .jar
 
 on:
   workflow_run:
-    workflows: [Publish release]
+    workflows: [ Publish release ]
     types:
       - completed
 
@@ -14,9 +14,9 @@ jobs:
       matrix:
         java: [ 21 ]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Set up JDK
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           cache: 'maven'

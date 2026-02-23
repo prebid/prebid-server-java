@@ -50,8 +50,6 @@ public class AlgorixBidder implements Bidder<BidRequest> {
     private static final String URL_SID_MACRO = "{{SID}}";
     private static final String URL_TOKEN_MACRO = "{{TOKEN}}";
 
-    private static final int FIRST_INDEX = 0;
-
     private final String endpointUrl;
     private final JacksonMapper mapper;
 

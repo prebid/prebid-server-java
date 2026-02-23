@@ -1,11 +1,9 @@
 package org.prebid.server.proto.openrtb.ext.request.cpmstar;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
 import lombok.Value;
 
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class ExtImpCpmStar {
 
     @JsonProperty("placementId")
@@ -14,4 +12,3 @@ public class ExtImpCpmStar {
     @JsonProperty("subpoolId")
     Integer subPoolId;
 }
-

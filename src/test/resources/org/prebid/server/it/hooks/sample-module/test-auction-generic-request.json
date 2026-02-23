@@ -1,0 +1,50 @@
+{
+  "id": "tid",
+  "imp": [
+    {
+      "id": "impId1",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          },
+          {
+            "w": 300,
+            "h": 600
+          }
+        ]
+      },
+      "ext": {
+        "generic": {
+        }
+      }
+    }
+  ],
+  "device": {
+    "language": "en"
+  },
+  "site": {
+    "page": "http://www.example.com",
+    "publisher": {
+      "id": "6001"
+    }
+  },
+  "at": 1,
+  "tmax": 5000,
+  "cur": [
+    "USD"
+  ],
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  },
+  "ext": {
+    "prebid": {
+      "debug": 1,
+      "trace": "verbose",
+      "auctiontimestamp": 0
+    }
+  }
+}

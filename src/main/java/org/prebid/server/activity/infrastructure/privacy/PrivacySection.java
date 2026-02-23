@@ -1,22 +1,22 @@
 package org.prebid.server.activity.infrastructure.privacy;
 
-import com.iab.gpp.encoder.section.UsCaV1;
-import com.iab.gpp.encoder.section.UsCoV1;
-import com.iab.gpp.encoder.section.UsCtV1;
-import com.iab.gpp.encoder.section.UsNatV1;
-import com.iab.gpp.encoder.section.UsUtV1;
-import com.iab.gpp.encoder.section.UsVaV1;
+import com.iab.gpp.encoder.section.UsCa;
+import com.iab.gpp.encoder.section.UsCo;
+import com.iab.gpp.encoder.section.UsCt;
+import com.iab.gpp.encoder.section.UsNat;
+import com.iab.gpp.encoder.section.UsUt;
+import com.iab.gpp.encoder.section.UsVa;
 
 import java.util.Set;
 
 public enum PrivacySection {
 
-    NATIONAL(UsNatV1.ID),
-    CALIFORNIA(UsCaV1.ID),
-    VIRGINIA(UsVaV1.ID),
-    COLORADO(UsCoV1.ID),
-    UTAH(UsUtV1.ID),
-    CONNECTICUT(UsCtV1.ID);
+    NATIONAL(UsNat.ID),
+    CALIFORNIA(UsCa.ID),
+    VIRGINIA(UsVa.ID),
+    COLORADO(UsCo.ID),
+    UTAH(UsUt.ID),
+    CONNECTICUT(UsCt.ID);
 
     public static final Set<PrivacySection> US_PRIVACY_SECTIONS = Set.of(
             NATIONAL,

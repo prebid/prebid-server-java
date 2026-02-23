@@ -2,7 +2,6 @@ package org.prebid.server.proto.openrtb.ext.request;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
 import lombok.Value;
 
 import java.util.List;
@@ -10,8 +9,7 @@ import java.util.List;
 /**
  * Defines the contract for bidrequest.ext.prebid.data
  */
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class ExtRequestPrebidData {
 
     /**

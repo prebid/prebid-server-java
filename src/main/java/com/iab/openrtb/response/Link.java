@@ -1,7 +1,6 @@
 package com.iab.openrtb.response;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import lombok.AllArgsConstructor;
 import lombok.Value;
 
 import java.util.List;
@@ -9,8 +8,7 @@ import java.util.List;
 /**
  * Used for ‘call to action’ assets, or other links from the Native ad.
  */
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class Link {
 
     /**

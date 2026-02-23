@@ -26,8 +26,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
+import org.prebid.server.auction.model.BidRejection;
+import org.prebid.server.auction.model.ImpRejection;
 import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderSeatBid;
@@ -84,7 +87,6 @@ import org.prebid.server.hooks.v1.exitpoint.ExitpointHook;
 import org.prebid.server.hooks.v1.exitpoint.ExitpointPayload;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.Endpoint;
-import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountHooksConfiguration;
 import org.prebid.server.settings.model.HooksAdminConfig;
@@ -95,8 +97,10 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 
 import static java.util.Arrays.asList;
@@ -117,7 +121,15 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.prebid.server.assertion.FutureAssertion.assertThat;
+import static org.prebid.server.auction.model.BidRejectionReason.REQUEST_BLOCKED_GENERAL;
+import static org.prebid.server.auction.model.BidRejectionReason.REQUEST_BLOCKED_OPTIMIZED;
+import static org.prebid.server.auction.model.BidRejectionReason.REQUEST_BLOCKED_PRIVACY;
+import static org.prebid.server.auction.model.BidRejectionReason.REQUEST_BLOCKED_UNACCEPTABLE_CURRENCY;
+import static org.prebid.server.auction.model.BidRejectionReason.REQUEST_BLOCKED_UNSUPPORTED_MEDIA_TYPE;
 import static org.prebid.server.hooks.v1.PayloadUpdate.identity;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 @ExtendWith(MockitoExtension.class)
 @ExtendWith(VertxExtension.class)
@@ -203,9 +215,13 @@ public class HookStageExecutorTest extends VertxTest {
         final CaseInsensitiveMultiMap headers = CaseInsensitiveMultiMap.empty();
         final String body = "body";
 
+        final AuctionContext givenAuctionContext = AuctionContext.builder()
+                .hookExecutionContext(HookExecutionContext.of(Endpoint.openrtb2_auction))
+                .build();
+
         // when
         final Future<HookStageExecutionResult<EntrypointPayload>> future = executor.executeEntrypointStage(
-                queryParams, headers, body, HookExecutionContext.of(Endpoint.openrtb2_auction));
+                queryParams, headers, body, givenAuctionContext);
 
         // then
         assertThat(future).isSucceeded();
@@ -275,13 +291,16 @@ public class HookStageExecutorTest extends VertxTest {
                         EndpointExecutionPlan.of(singletonMap(Stage.entrypoint, execPlanTwoGroupsTwoHooksEach())))));
 
         final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final AuctionContext givenAuctionContext = AuctionContext.builder()
+                .hookExecutionContext(hookExecutionContext)
+                .build();
 
         // when
         final Future<HookStageExecutionResult<EntrypointPayload>> future = executor.executeEntrypointStage(
                 CaseInsensitiveMultiMap.empty(),
                 CaseInsensitiveMultiMap.empty(),
                 "body",
-                hookExecutionContext);
+                givenAuctionContext);
 
         // then
         future.onComplete(context.succeeding(result -> {
@@ -357,13 +376,16 @@ public class HookStageExecutorTest extends VertxTest {
                 executionPlan(emptyMap()));
 
         final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_amp);
+        final AuctionContext givenAuctionContext = AuctionContext.builder()
+                .hookExecutionContext(hookExecutionContext)
+                .build();
 
         // when
         final Future<HookStageExecutionResult<EntrypointPayload>> future = executor.executeEntrypointStage(
                 CaseInsensitiveMultiMap.empty(),
                 CaseInsensitiveMultiMap.empty(),
                 "body",
-                hookExecutionContext);
+                givenAuctionContext);
 
         // then
         future.onComplete(context.succeeding(result -> {
@@ -389,13 +411,16 @@ public class HookStageExecutorTest extends VertxTest {
                         EndpointExecutionPlan.of(emptyMap()))));
 
         final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final AuctionContext givenAuctionContext = AuctionContext.builder()
+                .hookExecutionContext(hookExecutionContext)
+                .build();
 
         // when
         final Future<HookStageExecutionResult<EntrypointPayload>> future = executor.executeEntrypointStage(
                 CaseInsensitiveMultiMap.empty(),
                 CaseInsensitiveMultiMap.empty(),
                 "body",
-                hookExecutionContext);
+                givenAuctionContext);
 
         // then
         future.onComplete(context.succeeding(result -> {
@@ -454,16 +479,20 @@ public class HookStageExecutorTest extends VertxTest {
                 vertx,
                 clock,
                 jacksonMapper,
-                false);
+                false,
+                0.0);
 
         final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final AuctionContext givenAuctionContext = AuctionContext.builder()
+                .hookExecutionContext(hookExecutionContext)
+                .build();
 
         // when
         final Future<HookStageExecutionResult<EntrypointPayload>> future = executor.executeEntrypointStage(
                 CaseInsensitiveMultiMap.empty(),
                 CaseInsensitiveMultiMap.empty(),
                 "body",
-                hookExecutionContext);
+                givenAuctionContext);
 
         // then
         future.onComplete(context.succeeding(result -> {
@@ -511,13 +540,16 @@ public class HookStageExecutorTest extends VertxTest {
                         EndpointExecutionPlan.of(singletonMap(Stage.entrypoint, execPlanTwoGroupsTwoHooksEach())))));
 
         final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final AuctionContext givenAuctionContext = AuctionContext.builder()
+                .hookExecutionContext(hookExecutionContext)
+                .build();
 
         // when
         final Future<HookStageExecutionResult<EntrypointPayload>> future = executor.executeEntrypointStage(
                 CaseInsensitiveMultiMap.empty(),
                 CaseInsensitiveMultiMap.empty(),
                 "body",
-                hookExecutionContext);
+                givenAuctionContext);
 
         // then
         future.onComplete(context.succeeding(result -> {
@@ -618,6 +650,9 @@ public class HookStageExecutorTest extends VertxTest {
                         payload.queryParams(), payload.headers(), payload.body() + "-jkl"))));
 
         final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final AuctionContext givenAuctionContext = AuctionContext.builder()
+                .hookExecutionContext(hookExecutionContext)
+                .build();
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
@@ -629,7 +664,7 @@ public class HookStageExecutorTest extends VertxTest {
                 CaseInsensitiveMultiMap.empty(),
                 CaseInsensitiveMultiMap.empty(),
                 "body",
-                hookExecutionContext);
+                givenAuctionContext);
 
         // then
         future.onComplete(context.succeeding(result -> {
@@ -654,7 +689,7 @@ public class HookStageExecutorTest extends VertxTest {
                                             assertThat(hookOutcome.getStatus())
                                                     .isEqualTo(ExecutionStatus.execution_failure);
                                             assertThat(hookOutcome.getMessage()).isEqualTo("Failed after a while");
-                                            assertThat(hookOutcome.getExecutionTime()).isBetween(50L, 70L);
+                                            assertThat(hookOutcome.getExecutionTime()).isBetween(50L, 80L);
                                         });
 
                                         assertThat(group0Hooks.get(1)).satisfies(hookOutcome -> {
@@ -722,13 +757,16 @@ public class HookStageExecutorTest extends VertxTest {
                         EndpointExecutionPlan.of(singletonMap(Stage.entrypoint, execPlanTwoGroupsTwoHooksEach())))));
 
         final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final AuctionContext givenAuctionContext = AuctionContext.builder()
+                .hookExecutionContext(hookExecutionContext)
+                .build();
 
         // when
         final Future<HookStageExecutionResult<EntrypointPayload>> future = executor.executeEntrypointStage(
                 CaseInsensitiveMultiMap.empty(),
                 CaseInsensitiveMultiMap.empty(),
                 "body",
-                hookExecutionContext);
+                givenAuctionContext);
 
         // then
         future.onComplete(context.succeeding(result -> {
@@ -810,13 +848,16 @@ public class HookStageExecutorTest extends VertxTest {
                                                         HookId.of("module-beta", "hook-a"))))))))));
 
         final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final AuctionContext givenAuctionContext = AuctionContext.builder()
+                .hookExecutionContext(hookExecutionContext)
+                .build();
 
         // when
         final Future<HookStageExecutionResult<EntrypointPayload>> future = executor.executeEntrypointStage(
                 CaseInsensitiveMultiMap.empty(),
                 CaseInsensitiveMultiMap.empty(),
                 "body",
-                hookExecutionContext);
+                givenAuctionContext);
 
         // then
         future.onComplete(context.succeeding(result -> {
@@ -887,13 +928,16 @@ public class HookStageExecutorTest extends VertxTest {
                         EndpointExecutionPlan.of(singletonMap(Stage.entrypoint, execPlanTwoGroupsTwoHooksEach())))));
 
         final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final AuctionContext givenAuctionContext = AuctionContext.builder()
+                .hookExecutionContext(hookExecutionContext)
+                .build();
 
         // when
         final Future<HookStageExecutionResult<EntrypointPayload>> future = executor.executeEntrypointStage(
                 CaseInsensitiveMultiMap.empty(),
                 CaseInsensitiveMultiMap.empty(),
                 "body",
-                hookExecutionContext);
+                givenAuctionContext);
 
         // then
         future.onComplete(context.succeeding(result -> {
@@ -987,13 +1031,16 @@ public class HookStageExecutorTest extends VertxTest {
                         EndpointExecutionPlan.of(singletonMap(Stage.entrypoint, execPlanTwoGroupsTwoHooksEach())))));
 
         final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final AuctionContext givenAuctionContext = AuctionContext.builder()
+                .hookExecutionContext(hookExecutionContext)
+                .build();
 
         // when
         final Future<HookStageExecutionResult<EntrypointPayload>> future = executor.executeEntrypointStage(
                 CaseInsensitiveMultiMap.empty(),
                 CaseInsensitiveMultiMap.empty(),
                 "body",
-                hookExecutionContext);
+                givenAuctionContext);
 
         // then
         future.onComplete(context.succeeding(result -> {
@@ -1081,13 +1128,16 @@ public class HookStageExecutorTest extends VertxTest {
                                 Stage.entrypoint, execPlanOneGroupOneHook("module-alpha", "hook-a"))))));
 
         final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final AuctionContext givenAuctionContext = AuctionContext.builder()
+                .hookExecutionContext(hookExecutionContext)
+                .build();
 
         // when
         final Future<HookStageExecutionResult<EntrypointPayload>> future = executor.executeEntrypointStage(
                 CaseInsensitiveMultiMap.empty(),
                 CaseInsensitiveMultiMap.empty(),
                 "body",
-                hookExecutionContext);
+                givenAuctionContext);
 
         // then
         future.onComplete(context.succeeding(result -> {
@@ -1135,13 +1185,16 @@ public class HookStageExecutorTest extends VertxTest {
                         EndpointExecutionPlan.of(singletonMap(Stage.entrypoint, execPlanTwoGroupsTwoHooksEach())))));
 
         final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final AuctionContext givenAuctionContext = AuctionContext.builder()
+                .hookExecutionContext(hookExecutionContext)
+                .build();
 
         // when
         final Future<HookStageExecutionResult<EntrypointPayload>> future = executor.executeEntrypointStage(
                 CaseInsensitiveMultiMap.empty(),
                 CaseInsensitiveMultiMap.empty(),
                 "body",
-                hookExecutionContext);
+                givenAuctionContext);
 
         // then
         future.onComplete(context.succeeding(result -> {
@@ -1428,7 +1481,8 @@ public class HookStageExecutorTest extends VertxTest {
                 vertx,
                 clock,
                 jacksonMapper,
-                false);
+                false,
+                0.0);
 
         final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
 
@@ -1545,7 +1599,8 @@ public class HookStageExecutorTest extends VertxTest {
                 vertx,
                 clock,
                 jacksonMapper,
-                true);
+                true,
+                0.0);
 
         final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
 
@@ -1661,6 +1716,119 @@ public class HookStageExecutorTest extends VertxTest {
 
             context.completeNow();
         }));
+    }
+
+    @Test
+    public void shouldExecuteRawAuctionRequestHooksWithAllRejectionsPopulated(VertxTestContext context) {
+        // given
+        givenRawAuctionRequestHook(
+                "module-alpha",
+                "hook-a",
+                immediateHook(InvocationResultUtils.succeeded(
+                        payload -> AuctionRequestPayloadImpl.of(payload.bidRequest().toBuilder().at(1).build()),
+                        Map.of("bidderA", List.of(
+                                        ImpRejection.of("impId1", REQUEST_BLOCKED_OPTIMIZED),
+                                        ImpRejection.of("impId3", REQUEST_BLOCKED_GENERAL)),
+                                "bidderC", List.of(
+                                        ImpRejection.of("impId4", REQUEST_BLOCKED_GENERAL))))));
+
+        givenRawAuctionRequestHook(
+                "module-alpha",
+                "hook-b",
+                immediateHook(InvocationResultUtils.succeeded(
+                        payload -> AuctionRequestPayloadImpl.of(payload.bidRequest().toBuilder().id("id").build()),
+                        Map.of("bidderB", List.of(
+                                        ImpRejection.of("impId2", REQUEST_BLOCKED_PRIVACY),
+                                        ImpRejection.of("impId3", REQUEST_BLOCKED_GENERAL)),
+                                "bidderC", List.of(
+                                        ImpRejection.of("impId4", REQUEST_BLOCKED_GENERAL))))));
+
+        givenRawAuctionRequestHook(
+                "module-beta",
+                "hook-a",
+                immediateHook(InvocationResultUtils.succeeded(
+                        payload -> AuctionRequestPayloadImpl.of(payload.bidRequest().toBuilder().test(1).build()),
+                        Map.of("bidderA", List.of(
+                                        ImpRejection.of("impId1", REQUEST_BLOCKED_UNSUPPORTED_MEDIA_TYPE),
+                                        ImpRejection.of("impId3", REQUEST_BLOCKED_GENERAL)),
+                                "bidderC", List.of(
+                                        ImpRejection.of("impId4", REQUEST_BLOCKED_GENERAL))))));
+
+        givenRawAuctionRequestHook(
+                "module-beta",
+                "hook-b",
+                immediateHook(InvocationResultUtils.succeeded(
+                        payload -> AuctionRequestPayloadImpl.of(payload.bidRequest().toBuilder().tmax(1000L).build()),
+                        Map.of("bidderB", List.of(
+                                        ImpRejection.of("impId2", REQUEST_BLOCKED_UNACCEPTABLE_CURRENCY),
+                                        ImpRejection.of("impId3", REQUEST_BLOCKED_GENERAL)),
+                                "bidderC", List.of(
+                                        ImpRejection.of("impId4", REQUEST_BLOCKED_GENERAL))))));
+
+        final HookStageExecutor executor = createExecutor(
+                executionPlan(singletonMap(
+                        Endpoint.openrtb2_auction,
+                        EndpointExecutionPlan.of(singletonMap(
+                                Stage.raw_auction_request,
+                                execPlanTwoGroupsTwoHooksEach())))));
+
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+
+        // when
+        final AuctionContext givenAuctionContext = AuctionContext.builder()
+                .bidRequest(BidRequest.builder().build())
+                .account(Account.empty("accountId"))
+                .hookExecutionContext(hookExecutionContext)
+                .debugContext(DebugContext.empty())
+                .bidRejectionTrackers(new HashMap<>())
+                .build();
+        final Future<HookStageExecutionResult<AuctionRequestPayload>> future = executor.executeRawAuctionRequestStage(
+                givenAuctionContext);
+
+        // then
+        future.onComplete(context.succeeding(result -> {
+            assertThat(result).isNotNull();
+            assertThat(result.getPayload()).isNotNull().satisfies(payload ->
+                    assertThat(payload.bidRequest()).isEqualTo(BidRequest.builder()
+                            .at(1)
+                            .id("id")
+                            .test(1)
+                            .tmax(1000L)
+                            .build()));
+
+            assertThat(hookExecutionContext.getStageOutcomes())
+                    .hasEntrySatisfying(
+                            Stage.raw_auction_request,
+                            stageOutcomes -> assertThat(stageOutcomes)
+                                    .hasSize(1)
+                                    .extracting(StageExecutionOutcome::getEntity)
+                                    .containsOnly("auction-request"));
+
+            context.completeNow();
+        }));
+
+        final Map<String, BidRejectionTracker> bidRejectionTrackers = givenAuctionContext.getBidRejectionTrackers();
+        assertThat(bidRejectionTrackers.keySet()).containsOnly("bidderA", "bidderB", "bidderC");
+        assertThat(bidRejectionTrackers.get("bidderA").getAllRejected()).containsOnly(
+                entry("impId1", List.of(
+                        ImpRejection.of("bidderA", "impId1", REQUEST_BLOCKED_OPTIMIZED),
+                        ImpRejection.of("bidderA", "impId1", REQUEST_BLOCKED_UNSUPPORTED_MEDIA_TYPE))),
+                entry("impId3", List.of(
+                        ImpRejection.of("bidderA", "impId3", REQUEST_BLOCKED_GENERAL),
+                        ImpRejection.of("bidderA", "impId3", REQUEST_BLOCKED_GENERAL))));
+        assertThat(bidRejectionTrackers.get("bidderB").getAllRejected()).containsOnly(
+                entry("impId2", List.of(
+                        ImpRejection.of("bidderB", "impId2", REQUEST_BLOCKED_UNACCEPTABLE_CURRENCY),
+                        ImpRejection.of("bidderB", "impId2", REQUEST_BLOCKED_PRIVACY))),
+                entry("impId3", List.of(
+                        ImpRejection.of("bidderB", "impId3", REQUEST_BLOCKED_GENERAL),
+                        ImpRejection.of("bidderB", "impId3", REQUEST_BLOCKED_GENERAL))));
+        assertThat(bidRejectionTrackers.get("bidderC").getAllRejected()).containsOnly(
+                entry("impId4", List.of(
+                        ImpRejection.of("bidderC", "impId4", REQUEST_BLOCKED_GENERAL),
+                        ImpRejection.of("bidderC", "impId4", REQUEST_BLOCKED_GENERAL),
+                        ImpRejection.of("bidderC", "impId4", REQUEST_BLOCKED_GENERAL),
+                        ImpRejection.of("bidderC", "impId4", REQUEST_BLOCKED_GENERAL))));
     }
 
     @Test
@@ -2347,7 +2515,7 @@ public class HookStageExecutorTest extends VertxTest {
         final Future<HookStageExecutionResult<BidderResponsePayload>> future1 = executor.executeRawBidderResponseStage(
                 BidderResponse.of(
                         "bidder1",
-                        BidderSeatBid.of(singletonList(BidderBid.of(Bid.builder().build(), BidType.banner, "USD"))),
+                        BidderSeatBid.of(singletonList(BidderBid.of(Bid.builder().build(), banner, "USD"))),
                         0),
                 auctionContext);
         final Future<HookStageExecutionResult<BidderResponsePayload>> future2 = executor.executeRawBidderResponseStage(
@@ -2368,7 +2536,7 @@ public class HookStageExecutorTest extends VertxTest {
                                     .cid("cid")
                                     .adm("adm")
                                     .build(),
-                            BidType.banner,
+                            banner,
                             "USD")));
 
             checkpoint1.flag();
@@ -2407,7 +2575,7 @@ public class HookStageExecutorTest extends VertxTest {
         final Future<HookStageExecutionResult<BidderResponsePayload>> future = executor.executeRawBidderResponseStage(
                 BidderResponse.of(
                         "bidder1",
-                        BidderSeatBid.of(singletonList(BidderBid.of(Bid.builder().build(), BidType.banner, "USD"))),
+                        BidderSeatBid.of(singletonList(BidderBid.of(Bid.builder().build(), banner, "USD"))),
                         0),
                 AuctionContext.builder()
                         .bidRequest(BidRequest.builder().build())
@@ -2504,7 +2672,7 @@ public class HookStageExecutorTest extends VertxTest {
                         BidderResponse.of(
                                 "bidder1",
                                 BidderSeatBid.of(singletonList(
-                                        BidderBid.of(Bid.builder().build(), BidType.banner, "USD"))),
+                                        BidderBid.of(Bid.builder().build(), banner, "USD"))),
                                 0),
                         auctionContext);
         final Future<HookStageExecutionResult<BidderResponsePayload>> future2 =
@@ -2526,7 +2694,7 @@ public class HookStageExecutorTest extends VertxTest {
                                     .cid("cid")
                                     .adm("adm")
                                     .build(),
-                            BidType.banner,
+                            banner,
                             "USD")));
 
             checkpoint1.flag();
@@ -2568,7 +2736,7 @@ public class HookStageExecutorTest extends VertxTest {
                         BidderResponse.of(
                                 "bidder1",
                                 BidderSeatBid.of(singletonList(
-                                        BidderBid.of(Bid.builder().build(), BidType.banner, "USD"))),
+                                        BidderBid.of(Bid.builder().build(), banner, "USD"))),
                                 0),
                         AuctionContext.builder()
                                 .bidRequest(BidRequest.builder().build())
@@ -2680,10 +2848,10 @@ public class HookStageExecutorTest extends VertxTest {
                                 BidderResponse.of(
                                         "bidder1",
                                         BidderSeatBid.of(singletonList(
-                                                BidderBid.of(Bid.builder().build(), BidType.banner, "USD"))), 0),
+                                                BidderBid.of(Bid.builder().build(), banner, "USD"))), 0),
                                 BidderResponse.of("bidder2",
                                         BidderSeatBid.of(singletonList(
-                                                BidderBid.of(Bid.builder().build(), BidType.video, "UAH"))), 0)),
+                                                BidderBid.of(Bid.builder().build(), video, "UAH"))), 0)),
                         auctionContext);
 
         // then
@@ -2702,12 +2870,161 @@ public class HookStageExecutorTest extends VertxTest {
 
         final List<BidderResponse> expectedBidderResponses = List.of(
                 BidderResponse.of("bidder1", BidderSeatBid.of(singletonList(
-                        BidderBid.of(expectedBid1, BidType.banner, "USD"))), 0),
+                        BidderBid.of(expectedBid1, banner, "USD"))), 0),
                 BidderResponse.of("bidder2", BidderSeatBid.of(singletonList(
-                        BidderBid.of(expectedBid2, BidType.video, "UAH"))), 0));
+                        BidderBid.of(expectedBid2, video, "UAH"))), 0));
 
         assertThat(result).succeededWith(
-                HookStageExecutionResult.of(false, AllProcessedBidResponsesPayloadImpl.of(expectedBidderResponses)));
+                HookStageExecutionResult.success(AllProcessedBidResponsesPayloadImpl.of(expectedBidderResponses)));
+    }
+
+    @Test
+    public void shouldExecuteAllProcessedBidResponsesHooksRejectionAllIgnoringUnknowns(VertxTestContext context) {
+        final Function<Predicate<BidderBid>, UnaryOperator<BidderResponse>> bidFilterForResponse =
+                (Predicate<BidderBid> bidPredicate) -> (BidderResponse response) -> {
+                    final BidderSeatBid seatBid = response.getSeatBid();
+                    final List<BidderBid> filteredBids = seatBid.getBids().stream()
+                            .filter(bidPredicate)
+                            .toList();
+                    return response.with(seatBid.with(filteredBids));
+                };
+
+        // given
+        final BidderBid bidderABid1 = BidderBid.of(Bid.builder().id("bidId1").impid("impId").build(), banner, "USD");
+        final BidderBid bidderABid2 = BidderBid.of(Bid.builder().id("bidId2").impid("impId").build(), banner, "USD");
+        final BidderBid bidderBBid3 = BidderBid.of(Bid.builder().id("bidId3").impid("impId").build(), video, "UAH");
+        final BidderBid bidderBBid4 = BidderBid.of(Bid.builder().id("bidId4").impid("impId").build(), video, "UAH");
+        final BidderBid bidderCBid5 = BidderBid.of(Bid.builder().id("bidId5").impid("impId").build(), xNative, "EUR");
+        final BidderBid bidderDBid6 = BidderBid.of(Bid.builder().id("bidId6").impid("impId").build(), xNative, "EUR");
+
+        givenAllProcessedBidderResponsesHook(
+                "module-alpha",
+                "hook-a",
+                immediateHook(InvocationResultUtils.succeeded(payload -> AllProcessedBidResponsesPayloadImpl.of(
+                                payload.bidResponses().stream()
+                                        .map(bidFilterForResponse.apply(
+                                                bidderBid -> bidderBid.equals(bidderBBid3)
+                                                        || bidderBid.equals(bidderBBid4)))
+                                        .toList()),
+                        Map.of("bidderA", List.of(
+                                        BidRejection.of(bidderABid1, REQUEST_BLOCKED_OPTIMIZED),
+                                        BidRejection.of(bidderABid2, REQUEST_BLOCKED_GENERAL)),
+                                "bidderC", List.of(
+                                        BidRejection.of(bidderCBid5, REQUEST_BLOCKED_GENERAL)),
+                                "bidderD", List.of(
+                                        BidRejection.of(bidderDBid6, REQUEST_BLOCKED_GENERAL))))));
+
+        givenAllProcessedBidderResponsesHook(
+                "module-alpha",
+                "hook-b",
+                immediateHook(InvocationResultUtils.succeeded(payload -> AllProcessedBidResponsesPayloadImpl.of(
+                                payload.bidResponses().stream()
+                                        .map(bidFilterForResponse.apply(
+                                                bidderBid -> bidderBid.equals(bidderABid1)
+                                                        || bidderBid.equals(bidderABid2)))
+                                        .toList()),
+                        Map.of("bidderB", List.of(
+                                        BidRejection.of(bidderBBid3, REQUEST_BLOCKED_PRIVACY),
+                                        BidRejection.of(bidderBBid4, REQUEST_BLOCKED_GENERAL)),
+                                "bidderC", List.of(
+                                        BidRejection.of(bidderCBid5, REQUEST_BLOCKED_GENERAL)),
+                                "bidderD", List.of(
+                                        BidRejection.of(bidderDBid6, REQUEST_BLOCKED_GENERAL))))));
+
+        givenAllProcessedBidderResponsesHook(
+                "module-beta",
+                "hook-a",
+                immediateHook(InvocationResultUtils.succeeded(payload -> AllProcessedBidResponsesPayloadImpl.of(
+                                payload.bidResponses().stream()
+                                        .map(bidFilterForResponse.apply(
+                                                bidderBid -> bidderBid.equals(bidderBBid3)
+                                                        || bidderBid.equals(bidderBBid4)))
+                                        .toList()),
+                        Map.of("bidderA", List.of(
+                                        BidRejection.of(bidderABid1, REQUEST_BLOCKED_UNSUPPORTED_MEDIA_TYPE),
+                                        BidRejection.of(bidderABid2, REQUEST_BLOCKED_GENERAL)),
+                                "bidderC", List.of(
+                                        BidRejection.of(bidderCBid5, REQUEST_BLOCKED_GENERAL)),
+                                "bidderD", List.of(
+                                        BidRejection.of(bidderDBid6, REQUEST_BLOCKED_GENERAL))))));
+
+        givenAllProcessedBidderResponsesHook(
+                "module-beta",
+                "hook-b",
+                immediateHook(InvocationResultUtils.succeeded(payload -> AllProcessedBidResponsesPayloadImpl.of(
+                                payload.bidResponses().stream()
+                                        .map(bidFilterForResponse.apply(
+                                                bidderBid -> bidderBid.equals(bidderABid1)
+                                                        || bidderBid.equals(bidderABid2)))
+                                        .toList()),
+                        Map.of("bidderB", List.of(
+                                        BidRejection.of(bidderBBid3, REQUEST_BLOCKED_UNACCEPTABLE_CURRENCY),
+                                        BidRejection.of(bidderBBid4, REQUEST_BLOCKED_GENERAL)),
+                                "bidderC", List.of(
+                                        BidRejection.of(bidderCBid5, REQUEST_BLOCKED_GENERAL)),
+                                "bidderD", List.of(
+                                        BidRejection.of(bidderDBid6, REQUEST_BLOCKED_GENERAL))))));
+
+        final HookStageExecutor executor = createExecutor(
+                executionPlan(singletonMap(
+                        Endpoint.openrtb2_auction,
+                        EndpointExecutionPlan.of(singletonMap(
+                                Stage.all_processed_bid_responses,
+                                execPlanTwoGroupsTwoHooksEach())))));
+
+        final Map<String, BidRejectionTracker> bidRejectionTrackers = new HashMap<>();
+        bidRejectionTrackers.put("bidderA", new BidRejectionTracker("bidderA", Set.of("impId"), 0.0));
+        bidRejectionTrackers.put("bidderB", new BidRejectionTracker("bidderB", Set.of("impId"), 0.0));
+        bidRejectionTrackers.put("bidderC", new BidRejectionTracker("bidderC", Set.of("impId"), 0.0));
+
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .bidRequest(BidRequest.builder().build())
+                .account(Account.empty("accountId"))
+                .hookExecutionContext(hookExecutionContext)
+                .debugContext(DebugContext.empty())
+                .bidRejectionTrackers(bidRejectionTrackers)
+                .build();
+
+        // when
+        final Future<HookStageExecutionResult<AllProcessedBidResponsesPayload>> future =
+                executor.executeAllProcessedBidResponsesStage(
+                        List.of(
+                                BidderResponse.of("bidderA", BidderSeatBid.of(List.of(bidderABid1, bidderABid2)), 0),
+                                BidderResponse.of("bidderB", BidderSeatBid.of(List.of(bidderBBid3, bidderBBid4)), 0),
+                                BidderResponse.of("bidderC", BidderSeatBid.of(List.of(bidderCBid5)), 0)),
+                        auctionContext);
+
+        // then
+        final List<BidderResponse> expectedBidderResponses = List.of(
+                BidderResponse.of("bidderA", BidderSeatBid.of(emptyList()), 0),
+                BidderResponse.of("bidderB", BidderSeatBid.of(emptyList()), 0),
+                BidderResponse.of("bidderC", BidderSeatBid.of(emptyList()), 0));
+
+        future.onComplete(context.succeeding(result -> {
+            assertThat(result).isNotNull();
+            assertThat(result.getPayload()).isNotNull().satisfies(payload ->
+                    assertThat(payload.bidResponses()).isEqualTo(expectedBidderResponses));
+
+            context.completeNow();
+        }));
+
+        assertThat(bidRejectionTrackers.keySet()).containsOnly("bidderA", "bidderB", "bidderC");
+        assertThat(bidRejectionTrackers.get("bidderA").getAllRejected().get("impId")).containsOnly(
+                        BidRejection.of(bidderABid1, REQUEST_BLOCKED_OPTIMIZED),
+                        BidRejection.of(bidderABid1, REQUEST_BLOCKED_UNSUPPORTED_MEDIA_TYPE),
+                        BidRejection.of(bidderABid2, REQUEST_BLOCKED_GENERAL),
+                        BidRejection.of(bidderABid2, REQUEST_BLOCKED_GENERAL));
+        assertThat(bidRejectionTrackers.get("bidderB").getAllRejected().get("impId")).containsOnly(
+                        BidRejection.of(bidderBBid3, REQUEST_BLOCKED_UNACCEPTABLE_CURRENCY),
+                        BidRejection.of(bidderBBid3, REQUEST_BLOCKED_PRIVACY),
+                        BidRejection.of(bidderBBid4, REQUEST_BLOCKED_GENERAL),
+                        BidRejection.of(bidderBBid4, REQUEST_BLOCKED_GENERAL));
+        assertThat(bidRejectionTrackers.get("bidderC").getAllRejected().get("impId")).containsOnly(
+                        BidRejection.of(bidderCBid5, REQUEST_BLOCKED_GENERAL),
+                        BidRejection.of(bidderCBid5, REQUEST_BLOCKED_GENERAL),
+                        BidRejection.of(bidderCBid5, REQUEST_BLOCKED_GENERAL),
+                        BidRejection.of(bidderCBid5, REQUEST_BLOCKED_GENERAL));
     }
 
     @Test
@@ -2733,7 +3050,7 @@ public class HookStageExecutorTest extends VertxTest {
                         singletonList(BidderResponse.of(
                                 "bidder1",
                                 BidderSeatBid.of(singletonList(
-                                        BidderBid.of(Bid.builder().build(), BidType.banner, "USD"))),
+                                        BidderBid.of(Bid.builder().build(), banner, "USD"))),
                                 0)),
                         AuctionContext.builder()
                                 .bidRequest(BidRequest.builder().build())
@@ -3421,7 +3738,8 @@ public class HookStageExecutorTest extends VertxTest {
                 vertx,
                 clock,
                 jacksonMapper,
-                false);
+                false,
+                0.0);
     }
 
     @Value(staticConstructor = "of")

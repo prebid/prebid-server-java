@@ -8,5 +8,8 @@ adapters:
         - video
         - native
       site-media-types:
+        - banner
+        - video
+        - native
       supported-vendors:
       vendor-id: 1176

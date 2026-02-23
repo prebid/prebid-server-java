@@ -13,7 +13,10 @@
           "crid": "crid",
           "ext": {
             "prebid": {
-              "type": "banner"
+              "type": "banner",
+              "meta": {
+                "adaptercode": "silvermob"
+              }
             },
             "origbidcpm": 0.01,
             "origbidcur": "USD"

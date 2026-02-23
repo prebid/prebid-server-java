@@ -42,6 +42,7 @@ Follow next steps to create JAR file which can be deployed locally.
 
 - Install prerequsites
   - Java SDK: Oracle's or Corretto. Let us know if there's a distribution PBS-Java doesn't work with.
+  - Java SDK Version: 21
   - Maven
   
 - Clone the project:

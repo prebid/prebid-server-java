@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Imp;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.validation.ImpValidator;
@@ -35,7 +36,7 @@ public class ImpAdjuster {
         this.jsonMerger = Objects.requireNonNull(jsonMerger);
     }
 
-    public Imp adjust(Imp originalImp, String bidder, BidderAliases bidderAliases, List<String> debugMessages) {
+    public Imp adjust(Imp originalImp, String bidder, List<String> debugMessages) {
         setAeParams(originalImp.getExt());
 
         final JsonNode impExtPrebidImp = bidderParamsFromImpExtPrebidImp(originalImp.getExt());
@@ -43,7 +44,7 @@ public class ImpAdjuster {
             return originalImp;
         }
 
-        final JsonNode bidderNode = getBidderNode(bidder, bidderAliases, impExtPrebidImp);
+        final JsonNode bidderNode = getBidderNode(bidder, impExtPrebidImp);
 
         if (bidderNode == null || bidderNode.isEmpty()) {
             removeImpExtPrebidImp(originalImp.getExt());
@@ -97,11 +98,11 @@ public class ImpAdjuster {
                 .orElse(null);
     }
 
-    private static JsonNode getBidderNode(String bidderName, BidderAliases bidderAliases, JsonNode node) {
+    private static JsonNode getBidderNode(String bidderName, JsonNode node) {
         final Iterator<String> fieldNames = node.fieldNames();
         while (fieldNames.hasNext()) {
             final String fieldName = fieldNames.next();
-            if (bidderAliases.isSame(fieldName, bidderName)) {
+            if (StringUtils.equalsIgnoreCase(fieldName, bidderName)) {
                 return node.get(fieldName);
             }
         }

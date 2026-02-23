@@ -14,7 +14,7 @@ public class SupplyChainNode {
 
     /**
      * The canonical domain name of the SSP, Exchange, Header
-     * Wrapper, etc system that bidders connect to. This may be
+     * Wrapper, etc. system that bidders connect to. This may be
      * the operational domain of the system, if that is different than
      * the parent corporate domain, to facilitate WHOIS and
      * reverse IP lookups to establish clear ownership of the

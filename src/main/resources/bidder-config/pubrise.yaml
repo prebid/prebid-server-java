@@ -1,6 +1,6 @@
 adapters:
   pubrise:
-    endpoint: https://backend.pubrise.ai/
+    endpoint: https://backend.pubrise.ai/pserver
     meta-info:
       maintainer-email: prebid@pubrise.ai
       app-media-types:

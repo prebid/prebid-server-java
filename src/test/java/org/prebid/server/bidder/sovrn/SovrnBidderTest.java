@@ -158,26 +158,8 @@ public class SovrnBidderTest extends VertxTest {
                 .extracting(HttpRequest::getBody)
                 .extracting(SovrnBidderTest::mappedToBidRequest)
                 .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getBidfloor, Imp::getTagid, e -> e.getExt().get("adunitcode"))
-                .containsExactly(tuple(BigDecimal.TEN, "tagid", mapper.valueToTree("sovrn_auc")));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldSetAdUnitCodeFromExtIfPresent() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(identity());
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(HttpRequest::getBody)
-                .extracting(SovrnBidderTest::mappedToBidRequest)
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getExt)
-                .extracting(e -> e.get("adunitcode"))
-                .containsExactly(mapper.valueToTree("sovrn_auc"));
+                .extracting(Imp::getBidfloor, Imp::getTagid, e -> e.getExt().get("bidder").get("adunitcode"))
+                .containsExactly(tuple(BigDecimal.TEN, "tagid", mapper.valueToTree("sovrn_auc_bidder")));
     }
 
     @Test
@@ -545,7 +527,7 @@ public class SovrnBidderTest extends VertxTest {
                                 .protocols(singletonList(1))
                                 .build())
                         .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of("tagid",
-                                "legacyTagId", BigDecimal.TEN, "sovrn_auc")))))
+                                "legacyTagId", BigDecimal.TEN, "sovrn_auc_bidder")))))
                 .build();
     }
 

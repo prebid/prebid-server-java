@@ -1,6 +1,7 @@
 adapters:
   colossus:
     endpoint: http://colossusssp.com/?c=o&m=rtb
+    ortb-version: "2.6"
     aliases:
       colossusssp:
         enabled: false

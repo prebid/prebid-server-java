@@ -3,7 +3,6 @@ package org.prebid.server.hooks.modules.pb.richmedia.filter.core;
 import com.iab.openrtb.response.Bid;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.BidRejectionReason;
-import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -24,11 +23,10 @@ public class BidResponsesMraidFilter {
     private static final Map<String, Object> TAG_VALUES = Map.of("richmedia-format", "mraid");
 
     public MraidFilterResult filterByPattern(String mraidScriptPattern,
-                                             List<BidderResponse> responses,
-                                             Map<String, BidRejectionTracker> bidRejectionTrackers) {
+                                             List<BidderResponse> responses) {
 
-        List<BidderResponse> filteredResponses = new ArrayList<>();
-        List<AnalyticsResult> analyticsResults = new ArrayList<>();
+        final List<BidderResponse> filteredResponses = new ArrayList<>();
+        final List<AnalyticsResult> analyticsResults = new ArrayList<>();
 
         for (BidderResponse bidderResponse : responses) {
             final BidderSeatBid seatBid = bidderResponse.getSeatBid();
@@ -53,11 +51,10 @@ public class BidResponsesMraidFilter {
                         TAG_STATUS,
                         TAG_VALUES,
                         bidder,
-                        rejectedImps);
+                        rejectedImps,
+                        invalidBids,
+                        BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE);
                 analyticsResults.add(analyticsResult);
-
-                bidRejectionTrackers.get(bidder)
-                        .rejectBids(invalidBids, BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE);
 
                 final List<BidderError> errors = new ArrayList<>(seatBid.getErrors());
                 errors.add(BidderError.of("Invalid bid", BidderError.Type.invalid_bid, new HashSet<>(rejectedImps)));

@@ -7,13 +7,13 @@ import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Future;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.execution.v1.bidder.AllProcessedBidResponsesPayloadImpl;
 import org.prebid.server.hooks.modules.pb.response.correction.core.ResponseCorrectionProvider;
 import org.prebid.server.hooks.modules.pb.response.correction.core.config.model.Config;
 import org.prebid.server.hooks.modules.pb.response.correction.core.correction.Correction;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
-import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.v1.InvocationStatus;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.bidder.AllProcessedBidResponsesHook;
@@ -57,12 +57,13 @@ public class ResponseCorrectionAllProcessedBidResponsesHook implements AllProces
             return noAction();
         }
 
-        final InvocationResult<AllProcessedBidResponsesPayload> invocationResult = InvocationResultImpl.<AllProcessedBidResponsesPayload>builder()
-                .status(InvocationStatus.success)
-                .action(InvocationAction.update)
-                .payloadUpdate(initialPayload -> AllProcessedBidResponsesPayloadImpl.of(
-                        applyCorrections(initialPayload.bidResponses(), config, corrections)))
-                .build();
+        final InvocationResult<AllProcessedBidResponsesPayload> invocationResult =
+                InvocationResultImpl.<AllProcessedBidResponsesPayload>builder()
+                        .status(InvocationStatus.success)
+                        .action(InvocationAction.update)
+                        .payloadUpdate(initialPayload -> AllProcessedBidResponsesPayloadImpl.of(
+                                applyCorrections(initialPayload.bidResponses(), config, corrections)))
+                        .build();
 
         return Future.succeededFuture(invocationResult);
     }
@@ -75,7 +76,10 @@ public class ResponseCorrectionAllProcessedBidResponsesHook implements AllProces
         }
     }
 
-    private static List<BidderResponse> applyCorrections(List<BidderResponse> bidderResponses, Config config, List<Correction> corrections) {
+    private static List<BidderResponse> applyCorrections(List<BidderResponse> bidderResponses,
+                                                         Config config,
+                                                         List<Correction> corrections) {
+
         List<BidderResponse> result = bidderResponses;
         for (Correction correction : corrections) {
             result = correction.apply(config, result);

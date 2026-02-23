@@ -1,6 +1,5 @@
 package org.prebid.server.cookie.model;
 
-import lombok.AllArgsConstructor;
 import lombok.Value;
 
 import java.time.Clock;
@@ -11,7 +10,6 @@ import java.time.temporal.ChronoUnit;
 /**
  * Bundles the UID with an Expiration date. After the expiration, the UID is no longer valid.
  */
-@AllArgsConstructor
 @Value
 public class UidWithExpiry {
 

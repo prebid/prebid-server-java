@@ -339,7 +339,7 @@ public class BeachfrontBidder implements Bidder<Void> {
                     .appId(appId);
             final String responseType;
 
-            if (videoResponseType != null && videoResponseType.equals(NURL_VIDEO_TYPE)) {
+            if (NURL_VIDEO_TYPE.equals(videoResponseType)) {
                 requestBuilder.isPrebid(true);
                 responseType = NURL_VIDEO_TYPE;
             } else {
@@ -364,7 +364,7 @@ public class BeachfrontBidder implements Bidder<Void> {
                 if (devicetype == null || devicetype == 0) {
                     deviceBuilder.devicetype(bidRequest.getSite() != null ? 2 : 1);
                 }
-                if (StringUtils.isBlank(device.getIp()) && responseType.equals(ADM_VIDEO_TYPE)) {
+                if (StringUtils.isBlank(device.getIp()) && ADM_VIDEO_TYPE.equals(responseType)) {
                     deviceBuilder.ip(FAKE_IP);
                 }
 

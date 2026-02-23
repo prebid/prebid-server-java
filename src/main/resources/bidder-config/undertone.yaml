@@ -2,6 +2,7 @@ adapters:
   undertone:
     endpoint: https://ads.undertone.com/rtb
     endpoint-compression: gzip
+    ortb-version: "2.6"
     meta-info:
       maintainer-email: csop@undertone.com
       app-media-types:

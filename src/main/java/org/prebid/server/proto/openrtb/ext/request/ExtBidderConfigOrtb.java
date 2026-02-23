@@ -1,11 +1,9 @@
 package org.prebid.server.proto.openrtb.ext.request;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import lombok.AllArgsConstructor;
 import lombok.Value;
 
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class ExtBidderConfigOrtb {
 
     /**
@@ -27,4 +25,9 @@ public class ExtBidderConfigOrtb {
      * Defines the contract for bidrequest.ext.prebid.bidderconfig.config.ortb2.user
      */
     ObjectNode user;
+
+    /**
+     * Defines the contract for bidrequest.ext.prebid.bidderconfig.config.ortb2.device
+     */
+    ObjectNode device;
 }

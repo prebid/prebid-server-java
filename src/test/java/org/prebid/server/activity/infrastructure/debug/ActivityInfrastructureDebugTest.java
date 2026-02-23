@@ -9,6 +9,9 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
+import org.prebid.server.activity.infrastructure.privacy.PrivacyModuleQualifier;
+import org.prebid.server.activity.infrastructure.privacy.SkippedPrivacyModule;
+import org.prebid.server.activity.infrastructure.rule.AndRule;
 import org.prebid.server.activity.infrastructure.rule.Rule;
 import org.prebid.server.activity.infrastructure.rule.TestRule;
 import org.prebid.server.metric.Metrics;
@@ -17,6 +20,8 @@ import org.prebid.server.proto.openrtb.ext.response.ExtTraceActivityInvocation;
 import org.prebid.server.proto.openrtb.ext.response.ExtTraceActivityInvocationDefaultResult;
 import org.prebid.server.proto.openrtb.ext.response.ExtTraceActivityInvocationResult;
 import org.prebid.server.proto.openrtb.ext.response.ExtTraceActivityRule;
+
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -153,6 +158,69 @@ public class ActivityInfrastructureDebugTest extends VertxTest {
                 Rule.Result.ALLOW));
         verify(metrics).updateRequestsActivityProcessedRulesCount();
         verify(metrics).updateAccountActivityProcessedRulesCount(eq("accountId"));
+        verifyNoMoreInteractions(metrics);
+    }
+
+    @Test
+    public void emitProcessedRuleShouldLogModuleWhenModuleIsSkipped() {
+        // given
+        final ActivityInfrastructureDebug debug = debug(TraceLevel.verbose);
+
+        // when
+        debug.emitProcessedRule(new SkippedPrivacyModule(PrivacyModuleQualifier.US_NAT), Rule.Result.ABSTAIN);
+
+        // then
+        assertThat(debug.skippedPrivacyModules()).containsExactly(PrivacyModuleQualifier.US_NAT);
+        assertThat(debug.trace()).containsExactly(ExtTraceActivityRule.of(
+                "Processing rule.",
+                mapper.createObjectNode()
+                        .put("privacy_module", "iab.usgeneral")
+                        .put("skipped", true)
+                        .put("result", "ABSTAIN"),
+                Rule.Result.ABSTAIN));
+        verify(metrics).updateRequestsActivityProcessedRulesCount();
+        verify(metrics).updateAccountActivityProcessedRulesCount(eq("accountId"));
+        verifyNoMoreInteractions(metrics);
+    }
+
+    @Test
+    public void emitProcessedRuleShouldLogSkippedModuleWhenAndRuleHasAbstainModule() {
+        // given
+        final ActivityInfrastructureDebug debug = debug(TraceLevel.verbose);
+
+        // when
+        debug.emitProcessedRule(
+                new AndRule(List.of(new SkippedPrivacyModule(PrivacyModuleQualifier.US_NAT))),
+                Rule.Result.ABSTAIN);
+
+        // then
+        assertThat(debug.skippedPrivacyModules()).containsExactly(PrivacyModuleQualifier.US_NAT);
+        assertThat(debug.trace()).containsExactly(ExtTraceActivityRule.of(
+                "Processing rule.",
+                mapper.createObjectNode().set("and", mapper.createArrayNode().add(mapper.createObjectNode()
+                        .put("privacy_module", "iab.usgeneral")
+                        .put("skipped", true)
+                        .put("result", "ABSTAIN"))),
+                Rule.Result.ABSTAIN));
+        verify(metrics).updateRequestsActivityProcessedRulesCount();
+        verify(metrics).updateAccountActivityProcessedRulesCount(eq("accountId"));
+        verifyNoMoreInteractions(metrics);
+    }
+
+    @Test
+    public void emitProcessedRuleShouldLogSkippedModuleWhenTraceLevelIsNull() {
+        // given
+        final ActivityInfrastructureDebug debug = debug(null);
+
+        // when
+        debug.emitProcessedRule(
+                new AndRule(List.of(new SkippedPrivacyModule(PrivacyModuleQualifier.US_NAT))),
+                Rule.Result.ABSTAIN);
+
+        // then
+        assertThat(debug.skippedPrivacyModules()).containsExactly(PrivacyModuleQualifier.US_NAT);
+        assertThat(debug.trace()).isEmpty();
+        verify(metrics).updateRequestsActivityProcessedRulesCount();
         verifyNoMoreInteractions(metrics);
     }
 

@@ -94,4 +94,3 @@ public class VrtcalBidder implements Bidder<BidRequest> {
         };
     }
 }
-

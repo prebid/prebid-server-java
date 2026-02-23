@@ -25,7 +25,7 @@ public class Network {
     String id;
 
     /**
-     * Network the content is on (e.g., a TV network like “ABC")
+     * Network the content is on (e.g., a TV network like "ABC")
      */
     String name;
 

@@ -8,10 +8,9 @@ import com.iab.openrtb.response.Bid;
 import io.vertx.core.Future;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.auction.model.BidRejectionTracker;
+import org.prebid.server.auction.model.BidRejection;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.execution.v1.analytics.ActivityImpl;
@@ -36,34 +35,32 @@ import org.prebid.server.hooks.v1.bidder.BidderResponsePayload;
 import org.prebid.server.json.ObjectMapperProvider;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
-import java.util.Map;
+import java.util.List;
 import java.util.function.UnaryOperator;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
-import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
+import static org.prebid.server.auction.model.BidRejectionReason.RESPONSE_REJECTED_ADVERTISER_BLOCKED;
 
 @ExtendWith(MockitoExtension.class)
 public class Ortb2BlockingRawBidderResponseHookTest {
 
-    private static final ObjectMapper mapper = new ObjectMapper()
+    private static final ObjectMapper MAPPER = new ObjectMapper()
             .setPropertyNamingStrategy(PropertyNamingStrategies.KEBAB_CASE)
             .setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
     private final Ortb2BlockingRawBidderResponseHook hook = new Ortb2BlockingRawBidderResponseHook(
             ObjectMapperProvider.mapper());
 
-    @Mock
-    private BidRejectionTracker bidRejectionTracker;
-
     @Test
     public void shouldReturnResultWithNoActionWhenNoBidsBlocked() {
         // when
         final Future<InvocationResult<BidderResponsePayload>> result = hook.call(
                 BidderResponsePayloadImpl.of(singletonList(bid())),
-                BidderInvocationContextImpl.of("bidder1", bidRejectionTracker, null, true));
+                BidderInvocationContextImpl.of("bidder1", null, true));
 
         // then
         assertThat(result.succeeded()).isTrue();
@@ -87,13 +84,13 @@ public class Ortb2BlockingRawBidderResponseHookTest {
     @Test
     public void shouldReturnResultWithNoActionAndErrorWhenInvalidAccountConfig() {
         // given
-        final ObjectNode accountConfig = mapper.createObjectNode()
+        final ObjectNode accountConfig = MAPPER.createObjectNode()
                 .put("attributes", 1);
 
         // when
         final Future<InvocationResult<BidderResponsePayload>> result = hook.call(
                 BidderResponsePayloadImpl.of(singletonList(bid())),
-                BidderInvocationContextImpl.of("bidder1", bidRejectionTracker, accountConfig, true));
+                BidderInvocationContextImpl.of("bidder1", accountConfig, true));
 
         // then
         assertThat(result.succeeded()).isTrue();
@@ -108,13 +105,13 @@ public class Ortb2BlockingRawBidderResponseHookTest {
     @Test
     public void shouldReturnResultWithNoActionAndNoErrorWhenInvalidAccountConfigAndDebugDisabled() {
         // given
-        final ObjectNode accountConfig = mapper.createObjectNode()
+        final ObjectNode accountConfig = MAPPER.createObjectNode()
                 .put("attributes", 1);
 
         // when
         final Future<InvocationResult<BidderResponsePayload>> result = hook.call(
                 BidderResponsePayloadImpl.of(singletonList(bid())),
-                BidderInvocationContextImpl.of("bidder1", bidRejectionTracker, accountConfig, false));
+                BidderInvocationContextImpl.of("bidder1", accountConfig, false));
 
         // then
         assertThat(result.succeeded()).isTrue();
@@ -135,18 +132,17 @@ public class Ortb2BlockingRawBidderResponseHookTest {
                         .build())
                 .build()));
 
+        final BidderBid bid1 = bid(bid -> bid.id("bidId1"));
+        final BidderBid bid2 = bid(bid -> bid.id("bidId2").adomain(singletonList("domain1.com")));
+        final BidderBid bid3 = bid(bid -> bid.id("bidId2").adomain(singletonList("domain2.com")));
+
         // when
         final Future<InvocationResult<BidderResponsePayload>> result = hook.call(
-                BidderResponsePayloadImpl.of(asList(
-                        bid(),
-                        bid(bid -> bid.adomain(singletonList("domain1.com"))),
-                        bid(bid -> bid.adomain(singletonList("domain2.com"))))),
+                BidderResponsePayloadImpl.of(asList(bid1, bid2, bid3)),
                 BidderInvocationContextImpl.builder()
                         .bidder("bidder1")
                         .accountConfig(accountConfig)
-                        .auctionContext(AuctionContext.builder()
-                                .bidRejectionTrackers(Map.of("bidder1", bidRejectionTracker))
-                                .build())
+                        .auctionContext(AuctionContext.builder().build())
                         .moduleContext(ModuleContext.create().with(
                                 "bidder1", BlockedAttributes.builder().badv(singletonList("domain2.com")).build()))
                         .debugEnabled(true)
@@ -163,12 +159,9 @@ public class Ortb2BlockingRawBidderResponseHookTest {
         });
 
         final PayloadUpdate<BidderResponsePayload> payloadUpdate = invocationResult.payloadUpdate();
-        final BidderResponsePayloadImpl payloadToUpdate = BidderResponsePayloadImpl.of(asList(
-                bid(),
-                bid(bid -> bid.adomain(singletonList("domain1.com"))),
-                bid(bid -> bid.adomain(singletonList("domain2.com")))));
+        final BidderResponsePayloadImpl payloadToUpdate = BidderResponsePayloadImpl.of(asList(bid1, bid2, bid3));
         assertThat(payloadUpdate.apply(payloadToUpdate)).isEqualTo(BidderResponsePayloadImpl.of(
-                singletonList(bid(bid -> bid.adomain(singletonList("domain1.com"))))));
+                singletonList(bid2)));
 
         assertThat(invocationResult.analyticsTags()).isEqualTo(TagsImpl.of(singletonList(ActivityImpl.of(
                 "enforce-blocking",
@@ -176,9 +169,9 @@ public class Ortb2BlockingRawBidderResponseHookTest {
                 asList(
                         ResultImpl.of(
                                 "success-blocked",
-                                mapper.createObjectNode()
-                                        .<ObjectNode>set("adomain", mapper.createArrayNode())
-                                        .set("attributes", mapper.createArrayNode()
+                                MAPPER.createObjectNode()
+                                        .<ObjectNode>set("adomain", MAPPER.createArrayNode())
+                                        .set("attributes", MAPPER.createArrayNode()
                                                 .add("badv")),
                                 AppliedToImpl.builder()
                                         .bidders(singletonList("bidder1"))
@@ -193,15 +186,21 @@ public class Ortb2BlockingRawBidderResponseHookTest {
                                         .build()),
                         ResultImpl.of(
                                 "success-blocked",
-                                mapper.createObjectNode()
-                                        .<ObjectNode>set("adomain", mapper.createArrayNode()
+                                MAPPER.createObjectNode()
+                                        .<ObjectNode>set("adomain", MAPPER.createArrayNode()
                                                 .add("domain2.com"))
-                                        .set("attributes", mapper.createArrayNode()
+                                        .set("attributes", MAPPER.createArrayNode()
                                                 .add("badv")),
                                 AppliedToImpl.builder()
                                         .bidders(singletonList("bidder1"))
                                         .impIds(singletonList("impId1"))
                                         .build()))))));
+
+        assertThat(invocationResult.rejections()).containsOnly(entry("bidder1", List.of(
+                        BidRejection.of(bid1,
+                                RESPONSE_REJECTED_ADVERTISER_BLOCKED),
+                        BidRejection.of(bid(bid -> bid.id("bidId2").adomain(singletonList("domain2.com"))),
+                                RESPONSE_REJECTED_ADVERTISER_BLOCKED))));
     }
 
     @Test
@@ -224,7 +223,7 @@ public class Ortb2BlockingRawBidderResponseHookTest {
         // when
         final Future<InvocationResult<BidderResponsePayload>> result = hook.call(
                 BidderResponsePayloadImpl.of(singletonList(bid())),
-                BidderInvocationContextImpl.of("bidder1", bidRejectionTracker, accountConfig, true));
+                BidderInvocationContextImpl.of("bidder1", accountConfig, true));
 
         // then
         assertThat(result.succeeded()).isTrue();
@@ -258,7 +257,7 @@ public class Ortb2BlockingRawBidderResponseHookTest {
         // when
         final Future<InvocationResult<BidderResponsePayload>> result = hook.call(
                 BidderResponsePayloadImpl.of(singletonList(bid())),
-                BidderInvocationContextImpl.of("bidder1", bidRejectionTracker, accountConfig, false));
+                BidderInvocationContextImpl.of("bidder1", accountConfig, false));
 
         // then
         assertThat(result.succeeded()).isTrue();
@@ -284,7 +283,7 @@ public class Ortb2BlockingRawBidderResponseHookTest {
         // when
         final Future<InvocationResult<BidderResponsePayload>> result = hook.call(
                 BidderResponsePayloadImpl.of(singletonList(bid())),
-                BidderInvocationContextImpl.of("bidder1", bidRejectionTracker, accountConfig, true));
+                BidderInvocationContextImpl.of("bidder1", accountConfig, true));
 
         // then
         assertThat(result.succeeded()).isTrue();
@@ -310,7 +309,7 @@ public class Ortb2BlockingRawBidderResponseHookTest {
         // when
         final Future<InvocationResult<BidderResponsePayload>> result = hook.call(
                 BidderResponsePayloadImpl.of(singletonList(bid())),
-                BidderInvocationContextImpl.of("bidder1", bidRejectionTracker, accountConfig, false));
+                BidderInvocationContextImpl.of("bidder1", accountConfig, false));
 
         // then
         assertThat(result.succeeded()).isTrue();
@@ -323,7 +322,7 @@ public class Ortb2BlockingRawBidderResponseHookTest {
     }
 
     private static BidderBid bid() {
-        return bid(identity());
+        return bid(bid -> bid.id("bidId"));
     }
 
     private static BidderBid bid(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
@@ -334,6 +333,6 @@ public class Ortb2BlockingRawBidderResponseHookTest {
     }
 
     private static ObjectNode toObjectNode(ModuleConfig config) {
-        return mapper.valueToTree(config);
+        return MAPPER.valueToTree(config);
     }
 }

@@ -41,7 +41,7 @@ import static org.mockito.Mockito.verify;
 public class DatabasePeriodicRefreshServiceTest {
 
     @Mock
-    private CacheNotificationListener cacheNotificationListener;
+    private CacheNotificationListener<String> cacheNotificationListener;
     @Mock
     private Vertx vertx;
     @Mock(strictness = LENIENT)
@@ -56,9 +56,9 @@ public class DatabasePeriodicRefreshServiceTest {
 
     @BeforeEach
     public void setUp() {
-        final StoredDataResult initialResult = StoredDataResult.of(singletonMap("id1", "value1"),
+        final StoredDataResult<String> initialResult = StoredDataResult.of(singletonMap("id1", "value1"),
                 singletonMap("id2", "value2"), emptyList());
-        final StoredDataResult updateResult = StoredDataResult.of(singletonMap("id1", "null"),
+        final StoredDataResult<String> updateResult = StoredDataResult.of(singletonMap("id1", "null"),
                 singletonMap("id2", "changed_value"), emptyList());
 
         given(databaseClient.executeQuery(eq("init_query"), anyList(), any(), any()))

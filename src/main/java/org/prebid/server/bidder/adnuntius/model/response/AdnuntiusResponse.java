@@ -9,5 +9,5 @@ import java.util.List;
 public class AdnuntiusResponse {
 
     @JsonProperty("adUnits")
-    List<AdnuntiusAdsUnit> adsUnits;
+    List<AdnuntiusAdUnit> adUnits;
 }

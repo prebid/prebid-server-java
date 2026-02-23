@@ -20,7 +20,7 @@ public class USNatModuleTest extends VertxTest {
     @Test
     public void asLogEntryShouldReturnExpectedResult() {
         // given
-        final USNatModule usNatModule = new USNatModule(Activity.CALL_BIDDER, usNatGppReader);
+        final USNatModule usNatModule = new USNatModule(Activity.CALL_BIDDER, usNatGppReader, null);
 
         // when
         final JsonNode logEntry = usNatModule.asLogEntry(mapper);

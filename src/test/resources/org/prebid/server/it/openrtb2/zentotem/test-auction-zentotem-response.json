@@ -1,0 +1,43 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "exp": 300,
+          "price": 3.33,
+          "adm": "adm001",
+          "adid": "adid",
+          "cid": "cid",
+          "crid": "crid",
+          "mtype": 1,
+          "w": 300,
+          "h": 250,
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "meta": {
+                "adaptercode": "zentotem"
+              }
+            },
+            "origbidcpm": 3.33
+          }
+        }
+      ],
+      "seat": "zentotem",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "zentotem": "{{ zentotem.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}

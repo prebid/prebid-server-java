@@ -1,19 +1,24 @@
 package org.prebid.server.auction.model;
 
 import com.iab.openrtb.response.Bid;
-import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.bidder.model.BidderBid;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import static java.util.Collections.singleton;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.entry;
+import static org.assertj.core.api.Assertions.tuple;
+import static org.prebid.server.auction.model.BidRejectionReason.ERROR_GENERAL;
+import static org.prebid.server.auction.model.BidRejectionReason.ERROR_INVALID_BID_RESPONSE;
+import static org.prebid.server.auction.model.BidRejectionReason.ERROR_TIMED_OUT;
+import static org.prebid.server.auction.model.BidRejectionReason.NO_BID;
+import static org.prebid.server.auction.model.BidRejectionReason.RESPONSE_REJECTED_BELOW_FLOOR;
+import static org.prebid.server.auction.model.BidRejectionReason.RESPONSE_REJECTED_DSA_PRIVACY;
+import static org.prebid.server.auction.model.BidRejectionReason.RESPONSE_REJECTED_GENERAL;
 
 public class BidRejectionTrackerTest {
 
@@ -27,190 +32,198 @@ public class BidRejectionTrackerTest {
     @Test
     public void succeedShouldRestoreImpFromImpRejection() {
         // given
-        target.rejectImp("impId1", BidRejectionReason.ERROR_GENERAL);
+        target.reject(ImpRejection.of("impId1", ERROR_GENERAL));
 
         // when
-        final BidderBid bid = BidderBid.builder().bid(Bid.builder().id("bidId1").impid("impId1").build()).build();
+        final BidderBid bid = givenBid("bidId1", "impId1");
         target.succeed(singleton(bid));
 
         // then
-        assertThat(target.getRejectedImps()).isEmpty();
-        assertThat(target.getRejectedBids())
-                .containsOnly(entry("impId1", List.of(Pair.of(null, BidRejectionReason.ERROR_GENERAL))));
+        assertThat(target.getRejected()).isEmpty();
+        assertThat(target.getAllRejected())
+                .containsOnly(entry("impId1", List.of(ImpRejection.of("bidder", "impId1", ERROR_GENERAL))));
     }
 
     @Test
     public void succeedShouldRestoreImpFromBidRejection() {
         // given
-        final BidderBid bid = BidderBid.builder().bid(Bid.builder().id("bidId1").impid("impId1").build()).build();
-        target.rejectBid(bid, BidRejectionReason.ERROR_GENERAL);
+        final BidderBid bid = givenBid("bidId1", "impId1");
+        target.reject(BidRejection.of(bid, ERROR_GENERAL));
 
         // when
         target.succeed(singleton(bid));
 
         // then
-        assertThat(target.getRejectedImps()).isEmpty();
-        assertThat(target.getRejectedBids())
-                .containsOnly(entry("impId1", List.of(Pair.of(bid, BidRejectionReason.ERROR_GENERAL))));
+        assertThat(target.getRejected()).isEmpty();
+        assertThat(target.getAllRejected())
+                .containsOnly(entry("impId1", List.of(BidRejection.of(bid, ERROR_GENERAL))));
     }
 
     @Test
     public void succeedShouldIgnoreUninvolvedImpIdsOnImpRejection() {
         // given
-        target.rejectImp("impId1", BidRejectionReason.ERROR_GENERAL);
+        target.reject(ImpRejection.of("impId1", ERROR_GENERAL));
 
         // when
-        final BidderBid bid = BidderBid.builder().bid(Bid.builder().id("bidId2").impid("impId2").build()).build();
+        final BidderBid bid = givenBid("bidId2", "impId2");
         target.succeed(singleton(bid));
 
         // then
-        assertThat(target.getRejectedImps()).containsOnly(entry("impId1", BidRejectionReason.ERROR_GENERAL));
-        assertThat(target.getRejectedBids())
-                .containsOnly(entry("impId1", List.of(Pair.of(null, BidRejectionReason.ERROR_GENERAL))));
+        assertThat(target.getRejected()).extracting(Rejection::seat, Rejection::impId, Rejection::reason)
+                .containsOnly(tuple("bidder", "impId1", ERROR_GENERAL));
+        assertThat(target.getAllRejected())
+                .containsOnly(entry("impId1", List.of(ImpRejection.of("bidder", "impId1", ERROR_GENERAL))));
     }
 
     @Test
     public void succeedShouldIgnoreUninvolvedImpIdsOnBidRejection() {
         // given
-        final BidderBid bid1 = BidderBid.builder().bid(Bid.builder().id("bidId1").impid("impId1").build()).build();
-        target.rejectBid(bid1, BidRejectionReason.ERROR_GENERAL);
+        final BidderBid bid1 = givenBid("bidId1", "impId1");
+        target.reject(BidRejection.of(bid1, ERROR_GENERAL));
 
         // when
-        final BidderBid bid2 = BidderBid.builder().bid(Bid.builder().id("bidId2").impid("impId2").build()).build();
+        final BidderBid bid2 = givenBid("bidId2", "impId2");
         target.succeed(singleton(bid2));
 
         // then
-        assertThat(target.getRejectedImps()).containsOnly(entry("impId1", BidRejectionReason.ERROR_GENERAL));
-        assertThat(target.getRejectedBids())
-                .containsOnly(entry("impId1", List.of(Pair.of(bid1, BidRejectionReason.ERROR_GENERAL))));
+        assertThat(target.getRejected()).extracting(Rejection::seat, Rejection::impId, Rejection::reason)
+                .containsOnly(tuple("seat", "impId1", ERROR_GENERAL));
+        assertThat(target.getAllRejected())
+                .containsOnly(entry("impId1", List.of(BidRejection.of(bid1, ERROR_GENERAL))));
     }
 
     @Test
     public void rejectImpShouldRecordImpRejectionFirstTimeIfImpIdIsInvolved() {
         // when
-        target.rejectImp("impId1", BidRejectionReason.ERROR_GENERAL);
+        target.reject(ImpRejection.of("impId1", ERROR_GENERAL));
 
         // then
-        assertThat(target.getRejectedImps()).containsOnly(entry("impId1", BidRejectionReason.ERROR_GENERAL));
-        assertThat(target.getRejectedBids())
-                .containsOnly(entry("impId1", List.of(Pair.of(null, BidRejectionReason.ERROR_GENERAL))));
+        assertThat(target.getRejected()).extracting(Rejection::seat, Rejection::impId, Rejection::reason)
+                .containsOnly(tuple("bidder", "impId1", ERROR_GENERAL));
+        assertThat(target.getAllRejected())
+                .containsOnly(entry("impId1", List.of(ImpRejection.of("bidder", "impId1", ERROR_GENERAL))));
     }
 
     @Test
     public void rejectBidShouldRecordBidRejectionFirstTimeIfImpIdIsInvolved() {
         // when
-        final BidderBid bid = BidderBid.builder().bid(Bid.builder().id("bidId1").impid("impId1").build()).build();
-        target.rejectBid(bid, BidRejectionReason.ERROR_GENERAL);
+        final BidderBid bid = givenBid("bidId1", "impId1");
+        target.reject(BidRejection.of(bid, ERROR_GENERAL));
 
         // then
-        assertThat(target.getRejectedImps()).containsOnly(entry("impId1", BidRejectionReason.ERROR_GENERAL));
-        assertThat(target.getRejectedBids())
-                .containsOnly(entry("impId1", List.of(Pair.of(bid, BidRejectionReason.ERROR_GENERAL))));
+        assertThat(target.getRejected()).extracting(Rejection::seat, Rejection::impId, Rejection::reason)
+                .containsOnly(tuple("seat", "impId1", ERROR_GENERAL));
+        assertThat(target.getAllRejected())
+                .containsOnly(entry("impId1", List.of(BidRejection.of(bid, ERROR_GENERAL))));
     }
 
     @Test
     public void rejectBidShouldRecordBidRejectionAfterPreviouslySucceededBid() {
         // given
-        final BidderBid bid1 = BidderBid.builder().bid(Bid.builder().id("bidId1").impid("impId1").build()).build();
-        final BidderBid bid2 = BidderBid.builder().bid(Bid.builder().id("bidId2").impid("impId1").build()).build();
+        final BidderBid bid1 = givenBid("bidId1", "impId1");
+        final BidderBid bid2 = givenBid("bidId2", "impId1");
         target.succeed(Set.of(bid1, bid2));
 
         // when
-        target.rejectBid(bid1, BidRejectionReason.ERROR_GENERAL);
+        target.reject(BidRejection.of(bid1, ERROR_GENERAL));
 
         // then
-        assertThat(target.getRejectedImps()).isEmpty();
-        assertThat(target.getRejectedBids())
-                .containsOnly(entry("impId1", List.of(Pair.of(bid1, BidRejectionReason.ERROR_GENERAL))));
+        assertThat(target.getRejected()).isEmpty();
+        assertThat(target.getAllRejected())
+                .containsOnly(entry("impId1", List.of(BidRejection.of(bid1, ERROR_GENERAL))));
     }
 
     @Test
     public void rejectImpShouldNotRecordImpRejectionIfImpIdIsAlreadyRejected() {
         // given
-        target.rejectImp("impId1", BidRejectionReason.ERROR_GENERAL);
+        target.reject(ImpRejection.of("impId1", ERROR_GENERAL));
 
         // when
-        target.rejectImp("impId1", BidRejectionReason.ERROR_INVALID_BID_RESPONSE);
+        target.reject(ImpRejection.of("impId1", ERROR_INVALID_BID_RESPONSE));
 
         // then
-        assertThat(target.getRejectedImps()).containsOnly(entry("impId1", BidRejectionReason.ERROR_GENERAL));
-        assertThat(target.getRejectedBids())
+        assertThat(target.getRejected()).extracting(Rejection::seat, Rejection::impId, Rejection::reason)
+                .containsOnly(tuple("bidder", "impId1", ERROR_GENERAL));
+        assertThat(target.getAllRejected())
                 .containsOnly(entry("impId1", List.of(
-                        Pair.of(null, BidRejectionReason.ERROR_GENERAL),
-                        Pair.of(null, BidRejectionReason.ERROR_INVALID_BID_RESPONSE))));
+                        ImpRejection.of("bidder", "impId1", ERROR_GENERAL),
+                        ImpRejection.of("bidder", "impId1", ERROR_INVALID_BID_RESPONSE))));
     }
 
     @Test
     public void rejectBidShouldNotRecordImpRejectionButRecordBidRejectionEvenIfImpIsAlreadyRejected() {
         // given
-        final BidderBid bid1 = BidderBid.builder().bid(Bid.builder().id("bidId1").impid("impId1").build()).build();
-        target.rejectBid(bid1, BidRejectionReason.RESPONSE_REJECTED_GENERAL);
+        final BidderBid bid1 = givenBid("bidId1", "impId1");
+        target.reject(BidRejection.of(bid1, RESPONSE_REJECTED_GENERAL));
 
         // when
-        final BidderBid bid2 = BidderBid.builder().bid(Bid.builder().id("bidId2").impid("impId1").build()).build();
-        target.rejectBid(bid2, BidRejectionReason.RESPONSE_REJECTED_BELOW_FLOOR);
+        final BidderBid bid2 = givenBid("bidId2", "impId1");
+        target.reject(BidRejection.of(bid2, RESPONSE_REJECTED_BELOW_FLOOR));
 
         // then
-        assertThat(target.getRejectedImps())
-                .containsOnly(entry("impId1", BidRejectionReason.RESPONSE_REJECTED_GENERAL));
-        assertThat(target.getRejectedBids())
+        assertThat(target.getRejected()).extracting(Rejection::seat, Rejection::impId, Rejection::reason)
+                .containsOnly(tuple("seat", "impId1", RESPONSE_REJECTED_GENERAL));
+        assertThat(target.getAllRejected())
                 .containsOnly(entry("impId1", List.of(
-                        Pair.of(bid1, BidRejectionReason.RESPONSE_REJECTED_GENERAL),
-                        Pair.of(bid2, BidRejectionReason.RESPONSE_REJECTED_BELOW_FLOOR))));
+                        BidRejection.of(bid1, RESPONSE_REJECTED_GENERAL),
+                        BidRejection.of(bid2, RESPONSE_REJECTED_BELOW_FLOOR))));
     }
 
     @Test
-    public void rejectAllImpsShouldTryRejectingEachImpId() {
+    public void rejectAllShouldTryRejectingEachImpId() {
         // given
         target = new BidRejectionTracker("bidder", Set.of("impId1", "impId2", "impId3"), 0);
-        target.rejectImp("impId1", BidRejectionReason.NO_BID);
+        target.reject(ImpRejection.of("impId1", NO_BID));
 
         // when
-        target.rejectAllImps(BidRejectionReason.ERROR_TIMED_OUT);
+        target.rejectAll(ERROR_TIMED_OUT);
 
         // then
-        assertThat(target.getRejectedImps())
-                .isEqualTo(Map.of(
-                        "impId1", BidRejectionReason.NO_BID,
-                        "impId2", BidRejectionReason.ERROR_TIMED_OUT,
-                        "impId3", BidRejectionReason.ERROR_TIMED_OUT));
+        assertThat(target.getRejected()).extracting(Rejection::seat, Rejection::impId, Rejection::reason)
+                .containsOnly(
+                        tuple("bidder", "impId1", NO_BID),
+                        tuple("bidder", "impId2", ERROR_TIMED_OUT),
+                        tuple("bidder", "impId3", ERROR_TIMED_OUT));
 
-        assertThat(target.getRejectedBids())
+        assertThat(target.getAllRejected())
                 .containsOnly(
                         entry("impId1", List.of(
-                                Pair.of(null, BidRejectionReason.NO_BID),
-                                Pair.of(null, BidRejectionReason.ERROR_TIMED_OUT))),
-                        entry("impId2", List.of(Pair.of(null, BidRejectionReason.ERROR_TIMED_OUT))),
-                        entry("impId3", List.of(Pair.of(null, BidRejectionReason.ERROR_TIMED_OUT))));
+                                ImpRejection.of("bidder", "impId1", NO_BID),
+                                ImpRejection.of("bidder", "impId1", ERROR_TIMED_OUT))),
+                        entry("impId2", List.of(ImpRejection.of("bidder", "impId2", ERROR_TIMED_OUT))),
+                        entry("impId3", List.of(ImpRejection.of("bidder", "impId3", ERROR_TIMED_OUT))));
     }
 
     @Test
     public void rejectBidsShouldTryRejectingEachBid() {
         // given
         target = new BidRejectionTracker("bidder", Set.of("impId1", "impId2", "impId3"), 0);
-        final BidderBid bid0 = BidderBid.builder().bid(Bid.builder().id("bidId0").impid("impId1").build()).build();
-        target.rejectBid(bid0, BidRejectionReason.RESPONSE_REJECTED_GENERAL);
+        final BidderBid bid0 = givenBid("bidId0", "impId1");
+        target.reject(BidRejection.of(bid0, RESPONSE_REJECTED_GENERAL));
 
         // when
-        final BidderBid bid1 = BidderBid.builder().bid(Bid.builder().id("bidId1").impid("impId1").build()).build();
-        final BidderBid bid2 = BidderBid.builder().bid(Bid.builder().id("bidId2").impid("impId2").build()).build();
-        final BidderBid bid3 = BidderBid.builder().bid(Bid.builder().id("bidId3").impid("impId3").build()).build();
-        target.rejectBids(Set.of(bid1, bid2, bid3), BidRejectionReason.RESPONSE_REJECTED_DSA_PRIVACY);
+        final BidderBid bid1 = givenBid("bidId1", "impId1");
+        final BidderBid bid2 = givenBid("bidId2", "impId2");
+        final BidderBid bid3 = givenBid("bidId3", "impId3");
+        target.reject(Set.of(
+                BidRejection.of(bid1, RESPONSE_REJECTED_DSA_PRIVACY),
+                BidRejection.of(bid2, RESPONSE_REJECTED_DSA_PRIVACY),
+                BidRejection.of(bid3, RESPONSE_REJECTED_DSA_PRIVACY)));
 
         // then
-        assertThat(target.getRejectedImps())
-                .isEqualTo(Map.of(
-                        "impId1", BidRejectionReason.RESPONSE_REJECTED_GENERAL,
-                        "impId2", BidRejectionReason.RESPONSE_REJECTED_DSA_PRIVACY,
-                        "impId3", BidRejectionReason.RESPONSE_REJECTED_DSA_PRIVACY));
+        assertThat(target.getRejected()).extracting(Rejection::seat, Rejection::impId, Rejection::reason)
+                .containsOnly(
+                        tuple("seat", "impId1", RESPONSE_REJECTED_GENERAL),
+                        tuple("seat", "impId2", RESPONSE_REJECTED_DSA_PRIVACY),
+                        tuple("seat", "impId3", RESPONSE_REJECTED_DSA_PRIVACY));
 
-        assertThat(target.getRejectedBids())
+        assertThat(target.getAllRejected())
                 .containsOnly(
                         entry("impId1", List.of(
-                                Pair.of(bid0, BidRejectionReason.RESPONSE_REJECTED_GENERAL),
-                                Pair.of(bid1, BidRejectionReason.RESPONSE_REJECTED_DSA_PRIVACY))),
-                        entry("impId2", List.of(Pair.of(bid2, BidRejectionReason.RESPONSE_REJECTED_DSA_PRIVACY))),
-                        entry("impId3", List.of(Pair.of(bid3, BidRejectionReason.RESPONSE_REJECTED_DSA_PRIVACY))));
+                                BidRejection.of(bid0, RESPONSE_REJECTED_GENERAL),
+                                BidRejection.of(bid1, RESPONSE_REJECTED_DSA_PRIVACY))),
+                        entry("impId2", List.of(BidRejection.of(bid2, RESPONSE_REJECTED_DSA_PRIVACY))),
+                        entry("impId3", List.of(BidRejection.of(bid3, RESPONSE_REJECTED_DSA_PRIVACY))));
     }
 
     @Test
@@ -221,14 +234,14 @@ public class BidRejectionTrackerTest {
         target.succeed(singleton(bid));
 
         // then
-        assertThat(target.getRejectedImps()).containsOnly(entry("impId1", BidRejectionReason.NO_BID));
+        assertThat(target.getRejected()).extracting(Rejection::seat, Rejection::impId, Rejection::reason)
+                .containsOnly(tuple("bidder", "impId1", NO_BID));
     }
 
-    @Test
-    public void rejectImpShouldFailRejectingWithReasonThatImpliesExistingBidToReject() {
-        assertThatThrownBy(() -> target.rejectImp("impId1", BidRejectionReason.RESPONSE_REJECTED_DSA_PRIVACY))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("The non-bid code 300 and higher assumes "
-                        + "that there is a rejected bid that shouldn't be lost");
+    private BidderBid givenBid(String bidId, String impId) {
+        return BidderBid.builder()
+                .seat("seat")
+                .bid(Bid.builder().id(bidId).impid(impId).build())
+                .build();
     }
 }
