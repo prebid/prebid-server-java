@@ -8,6 +8,7 @@ import org.prebid.server.functional.model.config.PbResponseCorrection
 import org.prebid.server.functional.model.config.PbsModulesConfig
 import org.prebid.server.functional.model.config.SuppressIbv
 import org.prebid.server.functional.model.db.Account
+import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.response.auction.Adm
 import org.prebid.server.functional.model.response.auction.BidExt
@@ -738,19 +739,14 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
                        [BidderName.GENERIC, BidderName.GENERIC_CAMEL_CASE],]
     }
 
-    def "PBS should reject auction with 353 code when suppress IBV is enabled, imp media type is Banner, bid response meta media type is Video, and excluded list lacks request bidder"() {
-        given: "Default bid request with banner and APP"
-        def bidRequest = getDefaultBidRequest(APP).tap {
-            ext.prebid.returnAllBidStatus = true
-        }
-
-        and: "Save account with enabled response correction module and suppress ibv"
+    def "PBS should reject auction with 353 code when suppress IBV is enabled, imp media type and  bid response meta media type is different, and excluded list lacks request bidder"() {
+        given: "Save account with enabled response correction module and suppress ibv"
         def accountWithResponseCorrectionModule = accountConfigWithResponseCorrectionModuleAndSuppressIbv(bidRequest.getAccountId(), bidderName)
         accountDao.save(accountWithResponseCorrectionModule)
 
         and: "Set bidder response with meta media type"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            seatbid[0].bid[0].ext = new BidExt(prebid: new Prebid(meta: new Meta(mediaType: VIDEO.value)))
+            seatbid[0].bid[0].ext = new BidExt(prebid: new Prebid(meta: new Meta(mediaType: bidResponseMediaType.value)))
         }
         bidder.setResponse(bidRequest.id, bidResponse)
 
@@ -769,38 +765,11 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         assert response.seatbid.isEmpty()
 
         where:
-        bidderName << [[], [BidderName.GENER_X], [BidderName.WILDCARD], [BidderName.UNKNOWN, BidderName.BOGUS]]
-    }
-
-    def "PBS should reject auction with 353 code when enabled suppress ibv and imp with media type Banner and bid response meta media type with Video"() {
-        given: "Default bid request with banner and APP"
-        def bidRequest = getDefaultBidRequest(APP).tap {
-            ext.prebid.returnAllBidStatus = true
-        }
-
-        and: "Save account with enabled response correction module and suppress ibv"
-        def accountWithResponseCorrectionModule = accountConfigWithResponseCorrectionModuleAndSuppressIbv(bidRequest.getAccountId())
-        accountDao.save(accountWithResponseCorrectionModule)
-
-        and: "Set bidder response with meta media type"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            seatbid[0].bid[0].ext = new BidExt(prebid: new Prebid(meta: new Meta(mediaType: VIDEO.value)))
-        }
-        bidder.setResponse(bidRequest.id, bidResponse)
-
-        when: "PBS processes auction request"
-        def response = pbsServiceWithResponseCorrectionModule.sendAuctionRequest(bidRequest)
-
-        then: "PBS response should contain seatNonBid for called bidder"
-        assert response.ext.seatnonbid.size() == 1
-
-        def seatNonBid = response.ext.seatnonbid[0]
-        assert seatNonBid.seat == BidderName.GENERIC
-        assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
-        assert seatNonBid.nonBid[0].statusCode == RESPONSE_REJECTED_DUE_TO_IN_BANNER_VIDEO
-
-        and: "Seat bid should be empty"
-        assert response.seatbid.isEmpty()
+        bidderName                              | bidResponseMediaType | bidRequest
+        []                                      | VIDEO                | BidRequest.defaultBidRequest.tap {ext.prebid.returnAllBidStatus = true }
+        [BidderName.GENER_X]                    | BANNER               | BidRequest.defaultAudioRequest.tap {ext.prebid.returnAllBidStatus = true }
+        [BidderName.WILDCARD]                   | AUDIO                | BidRequest.defaultNativeRequest.tap {ext.prebid.returnAllBidStatus = true }
+        [BidderName.UNKNOWN, BidderName.BOGUS]  | NATIVE               | BidRequest.defaultVideoRequest.tap {ext.prebid.returnAllBidStatus = true }
     }
 
     def "PBS should reject auction with 353 code when enabled suppress ibv and multi-imp with different media type and bid response meta media type with Video"() {
