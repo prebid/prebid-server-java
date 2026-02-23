@@ -112,7 +112,7 @@ public class NativoBidder implements Bidder<BidRequest> {
 
         final ObjectNode updateBidExt;
         try {
-            updateBidExt = updateBidExt(bid, rendererVersion);
+            updateBidExt = setRendererToResponse(bid, rendererVersion);
         } catch (PreBidException e) {
             errors.add(BidderError.badServerResponse(e.getMessage()));
             return bid;
@@ -121,7 +121,7 @@ public class NativoBidder implements Bidder<BidRequest> {
         return bid.toBuilder().ext(updateBidExt).build();
     }
 
-    private ObjectNode updateBidExt(Bid bid, String rendererVersion) {
+    private ObjectNode setRendererToResponse(Bid bid, String rendererVersion) {
         final ObjectNode bidExt = bid.getExt();
         final Optional<ExtBidPrebid> extBidPrebid = Optional.ofNullable(bidExt)
                 .map(ext -> parseExtBidPrebid(bidExt, bid.getId()));
@@ -130,6 +130,7 @@ public class NativoBidder implements Bidder<BidRequest> {
                 .map(ExtBidPrebid::getMeta)
                 .map(ExtBidPrebidMeta::toBuilder)
                 .orElseGet(ExtBidPrebidMeta::builder)
+                .rendererName(NATIVO_RENDERER_NAME)
                 .rendererVersion(rendererVersion)
                 .build();
 
