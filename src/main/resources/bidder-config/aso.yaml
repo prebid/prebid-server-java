@@ -7,16 +7,34 @@ adapters:
         endpoint: https://srv.datacygnal.io/pbs/bidder?zid={{ZoneID}}
         meta-info:
           maintainer-email: contact@bcm.ltd
+        usersync:
+          cookie-family-name: bcmint
+          redirect:
+            url: https://track.datacygnal.io/sync/v2?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&usp={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redir={{redirect_url}}
+            support-cors: false
+            uid-macro: '{uid}'
       bidagency:
         enabled: false
         endpoint: https://srv.bidgx.com/pbs/bidder?zid={{ZoneID}}
         meta-info:
           maintainer-email: aso@bidgency.com
+        usersync:
+          cookie-family-name: bidagency
+          redirect:
+            url: https://track.bidgx.com/sync/v2?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&usp={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redir={{redirect_url}}
+            support-cors: false
+            uid-macro: '{uid}'
       kuantyx:
         enabled: false
         endpoint: https://srv.kntxy.com/pbs/bidder?zid={{ZoneID}}
         meta-info:
           maintainer-email: ssp@kuantyx.com
+        usersync:
+          cookie-family-name: kuantyx
+          redirect:
+            url: https://track.kntxy.com/sync/v2?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&usp={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redir={{redirect_url}}
+            support-cors: false
+            uid-macro: '{uid}'
     meta-info:
       maintainer-email: support@adsrv.org
       app-media-types:
@@ -28,3 +46,9 @@ adapters:
         - video
         - native
       vendor-id: 0
+    usersync:
+      cookie-family-name: aso
+      redirect:
+        url: https://track.aso1.net/sync/v2?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&usp={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redir={{redirect_url}}
+        support-cors: false
+        uid-macro: '{uid}'
