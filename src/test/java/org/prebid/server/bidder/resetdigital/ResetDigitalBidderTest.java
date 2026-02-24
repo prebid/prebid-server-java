@@ -10,6 +10,7 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.vertx.core.MultiMap;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
@@ -20,15 +21,18 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.function.UnaryOperator;
 
 import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.tuple;
 
 public class ResetDigitalBidderTest extends VertxTest {
 
@@ -78,7 +82,10 @@ public class ResetDigitalBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorWhenImpExtIsInvalid() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder().id("123").build()))
+                .imp(singletonList(Imp.builder()
+                        .id("123")
+                        .ext(jacksonMapper.mapper().createObjectNode().put("bidder", "invalid"))
+                        .build()))
                 .build();
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -87,7 +94,7 @@ public class ResetDigitalBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
                     assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
-                    assertThat(error.getMessage()).contains("imp.ext.bidder is required");
+                    assertThat(error.getMessage()).startsWith("Error parsing resetDigitalExt from imp.ext");
                 });
     }
 
@@ -101,6 +108,21 @@ public class ResetDigitalBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
                 .containsExactly("https://test.endpoint.com?pid=placementId123");
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldContainXOpenRtbVersionHeader() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getHeaders)
+                .flatExtracting(MultiMap::entries)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsOnlyOnce(tuple(HttpUtil.X_OPENRTB_VERSION_HEADER.toString(), "2.5"));
         assertThat(result.getErrors()).isEmpty();
     }
 
