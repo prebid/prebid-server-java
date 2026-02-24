@@ -9,7 +9,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.any
 import static com.github.tomakehurst.wiremock.client.WireMock.anyRequestedFor
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching
-import static org.prebid.server.functional.model.HttpStatusCode.OK_200
+import static org.apache.http.HttpStatus.SC_OK
 import static org.prebid.server.functional.model.mock.services.vendorlist.GvlSpecificationVersion.V2
 import static org.prebid.server.functional.model.mock.services.vendorlist.GvlSpecificationVersion.V3
 import static org.prebid.server.functional.model.mock.services.vendorlist.VendorListResponse.Vendor
@@ -50,7 +50,7 @@ class VendorList extends NetworkScaffolding {
         wireMockClient.register(any(urlMatching(prepareEndpoint))
                 .atPriority(Integer.MAX_VALUE)
                 .willReturn(aResponse()
-                        .withStatus(OK_200.code)
+                        .withStatus(SC_OK)
                         .withFixedDelay(second * 1000)
                         .withBody(prepareEncodeResponseBody)))
     }

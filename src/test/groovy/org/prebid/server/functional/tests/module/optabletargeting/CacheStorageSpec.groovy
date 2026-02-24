@@ -20,7 +20,7 @@ import org.prebid.server.functional.tests.module.ModuleBaseSpec
 import org.prebid.server.functional.util.PBSUtils
 
 import static org.apache.commons.codec.binary.Base64.encodeBase64
-import static org.prebid.server.functional.model.HttpStatusCode.NOT_FOUNT_404
+import static org.apache.http.HttpStatus.SC_NOT_FOUND
 import static org.prebid.server.functional.model.ModuleName.OPTABLE_TARGETING
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 
@@ -93,7 +93,7 @@ class CacheStorageSpec extends ModuleBaseSpec {
 
         and: "Mocked external request"
         storedCache.setTargetingResponse(bidRequest, targetingConfig)
-        storedCache.setCachingResponse(NOT_FOUNT_404)
+        storedCache.setCachingResponse(SC_NOT_FOUND)
 
         and: "Flash metrics"
         flushMetrics(prebidServerStoredCacheService)

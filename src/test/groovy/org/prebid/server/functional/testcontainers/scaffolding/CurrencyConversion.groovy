@@ -23,7 +23,9 @@ class CurrencyConversion extends NetworkScaffolding {
     }
 
     @Override
-    void setResponse() {}
+    void setResponse() {
+        throw new UnsupportedOperationException()
+    }
 
     @Override
     protected RequestPattern getRequest() {

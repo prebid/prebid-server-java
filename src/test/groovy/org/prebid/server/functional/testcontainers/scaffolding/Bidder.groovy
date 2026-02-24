@@ -13,7 +13,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
 import static com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse
-import static org.prebid.server.functional.model.HttpStatusCode.OK_200
+import static org.apache.http.HttpStatus.SC_OK
 
 class Bidder extends NetworkScaffolding {
 
@@ -59,8 +59,8 @@ class Bidder extends NetworkScaffolding {
     }
 
     RequestPattern getRequest(String bidRequestId, String requestMatchPath) {
-        postRequestedFor(urlMatching("^$endpoint(\\?.*)?\$"))
-                .withRequestBody(matchingJsonPath("\$[?(@." + requestMatchPath + " == '" + bidRequestId + "')]"))
+        postRequestedFor(urlMatching("^${endpoint}(\\?.*)?\$"))
+                .withRequestBody(matchingJsonPath("\$[?(@.${requestMatchPath} == '${bidRequestId}')]"))
                 .build()
     }
 
@@ -69,8 +69,8 @@ class Bidder extends NetworkScaffolding {
         wireMockClient.register(post(urlPathEqualTo(endpoint))
                 .atPriority(Integer.MAX_VALUE)
                 .willReturn(aResponse()
+                        .withStatus(SC_OK)
                         .withTransformers("response-template")
-                        .withStatus(OK_200.code)
                         .withBody(DEFAULT_BODY_RESPONSE)))
     }
 

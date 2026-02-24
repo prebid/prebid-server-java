@@ -24,9 +24,11 @@ class PubStackAnalytics extends NetworkScaffolding {
 
     @Override
     protected RequestPatternBuilder getRequest(String value) {
-        return null
+        throw new UnsupportedOperationException()
     }
 
     @Override
-    void setResponse() {}
+    void setResponse() {
+        throw new UnsupportedOperationException()
+    }
 }

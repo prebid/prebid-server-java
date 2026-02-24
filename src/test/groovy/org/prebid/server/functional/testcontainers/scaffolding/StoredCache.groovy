@@ -2,7 +2,6 @@ package org.prebid.server.functional.testcontainers.scaffolding
 
 import com.github.tomakehurst.wiremock.matching.RequestPattern
 import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder
-import org.prebid.server.functional.model.HttpStatusCode
 import org.prebid.server.functional.model.config.Audience
 import org.prebid.server.functional.model.config.AudienceId
 import org.prebid.server.functional.model.config.IdentifierType
@@ -22,8 +21,8 @@ import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor
 import static com.github.tomakehurst.wiremock.client.WireMock.post
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
-import static org.prebid.server.functional.model.HttpStatusCode.NO_CONTENT_204
-import static org.prebid.server.functional.model.HttpStatusCode.OK_200
+import static org.apache.http.HttpStatus.SC_NO_CONTENT
+import static org.apache.http.HttpStatus.SC_OK
 
 class StoredCache extends NetworkScaffolding {
 
@@ -40,18 +39,20 @@ class StoredCache extends NetworkScaffolding {
 
     @Override
     protected RequestPatternBuilder getRequest(String bidRequestId) {
-        return null
+        throw new UnsupportedOperationException()
     }
 
     @Override
-    void setResponse() {}
+    void setResponse() {
+        throw new UnsupportedOperationException()
+    }
 
     TargetingResult setTargetingResponse(BidRequest bidRequest, OptableTargetingConfig config) {
         def targetingResult = getBodyByRequest(bidRequest)
         wireMockClient.register(get(urlPathEqualTo("$endpoint${QueryBuilder.buildQuery(bidRequest, config)}"))
                 .atPriority(Integer.MAX_VALUE)
                 .willReturn(aResponse()
-                        .withStatus(OK_200.code)
+                        .withStatus(SC_OK)
                         .withBody(encode(targetingResult))))
         targetingResult
     }
@@ -61,16 +62,16 @@ class StoredCache extends NetworkScaffolding {
         wireMockClient.register(get(urlPathEqualTo(endpoint))
                 .atPriority(Integer.MAX_VALUE)
                 .willReturn(aResponse()
-                        .withStatus(OK_200.code)
+                        .withStatus(SC_OK)
                         .withBody(encode(targetingResult))))
         targetingResult
     }
 
-    void setCachingResponse(HttpStatusCode statusCode = NO_CONTENT_204) {
+    void setCachingResponse(Integer statusCode = SC_NO_CONTENT) {
         wireMockClient.register(post(urlPathEqualTo(endpoint))
                 .atPriority(Integer.MAX_VALUE)
                 .willReturn(aResponse()
-                        .withStatus(statusCode.code)))
+                        .withStatus(statusCode)))
     }
 
     private static TargetingResult getBodyByRequest(BidRequest bidRequest) {

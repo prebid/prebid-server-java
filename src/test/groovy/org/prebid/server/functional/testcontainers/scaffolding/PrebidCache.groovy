@@ -18,8 +18,8 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import static com.github.tomakehurst.wiremock.client.WireMock.get
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor
-import static org.prebid.server.functional.model.HttpStatusCode.INTERNAL_SERVER_ERROR_500
-import static org.prebid.server.functional.model.HttpStatusCode.OK_200
+import static org.apache.hc.core5.http.HttpStatus.SC_INTERNAL_SERVER_ERROR
+import static org.apache.hc.core5.http.HttpStatus.SC_OK
 
 class PrebidCache extends NetworkScaffolding {
 
@@ -81,7 +81,7 @@ class PrebidCache extends NetworkScaffolding {
                 .atPriority(MAX_VALUE)
                 .willReturn(aResponse()
                         .withTransformers("response-template")
-                        .withStatus(OK_200.code)
+                        .withStatus(SC_OK)
                         .withBody(RESPONSE_BODY)))
     }
 
@@ -89,7 +89,7 @@ class PrebidCache extends NetworkScaffolding {
         wireMockClient.register(get(urlPathEqualTo(endpoint))
                 .atPriority(MAX_VALUE)
                 .willReturn(aResponse()
-                        .withStatus(OK_200.code)
+                        .withStatus(SC_OK)
                         .withBody(encode(vTrackResponse))))
     }
 
@@ -97,7 +97,7 @@ class PrebidCache extends NetworkScaffolding {
         wireMockClient.register(post(urlPathEqualTo(endpoint))
                 .atPriority(MAX_VALUE)
                 .willReturn(aResponse()
-                        .withStatus(INTERNAL_SERVER_ERROR_500.code)))
+                        .withStatus(SC_INTERNAL_SERVER_ERROR)))
     }
 
     void setInvalidGetResponse(String uuid, String errorMessage = PBSUtils.randomString) {
@@ -105,7 +105,7 @@ class PrebidCache extends NetworkScaffolding {
                 .withQueryParam("uuid", equalTo(uuid))
                 .atPriority(MAX_VALUE)
                 .willReturn(aResponse()
-                        .withStatus(INTERNAL_SERVER_ERROR_500.code)
+                        .withStatus(SC_INTERNAL_SERVER_ERROR)
                         .withBody(errorMessage)))
     }
 

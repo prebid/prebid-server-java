@@ -60,6 +60,7 @@ abstract class BaseSpec extends Specification implements ObjectMapperWrapper {
 
     def cleanupSpec() {
         bidder.reset()
+        prebidCache.reset()
         repository.removeAllDatabaseData()
         vendorList.reset()
     }

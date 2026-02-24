@@ -4,7 +4,6 @@ import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder
 import com.github.tomakehurst.wiremock.matching.RequestPattern
 import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
-import org.prebid.server.functional.model.HttpStatusCode
 import org.prebid.server.functional.model.ResponseModel
 import org.prebid.server.functional.testcontainers.container.NetworkServiceContainer
 
@@ -12,7 +11,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.anyRequestedFor
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
-import static org.prebid.server.functional.model.HttpStatusCode.OK_200
+import static org.apache.http.HttpStatus.SC_OK
 
 class HttpSettings extends NetworkScaffolding {
 
@@ -36,6 +35,7 @@ class HttpSettings extends NetworkScaffolding {
 
     @Override
     void setResponse() {
+        throw new UnsupportedOperationException()
     }
 
     protected RequestPatternBuilder getRfcRequestPattern(String accountId) {
@@ -45,11 +45,10 @@ class HttpSettings extends NetworkScaffolding {
 
     void setRfcResponse(String value,
                         ResponseModel responseModel,
-                        HttpStatusCode statusCode = OK_200,
                         Map<String, String> headers = [:]) {
 
         def responseBuilder = ResponseDefinitionBuilder.responseDefinition()
-                .withStatus(statusCode.code)
+                .withStatus(SC_OK)
                 .withHeader("Content-Type", "application/json")
                 .withBody(encode(responseModel))
 

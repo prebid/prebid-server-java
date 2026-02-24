@@ -11,7 +11,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.anyRequestedFor
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching
-import static org.prebid.server.functional.model.HttpStatusCode.OK_200
+import static org.apache.http.HttpStatus.SC_OK
 
 class FloorsProvider extends NetworkScaffolding {
 
@@ -36,7 +36,7 @@ class FloorsProvider extends NetworkScaffolding {
         wireMockClient.register(any(urlMatching("^.*$endpoint.*\$"))
                 .atPriority(Integer.MAX_VALUE)
                 .willReturn(aResponse()
-                        .withStatus(OK_200.code)
+                        .withStatus(SC_OK)
                         .withBody(encode(PriceFloorData.priceFloorData))))
     }
 }

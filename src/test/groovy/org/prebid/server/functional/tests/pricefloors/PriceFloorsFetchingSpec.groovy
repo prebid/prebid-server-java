@@ -14,9 +14,9 @@ import org.prebid.server.functional.util.PBSUtils
 
 import java.time.Instant
 
+import static org.apache.http.HttpStatus.SC_BAD_REQUEST
 import static org.prebid.server.functional.model.Currency.EUR
 import static org.prebid.server.functional.model.Currency.JPY
-import static org.prebid.server.functional.model.HttpStatusCode.BAD_REQUEST_400
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.pricefloors.Country.MULTIPLE
 import static org.prebid.server.functional.model.pricefloors.MediaType.BANNER
@@ -740,7 +740,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         accountDao.save(account)
 
         and: "Set Floors Provider response  with status code != 200"
-        floorsProvider.setResponse(accountId, BAD_REQUEST_400)
+        floorsProvider.setResponse(accountId, SC_BAD_REQUEST)
 
         and: "PBS fetch rules from floors provider"
         cacheFloorsProviderRules(bidRequest, floorsPbsService, GENERIC, NONE)
@@ -1952,7 +1952,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         cacheFloorsProviderRules(bidRequest, floorValue, pbsService)
 
         and: "Set Floors Provider response  with status code != 200"
-        floorsProvider.setResponse(accountId, BAD_REQUEST_400)
+        floorsProvider.setResponse(accountId, SC_BAD_REQUEST)
 
         when: "PBS processes auction request"
         pbsService.sendAuctionRequest(bidRequest)
