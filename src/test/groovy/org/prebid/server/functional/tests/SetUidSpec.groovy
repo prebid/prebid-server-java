@@ -83,9 +83,7 @@ class SetUidSpec extends BaseSpec {
              "adapters.${GENERIC}.aliases.${OPENX_ALIAS}.meta-info.vendor-id"                          : VENDOR_ID,
              "adapters.${GENERIC}.aliases.${OPENX_ALIAS}.usersync.cookie-family-name"                  : GENERIC_COOKIE_FAMILY_NAME,
              "adapters.${GENERIC}.aliases.${OPENX_ALIAS}.usersync.${USER_SYNC_TYPE.value}.url"         : USER_SYNC_URL,
-             "adapters.${GENERIC}.aliases.${OPENX_ALIAS}.usersync.${USER_SYNC_TYPE.value}.support-cors": CORS_SUPPORT.toString()
-
-            ]
+             "adapters.${GENERIC}.aliases.${OPENX_ALIAS}.usersync.${USER_SYNC_TYPE.value}.support-cors": CORS_SUPPORT.toString()]
 
     @Shared
     PrebidServerService singleCookiesPbsService = pbsServiceFactory.getService(PBS_CONFIG + GENERIC_ALIAS_CONFIG)
