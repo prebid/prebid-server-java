@@ -22,11 +22,11 @@ adapters:
       vendor-id: 965
     usersync:
       cookie-family-name: nexx360
-      iframe:
-        url: https://fast.nexx360.io/usermatchredir/redirect?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redir={{redirect_url}}
+      redirect:
+        url: https://fast.nexx360.io/usermatchredir/redirect?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gppsid={{gpp_sid}}&redir={{redirect_url}}
         support-cors: false
         uid-macro: '$UID'
-      redirect:
-        url: https://fast.nexx360.io/usermatchredir/iframe?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gppsid={{gpp_sid}}&redir={{redirect_url}}
+      iframe:
+        url: https://fast.nexx360.io/usermatchredir/iframe?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redir={{redirect_url}}
         support-cors: false
         uid-macro: '$UID'
