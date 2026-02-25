@@ -1,6 +1,5 @@
 package org.prebid.server.functional.tests
 
-
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.bidder.Openx
 import org.prebid.server.functional.model.request.auction.BidRequest

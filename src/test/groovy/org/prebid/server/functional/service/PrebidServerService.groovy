@@ -6,7 +6,6 @@ import io.restassured.authentication.BasicAuthScheme
 import io.restassured.builder.RequestSpecBuilder
 import io.restassured.response.Response
 import io.restassured.specification.RequestSpecification
-import org.apache.http.HttpStatus
 import org.prebid.server.functional.model.UidsCookie
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.mock.services.prebidcache.response.PrebidCacheResponse
@@ -44,8 +43,8 @@ import java.time.format.DateTimeFormatter
 
 import static io.restassured.RestAssured.given
 import static java.time.ZoneOffset.UTC
+import static org.apache.http.HttpStatus.SC_OK
 import static org.prebid.server.functional.testcontainers.Dependencies.influxdbContainer
-
 
 class PrebidServerService implements ObjectMapperWrapper {
 
@@ -87,11 +86,11 @@ class PrebidServerService implements ObjectMapperWrapper {
         prometheusRequestSpecification = buildAndGetRequestSpecification(pbsContainer.prometheusRootUri, authenticationScheme)
     }
 
-    BidResponse sendAuctionRequest(BidRequest bidRequest, Integer statusCode = HttpStatus.SC_OK) {
+    BidResponse sendAuctionRequest(BidRequest bidRequest, Integer statusCode = SC_OK) {
         sendAuctionRequest(bidRequest, [:], statusCode)
     }
 
-    BidResponse sendAuctionRequest(BidRequest bidRequest, Map<String, ?> headers, int statusCode = HttpStatus.SC_OK) {
+    BidResponse sendAuctionRequest(BidRequest bidRequest, Map<String, ?> headers, int statusCode = SC_OK) {
         def response = postAuction(bidRequest, headers)
 
         checkResponseStatusCode(response, statusCode)
@@ -115,11 +114,11 @@ class PrebidServerService implements ObjectMapperWrapper {
         decode(response.body.asString(), AmpResponse)
     }
 
-    AmpResponse sendAmpRequest(AmpRequest ampRequest, int statusCode = HttpStatus.SC_OK) {
+    AmpResponse sendAmpRequest(AmpRequest ampRequest, int statusCode = SC_OK) {
         sendAmpRequest(ampRequest, [:], statusCode)
     }
 
-    AmpResponse sendAmpRequest(AmpRequest ampRequest, Map<String, String> headers, int statusCode = HttpStatus.SC_OK) {
+    AmpResponse sendAmpRequest(AmpRequest ampRequest, Map<String, String> headers, int statusCode = SC_OK) {
         def response = getAmp(ampRequest, headers)
 
         checkResponseStatusCode(response, statusCode)
@@ -383,7 +382,7 @@ class PrebidServerService implements ObjectMapperWrapper {
                 .get(AMP_ENDPOINT)
     }
 
-    private void checkResponseStatusCode(Response response, int statusCode = HttpStatus.SC_OK) {
+    private void checkResponseStatusCode(Response response, int statusCode = SC_OK) {
         def responseStatusCode = response.statusCode
         if (responseStatusCode != statusCode) {
             def responseBody = response.body.asString()

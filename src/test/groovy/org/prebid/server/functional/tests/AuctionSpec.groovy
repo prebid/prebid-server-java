@@ -1,6 +1,5 @@
 package org.prebid.server.functional.tests
 
-
 import org.prebid.server.functional.model.UidsCookie
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.config.AccountAuctionConfig

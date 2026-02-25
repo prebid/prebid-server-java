@@ -1,6 +1,5 @@
 package org.prebid.server.functional.tests
 
-
 import org.prebid.server.functional.model.db.StoredResponse
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Imp

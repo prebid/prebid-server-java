@@ -1,6 +1,5 @@
 package org.prebid.server.functional.tests.bidder.openx
 
-
 import org.prebid.server.functional.model.Currency
 import org.prebid.server.functional.model.bidder.Openx
 import org.prebid.server.functional.model.config.AccountAuctionConfig
@@ -10,13 +9,13 @@ import org.prebid.server.functional.model.request.auction.AuctionEnvironment
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.InterestGroupAuctionSupport
 import org.prebid.server.functional.model.request.auction.PaaFormat
-import org.prebid.server.functional.model.response.BidderErrorCode
 import org.prebid.server.functional.model.response.auction.InterestGroupAuctionBuyer
 import org.prebid.server.functional.model.response.auction.InterestGroupAuctionBuyerExt
 import org.prebid.server.functional.model.response.auction.InterestGroupAuctionIntent
 import org.prebid.server.functional.model.response.auction.InterestGroupAuctionSeller
 import org.prebid.server.functional.model.response.auction.OpenxBidResponse
 import org.prebid.server.functional.model.response.auction.OpenxBidResponseExt
+import org.prebid.server.functional.model.response.BidderErrorCode
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.tests.BaseSpec
 import org.prebid.server.functional.util.PBSUtils

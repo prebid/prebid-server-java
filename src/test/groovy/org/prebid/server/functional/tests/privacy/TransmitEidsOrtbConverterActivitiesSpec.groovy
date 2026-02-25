@@ -14,7 +14,6 @@ import spock.lang.Shared
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.config.Purpose.P1
-import static org.prebid.server.functional.model.config.Purpose.P10
 import static org.prebid.server.functional.model.config.Purpose.P2
 import static org.prebid.server.functional.model.config.Purpose.P3
 import static org.prebid.server.functional.model.config.Purpose.P4
@@ -23,6 +22,7 @@ import static org.prebid.server.functional.model.config.Purpose.P6
 import static org.prebid.server.functional.model.config.Purpose.P7
 import static org.prebid.server.functional.model.config.Purpose.P8
 import static org.prebid.server.functional.model.config.Purpose.P9
+import static org.prebid.server.functional.model.config.Purpose.P10
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_EIDS
 import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
 

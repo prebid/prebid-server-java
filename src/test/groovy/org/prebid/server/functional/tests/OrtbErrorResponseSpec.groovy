@@ -12,13 +12,18 @@ import static org.prebid.server.functional.model.response.BidderErrorCode.BAD_IN
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 import static org.prebid.server.functional.model.response.auction.NoBidResponse.UNKNOWN_ERROR
 
-class OrtbValidationSpec extends BaseSpec {
+class OrtbErrorResponseSpec extends BaseSpec {
 
-    private static final PrebidServerService baseValidationPbsService = pbsServiceFactory.getService(["auction.ortb-error-response": "false"])
     private static final Closure<String> ACCOUNT_INVALID_MESSAGE = { accountId -> "Account ${accountId} is inactive" }
+    private static final PrebidServerService disabledOrtbErrorResponseConfigPbsService = pbsServiceFactory.getService(["auction.ortb-error-response": "false"])
+
+    @Override
+    def cleanupSpec() {
+        pbsServiceFactory.removeContainer(["auction.ortb-error-response": "false"])
+    }
 
     def "PBS auction should provide proper ORTB error response when ortb-error-response host config is enabled"() {
-        given: "Default basic BidRequest"
+        given: "Default bid request"
         def bidRequest = BidRequest.defaultBidRequest
 
         and: "Invalid account in DB"
@@ -26,9 +31,9 @@ class OrtbValidationSpec extends BaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction request"
-        def response = baseValidationPbsService.sendAuctionRequest(bidRequest, SC_UNAUTHORIZED)
+        def response = disabledOrtbErrorResponseConfigPbsService.sendAuctionRequest(bidRequest, SC_UNAUTHORIZED)
 
-        then: "Request should fail with error"
+        then: "Response should be with error"
         assert response.noBidResponse == UNKNOWN_ERROR
         verifyAll(response.ext.errors[PREBID]) {
             it.code == [BAD_INPUT]
@@ -37,7 +42,7 @@ class OrtbValidationSpec extends BaseSpec {
     }
 
     def "PBS auction should provide raw error response when ortb-error-response host config is disabled"() {
-        given: "Default basic BidRequest"
+        given: "Default bid request"
         def bidRequest = BidRequest.defaultBidRequest
 
         and: "Invalid account in DB"
@@ -45,15 +50,15 @@ class OrtbValidationSpec extends BaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction request"
-        def response = baseValidationPbsService.sendAuctionRequestRaw(bidRequest)
+        def response = disabledOrtbErrorResponseConfigPbsService.sendAuctionRequestRaw(bidRequest)
 
-        then: "Request should fail with error"
+        then: "Response should be with error"
         assert response.statusCode == SC_UNAUTHORIZED
         assert response.responseBody == ACCOUNT_INVALID_MESSAGE(bidRequest.accountId)
     }
 
     def "PBS auction should provide raw error response and ignore host config when ortb-errors host config is disabled"() {
-        given: "Default basic BidRequest"
+        given: "Default bid request"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.ortbErrors = false
         }
@@ -65,16 +70,16 @@ class OrtbValidationSpec extends BaseSpec {
         when: "PBS processes auction request"
         def response = pbsService.sendAuctionRequestRaw(bidRequest)
 
-        then: "Request should fail with error"
+        then: "Response should be with error"
         assert response.statusCode == SC_UNAUTHORIZED
         assert response.responseBody == ACCOUNT_INVALID_MESSAGE(bidRequest.accountId)
 
         where:
-        pbsService << [baseValidationPbsService, defaultPbsService]
+        pbsService << [disabledOrtbErrorResponseConfigPbsService, defaultPbsService]
     }
 
     def "PBS auction should provide proper ORTB error response and ignore host config when ortb-errors host config is enabled"() {
-        given: "Default basic BidRequest"
+        given: "Default bid request"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.ortbErrors = true
         }
@@ -86,7 +91,7 @@ class OrtbValidationSpec extends BaseSpec {
         when: "PBS processes auction request"
         def response = pbsService.sendAuctionRequest(bidRequest, SC_UNAUTHORIZED)
 
-        then: "Request should fail with error"
+        then: "Response should be with error"
         assert response.noBidResponse == UNKNOWN_ERROR
         verifyAll(response.ext.errors[PREBID]) {
             it.code == [BAD_INPUT]
@@ -94,7 +99,7 @@ class OrtbValidationSpec extends BaseSpec {
         }
 
         where:
-        pbsService << [baseValidationPbsService, defaultPbsService]
+        pbsService << [disabledOrtbErrorResponseConfigPbsService, defaultPbsService]
     }
 
     def "PBS amp should provide proper ORTB error response when ortb-error-response host config is enabled"() {
@@ -115,9 +120,9 @@ class OrtbValidationSpec extends BaseSpec {
         accountDao.save(account)
 
         when: "PBS processes amp request"
-        def response = baseValidationPbsService.sendAmpRequest(ampRequest, SC_UNAUTHORIZED)
+        def response = disabledOrtbErrorResponseConfigPbsService.sendAmpRequest(ampRequest, SC_UNAUTHORIZED)
 
-        then: "Request should fail with error"
+        then: "Response should be with error"
         verifyAll(response.ext.errors[PREBID]) {
             it.code == [BAD_INPUT]
             it.errorMessage == [ACCOUNT_INVALID_MESSAGE(ampRequest.account)]
@@ -142,9 +147,9 @@ class OrtbValidationSpec extends BaseSpec {
         accountDao.save(account)
 
         when: "PBS processes amp request"
-        def response = baseValidationPbsService.sendAmpRequestRaw(ampRequest)
+        def response = disabledOrtbErrorResponseConfigPbsService.sendAmpRequestRaw(ampRequest)
 
-        then: "Request should fail with error"
+        then: "Response should be with error"
         assert response.statusCode == SC_UNAUTHORIZED
         assert response.responseBody == ACCOUNT_INVALID_MESSAGE(ampRequest.account)
     }
@@ -170,12 +175,12 @@ class OrtbValidationSpec extends BaseSpec {
         when: "PBS processes amp request"
         def response = pbsService.sendAmpRequestRaw(ampRequest)
 
-        then: "Request should fail with error"
+        then: "Response should be with error"
         assert response.statusCode == SC_UNAUTHORIZED
         assert response.responseBody == ACCOUNT_INVALID_MESSAGE(ampRequest.account)
 
         where:
-        pbsService << [baseValidationPbsService, defaultPbsService]
+        pbsService << [disabledOrtbErrorResponseConfigPbsService, defaultPbsService]
     }
 
     def "PBS amp should provide proper ORTB error response and ignore host config when ortb-errors host config is enabled"() {
@@ -199,13 +204,13 @@ class OrtbValidationSpec extends BaseSpec {
         when: "PBS processes amp request"
         def response = pbsService.sendAmpRequest(ampRequest, SC_UNAUTHORIZED)
 
-        then: "Request should fail with error"
+        then: "Response should be with error"
         verifyAll(response.ext.errors[PREBID]) {
             it.code == [BAD_INPUT]
             it.errorMessage == [ACCOUNT_INVALID_MESSAGE(ampRequest.account)]
         }
 
         where:
-        pbsService << [baseValidationPbsService, defaultPbsService]
+        pbsService << [disabledOrtbErrorResponseConfigPbsService, defaultPbsService]
     }
 }
