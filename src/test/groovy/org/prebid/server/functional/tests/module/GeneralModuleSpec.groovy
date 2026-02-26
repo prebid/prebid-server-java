@@ -16,7 +16,6 @@ import org.prebid.server.functional.model.response.auction.InvocationResult
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.IgnoreRest
 
 import java.time.Instant
 
@@ -603,7 +602,7 @@ class GeneralModuleSpec extends ModuleBaseSpec {
         assert !response.ext?.warnings
         assert !response.ext?.errors
 
-        and: "PBS log should contain message"
+        and: "PBS log should not contain deserialization error messages"
         def logs = pbsServiceWithMultipleModule.getLogsByTime(startTime)
         assert !getLogsByText(logs, "Cannot deserialize value of type `org.prebid.server.hooks.execution.model.HookHttpEndpoint` " +
                 "from String \"${AUCTION_GET}\": not one of the values accepted for Enum class").size()
@@ -633,7 +632,7 @@ class GeneralModuleSpec extends ModuleBaseSpec {
         when: "PBS processes auction request"
         pbsServiceWithMultipleModule.sendAuctionRequest(bidRequest)
 
-        then: "PBS response should include trace information about called modules"
+        then: "Response should contain error"
         def exception = thrown(PrebidServerException)
         assert exception.statusCode == UNAUTHORIZED.code()
         assert exception.responseBody == "Unauthorized account id: ${account.uuid}"
