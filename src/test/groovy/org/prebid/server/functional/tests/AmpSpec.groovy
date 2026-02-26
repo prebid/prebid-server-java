@@ -261,7 +261,7 @@ class AmpSpec extends BaseSpec {
         assert !bidderRequest.user.ext.consentedProvidersSettings.consentedProviders
     }
 
-    def "PBS should move and not populate certain fields when debug enabled"() {
+    def "PBS PBS should move endpoint metadata to ext.prebid.server and strip aliases in bidder request"() {
         given: "Default amp request"
         def ampRequest = AmpRequest.defaultAmpRequest
 

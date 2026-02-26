@@ -319,7 +319,7 @@ class AuctionSpec extends BaseSpec {
         assert !bidderRequest.user
     }
 
-    def "PBS should move and not populate certain fields when debug enabled"() {
+    def "PBS should move endpoint metadata to ext.prebid.server and strip aliases in bidder request"() {
         given: "Default bid request with aliases"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.aliases = [(PBSUtils.randomString): GENERIC]
