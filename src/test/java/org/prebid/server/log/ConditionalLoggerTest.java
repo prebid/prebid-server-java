@@ -8,7 +8,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.concurrent.TimeUnit;
@@ -16,14 +16,13 @@ import java.util.concurrent.TimeUnit;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 @ExtendWith(MockitoExtension.class)
 @ExtendWith(VertxExtension.class)
 public class ConditionalLoggerTest {
 
-    @Mock
-    private Logger logger;
+    @Spy
+    private Logger logger = LoggerFactory.getLogger(ConditionalLoggerTest.class);
 
     private Vertx vertx;
 
@@ -41,37 +40,10 @@ public class ConditionalLoggerTest {
     }
 
     @Test
-    public void infoWithKeyShouldCallLoggerWithExpectedCount() {
+    public void infoShouldCallLoggerForEachLog() {
         // when
-        for (int i = 0; i < 10; i++) {
-            conditionalLogger.infoWithKey("key", "Log Message1", 2);
-            conditionalLogger.infoWithKey("key", "Log Message2", 2);
-        }
-
-        // then
-        verify(logger, times(10)).info("Log Message2");
-        verifyNoMoreInteractions(logger);
-    }
-
-    @Test
-    public void infoShouldCallLoggerWithExpectedCount() {
-        // when
-        for (int i = 0; i < 10; i++) {
-            conditionalLogger.info("Log Message", 2);
-        }
-
-        // then
-        verify(logger, times(5)).info("Log Message");
-    }
-
-    @Test
-    public void infoShouldCallLoggerBySpecifiedKeyWithExpectedCount() {
-        // given
-        conditionalLogger = new ConditionalLogger("key1", logger);
-
-        // when
-        for (int i = 0; i < 10; i++) {
-            conditionalLogger.info("Log Message" + i, 2);
+        for (int i = 0; i < 5; i++) {
+            conditionalLogger.info("Log Message" + i, 0, TimeUnit.MILLISECONDS);
         }
 
         // then
@@ -79,7 +51,7 @@ public class ConditionalLoggerTest {
     }
 
     @Test
-    public void infoShouldCallLoggerWithExpectedTimeout() {
+    public void infoShouldSkipLogsForDuration() {
         // when
         for (int i = 0; i < 5; i++) {
             conditionalLogger.info("Log Message", 200, TimeUnit.MILLISECONDS);
@@ -91,7 +63,7 @@ public class ConditionalLoggerTest {
     }
 
     @Test
-    public void infoShouldCallLoggerBySpecifiedKeyWithExpectedTimeout() {
+    public void infoShouldSkipLogsForKeyForDuration() {
         // given
         conditionalLogger = new ConditionalLogger("key1", logger);
 
