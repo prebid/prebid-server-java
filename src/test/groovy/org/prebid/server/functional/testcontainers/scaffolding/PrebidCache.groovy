@@ -111,6 +111,6 @@ class PrebidCache extends NetworkScaffolding {
 
     private static RequestPatternBuilder getXmlCacheRequest(String payload) {
         postRequestedFor(urlEqualTo(CACHE_ENDPOINT))
-                .withRequestBody(matchingJsonPath("\$.puts[?(@.value =~ /.*" + payload + ".*/)]"))
+                .withRequestBody(matchingJsonPath("\$.puts[?(@.value =~ /.*$payload.*/)]"))
     }
 }
