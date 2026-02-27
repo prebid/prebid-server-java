@@ -22,6 +22,7 @@ import static org.prebid.server.functional.model.request.auction.DsaRequired.NOT
 import static org.prebid.server.functional.model.request.auction.DsaRequired.REQUIRED
 import static org.prebid.server.functional.model.request.auction.DsaRequired.REQUIRED_PUBLISHER_IS_ONLINE_PLATFORM
 import static org.prebid.server.functional.model.request.auction.DsaRequired.SUPPORTED
+import static org.prebid.server.functional.model.response.BidderErrorCode.INVALID_BID
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.RESPONSE_REJECTED_DUE_TO_DSA
 import static org.prebid.server.functional.model.response.auction.DsaAdRender.ADVERTISER_WILL_RENDER
 import static org.prebid.server.functional.model.response.auction.DsaAdRender.ADVERTISER_WONT_RENDER
@@ -170,7 +171,7 @@ class DsaSpec extends PrivacyBaseSpec {
 
         and: "Response should contain an error"
         def bidId = bidResponse.seatbid[0].bid[0].id
-        assert response.ext?.warnings[GENERIC]*.code == [BidderErrorCode.INVALID_BID]
+        assert response.ext?.warnings[GENERIC]*.code == [INVALID_BID]
         assert response.ext?.warnings[GENERIC]*.message == ["Bid \"$bidId\": DSA object missing when required"]
 
         where:
@@ -285,7 +286,7 @@ class DsaSpec extends PrivacyBaseSpec {
 
         and: "Response should contain an error"
         def bidId = bidResponse.seatbid[0].bid[0].id
-        assert response.ext?.warnings[GENERIC]*.code == [BidderErrorCode.INVALID_BID]
+        assert response.ext?.warnings[GENERIC]*.code == [INVALID_BID]
         assert response.ext?.warnings[GENERIC]*.message == ["Bid \"$bidId\": DSA object missing when required"]
 
         where:
@@ -323,7 +324,7 @@ class DsaSpec extends PrivacyBaseSpec {
 
         and: "Response should contain an error"
         def bidId = bidResponse.seatbid[0].bid[0].id
-        assert response.ext?.warnings[GENERIC]*.code == [BidderErrorCode.INVALID_BID]
+        assert response.ext?.warnings[GENERIC]*.code == [INVALID_BID]
         assert response.ext?.warnings[GENERIC]*.message == ["Bid \"$bidId\": DSA object missing when required"]
 
         where:
@@ -503,7 +504,7 @@ class DsaSpec extends PrivacyBaseSpec {
 
         and: "Response should contain an error"
         def bidId = bidResponse.seatbid[0].bid[0].id
-        assert response.ext?.warnings[GENERIC]*.code == [BidderErrorCode.INVALID_BID]
+        assert response.ext?.warnings[GENERIC]*.code == [INVALID_BID]
         assert response.ext?.warnings[GENERIC]*.message == ["Bid \"$bidId\": ${warningMessage}"]
 
         where:
@@ -543,7 +544,7 @@ class DsaSpec extends PrivacyBaseSpec {
 
         and: "Response should contain an error"
         def bidId = bidResponse.seatbid[0].bid[0].id
-        assert response.ext?.warnings[GENERIC]*.code == [BidderErrorCode.INVALID_BID]
+        assert response.ext?.warnings[GENERIC]*.code == [INVALID_BID]
         assert response.ext?.warnings[GENERIC]*.message == ["Bid \"$bidId\": ${warningMessage}"]
 
         where:

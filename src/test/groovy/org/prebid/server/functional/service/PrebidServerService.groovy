@@ -86,14 +86,14 @@ class PrebidServerService implements ObjectMapperWrapper {
         prometheusRequestSpecification = buildAndGetRequestSpecification(pbsContainer.prometheusRootUri, authenticationScheme)
     }
 
-    BidResponse sendAuctionRequest(BidRequest bidRequest, Integer statusCode = SC_OK) {
-        sendAuctionRequest(bidRequest, [:], statusCode)
+    BidResponse sendAuctionRequest(BidRequest bidRequest, Integer expectedStatusCode = SC_OK) {
+        sendAuctionRequest(bidRequest, [:], expectedStatusCode)
     }
 
-    BidResponse sendAuctionRequest(BidRequest bidRequest, Map<String, ?> headers, int statusCode = SC_OK) {
+    BidResponse sendAuctionRequest(BidRequest bidRequest, Map<String, ?> headers, int expectedStatusCode = SC_OK) {
         def response = postAuction(bidRequest, headers)
 
-        checkResponseStatusCode(response, statusCode)
+        checkResponseStatusCode(response, expectedStatusCode)
         decode(response.body.asString(), BidResponse)
     }
 
@@ -114,14 +114,14 @@ class PrebidServerService implements ObjectMapperWrapper {
         decode(response.body.asString(), AmpResponse)
     }
 
-    AmpResponse sendAmpRequest(AmpRequest ampRequest, int statusCode = SC_OK) {
-        sendAmpRequest(ampRequest, [:], statusCode)
+    AmpResponse sendAmpRequest(AmpRequest ampRequest, int expectedStatusCode = SC_OK) {
+        sendAmpRequest(ampRequest, [:], expectedStatusCode)
     }
 
-    AmpResponse sendAmpRequest(AmpRequest ampRequest, Map<String, String> headers, int statusCode = SC_OK) {
+    AmpResponse sendAmpRequest(AmpRequest ampRequest, Map<String, String> headers, int expectedStatusCode = SC_OK) {
         def response = getAmp(ampRequest, headers)
 
-        checkResponseStatusCode(response, statusCode)
+        checkResponseStatusCode(response, expectedStatusCode)
         decode(response.body.asString(), AmpResponse)
     }
 
@@ -382,9 +382,9 @@ class PrebidServerService implements ObjectMapperWrapper {
                 .get(AMP_ENDPOINT)
     }
 
-    private void checkResponseStatusCode(Response response, int statusCode = SC_OK) {
+    private void checkResponseStatusCode(Response response, int expectedStatusCode = SC_OK) {
         def responseStatusCode = response.statusCode
-        if (responseStatusCode != statusCode) {
+        if (responseStatusCode != expectedStatusCode) {
             def responseBody = response.body.asString()
             log.error(responseBody)
             throw new PrebidServerException(responseStatusCode, responseBody, getHeaders(response))

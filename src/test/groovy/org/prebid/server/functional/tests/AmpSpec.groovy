@@ -15,6 +15,7 @@ import org.prebid.server.functional.model.response.auction.SeatBid
 import org.prebid.server.functional.util.PBSUtils
 
 import static org.apache.http.HttpStatus.SC_BAD_REQUEST
+import static org.prebid.server.functional.model.response.BidderErrorCode.GENERIC
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
 
@@ -56,7 +57,7 @@ class AmpSpec extends BaseSpec {
 
         then: "Request should fail with an error"
         verifyAll(response.ext.errors[PREBID]) {
-            it.code == [BidderErrorCode.GENERIC]
+            it.code == [GENERIC]
             it.errorMessage == ["Invalid request format: request.${channel.value.toLowerCase()} must not exist in AMP stored requests."]
         }
         where:
