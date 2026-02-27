@@ -5,7 +5,6 @@ import org.prebid.server.functional.model.config.ExecutionPlan
 import org.prebid.server.functional.model.config.Stage
 import org.prebid.server.functional.model.response.auction.AnalyticResult
 import org.prebid.server.functional.model.response.auction.BidResponse
-import org.prebid.server.functional.model.response.auction.InvocationResult
 import org.prebid.server.functional.tests.BaseSpec
 import org.prebid.server.functional.util.PBSUtils
 

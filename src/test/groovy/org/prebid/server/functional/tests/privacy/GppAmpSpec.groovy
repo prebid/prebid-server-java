@@ -6,9 +6,10 @@ import org.prebid.server.functional.model.request.amp.ConsentType
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Regs
 import org.prebid.server.functional.model.request.auction.RegsExt
+import org.prebid.server.functional.model.response.BidderErrorCode
 import org.prebid.server.functional.util.PBSUtils
-import org.prebid.server.functional.util.privacy.gpp.v2.TcfEuV2Consent
 import org.prebid.server.functional.util.privacy.gpp.v1.UspV1Consent
+import org.prebid.server.functional.util.privacy.gpp.v2.TcfEuV2Consent
 
 import static org.prebid.server.functional.model.request.GppSectionId.TCF_EU_V2
 import static org.prebid.server.functional.model.request.GppSectionId.USP_V1
@@ -86,7 +87,7 @@ class GppAmpSpec extends PrivacyBaseSpec {
         assert !bidderRequests.regs.gppSid
 
         and: "Repose should contain warning"
-        assert ampResponse.ext?.warnings[PREBID]*.code == [999]
+        assert ampResponse.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
         assert ampResponse.ext?.warnings[PREBID]*.message[0].startsWith("Failed to parse gppSid: \'${gppSids}\'")
     }
 
@@ -107,7 +108,7 @@ class GppAmpSpec extends PrivacyBaseSpec {
         def response = defaultPbsService.sendAmpRequest(ampRequest)
 
         then: "Response should contain warning"
-        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
         assert response.ext?.warnings[PREBID]*.message.every { it.contains("GPP string invalid:") }
 
         and: "Bidder request should contain gpp from consent string"

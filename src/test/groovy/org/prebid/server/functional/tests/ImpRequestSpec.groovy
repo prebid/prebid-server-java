@@ -7,6 +7,7 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.Pmp
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
+import org.prebid.server.functional.model.response.BidderErrorCode
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
 
@@ -15,11 +16,11 @@ import static org.prebid.server.functional.model.bidder.BidderName.ALIAS_CAMEL_C
 import static org.prebid.server.functional.model.bidder.BidderName.EMPTY
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC_CAMEL_CASE
+import static org.prebid.server.functional.model.bidder.BidderName.GENER_X
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.bidder.BidderName.RUBICON
 import static org.prebid.server.functional.model.bidder.BidderName.UNKNOWN
 import static org.prebid.server.functional.model.bidder.BidderName.WILDCARD
-import static org.prebid.server.functional.model.bidder.BidderName.GENER_X
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 
@@ -182,7 +183,7 @@ class ImpRequestSpec extends BaseSpec {
         def response = defaultPbsServiceWithAlias.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain warning"
-        assert response.ext.warnings[PREBID]?.code == [999]
+        assert response.ext.warnings[PREBID]?.code == [BidderErrorCode.GENERIC]
         assert response.ext.warnings[PREBID]?.message ==
                 ["WARNING: request.imp[0].ext.prebid.imp.${bidderName} was dropped with the reason: invalid bidder"]
 
@@ -278,7 +279,7 @@ class ImpRequestSpec extends BaseSpec {
         def response = defaultPbsServiceWithAlias.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain warning"
-        assert response.ext.warnings[PREBID]?.code == [999]
+        assert response.ext.warnings[PREBID]?.code == [BidderErrorCode.GENERIC]
         assert response.ext.warnings[PREBID]?.message ==
                 ["imp.ext.prebid.imp.generic can not be merged into original imp [id=${bidRequest.imp.first.id}], " +
                          "reason: imp[id=] missing required field: \"id\""]

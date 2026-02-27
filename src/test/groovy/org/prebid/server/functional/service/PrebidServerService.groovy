@@ -43,8 +43,8 @@ import java.time.format.DateTimeFormatter
 
 import static io.restassured.RestAssured.given
 import static java.time.ZoneOffset.UTC
+import static org.apache.http.HttpStatus.SC_OK
 import static org.prebid.server.functional.testcontainers.Dependencies.influxdbContainer
-
 
 class PrebidServerService implements ObjectMapperWrapper {
 
@@ -86,10 +86,14 @@ class PrebidServerService implements ObjectMapperWrapper {
         prometheusRequestSpecification = buildAndGetRequestSpecification(pbsContainer.prometheusRootUri, authenticationScheme)
     }
 
-    BidResponse sendAuctionRequest(BidRequest bidRequest, Map<String, ?> headers = [:]) {
+    BidResponse sendAuctionRequest(BidRequest bidRequest, Integer expectedStatusCode = SC_OK) {
+        sendAuctionRequest(bidRequest, [:], expectedStatusCode)
+    }
+
+    BidResponse sendAuctionRequest(BidRequest bidRequest, Map<String, ?> headers, int expectedStatusCode = SC_OK) {
         def response = postAuction(bidRequest, headers)
 
-        checkResponseStatusCode(response)
+        checkResponseStatusCode(response, expectedStatusCode)
         decode(response.body.asString(), BidResponse)
     }
 
@@ -98,6 +102,7 @@ class PrebidServerService implements ObjectMapperWrapper {
 
         new RawAuctionResponse().tap {
             it.headers = getHeaders(response)
+            it.statusCode = response.statusCode()
             it.responseBody = response.body.asString()
         }
     }
@@ -109,10 +114,14 @@ class PrebidServerService implements ObjectMapperWrapper {
         decode(response.body.asString(), AmpResponse)
     }
 
-    AmpResponse sendAmpRequest(AmpRequest ampRequest, Map<String, String> headers = [:]) {
+    AmpResponse sendAmpRequest(AmpRequest ampRequest, int expectedStatusCode = SC_OK) {
+        sendAmpRequest(ampRequest, [:], expectedStatusCode)
+    }
+
+    AmpResponse sendAmpRequest(AmpRequest ampRequest, Map<String, String> headers, int expectedStatusCode = SC_OK) {
         def response = getAmp(ampRequest, headers)
 
-        checkResponseStatusCode(response)
+        checkResponseStatusCode(response, expectedStatusCode)
         decode(response.body.asString(), AmpResponse)
     }
 
@@ -121,6 +130,7 @@ class PrebidServerService implements ObjectMapperWrapper {
 
         new RawAmpResponse().tap {
             it.headers = getHeaders(response)
+            it.statusCode = response.statusCode()
             it.responseBody = response.body.asString()
         }
     }
@@ -372,9 +382,9 @@ class PrebidServerService implements ObjectMapperWrapper {
                 .get(AMP_ENDPOINT)
     }
 
-    private void checkResponseStatusCode(Response response, int statusCode = 200) {
+    private void checkResponseStatusCode(Response response, int expectedStatusCode = SC_OK) {
         def responseStatusCode = response.statusCode
-        if (responseStatusCode != statusCode) {
+        if (responseStatusCode != expectedStatusCode) {
             def responseBody = response.body.asString()
             log.error(responseBody)
             throw new PrebidServerException(responseStatusCode, responseBody, getHeaders(response))

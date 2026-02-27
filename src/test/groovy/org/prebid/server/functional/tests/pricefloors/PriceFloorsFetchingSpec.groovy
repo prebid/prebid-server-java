@@ -9,6 +9,7 @@ import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.ExtPrebidFloors
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
+import org.prebid.server.functional.model.response.BidderErrorCode
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
 
@@ -646,7 +647,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         assert metrics[FETCH_FAILURE_METRIC] == 1
 
         and: "PBS should add single warning"
-        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
         assert response.ext?.warnings[PREBID]*.message ==
                 [WARNING_MESSAGE("Price floor data useFetchDataRate must be in range(0-100), but was $requestUseFetchDataRate")]
 
@@ -1400,7 +1401,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "Response should contain warning"
         def message = "Price floor floorMin must be positive float, but was $invalidFloorMin"
-        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
         assert response.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE(message)]
     }
 
@@ -1431,7 +1432,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "Response should contain warning"
         def message = "Price floor rules should contain at least one model group"
-        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
         assert response.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE(message)]
     }
 
@@ -1461,7 +1462,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         assert bidderRequest.imp[0].bidFloor == floorValue
 
         and: "Response should contain warning"
-        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
         assert response.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE(PRICE_FLOOR_VALUES_MISSING)]
     }
 
@@ -1495,7 +1496,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         assert bidderRequest.imp[0].bidFloor == floorValue
 
         and: "Response should contain warning"
-        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
         assert response.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE(MODEL_WEIGHT_INVALID.formatted(invalidModelWeight))]
 
         where:
@@ -1537,7 +1538,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         assert bidderRequest.imp[0].bidFloor == floorValue
 
         and: "Response should contain warning"
-        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
         assert response.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE(MODEL_WEIGHT_INVALID.formatted(invalidModelWeight))]
 
         where:
@@ -1580,7 +1581,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "Response should contain warning"
         def message = "Price floor root skipRate must be in range(0-100), but was $invalidSkipRate"
-        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
         assert response.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE(message)]
 
         where:
@@ -1623,7 +1624,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "Response should contain warning"
         def message = "Price floor data skipRate must be in range(0-100), but was $invalidSkipRate"
-        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
         assert response.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE(message)]
 
         where:
@@ -1665,7 +1666,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         assert bidderRequest.imp[0].bidFloor == floorValue
 
         and: "Response should contain warning"
-        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
         assert response.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE(SKIP_RATE_INVALID.formatted(invalidSkipRate))]
 
         where:
@@ -1704,7 +1705,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "Response should contain warning"
         def message = "Price floor modelGroup default must be positive float, but was $invalidDefaultFloorValue"
-        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
         assert response.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE(message)]
     }
 
@@ -1776,7 +1777,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         then: "PBS should log a warning"
         def message = "Price floor rules data must be present"
-        assert bidResponse.ext?.warnings[PREBID]*.code == [999]
+        assert bidResponse.ext?.warnings[PREBID]*.code == [BidderErrorCode.GENERIC]
         assert bidResponse.ext?.warnings[PREBID]*.message == [WARNING_MESSAGE(message)]
 
         and: "PBS should not add errors"

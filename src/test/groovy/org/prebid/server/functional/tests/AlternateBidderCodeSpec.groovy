@@ -13,14 +13,15 @@ import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
 import org.prebid.server.functional.model.request.auction.StoredBidResponse
 import org.prebid.server.functional.model.request.auction.Targeting
+import org.prebid.server.functional.model.response.BidderErrorCode
 import org.prebid.server.functional.model.response.auction.BidExt
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
-import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Shared
 
+import static org.apache.http.HttpStatus.SC_BAD_REQUEST
 import static org.prebid.server.functional.model.AccountStatus.ACTIVE
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS_CAMEL_CASE
@@ -33,6 +34,8 @@ import static org.prebid.server.functional.model.bidder.BidderName.GENERIC_CAMEL
 import static org.prebid.server.functional.model.bidder.BidderName.UNKNOWN
 import static org.prebid.server.functional.model.bidder.BidderName.WILDCARD
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.RESPONSE_REJECTED_GENERAL
+import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
+import static org.prebid.server.functional.model.response.auction.NoBidResponse.UNKNOWN_ERROR
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 
 class AlternateBidderCodeSpec extends BaseSpec {
@@ -626,13 +629,15 @@ class AlternateBidderCodeSpec extends BaseSpec {
         flushMetrics(pbsServiceWithAmxBidder)
 
         when: "PBS processes auction request"
-        pbsServiceWithAmxBidder.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithAmxBidder.sendAuctionRequest(bidRequest, SC_BAD_REQUEST)
 
         then: "Request should fail with error"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == 400
-        assert exception.responseBody == "Invalid request format: " +
-                "request.ext.prebid.alternatebiddercodes.bidders.unknown is not a known bidder or alias"
+        assert response.noBidResponse == UNKNOWN_ERROR
+        verifyAll(response.ext.errors[PREBID]) {
+            it.code == [BidderErrorCode.GENERIC]
+            it.errorMessage == ["Invalid request format: " +
+                                        "request.ext.prebid.alternatebiddercodes.bidders.unknown is not a known bidder or alias"]
+        }
 
 
         where:
