@@ -34,6 +34,6 @@ class CurrencyConversion extends NetworkScaffolding {
 
     @Override
     protected RequestPatternBuilder getRequest(String value) {
-        return null
+        throw new UnsupportedOperationException()
     }
 }

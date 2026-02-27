@@ -52,9 +52,7 @@ class HttpSettings extends NetworkScaffolding {
                 .withHeader("Content-Type", "application/json")
                 .withBody(encode(responseModel))
 
-        headers.each { k, v ->
-            responseBuilder.withHeader(k, v)
-        }
+        headers.each { responseBuilder.withHeader(it.key, it.value) }
 
         wireMockClient.register(new StubMapping(getRfcRequestPattern(value).build(), responseBuilder.build()))
     }

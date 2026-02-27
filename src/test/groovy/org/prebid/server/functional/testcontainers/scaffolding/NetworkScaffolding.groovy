@@ -63,9 +63,7 @@ abstract class NetworkScaffolding implements ObjectMapperWrapper {
                 .withHeader("Content-Type", "application/json")
                 .withBody(encode(responseModel))
 
-        headers.each { k, v ->
-            responseBuilder.withHeader(k, v)
-        }
+        headers.each { responseBuilder.withHeader(it.key, it.value) }
 
         wireMockClient.register(new StubMapping(getRequest(value).build(), responseBuilder.build()))
     }

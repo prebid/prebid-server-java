@@ -34,7 +34,7 @@ class VendorList extends NetworkScaffolding {
 
     @Override
     protected RequestPatternBuilder getRequest(String value) {
-        return null
+        throw new UnsupportedOperationException()
     }
 
     void setResponse(TcfPolicyVersion tcfPolicyVersion = TCF_POLICY_V2,

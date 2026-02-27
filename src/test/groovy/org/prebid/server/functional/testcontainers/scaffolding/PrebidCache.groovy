@@ -62,7 +62,7 @@ class PrebidCache extends NetworkScaffolding {
     @Override
     protected RequestPatternBuilder getRequest(String impId) {
         postRequestedFor(urlEqualTo(CACHE_ENDPOINT))
-                .withRequestBody(matchingJsonPath("\$.puts[?(@.value.impid == '" + impId + "')]"))
+                .withRequestBody(matchingJsonPath("\$.puts[?(@.value.impid == '$impId')]"))
     }
 
 
