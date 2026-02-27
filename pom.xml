@@ -581,6 +581,52 @@
                     <target>${java.version}</target>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <version>${maven-failsafe-plugin.version}</version>
+                <configuration>
+                    <systemPropertyVariables>
+                        <launchContainers>true</launchContainers>
+                        <mockserver.version>${mockserver.version}</mockserver.version>
+                        <pbs.version>${project.version}</pbs.version>
+                        <tests.max-container-count>5</tests.max-container-count>
+                        <tests.fixed-container-ports>false</tests.fixed-container-ports>
+                    </systemPropertyVariables>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>integration-test</id>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.gmavenplus</groupId>
+                <artifactId>gmavenplus-plugin</artifactId>
+                <version>${gmavenplus-plugin.version}</version>
+                <configuration>
+                    <parallelParsing>true</parallelParsing>
+                    <testSources>
+                        <testSource>
+                            <directory>${project.basedir}/src/test/groovy</directory>
+                            <includes>
+                                <include>**/*.groovy</include>
+                            </includes>
+                        </testSource>
+                    </testSources>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>compileTests</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 
@@ -592,13 +638,10 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-surefire-plugin</artifactId>
-                        <version>${maven-surefire-plugin.version}</version>
                         <configuration>
                             <systemPropertyVariables>
                                 <launchContainers>true</launchContainers>
                             </systemPropertyVariables>
-                            <skipTests>${skipUnitTests}</skipTests>
-                            <excludeJUnit5Engines>spock</excludeJUnit5Engines>
                         </configuration>
                     </plugin>
                 </plugins>
@@ -634,54 +677,18 @@
                     <plugin>
                         <groupId>org.codehaus.gmavenplus</groupId>
                         <artifactId>gmavenplus-plugin</artifactId>
-                        <configuration>
-                            <parallelParsing>true</parallelParsing>
-                            <testSources>
-                                <testSource>
-                                    <directory>${project.basedir}/src/test/groovy</directory>
-                                    <includes>
-                                        <include>**/*.groovy</include>
-                                    </includes>
-                                </testSource>
-                            </testSources>
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <goals>
-                                    <goal>compileTests</goal>
-                                </goals>
-                            </execution>
-                        </executions>
                     </plugin>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-failsafe-plugin</artifactId>
                         <configuration>
-                            <systemPropertyVariables>
-                                <mockserver.version>${mockserver.version}</mockserver.version>
-                                <pbs.version>${project.version}</pbs.version>
-                                <tests.max-container-count>5</tests.max-container-count>
-                                <!-- Run only one application container instance on fixed ports for debugging purposes -->
-                                <tests.fixed-container-ports>false</tests.fixed-container-ports>
-                            </systemPropertyVariables>
+                            <excludes>
+                                <exclude>**/tests/module/**/*Spec</exclude>
+                            </excludes>
+                            <includes>
+                                <include>**/*Spec</include>
+                            </includes>
                         </configuration>
-                        <executions>
-                            <execution>
-                                <id>general-functional-tests</id>
-                                <goals>
-                                    <goal>integration-test</goal>
-                                    <goal>verify</goal>
-                                </goals>
-                                <configuration>
-                                    <excludes>
-                                        <exclude>**/tests/module/**/*Spec</exclude>
-                                    </excludes>
-                                    <includes>
-                                        <include>**/*Spec</include>
-                                    </includes>
-                                </configuration>
-                            </execution>
-                        </executions>
                     </plugin>
                 </plugins>
             </build>
@@ -699,51 +706,15 @@
                     <plugin>
                         <groupId>org.codehaus.gmavenplus</groupId>
                         <artifactId>gmavenplus-plugin</artifactId>
-                        <configuration>
-                            <parallelParsing>true</parallelParsing>
-                            <testSources>
-                                <testSource>
-                                    <directory>${project.basedir}/src/test/groovy</directory>
-                                    <includes>
-                                        <include>**/*.groovy</include>
-                                    </includes>
-                                </testSource>
-                            </testSources>
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <goals>
-                                    <goal>compileTests</goal>
-                                </goals>
-                            </execution>
-                        </executions>
                     </plugin>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-failsafe-plugin</artifactId>
                         <configuration>
-                            <systemPropertyVariables>
-                                <mockserver.version>${mockserver.version}</mockserver.version>
-                                <pbs.version>${project.version}</pbs.version>
-                                <tests.max-container-count>5</tests.max-container-count>
-                                <!-- Run only one application container instance on fixed ports for debugging purposes -->
-                                <tests.fixed-container-ports>false</tests.fixed-container-ports>
-                            </systemPropertyVariables>
+                            <includes>
+                                <include>**/tests/module/**/*Spec</include>
+                            </includes>
                         </configuration>
-                        <executions>
-                            <execution>
-                                <id>module-functional-tests</id>
-                                <goals>
-                                    <goal>integration-test</goal>
-                                    <goal>verify</goal>
-                                </goals>
-                                <configuration>
-                                    <includes>
-                                        <include>**/tests/module/**/*Spec</include>
-                                    </includes>
-                                </configuration>
-                            </execution>
-                        </executions>
                     </plugin>
                 </plugins>
             </build>
