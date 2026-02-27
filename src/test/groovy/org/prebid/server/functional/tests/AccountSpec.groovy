@@ -21,8 +21,8 @@ class AccountSpec extends BaseSpec {
         def start = Instant.now()
 
         and: "Pbs config with enforce-valid-account"
-        def pbsService = pbsServiceFactory.getService(
-                ["settings.enforce-valid-account": enforceValidAccount as String])
+        def pbsConfig = ["settings.enforce-valid-account": enforceValidAccount as String]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Inactive account id"
         def accountId = PBSUtils.randomNumber
@@ -47,6 +47,9 @@ class AccountSpec extends BaseSpec {
         def logsByTime = pbsService.getLogsByTime(start)
         assert getLogsByText(logsByTime, warningMessage).size() == 1
 
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
+
         where:
         enforceValidAccount << [true, false]
     }
@@ -56,7 +59,8 @@ class AccountSpec extends BaseSpec {
         def start = Instant.now()
 
         and: "Pbs config with logging.sampling-rate"
-        def pbsService = pbsServiceFactory.getService(["logging.sampling-rate": "0"])
+        def pbsConfig = ["logging.sampling-rate": "0"]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Inactive account id"
         def accountId = PBSUtils.randomNumber
@@ -76,6 +80,9 @@ class AccountSpec extends BaseSpec {
         def warningMessage = "Account $accountId is inactive"
         assert exception.statusCode == UNAUTHORIZED.code()
         assert exception.responseBody == warningMessage
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
 
         and: "PBs shouldn't emit warning logs"
         def logsByTime = pbsService.getLogsByTime(start)
