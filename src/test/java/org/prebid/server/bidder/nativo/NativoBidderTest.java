@@ -176,7 +176,9 @@ public class NativoBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequestWithRenderer(
                 imp -> imp.id("imp1").banner(Banner.builder().build()),
                 "NativoRenderer", "1.2.3");
-        final Bid bid = givenBid("bid1", "imp1");
+        final ObjectNode existingExt = mapper.createObjectNode();
+        existingExt.putObject("prebid");
+        final Bid bid = givenBid("bid1", "imp1").toBuilder().ext(existingExt).build();
         final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, givenBidResponse(singletonList(bid)));
 
         // when
@@ -185,11 +187,9 @@ public class NativoBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().get(0).getBid().getExt())
-                .extracting(ext -> ext.get("prebid"))
-                .extracting(prebid -> prebid.get("meta"))
-                .extracting(meta -> meta.get("rendererVersion").textValue())
-                .isEqualTo("1.2.3");
+
+        final ObjectNode resultExt = result.getValue().get(0).getBid().getExt();
+        assertThat(resultExt.get("prebid").get("meta").get("rendererVersion").textValue()).isEqualTo("1.2.3");
     }
 
     @Test
