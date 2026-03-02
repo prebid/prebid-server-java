@@ -1,6 +1,6 @@
 package org.prebid.server.functional.testcontainers
 
-import org.testcontainers.containers.InfluxDBContainer
+
 import org.testcontainers.containers.MySQLContainer
 import org.testcontainers.containers.PostgreSQLContainer
 

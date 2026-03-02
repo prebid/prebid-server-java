@@ -32,8 +32,10 @@ import java.util.Objects;
 
 public class OmsBidder implements Bidder<BidRequest> {
 
+    private static final String PUBLISHER_ID_MACRO = "{{PublisherId}}";
     private static final TypeReference<ExtPrebid<?, ExtImpOms>> EXT_TYPE_REFERENCE = new TypeReference<>() {
     };
+
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
@@ -48,7 +50,7 @@ public class OmsBidder implements Bidder<BidRequest> {
             final ExtImpOms impExt = parseImpExt(request.getImp().getFirst());
             final String publisherId = resolverPublisherId(impExt.getPid(), impExt.getPublisherId());
             final String encodedPublisherId = HttpUtil.encodeUrl(publisherId);
-            final String url = "%s?publisherId=%s".formatted(endpointUrl, encodedPublisherId);
+            final String url = endpointUrl.replace(PUBLISHER_ID_MACRO, encodedPublisherId);
             return Result.withValue(BidderUtil.defaultRequest(request, url, mapper));
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
