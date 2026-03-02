@@ -3,27 +3,20 @@
   "imp": [
     {
       "id": "imp_id",
-      "secure": 1,
       "banner": {
         "w": 300,
-        "h": 600
+        "h": 250
       },
-      "bidfloorcur": "USD",
-      "displaymanager": "prebid-s2s-java",
-      "displaymanagerver": "${json-unit.ignore}",
+      "secure": 1,
       "ext": {
-        "tid": "${json-unit.any-string}",
         "bidder": {
-          "site_id": "site_id"
+          "type": "publisher",
+          "placementId": "testPlacementId"
         }
       }
     }
   ],
-  "source": {
-    "tid": "${json-unit.any-string}"
-  },
   "site": {
-    "id": "site_id",
     "domain": "www.example.com",
     "page": "http://www.example.com",
     "publisher": {
@@ -42,8 +35,13 @@
   "cur": [
     "USD"
   ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
   "regs": {
+    "ext": {
       "gdpr": 0
+    }
   },
   "ext": {
     "prebid": {
@@ -52,8 +50,7 @@
         "gvlid": 1,
         "datacenter": "local",
         "endpoint": "/openrtb2/auction"
-      },
-      "auctiontimestamp": 0
+      }
     }
   }
 }

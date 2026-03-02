@@ -1,6 +1,6 @@
 package org.prebid.server.functional.testcontainers
 
-import org.testcontainers.containers.InfluxDBContainer
+
 import org.testcontainers.containers.MySQLContainer
 import org.testcontainers.containers.PostgreSQLContainer
 
@@ -123,8 +123,6 @@ LIMIT 1
          "adapters.generic.aliases.cwire.meta-info.app-media-types"           : "",
          "adapters.generic.aliases.blue.meta-info.app-media-types"            : "",
          "adapters.generic.aliases.blue.meta-info.site-media-types"           : "",
-         "adapters.generic.aliases.adsinteractive.meta-info.app-media-types"  : "",
-         "adapters.generic.aliases.adsinteractive.meta-info.site-media-types" : "",
          "adapters.generic.aliases.nativo.meta-info.app-media-types"          : "",
          "adapters.generic.aliases.nativo.meta-info.site-media-types"         : "",
          "adapters.generic.aliases.infytv.meta-info.app-media-types"          : "",
