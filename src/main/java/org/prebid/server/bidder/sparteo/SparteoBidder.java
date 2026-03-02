@@ -12,6 +12,8 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.vertx.uritemplate.UriTemplate;
+import io.vertx.uritemplate.Variables;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -31,13 +33,14 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
-import org.apache.http.client.utils.URIBuilder;
+import org.prebid.server.util.UriTemplateUtil;
 
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -48,11 +51,12 @@ public class SparteoBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpSparteo>> TYPE_REFERENCE =
             new TypeReference<>() { };
 
-    private final String endpointUrl;
+    private final UriTemplate endpointUrlTemplate;
     private final JacksonMapper mapper;
 
     public SparteoBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrlTemplate = UriTemplateUtil.createTemplate(endpointUrl, "queryParams");
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -222,24 +226,20 @@ public class SparteoBidder implements Bidder<BidRequest> {
     }
 
     private String resolveEndpoint(String siteDomain, String appDomain, String networkId, String bundle) {
-        try {
-            final URIBuilder uriBuilder = new URIBuilder(endpointUrl);
-            if (StringUtils.isNotBlank(networkId)) {
-                uriBuilder.addParameter("network_id", networkId);
-            }
-            if (StringUtils.isNotBlank(siteDomain)) {
-                uriBuilder.addParameter("site_domain", siteDomain);
-            }
-            if (StringUtils.isNotBlank(appDomain)) {
-                uriBuilder.addParameter("app_domain", appDomain);
-            }
-            if (StringUtils.isNotBlank(bundle)) {
-                uriBuilder.addParameter("bundle", bundle);
-            }
-            return uriBuilder.build().toString();
-        } catch (URISyntaxException e) {
-            throw new PreBidException("Failed to build endpoint URL", e);
+        final Map<String, String> queryParams = new HashMap<>();
+        if (StringUtils.isNotBlank(networkId)) {
+            queryParams.put("network_id", networkId);
         }
+        if (StringUtils.isNotBlank(siteDomain)) {
+            queryParams.put("site_domain", siteDomain);
+        }
+        if (StringUtils.isNotBlank(appDomain)) {
+            queryParams.put("app_domain", appDomain);
+        }
+        if (StringUtils.isNotBlank(bundle)) {
+            queryParams.put("bundle", bundle);
+        }
+        return endpointUrlTemplate.expandToString(Variables.variables().set("queryParams", queryParams));
     }
 
     @Override

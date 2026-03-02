@@ -46,7 +46,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class AdkernelBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.com?zone=%s";
+    private static final String ENDPOINT_URL = "https://test.com?zone={{ZoneId}}";
 
     private final AdkernelBidder target = new AdkernelBidder(ENDPOINT_URL, jacksonMapper);
 

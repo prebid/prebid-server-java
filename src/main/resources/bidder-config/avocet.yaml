@@ -1,6 +1,6 @@
 adapters:
   avocet:
-    endpoint: https://
+    endpoint: https://localhost
     meta-info:
       maintainer-email: developers@avocet.io
       app-media-types:

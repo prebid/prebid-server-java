@@ -32,7 +32,6 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
-import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.ViewabilityVendors;
 import org.prebid.server.bidder.model.BidderBid;
@@ -109,7 +108,8 @@ import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.version.PrebidVersionProvider;
 
 import java.math.BigDecimal;
-import java.net.URISyntaxException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -449,16 +449,32 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private String makeUri(BidRequest bidRequest) {
         final String tkXint = tkXintValue(bidRequest);
-        if (StringUtils.isNotBlank(tkXint)) {
-            try {
-                return new URIBuilder(endpointUrl)
-                        .setParameter(TK_XINT_QUERY_PARAMETER, tkXint)
-                        .build().toString();
-            } catch (URISyntaxException e) {
-                throw new PreBidException("Cant add the tk_xint value for url: " + tkXint, e);
-            }
+        if (StringUtils.isBlank(tkXint)) {
+            return endpointUrl;
         }
-        return endpointUrl;
+
+        try {
+            final URL url = HttpUtil.parseUrl(endpointUrl);
+            final String baseUrl = url.getProtocol() + "://" + url.getAuthority() + (url.getPath() == null ? "" : url.getPath());
+            final String query = url.getQuery();
+
+            final List<String> queryParams = new ArrayList<>();
+            if (query != null && !query.isEmpty()) {
+                for (String keyValue : query.split("&")) {
+                    final int i = keyValue.indexOf('=');
+                    final String key = (i >= 0) ? keyValue.substring(0, i) : keyValue;
+                    if (!TK_XINT_QUERY_PARAMETER.equals(key)) {
+                        queryParams.add(keyValue);
+                    }
+                }
+            }
+
+            queryParams.add(TK_XINT_QUERY_PARAMETER + "=" + HttpUtil.encodeUrl(tkXint));
+            return baseUrl + "?" + String.join("&", queryParams);
+
+        } catch (MalformedURLException e) {
+            throw new PreBidException("Cant add the tk_xint value for url: " + tkXint, e);
+        }
     }
 
     private String tkXintValue(BidRequest bidRequest) {

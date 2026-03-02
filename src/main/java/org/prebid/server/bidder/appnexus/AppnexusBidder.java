@@ -14,12 +14,13 @@ import com.iab.openrtb.request.SupplyChain;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.vertx.uritemplate.UriTemplate;
+import io.vertx.uritemplate.Variables;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.auction.model.Endpoint;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.appnexus.proto.AppnexusBidExt;
@@ -53,10 +54,10 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
+import org.prebid.server.util.UriTemplateUtil;
 
 import jakarta.validation.ValidationException;
 import java.math.BigDecimal;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -83,7 +84,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private final String endpointUrl;
+    private final UriTemplate endpointUrlTemplate;
     private final Integer headerBiddingSource;
     private final Map<Integer, String> iabCategories;
     private final JacksonMapper mapper;
@@ -93,7 +94,8 @@ public class AppnexusBidder implements Bidder<BidRequest> {
                           Map<Integer, String> iabCategories,
                           JacksonMapper mapper) {
 
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrlTemplate = UriTemplateUtil.createTemplate(endpointUrl, "member_id");
         this.headerBiddingSource = ObjectUtils.defaultIfNull(platformId, DEFAULT_PLATFORM_ID);
         this.iabCategories = ObjectUtils.defaultIfNull(iabCategories, Collections.emptyMap());
         this.mapper = Objects.requireNonNull(mapper);
@@ -307,13 +309,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
     }
 
     private String makeUrl(String member) {
-        try {
-            return member != null
-                    ? new URIBuilder(endpointUrl).addParameter("member_id", member).build().toString()
-                    : endpointUrl;
-        } catch (URISyntaxException e) {
-            throw new PreBidException(e.getMessage());
-        }
+        return endpointUrlTemplate.expandToString(Variables.variables().set("member_id", member));
     }
 
     private static String extractEndpointName(BidRequest bidRequest) {

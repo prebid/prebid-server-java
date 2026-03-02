@@ -13,9 +13,10 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.uritemplate.UriTemplate;
+import io.vertx.uritemplate.Variables;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -29,12 +30,14 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.yandex.ExtImpYandex;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.UriTemplateUtil;
 
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -45,16 +48,20 @@ public class YandexBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private static final String PAGE_ID_MACRO = "{{PageId}}";
-    private static final String IMP_ID_MACRO = "{{ImpId}}";
+    private static final String PAGE_ID_MACRO = "PageId";
+    private static final String IMP_ID_MACRO = "ImpId";
     private static final String DISPLAY_MANAGER = "prebid.java";
     private static final String DISPLAY_MANAGER_VERSION = "1.1";
 
-    private final String endpointUrl;
+    private final UriTemplate endpointUrlTemplate;
     private final JacksonMapper mapper;
 
     public YandexBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrlTemplate = UriTemplateUtil.createTemplate(
+                endpointUrl,
+                "queryParams",
+                List.of(PAGE_ID_MACRO, IMP_ID_MACRO));
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -171,24 +178,20 @@ public class YandexBidder implements Bidder<BidRequest> {
     }
 
     private String modifyUrl(ExtImpYandex extImpYandex, String referer, String currency) {
-        final String resolvedUrl = endpointUrl
-                .replace(PAGE_ID_MACRO, HttpUtil.encodeUrl(extImpYandex.getPageId().toString()))
-                .replace(IMP_ID_MACRO, HttpUtil.encodeUrl(extImpYandex.getImpId().toString()));
-        final URIBuilder uriBuilder;
-        try {
-            uriBuilder = new URIBuilder(resolvedUrl);
-        } catch (URISyntaxException e) {
-            throw new PreBidException("Invalid url: %s, error: %s".formatted(endpointUrl, e.getMessage()));
-        }
-        addParameterIfNotBlank(uriBuilder, "target-ref", referer);
-        addParameterIfNotBlank(uriBuilder, "ssp-cur", currency);
-        return uriBuilder.toString();
-    }
+        final Map<String, String> queryParams = new HashMap<>();
 
-    private static void addParameterIfNotBlank(URIBuilder uriBuilder, String parameter, String value) {
-        if (StringUtils.isNotBlank(value)) {
-            uriBuilder.addParameter(parameter, value);
+        if (StringUtils.isNotBlank(referer)) {
+            queryParams.put("target-ref", referer);
         }
+
+        if (StringUtils.isNotBlank(currency)) {
+            queryParams.put("ssp-cur", currency);
+        }
+
+        return endpointUrlTemplate.expandToString(Variables.variables()
+                .set(PAGE_ID_MACRO, extImpYandex.getPageId().toString())
+                .set(IMP_ID_MACRO, extImpYandex.getImpId().toString())
+                .set("queryParams", queryParams));
     }
 
     private HttpRequest<BidRequest> buildHttpRequest(BidRequest outgoingRequest, String url) {

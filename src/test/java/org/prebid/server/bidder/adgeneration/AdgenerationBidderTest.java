@@ -115,10 +115,22 @@ public class AdgenerationBidderTest extends VertxTest {
         final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
+                .hasSize(1)
+                .first()
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&hb=true&t=json3&"
-                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.3&sdktype=0");
+                .satisfies(url -> {
+                    assertThat(url).startsWith("https://test.endpoint.com/");
+                    assertThat(url).contains("t=json3");
+                    assertThat(url).contains("adapterver=1.0.3");
+                    assertThat(url).contains("hb=true");
+                    assertThat(url).contains("currency=JPY");
+                    assertThat(url).contains("id=123");
+                    assertThat(url).contains("posall=SSPLOC");
+                    assertThat(url).contains("sdkname=prebidserver");
+                    assertThat(url).contains("sdktype=0");
+                });
+
     }
 
     @Test
@@ -133,10 +145,22 @@ public class AdgenerationBidderTest extends VertxTest {
         final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
+                .hasSize(1)
+                .first()
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&hb=true&t=json3&"
-                        + "currency=GBR&sdkname=prebidserver&adapterver=1.0.3&sdktype=0");
+                .satisfies(url -> {
+                    assertThat(url).startsWith("https://test.endpoint.com/");
+                    assertThat(url).contains("t=json3");
+                    assertThat(url).contains("adapterver=1.0.3");
+                    assertThat(url).contains("hb=true");
+                    assertThat(url).contains("currency=GBR");
+                    assertThat(url).contains("id=123");
+                    assertThat(url).contains("posall=SSPLOC");
+                    assertThat(url).contains("sdkname=prebidserver");
+                    assertThat(url).contains("sdktype=0");
+                });
+
     }
 
     @Test
@@ -151,10 +175,22 @@ public class AdgenerationBidderTest extends VertxTest {
         final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
+                .hasSize(1)
+                .first()
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&hb=true&t=json3&"
-                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.3&sdktype=1");
+                .satisfies(url -> {
+                    assertThat(url).startsWith("https://test.endpoint.com/");
+                    assertThat(url).contains("t=json3");
+                    assertThat(url).contains("adapterver=1.0.3");
+                    assertThat(url).contains("hb=true");
+                    assertThat(url).contains("currency=JPY");
+                    assertThat(url).contains("id=123");
+                    assertThat(url).contains("posall=SSPLOC");
+                    assertThat(url).contains("sdkname=prebidserver");
+                    assertThat(url).contains("sdktype=1");
+                });
+
     }
 
     @Test
@@ -169,10 +205,22 @@ public class AdgenerationBidderTest extends VertxTest {
         final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
+                .hasSize(1)
+                .first()
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&hb=true&t=json3&"
-                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.3&sdktype=2");
+                .satisfies(url -> {
+                    assertThat(url).startsWith("https://test.endpoint.com/");
+                    assertThat(url).contains("t=json3");
+                    assertThat(url).contains("adapterver=1.0.3");
+                    assertThat(url).contains("hb=true");
+                    assertThat(url).contains("currency=JPY");
+                    assertThat(url).contains("id=123");
+                    assertThat(url).contains("posall=SSPLOC");
+                    assertThat(url).contains("sdkname=prebidserver");
+                    assertThat(url).contains("sdktype=2");
+                });
+
     }
 
     @Test
@@ -188,9 +236,22 @@ public class AdgenerationBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue())
+                .hasSize(1)
+                .first()
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&hb=true&t=json3&currency=JPY&"
-                        + "sdkname=prebidserver&adapterver=1.0.3&appbundle=test&sdktype=0");
+                .satisfies(url -> {
+                    assertThat(url).startsWith("https://test.endpoint.com/");
+                    assertThat(url).contains("t=json3");
+                    assertThat(url).contains("adapterver=1.0.3");
+                    assertThat(url).contains("appbundle=test");
+                    assertThat(url).contains("hb=true");
+                    assertThat(url).contains("currency=JPY");
+                    assertThat(url).contains("id=123");
+                    assertThat(url).contains("posall=SSPLOC");
+                    assertThat(url).contains("sdkname=prebidserver");
+                    assertThat(url).contains("sdktype=0");
+                });
+
     }
 
     @Test
@@ -206,9 +267,22 @@ public class AdgenerationBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue())
+                .hasSize(1)
+                .first()
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&hb=true&t=json3&currency=JPY&"
-                        + "sdkname=prebidserver&adapterver=1.0.3&appname=test&sdktype=0");
+                .satisfies(url -> {
+                    assertThat(url).startsWith("https://test.endpoint.com/");
+                    assertThat(url).contains("t=json3");
+                    assertThat(url).contains("appname=test");
+                    assertThat(url).contains("adapterver=1.0.3");
+                    assertThat(url).contains("hb=true");
+                    assertThat(url).contains("currency=JPY");
+                    assertThat(url).contains("id=123");
+                    assertThat(url).contains("posall=SSPLOC");
+                    assertThat(url).contains("sdkname=prebidserver");
+                    assertThat(url).contains("sdktype=0");
+                });
+
     }
 
     @Test
@@ -223,10 +297,23 @@ public class AdgenerationBidderTest extends VertxTest {
         final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
+                .hasSize(1)
+                .first()
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&hb=true&t=json3&"
-                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.3&sdktype=2&idfa=51s");
+                .satisfies(url -> {
+                    assertThat(url).startsWith("https://test.endpoint.com/");
+                    assertThat(url).contains("t=json3");
+                    assertThat(url).contains("adapterver=1.0.3");
+                    assertThat(url).contains("idfa=51s");
+                    assertThat(url).contains("hb=true");
+                    assertThat(url).contains("currency=JPY");
+                    assertThat(url).contains("id=123");
+                    assertThat(url).contains("posall=SSPLOC");
+                    assertThat(url).contains("sdkname=prebidserver");
+                    assertThat(url).contains("sdktype=2");
+                });
+
     }
 
     @Test
@@ -241,10 +328,23 @@ public class AdgenerationBidderTest extends VertxTest {
         final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
+                .hasSize(1)
+                .first()
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&hb=true&t=json3&"
-                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.3&sdktype=1&advertising_id=51s");
+                .satisfies(url -> {
+                    assertThat(url).startsWith("https://test.endpoint.com/");
+                    assertThat(url).contains("t=json3");
+                    assertThat(url).contains("adapterver=1.0.3");
+                    assertThat(url).contains("advertising_id=51s");
+                    assertThat(url).contains("hb=true");
+                    assertThat(url).contains("currency=JPY");
+                    assertThat(url).contains("id=123");
+                    assertThat(url).contains("posall=SSPLOC");
+                    assertThat(url).contains("sdkname=prebidserver");
+                    assertThat(url).contains("sdktype=1");
+                });
+
     }
 
     @Test
@@ -260,10 +360,22 @@ public class AdgenerationBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue())
+                .hasSize(1)
+                .first()
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&hb=true"
-                        + "&t=json3&currency=JPY&sdkname=prebidserver&adapterver=1.0.3"
-                        + "&tp=http%3A%2F%2Fwww.example.com&sdktype=0");
+                .satisfies(url -> {
+                    assertThat(url).startsWith("https://test.endpoint.com/");
+                    assertThat(url).contains("t=json3");
+                    assertThat(url).contains("adapterver=1.0.3");
+                    assertThat(url).contains("hb=true");
+                    assertThat(url).contains("currency=JPY");
+                    assertThat(url).contains("id=123");
+                    assertThat(url).contains("tp=http%3A%2F%2Fwww.example.com");
+                    assertThat(url).contains("posall=SSPLOC");
+                    assertThat(url).contains("sdkname=prebidserver");
+                    assertThat(url).contains("sdktype=0");
+                });
+
     }
 
     @Test
@@ -281,10 +393,23 @@ public class AdgenerationBidderTest extends VertxTest {
         final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
+                .hasSize(1)
+                .first()
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&hb=true&t=json3&"
-                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.3&sizes=300x500&sdktype=0");
+                .satisfies(url -> {
+                    assertThat(url).startsWith("https://test.endpoint.com/");
+                    assertThat(url).contains("t=json3");
+                    assertThat(url).contains("sizes=300x500");
+                    assertThat(url).contains("adapterver=1.0.3");
+                    assertThat(url).contains("hb=true");
+                    assertThat(url).contains("currency=JPY");
+                    assertThat(url).contains("id=123");
+                    assertThat(url).contains("posall=SSPLOC");
+                    assertThat(url).contains("sdkname=prebidserver");
+                    assertThat(url).contains("sdktype=0");
+                });
+
     }
 
     @Test

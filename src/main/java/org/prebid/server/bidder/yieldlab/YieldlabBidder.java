@@ -19,11 +19,12 @@ import com.iab.openrtb.response.Bid;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.uritemplate.UriTemplate;
+import io.vertx.uritemplate.Variables;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -45,9 +46,9 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidDsa;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.UriTemplateUtil;
 
 import java.math.BigDecimal;
-import java.net.URISyntaxException;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -76,7 +77,6 @@ public class YieldlabBidder implements Bidder<Void> {
     private static final String AD_SIZE_SEPARATOR = "x";
     private static final String CREATIVE_ID = "%s%s%s";
     private static final String AD_SOURCE_BANNER = "<script src=\"%s\"></script>";
-    private static final String AD_SOURCE_URL = "https://ad.yieldlab.net/d/%s/%s/%s?%s";
     private static final String TRANSPARENCY_TEMPLATE = "%s~%s";
     private static final String TRANSPARENCY_TEMPLATE_PARAMS_DELIMITER = "_";
     private static final String TRANSPARENCY_TEMPLATE_DELIMITER = "~~";
@@ -87,13 +87,16 @@ public class YieldlabBidder implements Bidder<Void> {
             <Impression></Impression>
             <Creatives></Creatives>
             </Wrapper></Ad></VAST>""";
+    private static final UriTemplate NURL_TEMPLATE = UriTemplateUtil.createTemplate(
+            "https://ad.yieldlab.net/d{/path*}", false, "queryParams");
 
-    private final String endpointUrl;
+    private final UriTemplate endpointUrlTemplate;
     private final Clock clock;
     private final JacksonMapper mapper;
 
     public YieldlabBidder(String endpointUrl, Clock clock, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrlTemplate = UriTemplateUtil.createTemplate(endpointUrl + "{/adslotId}", false, "queryParams");
         this.clock = Objects.requireNonNull(clock);
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -153,73 +156,60 @@ public class YieldlabBidder implements Bidder<Void> {
     }
 
     private String makeUrl(ExtImpYieldlab extImpYieldlab, BidRequest request, Map<String, ExtImpYieldlab> extImps) {
-        final String updatedPath = "%s/%s".formatted(endpointUrl, extImpYieldlab.getAdslotId());
+        final Map<String, String> queryParams = new HashMap<>();
 
-        final URIBuilder uriBuilder;
-        try {
-            uriBuilder = new URIBuilder(updatedPath);
-        } catch (URISyntaxException e) {
-            throw new PreBidException("Invalid url: %s, error: %s".formatted(updatedPath, e.getMessage()));
-        }
-
-        uriBuilder
-                .addParameter("content", "json")
-                .addParameter("pvid", "true")
-                .addParameter("ts", resolveNumberParameter(clock.instant().getEpochSecond()))
-                .addParameter("t", getTargetingValues(extImpYieldlab));
+        queryParams.put("content", "json");
+        queryParams.put("pvid", "true");
+        queryParams.put("ts", resolveNumberParameter(clock.instant().getEpochSecond()));
+        queryParams.put("t", getTargetingValues(extImpYieldlab));
 
         final String formats = makeFormats(request, extImps);
 
         if (formats != null) {
-            uriBuilder.addParameter("sizes", formats);
+            queryParams.put("sizes", formats);
         }
 
         final User user = request.getUser();
         if (user != null && StringUtils.isNotBlank(user.getBuyeruid())) {
-            uriBuilder.addParameter("ids", "ylid:" + StringUtils.defaultString(user.getBuyeruid()));
+            queryParams.put("ids", "ylid:" + StringUtils.defaultString(user.getBuyeruid()));
         }
 
         final Device device = request.getDevice();
         if (device != null) {
-            uriBuilder.addParameter("yl_rtb_ifa", device.getIfa());
-
-            uriBuilder.addParameter("yl_rtb_devicetype", resolveNumberParameter(device.getDevicetype()));
+            addUriParameterIfNotBlank(queryParams, "yl_rtb_ifa", device.getIfa());
+            addUriParameterIfNotBlank(queryParams, "yl_rtb_devicetype", resolveNumberParameter(device.getDevicetype()));
             final Integer connectionType = device.getConnectiontype();
             if (connectionType != null) {
-                uriBuilder.addParameter("yl_rtb_connectiontype", device.getConnectiontype().toString());
+                queryParams.put("yl_rtb_connectiontype", device.getConnectiontype().toString());
             }
 
             final Geo geo = device.getGeo();
             if (geo != null) {
-                uriBuilder.addParameter("lat", ObjectUtils.defaultIfNull(geo.getLat(), 0f).toString());
-                uriBuilder.addParameter("lon", ObjectUtils.defaultIfNull(geo.getLon(), 0f).toString());
+                addUriParameterIfNotBlank(queryParams, "lat", ObjectUtils.defaultIfNull(geo.getLat(), 0f).toString());
+                addUriParameterIfNotBlank(queryParams, "lon", ObjectUtils.defaultIfNull(geo.getLon(), 0f).toString());
             }
         }
 
         final App app = request.getApp();
         if (app != null) {
-            uriBuilder.addParameter("pubappname", app.getName())
-                    .addParameter("pubbundlename", app.getBundle());
+            addUriParameterIfNotBlank(queryParams, "pubappname", app.getName());
+            addUriParameterIfNotBlank(queryParams, "pubbundlename", app.getBundle());
+
         }
+        addUriParameterIfNotBlank(queryParams, "gdpr", getGdprParameter(request.getRegs()));
+        addUriParameterIfNotBlank(queryParams, "gdpr_consent", getConsentParameter(request.getUser()));
+        addUriParameterIfNotBlank(queryParams, "schain", getSchainParameter(request.getSource()));
+        queryParams.putAll(extractDsaRequestParamsFromBidRequest(request));
 
-        final String gdpr = getGdprParameter(request.getRegs());
-        if (StringUtils.isNotBlank(gdpr)) {
-            uriBuilder.addParameter("gdpr", gdpr);
+        return endpointUrlTemplate.expandToString(Variables.variables()
+                .set("adslotId", extImpYieldlab.getAdslotId())
+                .set("queryParams", queryParams));
+    }
+
+    private static void addUriParameterIfNotBlank(Map<String, String> queryParams, String parameter, String value) {
+        if (StringUtils.isNotBlank(value)) {
+            queryParams.put(parameter, value);
         }
-
-        final String consent = getConsentParameter(request.getUser());
-        if (StringUtils.isNotBlank(consent)) {
-            uriBuilder.addParameter("gdpr_consent", consent);
-        }
-
-        final String schain = getSchainParameter(request.getSource());
-        if (schain != null) {
-            uriBuilder.addParameter("schain", schain);
-        }
-
-        extractDsaRequestParamsFromBidRequest(request).forEach(uriBuilder::addParameter);
-
-        return uriBuilder.toString();
     }
 
     private String makeFormats(BidRequest request, Map<String, ExtImpYieldlab> extImps) {
@@ -248,13 +238,9 @@ public class YieldlabBidder implements Bidder<Void> {
     }
 
     private String getTargetingValues(ExtImpYieldlab extImpYieldlab) {
-        final URIBuilder uriBuilder = new URIBuilder();
-
-        for (Map.Entry<String, String> targeting : extImpYieldlab.getTargeting().entrySet()) {
-            uriBuilder.addParameter(targeting.getKey(), targeting.getValue());
-        }
-
-        return uriBuilder.toString().replace("?", "");
+        return UriTemplateUtil.ONLY_QUERY_URI_TEMPLATE
+                .expandToString(Variables.variables().set("queryParams", extImpYieldlab.getTargeting()))
+                .replace("?", StringUtils.EMPTY);
     }
 
     private static String getGdprParameter(Regs regs) {
@@ -527,29 +513,27 @@ public class YieldlabBidder implements Bidder<Void> {
     }
 
     private String makeNurl(BidRequest bidRequest, ExtImpYieldlab extImp, YieldlabBid yieldlabBid) {
-        final URIBuilder uriBuilder = new URIBuilder()
-                .addParameter("ts", resolveNumberParameter(clock.instant().getEpochSecond()))
-                .addParameter("id", extImp.getExtId())
-                .addParameter("pvid", yieldlabBid.getPvid());
+        final Map<String, String> queryParams = new HashMap<>();
+        queryParams.put("ts", resolveNumberParameter(clock.instant().getEpochSecond()));
+        queryParams.put("id", extImp.getExtId());
+        queryParams.put("pvid", yieldlabBid.getPvid());
 
         final User user = bidRequest.getUser();
         if (user != null && StringUtils.isNotBlank(user.getBuyeruid())) {
-            uriBuilder.addParameter("ids", "ylid:" + StringUtils.defaultString(user.getBuyeruid()));
+            queryParams.put("ids", "ylid:" + StringUtils.defaultString(user.getBuyeruid()));
         }
 
         final String gdpr = getGdprParameter(bidRequest.getRegs());
         final String consent = getConsentParameter(bidRequest.getUser());
         if (StringUtils.isNotBlank(gdpr) && StringUtils.isNotBlank(consent)) {
-            uriBuilder
-                    .addParameter("gdpr", gdpr)
-                    .addParameter("gdpr_consent", consent);
+            queryParams.put("gdpr", gdpr);
+            queryParams.put("gdpr_consent", consent);
         }
 
-        return AD_SOURCE_URL.formatted(
-                extImp.getAdslotId(),
-                extImp.getSupplyId(),
-                yieldlabBid.getAdSize(),
-                uriBuilder.toString().replace("?", ""));
+        final List<String> pathSegments = List.of(extImp.getAdslotId(), extImp.getSupplyId(), yieldlabBid.getAdSize());
+        return NURL_TEMPLATE.expandToString(Variables.variables()
+                .set("path", pathSegments)
+                .set("queryParams", queryParams));
     }
 
     private ObjectNode resolveBidExt(YieldlabBid bid, List<BidderError> errors) {

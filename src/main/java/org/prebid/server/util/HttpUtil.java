@@ -8,7 +8,6 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.validator.routines.UrlValidator;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
@@ -16,6 +15,8 @@ import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
 
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
@@ -85,57 +86,76 @@ public final class HttpUtil {
     public static final String MACROS_OPEN = "{{";
     public static final String MACROS_CLOSE = "}}";
 
-    private static final UrlValidator URL_VALIDAROR = UrlValidator.getInstance();
-
     private HttpUtil() {
     }
 
     /**
      * Checks the input string for using as URL.
      */
-    @Deprecated
     public static String validateUrl(String url) {
-        if (containsMacrosses(url)) {
+        if (containsMacros(url)) {
             return url;
         }
 
         try {
-            return new URL(url).toString();
+            return parseUrl(url).toString();
         } catch (MalformedURLException e) {
             throw new IllegalArgumentException("URL supplied is not valid: " + url, e);
         }
     }
 
-    public static String validateUrlSyntax(String url) {
-        if (containsMacrosses(url) || URL_VALIDAROR.isValid(url)) {
-            return url;
+    public static URL parseUrl(String url) throws MalformedURLException {
+        if (StringUtils.isBlank(url)) {
+            throw new MalformedURLException("URL supplied is not valid: null");
         }
 
-        throw new IllegalArgumentException("URL supplied is not valid: " + url);
+        try {
+            return new URI(url).toURL();
+        } catch (MalformedURLException | URISyntaxException | IllegalArgumentException e) {
+            throw new MalformedURLException("URL supplied is not valid: %s. Reason: %s".formatted(url, e.getMessage()));
+        }
     }
 
-    // TODO: We need our own way to work with url macrosses
-    private static boolean containsMacrosses(String url) {
+    public static Map<String, List<String>> parseQuery(String query) {
+        if (query == null || query.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        return Arrays.stream(query.split("&"))
+                .map(param -> param.split("=", 2))
+                .filter(parts -> StringUtils.isNotBlank(parts[0]) && StringUtils.isNotBlank(parts[1]))
+                .collect(Collectors.groupingBy(
+                        parts -> HttpUtil.decodeUrl(parts[0]),
+                        Collectors.mapping(
+                                parts -> HttpUtil.decodeUrl(parts[1]),
+                                Collectors.toList())));
+    }
+
+    // TODO: We need our own way to work with url macros
+    private static boolean containsMacros(String url) {
         return StringUtils.contains(url, MACROS_OPEN) && StringUtils.contains(url, MACROS_CLOSE);
     }
 
     /**
-     * Returns encoded URL for the given value.
+     * Returns encoded URL for the given value. The result is RFC 3986 compliant.
      * <p>
      * The result can be safety used as the query string.
      */
     public static String encodeUrl(String value) {
-        return URLEncoder.encode(value, StandardCharsets.UTF_8);
+        return URLEncoder.encode(value, StandardCharsets.UTF_8)
+                .replace("+", "%20")
+                .replace("%7E", "~")
+                .replace("*", "%2A");
     }
 
     /**
-     * Returns decoded value if supplied is not null, otherwise returns null.
+     * Returns decoded value if supplied is not null, otherwise returns null. The result is RFC 3986 compliant.
      */
     public static String decodeUrl(String value) {
         if (StringUtils.isBlank(value)) {
             return null;
         }
-        return URLDecoder.decode(value, StandardCharsets.UTF_8);
+
+        return URLDecoder.decode(value.replace("+", "%2B"), StandardCharsets.UTF_8);
     }
 
     /**
@@ -161,7 +181,7 @@ public final class HttpUtil {
             return null;
         }
         try {
-            return new URL(url).getHost();
+            return parseUrl(url).getHost();
         } catch (MalformedURLException e) {
             return null;
         }
