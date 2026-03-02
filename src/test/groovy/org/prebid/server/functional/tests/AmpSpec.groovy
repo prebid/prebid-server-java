@@ -261,7 +261,7 @@ class AmpSpec extends BaseSpec {
         assert !bidderRequest.user.ext.consentedProvidersSettings.consentedProviders
     }
 
-    def "PBS PBS should move endpoint metadata to ext.prebid.server and strip aliases in bidder request"() {
+    def "PBS should move endpoint metadata to ext.prebid.server and strip aliases in bidder request"() {
         given: "Default amp request"
         def ampRequest = AmpRequest.defaultAmpRequest
 
@@ -281,7 +281,7 @@ class AmpSpec extends BaseSpec {
         assert bidderRequest?.ext?.prebid?.server?.httpMethod == HttpGet.METHOD_NAME
         assert !bidderRequest?.ext?.prebid?.pbs?.endpoint
 
-        and: "BidderRequest shouldn't populate fields"
+        and: "BidderRequest shouldn't populate aliases field"
         assert !bidderRequest.ext.prebid.aliases
     }
 }

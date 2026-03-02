@@ -334,7 +334,7 @@ class AuctionSpec extends BaseSpec {
         assert bidderRequest?.ext?.prebid?.server?.httpMethod == HttpPost.METHOD_NAME
         assert !bidderRequest?.ext?.prebid?.pbs?.endpoint
 
-        and: "BidderRequest shouldn't populate fields"
+        and: "BidderRequest shouldn't populate aliases field"
         assert !bidderRequest.ext.prebid.aliases
     }
 
