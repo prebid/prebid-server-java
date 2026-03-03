@@ -1,11 +1,9 @@
 package org.prebid.server.hooks.modules.id5.userid.v1.config;
 
 import org.junit.jupiter.api.Test;
-import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.PropertySource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -16,28 +14,14 @@ class Id5IdModulePropertiesTest {
 
     @Configuration
     @EnableConfigurationProperties(Id5IdModuleProperties.class)
-    @PropertySource(
-            value = "classpath:/module-config/id5-user-id.yaml",
-            factory = YamlPropertySourceFactory.class)
     static class TestPropsConfig { }
-
-    @Test
-    void shouldHaveDefaultFetchEndpoint() {
-        contextRunner
-                .withPropertyValues(
-                        "hooks.id5-user-id.partner=123",
-                        "hooks.id5-user-id.provider-name=test-provider")
-                .run(ctx -> {
-                    final Id5IdModuleProperties props = ctx.getBean(Id5IdModuleProperties.class);
-                    assertThat(props.getFetchEndpoint()).isEqualTo("https://api.id5-sync.com/gs/v2");
-                });
-    }
 
     @Test
     void shouldBindBidderFilterValuesWithDefaultExcludeFalse() {
         contextRunner
                 .withPropertyValues(
                         "hooks.id5-user-id.partner=123",
+                        "hooks.id5-user-id.fetch-endpoint=http://localhost",
                         "hooks.id5-user-id.provider-name=test-provider",
                         "hooks.id5-user-id.bidder-filter.values=appnexus,rubicon")
                 .run(ctx -> {
@@ -55,6 +39,7 @@ class Id5IdModulePropertiesTest {
         contextRunner
                 .withPropertyValues(
                         "hooks.id5-user-id.partner=123",
+                        "hooks.id5-user-id.fetch-endpoint=http://localhost",
                         "hooks.id5-user-id.provider-name=test-provider",
                         "hooks.id5-user-id.account-filter.exclude=true",
                         "hooks.id5-user-id.account-filter.values=acc-1,acc-2")
@@ -73,6 +58,7 @@ class Id5IdModulePropertiesTest {
         contextRunner
                 .withPropertyValues(
                         "hooks.id5-user-id.partner=123",
+                        "hooks.id5-user-id.fetch-endpoint=http://localhost",
                         "hooks.id5-user-id.provider-name=test-provider",
                         "hooks.id5-user-id.country-filter.exclude=true")
                 .run(ctx -> {
@@ -90,6 +76,7 @@ class Id5IdModulePropertiesTest {
         contextRunner
                 .withPropertyValues(
                         "hooks.id5-user-id.partner=123",
+                        "hooks.id5-user-id.fetch-endpoint=http://localhost",
                         "hooks.id5-user-id.provider-name=test-provider")
                 .run(ctx -> {
                     final Id5IdModuleProperties props = ctx.getBean(Id5IdModuleProperties.class);

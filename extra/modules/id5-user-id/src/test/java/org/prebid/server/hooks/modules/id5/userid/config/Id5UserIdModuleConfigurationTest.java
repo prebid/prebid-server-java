@@ -62,6 +62,7 @@ class Id5UserIdModuleConfigurationTest {
         contextRunner()
                 .withPropertyValues(
                         "hooks.id5-user-id.enabled=true",
+                        "hooks.id5-user-id.fetch-endpoint=https://api.id5-sync.com/gs/v2",
                         "hooks.id5-user-id.partner=1",
                         "hooks.id5-user-id.provider-name=test-provider")
                 .run(context -> {
@@ -81,6 +82,7 @@ class Id5UserIdModuleConfigurationTest {
         contextRunner()
                 .withPropertyValues(
                         "hooks.id5-user-id.enabled=true",
+                        "hooks.id5-user-id.fetch-endpoint=https://api.id5-sync.com/gs/v2",
                         "hooks.id5-user-id.partner=1",
                         "hooks.id5-user-id.provider-name=test-provider",
                         "hooks.id5-user-id.fetch-sampling-rate=0.5")
@@ -92,6 +94,7 @@ class Id5UserIdModuleConfigurationTest {
         contextRunner()
                 .withPropertyValues(
                         "hooks.id5-user-id.enabled=true",
+                        "hooks.id5-user-id.fetch-endpoint=https://api.id5-sync.com/gs/v2",
                         "hooks.id5-user-id.partner=1",
                         "hooks.id5-user-id.provider-name=test-provider",
                         "hooks.id5-user-id.bidder-filter.values=appnexus,rubicon")
@@ -103,6 +106,7 @@ class Id5UserIdModuleConfigurationTest {
         contextRunner()
                 .withPropertyValues(
                         "hooks.id5-user-id.enabled=true",
+                        "hooks.id5-user-id.fetch-endpoint=https://api.id5-sync.com/gs/v2",
                         "hooks.id5-user-id.partner=1",
                         "hooks.id5-user-id.provider-name=test-provider",
                         "hooks.id5-user-id.account-filter.values=acc-1,acc-2")
@@ -114,6 +118,7 @@ class Id5UserIdModuleConfigurationTest {
         contextRunner()
                 .withPropertyValues(
                         "hooks.id5-user-id.enabled=true",
+                        "hooks.id5-user-id.fetch-endpoint=https://api.id5-sync.com/gs/v2",
                         "hooks.id5-user-id.partner=1",
                         "hooks.id5-user-id.provider-name=test-provider",
                         "hooks.id5-user-id.country-filter.values=US,PL")
@@ -125,6 +130,7 @@ class Id5UserIdModuleConfigurationTest {
         contextRunner()
                 .withPropertyValues(
                         "hooks.id5-user-id.enabled=true",
+                        "hooks.id5-user-id.fetch-endpoint=https://api.id5-sync.com/gs/v2",
                         "hooks.id5-user-id.partner=1",
                         "hooks.id5-user-id.fetch-sampling-rate=1.0",
                         "hooks.id5-user-id.bidder-filter.values=appnexus",

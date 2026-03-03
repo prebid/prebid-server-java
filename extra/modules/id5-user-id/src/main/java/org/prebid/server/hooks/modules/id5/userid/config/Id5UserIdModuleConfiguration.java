@@ -18,12 +18,10 @@ import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.util.VersionInfo;
 import org.prebid.server.vertx.httpclient.HttpClient;
-import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.PropertySource;
 
 import java.time.Clock;
 import java.util.List;
@@ -32,9 +30,6 @@ import java.util.Random;
 @Configuration
 @EnableConfigurationProperties(Id5IdModuleProperties.class)
 @ConditionalOnProperty(prefix = "hooks." + Id5IdModule.CODE, name = "enabled", havingValue = "true")
-@PropertySource(
-        value = "classpath:/module-config/id5-user-id.yaml",
-        factory = YamlPropertySourceFactory.class)
 public class Id5UserIdModuleConfiguration {
 
     private static final Logger logger = LoggerFactory.getLogger(Id5UserIdModuleConfiguration.class);

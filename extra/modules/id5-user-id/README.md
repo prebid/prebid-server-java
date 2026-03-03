@@ -150,6 +150,7 @@ ID5's API will respect these signals when generating identifiers. Ensure your pr
 |----------|------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `enabled` | boolean | Must be `true` to activate the module                                                                                                                                                                |
 | `providerName` | string | Provider identifier string sent to ID5 API. Identifies who is hosting/operating the Prebid Server instance (e.g., "my-company-pbs", "my-company-com").                                                |
+| `fetchEndpoint` | string | ID5 API endpoint URL (`https://api.id5-sync.com/gs/v2`)                                                                                                                                       |
 | `partner` | long | ID5 Partner ID (minimum value: 1). Required only when using the default constant provider. Not needed if you provide a custom `Id5PartnerIdProvider` bean (see Custom Partner ID Configuration below) |
 
 ### Custom Partner ID Configuration
@@ -166,7 +167,6 @@ For such cases implement the `Id5PartnerIdProvider` interface and register it as
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
 | `inserterName` | string | null | The canonical domain name of the entity that caused this EID to be added (e.g., "pbs-company.com", "ssp.example.com"). Should be the operational domain of the system running this module. See [OpenRTB EID specification](https://github.com/InteractiveAdvertisingBureau/openrtb2.x/blob/main/2.6.md#3227---object-eid-) for details. |
-| `fetchEndpoint` | string | `https://api.id5-sync.com/gs/v2` | ID5 API endpoint URL |
 | `fetchSamplingRate` | double | 1.0 | Percentage of requests to sample (0.0-1.0) |
 | `bidderFilter` | ValuesFilter | null | Filter bidders that receive IDs |
 | `accountFilter` | ValuesFilter | null | Filter accounts that trigger fetches |
@@ -229,6 +229,7 @@ hooks:
   id5-user-id:
     enabled: true
     provider-name: "my-pbs-host"  # Required: identifies who operates this PBS instance
+    fetch-endpoint: "https://api.id5-sync.com/gs/v2"  # Required: ID5 API endpoint
     partner: 173
 ```
 
@@ -238,6 +239,7 @@ hooks:
   id5-user-id:
     enabled: true
     provider-name: "my-pbs-host"  # Required: identifies who operates this PBS instance
+    fetch-endpoint: "https://api.id5-sync.com/gs/v2"  # Required: ID5 API endpoint
     partner: 173
     fetch-sampling-rate: 0.1  # 10% of requests
 ```
@@ -248,6 +250,7 @@ hooks:
   id5-user-id:
     enabled: true
     provider-name: "my-pbs-host"  # Required: identifies who operates this PBS instance
+    fetch-endpoint: "https://api.id5-sync.com/gs/v2"  # Required: ID5 API endpoint
     partner: 173
     inserter-name: "pbs-company.com"  # Canonical domain of the entity that added this EID
     fetch-sampling-rate: 0.8

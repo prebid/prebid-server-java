@@ -1,3 +1,0 @@
-hooks:
-  id5-user-id:
-    fetch-endpoint: https://api.id5-sync.com/gs/v2
