@@ -72,6 +72,8 @@ public class FetchRequest {
         Id5IdModuleProperties id5ModuleConfig;
         Publisher publisher;
         List<String> bidders;
+        boolean transmitUfpdDisallowed;
+        boolean transmitGeoDisallowed;
     }
 
     @Builder

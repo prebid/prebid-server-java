@@ -112,7 +112,8 @@ public class HttpFetchClient implements FetchClient {
                                             AuctionRequestPayload payload,
                                             AuctionInvocationContext invocationContext) {
 
-        final BidRequest bidRequest = maskBidRequest(payload.bidRequest(), invocationContext);
+        final PrebidServerMetadataBuilder providerMetadataBuilder = providerMetadataBuilder();
+        final BidRequest bidRequest = maskBidRequest(payload.bidRequest(), invocationContext, providerMetadataBuilder);
         final Privacy privacy = invocationContext.auctionContext().getPrivacyContext().getPrivacy();
         final Optional<Device> maybeDevice = Optional.ofNullable(bidRequest.getDevice());
         final FetchRequest.FetchRequestBuilder fetchRequestBuilder = FetchRequest.builder()
@@ -122,7 +123,7 @@ public class HttpFetchClient implements FetchClient {
                 .version(versionInfo.getVersion())
                 .timestamp(clock.instant().toString())
                 .provider(id5IdModuleProperties.getProviderName())
-                .providerMetadata(createProviderMetadata(bidRequest))
+                .providerMetadata(createProviderMetadata(bidRequest, providerMetadataBuilder))
                 .bundle(Optional.ofNullable(bidRequest.getApp()).map(App::getBundle).orElse(null))
                 .domain(Optional.ofNullable(bidRequest.getSite()).map(Site::getDomain).orElse(null))
                 .maid(maybeDevice.map(Device::getIfa).orElse(null))
@@ -145,7 +146,9 @@ public class HttpFetchClient implements FetchClient {
         return fetchRequestBuilder.build();
     }
 
-    private BidRequest maskBidRequest(BidRequest bidRequest, AuctionInvocationContext invocationContext) {
+    private BidRequest maskBidRequest(BidRequest bidRequest, AuctionInvocationContext invocationContext,
+                                      PrebidServerMetadataBuilder providerMetadataBuilder) {
+
         final ActivityInvocationPayload activityInvocationPayload = BidRequestActivityInvocationPayload.of(
                 ActivityInvocationPayloadImpl.of(
                         ComponentType.RTD_MODULE,
@@ -156,8 +159,11 @@ public class HttpFetchClient implements FetchClient {
 
         final boolean disallowTransmitUfpd = !activityInfrastructure.isAllowed(
                 Activity.TRANSMIT_UFPD, activityInvocationPayload);
+        providerMetadataBuilder.transmitUfpdDisallowed(disallowTransmitUfpd);
+
         final boolean disallowTransmitGeo = !activityInfrastructure.isAllowed(
                 Activity.TRANSMIT_GEO, activityInvocationPayload);
+        providerMetadataBuilder.transmitGeoDisallowed(disallowTransmitGeo);
 
         final Device maskedDevice = userFpdActivityMask.maskDevice(
                 bidRequest.getDevice(), disallowTransmitUfpd, disallowTransmitGeo);
@@ -167,10 +173,11 @@ public class HttpFetchClient implements FetchClient {
                 .build();
     }
 
-    private PrebidServerMetadata createProviderMetadata(BidRequest bidRequest) {
-        final PrebidServerMetadataBuilder builder = PrebidServerMetadata.builder()
-                .id5ModuleConfig(this.id5IdModuleProperties);
+    private PrebidServerMetadataBuilder providerMetadataBuilder() {
+        return PrebidServerMetadata.builder().id5ModuleConfig(this.id5IdModuleProperties);
+    }
 
+    private PrebidServerMetadata createProviderMetadata(BidRequest bidRequest, PrebidServerMetadataBuilder builder) {
         Optional.ofNullable(bidRequest.getApp()).map(App::getPublisher)
                 .or(() -> Optional.ofNullable(bidRequest.getSite()).map(Site::getPublisher))
                 .ifPresent(ortbPublisher -> builder.publisher(Publisher.builder()
