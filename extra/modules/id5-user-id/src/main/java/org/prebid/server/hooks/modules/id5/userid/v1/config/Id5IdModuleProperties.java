@@ -6,6 +6,7 @@ import org.prebid.server.hooks.modules.id5.userid.v1.Id5IdModule;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.PositiveOrZero;
@@ -17,6 +18,7 @@ import jakarta.validation.constraints.DecimalMax;
 @Validated
 public class Id5IdModuleProperties {
 
+    @Min(1)
     private Long partner;
 
     @NotBlank

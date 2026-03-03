@@ -1,11 +1,19 @@
 package org.prebid.server.hooks.modules.id5.userid.v1.fetch;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.StreamReadFeature;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Site;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
+import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
@@ -23,12 +31,10 @@ import org.prebid.server.hooks.modules.id5.userid.v1.model.FetchResponse;
 import org.prebid.server.hooks.modules.id5.userid.v1.model.Id5UserId;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
-import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.model.Privacy;
-import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -39,32 +45,39 @@ import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.time.Clock;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class HttpFetchClient implements FetchClient {
 
-    private static final Logger LOG = LoggerFactory.getLogger(HttpFetchClient.class);
+    private static final Logger logger = LoggerFactory.getLogger(HttpFetchClient.class);
+
+    private static final ObjectMapper MAPPER = JsonMapper.builder()
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+            .configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true)
+            .enable(StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION)
+            .build()
+            .setSerializationInclusion(JsonInclude.Include.NON_NULL)
+            .registerModule(new JavaTimeModule());
 
     private final String fetchUrl;
     private final HttpClient httpClient;
     private final Clock clock;
-    private final JacksonMapper mapper;
     private final VersionInfo versionInfo;
     private final Id5IdModuleProperties id5IdModuleProperties;
     private final UserFpdActivityMask userFpdActivityMask;
 
     public HttpFetchClient(String endpoint,
                            HttpClient httpClient,
-                           JacksonMapper mapper,
                            Clock clock,
                            VersionInfo versionInfo,
                            Id5IdModuleProperties id5IdModuleProperties,
                            UserFpdActivityMask userFpdActivityMask) {
+
         this.fetchUrl = Objects.requireNonNull(endpoint);
         this.httpClient = Objects.requireNonNull(httpClient);
-        this.mapper = Objects.requireNonNull(mapper);
         this.clock = Objects.requireNonNull(clock);
         this.versionInfo = Objects.requireNonNull(versionInfo);
         this.id5IdModuleProperties = Objects.requireNonNull(id5IdModuleProperties);
@@ -75,12 +88,18 @@ public class HttpFetchClient implements FetchClient {
     public Future<Id5UserId> fetch(long partnerId,
                                    AuctionRequestPayload payload,
                                    AuctionInvocationContext invocationContext) {
+
         final FetchRequest fetchRequest = createFetchRequest(partnerId, payload, invocationContext);
-        final String body = mapper.encodeToString(fetchRequest);
+        final String body;
+        try {
+            body = MAPPER.writeValueAsString(fetchRequest);
+        } catch (JsonProcessingException e) {
+            return Future.failedFuture(e);
+        }
         final MultiMap headers = HttpUtil.headers();
-        final String url = String.format("%s/%s.json", fetchUrl, partnerId);
+        final String url = "%s/%s.json".formatted(fetchUrl, partnerId);
         final long timeoutMs = invocationContext.timeout().remaining();
-        LOG.debug("id5-user-id: fetching id5Id from endpoint {} with timeout {}. Headers {}, body {}",
+        logger.debug("id5-user-id: fetching id5Id from endpoint {} with timeout {}. Headers {}, body {}",
                 url, timeoutMs, headers, body);
 
         return httpClient
@@ -92,8 +111,9 @@ public class HttpFetchClient implements FetchClient {
     private FetchRequest createFetchRequest(long partnerId,
                                             AuctionRequestPayload payload,
                                             AuctionInvocationContext invocationContext) {
-        final BidRequest bidRequest = getMaskedBidRequest(payload.bidRequest(), invocationContext);
-        final PrivacyContext privacyContext = invocationContext.auctionContext().getPrivacyContext();
+
+        final BidRequest bidRequest = maskBidRequest(payload.bidRequest(), invocationContext);
+        final Privacy privacy = invocationContext.auctionContext().getPrivacyContext().getPrivacy();
         final Optional<Device> maybeDevice = Optional.ofNullable(bidRequest.getDevice());
         final FetchRequest.FetchRequestBuilder fetchRequestBuilder = FetchRequest.builder()
                 .trace(invocationContext.debugEnabled())
@@ -114,26 +134,18 @@ public class HttpFetchClient implements FetchClient {
                         .map(Device::getExt)
                         .map(ExtDevice::getAtts)
                         .map(String::valueOf)
-                        .orElse(null));
+                        .orElse(null))
+                .coppa(Optional.ofNullable(privacy.getCoppa()).map(String::valueOf).orElse(null))
+                .usPrivacy(Optional.ofNullable(privacy.getCcpa()).map(Ccpa::getUsPrivacy).orElse(null))
+                .gppString(privacy.getGpp())
+                .gppSid(toStringOrNull(privacy.getGppSid()))
+                .gdpr(privacy.getGdpr())
+                .gdprConsent(privacy.getConsentString());
 
-        if (privacyContext != null && privacyContext.getPrivacy() != null) {
-            final Privacy privacy = privacyContext.getPrivacy();
-            fetchRequestBuilder
-                    .coppa(Optional.ofNullable(privacy.getCoppa()).map(String::valueOf).orElse(null))
-                    .usPrivacy(Optional.ofNullable(privacy.getCcpa()).map(Ccpa::getUsPrivacy).orElse(null))
-                    .gppString(privacy.getGpp())
-                    .gppSid(Optional.ofNullable(privacy.getGppSid())
-                            .filter(gppSid -> !gppSid.isEmpty())
-                            .map(gppSid -> gppSid.stream().map(String::valueOf)
-                                    .collect(Collectors.joining(",")))
-                            .orElse(null))
-                    .gdpr(privacy.getGdpr())
-                    .gdprConsent(privacy.getConsentString());
-        }
         return fetchRequestBuilder.build();
     }
 
-    private BidRequest getMaskedBidRequest(BidRequest bidRequest, AuctionInvocationContext invocationContext) {
+    private BidRequest maskBidRequest(BidRequest bidRequest, AuctionInvocationContext invocationContext) {
         final ActivityInvocationPayload activityInvocationPayload = BidRequestActivityInvocationPayload.of(
                 ActivityInvocationPayloadImpl.of(
                         ComponentType.RTD_MODULE,
@@ -186,7 +198,7 @@ public class HttpFetchClient implements FetchClient {
     }
 
     private Future<Id5UserId> handleError(Throwable exception) {
-        LOG.error("id5-user-id: failed to fetch id5Id from endpoint {}", fetchUrl, exception);
+        logger.error("id5-user-id: failed to fetch id5Id from endpoint {}", fetchUrl, exception);
         return Future.succeededFuture(Id5UserId.empty());
     }
 
@@ -194,11 +206,22 @@ public class HttpFetchClient implements FetchClient {
         final String body = response.getBody();
         final int statusCode = response.getStatusCode();
         if (response.getStatusCode() == 200) {
-            LOG.debug("id5-user-id: fetched id5Id succeeded, body {}", body);
-            return mapper.decodeValue(body, FetchResponse.class);
+            logger.debug("id5-user-id: fetched id5Id succeeded, body {}", body);
+            try {
+                return MAPPER.readValue(body, FetchResponse.class);
+            } catch (JsonProcessingException e) {
+                logger.error("id5-user-id: failed to parse response body {}", body, e);
+                return Id5UserId.empty();
+            }
         } else {
-            LOG.error("id5-user-id: fetched id5Id failed, status {}, body {}", statusCode, body);
+            logger.error("id5-user-id: fetched id5Id failed, status {}, body {}", statusCode, body);
             return Id5UserId.empty();
         }
+    }
+
+    private static String toStringOrNull(List<Integer> gppSid) {
+        return CollectionUtils.isNotEmpty(gppSid)
+                ? gppSid.stream().map(String::valueOf).collect(Collectors.joining(","))
+                : null;
     }
 }

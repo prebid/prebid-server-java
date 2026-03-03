@@ -18,7 +18,8 @@ public class SamplingFetchFilter implements FetchActionFilter {
 
     @Override
     public FilterResult shouldInvoke(AuctionRequestPayload payload, AuctionInvocationContext invocationContext) {
-        final boolean shouldInvoke = random.nextDouble() <= sampleRate;
-        return shouldInvoke ? FilterResult.accepted() : FilterResult.rejected("rejected by sampling");
+        return random.nextDouble() <= sampleRate
+                ? FilterResult.accepted()
+                : FilterResult.rejected("rejected by sampling");
     }
 }

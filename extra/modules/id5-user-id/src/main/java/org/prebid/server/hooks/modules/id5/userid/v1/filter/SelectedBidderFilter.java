@@ -17,7 +17,8 @@ public class SelectedBidderFilter implements InjectActionFilter {
     @Override
     public FilterResult shouldInvoke(BidderRequestPayload payload, BidderInvocationContext invocationContext) {
         final String bidder = invocationContext.bidder();
-        return biddersFilter.isValueAllowed(bidder) ? FilterResult.accepted()
+        return biddersFilter.isValueAllowed(bidder)
+                ? FilterResult.accepted()
                 : FilterResult.rejected("bidder " + bidder + " rejected by config");
     }
 }

@@ -49,7 +49,7 @@ class Id5IdInjectHookTest {
     @Test
     void shouldSkipWhenId5EidAlreadyPresent() {
         // given
-        final Id5IdInjectHook hook = new Id5IdInjectHook("inserterX");
+        final Id5IdInjectHook hook = new Id5IdInjectHook("inserterX", List.of());
 
         final User userWithId5 = User.builder()
                 .eids(List.of(Eid.builder()
@@ -82,7 +82,7 @@ class Id5IdInjectHookTest {
     @Test
     void shouldSkipWhenNoTimeLeft() {
         // given
-        final Id5IdInjectHook hook = new Id5IdInjectHook("inserterX");
+        final Id5IdInjectHook hook = new Id5IdInjectHook("inserterX", List.of());
 
         final BidRequest bidRequest = BidRequest.builder().user(User.builder().build()).build();
 
@@ -109,7 +109,7 @@ class Id5IdInjectHookTest {
     @Test
     void shouldSkipWhenFetcherReturnsEmpty() {
         // given
-        final Id5IdInjectHook hook = new Id5IdInjectHook("inserterX");
+        final Id5IdInjectHook hook = new Id5IdInjectHook("inserterX", List.of());
 
         final BidRequest bidRequest = BidRequest.builder().user(User.builder().build()).build();
 
@@ -136,7 +136,7 @@ class Id5IdInjectHookTest {
     @Test
     void shouldInjectEidsWhenFetcherReturnsIds() {
         // given
-        final Id5IdInjectHook hook = new Id5IdInjectHook("inserterX");
+        final Id5IdInjectHook hook = new Id5IdInjectHook("inserterX", List.of());
 
         final BidRequest bidRequest = BidRequest.builder().user(User.builder().eids(List.of()).build()).build();
 
@@ -176,7 +176,7 @@ class Id5IdInjectHookTest {
     @Test
     void shouldReturnNoActionWhenNoModuleContextPresent() {
         // given
-        final Id5IdInjectHook hook = new Id5IdInjectHook("inserterX");
+        final Id5IdInjectHook hook = new Id5IdInjectHook("inserterX", List.of());
 
         final BidRequest bidRequest = BidRequest.builder().user(User.builder().build()).build();
 
@@ -253,29 +253,5 @@ class Id5IdInjectHookTest {
         assertThat(result.moduleContext()).isNotNull();
         assertThat(result.moduleContext()).isInstanceOf(Id5IdModuleContext.class);
         assertThat(result.moduleContext()).isEqualTo(bidderCtx.moduleContext());
-    }
-
-    @Test
-    void shouldReturnFailureWhenExceptionOccurs() {
-        // given
-        final InjectActionFilter filter = Mockito.mock(InjectActionFilter.class);
-        Mockito.when(filter.shouldInvoke(any(), any()))
-                .thenThrow(new RuntimeException("Filter processing error"));
-
-        final Id5IdInjectHook hook = new Id5IdInjectHook("inserterX", List.of(filter));
-
-        final BidRequest bidRequest = BidRequest.builder().build();
-        final BidderInvocationContextImpl invocationContext = bidderCtxWithEmptyIds();
-
-        // when
-        final InvocationResult<BidderRequestPayload> result = hook.call(BidderRequestPayloadImpl.of(bidRequest),
-                invocationContext).result();
-
-        // then
-        assertThat(result.status()).isEqualTo(InvocationStatus.failure);
-        assertThat(result.action()).isEqualTo(InvocationAction.no_invocation);
-        assertThat(result.moduleContext()).isEqualTo(invocationContext.moduleContext());
-        assertThat(result.errors()).isNotEmpty();
-        assertThat(result.errors().getFirst()).contains("Filter processing error");
     }
 }

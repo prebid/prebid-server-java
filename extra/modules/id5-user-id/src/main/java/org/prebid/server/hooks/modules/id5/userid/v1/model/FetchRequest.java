@@ -66,6 +66,7 @@ public class FetchRequest {
     @Builder
     @Value
     public static class PrebidServerMetadata {
+
         String channel;
         String channelVersion;
         Id5IdModuleProperties id5ModuleConfig;
@@ -76,6 +77,7 @@ public class FetchRequest {
     @Builder
     @Value
     public static class Publisher {
+
         String id;
         String name;
         String domain;

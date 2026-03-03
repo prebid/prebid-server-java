@@ -39,6 +39,7 @@ import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.privacy.ccpa.Ccpa;
+import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
@@ -108,12 +109,11 @@ class HttpFetchClientTest {
                 );
 
         final HttpFetchClient client = new HttpFetchClient(
-                URL, httpClient, mapper, fixedClock, versionInfo, props, userFpdActivityMask);
+                URL, httpClient, fixedClock, versionInfo, props, userFpdActivityMask);
 
         final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(BidRequest.builder().id("r1").build());
         final Timeout timeout = new TimeoutFactory(Clock.systemUTC()).create(1000);
-        final AuctionInvocationContext invocation = auctionInvocationContext(timeout,
-                AuctionContext.builder().account(Account.builder().id("acc").build()).build(), false);
+        final AuctionInvocationContext invocation = auctionInvocationContext(timeout, auctionContext("acc"), false);
 
         // when
         final Id5UserId result = client.fetch(partnerId, payload, invocation).result();
@@ -131,12 +131,11 @@ class HttpFetchClientTest {
                 .thenReturn(Future.failedFuture(new RuntimeException("boom")));
 
         final HttpFetchClient client = new HttpFetchClient(
-                URL, httpClient, mapper, fixedClock, versionInfo, props, userFpdActivityMask);
+                URL, httpClient, fixedClock, versionInfo, props, userFpdActivityMask);
 
         final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(BidRequest.builder().id("r1").build());
         final Timeout timeout = new TimeoutFactory(Clock.systemUTC()).create(1000);
-        final AuctionInvocationContext invocation = auctionInvocationContext(timeout,
-                AuctionContext.builder().account(Account.builder().id("acc").build()).build(), false);
+        final AuctionInvocationContext invocation = auctionInvocationContext(timeout, auctionContext("acc"), false);
 
         // when
         final Id5UserId result = client.fetch(partnerId, payload, invocation).result();
@@ -160,13 +159,12 @@ class HttpFetchClientTest {
                         HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap(), body))
                 );
 
-        final HttpFetchClient client = new HttpFetchClient(URL, httpClient, mapper,
+        final HttpFetchClient client = new HttpFetchClient(URL, httpClient,
                 fixedClock, versionInfo, props, userFpdActivityMask);
 
         final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(BidRequest.builder().id("r1").build());
         final Timeout timeout = new TimeoutFactory(Clock.systemUTC()).create(1000);
-        final AuctionInvocationContext invocation = auctionInvocationContext(timeout,
-                AuctionContext.builder().account(Account.builder().id("acc").build()).build(), false);
+        final AuctionInvocationContext invocation = auctionInvocationContext(timeout, auctionContext("acc"), false);
 
         // when
         final Id5UserId result = client.fetch(123L, payload, invocation).result();
@@ -188,7 +186,7 @@ class HttpFetchClientTest {
                 .thenReturn(Future.succeededFuture(HttpClientResponse.of(200,
                         MultiMap.caseInsensitiveMultiMap(), mapper.encodeToString(new FetchResponse(null)))));
 
-        final HttpFetchClient client = new HttpFetchClient(URL, httpClient, mapper,
+        final HttpFetchClient client = new HttpFetchClient(URL, httpClient,
                 fixedClock, versionInfo, props, userFpdActivityMask);
 
         final BidRequest bidRequest = BidRequest.builder()
@@ -214,7 +212,7 @@ class HttpFetchClientTest {
                 .build();
         final AuctionContext auctionContext = AuctionContext.builder()
                 .account(Account.builder().id("acc-1").build())
-                .privacyContext(PrivacyContext.of(privacy, org.prebid.server.privacy.gdpr.model.TcfContext.empty()))
+                .privacyContext(PrivacyContext.of(privacy, TcfContext.empty()))
                 .build();
 
         final AuctionInvocationContext invocation = auctionInvocationContext(
@@ -270,10 +268,9 @@ class HttpFetchClientTest {
                         MultiMap.caseInsensitiveMultiMap(), mapper.encodeToString(new FetchResponse(null)))));
 
         final HttpFetchClient client = new HttpFetchClient(
-                URL, httpClient, mapper, fixedClock, versionInfo, props, userFpdActivityMask);
+                URL, httpClient, fixedClock, versionInfo, props, userFpdActivityMask);
 
-        final AuctionInvocationContext invocation = auctionInvocationContext(timeout,
-                AuctionContext.builder().account(Account.builder().id("acc").build()).build(), true);
+        final AuctionInvocationContext invocation = auctionInvocationContext(timeout, auctionContext("acc"), true);
 
         // when
         client.fetch(999L,
@@ -293,7 +290,7 @@ class HttpFetchClientTest {
                 .thenReturn(Future.succeededFuture(HttpClientResponse.of(200,
                         MultiMap.caseInsensitiveMultiMap(), mapper.encodeToString(new FetchResponse(null)))));
 
-        final HttpFetchClient client = new HttpFetchClient(URL, httpClient, mapper,
+        final HttpFetchClient client = new HttpFetchClient(URL, httpClient,
                 fixedClock, versionInfo, props, userFpdActivityMask);
 
         final Privacy privacy = Privacy.builder()
@@ -302,7 +299,7 @@ class HttpFetchClientTest {
                 .build();
         final AuctionContext auctionContext = AuctionContext.builder()
                 .account(Account.builder().id("acc-1").build())
-                .privacyContext(PrivacyContext.of(privacy, org.prebid.server.privacy.gdpr.model.TcfContext.empty()))
+                .privacyContext(PrivacyContext.of(privacy, TcfContext.empty()))
                 .build();
         final AuctionInvocationContext invocation = auctionInvocationContext(
                 new TimeoutFactory(Clock.systemUTC()).create(1000), auctionContext, false);
@@ -344,7 +341,7 @@ class HttpFetchClientTest {
                 .thenReturn(Future.succeededFuture(HttpClientResponse.of(200,
                         MultiMap.caseInsensitiveMultiMap(), mapper.encodeToString(new FetchResponse(null)))));
 
-        final HttpFetchClient client = new HttpFetchClient(URL, httpClient, mapper,
+        final HttpFetchClient client = new HttpFetchClient(URL, httpClient,
                 fixedClock, versionInfo, props, userFpdActivityMask);
 
         final BidRequestBuilder bidRequestBuilder = BidRequest.builder();
@@ -356,11 +353,8 @@ class HttpFetchClientTest {
         final BidRequest bidRequest = bidRequestBuilder.build();
         final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(bidRequest);
 
-        final AuctionContext auctionContext = AuctionContext.builder()
-                .account(Account.builder().id("acc-1").build())
-                .build();
         final AuctionInvocationContext invocation = auctionInvocationContext(
-                new TimeoutFactory(Clock.systemUTC()).create(1000), auctionContext, false);
+                new TimeoutFactory(Clock.systemUTC()).create(1000), auctionContext("acc-1"), false);
 
         // when
         client.fetch(999L, payload, invocation).result();
@@ -390,7 +384,7 @@ class HttpFetchClientTest {
         moduleProps.setProviderName("comprehensive-provider");
         moduleProps.setPartner(789L);
 
-        final HttpFetchClient client = new HttpFetchClient(URL, httpClient, mapper,
+        final HttpFetchClient client = new HttpFetchClient(URL, httpClient,
                 fixedClock, versionInfo, moduleProps, userFpdActivityMask);
 
         final BidRequest bidRequest = BidRequest.builder()
@@ -407,11 +401,8 @@ class HttpFetchClientTest {
                 .build();
         final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(bidRequest);
 
-        final AuctionContext auctionContext = AuctionContext.builder()
-                .account(Account.builder().id("acc-1").build())
-                .build();
         final AuctionInvocationContext invocation = auctionInvocationContext(
-                new TimeoutFactory(Clock.systemUTC()).create(1000), auctionContext, false);
+                new TimeoutFactory(Clock.systemUTC()).create(1000), auctionContext("acc-1"), false);
 
         // when
         client.fetch(999L, payload, invocation).result();
@@ -462,14 +453,12 @@ class HttpFetchClientTest {
                 .thenReturn(maskedDevice);
 
         final HttpFetchClient client = new HttpFetchClient(
-                URL, httpClient, mapper, fixedClock, versionInfo, props, userFpdActivityMask);
+                URL, httpClient, fixedClock, versionInfo, props, userFpdActivityMask);
 
         final BidRequest bidRequest = BidRequest.builder().device(originalDevice).build();
         final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(bidRequest);
         final AuctionInvocationContext invocation = auctionInvocationContext(
-                new TimeoutFactory(Clock.systemUTC()).create(1000),
-                AuctionContext.builder().account(Account.builder().id("acc").build()).build(),
-                false);
+                new TimeoutFactory(Clock.systemUTC()).create(1000), auctionContext("acc"), false);
 
         // when
         client.fetch(999L, payload, invocation).result();
@@ -492,9 +481,17 @@ class HttpFetchClientTest {
         assertThat(json.get("ipv6")).isEqualTo(maskedDevice.getIpv6());
     }
 
+    private static AuctionContext auctionContext(String accountId) {
+        return AuctionContext.builder()
+                .account(Account.builder().id(accountId).build())
+                .privacyContext(PrivacyContext.of(Privacy.builder().build(), TcfContext.empty()))
+                .build();
+    }
+
     private AuctionInvocationContextImpl auctionInvocationContext(Timeout timeout,
                                                                   AuctionContext auctionContext,
                                                                   boolean debugEnabled) {
+
         final AuctionContext contextWithActivity = auctionContext.toBuilder()
                 .activityInfrastructure(activityInfrastructure)
                 .build();

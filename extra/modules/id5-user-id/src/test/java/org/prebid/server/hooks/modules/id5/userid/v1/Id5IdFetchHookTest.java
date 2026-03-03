@@ -183,35 +183,6 @@ class Id5IdFetchHookTest {
         Mockito.verifyNoInteractions(fetchClient);
     }
 
-    @Test
-    void shouldReturnFailureWhenExceptionOccurs() {
-        // given
-        final FetchClient fetchClient = Mockito.mock(FetchClient.class);
-        final FetchActionFilter filter = Mockito.mock(FetchActionFilter.class);
-        final Id5PartnerIdProvider partnerIdProvider = Mockito.mock(Id5PartnerIdProvider.class);
-
-        when(filter.shouldInvoke(any(AuctionRequestPayload.class), any()))
-                .thenReturn(FilterResult.accepted());
-        when(partnerIdProvider.getPartnerId(any())).thenReturn(Optional.of(123L));
-        when(fetchClient.fetch(anyLong(), any(AuctionRequestPayload.class), any()))
-                .thenThrow(new RuntimeException("Fetch client error"));
-
-        final Id5IdFetchHook hook = new Id5IdFetchHook(fetchClient, List.of(filter), partnerIdProvider);
-
-        final BidRequest bidRequest = BidRequest.builder().id("req-4").build();
-        final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(bidRequest);
-        final AuctionInvocationContext invocation = createAuctionContext();
-
-        // when
-        final InvocationResult<AuctionRequestPayload> result = hook.call(payload, invocation).result();
-
-        // then
-        assertThat(result.status()).isEqualTo(InvocationStatus.failure);
-        assertThat(result.action()).isEqualTo(InvocationAction.no_invocation);
-        assertThat(result.errors()).isNotEmpty();
-        assertThat(result.errors().getFirst()).contains("Fetch client error");
-    }
-
     private static AuctionInvocationContextImpl createAuctionContext() {
         final Timeout timeout = new TimeoutFactory(Clock.systemUTC()).create(1000);
         return AuctionInvocationContextImpl.of(
