@@ -1,0 +1,23 @@
+{
+  "id": "bid_request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "banner": {
+        "h": 250,
+        "w": 300,
+        "pos": 0
+      },
+      "displaymanagerver": "ver1",
+      "ext": {
+        "msft": {
+          "placement_id": 1
+        }
+      }
+    }
+  ],
+  "tmax": 5000,
+  "regs": {
+    "gdpr": 0
+  }
+}
