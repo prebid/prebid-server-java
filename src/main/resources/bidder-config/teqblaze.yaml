@@ -57,6 +57,8 @@ adapters:
             uid-macro: '[UID]'
           iframe:
             url: https://syncbf.bidfuse.com/pbserverIframe?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&pbserverUrl={{redirect_url}}
+            support-cors: false
+            uid-macro: '[UID]'
       adsinteractive:
         enabled: false
         endpoint: https://bntb.adsinteractive.com/pserver
