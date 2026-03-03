@@ -187,7 +187,7 @@ public class BidderCatalog {
                 .map(BidderInstanceDeps::getUsersyncer);
     }
 
-    private Optional<String> aliasOf(String bidder) {
+    public Optional<String> aliasOf(String bidder) {
         return Optional.ofNullable(bidder)
                 .map(bidderDepsMap::get)
                 .map(BidderInstanceDeps::getBidderInfo)
