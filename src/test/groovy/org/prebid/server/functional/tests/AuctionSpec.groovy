@@ -34,6 +34,7 @@ import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC_CAMEL_CASE
+import static org.prebid.server.functional.model.config.Endpoint.AUCTION
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 import static org.prebid.server.functional.model.response.cookiesync.UserSyncInfo.Type.REDIRECT
 import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
@@ -329,7 +330,7 @@ class AuctionSpec extends BaseSpec {
 
         then: "BidderRequest should contain endpoint in ext.prebid.server.endpoint instead of ext.prebid.pbs.endpoint"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest?.ext?.prebid?.server?.endpoint == "/openrtb2/auction"
+        assert bidderRequest?.ext?.prebid?.server?.endpoint == AUCTION.value
         assert !bidderRequest?.ext?.prebid?.pbs?.endpoint
 
         and: "BidderRequest shouldn't populate fields"

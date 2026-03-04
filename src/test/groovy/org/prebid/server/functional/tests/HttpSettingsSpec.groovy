@@ -1,6 +1,7 @@
 package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.model.UidsCookie
+import org.prebid.server.functional.model.config.Endpoint
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.mock.services.httpsettings.HttpAccountsResponse
 import org.prebid.server.functional.model.request.amp.AmpRequest
@@ -282,7 +283,7 @@ class HttpSettingsSpec extends BaseSpec {
 
         and: "VastXml that was send to PrebidCache must contain event url"
         def prebidCacheRequest = prebidCache.getXmlRecordedRequestsBody(payload)[0]
-        assert prebidCacheRequest.contains("/event?t=imp&b=${request.puts[0].bidid}&a=$accountId&bidder=${request.puts[0].bidder}")
+        assert prebidCacheRequest.contains("${Endpoint.EVENT}?t=imp&b=${request.puts[0].bidid}&a=$accountId&bidder=${request.puts[0].bidder}")
     }
 
     def "PBS should take account information from http data source on vtrack request when rfc3986 enabled"() {
@@ -307,7 +308,7 @@ class HttpSettingsSpec extends BaseSpec {
 
         and: "VastXml that was send to PrebidCache must contain event url"
         def prebidCacheRequest = prebidCache.getXmlRecordedRequestsBody(payload)[0]
-        assert prebidCacheRequest.contains("/event?t=imp&b=${request.puts[0].bidid}&a=$accountId&bidder=${request.puts[0].bidder}")
+        assert prebidCacheRequest.contains("${Endpoint.EVENT}?t=imp&b=${request.puts[0].bidid}&a=$accountId&bidder=${request.puts[0].bidder}")
     }
 
     def "PBS should return error if account settings isn't found"() {
