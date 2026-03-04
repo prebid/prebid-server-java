@@ -349,7 +349,7 @@ class GeneralModuleSpec extends ModuleBaseSpec {
         pbsServiceFactory.removeContainer(pbsConfig)
     }
 
-    def "PBS shouldn't call any module without account config when modules disabled in module-execution host config"() {
+    def "PBS shouldn't call module when disabled in host config and no account config provided"() {
         given: "PBS service with module-execution config"
         def pbsConfig = MULTI_MODULE_CONFIG + ENABLED_INVOKE_CONFIG +
                 [("hooks.admin.module-execution.${ORTB2_BLOCKING.code}".toString()): 'false']
