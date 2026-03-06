@@ -81,12 +81,12 @@ class AccountSpec extends BaseSpec {
         assert exception.statusCode == UNAUTHORIZED.code()
         assert exception.responseBody == warningMessage
 
-        cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(pbsConfig)
-
         and: "PBs shouldn't emit warning logs"
         def logsByTime = pbsService.getLogsByTime(start)
         assert !getLogsByText(logsByTime, warningMessage)
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS should reject request with unknown account when settings.enforce-valid-account = true"() {
