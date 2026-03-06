@@ -76,7 +76,7 @@ public class Id5IdInjectHook implements BidderRequestHook {
                     .toList();
 
             final User updatedUser = Optional.ofNullable(originalUser)
-                    .map(user -> user.toBuilder().eids(ListUtil.union(user.getEids(), eIDs)))
+                    .map(user -> user.toBuilder().eids(mergeEids(user, eIDs)))
                     .orElseGet(() -> User.builder().eids(eIDs))
                     .build();
             final BidRequest updatedBidRequest = payload.bidRequest().toBuilder()
@@ -127,5 +127,11 @@ public class Id5IdInjectHook implements BidderRequestHook {
                 .action(InvocationAction.no_invocation)
                 .debugMessages(Collections.singletonList("id5-user-id-inject: " + reason))
                 .build());
+    }
+
+    private static List<Eid> mergeEids(User user, List<Eid> newEids) {
+        return CollectionUtils.isEmpty(user.getEids())
+                ? newEids
+                : ListUtil.union(user.getEids(), newEids);
     }
 }

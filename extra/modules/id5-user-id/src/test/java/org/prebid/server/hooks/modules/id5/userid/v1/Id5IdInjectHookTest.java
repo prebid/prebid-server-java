@@ -6,6 +6,9 @@ import com.iab.openrtb.request.Uid;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mockito;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.execution.timeout.Timeout;
@@ -28,6 +31,7 @@ import org.prebid.server.settings.model.Account;
 
 import java.time.Clock;
 import java.util.List;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -171,6 +175,59 @@ class Id5IdInjectHookTest {
         final Eid eid = updated.bidRequest().getUser().getEids().getFirst();
         assertThat(eid.getSource()).isEqualTo("id5-sync.com");
         assertThat(eid.getInserter()).isEqualTo("inserterX");
+    }
+
+    static Stream<Arguments> mergeEidsScenarios() {
+        final Eid existingEid = Eid.builder()
+                .source("other-sync.com")
+                .uids(List.of(Uid.builder().id("other-123").build()))
+                .build();
+        return Stream.of(
+                Arguments.of("null user",
+                        null,
+                        List.of("id5-sync.com")),
+                Arguments.of("null user eids",
+                        User.builder().build(),
+                        List.of("id5-sync.com")),
+                Arguments.of("existing non-id5 eids",
+                        User.builder().eids(List.of(existingEid)).build(),
+                        List.of("other-sync.com", "id5-sync.com"))
+        );
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("mergeEidsScenarios")
+    void shouldInjectAndMergeEids(String ignore, User user, List<String> expectedSources) {
+        // given
+        final Id5IdInjectHook hook = new Id5IdInjectHook(null, List.of());
+
+        final BidRequest bidRequest = BidRequest.builder().user(user).build();
+
+        final Id5UserId id5 = () -> List.of(
+                Eid.builder()
+                        .source("id5-sync.com")
+                        .uids(List.of(Uid.builder().id("id5-123").build()))
+                        .build());
+
+        final Timeout timeout = new TimeoutFactory(Clock.systemUTC()).create(1000);
+        final AuctionInvocationContext auctionCtx = AuctionInvocationContextImpl.of(
+                InvocationContextImpl.of(timeout, Endpoint.openrtb2_auction),
+                AuctionContext.builder().account(Account.builder().id("acc").build()).build(),
+                false,
+                null,
+                new Id5IdModuleContext(Future.succeededFuture(id5)));
+        final BidderInvocationContext bidderCtx = BidderInvocationContextImpl.of(auctionCtx, "bidder");
+
+        // when
+        final InvocationResult<BidderRequestPayload> result = hook.call(BidderRequestPayloadImpl.of(bidRequest),
+                        bidderCtx)
+                .toCompletionStage().toCompletableFuture().join();
+
+        // then
+        final BidderRequestPayload updated = result.payloadUpdate().apply(BidderRequestPayloadImpl.of(bidRequest));
+        assertThat(updated.bidRequest().getUser().getEids())
+                .extracting(Eid::getSource)
+                .containsExactlyInAnyOrderElementsOf(expectedSources);
     }
 
     @Test
