@@ -248,6 +248,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
         final Eid expectedEid = Eid.builder()
                 .source("liveintent.com")
                 .uids(singletonList(Uid.builder().id("id2").atype(3).build()))
+                .matcher("liveintent.com")
                 .build();
 
         final String responseBody = MAPPER.encodeToString(IdResResponse.of(List.of(expectedEid)));
@@ -273,7 +274,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
                 .extracting(AuctionRequestPayload::bidRequest)
                 .extracting(BidRequest::getUser)
                 .extracting(User::getEids)
-                .isEqualTo(List.of(givenEid, expectedEid));
+                .isEqualTo(List.of(givenEid, expectedEid.toBuilder().inserter("s2s.liveintent.com").build()));
 
         verify(httpClient).post(
                 eq("https://test.com/idres"),
@@ -290,6 +291,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
         final Eid expectedEid = Eid.builder()
                 .source("liveintent.com")
                 .uids(singletonList(Uid.builder().id("id2").atype(3).build()))
+                .matcher("liveintent.com")
                 .build();
 
         final String responseBody = MAPPER.encodeToString(IdResResponse.of(List.of(expectedEid)));
@@ -315,7 +317,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
                 .extracting(AuctionRequestPayload::bidRequest)
                 .extracting(BidRequest::getUser)
                 .extracting(User::getEids)
-                .isEqualTo(List.of(expectedEid));
+                .isEqualTo(List.of(expectedEid.toBuilder().inserter("s2s.liveintent.com").build()));
 
         verify(httpClient).post(
                 eq("https://test.com/idres"),
