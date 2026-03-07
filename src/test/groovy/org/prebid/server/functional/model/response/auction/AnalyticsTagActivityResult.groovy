@@ -9,7 +9,7 @@ import org.prebid.server.functional.model.request.auction.FetchStatus
 @JsonNaming(PropertyNamingStrategies.LowerCaseStrategy)
 class AnalyticsTagActivityResult {
 
-    FetchStatus status
+    AnalyticTagStatus status
     AnalyticsTagActivityValue values
     AppliedTo appliedTo
 }

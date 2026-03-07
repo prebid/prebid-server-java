@@ -6,11 +6,10 @@ import org.prebid.server.functional.model.pricefloors.Country
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.DeviceType
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.RepeatUntilFailure
 
 import java.time.Instant
 
-import static org.prebid.server.functional.model.ModuleName.PB_RULE_ENGINE
+import static org.prebid.server.functional.model.config.ModuleName.PB_RULE_ENGINE
 import static org.prebid.server.functional.model.bidder.BidderName.AMX
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
@@ -20,7 +19,7 @@ import static org.prebid.server.functional.model.config.RuleEngineFunction.DEVIC
 import static org.prebid.server.functional.model.config.RuleEngineFunction.DEVICE_TYPE
 import static org.prebid.server.functional.model.config.RuleEngineFunction.DEVICE_TYPE_IN
 import static org.prebid.server.functional.model.pricefloors.Country.USA
-import static org.prebid.server.functional.model.request.auction.FetchStatus.SUCCESS
+import static org.prebid.server.functional.model.response.auction.AnalyticTagStatus.SUCCESS
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
 
 class RuleEngineDeviceSpec extends RuleEngineBaseSpec {
@@ -47,7 +46,7 @@ class RuleEngineDeviceSpec extends RuleEngineBaseSpec {
         waitUntilSuccessfullyParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
         assert bidResponse.seatbid.seat.sort() == [GENERIC, AMX].sort()
@@ -109,7 +108,7 @@ class RuleEngineDeviceSpec extends RuleEngineBaseSpec {
         waitUntilFailedParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
         assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
@@ -151,7 +150,7 @@ class RuleEngineDeviceSpec extends RuleEngineBaseSpec {
         waitUntilSuccessfullyParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
         assert bidResponse.seatbid.seat.sort() == [GENERIC, AMX].sort()
@@ -214,7 +213,7 @@ class RuleEngineDeviceSpec extends RuleEngineBaseSpec {
         waitUntilSuccessfullyParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
         assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
@@ -258,7 +257,7 @@ class RuleEngineDeviceSpec extends RuleEngineBaseSpec {
         waitUntilFailedParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBs should perform bidder request"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -277,7 +276,7 @@ class RuleEngineDeviceSpec extends RuleEngineBaseSpec {
         assert !getAnalyticResults(bidResponse)
 
         and: "Logs should contain error"
-        def logs = pbsServiceWithRulesEngineModule.getLogsByTime(startTime)
+        def logs = pbsServiceWithMultipleModules.getLogsByTime(startTime)
         assert getLogsByText(logs, INVALID_CONFIGURATION_FOR_STRINGS_LOG_WARNING(bidRequest.accountId, DEVICE_COUNTRY_IN))
     }
 
@@ -306,7 +305,7 @@ class RuleEngineDeviceSpec extends RuleEngineBaseSpec {
         waitUntilFailedParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBs should perform bidder request"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -325,7 +324,7 @@ class RuleEngineDeviceSpec extends RuleEngineBaseSpec {
         assert !getAnalyticResults(bidResponse)
 
         and: "Logs should contain error"
-        def logs = pbsServiceWithRulesEngineModule.getLogsByTime(startTime)
+        def logs = pbsServiceWithMultipleModules.getLogsByTime(startTime)
         assert getLogsByText(logs, INVALID_CONFIGURATION_FOR_INTEGERS_LOG_WARNING(bidRequest.accountId, DEVICE_TYPE_IN))
     }
 
@@ -352,7 +351,7 @@ class RuleEngineDeviceSpec extends RuleEngineBaseSpec {
         waitUntilSuccessfullyParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
         assert bidResponse.seatbid.seat.sort() == [GENERIC, AMX].sort()
@@ -414,7 +413,7 @@ class RuleEngineDeviceSpec extends RuleEngineBaseSpec {
         waitUntilFailedParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
         assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS

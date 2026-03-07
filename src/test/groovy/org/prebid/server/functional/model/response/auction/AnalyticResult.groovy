@@ -4,11 +4,10 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.databind.annotation.JsonNaming
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
-import org.prebid.server.functional.model.request.auction.FetchStatus
 import org.prebid.server.functional.model.request.auction.Imp
 
-import static org.prebid.server.functional.model.request.auction.FetchStatus.SUCCESS
-import static org.prebid.server.functional.model.request.auction.FetchStatus.SUCCESS_BLOCK
+import static org.prebid.server.functional.model.response.auction.AnalyticTagStatus.SUCCESS
+import static org.prebid.server.functional.model.response.auction.AnalyticTagStatus.SUCCESS_BLOCK
 
 @ToString(includeNames = true, ignoreNulls = true)
 @JsonNaming(PropertyNamingStrategies.LowerCaseStrategy)
@@ -16,7 +15,7 @@ import static org.prebid.server.functional.model.request.auction.FetchStatus.SUC
 class AnalyticResult {
 
     String name
-    FetchStatus status
+    AnalyticTagStatus status
     List<ImpResult> results
 
     static AnalyticResult buildFromImp(Imp imp) {
