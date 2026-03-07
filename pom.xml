@@ -327,11 +327,6 @@
         </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
-            <artifactId>mockserver</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.testcontainers</groupId>
             <artifactId>mysql</artifactId>
             <scope>test</scope>
         </dependency>
@@ -350,9 +345,11 @@
             <artifactId>influxdb</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- Source: https://mvnrepository.com/artifact/org.wiremock/wiremock -->
         <dependency>
-            <groupId>org.mock-server</groupId>
-            <artifactId>mockserver-client-java</artifactId>
+            <groupId>org.wiremock</groupId>
+            <artifactId>wiremock</artifactId>
+            <version>3.13.1</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -623,7 +620,6 @@
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <configuration>
                     <systemPropertyVariables>
-                        <mockserver.version>${mockserver.version}</mockserver.version>
                         <pbs.version>${project.version}</pbs.version>
                         <tests.max-container-count>5</tests.max-container-count>
                         <tests.fixed-container-ports>false</tests.fixed-container-ports>

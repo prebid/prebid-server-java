@@ -1,50 +1,77 @@
 package org.prebid.server.functional.testcontainers.scaffolding
 
-import org.mockserver.matchers.TimeToLive
-import org.mockserver.matchers.Times
-import org.mockserver.model.HttpRequest
-import org.mockserver.model.HttpResponse
+import com.github.tomakehurst.wiremock.matching.RequestPattern
+import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder
 import org.prebid.server.functional.model.bidderspecific.BidderRequest
-import org.prebid.server.functional.model.request.auction.Banner
-import org.prebid.server.functional.model.request.auction.BidRequest
-import org.prebid.server.functional.model.request.auction.Format
-import org.prebid.server.functional.model.request.auction.Imp
-import org.prebid.server.functional.model.response.auction.BidResponse
-import org.testcontainers.containers.MockServerContainer
+import org.prebid.server.functional.testcontainers.container.NetworkServiceContainer
 
-import static org.mockserver.model.HttpRequest.request
-import static org.mockserver.model.HttpResponse.response
-import static org.mockserver.model.HttpStatusCode.OK_200
-import static org.mockserver.model.JsonPathBody.jsonPath
+import static com.github.tomakehurst.wiremock.client.WireMock.post
+import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor
+import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
+import static com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse
+import static org.apache.http.HttpStatus.SC_OK
 
 class Bidder extends NetworkScaffolding {
 
-    Bidder(MockServerContainer mockServerContainer, String endpoint = "/auction") {
-        super(mockServerContainer, endpoint)
+    private static final String DEFAULT_BODY_RESPONSE =
+            '''
+                    {
+                      "id": "{{jsonPath request.body '$.id'}}",
+                      "seatbid": [
+                        {
+                          "bid": [
+                            {{#each (jsonPath request.body '$.imp')}}
+                            {
+                              "id": "bid-{{randomInt}}",
+                              "impid": "{{this.id}}",
+                              "price": 10.0,
+                              {{#if this.banner}}
+                              "w": {{this.banner.format.[0].w}},
+                              "h": {{this.banner.format.[0].h}},
+                              {{/if}}
+                              "crid": "creative-{{@index}}"
+                            }{{#unless @last}},{{/unless}}
+                            {{/each}}
+                          ],
+                          "seat": "generic"
+                        }
+                      ]
+                    }
+            '''
+
+    Bidder(NetworkServiceContainer wireMockContainer, String endpoint = "/auction") {
+        super(wireMockContainer, endpoint)
+    }
+
+    protected RequestPattern getRequest() {
+        postRequestedFor(urlEqualTo(endpoint))
+                .build()
     }
 
     @Override
-    protected HttpRequest getRequest(String bidRequestId) {
-        request().withPath(endpoint)
-                 .withBody(jsonPath("\$[?(@.id == '$bidRequestId')]"))
+    protected RequestPatternBuilder getRequest(String bidRequestId) {
+        postRequestedFor(urlMatching("^$endpoint(\\?.*)?\$"))
+                .withRequestBody(matchingJsonPath("\$.id", equalTo(bidRequestId)))
     }
 
-    @Override
-    protected HttpRequest getRequest() {
-        request().withPath(endpoint)
-    }
-
-    HttpRequest getRequest(String bidRequestId, String requestMatchPath) {
-        request().withPath(endpoint)
-                 .withBody(jsonPath("\$[?(@.$requestMatchPath == '$bidRequestId')]"))
+    RequestPattern getRequest(String bidRequestId, String requestMatchPath) {
+        postRequestedFor(urlMatching("^${endpoint}(\\?.*)?\$"))
+                .withRequestBody(matchingJsonPath("\$[?(@.${requestMatchPath} == '${bidRequestId}')]"))
+                .build()
     }
 
     @Override
     void setResponse() {
-        mockServerClient.when(request().withPath(endpoint), Times.unlimited(), TimeToLive.unlimited(), -10)
-                        .respond {request -> request.withPath(endpoint)
-                                ? response().withStatusCode(OK_200.code()).withBody(getBodyByRequest(request))
-                                : HttpResponse.notFoundResponse()}
+        wireMockClient.register(post(urlPathEqualTo(endpoint))
+                .atPriority(Integer.MAX_VALUE)
+                .willReturn(aResponse()
+                        .withStatus(SC_OK)
+                        .withTransformers("response-template")
+                        .withBody(DEFAULT_BODY_RESPONSE)))
     }
 
     List<BidderRequest> getBidderRequests(String bidRequestId) {
@@ -64,21 +91,5 @@ class Bidder extends NetworkScaffolding {
 
     Map<String, List<String>> getLastRecordedBidderRequestHeaders(String bidRequestId) {
         return getLastRecordedRequestHeaders(bidRequestId)
-    }
-
-    private String getBodyByRequest(HttpRequest request) {
-        def requestString = request.bodyAsString
-        def jsonNode = toJsonNode(requestString)
-        def id = jsonNode.get("id").asText()
-        def impNode = jsonNode.get("imp")
-        def imps = impNode.collect {
-            def formatNode = it.get("banner") != null ? it.get("banner").get("format") : null
-            new Imp(id: it.get("id").asText(),
-                    banner: formatNode != null
-                            ? new Banner(format: [new Format(width: formatNode.first().get("w").asInt(), height: formatNode.first().get("h").asInt())])
-                            : null)}
-        def bidRequest = new BidRequest(id: id, imp: imps)
-        def response = BidResponse.getDefaultBidResponse(bidRequest)
-        encode(response)
     }
 }
