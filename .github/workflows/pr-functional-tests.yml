@@ -39,6 +39,7 @@ jobs:
         run: |
           mvn -B verify \
           -DskipUnitTests=true \
+          -Drun-functional-tests=true \
           -DskipModuleFunctionalTests=true \
           -Dtests.max-container-count=5 \
           -DdockerfileName=Dockerfile \
