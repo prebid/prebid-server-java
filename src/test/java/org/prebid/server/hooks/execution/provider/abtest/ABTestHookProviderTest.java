@@ -13,13 +13,13 @@ import org.prebid.server.hooks.execution.model.ExecutionAction;
 import org.prebid.server.hooks.execution.model.GroupExecutionOutcome;
 import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.hooks.execution.model.HookExecutionOutcome;
+import org.prebid.server.hooks.execution.model.HookHttpEndpoint;
 import org.prebid.server.hooks.execution.model.HookId;
 import org.prebid.server.hooks.execution.model.Stage;
 import org.prebid.server.hooks.execution.model.StageExecutionOutcome;
 import org.prebid.server.hooks.execution.provider.HookProvider;
 import org.prebid.server.hooks.v1.Hook;
 import org.prebid.server.hooks.v1.InvocationContext;
-import org.prebid.server.model.Endpoint;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -50,7 +50,7 @@ class ABTestHookProviderTest extends VertxTest {
         final HookProvider<Object, InvocationContext> target = new ABTestHookProvider<>(
                 innerHookProvider,
                 singletonList(ABTest.builder().moduleCode("otherModule").build()),
-                HookExecutionContext.of(Endpoint.openrtb2_auction),
+                HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION),
                 mapper);
 
         // when
@@ -68,7 +68,7 @@ class ABTestHookProviderTest extends VertxTest {
         final HookProvider<Object, InvocationContext> target = new ABTestHookProvider<>(
                 innerHookProvider,
                 singletonList(ABTest.builder().moduleCode("module").build()),
-                HookExecutionContext.of(Endpoint.openrtb2_auction),
+                HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION),
                 mapper);
 
         // when
@@ -83,7 +83,7 @@ class ABTestHookProviderTest extends VertxTest {
     @Test
     public void shouldInvokeHookShouldReturnTrueIfThereIsAPreviousInvocation() {
         // given
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION);
         hookExecutionContext.getStageOutcomes().put(Stage.entrypoint, singletonList(
                 StageExecutionOutcome.of("entity", singletonList(GroupExecutionOutcome.of(singletonList(
                         HookExecutionOutcome.builder()
@@ -106,7 +106,7 @@ class ABTestHookProviderTest extends VertxTest {
     @Test
     public void shouldInvokeHookShouldReturnFalseIfThereIsAPreviousExecutionWithoutInvocation() {
         // given
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION);
         hookExecutionContext.getStageOutcomes().put(Stage.entrypoint, singletonList(
                 StageExecutionOutcome.of("entity", singletonList(GroupExecutionOutcome.of(singletonList(
                         HookExecutionOutcome.builder()

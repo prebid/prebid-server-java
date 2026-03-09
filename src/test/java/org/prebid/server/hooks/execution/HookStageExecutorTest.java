@@ -26,10 +26,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.BidRejection;
 import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
-import org.prebid.server.auction.model.BidRejection;
 import org.prebid.server.auction.model.ImpRejection;
 import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.bidder.model.BidderBid;
@@ -44,6 +44,7 @@ import org.prebid.server.hooks.execution.model.ExecutionStatus;
 import org.prebid.server.hooks.execution.model.GroupExecutionOutcome;
 import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.hooks.execution.model.HookExecutionOutcome;
+import org.prebid.server.hooks.execution.model.HookHttpEndpoint;
 import org.prebid.server.hooks.execution.model.HookId;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
 import org.prebid.server.hooks.execution.model.Stage;
@@ -163,7 +164,7 @@ public class HookStageExecutorTest extends VertxTest {
     @Test
     public void creationShouldFailWhenHostExecutionPlanHasUnknownHook() {
         final String hostPlan = executionPlan(singletonMap(
-                Endpoint.openrtb2_auction,
+                HookHttpEndpoint.POST_AUCTION,
                 EndpointExecutionPlan.of(singletonMap(
                         Stage.entrypoint, StageExecutionPlan.of(singletonList(
                                 ExecutionGroup.of(
@@ -186,7 +187,7 @@ public class HookStageExecutorTest extends VertxTest {
     @Test
     public void creationShouldFailWhenDefaultAccountExecutionPlanHasUnknownHook() {
         final String defaultAccountPlan = executionPlan(singletonMap(
-                Endpoint.openrtb2_auction,
+                HookHttpEndpoint.POST_AUCTION,
                 EndpointExecutionPlan.of(singletonMap(
                         Stage.entrypoint, StageExecutionPlan.of(singletonList(
                                 ExecutionGroup.of(
@@ -216,7 +217,7 @@ public class HookStageExecutorTest extends VertxTest {
         final String body = "body";
 
         final AuctionContext givenAuctionContext = AuctionContext.builder()
-                .hookExecutionContext(HookExecutionContext.of(Endpoint.openrtb2_auction))
+                .hookExecutionContext(HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION))
                 .build();
 
         // when
@@ -243,7 +244,7 @@ public class HookStageExecutorTest extends VertxTest {
                 AuctionContext.builder()
                         .bidRequest(bidRequest)
                         .account(Account.empty("accountId"))
-                        .hookExecutionContext(HookExecutionContext.of(Endpoint.openrtb2_auction))
+                        .hookExecutionContext(HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION))
                         .debugContext(DebugContext.empty())
                         .build());
 
@@ -287,10 +288,10 @@ public class HookStageExecutorTest extends VertxTest {
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         EndpointExecutionPlan.of(singletonMap(Stage.entrypoint, execPlanTwoGroupsTwoHooksEach())))));
 
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION);
         final AuctionContext givenAuctionContext = AuctionContext.builder()
                 .hookExecutionContext(hookExecutionContext)
                 .build();
@@ -375,7 +376,7 @@ public class HookStageExecutorTest extends VertxTest {
         final HookStageExecutor executor = createExecutor(
                 executionPlan(emptyMap()));
 
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_amp);
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(HookHttpEndpoint.AMP);
         final AuctionContext givenAuctionContext = AuctionContext.builder()
                 .hookExecutionContext(hookExecutionContext)
                 .build();
@@ -406,11 +407,9 @@ public class HookStageExecutorTest extends VertxTest {
     public void shouldBypassEntrypointHooksWhenNoPlanForStage(VertxTestContext context) {
         // given
         final HookStageExecutor executor = createExecutor(
-                executionPlan(singletonMap(
-                        Endpoint.openrtb2_auction,
-                        EndpointExecutionPlan.of(emptyMap()))));
+                executionPlan(singletonMap(HookHttpEndpoint.POST_AUCTION, EndpointExecutionPlan.of(emptyMap()))));
 
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION);
         final AuctionContext givenAuctionContext = AuctionContext.builder()
                 .hookExecutionContext(hookExecutionContext)
                 .build();
@@ -470,7 +469,7 @@ public class HookStageExecutorTest extends VertxTest {
 
         final HookStageExecutor executor = HookStageExecutor.create(
                 executionPlan(singletonMap(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         EndpointExecutionPlan.of(singletonMap(Stage.entrypoint, execPlanTwoGroupsTwoHooksEach())))),
                 null,
                 Map.of("module-alpha", false),
@@ -482,7 +481,7 @@ public class HookStageExecutorTest extends VertxTest {
                 false,
                 0.0);
 
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION);
         final AuctionContext givenAuctionContext = AuctionContext.builder()
                 .hookExecutionContext(hookExecutionContext)
                 .build();
@@ -536,10 +535,10 @@ public class HookStageExecutorTest extends VertxTest {
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         EndpointExecutionPlan.of(singletonMap(Stage.entrypoint, execPlanTwoGroupsTwoHooksEach())))));
 
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION);
         final AuctionContext givenAuctionContext = AuctionContext.builder()
                 .hookExecutionContext(hookExecutionContext)
                 .build();
@@ -649,14 +648,14 @@ public class HookStageExecutorTest extends VertxTest {
                 immediateHook(InvocationResultUtils.succeeded(payload -> EntrypointPayloadImpl.of(
                         payload.queryParams(), payload.headers(), payload.body() + "-jkl"))));
 
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION);
         final AuctionContext givenAuctionContext = AuctionContext.builder()
                 .hookExecutionContext(hookExecutionContext)
                 .build();
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         EndpointExecutionPlan.of(singletonMap(Stage.entrypoint, execPlanTwoGroupsTwoHooksEach())))));
 
         // when
@@ -753,10 +752,10 @@ public class HookStageExecutorTest extends VertxTest {
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         EndpointExecutionPlan.of(singletonMap(Stage.entrypoint, execPlanTwoGroupsTwoHooksEach())))));
 
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION);
         final AuctionContext givenAuctionContext = AuctionContext.builder()
                 .hookExecutionContext(hookExecutionContext)
                 .build();
@@ -837,7 +836,7 @@ public class HookStageExecutorTest extends VertxTest {
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         EndpointExecutionPlan.of(singletonMap(
                                 Stage.entrypoint,
                                 StageExecutionPlan.of(singletonList(
@@ -847,7 +846,7 @@ public class HookStageExecutorTest extends VertxTest {
                                                         HookId.of("module-alpha", "hook-a"),
                                                         HookId.of("module-beta", "hook-a"))))))))));
 
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION);
         final AuctionContext givenAuctionContext = AuctionContext.builder()
                 .hookExecutionContext(hookExecutionContext)
                 .build();
@@ -924,10 +923,10 @@ public class HookStageExecutorTest extends VertxTest {
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         EndpointExecutionPlan.of(singletonMap(Stage.entrypoint, execPlanTwoGroupsTwoHooksEach())))));
 
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION);
         final AuctionContext givenAuctionContext = AuctionContext.builder()
                 .hookExecutionContext(hookExecutionContext)
                 .build();
@@ -1027,10 +1026,10 @@ public class HookStageExecutorTest extends VertxTest {
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         EndpointExecutionPlan.of(singletonMap(Stage.entrypoint, execPlanTwoGroupsTwoHooksEach())))));
 
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION);
         final AuctionContext givenAuctionContext = AuctionContext.builder()
                 .hookExecutionContext(hookExecutionContext)
                 .build();
@@ -1123,11 +1122,11 @@ public class HookStageExecutorTest extends VertxTest {
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         EndpointExecutionPlan.of(singletonMap(
                                 Stage.entrypoint, execPlanOneGroupOneHook("module-alpha", "hook-a"))))));
 
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION);
         final AuctionContext givenAuctionContext = AuctionContext.builder()
                 .hookExecutionContext(hookExecutionContext)
                 .build();
@@ -1181,10 +1180,10 @@ public class HookStageExecutorTest extends VertxTest {
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         EndpointExecutionPlan.of(singletonMap(Stage.entrypoint, execPlanTwoGroupsTwoHooksEach())))));
 
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION);
         final AuctionContext givenAuctionContext = AuctionContext.builder()
                 .hookExecutionContext(hookExecutionContext)
                 .build();
@@ -1240,17 +1239,17 @@ public class HookStageExecutorTest extends VertxTest {
                 .willReturn(hookImpl);
 
         final String hostPlan = executionPlan(singletonMap(
-                Endpoint.openrtb2_auction,
+                HookHttpEndpoint.POST_AUCTION,
                 EndpointExecutionPlan.of(singletonMap(
                         Stage.raw_auction_request, execPlanOneGroupOneHook("module-alpha", "hook-a")))));
         final String defaultAccountPlan = executionPlan(singletonMap(
-                Endpoint.openrtb2_auction,
+                HookHttpEndpoint.POST_AUCTION,
                 EndpointExecutionPlan.of(singletonMap(
                         Stage.raw_auction_request, execPlanOneGroupOneHook("module-alpha", "hook-b")))));
         final HookStageExecutor executor = createExecutor(hostPlan, defaultAccountPlan);
 
         final BidRequest bidRequest = BidRequest.builder().build();
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION);
 
         // when
         final Future<HookStageExecutionResult<AuctionRequestPayload>> future = executor.executeRawAuctionRequestStage(
@@ -1285,12 +1284,12 @@ public class HookStageExecutorTest extends VertxTest {
                 .willReturn(hookImpl);
 
         final String hostPlan = executionPlan(singletonMap(
-                Endpoint.openrtb2_auction,
+                HookHttpEndpoint.POST_AUCTION,
                 EndpointExecutionPlan.of(singletonMap(
                         Stage.raw_auction_request,
                         execPlanOneGroupOneHook("module-alpha", "hook-a")))));
         final String defaultAccountPlan = executionPlan(singletonMap(
-                Endpoint.openrtb2_auction,
+                HookHttpEndpoint.POST_AUCTION,
                 EndpointExecutionPlan.of(singletonMap(
                         Stage.raw_auction_request,
                         execPlanOneGroupOneHook("module-alpha", "hook-b")))));
@@ -1298,7 +1297,7 @@ public class HookStageExecutorTest extends VertxTest {
 
         final BidRequest bidRequest = BidRequest.builder().build();
         final ExecutionPlan accountPlan = ExecutionPlan.of(emptyList(), singletonMap(
-                Endpoint.openrtb2_auction,
+                HookHttpEndpoint.POST_AUCTION,
                 EndpointExecutionPlan.of(singletonMap(
                         Stage.raw_auction_request,
                         execPlanOneGroupOneHook("module-beta", "hook-b")))));
@@ -1306,7 +1305,7 @@ public class HookStageExecutorTest extends VertxTest {
                 .id("accountId")
                 .hooks(AccountHooksConfiguration.of(accountPlan, null, null))
                 .build();
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION);
 
         // when
         final Future<HookStageExecutionResult<AuctionRequestPayload>> future = executor.executeRawAuctionRequestStage(
@@ -1349,7 +1348,7 @@ public class HookStageExecutorTest extends VertxTest {
         final HookStageExecutor executor = createExecutor(null, null);
 
         final ExecutionPlan accountPlan = ExecutionPlan.of(emptyList(), singletonMap(
-                Endpoint.openrtb2_auction,
+                HookHttpEndpoint.POST_AUCTION,
                 EndpointExecutionPlan.of(singletonMap(
                         Stage.raw_auction_request,
                         StageExecutionPlan.of(singletonList(
@@ -1362,7 +1361,7 @@ public class HookStageExecutorTest extends VertxTest {
                 .id("accountId")
                 .hooks(AccountHooksConfiguration.of(accountPlan, null, null))
                 .build();
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION);
 
         // when
         final Future<HookStageExecutionResult<AuctionRequestPayload>> future = executor.executeRawAuctionRequestStage(
@@ -1469,7 +1468,7 @@ public class HookStageExecutorTest extends VertxTest {
                                 HookId.of("module-zeta", "hook-b")))));
 
         final String hostExecutionPlan = executionPlan(singletonMap(
-                Endpoint.openrtb2_auction,
+                HookHttpEndpoint.POST_AUCTION,
                 EndpointExecutionPlan.of(singletonMap(Stage.raw_auction_request, stageExecutionPlan))));
 
         final HookStageExecutor executor = HookStageExecutor.create(
@@ -1484,7 +1483,7 @@ public class HookStageExecutorTest extends VertxTest {
                 false,
                 0.0);
 
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION);
 
         // when
         final BidRequest givenBidRequest = BidRequest.builder().build();
@@ -1587,7 +1586,7 @@ public class HookStageExecutorTest extends VertxTest {
                                 HookId.of("module-zeta", "hook-b")))));
 
         final String hostExecutionPlan = executionPlan(singletonMap(
-                Endpoint.openrtb2_auction,
+                HookHttpEndpoint.POST_AUCTION,
                 EndpointExecutionPlan.of(singletonMap(Stage.raw_auction_request, stageExecutionPlan))));
 
         final HookStageExecutor executor = HookStageExecutor.create(
@@ -1602,7 +1601,7 @@ public class HookStageExecutorTest extends VertxTest {
                 true,
                 0.0);
 
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION);
 
         // when
         final BidRequest givenBidRequest = BidRequest.builder().build();
@@ -1679,12 +1678,12 @@ public class HookStageExecutorTest extends VertxTest {
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         EndpointExecutionPlan.of(singletonMap(
                                 Stage.raw_auction_request,
                                 execPlanTwoGroupsTwoHooksEach())))));
 
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION);
 
         // when
         final Future<HookStageExecutionResult<AuctionRequestPayload>> future = executor.executeRawAuctionRequestStage(
@@ -1767,12 +1766,12 @@ public class HookStageExecutorTest extends VertxTest {
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         EndpointExecutionPlan.of(singletonMap(
                                 Stage.raw_auction_request,
                                 execPlanTwoGroupsTwoHooksEach())))));
 
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION);
 
         // when
         final AuctionContext givenAuctionContext = AuctionContext.builder()
@@ -1847,7 +1846,7 @@ public class HookStageExecutorTest extends VertxTest {
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         EndpointExecutionPlan.of(singletonMap(
                                 Stage.raw_auction_request,
                                 execPlanTwoGroupsTwoHooksEach())))));
@@ -1858,7 +1857,7 @@ public class HookStageExecutorTest extends VertxTest {
         accountModulesConfiguration.put("module-alpha", moduleAlphaConfiguration);
         accountModulesConfiguration.put("module-beta", moduleBetaConfiguration);
 
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION);
 
         // when
         final Future<HookStageExecutionResult<AuctionRequestPayload>> future = executor.executeRawAuctionRequestStage(
@@ -1941,7 +1940,7 @@ public class HookStageExecutorTest extends VertxTest {
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         EndpointExecutionPlan.of(singletonMap(
                                 Stage.raw_auction_request,
                                 StageExecutionPlan.of(asList(
@@ -1958,7 +1957,7 @@ public class HookStageExecutorTest extends VertxTest {
                                                         HookId.of("module-alpha", "hook-b"),
                                                         HookId.of("module-beta", "hook-c"))))))))));
 
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION);
 
         // when
         final Future<HookStageExecutionResult<AuctionRequestPayload>> future = executor.executeRawAuctionRequestStage(
@@ -2012,11 +2011,11 @@ public class HookStageExecutorTest extends VertxTest {
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         EndpointExecutionPlan.of(singletonMap(
                                 Stage.raw_auction_request, execPlanOneGroupOneHook("module-alpha", "hook-a"))))));
 
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION);
 
         // when
         final Future<HookStageExecutionResult<AuctionRequestPayload>> future = executor.executeRawAuctionRequestStage(
@@ -2064,12 +2063,12 @@ public class HookStageExecutorTest extends VertxTest {
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         EndpointExecutionPlan.of(singletonMap(
                                 Stage.processed_auction_request,
                                 execPlanTwoGroupsTwoHooksEach())))));
 
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION);
 
         // when
         final Future<HookStageExecutionResult<AuctionRequestPayload>> future =
@@ -2120,7 +2119,7 @@ public class HookStageExecutorTest extends VertxTest {
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         EndpointExecutionPlan.of(singletonMap(
                                 Stage.processed_auction_request,
                                 execPlanTwoGroupsTwoHooksEach())))));
@@ -2131,7 +2130,7 @@ public class HookStageExecutorTest extends VertxTest {
         accountModulesConfiguration.put("module-alpha", moduleAlphaConfiguration);
         accountModulesConfiguration.put("module-beta", moduleBetaConfiguration);
 
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION);
 
         // when
         final Future<HookStageExecutionResult<AuctionRequestPayload>> future =
@@ -2215,7 +2214,7 @@ public class HookStageExecutorTest extends VertxTest {
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         EndpointExecutionPlan.of(singletonMap(
                                 Stage.processed_auction_request,
                                 StageExecutionPlan.of(asList(
@@ -2232,7 +2231,7 @@ public class HookStageExecutorTest extends VertxTest {
                                                         HookId.of("module-alpha", "hook-b"),
                                                         HookId.of("module-beta", "hook-c"))))))))));
 
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION);
 
         // when
         final Future<HookStageExecutionResult<AuctionRequestPayload>> future =
@@ -2287,12 +2286,12 @@ public class HookStageExecutorTest extends VertxTest {
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         EndpointExecutionPlan.of(singletonMap(
                                 Stage.processed_auction_request,
                                 execPlanOneGroupOneHook("module-alpha", "hook-a"))))));
 
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION);
 
         // when
         final Future<HookStageExecutionResult<AuctionRequestPayload>> future =
@@ -2342,12 +2341,12 @@ public class HookStageExecutorTest extends VertxTest {
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         EndpointExecutionPlan.of(singletonMap(
                                 Stage.bidder_request,
                                 execPlanTwoGroupsTwoHooksEach())))));
 
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION);
         final AuctionContext auctionContext = AuctionContext.builder()
                 .bidRequest(BidRequest.builder().build())
                 .account(Account.empty("accountId"))
@@ -2410,11 +2409,11 @@ public class HookStageExecutorTest extends VertxTest {
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         EndpointExecutionPlan.of(singletonMap(
                                 Stage.bidder_request, execPlanOneGroupOneHook("module-alpha", "hook-a"))))));
 
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION);
 
         // when
         final Future<HookStageExecutionResult<BidderRequestPayload>> future = executor.executeBidderRequestStage(
@@ -2498,12 +2497,12 @@ public class HookStageExecutorTest extends VertxTest {
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         EndpointExecutionPlan.of(singletonMap(
                                 Stage.raw_bidder_response,
                                 execPlanTwoGroupsTwoHooksEach())))));
 
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION);
         final AuctionContext auctionContext = AuctionContext.builder()
                 .bidRequest(BidRequest.builder().build())
                 .account(Account.empty("accountId"))
@@ -2565,11 +2564,11 @@ public class HookStageExecutorTest extends VertxTest {
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         EndpointExecutionPlan.of(singletonMap(Stage.raw_bidder_response, execPlanOneGroupOneHook(
                                 "module-alpha", "hook-a"))))));
 
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION);
 
         // when
         final Future<HookStageExecutionResult<BidderResponsePayload>> future = executor.executeRawBidderResponseStage(
@@ -2653,12 +2652,12 @@ public class HookStageExecutorTest extends VertxTest {
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         EndpointExecutionPlan.of(singletonMap(
                                 Stage.processed_bidder_response,
                                 execPlanTwoGroupsTwoHooksEach())))));
 
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION);
         final AuctionContext auctionContext = AuctionContext.builder()
                 .bidRequest(BidRequest.builder().build())
                 .account(Account.empty("accountId"))
@@ -2723,12 +2722,12 @@ public class HookStageExecutorTest extends VertxTest {
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         EndpointExecutionPlan.of(singletonMap(
                                 Stage.processed_bidder_response,
                                 execPlanOneGroupOneHook("module-alpha", "hook-a"))))));
 
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION);
 
         // when
         final Future<HookStageExecutionResult<BidderResponsePayload>> future =
@@ -2828,12 +2827,12 @@ public class HookStageExecutorTest extends VertxTest {
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         EndpointExecutionPlan.of(singletonMap(
                                 Stage.all_processed_bid_responses,
                                 execPlanTwoGroupsTwoHooksEach())))));
 
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION);
         final AuctionContext auctionContext = AuctionContext.builder()
                 .bidRequest(BidRequest.builder().build())
                 .account(Account.empty("accountId"))
@@ -2967,7 +2966,7 @@ public class HookStageExecutorTest extends VertxTest {
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         EndpointExecutionPlan.of(singletonMap(
                                 Stage.all_processed_bid_responses,
                                 execPlanTwoGroupsTwoHooksEach())))));
@@ -2977,7 +2976,7 @@ public class HookStageExecutorTest extends VertxTest {
         bidRejectionTrackers.put("bidderB", new BidRejectionTracker("bidderB", Set.of("impId"), 0.0));
         bidRejectionTrackers.put("bidderC", new BidRejectionTracker("bidderC", Set.of("impId"), 0.0));
 
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION);
         final AuctionContext auctionContext = AuctionContext.builder()
                 .bidRequest(BidRequest.builder().build())
                 .account(Account.empty("accountId"))
@@ -3011,20 +3010,20 @@ public class HookStageExecutorTest extends VertxTest {
 
         assertThat(bidRejectionTrackers.keySet()).containsOnly("bidderA", "bidderB", "bidderC");
         assertThat(bidRejectionTrackers.get("bidderA").getAllRejected().get("impId")).containsOnly(
-                        BidRejection.of(bidderABid1, REQUEST_BLOCKED_OPTIMIZED),
-                        BidRejection.of(bidderABid1, REQUEST_BLOCKED_UNSUPPORTED_MEDIA_TYPE),
-                        BidRejection.of(bidderABid2, REQUEST_BLOCKED_GENERAL),
-                        BidRejection.of(bidderABid2, REQUEST_BLOCKED_GENERAL));
+                BidRejection.of(bidderABid1, REQUEST_BLOCKED_OPTIMIZED),
+                BidRejection.of(bidderABid1, REQUEST_BLOCKED_UNSUPPORTED_MEDIA_TYPE),
+                BidRejection.of(bidderABid2, REQUEST_BLOCKED_GENERAL),
+                BidRejection.of(bidderABid2, REQUEST_BLOCKED_GENERAL));
         assertThat(bidRejectionTrackers.get("bidderB").getAllRejected().get("impId")).containsOnly(
-                        BidRejection.of(bidderBBid3, REQUEST_BLOCKED_UNACCEPTABLE_CURRENCY),
-                        BidRejection.of(bidderBBid3, REQUEST_BLOCKED_PRIVACY),
-                        BidRejection.of(bidderBBid4, REQUEST_BLOCKED_GENERAL),
-                        BidRejection.of(bidderBBid4, REQUEST_BLOCKED_GENERAL));
+                BidRejection.of(bidderBBid3, REQUEST_BLOCKED_UNACCEPTABLE_CURRENCY),
+                BidRejection.of(bidderBBid3, REQUEST_BLOCKED_PRIVACY),
+                BidRejection.of(bidderBBid4, REQUEST_BLOCKED_GENERAL),
+                BidRejection.of(bidderBBid4, REQUEST_BLOCKED_GENERAL));
         assertThat(bidRejectionTrackers.get("bidderC").getAllRejected().get("impId")).containsOnly(
-                        BidRejection.of(bidderCBid5, REQUEST_BLOCKED_GENERAL),
-                        BidRejection.of(bidderCBid5, REQUEST_BLOCKED_GENERAL),
-                        BidRejection.of(bidderCBid5, REQUEST_BLOCKED_GENERAL),
-                        BidRejection.of(bidderCBid5, REQUEST_BLOCKED_GENERAL));
+                BidRejection.of(bidderCBid5, REQUEST_BLOCKED_GENERAL),
+                BidRejection.of(bidderCBid5, REQUEST_BLOCKED_GENERAL),
+                BidRejection.of(bidderCBid5, REQUEST_BLOCKED_GENERAL),
+                BidRejection.of(bidderCBid5, REQUEST_BLOCKED_GENERAL));
     }
 
     @Test
@@ -3037,12 +3036,12 @@ public class HookStageExecutorTest extends VertxTest {
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         EndpointExecutionPlan.of(singletonMap(
                                 Stage.all_processed_bid_responses,
                                 execPlanOneGroupOneHook("module-alpha", "hook-a"))))));
 
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION);
 
         // when
         final Future<HookStageExecutionResult<AllProcessedBidResponsesPayload>> future =
@@ -3088,11 +3087,11 @@ public class HookStageExecutorTest extends VertxTest {
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         EndpointExecutionPlan.of(singletonMap(
                                 Stage.bidder_request, execPlanOneGroupOneHook("module-alpha", "hook-a"))))));
 
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION);
 
         // when
         final Future<HookStageExecutionResult<BidderRequestPayload>> future = executor.executeBidderRequestStage(
@@ -3143,12 +3142,12 @@ public class HookStageExecutorTest extends VertxTest {
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         EndpointExecutionPlan.of(singletonMap(
                                 Stage.auction_response,
                                 execPlanTwoGroupsTwoHooksEach())))));
 
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION);
 
         // when
         final Future<HookStageExecutionResult<AuctionResponsePayload>> future = executor.executeAuctionResponseStage(
@@ -3185,11 +3184,11 @@ public class HookStageExecutorTest extends VertxTest {
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         EndpointExecutionPlan.of(singletonMap(
                                 Stage.auction_response, execPlanOneGroupOneHook("module-alpha", "hook-a"))))));
 
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION);
 
         // when
         final Future<HookStageExecutionResult<AuctionResponsePayload>> future = executor.executeAuctionResponseStage(
@@ -3230,11 +3229,11 @@ public class HookStageExecutorTest extends VertxTest {
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         EndpointExecutionPlan.of(singletonMap(
                                 Stage.auction_response, execPlanOneGroupOneHook("module-alpha", "hook-a"))))));
 
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION);
 
         // when
         final Future<HookStageExecutionResult<AuctionResponsePayload>> future = executor.executeAuctionResponseStage(
@@ -3272,11 +3271,11 @@ public class HookStageExecutorTest extends VertxTest {
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         EndpointExecutionPlan.of(singletonMap(
                                 Stage.auction_response, execPlanOneGroupOneHook("module-alpha", "hook-a"))))));
 
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION);
 
         // when
         final Future<HookStageExecutionResult<AuctionResponsePayload>> future = executor.executeAuctionResponseStage(
@@ -3351,12 +3350,12 @@ public class HookStageExecutorTest extends VertxTest {
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         EndpointExecutionPlan.of(singletonMap(
                                 Stage.exitpoint,
                                 execPlanTwoGroupsTwoHooksEach())))));
 
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION);
 
         // when
         final Future<HookStageExecutionResult<ExitpointPayload>> future = executor.executeExitpointStage(
@@ -3400,11 +3399,11 @@ public class HookStageExecutorTest extends VertxTest {
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         EndpointExecutionPlan.of(singletonMap(
                                 Stage.exitpoint, execPlanOneGroupOneHook("module-alpha", "hook-a"))))));
 
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION);
 
         // when
         final Future<HookStageExecutionResult<ExitpointPayload>> future = executor.executeExitpointStage(
@@ -3446,11 +3445,11 @@ public class HookStageExecutorTest extends VertxTest {
 
         final HookStageExecutor executor = createExecutor(
                 executionPlan(singletonMap(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         EndpointExecutionPlan.of(singletonMap(
                                 Stage.exitpoint, execPlanOneGroupOneHook("module-alpha", "hook-a"))))));
 
-        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        final HookExecutionContext hookExecutionContext = HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION);
 
         // when
         final Future<HookStageExecutionResult<ExitpointPayload>> future = executor.executeExitpointStage(
@@ -3569,7 +3568,7 @@ public class HookStageExecutorTest extends VertxTest {
                 ABTest.builder().enabled(true).build());
     }
 
-    private String executionPlan(Map<Endpoint, EndpointExecutionPlan> endpoints) {
+    private String executionPlan(Map<HookHttpEndpoint, EndpointExecutionPlan> endpoints) {
         return jacksonMapper.encodeToString(ExecutionPlan.of(null, endpoints));
     }
 

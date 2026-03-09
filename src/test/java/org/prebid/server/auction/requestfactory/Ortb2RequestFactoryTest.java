@@ -48,13 +48,13 @@ import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.hooks.execution.model.HookExecutionContext;
+import org.prebid.server.hooks.execution.model.HookHttpEndpoint;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.execution.v1.entrypoint.EntrypointPayloadImpl;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
-import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
@@ -149,7 +149,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         httpRequest = HttpRequestContext.builder()
                 .headers(CaseInsensitiveMultiMap.empty())
                 .build();
-        hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        hookExecutionContext = HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION);
 
         given(timeoutResolver.limitToMax(any())).willReturn(2000L);
 
@@ -596,7 +596,9 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     @Test
     public void createAuctionContextShouldReturnExpectedAuctionContext() {
         // when
-        final AuctionContext result = target.createAuctionContext(Endpoint.openrtb2_auction, MetricName.openrtb2app);
+        final AuctionContext result = target.createAuctionContext(
+                HookHttpEndpoint.POST_AUCTION,
+                MetricName.openrtb2app);
 
         // then
         assertThat(result).isEqualTo(AuctionContext.builder()
