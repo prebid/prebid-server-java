@@ -60,6 +60,7 @@ import static org.prebid.server.functional.model.request.auction.DistributionCha
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 import static org.prebid.server.functional.model.request.auction.TraceLevel.BASIC
 import static org.prebid.server.functional.util.PBSUtils.getRandomDecimal
+import static org.prebid.server.functional.util.PBSUtils.getRandomBoolean
 
 class BidderFieldDisplayBehaviorSpec extends BaseSpec {
 
@@ -68,9 +69,8 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
     def "PBS should pass ext.prebid.createTids to bidder request"() {
         given: "Default bid request"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.createTids = PBSUtils.randomBoolean
+            ext.prebid.createTids = randomBoolean
         }
-
 
         when: "PBS processes auction request"
         defaultPbsService.sendAuctionRequest(bidRequest)
@@ -139,7 +139,7 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
     def "PBS should pass supportDeals to bidder request when supportDeals specified"() {
         given: "Default bid request"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.supportDeals = PBSUtils.randomBoolean
+            ext.prebid.supportDeals = randomBoolean
         }
 
         when: "PBS processes auction request"
@@ -153,7 +153,7 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
     def "PBS shouldn't pass ext.prebid.cache to bidder request when cache specified"() {
         given: "Default bid request"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.cache = new PrebidCache(winningOnly: PBSUtils.randomBoolean)
+            ext.prebid.cache = new PrebidCache(winningOnly: randomBoolean)
         }
 
         when: "PBS processes auction request"
@@ -186,7 +186,7 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
         given: "Default bid request"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.currency = new PrebidCurrency(
-                    usePbsRates: PBSUtils.randomBoolean,
+                    usePbsRates: randomBoolean,
                     rates: getDefaultConversionRates())
         }
 
@@ -403,7 +403,7 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
     def "PBS should pass site.ext to bidder request when site.ext specified"() {
         given: "Default basic BidRequest with generic bidder"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            site.ext = new SiteExt(amp: PBSUtils.getRandomEnum(SiteExt.Amp), data: new SiteExtData(id: PBSUtils.randomString))
+            site.ext = new SiteExt(isAmp: PBSUtils.randomBoolean, data: new SiteExtData(id: PBSUtils.randomString))
         }
 
         when: "PBS processes auction request"
