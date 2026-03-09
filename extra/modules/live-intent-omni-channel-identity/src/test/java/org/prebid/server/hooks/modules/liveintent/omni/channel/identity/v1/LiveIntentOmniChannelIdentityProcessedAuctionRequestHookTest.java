@@ -386,15 +386,18 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
 
         final ExtRequestPrebidDataEidPermissions otherBidder = ExtRequestPrebidDataEidPermissions.builder()
                 .source("some.other-source.com")
+                .inserter("some.other-inserter.com")
                 .bidders(singletonList("bidderY"))
                 .build();
 
         final ExtRequestPrebidDataEidPermissions liBidder2 = ExtRequestPrebidDataEidPermissions.builder()
                 .source("liveintent.com")
+                .inserter("s2s.liveintent.com")
                 .bidders(singletonList("bidder2"))
                 .build();
         final ExtRequestPrebidDataEidPermissions liBidder23 = ExtRequestPrebidDataEidPermissions.builder()
                 .source("liveintent.com")
+                .inserter("s2s.liveintent.com")
                 .bidders(List.of("bidder2", "bidder3"))
                 .build();
 
@@ -452,10 +455,12 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
         final User givenUser = User.builder().eids(singletonList(givenEid)).build();
         final ExtRequestPrebidDataEidPermissions bidder1 = ExtRequestPrebidDataEidPermissions.builder()
                 .source("some.other-source.com")
+                .inserter("some.other-inserter.com")
                 .bidders(singletonList("bidder3"))
                 .build();
         final ExtRequestPrebidDataEidPermissions bidder2 = ExtRequestPrebidDataEidPermissions.builder()
                 .source("some.source.com")
+                .inserter("s2s.liveintent.com")
                 .bidders(singletonList("bidder3"))
                 .build();
 
@@ -516,6 +521,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
                 List.of(
                         ExtRequestPrebidDataEidPermissions.builder()
                                 .source("liveintent.com")
+                                .inserter("s2s.liveintent.com")
                                 .bidders(singletonList("not-allowed"))
                                 .build(),
                         ExtRequestPrebidDataEidPermissions.builder()

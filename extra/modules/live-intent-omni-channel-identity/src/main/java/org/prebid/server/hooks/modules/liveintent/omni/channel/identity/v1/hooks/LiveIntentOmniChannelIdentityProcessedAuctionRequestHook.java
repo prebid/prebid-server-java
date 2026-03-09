@@ -23,6 +23,7 @@ import org.prebid.server.hooks.execution.v1.analytics.ActivityImpl;
 import org.prebid.server.hooks.execution.v1.analytics.ResultImpl;
 import org.prebid.server.hooks.execution.v1.analytics.TagsImpl;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
+import org.prebid.server.hooks.modules.liveintent.omni.channel.identity.model.FullSource;
 import org.prebid.server.hooks.modules.liveintent.omni.channel.identity.model.IdResResponse;
 import org.prebid.server.hooks.modules.liveintent.omni.channel.identity.model.config.LiveIntentOmniChannelProperties;
 import org.prebid.server.hooks.modules.liveintent.omni.channel.identity.v1.LiveIntentOmniChannelIdentityModule;
@@ -197,6 +198,9 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
 
     private AuctionRequestPayload updatedPayload(AuctionRequestPayload requestPayload, List<Eid> resolvedEids) {
         final List<Eid> eids = ListUtils.emptyIfNull(resolvedEids);
+        if (CollectionUtils.isEmpty(eids)) {
+            return requestPayload;
+        }
         final BidRequest bidRequest = updateAllowedBidders(requestPayload.bidRequest(), resolvedEids);
         final User updatedUser = Optional.ofNullable(bidRequest.getUser())
                 .map(user -> user.toBuilder().eids(ListUtil.union(ListUtils.emptyIfNull(user.getEids()), eids)))
@@ -207,7 +211,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
     }
 
     private BidRequest updateAllowedBidders(BidRequest bidRequest, List<Eid> resolvedEids) {
-        if (CollectionUtils.isEmpty(targetBidders) || CollectionUtils.isEmpty(resolvedEids)) {
+        if (CollectionUtils.isEmpty(targetBidders)) {
             return bidRequest;
         }
 
@@ -232,8 +236,8 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
     private ExtRequestPrebidData updatePrebidData(ExtRequestPrebidData extPrebidData, List<Eid> resolvedEids) {
         final List<String> originalBidders = extPrebidData != null ? extPrebidData.getBidders() : null;
 
-        final Set<String> resolvedSources = resolvedEids.stream()
-                .map(Eid::getSource)
+        final Set<FullSource> resolvedSources = resolvedEids.stream()
+                .map(eid -> FullSource.builder().source(eid.getSource()).inserter(eid.getInserter()).build())
                 .collect(Collectors.toSet());
 
         final List<ExtRequestPrebidDataEidPermissions> eidPermissions = extPrebidData != null
@@ -245,13 +249,30 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
                 .filter(Objects::nonNull)
                 .toList();
 
-        return ExtRequestPrebidData.of(originalBidders, updatedPermissions);
+        if (CollectionUtils.isEmpty(updatedPermissions)) {
+            return ExtRequestPrebidData.of(
+                    originalBidders,
+                    resolvedEids.stream()
+                            .map(eid ->
+                                    ExtRequestPrebidDataEidPermissions.builder()
+                                            .bidders(targetBidders.stream().toList())
+                                            .inserter(INSERTER)
+                                            .source(eid.getSource())
+                                            .build())
+                            .toList());
+        } else {
+            return ExtRequestPrebidData.of(originalBidders, updatedPermissions);
+        }
     }
 
     private ExtRequestPrebidDataEidPermissions restrictEidPermission(ExtRequestPrebidDataEidPermissions permission,
-                                                                     Set<String> resolvedSources) {
+                                                                     Set<FullSource> resolvedSources) {
 
-        if (!resolvedSources.contains(permission.getSource())) {
+        final FullSource permFullSource = FullSource.builder()
+                .source(permission.getSource())
+                .inserter(permission.getInserter())
+                .build();
+        if (!resolvedSources.contains(permFullSource)) {
             return permission;
         }
 
@@ -260,6 +281,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
         if (CollectionUtils.isEmpty(permittedBidders) || permittedBidders.contains("*")) {
             return ExtRequestPrebidDataEidPermissions.builder()
                     .source(permission.getSource())
+                    .inserter(permission.getInserter())
                     .bidders(targetBidders.stream().toList())
                     .build();
         }
@@ -272,6 +294,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
                 ? null
                 : ExtRequestPrebidDataEidPermissions.builder()
                 .source(permission.getSource())
+                .inserter(permission.getInserter())
                 .bidders(finalBidders)
                 .build();
     }
