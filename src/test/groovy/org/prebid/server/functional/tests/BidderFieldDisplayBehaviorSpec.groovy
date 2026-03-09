@@ -59,8 +59,6 @@ import static org.prebid.server.functional.model.request.auction.DistributionCha
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.DOOH
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 import static org.prebid.server.functional.model.request.auction.TraceLevel.BASIC
-import static org.prebid.server.functional.util.PBSUtils.getRandomDecimal
-import static org.prebid.server.functional.util.PBSUtils.getRandomBoolean
 
 class BidderFieldDisplayBehaviorSpec extends BaseSpec {
 
@@ -69,7 +67,7 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
     def "PBS should pass ext.prebid.createTids to bidder request"() {
         given: "Default bid request"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.createTids = randomBoolean
+            ext.prebid.createTids = PBSUtils.randomBoolean
         }
 
         when: "PBS processes auction request"
@@ -139,7 +137,7 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
     def "PBS should pass supportDeals to bidder request when supportDeals specified"() {
         given: "Default bid request"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.supportDeals = randomBoolean
+            ext.prebid.supportDeals = PBSUtils.randomBoolean
         }
 
         when: "PBS processes auction request"
@@ -153,7 +151,7 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
     def "PBS shouldn't pass ext.prebid.cache to bidder request when cache specified"() {
         given: "Default bid request"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.cache = new PrebidCache(winningOnly: randomBoolean)
+            ext.prebid.cache = new PrebidCache(winningOnly: PBSUtils.randomBoolean)
         }
 
         when: "PBS processes auction request"
@@ -163,7 +161,6 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert !bidderRequest.ext.prebid.cache
     }
-
 
     def "PBS should pass ext.prebid.channel to bidder request when channel specified"() {
         given: "Default bid request"
@@ -186,7 +183,7 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
         given: "Default bid request"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.currency = new PrebidCurrency(
-                    usePbsRates: randomBoolean,
+                    usePbsRates: PBSUtils.randomBoolean,
                     rates: getDefaultConversionRates())
         }
 
@@ -403,7 +400,7 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
     def "PBS should pass site.ext to bidder request when site.ext specified"() {
         given: "Default basic BidRequest with generic bidder"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            site.ext = new SiteExt(isAmp: PBSUtils.randomBoolean, data: new SiteExtData(id: PBSUtils.randomString))
+            site.ext = new SiteExt(isAmp: PBSUtils.getRandomNumber(0, 1), data: new SiteExtData(id: PBSUtils.randomString))
         }
 
         when: "PBS processes auction request"
@@ -412,7 +409,7 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
         then: "Bidder request should contain site.ext.{amp,data}"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.site.ext.data == bidRequest.site.ext.data
-        assert bidderRequest.site.ext.amp == bidRequest.site.ext.amp
+        assert bidderRequest.site.ext.isAmp == bidRequest.site.ext.isAmp
     }
 
     def "PBS should pass device.ext to bidder request when device.ext specified"() {
@@ -563,10 +560,10 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
 
     def "PBS should pass ext.prebid.bidAdjustmentFactors only bidder related entry for each bidder"() {
         given: "Default bid request with bid adjustment"
-        def genericBidAdjustment = randomDecimal
+        def genericBidAdjustment = PBSUtils.randomDecimal
         def bidRequest = BidRequest.getDefaultBidRequest(SITE).tap {
             ext.prebid.bidAdjustmentFactors = new BidAdjustmentFactors().tap {
-                adjustments = [(GENERIC): genericBidAdjustment, (OPENX): randomDecimal]
+                adjustments = [(GENERIC): genericBidAdjustment, (OPENX): PBSUtils.randomDecimal]
                 mediaTypes = [(BANNER): [(GENERIC): mediaTypeBidAdjustment],
                               (VIDEO) : [(OPENX): mediaTypeBidAdjustment]]
             }

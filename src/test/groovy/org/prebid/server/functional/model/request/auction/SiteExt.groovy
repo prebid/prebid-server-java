@@ -1,13 +1,13 @@
 package org.prebid.server.functional.model.request.auction
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonProperty
-import com.fasterxml.jackson.annotation.JsonValue
 import groovy.transform.ToString
 
 @ToString(includeNames = true, ignoreNulls = true)
 class SiteExt {
 
-    @JsonProperty("amp")
+    @JsonIgnore
     Boolean isAmp
     SiteExtData data
 
@@ -15,8 +15,13 @@ class SiteExt {
         new SiteExt(data: SiteExtData.FPDSiteExtData)
     }
 
-    @JsonValue
-    Integer getAmp() {
-        isAmp ? 1 : 0
+    @JsonProperty("amp")
+    Integer getGetAmp() {
+        this.isAmp ? 1 : 0
+    }
+
+    @JsonProperty("amp")
+    void setGetAmp(Integer amp) {
+        this.isAmp = (amp == 1)
     }
 }
