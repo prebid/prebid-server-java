@@ -1,0 +1,41 @@
+{
+  "id": "bid_request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "1",
+          "impid": "imp_id",
+          "price": 2.5,
+          "adm": "test-ad-content",
+          "adid": "456",
+          "cid": "1234",
+          "crid": "1234",
+          "exp": 300,
+          "ext": {
+            "appnexus": {},
+            "prebid": {
+              "type": "banner",
+              "meta": {
+                "adaptercode": "msft"
+              }
+            },
+            "origbidcpm": 2.5
+          }
+        }
+      ],
+      "seat": "msft",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "msft": "{{ msft.response_time_ms }}"
+    },
+    "tmaxrequest": 5000,
+    "prebid": {
+      "auctiontimestamp": 0
+    }
+  }
+}
