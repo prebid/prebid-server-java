@@ -12,6 +12,8 @@ import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.testcontainers.containers.MockServerContainer
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS
+import static java.util.concurrent.TimeUnit.SECONDS
 import static org.mockserver.model.HttpRequest.request
 import static org.mockserver.model.HttpResponse.response
 import static org.mockserver.model.HttpStatusCode.OK_200
@@ -45,6 +47,13 @@ class Bidder extends NetworkScaffolding {
                         .respond {request -> request.withPath(endpoint)
                                 ? response().withStatusCode(OK_200.code()).withBody(getBodyByRequest(request))
                                 : HttpResponse.notFoundResponse()}
+    }
+
+    void setResponseWithDelay(Long dilayTimeoutMillisecond = 5000) {
+        mockServerClient.when(request().withPath(endpoint), Times.unlimited(), TimeToLive.unlimited(), -10)
+                .respond {request -> request.withPath(endpoint)
+                        ? response().withDelay(MILLISECONDS, dilayTimeoutMillisecond).withStatusCode(OK_200.code()).withBody(getBodyByRequest(request))
+                        : HttpResponse.notFoundResponse()}
     }
 
     List<BidderRequest> getBidderRequests(String bidRequestId) {

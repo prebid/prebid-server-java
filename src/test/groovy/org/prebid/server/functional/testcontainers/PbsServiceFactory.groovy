@@ -50,6 +50,9 @@ class PbsServiceFactory {
 
     static void removeContainer(Map<String, String> config) {
         def container = containers.get(config)
+        if (container == null) {
+            throw new IllegalArgumentException("Unknown or invalid container config: " + config)
+        }
         container.stop()
         containers.remove(config)
     }
