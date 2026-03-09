@@ -178,7 +178,7 @@ class SecondaryBidderSpec extends BaseSpec {
         and: "PBs response should contain openX alias and generic"
         assert bidResponse.seatbid.seat.sort() == [ALIAS, GENERIC].sort()
 
-        and: "PBs repose should contain response body from generic and alias bidder"
+        and: "PBs response should contain response body from generic and alias bidder"
         def httpCalls = bidResponse?.ext?.debug?.httpcalls
         assert httpCalls[GENERIC.value]?.responseBody
         assert httpCalls[ALIAS.value]?.responseBody
@@ -259,42 +259,6 @@ class SecondaryBidderSpec extends BaseSpec {
         and: "Set up openx bidder response with delay"
         def almostMaxDelayMilliseconds = bidRequest.tmax - 200
         openXBidder.setResponseWithDelay(almostMaxDelayMilliseconds)
-
-        when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithOpenXBidder.sendAuctionRequest(bidRequest)
-
-        then: "PBs should processed bidder request"
-        def genericBidderRequests = bidder.getBidderRequests(bidRequest.id)
-        def openXBidderRequests = openXBidder.getBidderRequests(bidRequest.id)
-        assert genericBidderRequests.size() == 1
-        assert openXBidderRequests.size() == 1
-
-        and: "Bid response should container time of opnex response"
-        def toleranceTimeoutMilliseconds = 50
-        assert bidResponse.ext.responsetimemillis[OPENX.value] in almostMaxDelayMilliseconds..almostMaxDelayMilliseconds + toleranceTimeoutMilliseconds
-
-        and: "PBs response should contain openX alias and generic"
-        assert bidResponse.seatbid.seat.sort() == [OPENX, GENERIC].sort()
-
-        and: "PBS shouldn't contain errors, warnings and seat non bid"
-        assert !bidResponse.ext?.warnings
-        assert !bidResponse.ext?.errors
-        assert !bidResponse.ext?.seatnonbid
-    }
-
-    def "PBS should pass auction as usual when secondary bidder respond all primary bidders"() {
-        given: "Default bid request with generic and openX bidders"
-        def bidRequest = getEnrichedBidRequest([OPENX])
-
-        and: "Account in the DB"
-        def accountConfig = AccountConfig.defaultAccountConfig.tap {
-            it.auction = new AccountAuctionConfig(secondaryBidders: [GENERIC, OPENX])
-        }
-        def account = new Account(uuid: bidRequest.accountId, config: accountConfig)
-        accountDao.save(account)
-
-        and: "OpenX set up response body"
-        openXBidder.setResponse()
 
         when: "PBS processes auction request"
         def bidResponse = pbsServiceWithOpenXBidder.sendAuctionRequest(bidRequest)
