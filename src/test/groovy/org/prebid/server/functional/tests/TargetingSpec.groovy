@@ -1906,6 +1906,37 @@ class TargetingSpec extends BaseSpec {
         ]
     }
 
+    def "PBS amp shouldn't emit error for targeting when site is array"() {
+        given: "Create targeting with array of site"
+        def anyRandomValue = PBSUtils.randomString
+        def targeting = ["site": [PBSUtils.randomString], "any" : anyRandomValue]
+
+        and: "Encode targeting to string"
+        def encodeTargeting = URLEncoder.encode(encode(targeting), StandardCharsets.UTF_8)
+
+        and: "Amp request with targeting"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.targeting = encodeTargeting
+        }
+
+        and: "Default bid request"
+        def ampStoredRequest = BidRequest.defaultBidRequest
+
+        and: "Create and save stored request into DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        def ampResponse = pbsWithDefaultTargetingLength.sendAmpRequest(ampRequest)
+
+        then: "Amp response should contain value from targeting in imp.ext.data"
+        def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
+        assert bidderRequest.imp[0].ext.data.any == anyRandomValue
+
+        and: "Amp response shouldn't contain error"
+        assert !ampResponse.ext.errors
+    }
+
     private static Account createAccountWithPriceGranularity(String accountId, PriceGranularityType priceGranularity) {
         def accountAuctionConfig = new AccountAuctionConfig(priceGranularity: priceGranularity)
         def accountConfig = new AccountConfig(status: ACTIVE, auction: accountAuctionConfig)
