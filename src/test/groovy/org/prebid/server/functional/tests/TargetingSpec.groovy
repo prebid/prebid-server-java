@@ -1933,7 +1933,7 @@ class TargetingSpec extends BaseSpec {
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
         assert bidderRequest.imp[0].ext.data.any == anyRandomValue
 
-        and: "Amp response shouldn't contain error"
+        and: "Amp response shouldn't contain any errors"
         assert !ampResponse.ext.errors
     }
 
