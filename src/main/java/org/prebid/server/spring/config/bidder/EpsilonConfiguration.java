@@ -11,6 +11,7 @@ import org.prebid.server.spring.config.bidder.model.BidderConfigurationPropertie
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
+import org.prebid.server.util.VersionInfo;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -36,6 +37,7 @@ public class EpsilonConfiguration {
     @Bean
     BidderDeps epsilonBidderDeps(EpsilonConfigurationProperties epsilonConfigurationProperties,
                                  @NotBlank @Value("${external-url}") String externalUrl,
+                                 VersionInfo versionInfo,
                                  JacksonMapper mapper,
                                  CurrencyConversionService currencyConversionService) {
 
@@ -46,6 +48,7 @@ public class EpsilonConfiguration {
                         new EpsilonBidder(
                                 config.getEndpoint(),
                                 epsilonConfigurationProperties.getGenerateBidId(),
+                                versionInfo.getVersion(),
                                 mapper,
                                 currencyConversionService))
                 .assemble();
