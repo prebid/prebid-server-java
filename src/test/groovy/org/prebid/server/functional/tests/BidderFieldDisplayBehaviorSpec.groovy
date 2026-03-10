@@ -222,7 +222,7 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
         when: "PBS processes auction request"
         defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Bidder request should contain ext.prebid.data.{debug,trace,integration}"
+        then: "Bidder request should contain ext.prebid.{debug,trace,integration}"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         verifyAll(bidderRequest) {
             bidderRequest.ext.prebid.trace == bidRequest.ext.prebid.trace
