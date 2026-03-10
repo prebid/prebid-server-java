@@ -10,7 +10,7 @@ import org.prebid.server.functional.model.bidder.BidderName
 @EqualsAndHashCode
 @ToString(includeNames = true, ignoreNulls = true)
 @JsonNaming(PropertyNamingStrategies.KebabCaseStrategy)
-class BidderConfig {
+class CodesBidderConfig {
 
     Boolean enabled
     List<BidderName> allowedBidderCodes
