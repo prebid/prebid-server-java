@@ -12,6 +12,7 @@ import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.db.StoredResponse
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.AdServerTargeting
+import org.prebid.server.functional.model.request.auction.App
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.MultiBid
@@ -20,6 +21,7 @@ import org.prebid.server.functional.model.request.auction.PrebidCache
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
 import org.prebid.server.functional.model.request.auction.PriceGranularity
 import org.prebid.server.functional.model.request.auction.Range
+import org.prebid.server.functional.model.request.auction.Site
 import org.prebid.server.functional.model.request.auction.StoredAuctionResponse
 import org.prebid.server.functional.model.request.auction.StoredBidResponse
 import org.prebid.server.functional.model.request.auction.Targeting
@@ -1909,7 +1911,7 @@ class TargetingSpec extends BaseSpec {
     def "PBS amp shouldn't emit error for targeting when site is array"() {
         given: "Create targeting with array of site"
         def anyRandomValue = PBSUtils.randomString
-        def targeting = ["site": [PBSUtils.randomString], "any" : anyRandomValue]
+        def targeting = ["site": siteValue, "any": anyRandomValue]
 
         and: "Encode targeting to string"
         def encodeTargeting = URLEncoder.encode(encode(targeting), StandardCharsets.UTF_8)
@@ -1935,6 +1937,10 @@ class TargetingSpec extends BaseSpec {
 
         and: "Amp response shouldn't contain any errors"
         assert !ampResponse.ext.errors
+
+        where:
+        siteValue << [null, [], [PBSUtils.randomString], [Site.defaultSite], [Site.defaultSite, PBSUtils.randomString],
+                      [PBSUtils.randomString, Site.defaultSite], [App.defaultApp, Site.defaultSite]]
     }
 
     private static Account createAccountWithPriceGranularity(String accountId, PriceGranularityType priceGranularity) {
