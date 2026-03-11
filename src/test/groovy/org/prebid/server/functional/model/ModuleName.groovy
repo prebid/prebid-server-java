@@ -9,7 +9,8 @@ enum ModuleName {
     ORTB2_BLOCKING("ortb2-blocking"),
     PB_REQUEST_CORRECTION('pb-request-correction'),
     OPTABLE_TARGETING('optable-targeting'),
-    PB_RULE_ENGINE('pb-rule-engine')
+    PB_RULE_ENGINE('pb-rule-engine'),
+    ID5_USER_ID('id5-user-id')
 
     @JsonValue
     final String code

@@ -1,14 +1,18 @@
 package org.prebid.server.functional.tests.module
 
+import org.prebid.server.functional.model.config.EndpointExecutionPlan
 import org.prebid.server.functional.model.config.Endpoint
+import org.prebid.server.functional.model.config.ExecutionGroup
 import org.prebid.server.functional.model.config.ExecutionPlan
+import org.prebid.server.functional.model.config.HookId
 import org.prebid.server.functional.model.config.Stage
+import org.prebid.server.functional.model.config.StageExecutionPlan
 import org.prebid.server.functional.model.response.auction.AnalyticResult
 import org.prebid.server.functional.model.response.auction.BidResponse
-import org.prebid.server.functional.model.response.auction.InvocationResult
 import org.prebid.server.functional.tests.BaseSpec
 import org.prebid.server.functional.util.PBSUtils
 
+import static org.prebid.server.functional.model.ModuleName.ID5_USER_ID
 import static org.prebid.server.functional.model.ModuleName.OPTABLE_TARGETING
 import static org.prebid.server.functional.model.ModuleName.ORTB2_BLOCKING
 import static org.prebid.server.functional.model.ModuleName.PB_RESPONSE_CORRECTION
@@ -17,6 +21,7 @@ import static org.prebid.server.functional.model.ModuleName.PB_REQUEST_CORRECTIO
 import static org.prebid.server.functional.model.ModuleName.PB_RULE_ENGINE
 import static org.prebid.server.functional.model.config.Endpoint.OPENRTB2_AUCTION
 import static org.prebid.server.functional.model.config.Stage.ALL_PROCESSED_BID_RESPONSES
+import static org.prebid.server.functional.model.config.Stage.BIDDER_REQUEST
 import static org.prebid.server.functional.model.config.Stage.PROCESSED_AUCTION_REQUEST
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 
@@ -86,6 +91,32 @@ class ModuleBaseSpec extends BaseSpec {
          "hooks.${PB_RULE_ENGINE.code}.rule-parsing.retry-exponential-factor"  : "1.2",
          "hooks.${PB_RULE_ENGINE.code}.rule-parsing.retry-exponential-jitter"  : "1.2",
          "hooks.host-execution-plan"                                           : encode(ExecutionPlan.getSingleEndpointExecutionPlan(endpoint, PB_RULE_ENGINE, [stage]))]
+    }
+
+    protected static Map<String, String> getId5UserIdSettings(Map<String, String> extraConfig = [:],
+                                                                Endpoint endpoint = OPENRTB2_AUCTION) {
+        def executionPlan = new ExecutionPlan(endpoints: [
+                (endpoint): new EndpointExecutionPlan(stages: [
+                        (PROCESSED_AUCTION_REQUEST): new StageExecutionPlan(groups: [
+                                new ExecutionGroup(timeout: 5000, hookSequence: [
+                                        new HookId(moduleCode: ID5_USER_ID.code, hookImplCode: "${ID5_USER_ID.code}-fetch-hook" as String)
+                                ])
+                        ]),
+                        (BIDDER_REQUEST): new StageExecutionPlan(groups: [
+                                new ExecutionGroup(timeout: 5000, hookSequence: [
+                                        new HookId(moduleCode: ID5_USER_ID.code, hookImplCode: "${ID5_USER_ID.code}-inject-hook" as String)
+                                ])
+                        ])
+                ])
+        ])
+        def config = ["hooks.${ID5_USER_ID.code}.enabled"       : "true",
+                       "hooks.${ID5_USER_ID.code}.partner"       : "173",
+                       "hooks.${ID5_USER_ID.code}.provider-name" : "prebid-server",
+                       "hooks.${ID5_USER_ID.code}.inserter-name" : "prebid-server",
+                       "hooks.${ID5_USER_ID.code}.fetch-endpoint": "$networkServiceContainer.rootUri/id5-fetch".toString(),
+                       "hooks.host-execution-plan"               : encode(executionPlan)]
+                .collectEntries { key, value -> [(key.toString()): value.toString()] } as Map<String, String>
+        config + extraConfig
     }
 
     protected static List<AnalyticResult> getAnalyticResults(BidResponse response) {
