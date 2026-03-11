@@ -420,28 +420,20 @@ mvn test -Dorg.slf4j.simpleLogger.defaultLogLevel=debug
 
 ## Integration Tests
 
-The module includes integration tests (`*IT.java`) that run a full Prebid Server instance with the ID5 module enabled.
+Integration tests for the ID5 module are part of the main Prebid Server functional test suite, located in:
 
-**Prerequisites**:
-1. Build and install the main project with test-jar:
-   ```bash
-   cd /path/to/prebid-server-java
-   mvn clean install -DskipUnitTests=true -DskipITs=true
-   ```
-
-**Run integration tests**:
-```bash
-cd extra/modules/id5-user-id
-
-# Run all integration tests
-mvn verify
-
-# Run specific integration test
-mvn verify -Dit.test=Id5UserIdModuleIT
-
-# Skip integration tests (run only unit tests)
-mvn test
 ```
+src/test/groovy/org/prebid/server/functional/tests/module/id5userid/
+```
+
+To run them:
+
+```bash
+mvn verify -DskipModuleFunctionalTests=false -DskipFunctionalTests=true -DskipUnitTests=true \
+  -Dit.test="Id5UserIdModuleSpec" -DdockerfileName=Dockerfile-modules
+```
+
+For more details on the functional test framework, see [Functional Tests documentation](../../../docs/developers/functional-tests.md).
 
 ---
 
