@@ -237,7 +237,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
         final List<String> originalBidders = extPrebidData != null ? extPrebidData.getBidders() : null;
 
         final Set<FullSource> resolvedSources = resolvedEids.stream()
-                .map(eid -> FullSource.builder().source(eid.getSource()).inserter(eid.getInserter()).build())
+                .map(eid -> FullSource.of(eid.getSource(), eid.getInserter()))
                 .collect(Collectors.toSet());
 
         final List<ExtRequestPrebidDataEidPermissions> eidPermissions = extPrebidData != null
@@ -249,29 +249,24 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
                 .filter(Objects::nonNull)
                 .toList();
 
-        if (CollectionUtils.isEmpty(updatedPermissions)) {
-            return ExtRequestPrebidData.of(
-                    originalBidders,
-                    resolvedEids.stream()
-                            .map(eid ->
-                                    ExtRequestPrebidDataEidPermissions.builder()
-                                            .bidders(targetBidders.stream().toList())
-                                            .inserter(INSERTER)
-                                            .source(eid.getSource())
-                                            .build())
-                            .toList());
-        } else {
-            return ExtRequestPrebidData.of(originalBidders, updatedPermissions);
-        }
+        return CollectionUtils.isEmpty(updatedPermissions)
+                ? ExtRequestPrebidData.of(
+                originalBidders,
+                resolvedEids.stream()
+                        .map(eid ->
+                                ExtRequestPrebidDataEidPermissions.builder()
+                                        .bidders(targetBidders.stream().toList())
+                                        .inserter(INSERTER)
+                                        .source(eid.getSource())
+                                        .build())
+                        .toList())
+                : ExtRequestPrebidData.of(originalBidders, updatedPermissions);
     }
 
     private ExtRequestPrebidDataEidPermissions restrictEidPermission(ExtRequestPrebidDataEidPermissions permission,
                                                                      Set<FullSource> resolvedSources) {
 
-        final FullSource permFullSource = FullSource.builder()
-                .source(permission.getSource())
-                .inserter(permission.getInserter())
-                .build();
+        final FullSource permFullSource = FullSource.of(permission.getSource(), permission.getInserter());
         if (!resolvedSources.contains(permFullSource)) {
             return permission;
         }
