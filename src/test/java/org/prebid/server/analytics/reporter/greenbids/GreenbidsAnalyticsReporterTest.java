@@ -746,7 +746,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         final TagsImpl tags = TagsImpl.of(Collections.singletonList(activity));
 
         final HookExecutionOutcome hookExecutionOutcome = HookExecutionOutcome.builder()
-                .hookId(HookId.of("greenbids-real-time-data", null))
+                .hookId(HookId.of("pb-greenbids-real-time-data", null))
                 .analyticsTags(tags)
                 .status(ExecutionStatus.success)
                 .build();

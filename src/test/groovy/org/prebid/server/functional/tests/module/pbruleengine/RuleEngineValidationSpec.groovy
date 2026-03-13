@@ -5,6 +5,7 @@ import org.prebid.server.functional.util.PBSUtils
 
 import java.time.Instant
 
+import static org.prebid.server.functional.model.ModuleName.PB_RULE_ENGINE
 import static org.prebid.server.functional.model.config.PbRulesEngine.createRulesEngineWithRule
 import static org.prebid.server.functional.model.config.RuleEngineFunction.AD_UNIT_CODE
 import static org.prebid.server.functional.model.config.RuleEngineFunction.BUNDLE
@@ -17,6 +18,7 @@ import static org.prebid.server.functional.model.config.RuleEngineFunction.FPD_A
 import static org.prebid.server.functional.model.config.RuleEngineFunction.GPP_SID_AVAILABLE
 import static org.prebid.server.functional.model.config.RuleEngineFunction.TCF_IN_SCOPE
 import static org.prebid.server.functional.model.config.RuleEngineFunction.USER_FPD_AVAILABLE
+import static org.prebid.server.functional.model.config.Stage.PROCESSED_AUCTION_REQUEST
 import static org.prebid.server.functional.model.pricefloors.Country.BULGARIA
 
 class RuleEngineValidationSpec extends RuleEngineBaseSpec {
@@ -58,11 +60,11 @@ class RuleEngineValidationSpec extends RuleEngineBaseSpec {
 
         and: "PBs should populate call and noop metrics"
         def metrics = pbsServiceWithRulesEngineModule.sendCollectedMetricsRequest()
-        assert metrics[CALL_METRIC] == 1
-        assert metrics[NOOP_METRIC] == 1
+        assert metrics[CALL_METRIC(PB_RULE_ENGINE, PROCESSED_AUCTION_REQUEST)] == 1
+        assert metrics[NOOP_METRIC(PB_RULE_ENGINE,PROCESSED_AUCTION_REQUEST)] == 1
 
         and: "PBs should populate update metrics"
-        assert !metrics[UPDATE_METRIC]
+        assert !metrics[UPDATE_METRIC(PB_RULE_ENGINE,PROCESSED_AUCTION_REQUEST)]
 
         where:
         pbRulesEngine << [
@@ -112,7 +114,7 @@ class RuleEngineValidationSpec extends RuleEngineBaseSpec {
 
         and: "PBs should populate noop metrics"
         def metrics = pbsServiceWithRulesEngineModule.sendCollectedMetricsRequest()
-        assert metrics[NOOP_METRIC] == 1
+        assert metrics[NOOP_METRIC(PB_RULE_ENGINE,PROCESSED_AUCTION_REQUEST)] == 1
     }
 
     def "PBS shouldn't remove bidder and emit a warning when args rule engine not fully configured in account"() {
@@ -150,7 +152,7 @@ class RuleEngineValidationSpec extends RuleEngineBaseSpec {
 
         and: "PBs should populate failer metrics"
         def metrics = pbsServiceWithRulesEngineModule.sendCollectedMetricsRequest()
-        assert metrics[NOOP_METRIC] == 1
+        assert metrics[NOOP_METRIC(PB_RULE_ENGINE,PROCESSED_AUCTION_REQUEST)] == 1
     }
 
     def "PBS shouldn't remove bidder and emit a warning when model group rule engine not fully configured in account"() {

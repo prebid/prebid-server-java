@@ -17,7 +17,7 @@ accounts:
       allow-client-details: true
     hooks:
       modules:
-        optable-targeting:
+        pb-optable-targeting:
           api-key: key
           tenant: optable
           origin: web-sdk-demo
@@ -37,8 +37,8 @@ accounts:
                       "timeout": 600,
                       "hook-sequence": [
                         {
-                          "module-code": "optable-targeting",
-                          "hook-impl-code": "optable-targeting-processed-auction-request-hook"
+                          "module-code": "pb-optable-targeting",
+                          "hook-impl-code": "pb-optable-targeting-processed-auction-request-hook"
                         }
                       ]
                     }
@@ -50,8 +50,8 @@ accounts:
                       "timeout": 10,
                       "hook-sequence": [
                         {
-                          "module-code": "optable-targeting",
-                          "hook-impl-code": "optable-targeting-auction-response-hook"
+                          "module-code": "pb-optable-targeting",
+                          "hook-impl-code": "pb-optable-targeting-auction-response-hook"
                         }
                       ]
                     }

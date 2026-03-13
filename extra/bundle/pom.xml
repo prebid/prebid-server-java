@@ -22,17 +22,17 @@
         </dependency>
         <dependency>
             <groupId>org.prebid.server.hooks.modules</groupId>
-            <artifactId>confiant-ad-quality</artifactId>
+            <artifactId>pb-confiant-ad-quality</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.prebid.server.hooks.modules</groupId>
-            <artifactId>fiftyone-devicedetection</artifactId>
+            <artifactId>pb-fiftyone-devicedetection</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.prebid.server.hooks.modules</groupId>
-            <artifactId>ortb2-blocking</artifactId>
+            <artifactId>pb-ortb2-blocking</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -47,7 +47,7 @@
         </dependency>
         <dependency>
             <groupId>org.prebid.server.hooks.modules</groupId>
-            <artifactId>greenbids-real-time-data</artifactId>
+            <artifactId>pb-greenbids-real-time-data</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -57,17 +57,17 @@
         </dependency>
         <dependency>
             <groupId>org.prebid.server.hooks.modules</groupId>
-            <artifactId>optable-targeting</artifactId>
+            <artifactId>pb-optable-targeting</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.prebid.server.hooks.modules</groupId>
-            <artifactId>wurfl-devicedetection</artifactId>
+            <artifactId>pb-wurfl-devicedetection</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.prebid.server.hooks.modules</groupId>
-            <artifactId>live-intent-omni-channel-identity</artifactId>
+            <artifactId>pb-live-intent-omni-channel-identity</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

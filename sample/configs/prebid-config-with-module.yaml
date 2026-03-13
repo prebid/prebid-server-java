@@ -53,8 +53,8 @@ hooks:
                   "timeout": 100,
                   "hook-sequence": [
                     {
-                      "module-code": "confiant-ad-quality",
-                      "hook-impl-code": "confiant-ad-quality-bid-responses-scan-hook"
+                      "module-code": "pb-confiant-ad-quality",
+                      "hook-impl-code": "pb-confiant-ad-quality-bid-responses-scan-hook"
                     }
                   ]
                 }
@@ -65,7 +65,7 @@ hooks:
       }
     }
   modules:
-    confiant-ad-quality:
+    pb-confiant-ad-quality:
       api-key: "hgr876cerg7655"
       redis-config:
         write-node:
