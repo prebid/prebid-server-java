@@ -1,4 +1,4 @@
-package org.prebid.server.functional.tests.module.responsecorrenction
+package org.prebid.server.functional.tests.module.pbresponsecorrenction
 
 import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountCacheConfig
@@ -32,7 +32,7 @@ import static org.prebid.server.functional.model.response.auction.MediaType.BANN
 import static org.prebid.server.functional.model.response.auction.MediaType.NATIVE
 import static org.prebid.server.functional.model.response.auction.MediaType.VIDEO
 
-class ResponseCorrectionSpec extends ModuleBaseSpec {
+class PbResponseCorrectionSpec extends ModuleBaseSpec {
 
     private final static int OPTIMAL_MAX_LENGTH = 20
     private static final Map PBS_CONFIG = ["adapter-defaults.modifying-vast-xml-allowed": "false",

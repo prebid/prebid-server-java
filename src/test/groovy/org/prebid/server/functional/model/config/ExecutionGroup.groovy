@@ -19,7 +19,7 @@ class ExecutionGroup {
     static ExecutionGroup getModuleExecutionGroup(ModuleName name, Stage stage) {
         new ExecutionGroup().tap {
             timeout = 1000
-            hookSequence = [new HookId(moduleCode: name.code, hookImplCode: ModuleHookImplementation.forValue(name, stage).code)]
+            hookSequence = [new HookId(moduleCode: name.code, hookImplCode: "${name.code}-$stage-hook")]
         }
     }
 }

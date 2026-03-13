@@ -1,4 +1,4 @@
-package org.prebid.server.functional.tests.module.optabletargeting
+package org.prebid.server.functional.tests.module.pboptabletargeting
 
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountHooksConfiguration
@@ -199,7 +199,7 @@ class CacheStorageSpec extends ModuleBaseSpec {
     private static Account createAccountWithRequestCorrectionConfig(BidRequest bidRequest,
                                                                     OptableTargetingConfig optableTargetingConfig) {
 
-        def pbsModulesConfig = new PbsModulesConfig(optableTargeting: optableTargetingConfig)
+        def pbsModulesConfig = new PbsModulesConfig(pbOptableTargeting: optableTargetingConfig)
         def accountHooksConfig = new AccountHooksConfiguration(modules: pbsModulesConfig)
         def accountConfig = new AccountConfig(hooks: accountHooksConfig)
         new Account(uuid: bidRequest.accountId, config: accountConfig)

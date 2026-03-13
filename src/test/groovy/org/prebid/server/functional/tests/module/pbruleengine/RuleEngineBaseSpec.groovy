@@ -47,9 +47,6 @@ abstract class RuleEngineBaseSpec extends ModuleBaseSpec {
     protected static final List<BidderName> MULTI_BID_ADAPTERS = [GENERIC, OPENX, AMX].sort()
     protected static final String APPLIED_FOR_ALL_IMPS = "*"
     protected static final String DEFAULT_CONDITIONS = "default"
-    protected final static String CALL_METRIC = "modules.module.${PB_RULE_ENGINE.code}.stage.${PROCESSED_AUCTION_REQUEST.metricValue}.hook.${PB_RULES_ENGINE_PROCESSED_AUCTION_REQUEST.code}.call"
-    protected final static String NOOP_METRIC = "modules.module.${PB_RULE_ENGINE.code}.stage.${PROCESSED_AUCTION_REQUEST.metricValue}.hook.${PB_RULES_ENGINE_PROCESSED_AUCTION_REQUEST.code}.success.noop"
-    protected final static String UPDATE_METRIC = "modules.module.${PB_RULE_ENGINE.code}.stage.${PROCESSED_AUCTION_REQUEST.metricValue}.hook.${PB_RULES_ENGINE_PROCESSED_AUCTION_REQUEST.code}.success.update"
     protected final static Closure<String> INVALID_CONFIGURATION_FOR_STRINGS_LOG_WARNING = { accountId, functionType ->
         "Failed to parse rule-engine config for account $accountId: " +
                 "Function '$functionType' configuration is invalid: " +

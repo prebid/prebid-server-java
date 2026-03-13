@@ -36,7 +36,7 @@ class AnalyticsTagsModuleSpec extends ModuleBaseSpec {
         pbsServiceFactory.removeContainer(getOrtb2BlockingSettings())
     }
 
-    def "PBS should include analytics tag for ortb2-blocking module in response when request and account allow client details"() {
+    def "PBS should include analytics tag for pb-ortb2-blocking module in response when request and account allow client details"() {
         given: "Default account with module config"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             it.ext.prebid.analytics = new PrebidAnalytics(options: new AnalyticsOptions(enableClientDetails: true))

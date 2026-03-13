@@ -1,4 +1,4 @@
-package org.prebid.server.functional.tests.module.richmedia
+package org.prebid.server.functional.tests.module.pbrichmedia
 
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountHooksConfiguration
@@ -23,7 +23,7 @@ import static org.prebid.server.functional.model.config.Endpoint.OPENRTB2_AUCTIO
 import static org.prebid.server.functional.model.config.Stage.ALL_PROCESSED_BID_RESPONSES
 import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
 
-class RichMediaFilterSpec extends ModuleBaseSpec {
+class PbRichMediaFilterSpec extends ModuleBaseSpec {
 
     private static final String PATTERN_NAME = PBSUtils.randomString
     private static final String PATTERN_NAME_ACCOUNT = PBSUtils.randomString

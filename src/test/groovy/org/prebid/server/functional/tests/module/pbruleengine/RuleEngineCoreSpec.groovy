@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests.module.pbruleengine
 
+import org.prebid.server.functional.model.ModuleName
 import org.prebid.server.functional.model.config.RuleEngineModelDefault
 import org.prebid.server.functional.model.config.RuleEngineModelDefaultArgs
 import org.prebid.server.functional.model.config.RuleSet
@@ -64,8 +65,8 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
 
         and: "PBs should populate call and update metrics"
         def metrics = pbsServiceWithRulesEngineModule.sendCollectedMetricsRequest()
-        assert metrics[CALL_METRIC] == 1
-        assert metrics[UPDATE_METRIC] == 1
+        assert metrics[CALL_METRIC(PB_RULE_ENGINE, PROCESSED_AUCTION_REQUEST)] == 1
+        assert metrics[UPDATE_METRIC(PB_RULE_ENGINE,PROCESSED_AUCTION_REQUEST)] == 1
 
         and: "Response should seatNon bid with code 203"
         assert bidResponse.ext.seatnonbid.size() == 1

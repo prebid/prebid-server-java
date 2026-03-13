@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests.module
 
+import org.prebid.server.functional.model.ModuleName
 import org.prebid.server.functional.model.config.Endpoint
 import org.prebid.server.functional.model.config.ExecutionPlan
 import org.prebid.server.functional.model.config.Stage
@@ -16,6 +17,8 @@ import static org.prebid.server.functional.model.ModuleName.PB_RICHMEDIA_FILTER
 import static org.prebid.server.functional.model.ModuleName.PB_REQUEST_CORRECTION
 import static org.prebid.server.functional.model.ModuleName.PB_RULE_ENGINE
 import static org.prebid.server.functional.model.config.Endpoint.OPENRTB2_AUCTION
+import static org.prebid.server.functional.model.config.ModuleHookImplementation.PB_RULES_ENGINE_PROCESSED_AUCTION_REQUEST
+import static org.prebid.server.functional.model.config.ModuleHookImplementation.PB_RULES_ENGINE_PROCESSED_AUCTION_REQUEST
 import static org.prebid.server.functional.model.config.Stage.ALL_PROCESSED_BID_RESPONSES
 import static org.prebid.server.functional.model.config.Stage.PROCESSED_AUCTION_REQUEST
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
@@ -31,6 +34,22 @@ class ModuleBaseSpec extends BaseSpec {
         bidder.reset()
         prebidCache.reset()
         repository.removeAllDatabaseData()
+    }
+
+    protected final static Closure<String> CALL_METRIC = { ModuleName module, Stage stage ->
+        "modules.module.${module.code}.stage.${stage.metricValue}.hook.${module.code}-${stage.value}-hook.call"
+    }
+    protected final static Closure<String> UPDATE_METRIC = { ModuleName module, Stage stage ->
+        "modules.module.${module.code}.stage.${stage.metricValue}.hook.${module.code}-${stage.value}-hook.success.update"
+    }
+    protected final static Closure<String> NOOP_METRIC = { ModuleName module, Stage stage ->
+        "modules.module.${module.code}.stage.${stage.metricValue}.hook.${module.code}-${stage.value}-hook.success.noop"
+    }
+    protected final static Closure<String> NO_INVOCATION_METRIC = { ModuleName module, Stage stage ->
+        "modules.module.${module.code}.stage.${stage.metricValue}.hook.${module.code}-${stage.value}-hook.success.no-invocation"
+    }
+    protected final static Closure<String> EXECUTION_ERROR_METRIC = { ModuleName module, Stage stage ->
+        "modules.module.${module.code}.stage.${stage.metricValue}.hook.${module.code}-${stage.value}-hook.execution-error"
     }
 
     protected static Map<String, String> getResponseCorrectionConfig(Endpoint endpoint = OPENRTB2_AUCTION) {
