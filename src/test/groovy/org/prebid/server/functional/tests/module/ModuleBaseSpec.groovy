@@ -6,19 +6,16 @@ import org.prebid.server.functional.model.config.ExecutionPlan
 import org.prebid.server.functional.model.config.Stage
 import org.prebid.server.functional.model.response.auction.AnalyticResult
 import org.prebid.server.functional.model.response.auction.BidResponse
-import org.prebid.server.functional.model.response.auction.InvocationResult
 import org.prebid.server.functional.tests.BaseSpec
 import org.prebid.server.functional.util.PBSUtils
 
 import static org.prebid.server.functional.model.ModuleName.OPTABLE_TARGETING
 import static org.prebid.server.functional.model.ModuleName.ORTB2_BLOCKING
+import static org.prebid.server.functional.model.ModuleName.PB_REQUEST_CORRECTION
 import static org.prebid.server.functional.model.ModuleName.PB_RESPONSE_CORRECTION
 import static org.prebid.server.functional.model.ModuleName.PB_RICHMEDIA_FILTER
-import static org.prebid.server.functional.model.ModuleName.PB_REQUEST_CORRECTION
 import static org.prebid.server.functional.model.ModuleName.PB_RULE_ENGINE
 import static org.prebid.server.functional.model.config.Endpoint.OPENRTB2_AUCTION
-import static org.prebid.server.functional.model.config.ModuleHookImplementation.PB_RULES_ENGINE_PROCESSED_AUCTION_REQUEST
-import static org.prebid.server.functional.model.config.ModuleHookImplementation.PB_RULES_ENGINE_PROCESSED_AUCTION_REQUEST
 import static org.prebid.server.functional.model.config.Stage.ALL_PROCESSED_BID_RESPONSES
 import static org.prebid.server.functional.model.config.Stage.PROCESSED_AUCTION_REQUEST
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer

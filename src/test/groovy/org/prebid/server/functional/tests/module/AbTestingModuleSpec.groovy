@@ -17,9 +17,6 @@ import org.prebid.server.functional.util.PBSUtils
 
 import static org.prebid.server.functional.model.ModuleName.PB_RESPONSE_CORRECTION
 import static org.prebid.server.functional.model.config.Endpoint.OPENRTB2_AUCTION
-import static org.prebid.server.functional.model.config.ModuleHookImplementation.ORTB2_BLOCKING_BIDDER_REQUEST
-import static org.prebid.server.functional.model.config.ModuleHookImplementation.ORTB2_BLOCKING_RAW_BIDDER_RESPONSE
-import static org.prebid.server.functional.model.config.ModuleHookImplementation.RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES
 import static org.prebid.server.functional.model.config.Stage.ALL_PROCESSED_BID_RESPONSES
 import static org.prebid.server.functional.model.config.Stage.BIDDER_REQUEST
 import static org.prebid.server.functional.model.config.Stage.RAW_BIDDER_RESPONSE
