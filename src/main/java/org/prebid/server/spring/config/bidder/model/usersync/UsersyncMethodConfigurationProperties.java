@@ -6,7 +6,6 @@ import org.prebid.server.bidder.UsersyncFormat;
 import org.springframework.validation.annotation.Validated;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 
 @Data
 @Validated
@@ -17,9 +16,6 @@ public class UsersyncMethodConfigurationProperties {
     String url;
 
     String uidMacro;
-
-    @NotNull
-    Boolean supportCors;
 
     UsersyncFormat formatOverride;
 }

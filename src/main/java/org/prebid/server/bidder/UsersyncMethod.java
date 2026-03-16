@@ -13,7 +13,5 @@ public class UsersyncMethod {
 
     String redirectUrl;
 
-    boolean supportCORS;
-
     UsersyncFormat formatOverride;
 }
