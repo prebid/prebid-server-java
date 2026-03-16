@@ -1,0 +1,23 @@
+adapters:
+  trustx:
+    endpoint: https://ads.trustx.org/pbs
+    meta-info:
+      maintainer-email: prebid@trustx.org
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 0
+    usersync:
+      cookie-family-name: trustx
+      iframe:
+        url: https://static.cdn.trustx.org/x/user_sync.html?source=pbs&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redirect={{redirect_url}}
+        support-cors: false
+        uid-macro: '$UID'
+      redirect:
+        url: https://sync.trustx.org/usync-pbs?us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redirect={{redirect_url}}
+        support-cors: false
+        uid-macro: '$UID'
