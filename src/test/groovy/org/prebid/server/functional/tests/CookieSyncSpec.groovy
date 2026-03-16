@@ -55,40 +55,32 @@ import static org.prebid.server.functional.util.privacy.TcfConsent.RUBICON_VENDO
 class CookieSyncSpec extends BaseSpec {
 
     private static final UserSyncInfo.Type USER_SYNC_TYPE = REDIRECT
-    private static final boolean CORS_SUPPORT = false
     private static final String USER_SYNC_URL = "$networkServiceContainer.rootUri/generic-usersync"
     private static final String ALL_BIDDERS = "*"
     private static final Integer DEFAULT_PBS_BIDDERS_SIZE = 8
 
     private static final Map<String, String> GENERIC_CONFIG = [
             "adapters.${GENERIC.value}.usersync.redirect.url"         : USER_SYNC_URL,
-            "adapters.${GENERIC.value}.usersync.redirect.support-cors": CORS_SUPPORT as String,
             "adapters.${GENERIC.value}.meta-info.vendor-id"           : GENERIC_VENDOR_ID as String]
     private static final Map<String, String> ACEEX_CONFIG = [
             "adapters.${ACEEX.value}.enabled"                       : "true",
             "adapters.${ACEEX.value}.usersync.cookie-family-name"   : ACEEX.value,
-            "adapters.${ACEEX.value}.usersync.redirect.url"         : "https://test.redirect.endpoint.com={{redirect_url}}",
-            "adapters.${ACEEX.value}.usersync.redirect.support-cors": CORS_SUPPORT as String]
+            "adapters.${ACEEX.value}.usersync.redirect.url"         : "https://test.redirect.endpoint.com={{redirect_url}}"]
     private static final Map<String, String> RUBICON_CONFIG = [
             "adapters.${RUBICON.value}.enabled"                       : "true",
             "adapters.${RUBICON.value}.meta-info.vendor-id"           : RUBICON_VENDOR_ID as String,
             "adapters.${RUBICON.value}.usersync.cookie-family-name"   : RUBICON.value,
             "adapters.${RUBICON.value}.usersync.redirect.url"         : "https://test.redirect.endpoint.com",
-            "adapters.${RUBICON.value}.usersync.redirect.support-cors": CORS_SUPPORT as String,
-            "adapters.${RUBICON.value}.usersync.iframe.url"           : "https://test.iframe.endpoint.com&redir={{redirect_url}}",
-            "adapters.${RUBICON.value}.usersync.iframe.support-cors"  : CORS_SUPPORT as String]
+            "adapters.${RUBICON.value}.usersync.iframe.url"           : "https://test.iframe.endpoint.com&redir={{redirect_url}}"]
     private static final Map<String, String> OPENX_CONFIG = [
             "adapters.${OPENX.value}.enabled"                       : "true",
             "adapters.${OPENX.value}.usersync.cookie-family-name"   : OPENX.value,
             "adapters.${OPENX.value}.usersync.redirect.url"         : USER_SYNC_URL,
-            "adapters.${OPENX.value}.usersync.redirect.support-cors": CORS_SUPPORT as String,
-            "adapters.${OPENX.value}.usersync.iframe.url"           : USER_SYNC_URL,
-            "adapters.${OPENX.value}.usersync.iframe.support-cors"  : CORS_SUPPORT as String]
+            "adapters.${OPENX.value}.usersync.iframe.url"           : USER_SYNC_URL]
     private static final Map<String, String> APPNEXUS_CONFIG = [
             "adapters.${APPNEXUS.value}.enabled"                       : "true",
             "adapters.${APPNEXUS.value}.usersync.cookie-family-name"   : APPNEXUS.value,
-            "adapters.${APPNEXUS.value}.usersync.redirect.url"         : "https://test.appnexus.redirect.com/getuid?{{redirect_url}}",
-            "adapters.${APPNEXUS.value}.usersync.redirect.support-cors": CORS_SUPPORT as String]
+            "adapters.${APPNEXUS.value}.usersync.redirect.url"         : "https://test.appnexus.redirect.com/getuid?{{redirect_url}}"]
     private static final Map<String, String> AAX_CONFIG = ["adapters.${AAX.value}.enabled": "true"]
     private static final Map<String, String> ACUITYADS_CONFIG = ["adapters.${ACUITYADS.value}.enabled": "true"]
     private static final Map<String, String> ADKERNEL_CONFIG = ["adapters.${ADKERNEL.value}.enabled": "true"]
@@ -501,7 +493,6 @@ class CookieSyncSpec extends BaseSpec {
         def bidderStatus = response.getBidderUserSync(GENERIC)
         assert bidderStatus?.userSync?.url?.startsWith(USER_SYNC_URL)
         assert bidderStatus?.userSync?.type == USER_SYNC_TYPE
-        assert bidderStatus?.userSync?.supportCORS == CORS_SUPPORT
         assert bidderStatus?.noCookie == true
     }
 
@@ -542,7 +533,6 @@ class CookieSyncSpec extends BaseSpec {
         def bidderStatus = response.getBidderUserSync(bidder)
         assert bidderStatus?.userSync?.url?.startsWith(USER_SYNC_URL)
         assert bidderStatus?.userSync?.type == USER_SYNC_TYPE
-        assert bidderStatus?.userSync?.supportCORS == CORS_SUPPORT
         assert bidderStatus?.noCookie == true
     }
 
@@ -593,7 +583,6 @@ class CookieSyncSpec extends BaseSpec {
         def configuredBidderStatus = response.getBidderUserSync(GENERIC)
         assert configuredBidderStatus?.userSync?.url?.startsWith(USER_SYNC_URL)
         assert configuredBidderStatus?.userSync?.type == USER_SYNC_TYPE
-        assert configuredBidderStatus?.userSync?.supportCORS == CORS_SUPPORT
         assert configuredBidderStatus?.noCookie == true
     }
 
@@ -675,7 +664,6 @@ class CookieSyncSpec extends BaseSpec {
         def mainBidderStatus = response.getBidderUserSync(GENERIC)
         assert mainBidderStatus?.userSync?.url?.startsWith(USER_SYNC_URL)
         assert mainBidderStatus?.userSync?.type == USER_SYNC_TYPE
-        assert mainBidderStatus?.userSync?.supportCORS == CORS_SUPPORT
         assert mainBidderStatus?.noCookie == true
     }
 
@@ -699,7 +687,6 @@ class CookieSyncSpec extends BaseSpec {
         response.bidderStatus.each {
             assert it.userSync?.url?.startsWith(USER_SYNC_URL)
             assert it.userSync?.type == USER_SYNC_TYPE
-            assert it.userSync?.supportCORS == CORS_SUPPORT
             assert it.noCookie == true
         }
     }
@@ -1626,7 +1613,6 @@ class CookieSyncSpec extends BaseSpec {
         def bidderStatus = response?.bidderStatus?.userSync
         assert bidderStatus?.url
         assert bidderStatus?.type
-        assert bidderStatus?.supportCORS?.every(it -> it == CORS_SUPPORT)
     }
 
     def "PBS cookie sync request shouldn't return sync url when active uids cookie is present for bidder"() {

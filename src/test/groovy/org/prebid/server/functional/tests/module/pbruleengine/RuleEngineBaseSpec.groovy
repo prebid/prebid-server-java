@@ -85,7 +85,6 @@ abstract class RuleEngineBaseSpec extends ModuleBaseSpec {
     private static final String USER_SYNC_URL = "$networkServiceContainer.rootUri/generic-usersync"
     private static final Map<String, String> GENERIC_CONFIG = [
             "adapters.${GENERIC.value}.usersync.redirect.url"         : USER_SYNC_URL,
-            "adapters.${GENERIC.value}.usersync.redirect.support-cors": false as String,
             "adapters.${GENERIC.value}.meta-info.vendor-id"           : GENERIC_VENDOR_ID as String]
     protected static final PrebidServerService pbsServiceWithRulesEngineModule = pbsServiceFactory.getService(GENERIC_CONFIG +
             getRulesEngineSettings() + AMX_CONFIG + OPENX_CONFIG + OPENX_ALIAS_CONFIG + ['datacenter-region': CONFIG_DATA_CENTER] +

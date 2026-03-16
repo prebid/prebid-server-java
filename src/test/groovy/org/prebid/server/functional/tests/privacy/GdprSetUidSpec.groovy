@@ -29,13 +29,11 @@ import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.DEV
 
 class GdprSetUidSpec extends PrivacyBaseSpec {
 
-    private static final boolean CORS_SUPPORT = false
     private static final String USER_SYNC_URL = "$networkServiceContainer.rootUri/generic-usersync"
     private static final UserSyncInfo.Type USER_SYNC_TYPE = REDIRECT
     private static final Map<String, String> VENDOR_GENERIC_PBS_CONFIG = GENERIC_VENDOR_CONFIG +
             ["gdpr.purposes.p1.enforce-purpose"                                       : NO.value,
-             "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url"         : USER_SYNC_URL,
-             "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.support-cors": CORS_SUPPORT.toString()]
+             "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url"         : USER_SYNC_URL]
     private static final String TCF_ERROR_MESSAGE = "The gdpr_consent param prevents cookies from being saved"
     private static final int UNAVAILABLE_FOR_LEGAL_REASONS_CODE = 451
 

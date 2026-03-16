@@ -36,21 +36,18 @@ import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.DEV
 class GppCookieSyncSpec extends BaseSpec {
 
     private static final UserSyncInfo.Type USER_SYNC_TYPE = REDIRECT
-    private static final boolean CORS_SUPPORT = false
     private static final String USER_SYNC_URL = "$networkServiceContainer.rootUri/generic-usersync"
     private static final GppSectionId FIRST_GPP_SECTION = PBSUtils.getRandomEnum(GppSectionId.class)
     private static final GppSectionId SECOND_GPP_SECTION = PBSUtils.getRandomEnum(GppSectionId.class, [FIRST_GPP_SECTION])
 
     private static final Map<String, String> GENERIC_CONFIG = [
             "adapters.${GENERIC.value}.meta-info.vendor-id"                          : GENERIC_VENDOR_ID as String,
-            "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url"         : USER_SYNC_URL,
-            "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.support-cors": CORS_SUPPORT.toString()]
+            "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url"         : USER_SYNC_URL]
     private static final Map<String, String> GENERIC_WITH_SKIP_CONFIG = [
             "adapters.${GENERIC.value}.meta-info.vendor-id"                          : GENERIC_VENDOR_ID as String,
             "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url"         : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
             "adapters.${GENERIC.value}.usersync.skipwhen.gdpr"                       : 'true',
-            "adapters.${GENERIC.value}.usersync.skipwhen.gpp_sid"                    : "${FIRST_GPP_SECTION.value}, ${SECOND_GPP_SECTION.value}".toString(),
-            "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.support-cors": CORS_SUPPORT.toString()]
+            "adapters.${GENERIC.value}.usersync.skipwhen.gpp_sid"                    : "${FIRST_GPP_SECTION.value}, ${SECOND_GPP_SECTION.value}".toString()]
 
     private static PrebidServerService prebidServerService = pbsServiceFactory.getService(GENERIC_CONFIG)
     private static PrebidServerService prebidServerServiceWithSkipConfig = pbsServiceFactory.getService(GENERIC_WITH_SKIP_CONFIG + GENERIC_ALIAS_CONFIG)
@@ -100,7 +97,6 @@ class GppCookieSyncSpec extends BaseSpec {
         assert bidderStatus?.noCookie == true
         assert bidderStatus?.userSync?.url?.startsWith(USER_SYNC_URL)
         assert bidderStatus?.userSync?.type == USER_SYNC_TYPE
-        assert bidderStatus?.userSync?.supportCORS == CORS_SUPPORT
     }
 
     def "PBS cookie sync request should respond with a warning when gpp_sid contains 2 and gdpr is 0"() {
@@ -123,7 +119,6 @@ class GppCookieSyncSpec extends BaseSpec {
         assert bidderStatus?.noCookie == true
         assert bidderStatus?.userSync?.url?.startsWith(USER_SYNC_URL)
         assert bidderStatus?.userSync?.type == USER_SYNC_TYPE
-        assert bidderStatus?.userSync?.supportCORS == CORS_SUPPORT
     }
 
     def "PBS cookie sync request should respond with a warning when gpp_sid doesn't contain 2 and gdpr is 1"() {
@@ -166,7 +161,6 @@ class GppCookieSyncSpec extends BaseSpec {
         assert bidderStatus?.noCookie == true
         assert bidderStatus?.userSync?.url?.startsWith(USER_SYNC_URL)
         assert bidderStatus?.userSync?.type == USER_SYNC_TYPE
-        assert bidderStatus?.userSync?.supportCORS == CORS_SUPPORT
     }
 
     def "PBS cookie sync request should respond with an error when gpp_sid is invalid"() {
@@ -229,8 +223,7 @@ class GppCookieSyncSpec extends BaseSpec {
 
     def "PBS should return empty gpp and gppSid in usersync url when gpp and gppSid is not present in request"() {
         given: "Pbs config with usersync.#userSyncFormat.url"
-        def pbsConfig = ["adapters.generic.usersync.${userSyncFormat.value}.url"         : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
-                         "adapters.generic.usersync.${userSyncFormat.value}.support-cors": "false"]
+        def pbsConfig = ["adapters.generic.usersync.${userSyncFormat.value}.url"         : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString()]
         def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default CookieSyncRequest without gpp and gppSid"
@@ -256,8 +249,7 @@ class GppCookieSyncSpec extends BaseSpec {
 
     def "PBS should populate gpp and gppSid in usersync url when gpp and gppSid is present in request"() {
         given: "Pbs config with usersync.#userSyncFormat.url"
-        def pbsConfig = ["adapters.generic.usersync.${userSyncFormat.value}.url"         : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
-                         "adapters.generic.usersync.${userSyncFormat.value}.support-cors": "false"]
+        def pbsConfig = ["adapters.generic.usersync.${userSyncFormat.value}.url"         : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString()]
         def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default CookieSyncRequest with gpp and gppSid"
@@ -411,8 +403,7 @@ class GppCookieSyncSpec extends BaseSpec {
         def pbsConfig = [
                 "adapters.${GENERIC.value}.meta-info.vendor-id"                          : GENERIC_VENDOR_ID as String,
                 "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url"         : USER_SYNC_URL,
-                "adapters.${GENERIC.value}.usersync.skipwhen.gdpr"                       : 'false',
-                "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.support-cors": CORS_SUPPORT.toString()]
+                "adapters.${GENERIC.value}.usersync.skipwhen.gdpr"                       : 'false']
         def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default CookieSyncRequest with gdpr config"
