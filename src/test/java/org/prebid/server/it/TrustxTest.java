@@ -18,16 +18,16 @@ public class TrustxTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromTrustx() throws IOException, JSONException {
         // given
-            WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/trustx-exchange"))
-                    .withRequestBody(equalToJson(jsonFrom("openrtb2/trustx/test-trustx-bid-request.json")))
-                    .willReturn(aResponse().withBody(jsonFrom("openrtb2/trustx/test-trustx-bid-response.json"))));
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/trustx-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/trustx/test-trustx-bid-request.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/trustx/test-trustx-bid-response.json"))));
 
-            // when
-            final Response response = responseFor("openrtb2/trustx/test-auction-trustx-request.json",
-                    Endpoint.openrtb2_auction);
+        // when
+        final Response response = responseFor("openrtb2/trustx/test-auction-trustx-request.json",
+                Endpoint.openrtb2_auction);
 
-            // then
-            assertJsonEquals("openrtb2/trustx/test-auction-trustx-response.json", response,
-                    singletonList("trustx"));
+        // then
+        assertJsonEquals("openrtb2/trustx/test-auction-trustx-response.json", response,
+                singletonList("trustx"));
     }
 }
