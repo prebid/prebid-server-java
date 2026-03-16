@@ -15,5 +15,4 @@ adapters:
       cookie-family-name: mgid
       redirect:
         url: https://cm.mgid.com/m?cdsp=363893&adu={{redirect_url}}
-        support-cors: false
         uid-macro: '{muidn}'

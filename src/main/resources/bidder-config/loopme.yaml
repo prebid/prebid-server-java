@@ -20,4 +20,3 @@ adapters:
       redirect-url: /setuid?bidder=loopme&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid={udid}
       cookie-family-name: loopme
       type: redirect
-      support-cors: false

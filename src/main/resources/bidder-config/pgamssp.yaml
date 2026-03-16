@@ -17,5 +17,4 @@ adapters:
       cookie-family-name: pgamssp
       redirect:
         url: https://cs.pgammedia.com/pserver?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&r={{redirect_url}}
-        support-cors: false
         uid-macro: '[UID]'

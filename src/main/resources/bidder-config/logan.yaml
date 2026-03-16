@@ -17,5 +17,4 @@ adapters:
       cookie-family-name: logan
       redirect:
         url: https://ssp-cookie.logan.ai/pserver?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir={{redirect_url}}
-        support-cors: false
         uid-macro: '[UID]'

@@ -33,7 +33,6 @@ adapters:
           cookie-family-name: rocketlab
           redirect:
             url: https://usync.rocketlab.ai/pbserver?gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redirect={{redirect_url}}
-            support-cors: false
             uid-macro: '[UID]'
       appStockSSP:
         enabled: false
@@ -47,11 +46,9 @@ adapters:
           cookie-family-name: appStockSSP
           redirect:
             url: https://csync.al-ad.com/pbserver?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redir={{redirect_url}}
-            support-cors: false
             uid-macro: '[UID]'
           iframe:
             url: "https://csync.al-ad.com/pbserverIframe?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&pbserverUrl={{redirect_url}}"
-            support-cors: false
             uid-macro: '[UID]'
       gravite:
         enabled: false
@@ -69,11 +66,9 @@ adapters:
           cookie-family-name: bidfuse
           redirect:
             url: https://syncbf.bidfuse.com/pbserver?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redir={{redirect_url}}
-            support-cors: false
             uid-macro: '[UID]'
           iframe:
             url: https://syncbf.bidfuse.com/pbserverIframe?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&pbserverUrl={{redirect_url}}
-            support-cors: false
             uid-macro: '[UID]'
       adsinteractive:
         enabled: false
@@ -86,11 +81,9 @@ adapters:
           cookie-family-name: adsinteractive
           redirect:
             url: https://cstb.adsinteractive.com/pbserver?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redir={{redirect_url}}
-            support-cors: false
             uid-macro: '[UID]'
           iframe:
             url: https://cstb.adsinteractive.com/pbserverIframe?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&pbserverUrl={{redirect_url}}
-            support-cors: false
             uid-macro: '[UID]'
       progx:
         enabled: false
@@ -103,11 +96,9 @@ adapters:
           cookie-family-name: progx
           iframe:
             url: https://sync.progrtb.com/pbserverIframe?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&pbserverUrl={{.RedirectURL}}
-            support-cors: false
             uid-macro: '[UID]'
           redirect:
             url: https://sync.progrtb.com/pbserver?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redir={{redirect_url}}
-            support-cors: false
             uid-macro: '[UID]'
       harion:
         enabled: false

@@ -17,5 +17,4 @@ adapters:
       cookie-family-name: operaads
       redirect:
         url: https://t.adx.opera.com/pbs/sync?gdpr={{gdpr}}&us_privacy={{us_privacy}}&gdpr_consent={{gdpr_consent}}&r={{redirect_url}}
-        support-cors: false
         uid-macro: '${UID}'

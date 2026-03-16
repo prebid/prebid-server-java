@@ -27,4 +27,3 @@ adapters:
       cookie-family-name: teal
       iframe:
         url: https://bids.ws/load-pbs.html?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redirect_url={{redirect_url}}
-        support-cors: false

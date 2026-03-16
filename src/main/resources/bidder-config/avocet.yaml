@@ -15,5 +15,4 @@ adapters:
       cookie-family-name: avocet
       redirect:
         url: https://ads.avct.cloud/getuid?&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&url={{redirect_url}}
-        support-cors: false
         uid-macro: '{{UUID}}'

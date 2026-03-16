@@ -18,5 +18,4 @@ adapters:
       cookie-family-name: lunamedia
       iframe:
         url: https://sync.lunamedia.live/psync?t=s&e=0&cb={{redirect_url}}
-        support-cors: false
         uid-macro: '%USER_ID%'
