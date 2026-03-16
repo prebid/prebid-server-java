@@ -12,5 +12,4 @@ adapters:
       cookie-family-name: adquery
       iframe:
         url: https://api.adquery.io/storage?gdpr={{gdpr}}&consent={{gdpr_consent}}&ccpa_consent={{us_privacy}}&redirect={{redirect_url}}
-        support-cors: false
         uid-macro: '$UID'

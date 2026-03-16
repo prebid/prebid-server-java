@@ -13,5 +13,4 @@ adapters:
       cookie-family-name: eplanning
       iframe:
         url: https://ads.us.e-planning.net/uspd/1/?du={{redirect_url}}
-        support-cors: false
         uid-macro: '$UID'

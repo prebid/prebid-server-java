@@ -13,5 +13,4 @@ adapters:
       cookie-family-name: jixie
       redirect:
         url: https://id.jixie.io/api/sync?pid=&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
-        support-cors: false
         uid-macro: '%%JXUID%%'

@@ -18,4 +18,3 @@ adapters:
       iframe:
         url: https://cdn.undertone.com/js/usersync.html?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
         uid-macro: '$UID'
-        support-cors: false

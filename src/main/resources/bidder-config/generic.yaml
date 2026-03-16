@@ -28,7 +28,6 @@ adapters:
           cookie-family-name: ccx
           redirect:
             url: https://sync.clickonometrics.pl/prebid/set-cookie?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&cb={{redirect_url}}
-            support-cors: false
             uid-macro: '${USER_ID}'
       infytv:
         enabled: false
@@ -61,7 +60,6 @@ adapters:
           redirect:
             url: https://ssp.disqus.com/redirectuser?sid=GET_SID_FROM_ZETA&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&r={{redirect_url}}
             uid-macro: 'BUYERUID'
-            support-cors: false
       blue:
         enabled: false
         endpoint: https://prebid-us-east-1.getblue.io/?src=prebid
@@ -91,11 +89,9 @@ adapters:
           cookie-family-name: cwire
           redirect:
             url: https://prebid.cwi.re/v1/usersync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&rd={{redirect_url}}
-            support-cors: false
             uid-macro: '$UID'
           iframe:
             url:  https://prebid.cwi.re/v1/usersync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&rd={{redirect_url}}
-            support-cors: false
             uid-macro: '$UID'
       nativo:
         enabled: false
@@ -117,7 +113,6 @@ adapters:
           cookie-family-name: nativo
           redirect:
             url: https://jadserve.postrelease.com/suid/101787?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&ntv_gpp_consent={{gpp}}&ntv_r={{redirect_url}}
-            support-cors: false
             uid-macro: 'NTV_USER_ID'
     meta-info:
       maintainer-email: maintainer@example.com

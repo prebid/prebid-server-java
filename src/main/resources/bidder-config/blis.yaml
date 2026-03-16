@@ -20,5 +20,4 @@ adapters:
       cookie-family-name: blis
       redirect:
         url: https://tr.blismedia.com/v1/api/sync/prebid?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&r={{redirect_url}}
-        support-cors: false
         uid-macro: '%%BLIS_USER_TOKEN%%'
