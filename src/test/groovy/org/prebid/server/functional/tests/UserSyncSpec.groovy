@@ -12,14 +12,12 @@ import static org.prebid.server.functional.testcontainers.Dependencies.networkSe
 
 class UserSyncSpec extends BaseSpec {
 
-    private static final Map<String, String> GENERIC_USERSYNC_CONFIG = ["adapters.${GENERIC.value}.usersync.${IFRAME.value}.url"         : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
-                                                                        "adapters.${GENERIC.value}.usersync.${IFRAME.value}.support-cors": "false"]
+    private static final Map<String, String> GENERIC_USERSYNC_CONFIG = ["adapters.${GENERIC.value}.usersync.${IFRAME.value}.url"         : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString()]
 
     def "PBS should return usersync url with '#formatParam' format parameter for #userSyncFormat when format-override absent"() {
         given: "Pbs config with usersync.#userSyncFormat"
         def prebidServerService = pbsServiceFactory.getService(
-                ["adapters.generic.usersync.${userSyncFormat.value}.url"         : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
-                 "adapters.generic.usersync.${userSyncFormat.value}.support-cors": "false"])
+                ["adapters.generic.usersync.${userSyncFormat.value}.url"         : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString()])
 
         and: "Default CookieSyncRequest"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest
@@ -42,7 +40,6 @@ class UserSyncSpec extends BaseSpec {
         given: "Pbs config with usersync.#userSyncFormat and iframe.format-override: #formatOverride"
         def prebidServerService = pbsServiceFactory.getService(
                 ["adapters.generic.usersync.${userSyncFormat.value}.url"            : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
-                 "adapters.generic.usersync.${userSyncFormat.value}.support-cors"   : "false",
                  "adapters.generic.usersync.${userSyncFormat.value}.format-override": formatOverride.value])
 
         and: "Default CookieSyncRequest"
@@ -68,7 +65,6 @@ class UserSyncSpec extends BaseSpec {
         given: "Pbs config with usersync.#userSyncFormat.url"
         def prebidServerService = pbsServiceFactory.getService(
                 ["adapters.generic.usersync.${userSyncFormat.value}.url"         : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
-                 "adapters.generic.usersync.${userSyncFormat.value}.support-cors": "false",
                  "adapters.generic.usersync.${userSyncFormat.value}.uid-macro"   : null])
 
         and: "Default CookieSyncRequest"
