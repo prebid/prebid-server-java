@@ -154,7 +154,6 @@ There are several typical keys:
 - `adapters.<BIDDER_NAME>.usersync.redirect-url` - the redirect part of url for synchronizing UIDs cookie.
 - `adapters.<BIDDER_NAME>.usersync.cookie-family-name` - the family name by which user ids within adapter's realm are stored in uidsCookie.
 - `adapters.<BIDDER_NAME>.usersync.type` - usersync type (i.e. redirect, iframe).
-- `adapters.<BIDDER_NAME>.usersync.support-cors` - flag signals if CORS supported by usersync.
 - `adapters.<BIDDER_NAME>.debug.allow` - enables debug output in the auction response for the given bidder. Default `true`.
 - `adapters.<BIDDER_NAME>.tmax-deduction-ms` - adjusts the tmax sent to the bidder by deducting the provided value (ms). Default `0 ms` - no deduction.
 

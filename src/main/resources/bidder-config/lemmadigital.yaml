@@ -17,5 +17,4 @@ adapters:
       cookie-family-name: lemmadigital
       redirect:
         url: https://sync.lemmadigital.com/setuid?publisher=850&redirect={{redirect_url}}
-        support-cors: false
         uid-macro: '${UUID}'

@@ -16,5 +16,4 @@ adapters:
       cookie-family-name: bidtheatre
       redirect:
         url: https://match.adsby.bidtheatre.com/prebidmatch?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&redir={{redirect_url}}
-        support-cors: false
         uid-macro: '$UID'

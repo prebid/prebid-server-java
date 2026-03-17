@@ -15,5 +15,4 @@ adapters:
       cookie-family-name: openweb
       iframe:
         url: https://pbs-cs.openwebmp.com/pbs-iframe?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redirect={{redirect_url}}
-        support-cors: false
         uid-macro: '[PBS_UID]'

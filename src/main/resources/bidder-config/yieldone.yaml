@@ -15,5 +15,4 @@ adapters:
       cookie-family-name: yieldone
       redirect:
         url: https://y.one.impact-ad.jp/hbs_cs?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirectUri={{redirect_url}}
-        support-cors: false
         uid-macro: '$UID'

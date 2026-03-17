@@ -22,7 +22,6 @@ public class UsersyncerCreatorTest {
         final UsersyncMethodConfigurationProperties methodConfig = new UsersyncMethodConfigurationProperties();
         methodConfig.setUrl("//redirect-url?uid=");
         methodConfig.setUidMacro("uid-macro");
-        methodConfig.setSupportCors(false);
 
         config.setEnabled(true);
         config.setCookieFamilyName("rubicon");
@@ -50,7 +49,6 @@ public class UsersyncerCreatorTest {
         final UsersyncMethodConfigurationProperties methodConfig = new UsersyncMethodConfigurationProperties();
         methodConfig.setUrl("//usersync-url");
         methodConfig.setUidMacro("not-valid-macro");
-        methodConfig.setSupportCors(true);
 
         config.setEnabled(true);
         config.setRedirect(methodConfig);
@@ -70,12 +68,10 @@ public class UsersyncerCreatorTest {
         final UsersyncMethodConfigurationProperties iframeConfig = new UsersyncMethodConfigurationProperties();
         iframeConfig.setUrl("//usersync-url-iframe?uid=");
         iframeConfig.setUidMacro("uid-macro-iframe");
-        iframeConfig.setSupportCors(true);
 
         final UsersyncMethodConfigurationProperties redirectConfig = new UsersyncMethodConfigurationProperties();
         redirectConfig.setUrl("//usersync-url-redirect?u=");
         redirectConfig.setUidMacro("uid-macro-redirect");
-        redirectConfig.setSupportCors(false);
 
         config.setEnabled(true);
         config.setIframe(iframeConfig);
@@ -98,7 +94,6 @@ public class UsersyncerCreatorTest {
                         &gpp_sid={{gpp_sid}}\
                         &uid=uid-macro-iframe\
                         """)
-                .supportCORS(true)
                 .build();
 
         final UsersyncMethod expectedRedirectMethod = UsersyncMethod.builder()
@@ -113,7 +108,6 @@ public class UsersyncerCreatorTest {
                         &gpp_sid={{gpp_sid}}\
                         &uid=uid-macro-redirect\
                         """)
-                .supportCORS(false)
                 .build();
 
         assertThat(result).isEqualTo(
@@ -126,7 +120,6 @@ public class UsersyncerCreatorTest {
         final UsersyncConfigurationProperties config = new UsersyncConfigurationProperties();
         final UsersyncMethodConfigurationProperties methodConfig = new UsersyncMethodConfigurationProperties();
         methodConfig.setUrl("//redirect-url?uid=");
-        methodConfig.setSupportCors(false);
 
         config.setEnabled(true);
         config.setCookieFamilyName("rubicon");

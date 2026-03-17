@@ -15,5 +15,4 @@ adapters:
       cookie-family-name: adman
       redirect:
         url: https://sync.admanmedia.com/pbs.gif?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir={{redirect_url}}
-        support-cors: false
         uid-macro: '[UID]'

@@ -18,4 +18,3 @@ adapters:
       iframe:
         url: https://ssp.hybrid.ai/prebid/server/v1/userSync?consent={{gdpr_consent}}&redirect={{redirect_url}}
         uid-macro: $UID
-        support-cors: false

@@ -15,5 +15,4 @@ adapters:
       cookie-family-name: yieldlab
       redirect:
         url: https://ad.yieldlab.net/mr?t=2&pid=9140838&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&r={{redirect_url}}
-        support-cors: false
         uid-macro: '%%YL_UID%%'

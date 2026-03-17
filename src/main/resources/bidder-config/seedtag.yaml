@@ -13,5 +13,4 @@ adapters:
       cookie-family-name: seedtag
       iframe:
         url: https://s.seedtag.com/cs/cookiesync/prebid?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&usp_consent={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redirect={{redirect_url}}
-        support-cors: false
         uid-macro: '$UID'

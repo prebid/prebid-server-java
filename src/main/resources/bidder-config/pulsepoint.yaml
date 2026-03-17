@@ -20,5 +20,4 @@ adapters:
       cookie-family-name: pulsepoint
       redirect:
         url: https://bh.contextweb.com/rtset?pid=561205&ev=1&rurl={{redirect_url}}
-        support-cors: false
         uid-macro: '%%VGUID%%'

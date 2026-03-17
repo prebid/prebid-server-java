@@ -17,5 +17,4 @@ adapters:
       cookie-family-name: kiviads
       iframe:
         url: https://sync.kiviads.com/pserver?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&redir={{redirect_url}}
-        support-cors: false
         uid-macro: '[UID]'

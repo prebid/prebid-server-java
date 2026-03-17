@@ -35,7 +35,6 @@ class SetUidSpec extends BaseSpec {
     private static final Integer MAX_NUMBER_OF_UID_COOKIES = 30
     private static final Integer UPDATED_EXPIRE_DAYS = 14
     private static final UserSyncInfo.Type USER_SYNC_TYPE = REDIRECT
-    private static final boolean CORS_SUPPORT = false
     private static final Integer RANDOM_EXPIRE_DAY = PBSUtils.getRandomNumber(1, 10)
     private static final String USER_SYNC_URL = "$networkServiceContainer.rootUri/generic-usersync"
     private static final Map<String, String> PBS_CONFIG =
@@ -46,8 +45,7 @@ class SetUidSpec extends BaseSpec {
              "adapters.${OPENX.value}.usersync.cookie-family-name"                    : OPENX.value,
              "adapters.${APPNEXUS.value}.enabled"                                     : "true",
              "adapters.${APPNEXUS.value}.usersync.cookie-family-name"                 : APPNEXUS.value,
-             "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url"         : USER_SYNC_URL,
-             "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.support-cors": CORS_SUPPORT.toString()]
+             "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url"         : USER_SYNC_URL]
     private static final Map<String, String> UID_COOKIES_CONFIG = ['setuid.number-of-uid-cookies': MAX_NUMBER_OF_UID_COOKIES.toString()]
     private static final Map<String, String> GENERIC_ALIAS_CONFIG = ["adapters.generic.aliases.alias.enabled" : "true",
                                                                      "adapters.generic.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString()]

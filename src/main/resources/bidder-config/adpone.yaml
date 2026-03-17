@@ -13,5 +13,4 @@ adapters:
       cookie-family-name: adpone
       redirect:
         url: https://usersync.adpone.com/csync?redir={{redirect_url}}
-        support-cors: false
         uid-macro: '{uid}'

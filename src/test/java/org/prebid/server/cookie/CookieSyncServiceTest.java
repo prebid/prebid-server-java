@@ -1029,7 +1029,7 @@ public class CookieSyncServiceTest extends VertxTest {
         final BidderUsersyncStatus validStatus = BidderUsersyncStatus.builder()
                 .bidder("root-cookie-family")
                 .noCookie(true)
-                .usersync(UsersyncInfo.of("https://alias-usersync-url.com", UsersyncMethodType.IFRAME, false))
+                .usersync(UsersyncInfo.of("https://alias-usersync-url.com", UsersyncMethodType.IFRAME))
                 .build();
 
         assertThat(result.getBidderStatus()).containsExactlyInAnyOrder(validStatus, warningStatus);
@@ -1056,7 +1056,7 @@ public class CookieSyncServiceTest extends VertxTest {
         final BidderUsersyncStatus status = BidderUsersyncStatus.builder()
                 .bidder("alias-cookie-family")
                 .noCookie(true)
-                .usersync(UsersyncInfo.of("https://alias-usersync-url.com", UsersyncMethodType.IFRAME, false))
+                .usersync(UsersyncInfo.of("https://alias-usersync-url.com", UsersyncMethodType.IFRAME))
                 .build();
 
         assertThat(result.getBidderStatus()).containsExactly(status);
@@ -1084,7 +1084,7 @@ public class CookieSyncServiceTest extends VertxTest {
         final BidderUsersyncStatus validStatus = BidderUsersyncStatus.builder()
                 .bidder("bidder1-cookie-family")
                 .noCookie(true)
-                .usersync(UsersyncInfo.of("https://bidder1-usersync-url.com", UsersyncMethodType.IFRAME, false))
+                .usersync(UsersyncInfo.of("https://bidder1-usersync-url.com", UsersyncMethodType.IFRAME))
                 .build();
 
         assertThat(result.getBidderStatus()).containsExactlyInAnyOrder(validStatus, warningStatus);
@@ -1122,7 +1122,7 @@ public class CookieSyncServiceTest extends VertxTest {
         final BidderUsersyncStatus status = BidderUsersyncStatus.builder()
                 .noCookie(true)
                 .bidder("host-bidder-cookie-family")
-                .usersync(UsersyncInfo.of(expectedUrl, UsersyncMethodType.IFRAME, false))
+                .usersync(UsersyncInfo.of(expectedUrl, UsersyncMethodType.IFRAME))
                 .build();
 
         assertThat(result.getBidderStatus()).containsExactly(status);
@@ -1160,7 +1160,7 @@ public class CookieSyncServiceTest extends VertxTest {
         final BidderUsersyncStatus status = BidderUsersyncStatus.builder()
                 .noCookie(true)
                 .bidder("host-bidder-cookie-family")
-                .usersync(UsersyncInfo.of(expectedUrl, UsersyncMethodType.IFRAME, false))
+                .usersync(UsersyncInfo.of(expectedUrl, UsersyncMethodType.IFRAME))
                 .build();
 
         assertThat(result.getBidderStatus()).containsExactly(status);
@@ -1199,7 +1199,7 @@ public class CookieSyncServiceTest extends VertxTest {
         final BidderUsersyncStatus status = BidderUsersyncStatus.builder()
                 .noCookie(true)
                 .bidder("host-bidder-cookie-family")
-                .usersync(UsersyncInfo.of(expectedUrl, UsersyncMethodType.IFRAME, false))
+                .usersync(UsersyncInfo.of(expectedUrl, UsersyncMethodType.IFRAME))
                 .build();
 
         assertThat(result.getBidderStatus()).containsExactly(status);

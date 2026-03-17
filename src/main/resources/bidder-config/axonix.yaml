@@ -16,6 +16,5 @@ adapters:
     usersync:
       cookie-family-name: axonix
       redirect:
-        support-cors: false
         url: https://openrtb-us-east-1.axonix.com/syn?redirect={{redirect_url}}
         uid-macro: 'xxEMODO_IDxx'

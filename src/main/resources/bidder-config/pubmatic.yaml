@@ -19,8 +19,6 @@ adapters:
       cookie-family-name: pubmatic
       iframe:
         url: https://ads.pubmatic.com/AdServer/js/user_sync.html?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&predirect={{redirect_url}}
-        support-cors: false
       redirect:
         url: https://image8.pubmatic.com/AdServer/ImgSync?p=159706&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&pu={{redirect_url}}
-        support-cors: false
         uid-macro: '#PMUID'

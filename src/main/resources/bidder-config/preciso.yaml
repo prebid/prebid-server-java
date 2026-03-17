@@ -18,9 +18,7 @@ adapters:
       cookie-family-name: preciso
       redirect: 
         url: https://ck.2trk.info/rtb/user/usersync.aspx?id=preciso_srl&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&t=2&redir={{redirect_url}}
-        support-cors: false
         uid-macro: '${PRECISO_USER_ID}'
       iframe:
         url: https://ck.2trk.info/rtb/user/usersync.aspx?id=preciso_srl&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&t=4&redir={{redirect_url}}
-        support-cors: false
         uid-macro: '${PRECISO_USER_ID}'

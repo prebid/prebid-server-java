@@ -16,10 +16,8 @@ adapters:
       cookie-family-name: aduptech
       iframe:
         url: https://rtb.d.adup-tech.com/service/sync?iframe=1&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
-        support-cors: false
         uid-macro: '[UID]'
       redirect:
         url: https://rtb.d.adup-tech.com/service/sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
-        support-cors: false
         uid-macro: '[UID]'
     target-currency: "EUR"

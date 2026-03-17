@@ -14,5 +14,4 @@ adapters:
       cookie-family-name: adkernelAdn
       redirect:
         url: https://tag.adkernel.com/syncr?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&r={{redirect_url}}
-        support-cors: false
         uid-macro: '${UID}'

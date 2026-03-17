@@ -15,5 +15,4 @@ adapters:
       cookie-family-name: smartrtb
       redirect:
         url: https://market-global.smrtb.com/sync/all?nid=smartrtb&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&rr={{redirect_url}}
-        support-cors: false
         uid-macro: '{XID}'

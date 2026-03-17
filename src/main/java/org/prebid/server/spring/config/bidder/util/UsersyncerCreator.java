@@ -56,7 +56,6 @@ public class UsersyncerCreator {
                 .type(type)
                 .usersyncUrl(Objects.requireNonNull(properties.getUrl()))
                 .redirectUrl(toRedirectUrl(cookieFamilyName, externalUrl, properties.getUidMacro()))
-                .supportCORS(properties.getSupportCors())
                 .formatOverride(properties.getFormatOverride())
                 .build();
     }

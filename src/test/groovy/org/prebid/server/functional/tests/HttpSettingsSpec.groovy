@@ -194,7 +194,6 @@ class HttpSettingsSpec extends BaseSpec {
         given: "Pbs config with adapters.generic.usersync.redirect.*"
         def pbsConfig = PbsConfig.httpSettingsConfig +
                 ["adapters.generic.usersync.redirect.url"            : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
-                 "adapters.generic.usersync.redirect.support-cors"   : "false",
                  "adapters.generic.usersync.redirect.format-override": "blank"]
         def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
@@ -230,7 +229,6 @@ class HttpSettingsSpec extends BaseSpec {
                 ['settings.http.endpoint': "${networkServiceContainer.rootUri}${HttpSettings.rfcEndpoint}".toString(),
                  'settings.http.rfc3986-compatible': 'true',
                  'adapters.generic.usersync.redirect.url'            : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
-                 'adapters.generic.usersync.redirect.support-cors'   : 'false',
                  'adapters.generic.usersync.redirect.format-override': 'blank']
         def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 

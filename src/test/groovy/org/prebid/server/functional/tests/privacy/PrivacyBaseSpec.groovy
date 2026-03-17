@@ -85,7 +85,6 @@ abstract class PrivacyBaseSpec extends BaseSpec {
     private static final int GEO_PRECISION = 2
 
     protected static final Map<String, String> GENERIC_CONFIG = ["adapters.${GENERIC.value}.usersync.${REDIRECT.value}.url"         : "$networkServiceContainer.rootUri/generic-usersync".toString(),
-                                                                 "adapters.${GENERIC.value}.usersync.${REDIRECT.value}.support-cors": false.toString(),
                                                                  "adapters.${GENERIC.value}.ortb-version"                           : "2.6"]
     private static final Map<String, String> OPENX_CONFIG = ["adaptrs.${OPENX.value}.enabled"                     : "true",
                                                              "adapters.${OPENX.value}.usersync.cookie-family-name": OPENX.value,

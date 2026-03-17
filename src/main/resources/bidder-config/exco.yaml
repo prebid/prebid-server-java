@@ -15,5 +15,4 @@ adapters:
       cookie-family-name: exco
       redirect:
         url: https://sync.ex.co/v1/user_sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
-        support-cors: false
         uid-macro: '[UID]'
