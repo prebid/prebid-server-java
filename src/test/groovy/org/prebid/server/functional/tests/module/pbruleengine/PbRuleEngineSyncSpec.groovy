@@ -13,7 +13,7 @@ import static org.prebid.server.functional.model.config.RuleEngineModelRuleResul
 import static org.prebid.server.functional.model.request.auction.FetchStatus.SUCCESS
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
 
-class RuleEngineSyncSpec extends RuleEngineBaseSpec {
+class PbRuleEngineSyncSpec extends PbRuleEngineBaseSpec {
 
     def "PBS should remove bidder from imps when bidder has ID in the uids cookie and bidder excluded and ifSyncedId=true in account config"() {
         given: "Bid request with multiply bidders"

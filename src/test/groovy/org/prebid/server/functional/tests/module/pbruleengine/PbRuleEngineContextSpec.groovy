@@ -40,7 +40,7 @@ import static org.prebid.server.functional.model.request.auction.ImpUnitCode.STO
 import static org.prebid.server.functional.model.request.auction.ImpUnitCode.TAG_ID
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
 
-class RuleEngineContextSpec extends RuleEngineBaseSpec {
+class PbRuleEngineContextSpec extends PbRuleEngineBaseSpec {
 
     def "PBS should exclude bidder when channel match with condition"() {
         given: "Bid request with multiply bidders"

@@ -37,7 +37,7 @@ import static org.prebid.server.functional.model.response.auction.BidRejectionRe
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
 
-class RuleEnginePrivacySpec extends RuleEngineBaseSpec {
+class PbRuleEnginePrivacySpec extends PbRuleEngineBaseSpec {
 
     def "PBS should exclude bidder when eidAvailable match with condition"() {
         given: "Bid request with multiply bidders"

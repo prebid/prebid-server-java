@@ -39,7 +39,7 @@ import static org.prebid.server.functional.testcontainers.Dependencies.getNetwor
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 
 @Retry //TODO remove in 3.34+
-abstract class RuleEngineBaseSpec extends ModuleBaseSpec {
+abstract class PbRuleEngineBaseSpec extends ModuleBaseSpec {
 
     protected static final List<BidderName> MULTI_BID_ADAPTERS = [GENERIC, OPENX, AMX].sort()
     protected static final String APPLIED_FOR_ALL_IMPS = "*"

@@ -16,7 +16,7 @@ import static org.prebid.server.functional.model.config.RuleEngineFunction.DATA_
 import static org.prebid.server.functional.model.request.auction.FetchStatus.SUCCESS
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
 
-class RuleEngineInfrastructureSpec extends RuleEngineBaseSpec {
+class PbRuleEngineInfrastructureSpec extends PbRuleEngineBaseSpec {
 
     def "PBS should reject processing rule engine when dataCenterIn schema function args contain invalid data"() {
         given: "Test start time"

@@ -14,7 +14,7 @@ import static org.prebid.server.functional.model.config.RuleEngineModelRuleResul
 import static org.prebid.server.functional.model.request.auction.FetchStatus.SUCCESS
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
 
-class RuleEngineAliasSpec extends RuleEngineBaseSpec {
+class PbRuleEngineAliasSpec extends PbRuleEngineBaseSpec {
 
     def "PBS should leave only hard alias bidder at imps when hard alias bidder include in account config"() {
         given: "Bid request with multiply imps bidders"

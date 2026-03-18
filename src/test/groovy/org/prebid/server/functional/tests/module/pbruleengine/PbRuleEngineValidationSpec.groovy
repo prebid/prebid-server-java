@@ -21,7 +21,7 @@ import static org.prebid.server.functional.model.config.RuleEngineFunction.USER_
 import static org.prebid.server.functional.model.config.Stage.PROCESSED_AUCTION_REQUEST
 import static org.prebid.server.functional.model.pricefloors.Country.BULGARIA
 
-class RuleEngineValidationSpec extends RuleEngineBaseSpec {
+class PbRuleEngineValidationSpec extends PbRuleEngineBaseSpec {
 
     def "PBS shouldn't remove bidder when rule engine not fully configured in account"() {
         given: "Bid request with multiply bidders"

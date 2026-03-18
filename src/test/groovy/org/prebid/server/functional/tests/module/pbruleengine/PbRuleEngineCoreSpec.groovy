@@ -1,6 +1,6 @@
 package org.prebid.server.functional.tests.module.pbruleengine
 
-import org.prebid.server.functional.model.ModuleName
+
 import org.prebid.server.functional.model.config.RuleEngineModelDefault
 import org.prebid.server.functional.model.config.RuleEngineModelDefaultArgs
 import org.prebid.server.functional.model.config.RuleSet
@@ -26,7 +26,7 @@ import static org.prebid.server.functional.model.request.auction.TraceLevel.VERB
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.ERROR_NO_BID
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
 
-class RuleEngineCoreSpec extends RuleEngineBaseSpec {
+class PbRuleEngineCoreSpec extends PbRuleEngineBaseSpec {
 
     def "PBS should remove bidder and not update analytics when bidder matched with conditions and without analytics key"() {
         given: "Bid request with multiply bidders"
@@ -66,7 +66,7 @@ class RuleEngineCoreSpec extends RuleEngineBaseSpec {
         and: "PBs should populate call and update metrics"
         def metrics = pbsServiceWithRulesEngineModule.sendCollectedMetricsRequest()
         assert metrics[CALL_METRIC(PB_RULE_ENGINE, PROCESSED_AUCTION_REQUEST)] == 1
-        assert metrics[UPDATE_METRIC(PB_RULE_ENGINE,PROCESSED_AUCTION_REQUEST)] == 1
+        assert metrics[UPDATE_METRIC(PB_RULE_ENGINE, PROCESSED_AUCTION_REQUEST)] == 1
 
         and: "Response should seatNon bid with code 203"
         assert bidResponse.ext.seatnonbid.size() == 1
