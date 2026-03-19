@@ -66,14 +66,14 @@ public class TrustxBidder implements Bidder<BidRequest> {
     }
 
     private Imp modifyImp(Imp imp) {
-        final ExtImpTrustx impExt = tryParseImpExt(imp);
+        final ExtImpTrustx impExt = parseImpExt(imp);
 
-        return impExt == null ? imp : imp.toBuilder()
-                .ext(mapper.mapper().valueToTree(modifyImpExt(impExt)))
-                .build();
+        return impExt != null
+                ? imp.toBuilder().ext(mapper.mapper().valueToTree(modifyImpExt(impExt))).build()
+                : imp;
     }
 
-    private ExtImpTrustx tryParseImpExt(Imp imp) {
+    private ExtImpTrustx parseImpExt(Imp imp) {
         try {
             return mapper.mapper().convertValue(imp.getExt(), ExtImpTrustx.class);
         } catch (IllegalArgumentException e) {
@@ -88,9 +88,7 @@ public class TrustxBidder implements Bidder<BidRequest> {
                 .filter(StringUtils::isNotEmpty)
                 .orElse(null);
 
-        return impExt.toBuilder()
-                .gpid(adSlot != null ? adSlot : impExt.getGpid())
-                .build();
+        return adSlot != null ? impExt.toBuilder().gpid(adSlot).build() : impExt;
     }
 
     private MultiMap makeHeaders(BidRequest request) {
@@ -100,9 +98,9 @@ public class TrustxBidder implements Bidder<BidRequest> {
 
         final Device device = request.getDevice();
         final String ip = StringUtils.firstNonEmpty(
-                ObjectUtil.getIfNotNull(device, Device::getIpv6),
-                ObjectUtil.getIfNotNull(device, Device::getIp));
-        final String userAgent = ObjectUtil.getIfNotNull(device, Device::getUa);
+                device != null ? device.getIpv6() : null,
+                device != null ? device.getIp() : null);
+        final String userAgent = device != null ? device.getUa() : null;
 
         final MultiMap headers = HttpUtil.headers();
 
@@ -144,35 +142,59 @@ public class TrustxBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
-                .map(bid -> makeBid(bid, errors))
+                .map(bid -> makeBidderBid(bid, errors))
                 .filter(Objects::nonNull)
                 .toList();
 
         return Result.of(bidderBids, errors);
     }
 
-    private BidderBid makeBid(Bid bid, List<BidderError> errors) {
+    private BidderBid makeBidderBid(Bid bid, List<BidderError> errors) {
+        final BidType bidType;
         try {
-            final BidType bidType = getBidType(bid);
-
-            final ExtBidPrebidVideo videoInfo = (bidType == BidType.video) ? ExtBidPrebidVideo.of(
-                    bid.getDur() != null && bid.getDur() > 0 ? bid.getDur() : null,
-                    CollectionUtils.isNotEmpty(bid.getCat()) ? bid.getCat().getFirst() : null
-            ) : null;
-
-            final Bid modifiedBid = Optional.ofNullable(tryParseBidExt(bid.getExt()))
-                    .map(TrustxBidder::modifyBidExt)
-                    .map(mapper.mapper()::<ObjectNode>valueToTree)
-                    .map(extBid -> bid.toBuilder().ext(extBid).build())
-                    .orElse(bid);
-
-            return BidderBid.builder()
-                    .bid(modifiedBid)
-                    .type(bidType)
-                    .videoInfo(videoInfo)
-                    .build();
+            bidType = getBidType(bid);
         } catch (PreBidException e) {
             errors.add(BidderError.badInput(e.getMessage()));
+            return null;
+        }
+
+        return BidderBid.builder()
+                .bid(modifyBid(bid))
+                .type(bidType)
+                .videoInfo(bidType == BidType.video ? makeExtBidPrebidVideo(bid) : null)
+                .build();
+    }
+
+    private Bid modifyBid(Bid bid) {
+        final ExtPrebid<ExtBidPrebid, ExtBidBidderTrustx> ext = parseBidExt(bid.getExt());
+        if (ext == null) {
+            return bid;
+        }
+
+        final ExtBidBidderTrustx extBidder = ext.getBidder();
+        final String networkName = Optional.ofNullable(extBidder)
+                .map(ExtBidBidderTrustx::getTrustx)
+                .map(ExtBidTrustx::getNetworkName)
+                .filter(StringUtils::isNotEmpty)
+                .orElse(null);
+        if (networkName == null) {
+            return bid;
+        }
+
+        final ExtBidPrebid modifiedExtPrebid = Optional.ofNullable(ext.getPrebid())
+                .map(ExtBidPrebid::toBuilder)
+                .orElseGet(ExtBidPrebid::builder)
+                .meta(ExtBidPrebidMeta.builder().networkName(networkName).build())
+                .build();
+        final ObjectNode modifiedExt = mapper.mapper().valueToTree(ExtPrebid.of(modifiedExtPrebid, extBidder));
+
+        return bid.toBuilder().ext(modifiedExt).build();
+    }
+
+    private ExtPrebid<ExtBidPrebid, ExtBidBidderTrustx> parseBidExt(ObjectNode bidExt) {
+        try {
+            return mapper.mapper().convertValue(bidExt, TRUSTX_BID_EXT_TYPE_REFERENCE);
+        } catch (IllegalArgumentException e) {
             return null;
         }
     }
@@ -190,35 +212,12 @@ public class TrustxBidder implements Bidder<BidRequest> {
         };
     }
 
-    private ExtPrebid<ExtBidPrebid, ExtBidBidderTrustx> tryParseBidExt(ObjectNode bidExt) {
-        try {
-            return mapper.mapper().convertValue(bidExt, TRUSTX_BID_EXT_TYPE_REFERENCE);
-        } catch (IllegalArgumentException e) {
-            return null;
-        }
-    }
+    private static ExtBidPrebidVideo makeExtBidPrebidVideo(Bid bid) {
+        final Integer dur = bid.getDur();
+        final List<String> cat = bid.getCat();
 
-    private static ExtPrebid<ExtBidPrebid, ExtBidBidderTrustx> modifyBidExt(
-            ExtPrebid<ExtBidPrebid, ExtBidBidderTrustx> extBid) {
-
-        return Optional.ofNullable(extBid.getBidder())
-                .map(ExtBidBidderTrustx::getTrustx)
-                .map(ExtBidTrustx::getNetworkName)
-                .filter(StringUtils::isNotEmpty)
-                .map(networkName -> ExtBidPrebidMeta.builder().networkName(networkName).build())
-                .map(extBidPrebidMeta -> modifyBidExtMeta(extBid, extBidPrebidMeta))
-                .orElse(extBid);
-    }
-
-    private static ExtPrebid<ExtBidPrebid, ExtBidBidderTrustx> modifyBidExtMeta(
-            ExtPrebid<ExtBidPrebid, ExtBidBidderTrustx> extBid, ExtBidPrebidMeta extBidPrebidMeta) {
-
-        final ExtBidPrebid updatedExtBidPrebid = Optional.ofNullable(extBid.getPrebid())
-                .map(ExtBidPrebid::toBuilder)
-                .orElseGet(ExtBidPrebid::builder)
-                .meta(extBidPrebidMeta)
-                .build();
-
-        return ExtPrebid.of(updatedExtBidPrebid, extBid.getBidder());
+        return ExtBidPrebidVideo.of(
+                dur != null && dur > 0 ? dur : null,
+                CollectionUtils.isNotEmpty(cat) ? cat.getFirst() : null);
     }
 }

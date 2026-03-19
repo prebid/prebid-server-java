@@ -177,7 +177,6 @@ public class TrustxBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        result.getValue().getFirst().getHeaders().getAll(HttpUtil.X_FORWARDED_FOR_HEADER);
         assertThat(result.getValue())
                 .extracting(HttpRequest::getHeaders)
                 .flatExtracting(headers -> headers.getAll(HttpUtil.X_FORWARDED_FOR_HEADER.toString()))
@@ -706,7 +705,7 @@ public class TrustxBidderTest extends VertxTest {
 
     private static ObjectNode givenImpExtWithAdSlot(String adSlot, String gpid) {
         return mapper.valueToTree(ExtImpTrustx.builder()
-                .data(new ExtImpTrustxData(null, new ExtImpTrustxDataAdServer(null, adSlot)))
+                .data(ExtImpTrustxData.of(null, ExtImpTrustxDataAdServer.of(null, adSlot)))
                 .gpid(gpid)
                 .build());
     }

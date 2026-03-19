@@ -29,8 +29,8 @@ public class TrustxConfiguration {
 
     @Bean
     BidderDeps trustxBidderDeps(BidderConfigurationProperties trustxConfigurationProperties,
-                                  @NotBlank @Value("${external-url}") String externalUrl,
-                                  JacksonMapper mapper) {
+                                @NotBlank @Value("${external-url}") String externalUrl,
+                                JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(trustxConfigurationProperties)
