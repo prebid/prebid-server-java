@@ -1908,7 +1908,7 @@ class TargetingSpec extends BaseSpec {
         ]
     }
 
-    def "PBS amp shouldn't emit error for targeting when site is array"() {
+    def "PBS amp shouldn't emit error for targeting when site is invalid array"() {
         given: "Create targeting with array of site"
         def anyRandomValue = PBSUtils.randomString
         def targeting = ["site": siteValue, "any": anyRandomValue]
@@ -1939,8 +1939,42 @@ class TargetingSpec extends BaseSpec {
         assert !ampResponse.ext.errors
 
         where:
-        siteValue << [null, [], [PBSUtils.randomString], [Site.defaultSite], [Site.defaultSite, PBSUtils.randomString],
-                      [PBSUtils.randomString, Site.defaultSite], [App.defaultApp, Site.defaultSite]]
+        siteValue << [null, [], [PBSUtils.randomString], [Site.configFPDSite, PBSUtils.randomString],
+                      [PBSUtils.randomString, Site.configFPDSite], [App.defaultApp, Site.configFPDSite]]
+    }
+
+    def "PBS amp should pass successfully when targeting site is valid"() {
+        given: "Create targeting with array of site"
+        def anyRandomValue = PBSUtils.randomString
+        def targeting = ["site": siteValue, "any": anyRandomValue]
+
+        and: "Encode targeting to string"
+        def encodeTargeting = URLEncoder.encode(encode(targeting), StandardCharsets.UTF_8)
+
+        and: "Amp request with targeting"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.targeting = encodeTargeting
+        }
+
+        and: "Default bid request"
+        def ampStoredRequest = BidRequest.defaultBidRequest
+
+        and: "Create and save stored request into DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        def ampResponse = pbsWithDefaultTargetingLength.sendAmpRequest(ampRequest)
+
+        then: "Amp response should contain value from targeting in imp.ext.data"
+        def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
+        assert bidderRequest.imp[0].ext.data.any == anyRandomValue
+
+        and: "Amp response shouldn't contain any errors"
+        assert !ampResponse.ext.errors
+
+        where:
+        siteValue << [Site.configFPDSite, [Site.configFPDSite], [Site.configFPDSite, Site.configFPDSite]]
     }
 
     private static Account createAccountWithPriceGranularity(String accountId, PriceGranularityType priceGranularity) {
