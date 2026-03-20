@@ -33,7 +33,7 @@ import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.tests.module.ModuleBaseSpec
 import org.prebid.server.functional.util.PBSUtils
 
-import static org.prebid.server.functional.model.ModuleName.ORTB2_BLOCKING
+import static org.prebid.server.functional.model.ModuleName.PB_ORTB2_BLOCKING
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.IX
@@ -284,7 +284,7 @@ class PbOrtb2BlockingSpec extends ModuleBaseSpec {
         def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
 
         then: "PBS response should contain seatNonBid for the called bidder"
-        assert response.ext.prebid.modules.errors.pbOrtb2Blocking["${ORTB2_BLOCKING.code}-${BIDDER_REQUEST.value}-hook"].first
+        assert response.ext.prebid.modules.errors.pbOrtb2Blocking["${PB_ORTB2_BLOCKING.code}-${BIDDER_REQUEST.value}-hook"].first
                 .contains("field in account configuration is not an array")
 
         and: "PBS response shouldn't contain any module warning"
@@ -317,7 +317,7 @@ class PbOrtb2BlockingSpec extends ModuleBaseSpec {
         def response = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
 
         then: "PBS response should contain seatNonBid for the called bidder"
-        assert response.ext.prebid.modules.errors.pbOrtb2Blocking["${ORTB2_BLOCKING.code}-${BIDDER_REQUEST.value}-hook"].first
+        assert response.ext.prebid.modules.errors.pbOrtb2Blocking["${PB_ORTB2_BLOCKING.code}-${BIDDER_REQUEST.value}-hook"].first
                 .contains("field in account configuration has unexpected type")
 
         and: "PBS response shouldn't contain any module warning"
@@ -1308,7 +1308,7 @@ class PbOrtb2BlockingSpec extends ModuleBaseSpec {
         assert !response?.ext?.prebid?.modules?.errors
 
         and: "PBS response should contain proper warning"
-        assert response?.ext?.prebid?.modules?.warnings?.pbOrtb2Blocking["${ORTB2_BLOCKING.code}-${BIDDER_REQUEST.value}-hook"] ==
+        assert response?.ext?.prebid?.modules?.warnings?.pbOrtb2Blocking["${PB_ORTB2_BLOCKING.code}-${BIDDER_REQUEST.value}-hook"] ==
                 ["More than one conditions matches request. Bidder: generic, request media types: [${bidRequest.imp[0].mediaTypes[0].value}]"]
 
         where:
@@ -1531,7 +1531,7 @@ class PbOrtb2BlockingSpec extends ModuleBaseSpec {
 
     private static Account getAccountWithOrtb2BlockingConfig(String accountId, Map<Ortb2BlockingAttribute, Ortb2BlockingAttributeConfig> attributes) {
         def blockingConfig = new Ortb2BlockingConfig(attributes: attributes)
-        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB2_BLOCKING, [BIDDER_REQUEST, RAW_BIDDER_RESPONSE])
+        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, PB_ORTB2_BLOCKING, [BIDDER_REQUEST, RAW_BIDDER_RESPONSE])
         def moduleConfig = new PbsModulesConfig(pbOrtb2Blocking: blockingConfig)
         def accountHooksConfig = new AccountHooksConfiguration(executionPlan: executionPlan, modules: moduleConfig)
         def accountConfig = new AccountConfig(hooks: accountHooksConfig)

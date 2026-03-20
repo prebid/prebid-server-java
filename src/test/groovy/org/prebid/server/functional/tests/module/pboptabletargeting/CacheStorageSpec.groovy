@@ -21,18 +21,18 @@ import org.prebid.server.functional.util.PBSUtils
 
 import static org.apache.commons.codec.binary.Base64.encodeBase64
 import static org.mockserver.model.HttpStatusCode.NOT_FOUND_404
-import static org.prebid.server.functional.model.ModuleName.OPTABLE_TARGETING
+import static org.prebid.server.functional.model.ModuleName.PB_OPTABLE_TARGETING
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 
 class CacheStorageSpec extends ModuleBaseSpec {
 
-    private static final String METRIC_CREATIVE_SIZE_TEXT = "prebid_cache.module_storage.${OPTABLE_TARGETING.code}.entry_size.text"
-    private static final String METRIC_CREATIVE_TTL_TEXT = "prebid_cache.module_storage.${OPTABLE_TARGETING.code}.entry_ttl.text"
+    private static final String METRIC_CREATIVE_SIZE_TEXT = "prebid_cache.module_storage.${PB_OPTABLE_TARGETING.code}.entry_size.text"
+    private static final String METRIC_CREATIVE_TTL_TEXT = "prebid_cache.module_storage.${PB_OPTABLE_TARGETING.code}.entry_ttl.text"
 
-    private static final String METRIC_CREATIVE_READ_OK = "prebid_cache.module_storage.${OPTABLE_TARGETING.code}.read.ok"
-    private static final String METRIC_CREATIVE_READ_ERR = "prebid_cache.module_storage.${OPTABLE_TARGETING.code}.read.err"
-    private static final String METRIC_CREATIVE_WRITE_OK = "prebid_cache.module_storage.${OPTABLE_TARGETING.code}.write.ok"
-    private static final String METRIC_CREATIVE_WRITE_ERR = "prebid_cache.module_storage.${OPTABLE_TARGETING.code}.write.err"
+    private static final String METRIC_CREATIVE_READ_OK = "prebid_cache.module_storage.${PB_OPTABLE_TARGETING.code}.read.ok"
+    private static final String METRIC_CREATIVE_READ_ERR = "prebid_cache.module_storage.${PB_OPTABLE_TARGETING.code}.read.err"
+    private static final String METRIC_CREATIVE_WRITE_OK = "prebid_cache.module_storage.${PB_OPTABLE_TARGETING.code}.write.ok"
+    private static final String METRIC_CREATIVE_WRITE_ERR = "prebid_cache.module_storage.${PB_OPTABLE_TARGETING.code}.write.err"
 
     private static final StoredCache storedCache = new StoredCache(networkServiceContainer)
 

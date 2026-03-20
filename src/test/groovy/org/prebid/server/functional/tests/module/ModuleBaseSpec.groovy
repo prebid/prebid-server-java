@@ -9,8 +9,8 @@ import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.tests.BaseSpec
 import org.prebid.server.functional.util.PBSUtils
 
-import static org.prebid.server.functional.model.ModuleName.OPTABLE_TARGETING
-import static org.prebid.server.functional.model.ModuleName.ORTB2_BLOCKING
+import static org.prebid.server.functional.model.ModuleName.PB_OPTABLE_TARGETING
+import static org.prebid.server.functional.model.ModuleName.PB_ORTB2_BLOCKING
 import static org.prebid.server.functional.model.ModuleName.PB_REQUEST_CORRECTION
 import static org.prebid.server.functional.model.ModuleName.PB_RESPONSE_CORRECTION
 import static org.prebid.server.functional.model.ModuleName.PB_RICHMEDIA_FILTER
@@ -76,16 +76,16 @@ class ModuleBaseSpec extends BaseSpec {
     }
 
     protected static Map<String, String> getOptableTargetingSettings(boolean isEnabled = true, Endpoint endpoint = OPENRTB2_AUCTION) {
-        ["hooks.${OPTABLE_TARGETING.code}.enabled": isEnabled as String,
-         "hooks.modules.${OPTABLE_TARGETING.code}.api-endpoint" : "$networkServiceContainer.rootUri/stored-cache".toString(),
-         "hooks.modules.${OPTABLE_TARGETING.code}.tenant" : PBSUtils.randomString,
-         "hooks.modules.${OPTABLE_TARGETING.code}.origin" : PBSUtils.randomString,
-         "hooks.host-execution-plan"              : encode(ExecutionPlan.getSingleEndpointExecutionPlan(endpoint, [(PROCESSED_AUCTION_REQUEST): [OPTABLE_TARGETING]]))]
+        ["hooks.${PB_OPTABLE_TARGETING.code}.enabled"             : isEnabled as String,
+         "hooks.modules.${PB_OPTABLE_TARGETING.code}.api-endpoint": "$networkServiceContainer.rootUri/stored-cache".toString(),
+         "hooks.modules.${PB_OPTABLE_TARGETING.code}.tenant"      : PBSUtils.randomString,
+         "hooks.modules.${PB_OPTABLE_TARGETING.code}.origin"      : PBSUtils.randomString,
+         "hooks.host-execution-plan"                              : encode(ExecutionPlan.getSingleEndpointExecutionPlan(endpoint, [(PROCESSED_AUCTION_REQUEST): [PB_OPTABLE_TARGETING]]))]
                 .collectEntries { key, value -> [(key.toString()): value.toString()] }
     }
 
     protected static Map<String, String> getOrtb2BlockingSettings(boolean isEnabled = true) {
-        ["hooks.${ORTB2_BLOCKING.code}.enabled": isEnabled as String]
+        ["hooks.${PB_ORTB2_BLOCKING.code}.enabled": isEnabled as String]
     }
 
     protected static Map<String, String> getRequestCorrectionSettings(Endpoint endpoint = OPENRTB2_AUCTION, Stage stage = PROCESSED_AUCTION_REQUEST) {
