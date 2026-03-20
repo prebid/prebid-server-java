@@ -42,6 +42,7 @@ jobs:
         run: |
           mvn -B verify \
           -DskipUnitTests=true \
+          -Drun-module-functional-tests=true \
           -DskipFunctionalTests=true \
           -DskipModuleFunctionalTests=false \
           -Dtests.max-container-count=5 \
