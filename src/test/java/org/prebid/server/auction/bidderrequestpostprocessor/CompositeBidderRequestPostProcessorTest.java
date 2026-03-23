@@ -9,7 +9,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.auction.aliases.BidderAliases;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.Result;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
@@ -47,7 +46,7 @@ public class CompositeBidderRequestPostProcessorTest {
     public void processShouldReturnExpectedResult() {
         // given
         given(bidderRequestPostProcessor1.process(any(), any(), any()))
-                .willReturn(Future.succeededFuture(Result.of(
+                .willReturn(Future.succeededFuture(BidderRequestPostProcessingResult.of(
                         BidderRequest.builder().bidder("processed by bidderRequestPostProcessor1").build(),
                         singletonList(BidderError.badInput("Error from bidderRequestPostProcessor1")))));
 
@@ -55,12 +54,12 @@ public class CompositeBidderRequestPostProcessorTest {
                 argThat(request -> "processed by bidderRequestPostProcessor1".equals(request.getBidder())),
                 any(),
                 any()))
-                .willReturn(Future.succeededFuture(Result.of(
+                .willReturn(Future.succeededFuture(BidderRequestPostProcessingResult.of(
                         BidderRequest.builder().bidder("processed by bidderRequestPostProcessor2").build(),
                         singletonList(BidderError.badInput("Error from bidderRequestPostProcessor2")))));
 
         // when
-        final Future<Result<BidderRequest>> result = target.process(null, bidderAliases, null);
+        final Future<BidderRequestPostProcessingResult> result = target.process(null, bidderAliases, null);
 
         // then
         assertThat(result.succeeded()).isTrue();
@@ -79,7 +78,7 @@ public class CompositeBidderRequestPostProcessorTest {
                 .willReturn(Future.failedFuture("Error from bidderRequestPostProcessor1"));
 
         // when
-        final Future<Result<BidderRequest>> result = target.process(null, bidderAliases, null);
+        final Future<BidderRequestPostProcessingResult> result = target.process(null, bidderAliases, null);
 
         // then
         assertThat(result.failed()).isTrue();

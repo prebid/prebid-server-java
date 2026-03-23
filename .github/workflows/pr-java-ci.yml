@@ -11,6 +11,11 @@ on:
     types:
       - created
 
+permissions:
+  contents: read
+  actions: read
+  checks: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -20,10 +25,10 @@ jobs:
         java: [ 21 ]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up JDK
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           cache: 'maven'
@@ -32,14 +37,3 @@ jobs:
 
       - name: Build with Maven
         run: mvn -B package --file extra/pom.xml
-
-      - name: Publish JUnit Report
-        uses: mikepenz/action-junit-report@v5
-        with:
-          report_paths: '**/target/surefire-reports/TEST-*.xml'
-          check_name: 'JUnit Test Report'
-          include_passed: true
-          comment: true
-          fail_on_failure: true
-          updateComment: true
-          token: ${{ secrets.GITHUB_TOKEN }}

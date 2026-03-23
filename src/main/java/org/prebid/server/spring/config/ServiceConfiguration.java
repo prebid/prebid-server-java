@@ -36,7 +36,6 @@ import org.prebid.server.auction.WinningBidComparatorFactory;
 import org.prebid.server.auction.bidderrequestpostprocessor.BidderRequestCleaner;
 import org.prebid.server.auction.bidderrequestpostprocessor.BidderRequestCurrencyBlocker;
 import org.prebid.server.auction.bidderrequestpostprocessor.BidderRequestMediaFilter;
-import org.prebid.server.auction.bidderrequestpostprocessor.BidderRequestPostProcessor;
 import org.prebid.server.auction.bidderrequestpostprocessor.BidderRequestPreferredMediaProcessor;
 import org.prebid.server.auction.bidderrequestpostprocessor.CompositeBidderRequestPostProcessor;
 import org.prebid.server.auction.categorymapping.BasicCategoryMappingService;
@@ -138,8 +137,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 import org.springframework.context.annotation.ScopedProxyMode;
-import org.springframework.core.Ordered;
-import org.springframework.core.annotation.Order;
 
 import jakarta.validation.constraints.Min;
 import java.io.IOException;
@@ -149,6 +146,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -796,35 +794,40 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    @Order(Ordered.HIGHEST_PRECEDENCE)
-    BidderRequestPostProcessor bidderRequestCurrencyBlocker(BidderCatalog bidderCatalog) {
+    BidderRequestCurrencyBlocker bidderRequestCurrencyBlocker(BidderCatalog bidderCatalog) {
         return new BidderRequestCurrencyBlocker(bidderCatalog);
     }
 
     @Bean
-    @Order(0)
     @ConditionalOnProperty(prefix = "auction.filter-imp-media-type", name = "enabled", havingValue = "true")
-    BidderRequestPostProcessor bidderRequestMediaFilter(BidderCatalog bidderCatalog) {
+    BidderRequestMediaFilter bidderRequestMediaFilter(BidderCatalog bidderCatalog) {
         return new BidderRequestMediaFilter(bidderCatalog);
     }
 
     @Bean
-    @Order(0)
-    BidderRequestPostProcessor bidderRequestPreferredMediaProcessor(BidderCatalog bidderCatalog) {
+    BidderRequestPreferredMediaProcessor bidderRequestPreferredMediaProcessor(BidderCatalog bidderCatalog) {
         return new BidderRequestPreferredMediaProcessor(bidderCatalog);
     }
 
     @Bean
-    @Order(Ordered.LOWEST_PRECEDENCE)
-    BidderRequestPostProcessor bidderRequestCleaner() {
+    BidderRequestCleaner bidderRequestCleaner() {
         return new BidderRequestCleaner();
     }
 
     @Bean
     CompositeBidderRequestPostProcessor compositeBidderRequestPostProcessor(
-            List<BidderRequestPostProcessor> bidderRequestPostProcessors) {
+            BidderRequestCurrencyBlocker bidderRequestCurrencyBlocker,
+            @Autowired(required = false) BidderRequestMediaFilter bidderRequestMediaFilter,
+            BidderRequestPreferredMediaProcessor bidderRequestPreferredMediaProcessor,
+            BidderRequestCleaner bidderRequestCleaner) {
 
-        return new CompositeBidderRequestPostProcessor(bidderRequestPostProcessors);
+        return new CompositeBidderRequestPostProcessor(Stream.of(
+                        bidderRequestCurrencyBlocker,
+                        bidderRequestMediaFilter,
+                        bidderRequestPreferredMediaProcessor,
+                        bidderRequestCleaner)
+                .filter(Objects::nonNull)
+                .toList());
     }
 
     @Bean
