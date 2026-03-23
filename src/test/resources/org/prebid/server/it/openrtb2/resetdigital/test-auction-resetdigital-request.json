@@ -9,8 +9,7 @@
       },
       "ext": {
         "resetdigital": {
-          "pubId": "lb.ads",
-          "zoneId": "publisherTestID"
+          "placement_id": "publisherTestID"
         }
       }
     }
