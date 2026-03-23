@@ -8,11 +8,11 @@
         "w": 300,
         "h": 250
       },
-      "tagid": "publisherTestID",
       "ext": {
         "tid": "${json-unit.any-string}",
         "bidder": {
-          "placement_id": "publisherTestID"
+          "pubId": "lb.ads",
+          "zoneId": "publisherTestID"
         }
       }
     }
