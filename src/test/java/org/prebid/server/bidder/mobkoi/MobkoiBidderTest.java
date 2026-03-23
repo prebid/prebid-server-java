@@ -91,8 +91,44 @@ public class MobkoiBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
-                .extracting(imp -> imp.getTagid())
+                .extracting(Imp::getTagid)
                 .containsExactly("pid", null);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldOverrideTagIdWithPlacementId() {
+        // given
+        final ObjectNode mobkoiExt = impExt("pid");
+        final Imp givenImp = givenImp(impBuilder -> impBuilder.tagid("tagId").ext(mobkoiExt));
+        final BidRequest bidRequest = BidRequest.builder().imp(asList(givenImp)).build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getTagid)
+                .containsExactly("pid");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldKeepOriginalTagIdWhenPlacementIdMissing() {
+        // given
+        final ObjectNode mobkoiExt = impExt(null);
+        final Imp givenImp = givenImp(impBuilder -> impBuilder.tagid("tagId").ext(mobkoiExt));
+        final BidRequest bidRequest = BidRequest.builder().imp(asList(givenImp)).build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getTagid)
+                .containsExactly("tagId");
     }
 
     @Test
