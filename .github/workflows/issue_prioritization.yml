@@ -1,9 +1,11 @@
 name: Issue tracking
+
 on:
   issues:
     types:
       - opened
       - pinned
+
 jobs:
   track_issue:
     runs-on: ubuntu-latest

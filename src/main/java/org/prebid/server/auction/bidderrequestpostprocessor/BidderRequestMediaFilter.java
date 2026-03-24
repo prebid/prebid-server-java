@@ -15,10 +15,10 @@ import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderInfo;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.Result;
 import org.prebid.server.spring.config.bidder.model.MediaType;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
@@ -37,26 +37,30 @@ public class BidderRequestMediaFilter implements BidderRequestPostProcessor {
     }
 
     @Override
-    public Future<Result<BidderRequest>> process(BidderRequest bidderRequest,
-                                                 BidderAliases aliases,
-                                                 AuctionContext auctionContext) {
+    public Future<BidderRequestPostProcessingResult> process(BidderRequest bidderRequest,
+                                                             BidderAliases aliases,
+                                                             AuctionContext auctionContext) {
 
         final String resolvedBidderName = aliases.resolveBidder(bidderRequest.getBidder());
         final BidRequest bidRequest = bidderRequest.getBidRequest();
         final Set<MediaType> supportedMediaTypes = extractSupportedMediaTypes(bidRequest, resolvedBidderName);
         if (supportedMediaTypes.isEmpty()) {
-            return rejected(List.of(BidderError.badInput("Bidder does not support any media types.")));
+            return rejected(Collections.singletonList(
+                    BidderError.badInput("Bidder does not support any media types.")));
         }
 
         final List<BidderError> errors = new ArrayList<>();
         final BidRequest modifiedBidRequest = processBidRequest(bidRequest, supportedMediaTypes, errors);
+        final BidderRequest modifiedBidderRequest = modifiedBidRequest != null
+                ? bidderRequest.with(modifiedBidRequest)
+                : null;
 
-        return modifiedBidRequest != null
-                ? Future.succeededFuture(Result.of(bidderRequest.with(modifiedBidRequest), errors))
+        return modifiedBidderRequest != null
+                ? Future.succeededFuture(BidderRequestPostProcessingResult.of(modifiedBidderRequest, errors))
                 : rejected(errors);
     }
 
-    private static Future<Result<BidderRequest>> rejected(List<BidderError> errors) {
+    private static Future<BidderRequestPostProcessingResult> rejected(List<BidderError> errors) {
         return Future.failedFuture(
                 new BidderRequestRejectedException(BidRejectionReason.REQUEST_BLOCKED_UNSUPPORTED_MEDIA_TYPE, errors));
     }

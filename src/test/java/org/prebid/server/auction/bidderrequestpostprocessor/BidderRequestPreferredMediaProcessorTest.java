@@ -23,7 +23,6 @@ import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderInfo;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.settings.model.Account;
@@ -73,7 +72,7 @@ public class BidderRequestPreferredMediaProcessorTest extends VertxTest {
         final BidderRequest bidderRequest = givenBidderRequest(identity(), givenImp(BANNER, VIDEO));
 
         // when
-        final Result<BidderRequest> result = target.process(bidderRequest, bidderAliases, null).result();
+        final BidderRequestPostProcessingResult result = target.process(bidderRequest, bidderAliases, null).result();
 
         // then
         assertThat(result.getValue()).isEqualTo(bidderRequest);
@@ -88,7 +87,8 @@ public class BidderRequestPreferredMediaProcessorTest extends VertxTest {
         final AuctionContext auctionContext = givenAuctionContext(null);
 
         // when
-        final Result<BidderRequest> result = target.process(bidderRequest, bidderAliases, auctionContext).result();
+        final BidderRequestPostProcessingResult result =
+                target.process(bidderRequest, bidderAliases, auctionContext).result();
 
         // then
         assertThat(result.getValue()).isEqualTo(bidderRequest);
@@ -103,7 +103,8 @@ public class BidderRequestPreferredMediaProcessorTest extends VertxTest {
         final AuctionContext auctionContext = givenAuctionContext(Map.of(BIDDER, VIDEO));
 
         // when
-        final Result<BidderRequest> result = target.process(bidderRequest, bidderAliases, auctionContext).result();
+        final BidderRequestPostProcessingResult result =
+                target.process(bidderRequest, bidderAliases, auctionContext).result();
 
         // then
         assertThat(result.getValue())
@@ -132,7 +133,8 @@ public class BidderRequestPreferredMediaProcessorTest extends VertxTest {
         final AuctionContext auctionContext = givenAuctionContext(Map.of("resolvedBidderName", AUDIO));
 
         // when
-        final Result<BidderRequest> result = target.process(bidderRequest, bidderAliases, auctionContext).result();
+        final BidderRequestPostProcessingResult result =
+                target.process(bidderRequest, bidderAliases, auctionContext).result();
 
         // then
         assertThat(result.getValue())
@@ -161,7 +163,8 @@ public class BidderRequestPreferredMediaProcessorTest extends VertxTest {
         final AuctionContext auctionContext = givenAuctionContext(Map.of("resolvedBidderName", AUDIO));
 
         // when
-        final Result<BidderRequest> result = target.process(bidderRequest, bidderAliases, auctionContext).result();
+        final BidderRequestPostProcessingResult result =
+                target.process(bidderRequest, bidderAliases, auctionContext).result();
 
         // then
         assertThat(result.getValue())
@@ -186,7 +189,8 @@ public class BidderRequestPreferredMediaProcessorTest extends VertxTest {
         final AuctionContext auctionContext = givenAuctionContext(Map.of(BIDDER, VIDEO));
 
         // when
-        final Result<BidderRequest> result = target.process(bidderRequest, bidderAliases, auctionContext).result();
+        final BidderRequestPostProcessingResult result =
+                target.process(bidderRequest, bidderAliases, auctionContext).result();
 
         // then
         assertThat(result.getValue())
@@ -217,7 +221,8 @@ public class BidderRequestPreferredMediaProcessorTest extends VertxTest {
         final AuctionContext auctionContext = givenAuctionContext(Map.of(BIDDER, VIDEO));
 
         // when
-        final Result<BidderRequest> result = target.process(bidderRequest, bidderAliases, auctionContext).result();
+        final BidderRequestPostProcessingResult result =
+                target.process(bidderRequest, bidderAliases, auctionContext).result();
 
         // then
         assertThat(result.getValue())
@@ -245,7 +250,8 @@ public class BidderRequestPreferredMediaProcessorTest extends VertxTest {
         final AuctionContext auctionContext = givenAuctionContext(Map.of(BIDDER, VIDEO));
 
         // when
-        final Future<Result<BidderRequest>> result = target.process(bidderRequest, bidderAliases, auctionContext);
+        final Future<BidderRequestPostProcessingResult> result =
+                target.process(bidderRequest, bidderAliases, auctionContext);
 
         // then
         assertThat(result.failed()).isTrue();

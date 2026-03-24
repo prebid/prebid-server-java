@@ -15,7 +15,6 @@ import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderInfo;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.Result;
 import org.prebid.server.spring.config.bidder.model.CompressionType;
 import org.prebid.server.spring.config.bidder.model.Ortb;
 
@@ -52,7 +51,7 @@ public class BidderRequestCurrencyBlockerTest {
         final BidderRequest bidderRequest = givenBidderRequest(List.of("USD"));
 
         // when
-        final Result<BidderRequest> result = target.process(bidderRequest, bidderAliases, null).result();
+        final BidderRequestPostProcessingResult result = target.process(bidderRequest, bidderAliases, null).result();
 
         // then
         assertThat(result.getValue()).isSameAs(bidderRequest);
@@ -66,7 +65,7 @@ public class BidderRequestCurrencyBlockerTest {
         final BidderRequest bidderRequest = givenBidderRequest(List.of("USD"));
 
         // when
-        final Result<BidderRequest> result = target.process(bidderRequest, bidderAliases, null).result();
+        final BidderRequestPostProcessingResult result = target.process(bidderRequest, bidderAliases, null).result();
 
         // then
         assertThat(result.getValue()).isSameAs(bidderRequest);
@@ -80,7 +79,7 @@ public class BidderRequestCurrencyBlockerTest {
         final BidderRequest bidderRequest = givenBidderRequest(null);
 
         // when
-        final Result<BidderRequest> result = target.process(bidderRequest, bidderAliases, null).result();
+        final BidderRequestPostProcessingResult result = target.process(bidderRequest, bidderAliases, null).result();
 
         // then
         assertThat(result.getValue()).isSameAs(bidderRequest);
@@ -94,7 +93,7 @@ public class BidderRequestCurrencyBlockerTest {
         final BidderRequest bidderRequest = givenBidderRequest(emptyList());
 
         // when
-        final Result<BidderRequest> result = target.process(bidderRequest, bidderAliases, null).result();
+        final BidderRequestPostProcessingResult result = target.process(bidderRequest, bidderAliases, null).result();
 
         // then
         assertThat(result.getValue()).isSameAs(bidderRequest);
@@ -108,7 +107,7 @@ public class BidderRequestCurrencyBlockerTest {
         final BidderRequest bidderRequest = givenBidderRequest(List.of("UAH", "USD"));
 
         // when
-        final Result<BidderRequest> result = target.process(bidderRequest, bidderAliases, null).result();
+        final BidderRequestPostProcessingResult result = target.process(bidderRequest, bidderAliases, null).result();
 
         // then
         assertThat(result.getValue()).isSameAs(bidderRequest);
@@ -122,7 +121,7 @@ public class BidderRequestCurrencyBlockerTest {
         final BidderRequest bidderRequest = givenBidderRequest(List.of("UAH"));
 
         // when
-        final Future<Result<BidderRequest>> result = target.process(bidderRequest, bidderAliases, null);
+        final Future<BidderRequestPostProcessingResult> result = target.process(bidderRequest, bidderAliases, null);
 
         // then
         assertThat(result.failed()).isTrue();
