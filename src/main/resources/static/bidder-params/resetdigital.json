@@ -4,12 +4,20 @@
   "description": "A schema which validates params accepted by the ResetDigital adapter",
   "type": "object",
   "properties": {
-    "placement_id": {
+    "pubId": {
       "type": "string",
-      "description": "Placement ID provided by ResetDigital",
-      "minLength": 1
+      "description": "The publisher's ID provided"
+    },
+    "zoneId": {
+      "type": "string",
+      "description": "Zone ID"
+    },
+    "forceBid": {
+      "type": "boolean",
+      "description": "Force bids with a test creative"
     }
   },
-  "required": ["placement_id"],
-  "additionalProperties": false
+  "required": [
+    "pubId"
+  ]
 }

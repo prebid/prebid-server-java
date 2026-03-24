@@ -2,6 +2,7 @@ package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.resetdigital.ResetDigitalBidder;
+import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -30,12 +31,16 @@ public class ResetDigitalConfiguration {
     @Bean
     BidderDeps resetDigitalBidderDeps(BidderConfigurationProperties resetDigitalConfigurationProperties,
                                       @NotBlank @Value("${external-url}") String externalUrl,
+                                      CurrencyConversionService currencyConversionService,
                                       JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(resetDigitalConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new ResetDigitalBidder(config.getEndpoint(), mapper))
+                .bidderCreator(config -> new ResetDigitalBidder(
+                        config.getEndpoint(),
+                        currencyConversionService,
+                        mapper))
                 .assemble();
     }
 }
