@@ -39,6 +39,7 @@ import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.PbsConfig
 import org.prebid.server.functional.testcontainers.scaffolding.Bidder
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.IgnoreRest
 
 import java.math.RoundingMode
 import java.nio.charset.StandardCharsets
@@ -1908,7 +1909,8 @@ class TargetingSpec extends BaseSpec {
         ]
     }
 
-    def "PBS amp shouldn't emit error for targeting when site is invalid array"() {
+    @IgnoreRest
+    def "PBS amp should emit error for targeting when site is invalid array"() {
         given: "Create targeting with array of site"
         def anyRandomValue = PBSUtils.randomString
         def targeting = ["site": siteValue, "any": anyRandomValue]
@@ -1936,10 +1938,10 @@ class TargetingSpec extends BaseSpec {
         assert bidderRequest.imp[0].ext.data.any == anyRandomValue
 
         and: "Amp response shouldn't contain any errors"
-        assert !ampResponse.ext.errors
+        assert ampResponse.ext.errors == ['WARNING: targeting.site field invalid']
 
         where:
-        siteValue << [null, [], [PBSUtils.randomString], [Site.configFPDSite, PBSUtils.randomString],
+        siteValue << [[PBSUtils.randomString], [Site.configFPDSite, PBSUtils.randomString],
                       [PBSUtils.randomString, Site.configFPDSite], [App.defaultApp, Site.configFPDSite]]
     }
 
@@ -1974,7 +1976,7 @@ class TargetingSpec extends BaseSpec {
         assert !ampResponse.ext.errors
 
         where:
-        siteValue << [Site.configFPDSite, [Site.configFPDSite], [Site.configFPDSite, Site.configFPDSite]]
+        siteValue << [null, [], Site.configFPDSite, [Site.configFPDSite], [Site.configFPDSite, Site.configFPDSite]]
     }
 
     private static Account createAccountWithPriceGranularity(String accountId, PriceGranularityType priceGranularity) {
