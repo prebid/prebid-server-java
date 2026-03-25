@@ -22,12 +22,12 @@
         </dependency>
         <dependency>
             <groupId>org.prebid.server.hooks.modules</groupId>
-            <artifactId>pb-confiant-ad-quality</artifactId>
+            <artifactId>confiant-ad-quality</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.prebid.server.hooks.modules</groupId>
-            <artifactId>pb-fiftyone-devicedetection</artifactId>
+            <artifactId>fiftyone-devicedetection</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -47,7 +47,7 @@
         </dependency>
         <dependency>
             <groupId>org.prebid.server.hooks.modules</groupId>
-            <artifactId>pb-greenbids-real-time-data</artifactId>
+            <artifactId>greenbids-real-time-data</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -57,17 +57,17 @@
         </dependency>
         <dependency>
             <groupId>org.prebid.server.hooks.modules</groupId>
-            <artifactId>pb-optable-targeting</artifactId>
+            <artifactId>optable-targeting</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.prebid.server.hooks.modules</groupId>
-            <artifactId>pb-wurfl-devicedetection</artifactId>
+            <artifactId>wurfl-devicedetection</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.prebid.server.hooks.modules</groupId>
-            <artifactId>pb-live-intent-omni-channel-identity</artifactId>
+            <artifactId>live-intent-omni-channel-identity</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

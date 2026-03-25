@@ -13,6 +13,6 @@ class PbsModulesConfig {
     Ortb2BlockingConfig pbOrtb2Blocking
     PbResponseCorrection pbResponseCorrection
     PbRequestCorrectionConfig pbRequestCorrection
-    OptableTargetingConfig pbOptableTargeting
     PbRulesEngine pbRuleEngine
+    OptableTargetingConfig optableTargeting
 }

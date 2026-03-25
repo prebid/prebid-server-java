@@ -40,7 +40,7 @@ admin-endpoints:
     on-application-port: true
     protected: false
 hooks:
-  pb-fiftyone-devicedetection:
+  fiftyone-devicedetection:
     enabled: true
   host-execution-plan: >
     {
@@ -53,8 +53,8 @@ hooks:
                   "timeout": 100,
                   "hook-sequence": [
                     {
-                      "module-code": "pb-fiftyone-devicedetection",
-                      "hook-impl-code": "pb-fiftyone-devicedetection-entrypoint-hook"
+                      "module-code": "fiftyone-devicedetection",
+                      "hook-impl-code": "fiftyone-devicedetection-entrypoint-hook"
                     }
                   ]
                 }
@@ -66,8 +66,8 @@ hooks:
                   "timeout": 100,
                   "hook-sequence": [
                     {
-                      "module-code": "pb-fiftyone-devicedetection",
-                      "hook-impl-code": "pb-fiftyone-devicedetection-raw-auction-request-hook"
+                      "module-code": "fiftyone-devicedetection",
+                      "hook-impl-code": "fiftyone-devicedetection-raw-auction-request-hook"
                     }
                   ]
                 }
@@ -78,7 +78,7 @@ hooks:
       }
     }
   modules:
-    pb-fiftyone-devicedetection:
+    fiftyone-devicedetection:
       account-filter:
         allow-list: [] # list of strings
       data-file:

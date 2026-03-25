@@ -9,7 +9,7 @@ import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.tests.BaseSpec
 import org.prebid.server.functional.util.PBSUtils
 
-import static org.prebid.server.functional.model.ModuleName.PB_OPTABLE_TARGETING
+import static org.prebid.server.functional.model.ModuleName.OPTABLE_TARGETING
 import static org.prebid.server.functional.model.ModuleName.PB_ORTB2_BLOCKING
 import static org.prebid.server.functional.model.ModuleName.PB_REQUEST_CORRECTION
 import static org.prebid.server.functional.model.ModuleName.PB_RESPONSE_CORRECTION
@@ -76,11 +76,11 @@ class ModuleBaseSpec extends BaseSpec {
     }
 
     protected static Map<String, String> getOptableTargetingSettings(boolean isEnabled = true, Endpoint endpoint = OPENRTB2_AUCTION) {
-        ["hooks.${PB_OPTABLE_TARGETING.code}.enabled"             : isEnabled as String,
-         "hooks.modules.${PB_OPTABLE_TARGETING.code}.api-endpoint": "$networkServiceContainer.rootUri/stored-cache".toString(),
-         "hooks.modules.${PB_OPTABLE_TARGETING.code}.tenant"      : PBSUtils.randomString,
-         "hooks.modules.${PB_OPTABLE_TARGETING.code}.origin"      : PBSUtils.randomString,
-         "hooks.host-execution-plan"                              : encode(ExecutionPlan.getSingleEndpointExecutionPlan(endpoint, [(PROCESSED_AUCTION_REQUEST): [PB_OPTABLE_TARGETING]]))]
+        ["hooks.${OPTABLE_TARGETING.code}.enabled"             : isEnabled as String,
+         "hooks.modules.${OPTABLE_TARGETING.code}.api-endpoint": "$networkServiceContainer.rootUri/stored-cache".toString(),
+         "hooks.modules.${OPTABLE_TARGETING.code}.tenant"      : PBSUtils.randomString,
+         "hooks.modules.${OPTABLE_TARGETING.code}.origin"      : PBSUtils.randomString,
+         "hooks.host-execution-plan"                           : encode(ExecutionPlan.getSingleEndpointExecutionPlan(endpoint, [(PROCESSED_AUCTION_REQUEST): [OPTABLE_TARGETING]]))]
                 .collectEntries { key, value -> [(key.toString()): value.toString()] }
     }
 

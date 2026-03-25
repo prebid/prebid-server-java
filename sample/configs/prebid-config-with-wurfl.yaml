@@ -41,7 +41,7 @@ admin-endpoints:
     on-application-port: true
     protected: false
 hooks:
-  pb-wurfl-devicedetection:
+  wurfl-devicedetection:
     enabled: true
   host-execution-plan: >
     {
@@ -54,8 +54,8 @@ hooks:
                   "timeout": 10,
                   "hook_sequence": [
                     {
-                      "module_code": "pb-wurfl-devicedetection",
-                      "hook_impl_code": "pb-wurfl-devicedetection-entrypoint-hook"
+                      "module_code": "wurfl-devicedetection",
+                      "hook_impl_code": "wurfl-devicedetection-entrypoint-hook"
                     }
                   ]
                 }
@@ -67,8 +67,8 @@ hooks:
                   "timeout": 10,
                   "hook_sequence": [
                     {
-                      "module_code": "pb-wurfl-devicedetection",
-                      "hook_impl_code": "pb-wurfl-devicedetection-raw-auction-request"
+                      "module_code": "wurfl-devicedetection",
+                      "hook_impl_code": "wurfl-devicedetection-raw-auction-request"
                     }
                   ]
                 }
@@ -81,7 +81,7 @@ hooks:
 
 
   modules:
-    pb-wurfl-devicedetection:
+    wurfl-devicedetection:
       file-dir-path: </path/to/wurfl_snapshot_dir>
       # replace with your wurfl file snapshot URL when using a licensed version of wurfl
       file-snapshot-url: https://httpstat.us/200

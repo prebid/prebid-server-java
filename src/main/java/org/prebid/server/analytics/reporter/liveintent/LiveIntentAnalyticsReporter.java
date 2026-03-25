@@ -39,7 +39,7 @@ public class LiveIntentAnalyticsReporter implements AnalyticsReporter {
 
     private static final Logger logger = LoggerFactory.getLogger(LiveIntentAnalyticsReporter.class);
 
-    private static final String LIVEINTENT_HOOK_ID = "pb-liveintent-omni-channel-identity-enrichment-hook";
+    private static final String LIVEINTENT_HOOK_ID = "liveintent-omni-channel-identity-enrichment-hook";
 
     private final HttpClient httpClient;
     private final LiveIntentAnalyticsProperties properties;

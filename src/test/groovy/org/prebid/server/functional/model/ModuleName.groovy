@@ -8,8 +8,8 @@ enum ModuleName {
     PB_RESPONSE_CORRECTION ("pb-response-correction"),
     PB_ORTB2_BLOCKING("pb-ortb2-blocking"),
     PB_REQUEST_CORRECTION('pb-request-correction'),
-    PB_OPTABLE_TARGETING('pb-optable-targeting'),
-    PB_RULE_ENGINE('pb-rule-engine')
+    PB_RULE_ENGINE('pb-rule-engine'),
+    OPTABLE_TARGETING('optable-targeting')
 
     @JsonValue
     final String code

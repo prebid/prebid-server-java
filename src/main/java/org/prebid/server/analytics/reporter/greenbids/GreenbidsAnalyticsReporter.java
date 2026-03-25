@@ -221,7 +221,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 .flatMap(Collection::stream)
                 .map(GroupExecutionOutcome::getHooks)
                 .flatMap(Collection::stream)
-                .filter(hook -> "pb-greenbids-real-time-data".equals(hook.getHookId().getModuleCode()))
+                .filter(hook -> "greenbids-real-time-data".equals(hook.getHookId().getModuleCode()))
                 .filter(hook -> hook.getStatus() == ExecutionStatus.success)
                 .map(HookExecutionOutcome::getAnalyticsTags)
                 .map(Tags::activities)

@@ -156,8 +156,8 @@ public class LiveintentAnalyticsReporterTest extends VertxTest {
     }
 
     private AuctionEvent buildEvent(Boolean isEnriched, Boolean withTags) {
-        final HookId hookId = HookId.of("pb-liveintent-omni-channel-identity-enrichment-hook",
-                "pb-liveintent-omni-channel-identity-enrichment-hook");
+        final HookId hookId = HookId.of("liveintent-omni-channel-identity-enrichment-hook",
+                "liveintent-omni-channel-identity-enrichment-hook");
 
         final ObjectNode treatmentRateNode = ObjectMapperProvider.mapper().createObjectNode().put("treatmentRate",
                 0.5f);
