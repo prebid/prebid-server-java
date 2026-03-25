@@ -204,11 +204,6 @@ public class HttpFetchClient implements FetchClient {
         return builder.build();
     }
 
-    private Future<Id5UserId> handleError(Throwable exception) {
-        logger.error("id5-user-id: failed to fetch id5Id from endpoint {}", fetchUrl, exception);
-        return Future.succeededFuture(Id5UserId.empty());
-    }
-
     private Id5UserId parseResponse(HttpClientResponse response) {
         final String body = response.getBody();
         final int statusCode = response.getStatusCode();
@@ -224,6 +219,11 @@ public class HttpFetchClient implements FetchClient {
             logger.error("id5-user-id: fetched id5Id failed, status {}, body {}", statusCode, body);
             return Id5UserId.empty();
         }
+    }
+
+    private Future<Id5UserId> handleError(Throwable exception) {
+        logger.error("id5-user-id: failed to fetch id5Id from endpoint {}", fetchUrl, exception);
+        return Future.succeededFuture(Id5UserId.empty());
     }
 
     private static String toStringOrNull(List<Integer> gppSid) {

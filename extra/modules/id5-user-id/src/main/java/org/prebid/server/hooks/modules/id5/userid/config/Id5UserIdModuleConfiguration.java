@@ -25,7 +25,7 @@ import org.springframework.context.annotation.Configuration;
 
 import java.time.Clock;
 import java.util.List;
-import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Configuration
 @EnableConfigurationProperties(Id5IdModuleProperties.class)
@@ -38,7 +38,8 @@ public class Id5UserIdModuleConfiguration {
     @ConditionalOnProperty(prefix = "hooks." + Id5IdModule.CODE, name = "fetch-sampling-rate")
     SamplingFetchFilter fetchSampler(Id5IdModuleProperties properties) {
         logger.debug("id5-user-id-fetch-sampling-rate enabled with rate {}", properties.getFetchSamplingRate());
-        return new SamplingFetchFilter(new Random(), properties.getFetchSamplingRate());
+        return new SamplingFetchFilter(() -> ThreadLocalRandom.current().nextDouble(),
+                properties.getFetchSamplingRate());
     }
 
     @Bean

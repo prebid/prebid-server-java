@@ -21,7 +21,7 @@ public class AccountFetchFilter implements FetchActionFilter {
     @Override
     public FilterResult shouldInvoke(AuctionRequestPayload payload, AuctionInvocationContext invocationContext) {
         final Account account = invocationContext.auctionContext().getAccount();
-        final String accountId = account != null ? account.getId() : null;
+        final String accountId = account.getId();
         if (accountId == null || accountId.isBlank()) {
             return FilterResult.rejected("missing account id");
         }

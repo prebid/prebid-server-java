@@ -4,21 +4,21 @@ import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 
 import java.util.Objects;
-import java.util.Random;
+import java.util.function.Supplier;
 
 public class SamplingFetchFilter implements FetchActionFilter {
 
     private final double sampleRate;
-    private final Random random;
+    private final Supplier<Double> randomSupplier;
 
-    public SamplingFetchFilter(Random random, double sampleRate) {
+    public SamplingFetchFilter(Supplier<Double> randomSupplier, double sampleRate) {
         this.sampleRate = sampleRate;
-        this.random = Objects.requireNonNull(random);
+        this.randomSupplier = Objects.requireNonNull(randomSupplier);
     }
 
     @Override
     public FilterResult shouldInvoke(AuctionRequestPayload payload, AuctionInvocationContext invocationContext) {
-        return random.nextDouble() <= sampleRate
+        return randomSupplier.get() <= sampleRate
                 ? FilterResult.accepted()
                 : FilterResult.rejected("rejected by sampling");
     }

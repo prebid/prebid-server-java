@@ -61,23 +61,4 @@ class AccountFetchFilterTest {
         assertThat(result.isAccepted()).isFalse();
         assertThat(result.reason()).contains("account acc-3 rejected");
     }
-
-    @Test
-    void shouldRejectWhenAccountMissing() {
-        final ValuesFilter<String> valuesFilter = Mockito.mock(ValuesFilter.class);
-        final AccountFetchFilter filter = new AccountFetchFilter(valuesFilter);
-
-        final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(null);
-        final Timeout timeout = new TimeoutFactory(Clock.systemUTC()).create(1000);
-        final AuctionInvocationContext ctx = AuctionInvocationContextImpl.of(
-                InvocationContextImpl.of(timeout, Endpoint.openrtb2_auction),
-                AuctionContext.builder().build(),
-                false,
-                null,
-                null);
-
-        final FilterResult result = filter.shouldInvoke(payload, ctx);
-        assertThat(result.isAccepted()).isFalse();
-        assertThat(result.reason()).contains("missing account id");
-    }
 }

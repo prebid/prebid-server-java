@@ -13,7 +13,7 @@ import org.prebid.server.model.Endpoint;
 import org.prebid.server.settings.model.Account;
 
 import java.time.Clock;
-import java.util.Random;
+import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -22,12 +22,7 @@ class SamplingFetchFilterTest {
     @Test
     void shouldAcceptWhenRandomBelowRate() {
         // given
-        final Random random = new Random() {
-            @Override
-            public double nextDouble() {
-                return 0.1d;
-            }
-        };
+        final Supplier<Double> random = () -> 0.1d;
         final SamplingFetchFilter filter = new SamplingFetchFilter(random, 0.25d);
 
         final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(null);
@@ -49,12 +44,7 @@ class SamplingFetchFilterTest {
     @Test
     void shouldRejectWhenRandomAboveRate() {
         // given
-        final Random random = new Random() {
-            @Override
-            public double nextDouble() {
-                return 0.9d;
-            }
-        };
+        final Supplier<Double> random = () -> 0.9d;
         final SamplingFetchFilter filter = new SamplingFetchFilter(random, 0.5d);
 
         final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(null);
