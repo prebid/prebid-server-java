@@ -43,6 +43,10 @@ public abstract class EnforcePurposeStrategy {
                                                     boolean isEnforceVendor,
                                                     TCString tcString) {
 
+        switch (purpose) {
+            case THREE, FOUR, FIVE, SIX: return false;
+        }
+
         final IntIterable purposesConsent = tcString.getPurposesLITransparency();
         final IntIterable vendorConsent = tcString.getVendorLegitimateInterest();
 
