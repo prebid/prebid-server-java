@@ -2,14 +2,25 @@ package org.prebid.server.privacy.gdpr.tcfstrategies.purpose.typestrategies;
 
 import com.iabtcf.decoder.TCString;
 import com.iabtcf.utils.IntIterable;
+import org.apache.commons.collections4.SetUtils;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.privacy.gdpr.model.VendorPermissionWithGvl;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode;
 
 import java.util.Collection;
+import java.util.Set;
 import java.util.stream.Stream;
 
 public abstract class EnforcePurposeStrategy {
+
+    protected static final Set<PurposeCode> LI_SUPPORTED_PURPOSES = SetUtils.difference(
+            Set.of(PurposeCode.values()),
+            Set.of(
+                    PurposeCode.THREE,
+                    PurposeCode.FOUR,
+                    PurposeCode.FIVE,
+                    PurposeCode.SIX,
+                    PurposeCode.UNKNOWN));
 
     public abstract Stream<VendorPermission> allowedByTypeStrategy(
             PurposeCode purpose,
@@ -43,8 +54,8 @@ public abstract class EnforcePurposeStrategy {
                                                     boolean isEnforceVendor,
                                                     TCString tcString) {
 
-        switch (purpose) {
-            case THREE, FOUR, FIVE, SIX: return false;
+        if (!LI_SUPPORTED_PURPOSES.contains(purpose)) {
+            return false;
         }
 
         final IntIterable purposesConsent = tcString.getPurposesLITransparency();
