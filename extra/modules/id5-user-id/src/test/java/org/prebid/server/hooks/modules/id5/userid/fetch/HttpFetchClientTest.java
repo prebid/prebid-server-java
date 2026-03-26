@@ -105,8 +105,8 @@ class HttpFetchClientTest {
         final String expectedUrl = URL + "/" + partnerId + ".json";
         when(httpClient.post(eq(expectedUrl), any(MultiMap.class), anyString(), anyLong()))
                 .thenReturn(Future.succeededFuture(
-                        HttpClientResponse.of(503, MultiMap.caseInsensitiveMultiMap(), "oops"))
-                );
+                        HttpClientResponse.of(503, MultiMap.caseInsensitiveMultiMap(), "oops")
+                ));
 
         final HttpFetchClient client = new HttpFetchClient(
                 URL, httpClient, fixedClock, versionInfo, props, userFpdActivityMask);
@@ -127,8 +127,11 @@ class HttpFetchClientTest {
         // given
         final long partnerId = 123L;
         final String expectedUrl = URL + "/" + partnerId + ".json";
+        final String unparsableBody = "invalid response";
         when(httpClient.post(eq(expectedUrl), any(MultiMap.class), anyString(), anyLong()))
-                .thenReturn(Future.failedFuture(new RuntimeException("boom")));
+                .thenReturn(Future.succeededFuture(
+                        HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap(), unparsableBody)
+                ));
 
         final HttpFetchClient client = new HttpFetchClient(
                 URL, httpClient, fixedClock, versionInfo, props, userFpdActivityMask);
@@ -156,8 +159,8 @@ class HttpFetchClientTest {
         final String expectedUrl123b = URL + "/123.json";
         when(httpClient.post(eq(expectedUrl123b), any(MultiMap.class), anyString(), anyLong()))
                 .thenReturn(Future.succeededFuture(
-                        HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap(), body))
-                );
+                        HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap(), body)
+                ));
 
         final HttpFetchClient client = new HttpFetchClient(URL, httpClient,
                 fixedClock, versionInfo, props, userFpdActivityMask);

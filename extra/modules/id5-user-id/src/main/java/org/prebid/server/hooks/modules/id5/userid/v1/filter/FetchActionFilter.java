@@ -5,6 +5,5 @@ import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 
 public interface FetchActionFilter {
 
-    FilterResult shouldInvoke(AuctionRequestPayload payload,
-                              AuctionInvocationContext invocationContext);
+    FilterResult shouldInvoke(AuctionRequestPayload payload, AuctionInvocationContext invocationContext);
 }

@@ -7,9 +7,6 @@ import org.prebid.server.settings.model.Account;
 
 import java.util.Objects;
 
-/**
- * Filters fetch invocation by account id using {@link ValuesFilter} configuration.
- */
 public class AccountFetchFilter implements FetchActionFilter {
 
     private final ValuesFilter<String> accountFilter;

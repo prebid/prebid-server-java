@@ -209,16 +209,10 @@ public class HttpFetchClient implements FetchClient {
         final int statusCode = response.getStatusCode();
         if (response.getStatusCode() == 200) {
             logger.debug("id5-user-id: fetched id5Id succeeded, body {}", body);
-            try {
-                return MAPPER.readValue(body, FetchResponse.class);
-            } catch (JsonProcessingException e) {
-                logger.error("id5-user-id: failed to parse response body {}", body, e);
-                return Id5UserId.empty();
-            }
-        } else {
-            logger.error("id5-user-id: fetched id5Id failed, status {}, body {}", statusCode, body);
-            return Id5UserId.empty();
+            return decodeResponse(body);
         }
+        logger.error("id5-user-id: fetched id5Id failed, status {}, body {}", statusCode, body);
+        return Id5UserId.empty();
     }
 
     private Future<Id5UserId> handleError(Throwable exception) {
@@ -230,5 +224,13 @@ public class HttpFetchClient implements FetchClient {
         return CollectionUtils.isNotEmpty(gppSid)
                 ? gppSid.stream().map(String::valueOf).collect(Collectors.joining(","))
                 : null;
+    }
+
+    private static Id5UserId decodeResponse(String body) {
+        try {
+            return MAPPER.readValue(body, FetchResponse.class);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("id5-user-id: failed to parse response body " + body, e);
+        }
     }
 }

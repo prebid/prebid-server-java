@@ -5,6 +5,5 @@ import org.prebid.server.hooks.v1.bidder.BidderRequestPayload;
 
 public interface InjectActionFilter {
 
-    FilterResult shouldInvoke(BidderRequestPayload payload,
-                              BidderInvocationContext invocationContext);
+    FilterResult shouldInvoke(BidderRequestPayload payload, BidderInvocationContext invocationContext);
 }
