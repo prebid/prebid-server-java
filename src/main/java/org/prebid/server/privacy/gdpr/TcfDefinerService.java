@@ -29,6 +29,10 @@ import org.prebid.server.settings.model.EnabledForRequestType;
 import org.prebid.server.settings.model.GdprConfig;
 import org.prebid.server.util.ObjectUtil;
 
+import java.time.Instant;
+import java.time.Month;
+import java.time.Year;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -56,6 +60,11 @@ public class TcfDefinerService {
             new ConditionalLogger("undefined_corrupt_consent", logger);
 
     private static final String GDPR_ENABLED = "1";
+    private static final Instant MARCH_01_2026 = Year.of(2026)
+            .atMonth(Month.MARCH)
+            .atDay(1)
+            .atStartOfDay()
+            .toInstant(ZoneOffset.UTC);
 
     private final boolean gdprEnabled;
     private final String gdprDefaultValue;
@@ -345,6 +354,11 @@ public class TcfDefinerService {
             return TCStringParsingResult.of(TCStringEmpty.create(), warnings);
         }
 
+        if (!isDisclosedVendorsValid(tcString)) {
+            warnings.add("Invalid TCF string: `disclosedVendors` list is empty.");
+            return TCStringParsingResult.of(TCStringEmpty.create(), warnings);
+        }
+
         return toValidResult(consentString, TCStringParsingResult.of(tcString, warnings));
     }
 
@@ -417,10 +431,26 @@ public class TcfDefinerService {
         return consent != null && !(consent instanceof TCStringEmpty);
     }
 
+    private static boolean isDisclosedVendorsValid(TCString consent) {
+        return isCreatedBeforeMarch01Y2026(consent) || !consent.getDisclosedVendors().isEmpty();
+    }
+
+    private static boolean isCreatedBeforeMarch01Y2026(TCString consent) {
+        final Instant created = consent.getCreated();
+        final Instant lastUpdated = consent.getLastUpdated();
+        final Instant latest = lastUpdated.isAfter(created) ? lastUpdated : created;
+
+        return latest.isBefore(MARCH_01_2026);
+    }
+
+    public static boolean isVendorDisclosed(TCString consent, Integer vendorId) {
+        return vendorId != null
+                && (isCreatedBeforeMarch01Y2026(consent) || consent.getDisclosedVendors().contains(vendorId));
+    }
+
     public static boolean isConsentStringValid(String consentString) {
         try {
-            TCString.decode(consentString);
-            return true;
+            return isDisclosedVendorsValid(TCString.decode(consentString));
         } catch (RuntimeException e) {
             return false;
         }

@@ -19,8 +19,7 @@ public abstract class EnforcePurposeStrategy {
                     PurposeCode.THREE,
                     PurposeCode.FOUR,
                     PurposeCode.FIVE,
-                    PurposeCode.SIX,
-                    PurposeCode.UNKNOWN));
+                    PurposeCode.SIX));
 
     public abstract Stream<VendorPermission> allowedByTypeStrategy(
             PurposeCode purpose,

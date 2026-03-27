@@ -99,12 +99,19 @@ public class Tcf2Service {
                                                                         TCString tcfConsent,
                                                                         AccountGdprConfig accountGdprConfig) {
 
+        final Collection<VendorPermission> disclosedVendors = vendorPermissions.stream()
+                .filter(permission -> TcfDefinerService.isVendorDisclosed(tcfConsent, permission.getVendorId()))
+                .toList();
+        if (disclosedVendors.isEmpty()) {
+            return Future.succeededFuture(vendorPermissions);
+        }
+
         final Purposes mergedPurposes = mergeAccountPurposes(accountGdprConfig);
         final PurposeOneTreatmentInterpretation mergedPurposeOneTreatmentInterpretation =
                 mergePurposeOneTreatmentInterpretation(accountGdprConfig);
 
         final VendorPermissionsByType<VendorPermission> vendorPermissionsByType =
-                toVendorPermissionsByType(vendorPermissions, accountGdprConfig);
+                toVendorPermissionsByType(disclosedVendors, accountGdprConfig);
 
         return versionedVendorListService.forConsent(tcfConsent)
                 .compose(vendorGvlPermissions -> processSupportedPurposeStrategies(
@@ -120,8 +127,9 @@ public class Tcf2Service {
                 .map(ignored -> enforcePurpose4IfRequired(mergedPurposes, vendorPermissionsByType))
                 .map(ignored -> processSupportedSpecialFeatureStrategies(
                         tcfConsent,
-                        vendorPermissions,
-                        mergeAccountSpecialFeatures(accountGdprConfig)));
+                        disclosedVendors,
+                        mergeAccountSpecialFeatures(accountGdprConfig)))
+                .map(vendorPermissions);
     }
 
     private static VendorPermissionsByType<VendorPermission> toVendorPermissionsByType(
