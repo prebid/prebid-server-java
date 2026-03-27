@@ -181,11 +181,10 @@ public class PrivacyServiceConfiguration {
     }
 
     @Bean
-    HostVendorTcfDefinerService hostVendorTcfDefinerService(
-            TcfDefinerService tcfDefinerService,
-            @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId) {
+    HostVendorTcfDefinerService hostVendorTcfDefinerService(TcfDefinerService tcfDefinerService,
+                                                            GdprConfig gdprConfig) {
 
-        return new HostVendorTcfDefinerService(tcfDefinerService, hostVendorId);
+        return new HostVendorTcfDefinerService(tcfDefinerService, gdprConfig.getHostVendorId());
     }
 
     @Bean

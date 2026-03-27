@@ -17,7 +17,7 @@ import jakarta.validation.constraints.NotBlank;
 public class GdprConfig {
 
     @JsonProperty("host-vendor-id")
-    String hostVendorId;
+    Integer hostVendorId;
 
     Boolean enabled;
 

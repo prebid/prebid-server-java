@@ -112,6 +112,7 @@ import org.prebid.server.privacy.PrivacyExtractor;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.BidValidationEnforcement;
+import org.prebid.server.settings.model.GdprConfig;
 import org.prebid.server.spring.config.model.CacheDefaultTtlProperties;
 import org.prebid.server.spring.config.model.ExternalConversionProperties;
 import org.prebid.server.spring.config.model.HttpClientCircuitBreakerProperties;
@@ -161,17 +162,16 @@ public class ServiceConfiguration {
     private double logSamplingRate;
 
     @Bean
-    CoreCacheService cacheService(
-            CacheConfigurationProperties cacheConfigurationProperties,
-            @Value("${auction.cache.expected-request-time-ms}") long expectedCacheTimeMs,
-            @Value("${pbc.api.key:#{null}}") String apiKey,
-            @Value("${datacenter-region:#{null}}") String datacenterRegion,
-            VastModifier vastModifier,
-            EventsService eventsService,
-            HttpClient httpClient,
-            Metrics metrics,
-            Clock clock,
-            JacksonMapper mapper) {
+    CoreCacheService cacheService(CacheConfigurationProperties cacheConfigurationProperties,
+                                  @Value("${auction.cache.expected-request-time-ms}") long expectedCacheTimeMs,
+                                  @Value("${pbc.api.key:#{null}}") String apiKey,
+                                  @Value("${datacenter-region:#{null}}") String datacenterRegion,
+                                  VastModifier vastModifier,
+                                  EventsService eventsService,
+                                  HttpClient httpClient,
+                                  Metrics metrics,
+                                  Clock clock,
+                                  JacksonMapper mapper) {
 
         final String scheme = cacheConfigurationProperties.getScheme();
         final String host = cacheConfigurationProperties.getHost();
@@ -354,8 +354,8 @@ public class ServiceConfiguration {
             @Value("${auction.ad-server-currency}") String adServerCurrency,
             @Value("${auction.blocklisted-apps}") String blocklistedAppsString,
             @Value("${external-url}") String externalUrl,
-            @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
             @Value("${datacenter-region}") String datacenterRegion,
+            GdprConfig gdprConfig,
             BidderCatalog bidderCatalog,
             ImplicitParametersExtractor implicitParametersExtractor,
             TimeoutResolver timeoutResolver,
@@ -371,7 +371,7 @@ public class ServiceConfiguration {
                 adServerCurrency,
                 splitToList(blocklistedAppsString),
                 externalUrl,
-                hostVendorId,
+                gdprConfig.getHostVendorId(),
                 datacenterRegion,
                 bidderCatalog,
                 implicitParametersExtractor,
