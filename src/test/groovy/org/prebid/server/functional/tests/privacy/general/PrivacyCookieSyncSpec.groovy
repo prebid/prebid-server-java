@@ -1,7 +1,8 @@
-package org.prebid.server.functional.tests.privacy
+package org.prebid.server.functional.tests.privacy.general
 
 import org.prebid.server.functional.model.config.AccountCcpaConfig
 import org.prebid.server.functional.model.request.cookiesync.CookieSyncRequest
+import org.prebid.server.functional.tests.privacy.PrivacyBaseSpec
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.CcpaConsent
 

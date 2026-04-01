@@ -6,6 +6,8 @@ import com.iabtcf.utils.BitSetIntIterable
 import org.prebid.server.functional.model.config.Purpose
 import org.prebid.server.functional.util.PBSUtils
 
+import java.time.ZonedDateTime
+
 import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V2
 
 class TcfConsent implements ConsentString {
@@ -93,6 +95,20 @@ class TcfConsent implements ConsentString {
 
         Builder setSpecialFeatureOptIns(PurposeId purposeId) {
             tcStringEncoder.addSpecialFeatureOptIns(purposeId.value)
+            this
+        }
+
+        Builder setDisclosedVendors(List<Integer> vendorIds) {
+            vendorIds.forEach { id -> tcStringEncoder.addDisclosedVendors(id) }
+        }
+
+        Builder setCreateTime(ZonedDateTime time) {
+            tcStringEncoder.created(time.toInstant())
+            this
+        }
+
+        Builder setUpdatedTime(ZonedDateTime time) {
+            tcStringEncoder.lastUpdated(time.toInstant())
             this
         }
 

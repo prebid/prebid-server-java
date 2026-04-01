@@ -1,4 +1,4 @@
-package org.prebid.server.functional.tests.privacy
+package org.prebid.server.functional.tests.privacy.general
 
 import org.prebid.server.functional.model.config.AccountGppConfig
 import org.prebid.server.functional.model.request.auction.Activity
@@ -15,6 +15,7 @@ import org.prebid.server.functional.model.response.auction.ActivityInvocationPay
 import org.prebid.server.functional.model.response.auction.And
 import org.prebid.server.functional.model.response.auction.GeoCode
 import org.prebid.server.functional.model.response.auction.RuleConfiguration
+import org.prebid.server.functional.tests.privacy.PrivacyBaseSpec
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.gpp.v1.UsNatV1Consent
 

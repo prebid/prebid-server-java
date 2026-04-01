@@ -1,7 +1,8 @@
-package org.prebid.server.functional.tests.privacy
+package org.prebid.server.functional.tests.privacy.coppa
 
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
+import org.prebid.server.functional.tests.privacy.PrivacyBaseSpec
 import spock.lang.PendingFeature
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
