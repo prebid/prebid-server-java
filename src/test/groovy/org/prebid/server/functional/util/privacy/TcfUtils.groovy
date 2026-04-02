@@ -11,7 +11,10 @@ import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVers
 
 class TcfUtils {
 
-    static Map<Purpose, PurposeConfig> getPurposeConfigsForPersonalizedAds(EnforcementRequirement enforcementRequirements, boolean requireConsent = false, List<String> eidsExceptions = []) {
+    static Map<Purpose, PurposeConfig> getPurposeConfigsForPersonalizedAds(EnforcementRequirement enforcementRequirements,
+                                                                           boolean requireConsent = false,
+                                                                           List<String> eidsExceptions = []) {
+
         def purpose = enforcementRequirements.purpose
         // Basic Ads required for any bidder call, should be present at least as company consent
         def purposes = [(Purpose.P2): new PurposeConfig(enforcePurpose: NO, enforceVendors: false)]
@@ -35,6 +38,9 @@ class TcfUtils {
         def purposesLITransparency = enforcementRequirements.getPurposesLITransparency()
         def restrictionType = enforcementRequirements.restrictionType
         def vendorIdGvl = enforcementRequirements.vendorIdGvl
+        def disclosedVendorsId = enforcementRequirements.disclosedVendorsId
+        def createTime = enforcementRequirements.created
+        def updateTime = enforcementRequirements.updated
         def builder = new TcfConsent.Builder()
         if (purposeConsent != null && !purposesLITransparency) {
             builder.setPurposesConsent(PurposeId.convertPurposeToPurposeId(purposeConsent))
@@ -51,11 +57,23 @@ class TcfUtils {
         if (vendorIdGvl != null) {
             builder.setVendorLegitimateInterest(vendorIdGvl)
         }
+        if(disclosedVendorsId != null) {
+            builder.setDisclosedVendors(disclosedVendorsId)
+        }
+        if (createTime != null) {
+            builder.setCreateTime(createTime)
+        }
+        if (updateTime != null) {
+            builder.setUpdatedTime(updateTime)
+        }
         builder.setVendorListVersion(enforcementRequirements.vendorListVersion ?: TCF_POLICY_V2.vendorListVersion)
         return builder.build()
     }
 
-    static Map<Purpose, PurposeConfig> getPurposeConfigsForPersonalizedAdsWithSnakeCase(EnforcementRequirement enforcementRequirements, boolean requireConsent = false, List<String> eidsExceptions = []) {
+    static Map<Purpose, PurposeConfig> getPurposeConfigsForPersonalizedAdsWithSnakeCase(EnforcementRequirement enforcementRequirements,
+                                                                                        boolean requireConsent = false,
+                                                                                        List<String> eidsExceptions = []) {
+
         def purpose = enforcementRequirements.purpose
         // Basic Ads required for any bidder call, should be present at least as company consent
         def purposes = [(Purpose.P2): new PurposeConfig(enforcePurposeSnakeCase: NO, enforceVendors: false)]

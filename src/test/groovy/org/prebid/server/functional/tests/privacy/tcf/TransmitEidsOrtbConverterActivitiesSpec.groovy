@@ -1,4 +1,4 @@
-package org.prebid.server.functional.tests.privacy
+package org.prebid.server.functional.tests.privacy.tcf
 
 import org.prebid.server.functional.model.config.AccountGdprConfig
 import org.prebid.server.functional.model.request.auction.Activity
@@ -14,6 +14,7 @@ import spock.lang.Shared
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.config.Purpose.P1
+import static org.prebid.server.functional.model.config.Purpose.P10
 import static org.prebid.server.functional.model.config.Purpose.P2
 import static org.prebid.server.functional.model.config.Purpose.P3
 import static org.prebid.server.functional.model.config.Purpose.P4
@@ -22,11 +23,10 @@ import static org.prebid.server.functional.model.config.Purpose.P6
 import static org.prebid.server.functional.model.config.Purpose.P7
 import static org.prebid.server.functional.model.config.Purpose.P8
 import static org.prebid.server.functional.model.config.Purpose.P9
-import static org.prebid.server.functional.model.config.Purpose.P10
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_EIDS
 import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
 
-class TransmitEidsOrtbConverterActivitiesSpec extends PrivacyBaseSpec {
+class TransmitEidsOrtbConverterActivitiesSpec extends TcfBaseSpec {
 
     private static final Map<String, String> PBS_CONFIG = SETTING_CONFIG + GENERIC_VENDOR_CONFIG + GENERIC_CONFIG + ["gdpr.vendorlist.v2.http-endpoint-template": null,
                                                                                                                      "gdpr.vendorlist.v3.http-endpoint-template": null]
@@ -57,7 +57,7 @@ class TransmitEidsOrtbConverterActivitiesSpec extends PrivacyBaseSpec {
         pbsServiceFactory.removeContainer(PBS_CONFIG + ["adapters.generic.ortb-version": "2.5"])
     }
 
-    def "PBS should leave the original request with ext.eids data for elder ortb when requireConsent is enabled and #enforcementRequirements.purpose have any basic consent"() {
+    def "PPBS should leave ext.eids for older ORTB versions when requireConsent is enabled and #enforcementRequirements.purpose have any basic consent"() {
         given: "Default Generic BidRequests with Eid field"
         def userEids = [Eid.defaultEid]
         def tcfConsent = TcfUtils.getConsentString(enforcementRequirements)
@@ -68,7 +68,7 @@ class TransmitEidsOrtbConverterActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Save account config with requireConsent into DB"
         def purposes = TcfUtils.getPurposeConfigsForPersonalizedAds(enforcementRequirements, true)
-        def accountGdprConfig = new AccountGdprConfig(purposes: purposes, basicEnforcementVendors: [GENERIC.value])
+        def accountGdprConfig = new AccountGdprConfig(purposes: purposes, basicEnforcementVendors: [GENERIC])
         def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, true)])
         def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig).tap {
             config.privacy.allowActivities = AllowActivities.getDefaultAllowActivities(TRANSMIT_EIDS, activity)
@@ -91,7 +91,7 @@ class TransmitEidsOrtbConverterActivitiesSpec extends PrivacyBaseSpec {
                 getBasicTcfCompanySoftVendorExceptionsRequirements(P4)
     }
 
-    def "PBS should remove the original request with ext.eids data for elder ortb when requireConsent is enabled and #enforcementRequirements.purpose have any basic consent"() {
+    def "PBS should remove ext.eids for older ORTB versions when requireConsent is enabled and #enforcementRequirements.purpose have any basic consent"() {
         given: "Default Generic BidRequests with Eid field"
         def userEids = [Eid.defaultEid]
         def tcfConsent = TcfUtils.getConsentString(enforcementRequirements)
@@ -101,7 +101,7 @@ class TransmitEidsOrtbConverterActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Save account config with requireConsent into DB"
         def purposes = TcfUtils.getPurposeConfigsForPersonalizedAds(enforcementRequirements, true)
-        def accountGdprConfig = new AccountGdprConfig(purposes: purposes, basicEnforcementVendors: [GENERIC.value])
+        def accountGdprConfig = new AccountGdprConfig(purposes: purposes, basicEnforcementVendors: [GENERIC])
         def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, true)])
         def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig).tap {
             config.privacy.allowActivities = AllowActivities.getDefaultAllowActivities(TRANSMIT_EIDS, activity)
@@ -146,7 +146,7 @@ class TransmitEidsOrtbConverterActivitiesSpec extends PrivacyBaseSpec {
                 getBasicTcfCompanyBasedEnforcementRequirements(P10)
     }
 
-    def "PBS should leave the original request with ext.eids data for elder ortb when requireConsent is disabled and #enforcementRequirements.purpose have legal basic consent"() {
+    def "PBS should leave ext.eids for older ORTB versions when requireConsent is disabled and #enforcementRequirements.purpose have legal basic consent"() {
         given: "Default Generic BidRequests with Eid field"
         def userEids = [Eid.defaultEid]
         def tcfConsent = TcfUtils.getConsentString(enforcementRequirements)
@@ -156,7 +156,7 @@ class TransmitEidsOrtbConverterActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Save account config with requireConsent into DB"
         def purposes = TcfUtils.getPurposeConfigsForPersonalizedAds(enforcementRequirements, false)
-        def accountGdprConfig = new AccountGdprConfig(purposes: purposes, basicEnforcementVendors: [GENERIC.value])
+        def accountGdprConfig = new AccountGdprConfig(purposes: purposes, basicEnforcementVendors: [GENERIC])
         def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, true)])
         def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig).tap {
             config.privacy.allowActivities = AllowActivities.getDefaultAllowActivities(TRANSMIT_EIDS, activity)
@@ -186,7 +186,7 @@ class TransmitEidsOrtbConverterActivitiesSpec extends PrivacyBaseSpec {
                 getBasicTcfLegalBasedEnforcementRequirements(P10)
     }
 
-    def "PBS should leave the original request with ext.eids data for elder ortb when requireConsent is enabled and #enforcementRequirements.purpose have full consent"() {
+    def "PBS should leave ext.eids for older ORTB versions when requireConsent is enabled and #enforcementRequirements.purpose have full consent"() {
         given: "Default Generic BidRequests with Eid field"
         def userEids = [Eid.defaultEid]
         def tcfConsent = TcfUtils.getConsentString(enforcementRequirements)
@@ -217,7 +217,7 @@ class TransmitEidsOrtbConverterActivitiesSpec extends PrivacyBaseSpec {
         enforcementRequirements << getFullTcfLegalEnforcementRequirements(P4) + getFullTcfCompanyEnforcementRequirements(P4)
     }
 
-    def "PBS should remove the original request with ext.eids data for elder ortb when requireConsent is enabled and #enforcementRequirements.purpose have full consent"() {
+    def "PBS should remove ext.eids for older ORTB versions when requireConsent is enabled and #enforcementRequirements.purpose have full consent"() {
         given: "Default Generic BidRequests with Eid field"
         def userEids = [Eid.defaultEid]
         def tcfConsent = TcfUtils.getConsentString(enforcementRequirements)
@@ -249,7 +249,7 @@ class TransmitEidsOrtbConverterActivitiesSpec extends PrivacyBaseSpec {
                 getFullTcfCompanyEnforcementRequirementsRandomlyWithExcludePurpose(P4)
     }
 
-    def "PBS should leave the original request with ext.eids data for elder ortb when requireConsent is disabled and #enforcementRequirements.purpose have full consent"() {
+    def "PBS should leave ext.eids for older ORTB versions when requireConsent is disabled and #enforcementRequirements.purpose have full consent"() {
         given: "Default Generic BidRequests with Eid field"
         def userEids = [Eid.defaultEid]
         def tcfConsent = TcfUtils.getConsentString(enforcementRequirements)
