@@ -1298,15 +1298,15 @@ public class ImpValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateImpsShouldReturnValidationMessageWhenMetricValueIsNotValid() {
+    public void validateImpsShouldReturnValidationMessageWhenMetricValueNullOrEmpty() {
         // given
         final List<Imp> givenImps = singletonList(validImpBuilder()
-                .metric(singletonList(Metric.builder().type("viewability").value(2.0f).build())).build());
+                .metric(singletonList(Metric.builder().type("viewability").value(null).build())).build());
 
         // when & then
         assertThatThrownBy(() -> target.validateImps(givenImps, Collections.emptyMap(), null))
                 .isInstanceOf(ValidationException.class)
-                .hasMessage("request.imp[0].metric[0].value must be in the range [0.0, 1.0]");
+                .hasMessage("Missing request.imp[0].metric[0].value");
     }
 
     @Test
@@ -2370,15 +2370,15 @@ public class ImpValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateImpShouldReturnValidationMessageWhenMetricValueIsNotValid() {
+    public void validateImpShouldReturnValidationMessageWhenMetricValueNullOrEmpty() {
         // given
         final Imp givenImp = validImpBuilder()
-                .metric(singletonList(Metric.builder().type("viewability").value(2.0f).build())).build();
+                .metric(singletonList(Metric.builder().type("viewability").value(null).build())).build();
 
         // when & then
         assertThatThrownBy(() -> target.validateImp(givenImp))
                 .isInstanceOf(ValidationException.class)
-                .hasMessage("imp[id=200].metric[0].value must be in the range [0.0, 1.0]");
+                .hasMessage("Missing imp[id=200].metric[0].value");
     }
 
     private static List<Imp> givenImps(UnaryOperator<Native.NativeBuilder> nativeCustomizer) {
