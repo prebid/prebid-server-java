@@ -19,6 +19,7 @@ import com.iab.openrtb.response.EventTracker;
 import com.iab.openrtb.response.Response;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.ix.model.response.IxBidResponse;
@@ -142,16 +143,18 @@ public class IxBidder implements Bidder<BidRequest> {
         if (banner == null) {
             return UpdateResult.unaltered(null);
         }
-
-        final List<Format> formats = banner.getFormat();
+        final List<Format> formats = ListUtils.emptyIfNull(banner.getFormat()).stream()
+                .filter(Objects::nonNull)
+                .toList();
         final Integer w = banner.getW();
         final Integer h = banner.getH();
+        final boolean hasNoFormats = CollectionUtils.isEmpty(formats);
 
-        if (CollectionUtils.isEmpty(formats) && h != null && w != null) {
+        if (hasNoFormats && h != null && w != null) {
             final List<Format> newFormats = Collections.singletonList(Format.builder().w(w).h(h).build());
             final Banner modifiedBanner = banner.toBuilder().format(newFormats).build();
             return UpdateResult.updated(modifiedBanner);
-        } else if (formats.size() == 1) {
+        } else if (!hasNoFormats && formats.size() == 1) {
             final Format format = formats.getFirst();
             final Banner modifiedBanner = banner.toBuilder().w(format.getW()).h(format.getH()).build();
             return UpdateResult.updated(modifiedBanner);
