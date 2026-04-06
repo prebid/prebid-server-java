@@ -4,6 +4,8 @@ import io.vertx.core.MultiMap;
 import org.prebid.server.util.HttpUtil;
 
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 
 public class CacheServiceUtil {
@@ -17,15 +19,10 @@ public class CacheServiceUtil {
 
     public static URL getCacheEndpointUrl(String cacheSchema, String cacheHost, String path) {
         try {
-            final URL baseUrl = getCacheBaseUrl(cacheSchema, cacheHost);
-            return new URL(baseUrl, path);
-        } catch (MalformedURLException e) {
+            return toUrl(cacheSchema, cacheHost, path, null);
+        } catch (URISyntaxException | MalformedURLException e) {
             throw new IllegalArgumentException("Could not get cache endpoint for prebid cache service", e);
         }
-    }
-
-    private static URL getCacheBaseUrl(String cacheSchema, String cacheHost) throws MalformedURLException {
-        return new URL(cacheSchema + "://" + cacheHost);
     }
 
     public static String getCachedAssetUrlTemplate(String cacheSchema,
@@ -34,11 +31,17 @@ public class CacheServiceUtil {
                                                    String cacheQuery) {
 
         try {
-            final URL baseUrl = getCacheBaseUrl(cacheSchema, cacheHost);
-            return new URL(baseUrl, path + "?" + cacheQuery).toString();
-        } catch (MalformedURLException e) {
+            return toUrl(cacheSchema, cacheHost, path, cacheQuery).toString();
+        } catch (URISyntaxException | MalformedURLException e) {
             throw new IllegalArgumentException("Could not get cached asset url template for prebid cache service", e);
         }
     }
 
+    private static URL toUrl(String cacheSchema,
+                             String cacheHost,
+                             String path,
+                             String cacheQuery) throws URISyntaxException, MalformedURLException {
+
+        return new URI(cacheSchema, null, cacheHost, -1, path, cacheQuery, null).toURL();
+    }
 }

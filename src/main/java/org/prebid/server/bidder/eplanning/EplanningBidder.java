@@ -286,8 +286,8 @@ public class EplanningBidder implements Bidder<Void> {
 
     private static URL parseUrl(String url) {
         try {
-            return new URL(url);
-        } catch (MalformedURLException e) {
+            return HttpUtil.parseUrl(url);
+        } catch (MalformedURLException | URISyntaxException e) {
             throw new PreBidException("Invalid url: " + url, e);
         }
     }

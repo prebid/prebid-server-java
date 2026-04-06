@@ -8,7 +8,6 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.validator.routines.UrlValidator;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
@@ -16,6 +15,8 @@ import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
 
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
@@ -28,9 +29,6 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-/**
- * This class consists of {@code static} utility methods for operating HTTP requests.
- */
 public final class HttpUtil {
 
     private static final Logger logger = LoggerFactory.getLogger(HttpUtil.class);
@@ -82,55 +80,26 @@ public final class HttpUtil {
     public static final CharSequence SEC_CH_UA_MODEL = HttpHeaders.createOptimized("Sec-CH-UA-Model");
     public static final CharSequence SEC_CH_UA_FULL_VERSION_LIST =
             HttpHeaders.createOptimized("Sec-CH-UA-Full-Version-List");
-    public static final String MACROS_OPEN = "{{";
-    public static final String MACROS_CLOSE = "}}";
-
-    private static final UrlValidator URL_VALIDAROR = UrlValidator.getInstance();
 
     private HttpUtil() {
     }
 
-    /**
-     * Checks the input string for using as URL.
-     */
-    @Deprecated
-    public static String validateUrl(String url) {
-        if (containsMacrosses(url)) {
-            return url;
-        }
+    public static URL parseUrl(String url) throws URISyntaxException, MalformedURLException {
+        return new URI(url).toURL();
+    }
 
+    public static String validateUrl(String url) {
         try {
-            return new URL(url).toString();
-        } catch (MalformedURLException e) {
+            return parseUrl(url).toString();
+        } catch (URISyntaxException | MalformedURLException e) {
             throw new IllegalArgumentException("URL supplied is not valid: " + url, e);
         }
     }
 
-    public static String validateUrlSyntax(String url) {
-        if (containsMacrosses(url) || URL_VALIDAROR.isValid(url)) {
-            return url;
-        }
-
-        throw new IllegalArgumentException("URL supplied is not valid: " + url);
-    }
-
-    // TODO: We need our own way to work with url macrosses
-    private static boolean containsMacrosses(String url) {
-        return StringUtils.contains(url, MACROS_OPEN) && StringUtils.contains(url, MACROS_CLOSE);
-    }
-
-    /**
-     * Returns encoded URL for the given value.
-     * <p>
-     * The result can be safety used as the query string.
-     */
     public static String encodeUrl(String value) {
         return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 
-    /**
-     * Returns decoded value if supplied is not null, otherwise returns null.
-     */
     public static String decodeUrl(String value) {
         if (StringUtils.isBlank(value)) {
             return null;
@@ -138,18 +107,12 @@ public final class HttpUtil {
         return URLDecoder.decode(value, StandardCharsets.UTF_8);
     }
 
-    /**
-     * Creates general headers for request.
-     */
     public static MultiMap headers() {
         return MultiMap.caseInsensitiveMultiMap()
                 .add(CONTENT_TYPE_HEADER, APPLICATION_JSON_CONTENT_TYPE)
                 .add(ACCEPT_HEADER, HttpHeaderValues.APPLICATION_JSON);
     }
 
-    /**
-     * Creates header from name and value, when value is not null or empty string.
-     */
     public static void addHeaderIfValueIsNotEmpty(MultiMap headers, CharSequence headerName, CharSequence headerValue) {
         if (StringUtils.isNotEmpty(headerValue)) {
             headers.add(headerName, headerValue);
@@ -160,9 +123,10 @@ public final class HttpUtil {
         if (StringUtils.isBlank(url)) {
             return null;
         }
+
         try {
-            return new URL(url).getHost();
-        } catch (MalformedURLException e) {
+            return parseUrl(url).getHost();
+        } catch (URISyntaxException | MalformedURLException e) {
             return null;
         }
     }

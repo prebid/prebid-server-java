@@ -49,7 +49,7 @@ import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URISyntaxException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -105,12 +105,12 @@ public class CoreCacheServiceTest extends VertxTest {
     private Timeout expiredTimeout;
 
     @BeforeEach
-    public void setUp() throws MalformedURLException, JsonProcessingException {
+    public void setUp() throws MalformedURLException, JsonProcessingException, URISyntaxException {
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
 
         target = new CoreCacheService(
                 httpClient,
-                new URL("http://cache-service/cache"),
+                HttpUtil.parseUrl("http://cache-service/cache"),
                 null,
                 "http://cache-service-host/cache?uuid=",
                 100L,
@@ -256,13 +256,13 @@ public class CoreCacheServiceTest extends VertxTest {
 
     @Test
     public void cacheBidsOpenrtbShouldTryCallingInternalEndpointAndTolerateReadingHttpResponseFails()
-            throws JsonProcessingException, MalformedURLException {
+            throws JsonProcessingException, MalformedURLException, URISyntaxException {
 
         // given
         target = new CoreCacheService(
                 httpClient,
-                new URL("http://cache-service/cache"),
-                new URL("http://cache-service-internal/cache"),
+                HttpUtil.parseUrl("http://cache-service/cache"),
+                HttpUtil.parseUrl("http://cache-service-internal/cache"),
                 "http://cache-service-host/cache?uuid=",
                 100L,
                 null,
@@ -437,11 +437,11 @@ public class CoreCacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void cacheBidsOpenrtbShouldUseApiKeyWhenProvided() throws MalformedURLException {
+    public void cacheBidsOpenrtbShouldUseApiKeyWhenProvided() throws MalformedURLException, URISyntaxException {
         // given
         target = new CoreCacheService(
                 httpClient,
-                new URL("http://cache-service/cache"),
+                HttpUtil.parseUrl("http://cache-service/cache"),
                 null,
                 "http://cache-service-host/cache?uuid=",
                 100L,
@@ -1229,12 +1229,12 @@ public class CoreCacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void cachePutObjectsShouldCallInternalCacheEndpointWhenProvided() throws IOException {
+    public void cachePutObjectsShouldCallInternalCacheEndpointWhenProvided() throws IOException, URISyntaxException {
         // given
         target = new CoreCacheService(
                 httpClient,
-                new URL("http://cache-service/cache"),
-                new URL("http://cache-service-internal/cache"),
+                HttpUtil.parseUrl("http://cache-service/cache"),
+                HttpUtil.parseUrl("http://cache-service-internal/cache"),
                 "http://cache-service-host/cache?uuid=",
                 100L,
                 null,
@@ -1281,11 +1281,11 @@ public class CoreCacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void cachePutObjectsShouldUseApiKeyWhenProvided() throws MalformedURLException {
+    public void cachePutObjectsShouldUseApiKeyWhenProvided() throws MalformedURLException, URISyntaxException {
         // given
         target = new CoreCacheService(
                 httpClient,
-                new URL("http://cache-service/cache"),
+                HttpUtil.parseUrl("http://cache-service/cache"),
                 null,
                 "http://cache-service-host/cache?uuid=",
                 100L,
@@ -1324,11 +1324,11 @@ public class CoreCacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void cacheBidsOpenrtbShouldPrependTraceInfoWhenEnabled() throws IOException {
+    public void cacheBidsOpenrtbShouldPrependTraceInfoWhenEnabled() throws IOException, URISyntaxException {
         // given
         target = new CoreCacheService(
                 httpClient,
-                new URL("http://cache-service/cache"),
+                HttpUtil.parseUrl("http://cache-service/cache"),
                 null,
                 "http://cache-service-host/cache?uuid=",
                 100L,
@@ -1394,11 +1394,13 @@ public class CoreCacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void cacheBidsOpenrtbShouldPrependTraceInfoWithDatacenterWhenEnabled() throws IOException {
+    public void cacheBidsOpenrtbShouldPrependTraceInfoWithDatacenterWhenEnabled()
+            throws IOException, URISyntaxException {
+
         // given
         target = new CoreCacheService(
                 httpClient,
-                new URL("http://cache-service/cache"),
+                HttpUtil.parseUrl("http://cache-service/cache"),
                 null,
                 "http://cache-service-host/cache?uuid=",
                 100L,
@@ -1464,11 +1466,11 @@ public class CoreCacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void cacheBidsOpenrtbShouldNotPrependTraceInfoToLowEntoryCacheIds() throws IOException {
+    public void cacheBidsOpenrtbShouldNotPrependTraceInfoToLowEntoryCacheIds() throws IOException, URISyntaxException {
         // given
         target = new CoreCacheService(
                 httpClient,
-                new URL("http://cache-service/cache"),
+                HttpUtil.parseUrl("http://cache-service/cache"),
                 null,
                 "http://cache-service-host/cache?uuid=",
                 100L,
@@ -1515,11 +1517,11 @@ public class CoreCacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void cachePutObjectsShouldPrependTraceInfoWhenEnabled() throws IOException {
+    public void cachePutObjectsShouldPrependTraceInfoWhenEnabled() throws IOException, URISyntaxException {
         // given
         target = new CoreCacheService(
                 httpClient,
-                new URL("http://cache-service/cache"),
+                HttpUtil.parseUrl("http://cache-service/cache"),
                 null,
                 "http://cache-service-host/cache?uuid=",
                 100L,
@@ -1564,11 +1566,13 @@ public class CoreCacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void cachePutObjectsShouldPrependTraceInfoWithDatacenterWhenEnabled() throws IOException {
+    public void cachePutObjectsShouldPrependTraceInfoWithDatacenterWhenEnabled()
+            throws IOException, URISyntaxException {
+
         // given
         target = new CoreCacheService(
                 httpClient,
-                new URL("http://cache-service/cache"),
+                HttpUtil.parseUrl("http://cache-service/cache"),
                 null,
                 "http://cache-service-host/cache?uuid=",
                 100L,
@@ -1613,11 +1617,11 @@ public class CoreCacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void cachePutObjectsShouldNotPrependTraceInfoToPassedInKey() throws IOException {
+    public void cachePutObjectsShouldNotPrependTraceInfoToPassedInKey() throws IOException, URISyntaxException {
         // given
         target = new CoreCacheService(
                 httpClient,
-                new URL("http://cache-service/cache"),
+                HttpUtil.parseUrl("http://cache-service/cache"),
                 null,
                 "http://cache-service-host/cache?uuid=",
                 100L,
@@ -1755,13 +1759,13 @@ public class CoreCacheServiceTest extends VertxTest {
 
     @Test
     public void getCachedObjectShouldAddUuidQueryParamsToInternalBeforeSendingWhenChIsAbsent()
-            throws MalformedURLException {
+            throws MalformedURLException, URISyntaxException {
 
         // given
         target = new CoreCacheService(
                 httpClient,
-                new URL("http://cache-service/cache"),
-                new URL("http://internal-cache-service/cache"),
+                HttpUtil.parseUrl("http://cache-service/cache"),
+                HttpUtil.parseUrl("http://internal-cache-service/cache"),
                 "http://cache-service-host/cache?uuid=",
                 100L,
                 "ApiKey",
