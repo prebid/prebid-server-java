@@ -42,6 +42,6 @@ public class CacheServiceUtil {
                              String path,
                              String cacheQuery) throws URISyntaxException, MalformedURLException {
 
-        return new URI(cacheSchema, null, cacheHost, -1, path, cacheQuery, null).toURL();
+        return new URI(cacheSchema, cacheHost, path, cacheQuery, null).toURL();
     }
 }

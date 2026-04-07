@@ -22,7 +22,6 @@ import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.adnuntius.model.request.AdnuntiusMetaData;
 import org.prebid.server.bidder.adnuntius.model.request.AdnuntiusNativeRequest;
@@ -58,9 +57,9 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidDsa;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
+import org.prebid.server.util.UriTemplate;
 
 import java.math.BigDecimal;
-import java.net.URISyntaxException;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -83,8 +82,8 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
     private static final int BANNER_MTYPE = 1;
     private static final int NATIVE_MTYPE = 4;
 
-    private final String endpointUrl;
-    private final String euEndpoint;
+    private final UriTemplate endpointTemplate;
+    private final UriTemplate euEndpointTemplate;
     private final Clock clock;
     private final JacksonMapper mapper;
 
@@ -93,8 +92,8 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
                            Clock clock,
                            JacksonMapper mapper) {
 
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
-        this.euEndpoint = euEndpoint == null ? null : HttpUtil.validateUrl(euEndpoint);
+        this.endpointTemplate = UriTemplate.of(endpointUrl);
+        this.euEndpointTemplate = euEndpoint != null ? UriTemplate.of(euEndpoint) : null;
         this.clock = Objects.requireNonNull(clock);
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -261,35 +260,22 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
     }
 
     private String makeEndpoint(BidRequest bidRequest, Boolean noCookies) {
-        try {
-            final String gdpr = extractGdpr(bidRequest.getRegs());
-            final String url = StringUtils.isNotBlank(gdpr) ? euEndpoint : endpointUrl;
+        final String gdpr = extractGdpr(bidRequest.getRegs());
+        final UriTemplate template = StringUtils.isNotBlank(gdpr) ? euEndpointTemplate : endpointTemplate;
 
-            if (url == null) {
-                throw new PreBidException("an EU endpoint is required but invalid");
-            }
-
-            final URIBuilder uriBuilder = new URIBuilder(url)
-                    .addParameter("format", "prebidServer")
-                    .addParameter("tzo", getTimeZoneOffset());
-
-            if (StringUtils.isNotEmpty(gdpr)) {
-                uriBuilder.addParameter("gdpr", gdpr);
-            }
-
-            final String consent = extractConsent(bidRequest.getUser());
-            if (StringUtils.isNotEmpty(consent)) {
-                uriBuilder.addParameter("consentString", consent);
-            }
-
-            if (noCookies || extractNoCookies(bidRequest.getDevice())) {
-                uriBuilder.addParameter("noCookies", "true");
-            }
-
-            return uriBuilder.build().toString();
-        } catch (URISyntaxException | IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage());
+        if (template == null) {
+            throw new PreBidException("an EU endpoint is required but invalid");
         }
+
+        final String consent = extractConsent(bidRequest.getUser());
+
+        return template.toBuilder()
+                .queryParam("format", "prebidServer")
+                .queryParam("tzo", getTimeZoneOffset())
+                .queryParam("gdpr", StringUtils.isNotEmpty(gdpr) ? gdpr : null)
+                .queryParam("consentString", StringUtils.isNotEmpty(consent) ? consent : null)
+                .queryParam("noCookies", noCookies || extractNoCookies(bidRequest.getDevice()) ? "true" : null)
+                .build();
     }
 
     private String getTimeZoneOffset() {

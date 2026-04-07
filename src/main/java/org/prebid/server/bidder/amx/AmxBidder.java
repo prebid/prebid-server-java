@@ -13,7 +13,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.amx.model.AmxBidExt;
 import org.prebid.server.bidder.model.BidderBid;
@@ -30,9 +29,8 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidMeta;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.UriTemplate;
 
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -52,20 +50,12 @@ public class AmxBidder implements Bidder<BidRequest> {
     private final JacksonMapper mapper;
 
     public AmxBidder(String endpointUrl, JacksonMapper mapper) {
-        this.mapper = Objects.requireNonNull(mapper);
         this.endpointUrl = resolveEndpointUrl(endpointUrl);
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     private static String resolveEndpointUrl(String url) {
-        final URIBuilder uriBuilder;
-        try {
-            uriBuilder = new URIBuilder(HttpUtil.validateUrl(Objects.requireNonNull(url)));
-        } catch (URISyntaxException e) {
-            throw new IllegalArgumentException("Invalid url: %s, error: %s".formatted(url, e.getMessage()));
-        }
-        return uriBuilder
-                .addParameter(VERSION_PARAM, ADAPTER_VERSION)
-                .toString();
+        return UriTemplate.of(url).toBuilder().queryParam(VERSION_PARAM, ADAPTER_VERSION).build();
     }
 
     @Override

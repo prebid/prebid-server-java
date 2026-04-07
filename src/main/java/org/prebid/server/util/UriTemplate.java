@@ -65,6 +65,11 @@ public class UriTemplate {
             variables.set(DYNAMIC_QUERY_PARAM, new LinkedHashMap<>());
         }
 
+        public UriBuilder domainParam(String key, String value) {
+            variables.set(key, value);
+            return this;
+        }
+
         public UriBuilder pathParam(String key, String value) {
             variables.set(key, value);
             return this;
@@ -92,6 +97,11 @@ public class UriTemplate {
 
         public String build() throws NoSuchElementException {
             return template.expandToString(variables, REQUIRE_ALL_PARAMS);
+        }
+
+        @Override
+        public String toString() {
+            return build();
         }
     }
 }

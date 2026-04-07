@@ -18,7 +18,6 @@ import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.eplanning.model.CleanStepName;
 import org.prebid.server.bidder.eplanning.model.HbResponse;
@@ -37,6 +36,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.eplanning.ExtImpEplanning;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.UriTemplate;
 
 import java.math.BigDecimal;
 import java.net.MalformedURLException;
@@ -79,11 +79,11 @@ public class EplanningBidder implements Bidder<Void> {
             new TypeReference<>() {
             };
 
-    private final String endpointUrl;
+    private final UriTemplate endpointTemplate;
     private final JacksonMapper mapper;
 
     public EplanningBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointTemplate = UriTemplate.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -213,75 +213,64 @@ public class EplanningBidder implements Bidder<Void> {
 
     private String resolveRequestUri(BidRequest request, List<String> requestsStrings, String clientId) {
         final Site site = request.getSite();
-        String pageUrl = DEFAULT_PAGE_URL;
-        if (site != null && StringUtils.isNotBlank(site.getPage())) {
-            pageUrl = site.getPage();
-        }
-
-        String pageDomain = DEFAULT_PAGE_URL;
-        if (site != null) {
-            if (StringUtils.isNotBlank(site.getDomain())) {
-                pageDomain = site.getDomain();
-            } else if (StringUtils.isNotBlank(site.getPage())) {
-                pageDomain = parseUrl(site.getPage()).getHost();
-            }
-        }
+        final String pageUrl = Optional.ofNullable(site)
+                .map(Site::getPage)
+                .filter(StringUtils::isNotBlank)
+                .orElse(DEFAULT_PAGE_URL);
 
         final App app = request.getApp();
-        final String requestTarget = app != null && StringUtils.isNotBlank(app.getBundle())
-                ? app.getBundle()
-                : pageDomain;
+        final String requestTarget = Optional.ofNullable(app)
+                .map(App::getBundle)
+                .filter(StringUtils::isNotBlank)
+                .orElseGet(() -> getPageDomain(site));
+        final String appName = app != null ? app.getName() : null;
+        final String appId = app != null ? app.getId() : null;
 
-        final String uri = "%s/%s/%s/%s/%s".formatted(endpointUrl, clientId, DFP_CLIENT_ID, requestTarget, SEC);
-
-        final URIBuilder uriBuilder;
-        try {
-            uriBuilder = new URIBuilder(uri);
-        } catch (URISyntaxException e) {
-            throw new PreBidException("Invalid url: %s, error: %s".formatted(uri, e.getMessage()));
-        }
-
-        uriBuilder
-                .addParameter("r", "pbs")
-                .addParameter("ncb", "1");
-
-        if (app == null) {
-            uriBuilder.addParameter("ur", pageUrl);
-        }
-        uriBuilder.addParameter("e", String.join("+", requestsStrings));
-
-        final User user = request.getUser();
-        final String buyeruid = user != null ? user.getBuyeruid() : null;
-        if (StringUtils.isNotBlank(buyeruid)) {
-            uriBuilder.addParameter("uid", buyeruid);
-        }
+        final String buyeruid = Optional.ofNullable(request.getUser())
+                .map(User::getBuyeruid)
+                .filter(StringUtils::isNotBlank)
+                .orElse(null);
 
         final Device device = request.getDevice();
         final String ip = device != null ? device.getIp() : null;
-        if (StringUtils.isNotBlank(ip)) {
-            uriBuilder.addParameter("ip", ip);
-        }
+        final String ifa = app != null && device != null ? device.getIfa() : null;
 
-        if (app != null) {
-            if (StringUtils.isNotBlank(app.getName())) {
-                uriBuilder.addParameter("appn", app.getName());
-            }
-            if (StringUtils.isNotBlank(app.getId())) {
-                uriBuilder.addParameter("appid", app.getId());
-            }
-            if (request.getDevice() != null && StringUtils.isNotBlank(request.getDevice().getIfa())) {
-                uriBuilder.addParameter("ifa", request.getDevice().getIfa());
-            }
-            uriBuilder.addParameter("app", REQUEST_TARGET_INVENTORY);
-        }
+        final String schain = getSchainParameter(request.getSource());
 
-        String schain = getSchainParameter(request.getSource());
-        if (schain != null) {
-            schain = schain.replace(" ", "%20");
-            uriBuilder.addParameter("sch", schain);
-        }
+        return endpointTemplate.toBuilder()
+                .pathParam("ClientId", clientId)
+                .pathParam("DfpClientId", DFP_CLIENT_ID)
+                .pathParam("RequestTarget", requestTarget)
+                .pathParam("Sec", SEC)
 
-        return uriBuilder.toString();
+                .queryParam("r", "pbs")
+                .queryParam("ncb", "1")
+                .queryParam("e", String.join("+", requestsStrings))
+
+                .queryParam("ur", app == null ? pageUrl : null)
+
+                .queryParam("uid", buyeruid)
+                .queryParam("appn", StringUtils.isNotBlank(appName) ? appName : null)
+                .queryParam("appid", StringUtils.isNotBlank(appId) ? appId : null)
+                .queryParam("app", app != null ? REQUEST_TARGET_INVENTORY : null)
+
+                .queryParam("ip", StringUtils.isNotBlank(ip) ? ip : null)
+                .queryParam("ifa", StringUtils.isNotBlank(ifa) ? ifa : null)
+
+                .queryParam("sch", schain)
+                .build();
+    }
+
+    private static String getPageDomain(Site site) {
+        return Optional.ofNullable(site)
+                .map(Site::getDomain)
+                .filter(StringUtils::isNotBlank)
+                .or(() -> Optional.ofNullable(site)
+                        .map(Site::getPage)
+                        .filter(StringUtils::isNotBlank)
+                        .map(EplanningBidder::parseUrl)
+                        .map(URL::getHost))
+                .orElse(DEFAULT_PAGE_URL);
     }
 
     private static URL parseUrl(String url) {
@@ -297,6 +286,7 @@ public class EplanningBidder implements Bidder<Void> {
                 .map(Source::getExt)
                 .map(ExtSource::getSchain)
                 .map(this::resolveSupplyChain)
+                .map(schain -> schain.replace(" ", "%20"))
                 .orElse(null);
     }
 

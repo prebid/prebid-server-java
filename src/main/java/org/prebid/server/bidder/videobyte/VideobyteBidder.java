@@ -10,7 +10,6 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -24,8 +23,8 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.videobyte.ExtImpVideobyte;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.UriTemplate;
 
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -39,11 +38,11 @@ public class VideobyteBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private final String endpointUrl;
+    private final UriTemplate endpointTemplate;
     private final JacksonMapper mapper;
 
     public VideobyteBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointTemplate = UriTemplate.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -86,26 +85,15 @@ public class VideobyteBidder implements Bidder<BidRequest> {
     }
 
     private String createUri(ExtImpVideobyte extImpVideobyte) {
-        final URIBuilder uriBuilder;
-        try {
-            uriBuilder = new URIBuilder(endpointUrl);
-        } catch (URISyntaxException e) {
-            throw new PreBidException(e.getMessage());
-        }
+        final String placementId = extImpVideobyte.getPlacementId();
+        final String networkId = extImpVideobyte.getNetworkId();
 
-        uriBuilder.addParameter("source", "pbs")
-                .addParameter("pid", extImpVideobyte.getPublisherId());
-
-        addUriParameterIfNotEmpty(uriBuilder, "placementId", extImpVideobyte.getPlacementId());
-        addUriParameterIfNotEmpty(uriBuilder, "nid", extImpVideobyte.getNetworkId());
-
-        return uriBuilder.toString();
-    }
-
-    private static void addUriParameterIfNotEmpty(URIBuilder uriBuilder, String parameter, String value) {
-        if (StringUtils.isNotEmpty(value)) {
-            uriBuilder.addParameter(parameter, value);
-        }
+        return endpointTemplate.toBuilder()
+                .queryParam("source", "pbs")
+                .queryParam("pid", extImpVideobyte.getPublisherId())
+                .queryParam("placementId", StringUtils.isNotEmpty(placementId) ? placementId : null)
+                .queryParam("nid", StringUtils.isNotEmpty(networkId) ? networkId : null)
+                .build();
     }
 
     private static MultiMap headers(BidRequest bidRequest) {

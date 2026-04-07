@@ -9,7 +9,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -24,10 +23,9 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.nexx360.ExtImpNexx360;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.UriTemplate;
 import org.prebid.server.version.PrebidVersionProvider;
 
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -41,12 +39,12 @@ public class Nexx360Bidder implements Bidder<BidRequest> {
     };
     private static final String BIDDER_NAME = "nexx360";
 
-    private final String endpointUrl;
+    private final UriTemplate endpointTemplate;
     private final JacksonMapper mapper;
     private final PrebidVersionProvider prebidVersionProvider;
 
     public Nexx360Bidder(String endpointUrl, JacksonMapper mapper, PrebidVersionProvider prebidVersionProvider) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointTemplate = UriTemplate.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
         this.prebidVersionProvider = Objects.requireNonNull(prebidVersionProvider);
     }
@@ -100,21 +98,10 @@ public class Nexx360Bidder implements Bidder<BidRequest> {
     }
 
     private String makeUrl(String tagId, String placement) {
-        final URIBuilder uriBuilder;
-        try {
-            uriBuilder = new URIBuilder(endpointUrl);
-        } catch (URISyntaxException e) {
-            throw new PreBidException("Invalid url: %s, error: %s".formatted(endpointUrl, e.getMessage()));
-        }
-
-        if (StringUtils.isNotBlank(placement)) {
-            uriBuilder.addParameter("placement", placement);
-        }
-        if (StringUtils.isNotBlank(tagId)) {
-            uriBuilder.addParameter("tag_id", tagId);
-        }
-
-        return uriBuilder.toString();
+        return endpointTemplate.toBuilder()
+                .queryParam("placement", StringUtils.isNotBlank(placement) ? placement : null)
+                .queryParam("tag_id", StringUtils.isNotBlank(tagId) ? tagId : null)
+                .build();
     }
 
     @Override

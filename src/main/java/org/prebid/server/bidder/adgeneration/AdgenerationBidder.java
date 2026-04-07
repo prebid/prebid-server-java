@@ -14,7 +14,6 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.adgeneration.model.AdgenerationResponse;
 import org.prebid.server.bidder.model.BidderBid;
@@ -31,8 +30,8 @@ import org.prebid.server.proto.openrtb.ext.request.adgeneration.ExtImpAdgenerati
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
+import org.prebid.server.util.UriTemplate;
 
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -51,11 +50,11 @@ public class AdgenerationBidder implements Bidder<Void> {
             new TypeReference<>() {
             };
 
-    private final String endpointUrl;
+    private final UriTemplate endpointTemplate;
     private final JacksonMapper mapper;
 
     public AdgenerationBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointTemplate = UriTemplate.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -96,21 +95,14 @@ public class AdgenerationBidder implements Bidder<Void> {
     }
 
     private String getUri(String adSize, String id, String currency, BidRequest bidRequest) {
-        final URIBuilder uriBuilder;
-        try {
-            uriBuilder = new URIBuilder(endpointUrl);
-        } catch (URISyntaxException e) {
-            throw new PreBidException("Invalid url: %s, error: %s".formatted(endpointUrl, e.getMessage()));
-        }
-
-        uriBuilder
-                .addParameter("posall", "SSPLOC")
-                .addParameter("id", id)
-                .addParameter("hb", "true")
-                .addParameter("t", "json3")
-                .addParameter("currency", currency)
-                .addParameter("sdkname", "prebidserver")
-                .addParameter("adapterver", VERSION);
+        final UriTemplate.UriBuilder uriBuilder = endpointTemplate.toBuilder()
+                .queryParam("posall", "SSPLOC")
+                .queryParam("id", id)
+                .queryParam("hb", "true")
+                .queryParam("t", "json3")
+                .queryParam("currency", currency)
+                .queryParam("sdkname", "prebidserver")
+                .queryParam("adapterver", VERSION);
 
         addParameterIfNotEmpty(uriBuilder, "sizes", adSize);
         addParameterIfNotEmpty(uriBuilder, "tp", ObjectUtil.getIfNotNull(bidRequest.getSite(), Site::getPage));
@@ -122,21 +114,21 @@ public class AdgenerationBidder implements Bidder<Void> {
         final Device device = bidRequest.getDevice();
         final String deviceOs = device != null ? device.getOs() : null;
         if ("android".equals(deviceOs)) {
-            uriBuilder.addParameter("sdktype", "1");
+            uriBuilder.queryParam("sdktype", "1");
             addParameterIfNotEmpty(uriBuilder, "advertising_id", device.getIfa());
         } else if ("ios".equals(deviceOs)) {
-            uriBuilder.addParameter("sdktype", "2");
+            uriBuilder.queryParam("sdktype", "2");
             addParameterIfNotEmpty(uriBuilder, "idfa", device.getIfa());
         } else {
-            uriBuilder.addParameter("sdktype", "0");
+            uriBuilder.queryParam("sdktype", "0");
         }
 
-        return uriBuilder.toString();
+        return uriBuilder.build();
     }
 
-    private static void addParameterIfNotEmpty(URIBuilder uriBuilder, String parameter, String value) {
+    private static void addParameterIfNotEmpty(UriTemplate.UriBuilder uriBuilder, String parameter, String value) {
         if (StringUtils.isNotEmpty(value)) {
-            uriBuilder.addParameter(parameter, value);
+            uriBuilder.queryParam(parameter, value);
         }
     }
 
