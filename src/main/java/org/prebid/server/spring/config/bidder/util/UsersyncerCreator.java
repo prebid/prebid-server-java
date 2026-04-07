@@ -1,5 +1,7 @@
 package org.prebid.server.spring.config.bidder.util;
 
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.UsersyncMethod;
 import org.prebid.server.bidder.UsersyncMethodType;
@@ -12,41 +14,37 @@ import org.prebid.server.spring.config.bidder.model.usersync.UsersyncMethodConfi
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Objects;
-import java.util.function.BiFunction;
 
+@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public class UsersyncerCreator {
 
-    private UsersyncerCreator() {
+    private final String externalUrl;
+
+    public static UsersyncerCreator create(String externalUrl) {
+        return new UsersyncerCreator(externalUrl);
     }
 
-    public static BiFunction<UsersyncConfigurationProperties, CookieFamilySource, Usersyncer> create(
-            String externalUrl) {
-
-        return (usersyncConfig, cookieFamilySource) ->
-                createAndValidate(usersyncConfig, cookieFamilySource, externalUrl);
-    }
-
-    private static Usersyncer createAndValidate(UsersyncConfigurationProperties usersync,
-                                                CookieFamilySource cookieFamilySource,
-                                                String externalUrl) {
+    public Usersyncer createAndValidate(String bidder,
+                                        UsersyncConfigurationProperties usersync,
+                                        CookieFamilySource cookieFamilySource) {
 
         final String cookieFamilyName = usersync.getCookieFamilyName();
         final UsersyncBidderRegulationScopeProperties skipwhenConfig = usersync.getSkipwhen();
 
         return Usersyncer.of(
                 usersync.getEnabled(),
+                bidder,
                 cookieFamilyName,
                 cookieFamilySource,
-                toMethod(UsersyncMethodType.IFRAME, usersync.getIframe(), cookieFamilyName, externalUrl),
-                toMethod(UsersyncMethodType.REDIRECT, usersync.getRedirect(), cookieFamilyName, externalUrl),
+                toMethod(UsersyncMethodType.IFRAME, usersync.getIframe(), cookieFamilyName),
+                toMethod(UsersyncMethodType.REDIRECT, usersync.getRedirect(), cookieFamilyName),
                 skipwhenConfig != null && skipwhenConfig.isGdpr(),
                 skipwhenConfig == null ? null : skipwhenConfig.getGppSid());
     }
 
-    private static UsersyncMethod toMethod(UsersyncMethodType type,
-                                           UsersyncMethodConfigurationProperties properties,
-                                           String cookieFamilyName,
-                                           String externalUrl) {
+    private UsersyncMethod toMethod(UsersyncMethodType type,
+                                    UsersyncMethodConfigurationProperties properties,
+                                    String cookieFamilyName) {
 
         if (properties == null) {
             return null;

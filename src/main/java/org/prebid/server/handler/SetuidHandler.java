@@ -13,7 +13,6 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
@@ -89,7 +88,8 @@ public class SetuidHandler implements ApplicationResource {
     private final AnalyticsReporterDelegator analyticsDelegator;
     private final Metrics metrics;
     private final TimeoutFactory timeoutFactory;
-    private final Map<String, Pair<String, UsersyncMethodType>> cookieNameToBidderAndSyncType;
+    private final Map<String, Usersyncer> bidderToUsersyncer;
+    private final Map<String, Usersyncer> cookieNameToUsersyncer;
 
     public SetuidHandler(long defaultTimeout,
                          UidsCookieService uidsCookieService,
@@ -113,21 +113,9 @@ public class SetuidHandler implements ApplicationResource {
         this.analyticsDelegator = Objects.requireNonNull(analyticsDelegator);
         this.metrics = Objects.requireNonNull(metrics);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
-        this.cookieNameToBidderAndSyncType = collectUsersyncers(bidderCatalog);
-    }
-
-    private static Map<String, Pair<String, UsersyncMethodType>> collectUsersyncers(BidderCatalog bidderCatalog) {
         validateUsersyncersDuplicates(bidderCatalog);
-
-        return bidderCatalog.usersyncReadyBidders().stream()
-                .sorted(Comparator.comparing(bidderName -> BooleanUtils.toInteger(bidderCatalog.isAlias(bidderName))))
-                .filter(StreamUtil.distinctBy(bidderCatalog::cookieFamilyName))
-                .map(bidderName -> bidderCatalog.usersyncerByName(bidderName)
-                        .map(usersyncer -> Pair.of(bidderName, usersyncer)))
-                .flatMap(Optional::stream)
-                .collect(Collectors.toMap(
-                        pair -> pair.getRight().getCookieFamilyName(),
-                        pair -> Pair.of(pair.getLeft(), preferredUserSyncType(pair.getRight()))));
+        this.bidderToUsersyncer = collectUsersyncersByBidderName(bidderCatalog);
+        this.cookieNameToUsersyncer = collectUsersyncersByCookieName(bidderCatalog);
     }
 
     private static void validateUsersyncersDuplicates(BidderCatalog bidderCatalog) {
@@ -158,8 +146,18 @@ public class SetuidHandler implements ApplicationResource {
                 && parentCookieFamilyName.equals(bidderCookieFamilyName);
     }
 
-    private static UsersyncMethodType preferredUserSyncType(Usersyncer usersyncer) {
-        return ObjectUtils.firstNonNull(usersyncer.getIframe(), usersyncer.getRedirect()).getType();
+    private static Map<String, Usersyncer> collectUsersyncersByBidderName(BidderCatalog bidderCatalog) {
+        return bidderCatalog.usersyncReadyBidders().stream()
+                .map(bidder -> bidderCatalog.usersyncerByName(bidder).orElseThrow())
+                .collect(Collectors.toMap(Usersyncer::getBidder, Function.identity()));
+    }
+
+    private static Map<String, Usersyncer> collectUsersyncersByCookieName(BidderCatalog bidderCatalog) {
+        return bidderCatalog.usersyncReadyBidders().stream()
+                .sorted(Comparator.comparing(bidderName -> BooleanUtils.toInteger(bidderCatalog.isAlias(bidderName))))
+                .filter(StreamUtil.distinctBy(bidderCatalog::cookieFamilyName))
+                .map(bidderName -> bidderCatalog.usersyncerByName(bidderName).orElseThrow())
+                .collect(Collectors.toMap(Usersyncer::getCookieFamilyName, Function.identity()));
     }
 
     @Override
@@ -170,20 +168,20 @@ public class SetuidHandler implements ApplicationResource {
     @Override
     public void handle(RoutingContext routingContext) {
         toSetuidContext(routingContext)
-                .onComplete(setuidContextResult -> handleSetuidContextResult(setuidContextResult, routingContext));
+                .onFailure(error -> handleErrors(error, routingContext, null))
+                .onSuccess(setuidContext -> processSetuidContext(setuidContext, routingContext));
     }
 
     private Future<SetuidContext> toSetuidContext(RoutingContext routingContext) {
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(routingContext);
         final HttpServerRequest httpRequest = routingContext.request();
-        final String cookieName = httpRequest.getParam(BIDDER_PARAM);
+        final String bidderQueryParam = httpRequest.getParam(BIDDER_PARAM);
         final String requestAccount = httpRequest.getParam(ACCOUNT_PARAM);
         final Timeout timeout = timeoutFactory.create(defaultTimeout);
 
-        final UsersyncMethodType syncType = Optional.ofNullable(cookieName)
-                .map(cookieNameToBidderAndSyncType::get)
-                .map(Pair::getRight)
-                .orElse(null);
+        final Usersyncer usersyncer = ObjectUtils.firstNonNull(
+                bidderToUsersyncer.get(bidderQueryParam),
+                cookieNameToUsersyncer.get(bidderQueryParam));
 
         return accountById(requestAccount, timeout)
                 .compose(account -> setuidPrivacyContextFactory.contextFrom(httpRequest, account, timeout)
@@ -192,8 +190,8 @@ public class SetuidHandler implements ApplicationResource {
                                 .uidsCookie(uidsCookie)
                                 .timeout(timeout)
                                 .account(account)
-                                .cookieName(cookieName)
-                                .syncType(syncType)
+                                .bidderQueryParam(bidderQueryParam)
+                                .usersyncer(usersyncer)
                                 .privacyContext(privacyContext)
                                 .build()))
 
@@ -218,51 +216,41 @@ public class SetuidHandler implements ApplicationResource {
                 .build();
     }
 
-    private void handleSetuidContextResult(AsyncResult<SetuidContext> setuidContextResult,
-                                           RoutingContext routingContext) {
+    private void processSetuidContext(SetuidContext setuidContext, RoutingContext routingContext) {
+        final TcfContext tcfContext = setuidContext.getPrivacyContext().getTcfContext();
 
-        if (setuidContextResult.succeeded()) {
-            final SetuidContext setuidContext = setuidContextResult.result();
-            final String bidderCookieFamily = setuidContext.getCookieName();
-            final TcfContext tcfContext = setuidContext.getPrivacyContext().getTcfContext();
-
-            try {
-                validateSetuidContext(setuidContext, bidderCookieFamily);
-            } catch (InvalidRequestException | UnauthorizedUidsException | UnavailableForLegalReasonsException e) {
-                handleErrors(e, routingContext, tcfContext);
-                return;
-            }
-
-            final AccountPrivacyConfig privacyConfig = setuidContext.getAccount().getPrivacy();
-            final AccountGdprConfig accountGdprConfig = privacyConfig != null ? privacyConfig.getGdpr() : null;
-
-            final String bidderName = cookieNameToBidderAndSyncType.get(bidderCookieFamily).getLeft();
-
-            Future.all(
-                            tcfDefinerService.isAllowedForHostVendorId(tcfContext),
-                            tcfDefinerService.resultForBidderNames(
-                                    Collections.singleton(bidderName), tcfContext, accountGdprConfig))
-                    .onComplete(hostTcfResponseResult -> respondByTcfResponse(
-                            hostTcfResponseResult,
-                            bidderName,
-                            setuidContext));
-        } else {
-            final Throwable error = setuidContextResult.cause();
-            handleErrors(error, routingContext, null);
+        try {
+            validateSetuidContext(setuidContext);
+        } catch (InvalidRequestException | UnauthorizedUidsException | UnavailableForLegalReasonsException e) {
+            handleErrors(e, routingContext, tcfContext);
+            return;
         }
+
+        final String bidderName = setuidContext.getUsersyncer().getBidder();
+
+        final AccountPrivacyConfig privacyConfig = setuidContext.getAccount().getPrivacy();
+        final AccountGdprConfig accountGdprConfig = privacyConfig != null ? privacyConfig.getGdpr() : null;
+
+        Future.all(
+                        tcfDefinerService.isAllowedForHostVendorId(tcfContext),
+                        tcfDefinerService.resultForBidderNames(
+                                Collections.singleton(bidderName), tcfContext, accountGdprConfig))
+                .onComplete(hostTcfResponseResult -> respondByTcfResponse(hostTcfResponseResult, setuidContext));
     }
 
-    private void validateSetuidContext(SetuidContext setuidContext, String bidderCookieFamily) {
-        final String cookieName = setuidContext.getCookieName();
-        final boolean isCookieNameBlank = StringUtils.isBlank(cookieName);
-        if (isCookieNameBlank || !cookieNameToBidderAndSyncType.containsKey(cookieName)) {
-            final String cookieNameError = isCookieNameBlank ? "required" : "invalid";
-            throw new InvalidRequestException("\"bidder\" query param is " + cookieNameError);
+    private void validateSetuidContext(SetuidContext setuidContext) {
+        if (StringUtils.isBlank(setuidContext.getBidderQueryParam())) {
+            throw new InvalidRequestException("\"bidder\" query param is required");
+        }
+
+        final Usersyncer usersyncer = setuidContext.getUsersyncer();
+        if (usersyncer == null) {
+            throw new InvalidRequestException("\"bidder\" query param is invalid");
         }
 
         final TcfContext tcfContext = setuidContext.getPrivacyContext().getTcfContext();
         if (tcfContext.isInGdprScope() && !tcfContext.isConsentValid()) {
-            metrics.updateUserSyncTcfInvalidMetric(bidderCookieFamily);
+            metrics.updateUserSyncTcfInvalidMetric(usersyncer.getCookieFamilyName());
             throw new InvalidRequestException("Consent string is invalid");
         }
 
@@ -273,7 +261,7 @@ public class SetuidHandler implements ApplicationResource {
 
         final ActivityInfrastructure activityInfrastructure = setuidContext.getActivityInfrastructure();
         final ActivityInvocationPayload activityInvocationPayload = TcfContextActivityInvocationPayload.of(
-                ActivityInvocationPayloadImpl.of(ComponentType.BIDDER, bidderCookieFamily),
+                ActivityInvocationPayloadImpl.of(ComponentType.BIDDER, usersyncer.getCookieFamilyName()),
                 tcfContext);
 
         if (!activityInfrastructure.isAllowed(Activity.SYNC_USER, activityInvocationPayload)) {
@@ -282,11 +270,11 @@ public class SetuidHandler implements ApplicationResource {
     }
 
     private void respondByTcfResponse(AsyncResult<CompositeFuture> hostTcfResponseResult,
-                                      String bidderName,
                                       SetuidContext setuidContext) {
 
         final TcfContext tcfContext = setuidContext.getPrivacyContext().getTcfContext();
         final RoutingContext routingContext = setuidContext.getRoutingContext();
+        final String cookieFamilyName = setuidContext.getUsersyncer().getCookieFamilyName();
 
         if (hostTcfResponseResult.succeeded()) {
             final CompositeFuture compositeFuture = hostTcfResponseResult.result();
@@ -295,7 +283,7 @@ public class SetuidHandler implements ApplicationResource {
 
             final Map<String, PrivacyEnforcementAction> vendorIdToAction = bidderTcfResponse.getActions();
             final PrivacyEnforcementAction action = vendorIdToAction != null
-                    ? vendorIdToAction.get(bidderName)
+                    ? vendorIdToAction.get(setuidContext.getUsersyncer().getBidder())
                     : null;
 
             final boolean notInGdprScope = BooleanUtils.isFalse(bidderTcfResponse.getUserInGdprScope());
@@ -304,7 +292,7 @@ public class SetuidHandler implements ApplicationResource {
             if (hostVendorTcfResponse.isVendorAllowed() && isBidderVendorAllowed) {
                 respondWithCookie(setuidContext);
             } else {
-                metrics.updateUserSyncTcfBlockedMetric(setuidContext.getCookieName());
+                metrics.updateUserSyncTcfBlockedMetric(cookieFamilyName);
 
                 final HttpResponseStatus status = new HttpResponseStatus(UNAVAILABLE_FOR_LEGAL_REASONS,
                         "Unavailable for legal reasons");
@@ -319,7 +307,7 @@ public class SetuidHandler implements ApplicationResource {
             }
         } else {
             final Throwable error = hostTcfResponseResult.cause();
-            metrics.updateUserSyncTcfBlockedMetric(setuidContext.getCookieName());
+            metrics.updateUserSyncTcfBlockedMetric(cookieFamilyName);
             handleErrors(error, routingContext, tcfContext);
         }
     }
@@ -327,16 +315,16 @@ public class SetuidHandler implements ApplicationResource {
     private void respondWithCookie(SetuidContext setuidContext) {
         final RoutingContext routingContext = setuidContext.getRoutingContext();
         final String uid = routingContext.request().getParam(UID_PARAM);
-        final String bidder = setuidContext.getCookieName();
+        final String cookieFamilyName = setuidContext.getUsersyncer().getCookieFamilyName();
 
         final UpdateResult<UidsCookie> uidsCookieUpdateResult = uidsCookieService.updateUidsCookie(
-                setuidContext.getUidsCookie(), bidder, uid);
+                setuidContext.getUidsCookie(), cookieFamilyName, uid);
 
         uidsCookieService.splitUidsIntoCookies(uidsCookieUpdateResult.getValue())
                 .forEach(cookie -> addCookie(routingContext, cookie));
 
         if (uidsCookieUpdateResult.isUpdated()) {
-            metrics.updateUserSyncSetsMetric(bidder);
+            metrics.updateUserSyncSetsMetric(cookieFamilyName);
         }
         final int statusCode = HttpResponseStatus.OK.code();
         HttpUtil.executeSafely(routingContext, Endpoint.setuid, buildCookieResponseConsumer(setuidContext, statusCode));
@@ -344,7 +332,7 @@ public class SetuidHandler implements ApplicationResource {
         final TcfContext tcfContext = setuidContext.getPrivacyContext().getTcfContext();
         final SetuidEvent setuidEvent = SetuidEvent.builder()
                 .status(statusCode)
-                .bidder(bidder)
+                .bidder(cookieFamilyName)
                 .uid(uid)
                 .success(uidsCookieUpdateResult.isUpdated())
                 .build();
@@ -355,13 +343,17 @@ public class SetuidHandler implements ApplicationResource {
                                                                      int responseStatusCode) {
 
         final String format = setuidContext.getRoutingContext().request().getParam(UsersyncUtil.FORMAT_PARAMETER);
-        return shouldRespondWithPixel(format, setuidContext.getSyncType())
+        return shouldRespondWithPixel(format, preferredUserSyncType(setuidContext.getUsersyncer()))
                 ? response -> response.sendFile(PIXEL_FILE_PATH)
                 : response -> response
-                .setStatusCode(responseStatusCode)
-                .putHeader(HttpHeaders.CONTENT_LENGTH, "0")
-                .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaders.TEXT_HTML)
-                .end();
+                              .setStatusCode(responseStatusCode)
+                              .putHeader(HttpHeaders.CONTENT_LENGTH, "0")
+                              .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaders.TEXT_HTML)
+                              .end();
+    }
+
+    private static UsersyncMethodType preferredUserSyncType(Usersyncer usersyncer) {
+        return ObjectUtils.firstNonNull(usersyncer.getIframe(), usersyncer.getRedirect()).getType();
     }
 
     private boolean shouldRespondWithPixel(String format, UsersyncMethodType syncType) {
@@ -374,21 +366,21 @@ public class SetuidHandler implements ApplicationResource {
         final HttpResponseStatus status;
         final String body;
         switch (error) {
-            case InvalidRequestException invalidRequestException -> {
+            case InvalidRequestException ignored -> {
                 metrics.updateUserSyncBadRequestMetric();
                 status = HttpResponseStatus.BAD_REQUEST;
                 body = "Invalid request format: " + message;
             }
-            case UnauthorizedUidsException unauthorizedUidsException -> {
+            case UnauthorizedUidsException ignored -> {
                 metrics.updateUserSyncOptoutMetric();
                 status = HttpResponseStatus.UNAUTHORIZED;
                 body = "Unauthorized: " + message;
             }
-            case UnavailableForLegalReasonsException unavailableForLegalReasonsException -> {
+            case UnavailableForLegalReasonsException ignored -> {
                 status = HttpResponseStatus.valueOf(451);
                 body = "Unavailable For Legal Reasons.";
             }
-            case InvalidAccountConfigException invalidAccountConfigException -> {
+            case InvalidAccountConfigException ignored -> {
                 metrics.updateUserSyncBadRequestMetric();
                 status = HttpResponseStatus.BAD_REQUEST;
                 body = "Invalid account configuration: " + message;

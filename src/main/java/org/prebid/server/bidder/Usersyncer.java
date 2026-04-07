@@ -10,6 +10,8 @@ public class Usersyncer {
 
     boolean enabled;
 
+    String bidder;
+
     String cookieFamilyName;
 
     CookieFamilySource cookieFamilySource;
@@ -22,7 +24,8 @@ public class Usersyncer {
 
     List<Integer> gppSidToSkip;
 
-    public static Usersyncer of(String cookieFamilyName,
+    public static Usersyncer of(String bidder,
+                                String cookieFamilyName,
                                 UsersyncMethod iframe,
                                 UsersyncMethod redirect,
                                 boolean skipWhenInGdprScope,
@@ -30,6 +33,7 @@ public class Usersyncer {
 
         return of(
                 true,
+                bidder,
                 cookieFamilyName,
                 CookieFamilySource.ROOT,
                 iframe,

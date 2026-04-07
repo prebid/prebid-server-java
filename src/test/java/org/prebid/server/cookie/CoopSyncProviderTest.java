@@ -174,6 +174,7 @@ public class CoopSyncProviderTest {
         given(bidderCatalog.isActive(bidder)).willReturn(true);
         given(bidderCatalog.usersyncerByName(bidder)).willReturn(
                 Optional.of(Usersyncer.of(
+                        bidder,
                         "cookie-family-name",
                         UsersyncMethod.builder().build(),
                         null,
