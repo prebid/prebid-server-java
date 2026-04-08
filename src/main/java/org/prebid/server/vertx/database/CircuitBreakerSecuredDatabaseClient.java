@@ -61,8 +61,7 @@ public class CircuitBreakerSecuredDatabaseClient implements DatabaseClient {
                                       Function<RowSet<Row>, T> mapper,
                                       Timeout timeout) {
 
-        return breaker.execute(
-                promise -> databaseClient.executeQuery(query, params, mapper, timeout).onComplete(promise));
+        return breaker.execute(() -> databaseClient.executeQuery(query, params, mapper, timeout));
     }
 
     private void circuitOpened() {

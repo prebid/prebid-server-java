@@ -181,13 +181,12 @@ public final class HttpUtil {
     }
 
     public static Map<String, String> cookiesAsMap(RoutingContext routingContext) {
-        return routingContext.cookieMap().entrySet().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getValue()));
+        return routingContext.request().cookies().stream()
+                .collect(Collectors.toMap(Cookie::getName, Cookie::getValue));
     }
 
     public static String createCookiesHeader(RoutingContext routingContext) {
-        return routingContext.cookieMap().entrySet().stream()
-                .map(entry -> Cookie.cookie(entry.getKey(), entry.getValue().getValue()))
+        return routingContext.request().cookies().stream()
                 .map(Cookie::encode)
                 .collect(Collectors.joining("; "));
     }

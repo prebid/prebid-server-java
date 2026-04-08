@@ -69,9 +69,7 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
                                               long maxResponseSize) {
 
         return circuitBreakerByName.computeIfAbsent(nameFrom(url), circuitBreakerCreator)
-                .execute(promise ->
-                        httpClient.request(method, url, headers, body, timeoutMs, maxResponseSize)
-                                .onComplete(promise));
+                .execute(() -> httpClient.request(method, url, headers, body, timeoutMs, maxResponseSize));
     }
 
     @Override
@@ -82,9 +80,7 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
                                               long timeoutMs,
                                               long maxResponseSize) {
         return circuitBreakerByName.computeIfAbsent(nameFrom(url), circuitBreakerCreator)
-                .execute(promise ->
-                        httpClient.request(method, url, headers, body, timeoutMs, maxResponseSize)
-                                .onComplete(promise));
+                .execute(() -> httpClient.request(method, url, headers, body, timeoutMs, maxResponseSize));
     }
 
     private CircuitBreaker createCircuitBreaker(String name,

@@ -40,6 +40,8 @@ import static org.mockito.Mockito.verify;
 @ExtendWith(VertxExtension.class)
 public class BasicHttpClientTest {
 
+    private static final String CRLF = "\r\n";
+
     @Mock
     private Vertx vertx;
     @Mock(strictness = LENIENT)
@@ -203,12 +205,12 @@ public class BasicHttpClientTest {
                         }
 
                         out.write("HTTP/1.1 200 OK");
-                        out.newLine();
+                        out.write(CRLF);
 
                         out.write("Content-Length: 6"); // set body size greater then length of "start" word
-                        out.newLine();
+                        out.write(CRLF);
 
-                        out.newLine();
+                        out.write(CRLF);
                         out.write("start");
                         out.flush();
 

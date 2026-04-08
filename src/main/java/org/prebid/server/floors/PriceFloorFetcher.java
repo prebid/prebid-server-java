@@ -5,7 +5,6 @@ import io.netty.channel.ConnectTimeoutException;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
-import io.vertx.core.impl.ConcurrentHashSet;
 import lombok.Value;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
@@ -37,6 +36,7 @@ import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.regex.Matcher;
@@ -79,7 +79,7 @@ public class PriceFloorFetcher {
         this.debugProperties = debugProperties;
         this.mapper = Objects.requireNonNull(mapper);
 
-        fetchInProgress = new ConcurrentHashSet<>();
+        fetchInProgress = ConcurrentHashMap.newKeySet();
         fetchedData = Caffeine.newBuilder()
                 .maximumSize(MAXIMUM_CACHE_SIZE)
                 .<String, AccountFetchContext>build()

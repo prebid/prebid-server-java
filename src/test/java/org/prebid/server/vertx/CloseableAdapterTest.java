@@ -35,7 +35,7 @@ public class CloseableAdapterTest {
         new CloseableAdapter(closeable).close(completionPromise);
 
         // then
-        verify(completionPromise).handle(eq(Future.succeededFuture()));
+        verify(completionPromise).succeed();
     }
 
     @Test
@@ -48,6 +48,6 @@ public class CloseableAdapterTest {
         new CloseableAdapter(closeable).close(completionPromise);
 
         // then
-        verify(completionPromise).handle(argThat(future -> future.failed() && future.cause() == exception));
+        verify(completionPromise).fail(exception);
     }
 }

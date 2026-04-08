@@ -27,6 +27,7 @@ import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import static java.util.Collections.emptySet;
@@ -73,8 +74,9 @@ public class S3ApplicationSettingsTest extends VertxTest {
     }
 
     @AfterEach
-    public void tearDown(VertxTestContext context) {
-        vertx.close(context.succeedingThenComplete());
+    public void tearDown(VertxTestContext context) throws InterruptedException {
+        vertx.close().onComplete(context.succeedingThenComplete());
+        context.awaitCompletion(1000, TimeUnit.MILLISECONDS);
     }
 
     @Test

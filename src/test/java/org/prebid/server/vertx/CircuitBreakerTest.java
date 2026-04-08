@@ -15,6 +15,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -36,8 +38,9 @@ public class CircuitBreakerTest {
     }
 
     @AfterEach
-    public void tearDown(VertxTestContext context) {
-        vertx.close(context.succeedingThenComplete());
+    public void tearDown(VertxTestContext context) throws InterruptedException {
+        vertx.close().onComplete(context.succeedingThenComplete());
+        context.awaitCompletion(1000, TimeUnit.MILLISECONDS);
     }
 
     @Test
@@ -131,14 +134,14 @@ public class CircuitBreakerTest {
     }
 
     private Future<String> executeWithSuccess(String result) {
-        return execute(operationPromise -> operationPromise.complete(result));
+        return execute(() -> Future.succeededFuture(result));
     }
 
     private Future<String> executeWithFail(String errorMessage) {
-        return execute(operationPromise -> operationPromise.fail(new RuntimeException(errorMessage)));
+        return execute(() -> Future.failedFuture(new RuntimeException(errorMessage)));
     }
 
-    private Future<String> execute(Handler<Promise<String>> handler) {
+    private Future<String> execute(Supplier<Future<String>> handler) {
         final Future<String> future = circuitBreaker.execute(handler);
 
         final Promise<?> promise = Promise.promise();

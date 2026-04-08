@@ -21,6 +21,7 @@ import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
 import java.util.function.LongSupplier;
 
@@ -56,8 +57,9 @@ public class CircuitBreakerSecuredHttpClientTest {
     }
 
     @AfterEach
-    public void tearDown(VertxTestContext context) {
-        vertx.close(context.succeedingThenComplete());
+    public void tearDown(VertxTestContext context) throws InterruptedException {
+        vertx.close().onComplete(context.succeedingThenComplete());
+        context.awaitCompletion(1000, TimeUnit.MILLISECONDS);
     }
 
     @Test
@@ -192,6 +194,8 @@ public class CircuitBreakerSecuredHttpClientTest {
     @Test
     public void circuitBreakerNumberGaugeShouldReportActualNumber() {
         // when
+        givenHttpClientReturning(new RuntimeException("exception"));
+
         doRequest();
 
         // then

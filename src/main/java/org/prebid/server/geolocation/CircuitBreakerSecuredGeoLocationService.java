@@ -49,7 +49,7 @@ public class CircuitBreakerSecuredGeoLocationService implements GeoLocationServi
 
     @Override
     public Future<GeoInfo> lookup(String ip, Timeout timeout) {
-        return breaker.execute(promise -> geoLocationService.lookup(ip, timeout).onComplete(promise));
+        return breaker.execute(() -> geoLocationService.lookup(ip, timeout));
     }
 
     private void circuitOpened() {

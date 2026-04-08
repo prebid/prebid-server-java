@@ -5,6 +5,7 @@ import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
 import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClientOptions;
+import io.vertx.core.http.PoolOptions;
 import io.vertx.core.net.JksOptions;
 import lombok.Data;
 import org.apache.commons.lang3.ObjectUtils;
@@ -676,11 +677,13 @@ public class ServiceConfiguration {
     }
 
     private static BasicHttpClient createBasicHttpClient(Vertx vertx, HttpClientProperties httpClientProperties) {
+        final PoolOptions poolOptions = new PoolOptions()
+                .setHttp1MaxSize(httpClientProperties.getMaxPoolSize())
+                .setCleanerPeriod(httpClientProperties.getPoolCleanerPeriodMs());
+
         final HttpClientOptions options = new HttpClientOptions()
-                .setMaxPoolSize(httpClientProperties.getMaxPoolSize())
                 .setIdleTimeoutUnit(TimeUnit.MILLISECONDS)
                 .setIdleTimeout(httpClientProperties.getIdleTimeoutMs())
-                .setPoolCleanerPeriod(httpClientProperties.getPoolCleanerPeriodMs())
                 .setDecompressionSupported(httpClientProperties.getUseCompression())
                 .setConnectTimeout(httpClientProperties.getConnectTimeoutMs())
                 // Vert.x's HttpClientRequest needs this value to be 2 for redirections to be followed once,
@@ -697,7 +700,7 @@ public class ServiceConfiguration {
                     .setKeyCertOptions(jksOptions);
         }
 
-        return new BasicHttpClient(vertx, vertx.createHttpClient(options));
+        return new BasicHttpClient(vertx, vertx.createHttpClient(options, poolOptions));
     }
 
     @Bean

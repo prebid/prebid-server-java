@@ -98,6 +98,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -149,8 +150,9 @@ public class HookStageExecutorTest extends VertxTest {
     }
 
     @AfterEach
-    public void tearDown(VertxTestContext context) {
-        vertx.close(context.succeedingThenComplete());
+    public void tearDown(VertxTestContext context) throws InterruptedException {
+        vertx.close().onComplete(context.succeedingThenComplete());
+        context.awaitCompletion(1000, TimeUnit.MILLISECONDS);
     }
 
     @Test

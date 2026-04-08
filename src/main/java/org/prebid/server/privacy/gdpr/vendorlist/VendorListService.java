@@ -3,7 +3,6 @@ package org.prebid.server.privacy.gdpr.vendorlist;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.FileProps;
@@ -317,23 +316,15 @@ public class VendorListService {
      * Saves given vendor list on file system.
      */
     private Future<VendorListResult<VendorList>> saveToFile(VendorListResult<VendorList> vendorListResult) {
-        final Promise<VendorListResult<VendorList>> promise = Promise.promise();
         final int version = vendorListResult.getVersion();
         final String filepath = new File(cacheDir, version + JSON_SUFFIX).getPath();
 
-        fileSystem.writeFile(filepath, Buffer.buffer(vendorListResult.getVendorListAsString()), result -> {
-            if (result.succeeded()) {
-                promise.complete(vendorListResult);
-            } else {
-                conditionalLogger.error(
+        return fileSystem.writeFile(filepath, Buffer.buffer(vendorListResult.getVendorListAsString()))
+                .map(vendorListResult)
+                .onFailure(error -> conditionalLogger.error(
                         "Could not create new vendor list for version %s.%s, file: %s, trace: %s".formatted(
-                                generationVersion, version, filepath, ExceptionUtils.getStackTrace(result.cause())),
-                        logSamplingRate);
-                promise.fail(result.cause());
-            }
-        });
-
-        return promise.future();
+                                generationVersion, version, filepath, ExceptionUtils.getStackTrace(error.getCause())),
+                        logSamplingRate));
     }
 
     private Void updateCache(VendorListResult<VendorList> vendorListResult) {
