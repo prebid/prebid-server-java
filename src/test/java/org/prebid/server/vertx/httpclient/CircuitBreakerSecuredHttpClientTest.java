@@ -18,9 +18,6 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
-import java.time.Clock;
-import java.time.Instant;
-import java.time.ZoneId;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
 import java.util.function.LongSupplier;
@@ -41,7 +38,6 @@ public class CircuitBreakerSecuredHttpClientTest {
 
     private Vertx vertx;
 
-    private Clock clock;
     @Mock
     private HttpClient wrappedHttpClient;
     @Mock
@@ -52,8 +48,7 @@ public class CircuitBreakerSecuredHttpClientTest {
     @BeforeEach
     public void setUp() {
         vertx = Vertx.vertx();
-        clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
-        httpClient = new CircuitBreakerSecuredHttpClient(vertx, wrappedHttpClient, metrics, 1, 100L, 200L, 24, clock);
+        httpClient = new CircuitBreakerSecuredHttpClient(vertx, wrappedHttpClient, metrics, 1, 1000L, 200L, 24);
     }
 
     @AfterEach
@@ -171,7 +166,7 @@ public class CircuitBreakerSecuredHttpClientTest {
     @Test
     public void requestShouldFailWithOriginalExceptionIfOpeningIntervalExceeds() {
         // given
-        httpClient = new CircuitBreakerSecuredHttpClient(vertx, wrappedHttpClient, metrics, 2, 100L, 200L, 24, clock);
+        httpClient = new CircuitBreakerSecuredHttpClient(vertx, wrappedHttpClient, metrics, 2, 100L, 200L, 24);
 
         givenHttpClientReturning(new RuntimeException("exception1"), new RuntimeException("exception2"));
 

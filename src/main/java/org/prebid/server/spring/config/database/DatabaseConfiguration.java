@@ -167,8 +167,7 @@ public class DatabaseConfiguration {
                 metrics,
                 circuitBreakerProperties.getOpeningThreshold(),
                 circuitBreakerProperties.getOpeningIntervalMs(),
-                circuitBreakerProperties.getClosingIntervalMs(),
-                clock);
+                circuitBreakerProperties.getClosingIntervalMs());
     }
 
     private static BasicDatabaseClient createBasicDatabaseClient(Pool pool,

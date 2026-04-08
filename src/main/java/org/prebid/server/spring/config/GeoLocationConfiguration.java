@@ -30,7 +30,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
-import java.time.Clock;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
@@ -70,13 +69,15 @@ public class GeoLocationConfiguration {
                 Vertx vertx,
                 Metrics metrics,
                 FileSyncerProperties fileSyncerProperties,
-                @Qualifier("maxMindCircuitBreakerProperties") CircuitBreakerProperties circuitBreakerProperties,
-                Clock clock) {
+                @Qualifier("maxMindCircuitBreakerProperties") CircuitBreakerProperties circuitBreakerProperties) {
 
-            return new CircuitBreakerSecuredGeoLocationService(vertx,
-                    createGeoLocationService(fileSyncerProperties, vertx), metrics,
-                    circuitBreakerProperties.getOpeningThreshold(), circuitBreakerProperties.getOpeningIntervalMs(),
-                    circuitBreakerProperties.getClosingIntervalMs(), clock);
+            return new CircuitBreakerSecuredGeoLocationService(
+                    vertx,
+                    createGeoLocationService(fileSyncerProperties, vertx),
+                    metrics,
+                    circuitBreakerProperties.getOpeningThreshold(),
+                    circuitBreakerProperties.getOpeningIntervalMs(),
+                    circuitBreakerProperties.getClosingIntervalMs());
         }
 
         private GeoLocationService createGeoLocationService(FileSyncerProperties properties, Vertx vertx) {

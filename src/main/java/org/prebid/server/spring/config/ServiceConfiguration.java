@@ -660,8 +660,7 @@ public class ServiceConfiguration {
             Metrics metrics,
             HttpClientProperties httpClientProperties,
             @Qualifier("httpClientCircuitBreakerProperties")
-            HttpClientCircuitBreakerProperties circuitBreakerProperties,
-            Clock clock) {
+            HttpClientCircuitBreakerProperties circuitBreakerProperties) {
 
         final HttpClient httpClient = createBasicHttpClient(vertx, httpClientProperties);
 
@@ -672,8 +671,7 @@ public class ServiceConfiguration {
                 circuitBreakerProperties.getOpeningThreshold(),
                 circuitBreakerProperties.getOpeningIntervalMs(),
                 circuitBreakerProperties.getClosingIntervalMs(),
-                circuitBreakerProperties.getIdleExpireHours(),
-                clock);
+                circuitBreakerProperties.getIdleExpireHours());
     }
 
     private static BasicHttpClient createBasicHttpClient(Vertx vertx, HttpClientProperties httpClientProperties) {

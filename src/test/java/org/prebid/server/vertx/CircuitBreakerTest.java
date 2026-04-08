@@ -1,7 +1,6 @@
 package org.prebid.server.vertx;
 
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.junit5.VertxExtension;
@@ -12,9 +11,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.Clock;
-import java.time.Instant;
-import java.time.ZoneId;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
@@ -26,15 +22,12 @@ public class CircuitBreakerTest {
 
     private Vertx vertx;
 
-    private Clock clock;
-
     private CircuitBreaker circuitBreaker;
 
     @BeforeEach
     public void setUp() {
         vertx = Vertx.vertx();
-        clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
-        circuitBreaker = new CircuitBreaker("name", vertx, 1, 100L, 200L, clock);
+        circuitBreaker = new CircuitBreaker("name", vertx, 1, 1000L, 200L);
     }
 
     @AfterEach
@@ -118,7 +111,7 @@ public class CircuitBreakerTest {
     @Test
     public void executeShouldFailsWithOriginalExceptionIfOpeningIntervalExceeds() {
         // given
-        circuitBreaker = new CircuitBreaker("name", vertx, 2, 100L, 200L, clock);
+        circuitBreaker = new CircuitBreaker("name", vertx, 2, 100L, 200L);
 
         // when
         final Future<?> future1 = executeWithFail("exception1");

@@ -15,7 +15,6 @@ import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.time.Clock;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -41,13 +40,12 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
                                            int openingThreshold,
                                            long openingIntervalMs,
                                            long closingIntervalMs,
-                                           int idleExpireHours,
-                                           Clock clock) {
+                                           int idleExpireHours) {
 
         this.httpClient = Objects.requireNonNull(httpClient);
 
         circuitBreakerCreator = name -> createCircuitBreaker(
-                name, vertx, openingThreshold, openingIntervalMs, closingIntervalMs, clock, metrics);
+                name, vertx, openingThreshold, openingIntervalMs, closingIntervalMs, metrics);
 
         circuitBreakerByName = Caffeine.newBuilder()
                 .expireAfterAccess(idleExpireHours, TimeUnit.HOURS)
@@ -88,7 +86,6 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
                                                 int openingThreshold,
                                                 long openingIntervalMs,
                                                 long closingIntervalMs,
-                                                Clock clock,
                                                 Metrics metrics) {
 
         final CircuitBreaker circuitBreaker = new CircuitBreaker(
@@ -96,8 +93,7 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
                 Objects.requireNonNull(vertx),
                 openingThreshold,
                 openingIntervalMs,
-                closingIntervalMs,
-                Objects.requireNonNull(clock))
+                closingIntervalMs)
                 .openHandler(ignored -> circuitOpened(name))
                 .halfOpenHandler(ignored -> circuitHalfOpened(name))
                 .closeHandler(ignored -> circuitClosed(name));

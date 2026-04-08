@@ -10,7 +10,6 @@ import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.vertx.CircuitBreaker;
 
-import java.time.Clock;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
@@ -31,13 +30,16 @@ public class CircuitBreakerSecuredGeoLocationService implements GeoLocationServi
                                                    Metrics metrics,
                                                    int openingThreshold,
                                                    long openingIntervalMs,
-                                                   long closingIntervalMs,
-                                                   Clock clock) {
+                                                   long closingIntervalMs) {
 
         this.geoLocationService = Objects.requireNonNull(geoLocationService);
 
-        breaker = new CircuitBreaker("geo_cb", Objects.requireNonNull(vertx),
-                openingThreshold, openingIntervalMs, closingIntervalMs, Objects.requireNonNull(clock))
+        breaker = new CircuitBreaker(
+                "geo_cb",
+                Objects.requireNonNull(vertx),
+                openingThreshold,
+                openingIntervalMs,
+                closingIntervalMs)
                 .openHandler(ignored -> circuitOpened())
                 .halfOpenHandler(ignored -> circuitHalfOpened())
                 .closeHandler(ignored -> circuitClosed());

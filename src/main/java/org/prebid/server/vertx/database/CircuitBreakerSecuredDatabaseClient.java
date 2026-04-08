@@ -11,7 +11,6 @@ import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.vertx.CircuitBreaker;
 
-import java.time.Clock;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -34,8 +33,7 @@ public class CircuitBreakerSecuredDatabaseClient implements DatabaseClient {
                                                Metrics metrics,
                                                int openingThreshold,
                                                long openingIntervalMs,
-                                               long closingIntervalMs,
-                                               Clock clock) {
+                                               long closingIntervalMs) {
 
         this.databaseClient = Objects.requireNonNull(databaseClient);
 
@@ -44,8 +42,7 @@ public class CircuitBreakerSecuredDatabaseClient implements DatabaseClient {
                 Objects.requireNonNull(vertx),
                 openingThreshold,
                 openingIntervalMs,
-                closingIntervalMs,
-                Objects.requireNonNull(clock))
+                closingIntervalMs)
                 .openHandler(ignored -> circuitOpened())
                 .halfOpenHandler(ignored -> circuitHalfOpened())
                 .closeHandler(ignored -> circuitClosed());
