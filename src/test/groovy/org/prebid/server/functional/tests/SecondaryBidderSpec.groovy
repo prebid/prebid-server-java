@@ -48,7 +48,7 @@ class SecondaryBidderSpec extends BaseSpec {
         genericAliasBidder.reset()
     }
 
-    def "PBS shouldn't emit warning when secondary bidders config set to #secondaryBidder"() {
+    def "PBS shouldn't emit warning when secondary bidders account config set to #secondaryBidder"() {
         given: "Default basic BidRequest with generic bidder"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             enabledReturnAllBidStatus()
@@ -76,7 +76,7 @@ class SecondaryBidderSpec extends BaseSpec {
         secondaryBidder << [null, UNKNOWN]
     }
 
-    def "PBS should treat all bidders as primary when all requested bidders in secondary bidders config"() {
+    def "PBS should treat all bidders as primary when all requested bidders in secondary bidders account config"() {
         given: "Default basic BidRequest with generic and openx bidder"
         def bidRequest = getEnrichedBidRequest([GENERIC, OPENX])
 
@@ -107,7 +107,7 @@ class SecondaryBidderSpec extends BaseSpec {
         assert !bidResponse.ext?.seatnonbid
     }
 
-    def "PBS shouldn't wait on non-prioritized bidder when primary bidder responds"() {
+    def "PBS shouldn't wait on non-prioritized bidder when primary bidder from account configuration responds"() {
         given: "Default bid request with generic and openX bidders"
         def bidRequest = getEnrichedBidRequest([GENERIC, OPENX])
 
@@ -144,7 +144,7 @@ class SecondaryBidderSpec extends BaseSpec {
         assert seatNonBid.nonBid[0].statusCode == ERROR_TIMED_OUT
     }
 
-    def "PBS shouldn't treat alias bidder as secondary when root bidder code in secondary"() {
+    def "PBS shouldn't treat alias as secondary when root bidder is secondary in account config"() {
         given: "Default bid request with generic and openX bidders"
         def bidRequest = getEnrichedBidRequest([OPENX, ALIAS]).tap {
             it.ext.prebid.aliases = [(ALIAS.value): OPENX]
@@ -267,6 +267,170 @@ class SecondaryBidderSpec extends BaseSpec {
         assert !bidResponse.ext?.warnings
         assert !bidResponse.ext?.errors
         assert !bidResponse.ext?.seatnonbid
+    }
+
+    def "PBS shouldn't emit warning when secondary bidders request config set to #secondaryBidder"() {
+        given: "Default basic BidRequest with generic bidder"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            enabledReturnAllBidStatus()
+            ext.prebid.secondaryBidders = [secondaryBidder]
+        }
+
+        when: "PBS processes auction request"
+        def bidResponse = pbsServiceWithOpenXBidder.sendAuctionRequest(bidRequest)
+
+        then: "PBs should process bidder request"
+        assert bidder.getBidderRequests(bidRequest.id)
+
+        and: "PBS shouldn't contain errors, warnings and seat non bid"
+        assert !bidResponse.ext?.warnings
+        assert !bidResponse.ext?.errors
+        assert !bidResponse.ext?.seatnonbid
+
+        where:
+        secondaryBidder << [null, UNKNOWN]
+    }
+
+    def "PBS should treat all bidders as primary when all requested bidders in secondary bidders request config"() {
+        given: "Default basic BidRequest with generic and openx bidder"
+        def bidRequest = getEnrichedBidRequest([GENERIC, OPENX]).tap {
+            ext.prebid.secondaryBidders = [GENERIC, OPENX]
+        }
+
+        and: "Set up openx response"
+        openXBidder.setResponse()
+
+        when: "PBS processes auction request"
+        def bidResponse = pbsServiceWithOpenXBidder.sendAuctionRequest(bidRequest)
+
+        then: "PBs should processed generic request"
+        def genericBidderRequests = bidder.getBidderRequests(bidRequest.id)
+        assert genericBidderRequests.size() == 1
+
+        and: "PBs should processed openx request"
+        def openXBidderRequests = openXBidder.getBidderRequests(bidRequest.id)
+        assert openXBidderRequests.size() == 1
+
+        and: "PBS shouldn't contain errors, warnings and seat non bid"
+        assert !bidResponse.ext?.warnings
+        assert !bidResponse.ext?.errors
+        assert !bidResponse.ext?.seatnonbid
+    }
+
+    def "PBS shouldn't wait on non-prioritized bidder when primary bidder from request configuration responds"() {
+        given: "Default bid request with generic and openX bidders"
+        def bidRequest = getEnrichedBidRequest([GENERIC, OPENX]).tap {
+            ext.prebid.secondaryBidders = [OPENX]
+        }
+
+        and: "Set up openx bidder response with delay"
+        openXBidder.setResponseWithDelay(RESPONSE_DELAY_MILLISECONDS)
+
+        when: "PBS processes auction request"
+        def bidResponse = pbsServiceWithOpenXBidder.sendAuctionRequest(bidRequest)
+
+        then: "PBs should processed bidder call"
+        assert bidder.getBidderRequests(bidRequest.id)
+        assert openXBidder.getBidderRequest(bidRequest.id)
+
+        and: "PBs response shouldn't contain response body from openX bidder"
+        assert !bidResponse?.ext?.debug?.httpcalls[OPENX.value]?.responseBody
+
+        and: "PBS shouldn't contain error for openX due to timeout"
+        assert !bidResponse.ext?.errors
+
+        and: "PBs should respond with warning for openx"
+        assert bidResponse.ext?.warnings[ErrorType.OPENX].message == [WARNING_TIME_OUT_MESSAGE]
+
+        and: "PBs should populate seatNonBid for openX bidder"
+        def seatNonBid = bidResponse.ext.seatnonbid[0]
+        assert seatNonBid.seat == OPENX
+        assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
+        assert seatNonBid.nonBid[0].statusCode == ERROR_TIMED_OUT
+    }
+
+    def "PBS shouldn't treat alias as secondary when root bidder is secondary in request config"() {
+        given: "Default bid request with generic and openX bidders"
+        def bidRequest = getEnrichedBidRequest([OPENX, ALIAS]).tap {
+            it.ext.prebid.aliases = [(ALIAS.value): OPENX]
+            ext.prebid.secondaryBidders = [OPENX]
+        }
+
+        and: "Set up openx bidder response with delay"
+        openXBidder.setResponseWithDelay(RESPONSE_DELAY_MILLISECONDS)
+
+        and: "Set up openx alias bidder response"
+        genericAliasBidder.setResponse()
+
+        when: "PBS processes auction request"
+        def bidResponse = pbsServiceWithOpenXBidder.sendAuctionRequest(bidRequest)
+
+        then: "PBS should process bidder request"
+        assert bidder.getBidderRequest(bidRequest.id)
+        assert genericAliasBidder.getBidderRequest(bidRequest.id)
+        assert openXBidder.getBidderRequest(bidRequest.id)
+
+        and: "PBs response should contain openX alias and generic"
+        assert bidResponse.seatbid.seat.sort() == [ALIAS, GENERIC].sort()
+
+        and: "PBs response should contain response body from generic and alias bidder"
+        def httpCalls = bidResponse?.ext?.debug?.httpcalls
+        assert httpCalls[GENERIC.value]?.responseBody
+        assert httpCalls[ALIAS.value]?.responseBody
+
+        and: "PBS response shouldn't contain response body from openX bidder"
+        assert !httpCalls[OPENX.value]?.responseBody
+
+        and: "PBS shouldn't contain error for openX due to timeout"
+        assert !bidResponse.ext?.errors
+
+        and: "PBs should respond with warning for openx"
+        assert bidResponse.ext?.warnings[ErrorType.OPENX].message == [WARNING_TIME_OUT_MESSAGE]
+
+        and: "PBs should populate seatNonBid"
+        def seatNonBid = bidResponse.ext.seatnonbid[0]
+        assert seatNonBid.seat == OPENX
+        assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
+        assert seatNonBid.nonBid[0].statusCode == ERROR_TIMED_OUT
+    }
+
+    def "PBS should prioritize request secondary bidders config over account config when there conflict"() {
+        given: "Default bid request with generic and openX bidders"
+        def bidRequest = getEnrichedBidRequest([GENERIC, OPENX]).tap {
+            ext.prebid.secondaryBidders = [OPENX]
+        }
+
+        and: "Set up openx bidder response with delay"
+        openXBidder.setResponseWithDelay(RESPONSE_DELAY_MILLISECONDS)
+
+        and: "Account in the DB"
+        def accountConfig = AccountConfig.defaultAccountConfig.tap {
+            it.auction = new AccountAuctionConfig(secondaryBidders: [GENERIC])
+        }
+        def account = new Account(uuid: bidRequest.accountId, config: accountConfig)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        def bidResponse = pbsServiceWithOpenXBidder.sendAuctionRequest(bidRequest)
+
+        then: "PBs should processed bidder call"
+        assert bidder.getBidderRequests(bidRequest.id)
+        assert openXBidder.getBidderRequest(bidRequest.id)
+
+        and: "PBs response shouldn't contain response body from openX bidder"
+        assert !bidResponse?.ext?.debug?.httpcalls[OPENX.value]?.responseBody
+
+        and: "PBS shouldn't contain error for openX due to timeout"
+        assert !bidResponse.ext?.errors
+
+        and: "PBs should respond with warning for openx"
+        assert bidResponse.ext?.warnings[ErrorType.OPENX].message == [WARNING_TIME_OUT_MESSAGE]
+
+        and: "PBs should populate seatNonBid for openX bidder"
+        def seatNonBid = bidResponse.ext.seatnonbid[0]
+        assert seatNonBid.seat == OPENX
+        assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
+        assert seatNonBid.nonBid[0].statusCode == ERROR_TIMED_OUT
     }
 
     private static BidRequest getEnrichedBidRequest(List<BidderName> bidderNames) {
