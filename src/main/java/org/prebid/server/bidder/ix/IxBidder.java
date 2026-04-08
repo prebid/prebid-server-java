@@ -19,7 +19,6 @@ import com.iab.openrtb.response.EventTracker;
 import com.iab.openrtb.response.Response;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.ix.model.response.IxBidResponse;
@@ -143,9 +142,8 @@ public class IxBidder implements Bidder<BidRequest> {
         if (banner == null) {
             return UpdateResult.unaltered(null);
         }
-        final List<Format> formats = ListUtils.emptyIfNull(banner.getFormat()).stream()
-                .filter(Objects::nonNull)
-                .toList();
+
+        final List<Format> formats = banner.getFormat();
         final Integer w = banner.getW();
         final Integer h = banner.getH();
         final boolean hasNoFormats = CollectionUtils.isEmpty(formats);
