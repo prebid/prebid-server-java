@@ -853,7 +853,9 @@ public class SetuidHandlerTest extends VertxTest {
     }
 
     private static Cookie equalToUidsCookie(UidsCookie uidsCookie) throws JsonProcessingException {
-        final String value = Base64.getUrlEncoder().encodeToString(mapper.writeValueAsBytes(uidsCookie.getCookieUids()));
+        final String value = Base64.getUrlEncoder()
+                .encodeToString(mapper.writeValueAsBytes(uidsCookie.getCookieUids()));
+
         return cookieEqualTo("uids", value);
     }
 

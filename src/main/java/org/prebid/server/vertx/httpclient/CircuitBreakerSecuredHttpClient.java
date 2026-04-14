@@ -1,6 +1,9 @@
 package org.prebid.server.vertx.httpclient;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
+import io.vertx.circuitbreaker.CircuitBreaker;
+import io.vertx.circuitbreaker.CircuitBreakerOptions;
+import io.vertx.circuitbreaker.CircuitBreakerState;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
@@ -10,7 +13,6 @@ import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.vertx.CircuitBreaker;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.net.MalformedURLException;
@@ -88,12 +90,14 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
                                                 long closingIntervalMs,
                                                 Metrics metrics) {
 
-        final CircuitBreaker circuitBreaker = new CircuitBreaker(
-                "http_cb_" + name,
-                Objects.requireNonNull(vertx),
-                openingThreshold,
-                openingIntervalMs,
-                closingIntervalMs)
+        final CircuitBreakerOptions options = new CircuitBreakerOptions()
+                .setNotificationPeriod(0)
+                .setMaxFailures(openingThreshold)
+                .setFailuresRollingWindow(openingIntervalMs)
+                .setResetTimeout(closingIntervalMs);
+
+        final CircuitBreaker circuitBreaker = CircuitBreaker.create(
+                        "http_cb_" + name, Objects.requireNonNull(vertx), options)
                 .openHandler(ignored -> circuitOpened(name))
                 .halfOpenHandler(ignored -> circuitHalfOpened(name))
                 .closeHandler(ignored -> circuitClosed(name));
@@ -104,7 +108,8 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
     }
 
     private void createCircuitBreakerGauge(String name, CircuitBreaker circuitBreaker, Metrics metrics) {
-        metrics.createHttpClientCircuitBreakerGauge(idFrom(name), circuitBreaker::isOpen);
+        metrics.createHttpClientCircuitBreakerGauge(
+                idFrom(name), () -> circuitBreaker.state() != CircuitBreakerState.CLOSED);
     }
 
     private void removeCircuitBreakerGauge(String name, Metrics metrics) {

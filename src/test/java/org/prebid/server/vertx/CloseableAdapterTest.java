@@ -1,6 +1,5 @@
 package org.prebid.server.vertx;
 
-import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -11,8 +10,6 @@ import java.io.Closeable;
 import java.io.IOException;
 
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.verify;
 
