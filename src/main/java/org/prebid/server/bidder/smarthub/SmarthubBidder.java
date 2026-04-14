@@ -36,11 +36,11 @@ public class SmarthubBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private final String endpointTemplate;
+    private final String endpoint;
     private final JacksonMapper mapper;
 
-    public SmarthubBidder(String endpointTemplate, JacksonMapper mapper) {
-        this.endpointTemplate = HttpUtil.validateUrl(Objects.requireNonNull(endpointTemplate));
+    public SmarthubBidder(String endpoint, JacksonMapper mapper) {
+        this.endpoint = HttpUtil.validateUrl(Objects.requireNonNull(endpoint));
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -68,7 +68,7 @@ public class SmarthubBidder implements Bidder<BidRequest> {
     }
 
     private String buildEndpointUrl(ExtImpSmarthub extImpSmarthub) {
-        return endpointTemplate.replace("{{Host}}", StringUtils.defaultString(extImpSmarthub.getPartnerName()))
+        return endpoint.replace("{{Host}}", StringUtils.defaultString(extImpSmarthub.getPartnerName()))
                 .replace("{{AccountID}}", extImpSmarthub.getSeat())
                 .replace("{{SourceId}}", extImpSmarthub.getToken());
     }

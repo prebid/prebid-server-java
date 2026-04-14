@@ -36,7 +36,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.eplanning.ExtImpEplanning;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
-import org.prebid.server.util.UriTemplate;
+import org.prebid.server.util.Uri;
 
 import java.math.BigDecimal;
 import java.net.MalformedURLException;
@@ -79,11 +79,11 @@ public class EplanningBidder implements Bidder<Void> {
             new TypeReference<>() {
             };
 
-    private final UriTemplate endpointTemplate;
+    private final Uri endpoint;
     private final JacksonMapper mapper;
 
     public EplanningBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointTemplate = UriTemplate.of(endpointUrl);
+        this.endpoint = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -237,28 +237,28 @@ public class EplanningBidder implements Bidder<Void> {
 
         final String schain = getSchainParameter(request.getSource());
 
-        return endpointTemplate.toBuilder()
-                .pathParam("ClientId", clientId)
-                .pathParam("DfpClientId", DFP_CLIENT_ID)
-                .pathParam("RequestTarget", requestTarget)
-                .pathParam("Sec", SEC)
+        return endpoint
+                .replaceMacro("ClientId", clientId)
+                .replaceMacro("DfpClientId", DFP_CLIENT_ID)
+                .replaceMacro("RequestTarget", requestTarget)
+                .replaceMacro("Sec", SEC)
 
-                .queryParam("r", "pbs")
-                .queryParam("ncb", "1")
-                .queryParam("e", String.join("+", requestsStrings))
+                .addQueryParam("r", "pbs")
+                .addQueryParam("ncb", "1")
+                .addQueryParam("e", String.join("+", requestsStrings))
 
-                .queryParam("ur", app == null ? pageUrl : null)
+                .addQueryParam("ur", app == null ? pageUrl : null)
 
-                .queryParam("uid", buyeruid)
-                .queryParam("appn", StringUtils.isNotBlank(appName) ? appName : null)
-                .queryParam("appid", StringUtils.isNotBlank(appId) ? appId : null)
-                .queryParam("app", app != null ? REQUEST_TARGET_INVENTORY : null)
+                .addQueryParam("uid", buyeruid)
+                .addQueryParam("appn", StringUtils.isNotBlank(appName) ? appName : null)
+                .addQueryParam("appid", StringUtils.isNotBlank(appId) ? appId : null)
+                .addQueryParam("app", app != null ? REQUEST_TARGET_INVENTORY : null)
 
-                .queryParam("ip", StringUtils.isNotBlank(ip) ? ip : null)
-                .queryParam("ifa", StringUtils.isNotBlank(ifa) ? ifa : null)
+                .addQueryParam("ip", StringUtils.isNotBlank(ip) ? ip : null)
+                .addQueryParam("ifa", StringUtils.isNotBlank(ifa) ? ifa : null)
 
-                .queryParam("sch", schain)
-                .build();
+                .addQueryParam("sch", schain)
+                .expand();
     }
 
     private static String getPageDomain(Site site) {

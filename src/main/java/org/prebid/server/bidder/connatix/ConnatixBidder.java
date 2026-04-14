@@ -34,7 +34,7 @@ import org.prebid.server.proto.openrtb.ext.request.connatix.ExtImpConnatix;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
-import org.prebid.server.util.UriTemplate;
+import org.prebid.server.util.Uri;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -53,7 +53,7 @@ public class ConnatixBidder implements Bidder<BidRequest> {
     private static final String BIDDER_CURRENCY = "USD";
     private static final String FORMATTING = "%s-%s";
 
-    private final UriTemplate endpointTemplate;
+    private final Uri endpoint;
     private final JacksonMapper mapper;
 
     private final CurrencyConversionService currencyConversionService;
@@ -62,7 +62,7 @@ public class ConnatixBidder implements Bidder<BidRequest> {
                           CurrencyConversionService currencyConversionService,
                           JacksonMapper mapper) {
 
-        this.endpointTemplate = UriTemplate.of(endpointUrl);
+        this.endpoint = Uri.of(endpointUrl);
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -107,7 +107,7 @@ public class ConnatixBidder implements Bidder<BidRequest> {
         final String dataCenterCode = getUserId(request)
                 .map(ConnatixBidder::getDataCenterCode)
                 .orElse(null);
-        return endpointTemplate.toBuilder().queryParam("dc", dataCenterCode).build();
+        return endpoint.addQueryParam("dc", dataCenterCode).expand();
     }
 
     private static Optional<String> getUserId(BidRequest request) {

@@ -40,11 +40,11 @@ public class ZeroclickfraudBidder implements Bidder<BidRequest> {
     private static final String HOST = "{{Host}}";
     private static final String SOURCE_ID = "{{SourceId}}";
 
-    private final String endpointTemplate;
+    private final String endpoint;
     private final JacksonMapper mapper;
 
-    public ZeroclickfraudBidder(String endpointTemplate, JacksonMapper mapper) {
-        this.endpointTemplate = HttpUtil.validateUrl(Objects.requireNonNull(endpointTemplate));
+    public ZeroclickfraudBidder(String endpoint, JacksonMapper mapper) {
+        this.endpoint = HttpUtil.validateUrl(Objects.requireNonNull(endpoint));
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -89,7 +89,7 @@ public class ZeroclickfraudBidder implements Bidder<BidRequest> {
 
     private HttpRequest<BidRequest> makeHttpRequest(ExtImpZeroclickfraud extImpZeroclickfraud, List<Imp> imps,
                                                     BidRequest bidRequest) {
-        final String uri = endpointTemplate
+        final String uri = endpoint
                 .replace(HOST, extImpZeroclickfraud.getHost())
                 .replace(SOURCE_ID, extImpZeroclickfraud.getSourceId().toString());
 

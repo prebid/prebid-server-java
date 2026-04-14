@@ -18,7 +18,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
-import org.prebid.server.util.UriTemplate;
+import org.prebid.server.util.Uri;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -38,7 +38,7 @@ public class SspbcBidder implements Bidder<SspbcRequest> {
     }
 
     private static String resolveEndpointUrl(String base) {
-        return UriTemplate.of(base).toBuilder().queryParam("bdver", ADAPTER_VERSION).build();
+        return Uri.of(base).addQueryParam("bdver", ADAPTER_VERSION).expand();
     }
 
     @Override

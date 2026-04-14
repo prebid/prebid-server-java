@@ -105,7 +105,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidMeta;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
-import org.prebid.server.util.UriTemplate;
+import org.prebid.server.util.Uri;
 import org.prebid.server.version.PrebidVersionProvider;
 
 import java.math.BigDecimal;
@@ -177,7 +177,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final boolean DEFAULT_MULTIFORMAT_VALUE = false;
 
     private final String bidderName;
-    private final UriTemplate endpointTemplate;
+    private final Uri endpoint;
     private final String externalUrl;
     private final String xapiUsername;
     private final Set<String> supportedVendors;
@@ -206,7 +206,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                          JacksonMapper mapper) {
 
         this.bidderName = Objects.requireNonNull(bidderName);
-        this.endpointTemplate = UriTemplate.of(endpoint);
+        this.endpoint = Uri.of(endpoint);
         this.externalUrl = HttpUtil.validateUrl(Objects.requireNonNull(externalUrl));
         this.xapiUsername = Objects.requireNonNull(xapiUsername);
         this.supportedVendors = Set.copyOf(Objects.requireNonNull(supportedVendors));
@@ -448,9 +448,9 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private String makeUri(BidRequest bidRequest) {
         final String tkXint = tkXintValue(bidRequest);
-        return endpointTemplate.toBuilder()
-                .queryParam(TK_XINT_QUERY_PARAMETER, StringUtils.isNotBlank(tkXint) ? tkXint : null)
-                .build();
+        return endpoint
+                .addQueryParam(TK_XINT_QUERY_PARAMETER, StringUtils.isNotBlank(tkXint) ? tkXint : null)
+                .expand();
     }
 
     private String tkXintValue(BidRequest bidRequest) {

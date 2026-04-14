@@ -51,7 +51,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.ObjectUtil;
-import org.prebid.server.util.UriTemplate;
+import org.prebid.server.util.Uri;
 
 import jakarta.validation.ValidationException;
 import java.math.BigDecimal;
@@ -81,7 +81,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private final UriTemplate endpointTemplate;
+    private final Uri endpoint;
     private final Integer headerBiddingSource;
     private final Map<Integer, String> iabCategories;
     private final JacksonMapper mapper;
@@ -91,7 +91,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
                           Map<Integer, String> iabCategories,
                           JacksonMapper mapper) {
 
-        this.endpointTemplate = UriTemplate.of(endpointUrl);
+        this.endpoint = Uri.of(endpointUrl);
         this.headerBiddingSource = ObjectUtils.defaultIfNull(platformId, DEFAULT_PLATFORM_ID);
         this.iabCategories = ObjectUtils.defaultIfNull(iabCategories, Collections.emptyMap());
         this.mapper = Objects.requireNonNull(mapper);
@@ -305,7 +305,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
     }
 
     private String makeUrl(String member) {
-        return endpointTemplate.toBuilder().queryParam("member_id", member).build();
+        return endpoint.addQueryParam("member_id", member).expand();
     }
 
     private static String extractEndpointName(BidRequest bidRequest) {

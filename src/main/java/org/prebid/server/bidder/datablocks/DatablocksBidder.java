@@ -36,11 +36,11 @@ public class DatablocksBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private final String endpointTemplate;
+    private final String endpoint;
     private final JacksonMapper mapper;
 
-    public DatablocksBidder(String endpointTemplate, JacksonMapper mapper) {
-        this.endpointTemplate = HttpUtil.validateUrl(Objects.requireNonNull(endpointTemplate));
+    public DatablocksBidder(String endpoint, JacksonMapper mapper) {
+        this.endpoint = HttpUtil.validateUrl(Objects.requireNonNull(endpoint));
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -83,7 +83,7 @@ public class DatablocksBidder implements Bidder<BidRequest> {
                                                     BidRequest bidRequest) {
 
         final ExtImpDatablocks extImpDatablocks = extToImps.getKey();
-        final String uri = endpointTemplate
+        final String uri = endpoint
                 .replace("{{SourceId}}", extImpDatablocks.getSourceId().toString());
 
         final BidRequest outgoingRequest = bidRequest.toBuilder().imp(extToImps.getValue()).build();

@@ -29,7 +29,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidMeta;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.UriTemplate;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -55,7 +55,7 @@ public class AmxBidder implements Bidder<BidRequest> {
     }
 
     private static String resolveEndpointUrl(String url) {
-        return UriTemplate.of(url).toBuilder().queryParam(VERSION_PARAM, ADAPTER_VERSION).build();
+        return Uri.of(url).addQueryParam(VERSION_PARAM, ADAPTER_VERSION).expand();
     }
 
     @Override

@@ -42,7 +42,7 @@ import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
-import org.prebid.server.util.UriTemplate;
+import org.prebid.server.util.Uri;
 import org.prebid.server.vast.VastModifier;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
@@ -75,7 +75,7 @@ public class CoreCacheService {
     private final HttpClient httpClient;
     private final URL externalEndpointUrl;
     private final URL internalEndpointUrl;
-    private final UriTemplate cachedObjectEndpointTemplate;
+    private final Uri cachedObjectEndpoint;
     private final String cachedAssetUrlTemplate;
     private final long expectedCacheTimeMs;
     private final VastModifier vastModifier;
@@ -111,7 +111,7 @@ public class CoreCacheService {
         this.httpClient = Objects.requireNonNull(httpClient);
         this.externalEndpointUrl = Objects.requireNonNull(externalEndpointUrl);
         this.internalEndpointUrl = internalEndpointUrl;
-        this.cachedObjectEndpointTemplate = UriTemplate.of(
+        this.cachedObjectEndpoint = Uri.of(
                 ObjectUtils.firstNonNull(internalEndpointUrl, externalEndpointUrl).toString());
         this.cachedAssetUrlTemplate = Objects.requireNonNull(cachedAssetUrlTemplate);
         this.expectedCacheTimeMs = expectedCacheTimeMs;
@@ -659,10 +659,10 @@ public class CoreCacheService {
             return Future.failedFuture(new TimeoutException("Timeout has been exceeded"));
         }
 
-        final String url = cachedObjectEndpointTemplate.toBuilder()
-                .queryParam(UUID_QUERY_PARAMETER, key)
-                .queryParam(CH_QUERY_PARAMETER, StringUtils.isNotBlank(ch) ? ch : null)
-                .build();
+        final String url = cachedObjectEndpoint
+                .addQueryParam(UUID_QUERY_PARAMETER, key)
+                .addQueryParam(CH_QUERY_PARAMETER, StringUtils.isNotBlank(ch) ? ch : null)
+                .expand();
 
         final long startTime = clock.millis();
         return httpClient.get(url, cacheHeaders, remainingTimeout)

@@ -22,7 +22,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.bluesea.ExtImpBlueSea;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.UriTemplate;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -37,11 +37,11 @@ public class BlueSeaBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private final UriTemplate endpointTemplate;
+    private final Uri endpoint;
     private final JacksonMapper mapper;
 
     public BlueSeaBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointTemplate = UriTemplate.of(endpointUrl);
+        this.endpoint = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -76,10 +76,10 @@ public class BlueSeaBidder implements Bidder<BidRequest> {
     }
 
     private String resolveUrl(ExtImpBlueSea extImpBlueSea) {
-        return endpointTemplate.toBuilder()
-                .queryParam("pubid", extImpBlueSea.getPubId())
-                .queryParam("token", extImpBlueSea.getToken())
-                .build();
+        return endpoint
+                .addQueryParam("pubid", extImpBlueSea.getPubId())
+                .addQueryParam("token", extImpBlueSea.getToken())
+                .expand();
     }
 
     @Override

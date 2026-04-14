@@ -28,7 +28,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.yandex.ExtImpYandex;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
-import org.prebid.server.util.UriTemplate;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -47,11 +47,11 @@ public class YandexBidder implements Bidder<BidRequest> {
     private static final String DISPLAY_MANAGER = "prebid.java";
     private static final String DISPLAY_MANAGER_VERSION = "1.1";
 
-    private final UriTemplate endpointTemplate;
+    private final Uri endpoint;
     private final JacksonMapper mapper;
 
     public YandexBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointTemplate = UriTemplate.of(endpointUrl);
+        this.endpoint = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -168,12 +168,12 @@ public class YandexBidder implements Bidder<BidRequest> {
     }
 
     private String modifyUrl(ExtImpYandex extImpYandex, String referer, String currency) {
-        return endpointTemplate.toBuilder()
-                .pathParam("PageId", extImpYandex.getPageId().toString())
-                .queryParam("imp-id", extImpYandex.getImpId().toString())
-                .queryParam("target-ref", StringUtils.isNotBlank(referer) ? referer : null)
-                .queryParam("ssp-cur", StringUtils.isNotBlank(currency) ? currency : null)
-                .build();
+        return endpoint
+                .replaceMacro("PageId", extImpYandex.getPageId().toString())
+                .replaceMacro("ImpId", extImpYandex.getImpId().toString())
+                .addQueryParam("target-ref", StringUtils.isNotBlank(referer) ? referer : null)
+                .addQueryParam("ssp-cur", StringUtils.isNotBlank(currency) ? currency : null)
+                .expand();
     }
 
     private HttpRequest<BidRequest> buildHttpRequest(BidRequest outgoingRequest, String url) {

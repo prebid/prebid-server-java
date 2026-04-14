@@ -21,7 +21,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.tappx.ExtImpTappx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.UriTemplate;
+import org.prebid.server.util.Uri;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -42,12 +42,12 @@ public class TappxBidder implements Bidder<BidRequest> {
             };
     private static final Pattern NEW_ENDPOINT_PATTERN = Pattern.compile("^(zz|vz)[0-9]{3,}([a-z]{2,3}|test)$");
 
-    private final UriTemplate endpointTemplate;
+    private final Uri endpoint;
     private final Clock clock;
     private final JacksonMapper mapper;
 
     public TappxBidder(String endpointUrl, Clock clock, JacksonMapper mapper) {
-        this.endpointTemplate = UriTemplate.of(endpointUrl);
+        this.endpoint = Uri.of(endpointUrl);
         this.clock = Objects.requireNonNull(clock);
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -89,14 +89,14 @@ public class TappxBidder implements Bidder<BidRequest> {
         final boolean isNewEndpoint = NEW_ENDPOINT_PATTERN.matcher(subdomainPart).matches();
         final String subdomain = isNewEndpoint ? subdomainPart + ".pub" : "ssp.api";
 
-        return endpointTemplate.toBuilder()
-                .domainParam("subdomain", subdomain)
-                .pathParam("path", isNewEndpoint ? "/rtb" : "/rtb/v2/" + subdomainPart)
-                .queryParam("tappxkey", extImpTappx.getTappxkey())
-                .queryParam("v", VERSION)
-                .queryParam("type_cnn", TYPE_CNN)
-                .queryParam("ts", !BidderUtil.isNullOrZero(test) ? String.valueOf(clock.millis()) : null)
-                .build();
+        return endpoint
+                .replaceMacro("subdomain", subdomain)
+                .replaceMacro("path", isNewEndpoint ? "/rtb" : "/rtb/v2/" + subdomainPart)
+                .addQueryParam("tappxkey", extImpTappx.getTappxkey())
+                .addQueryParam("v", VERSION)
+                .addQueryParam("type_cnn", TYPE_CNN)
+                .addQueryParam("ts", !BidderUtil.isNullOrZero(test) ? String.valueOf(clock.millis()) : null)
+                .expand();
     }
 
     private static Imp modifyImp(Imp imp, ExtImpTappx extImpTappx) {

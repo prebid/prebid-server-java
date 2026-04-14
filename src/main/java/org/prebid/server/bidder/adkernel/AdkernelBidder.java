@@ -49,11 +49,11 @@ public class AdkernelBidder implements Bidder<BidRequest> {
 
     private static final int MF_SUFFIX_LENGTH = MF_SUFFIX.length() + 1;
 
-    private final String endpointTemplate;
+    private final String endpoint;
     private final JacksonMapper mapper;
 
-    public AdkernelBidder(String endpointTemplate, JacksonMapper mapper) {
-        this.endpointTemplate = HttpUtil.validateUrl(Objects.requireNonNull(endpointTemplate));
+    public AdkernelBidder(String endpoint, JacksonMapper mapper) {
+        this.endpoint = HttpUtil.validateUrl(Objects.requireNonNull(endpoint));
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -183,7 +183,7 @@ public class AdkernelBidder implements Bidder<BidRequest> {
                                                       App app) {
 
         final ExtImpAdkernel impExt = extAndImp.getKey();
-        final String uri = endpointTemplate.formatted(impExt.getZoneId());
+        final String uri = endpoint.formatted(impExt.getZoneId());
 
         final MultiMap headers = HttpUtil.headers()
                 .add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");

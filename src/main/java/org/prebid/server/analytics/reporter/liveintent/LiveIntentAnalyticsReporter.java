@@ -26,7 +26,7 @@ import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
-import org.prebid.server.util.UriTemplate;
+import org.prebid.server.util.Uri;
 import org.prebid.server.vertx.httpclient.HttpClient;
 
 import java.util.Collection;
@@ -42,7 +42,7 @@ public class LiveIntentAnalyticsReporter implements AnalyticsReporter {
 
     private final HttpClient httpClient;
     private final LiveIntentAnalyticsProperties properties;
-    private final UriTemplate analyticsEndpointTemplate;
+    private final Uri analyticsEndpoint;
     private final JacksonMapper jacksonMapper;
 
     public LiveIntentAnalyticsReporter(
@@ -52,7 +52,7 @@ public class LiveIntentAnalyticsReporter implements AnalyticsReporter {
 
         this.httpClient = Objects.requireNonNull(httpClient);
         this.properties = Objects.requireNonNull(properties);
-        this.analyticsEndpointTemplate = UriTemplate.of(properties.getAnalyticsEndpoint());
+        this.analyticsEndpoint = Uri.of(properties.getAnalyticsEndpoint());
         this.jacksonMapper = Objects.requireNonNull(jacksonMapper);
     }
 
@@ -97,9 +97,7 @@ public class LiveIntentAnalyticsReporter implements AnalyticsReporter {
 
         try {
             return httpClient.post(
-                            analyticsEndpointTemplate.toBuilder()
-                                    .pathParam("path", "/analytic-events/pbsj-bids")
-                                    .build(),
+                            analyticsEndpoint.replaceMacro("path", "/analytic-events/pbsj-bids").expand(),
                             jacksonMapper.encodeToString(pbsjBids),
                             properties.getTimeoutMs())
                     .mapEmpty();
@@ -169,11 +167,11 @@ public class LiveIntentAnalyticsReporter implements AnalyticsReporter {
     }
 
     private Future<Void> processNotificationEvent(NotificationEvent notificationEvent) {
-        final String url = analyticsEndpointTemplate.toBuilder()
-                .pathParam("path", "/analytic-events/pbsj-winning-bid")
-                .queryParam("b", notificationEvent.getBidder())
-                .queryParam("bidId", notificationEvent.getBidId())
-                .build();
+        final String url = analyticsEndpoint
+                .replaceMacro("path", "/analytic-events/pbsj-winning-bid")
+                .addQueryParam("b", notificationEvent.getBidder())
+                .addQueryParam("bidId", notificationEvent.getBidId())
+                .expand();
         return httpClient.get(url, properties.getTimeoutMs()).mapEmpty();
     }
 

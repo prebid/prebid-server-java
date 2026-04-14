@@ -30,7 +30,7 @@ import org.prebid.server.proto.openrtb.ext.request.sparteo.ExtImpSparteo;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.UriTemplate;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -47,11 +47,11 @@ public class SparteoBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private final UriTemplate endpointTemplate;
+    private final Uri endpoint;
     private final JacksonMapper mapper;
 
     public SparteoBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointTemplate = UriTemplate.of(endpointUrl);
+        this.endpoint = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -221,12 +221,12 @@ public class SparteoBidder implements Bidder<BidRequest> {
     }
 
     private String resolveEndpoint(String siteDomain, String appDomain, String networkId, String bundle) {
-        return endpointTemplate.toBuilder()
-                .queryParam("site_domain", StringUtils.isNotBlank(siteDomain) ? siteDomain : null)
-                .queryParam("app_domain", StringUtils.isNotBlank(appDomain) ? appDomain : null)
-                .queryParam("network_id", StringUtils.isNotBlank(networkId) ? networkId : null)
-                .queryParam("bundle", StringUtils.isNotBlank(bundle) ? bundle : null)
-                .build();
+        return endpoint
+                .addQueryParam("site_domain", StringUtils.isNotBlank(siteDomain) ? siteDomain : null)
+                .addQueryParam("app_domain", StringUtils.isNotBlank(appDomain) ? appDomain : null)
+                .addQueryParam("network_id", StringUtils.isNotBlank(networkId) ? networkId : null)
+                .addQueryParam("bundle", StringUtils.isNotBlank(bundle) ? bundle : null)
+                .expand();
     }
 
     @Override

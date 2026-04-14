@@ -23,7 +23,7 @@ import org.prebid.server.settings.model.StoredResponseDataResult;
 import org.prebid.server.settings.proto.response.HttpAccountsResponse;
 import org.prebid.server.settings.proto.response.HttpFetcherResponse;
 import org.prebid.server.util.HttpUtil;
-import org.prebid.server.util.UriTemplate;
+import org.prebid.server.util.Uri;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
@@ -78,9 +78,9 @@ public class HttpApplicationSettings implements ApplicationSettings {
             };
 
     private final boolean isRfc3986Compatible;
-    private final UriTemplate endpointTemplate;
-    private final UriTemplate ampEndpointTemplate;
-    private final UriTemplate videoEndpointTemplate;
+    private final Uri endpoint;
+    private final Uri ampEndpoint;
+    private final Uri videoEndpoint;
     private final String categoryEndpoint;
     private final HttpClient httpClient;
     private final JacksonMapper mapper;
@@ -94,9 +94,9 @@ public class HttpApplicationSettings implements ApplicationSettings {
                                    JacksonMapper mapper) {
 
         this.isRfc3986Compatible = isRfc3986Compatible;
-        this.endpointTemplate = UriTemplate.of(endpoint);
-        this.ampEndpointTemplate = UriTemplate.of(ampEndpoint);
-        this.videoEndpointTemplate = UriTemplate.of(videoEndpoint);
+        this.endpoint = Uri.of(endpoint);
+        this.ampEndpoint = Uri.of(ampEndpoint);
+        this.videoEndpoint = Uri.of(videoEndpoint);
         this.categoryEndpoint = HttpUtil.validateUrl(Objects.requireNonNull(categoryEndpoint));
         this.httpClient = Objects.requireNonNull(httpClient);
         this.mapper = Objects.requireNonNull(mapper);
@@ -122,20 +122,20 @@ public class HttpApplicationSettings implements ApplicationSettings {
         }
 
         return httpClient.get(
-                        accountsRequestUrlFrom(endpointTemplate, accountIds),
+                        accountsRequestUrlFrom(endpoint, accountIds),
                         HttpUtil.headers(),
                         remainingTimeout)
                 .map(response -> processAccountsResponse(response, accountIds));
     }
 
-    private String accountsRequestUrlFrom(UriTemplate endpointTemplate, Set<String> accountIds) {
-        final UriTemplate.UriBuilder builder = endpointTemplate.toBuilder();
+    private String accountsRequestUrlFrom(Uri endpoint, Set<String> accountIds) {
+        final Uri.ParameterizedUri builder = endpoint.parameterized();
         if (isRfc3986Compatible) {
-            builder.queryParam("account-id", accountIds);
+            builder.addQueryParam("account-id", accountIds);
         } else {
-            builder.queryParam("account-ids", "[\"%s\"]".formatted(joinIds(accountIds)));
+            builder.addQueryParam("account-ids", "[\"%s\"]".formatted(joinIds(accountIds)));
         }
-        return builder.build();
+        return builder.expand();
     }
 
     private Set<Account> processAccountsResponse(HttpClientResponse httpClientResponse, Set<String> accountIds) {
@@ -163,7 +163,7 @@ public class HttpApplicationSettings implements ApplicationSettings {
                                                           Set<String> impIds,
                                                           Timeout timeout) {
 
-        return fetchStoredData(endpointTemplate, requestIds, impIds, timeout);
+        return fetchStoredData(endpoint, requestIds, impIds, timeout);
     }
 
     @Override
@@ -172,7 +172,7 @@ public class HttpApplicationSettings implements ApplicationSettings {
                                                              Set<String> impIds,
                                                              Timeout timeout) {
 
-        return fetchStoredData(ampEndpointTemplate, requestIds, Collections.emptySet(), timeout);
+        return fetchStoredData(ampEndpoint, requestIds, Collections.emptySet(), timeout);
     }
 
     @Override
@@ -181,10 +181,10 @@ public class HttpApplicationSettings implements ApplicationSettings {
                                                                Set<String> impIds,
                                                                Timeout timeout) {
 
-        return fetchStoredData(videoEndpointTemplate, requestIds, impIds, timeout);
+        return fetchStoredData(videoEndpoint, requestIds, impIds, timeout);
     }
 
-    private Future<StoredDataResult<String>> fetchStoredData(UriTemplate endpointTemplate,
+    private Future<StoredDataResult<String>> fetchStoredData(Uri endpoint,
                                                              Set<String> requestIds,
                                                              Set<String> impIds,
                                                              Timeout timeout) {
@@ -200,7 +200,7 @@ public class HttpApplicationSettings implements ApplicationSettings {
         }
 
         return httpClient.get(
-                        storeRequestUrlFrom(endpointTemplate, requestIds, impIds),
+                        storeRequestUrlFrom(endpoint, requestIds, impIds),
                         HttpUtil.headers(),
                         remainingTimeout)
                 .map(response -> processStoredDataResponse(response, requestIds, impIds))
@@ -230,23 +230,23 @@ public class HttpApplicationSettings implements ApplicationSettings {
         return StoredDataResult.of(Collections.emptyMap(), Collections.emptyMap(), Collections.singletonList(error));
     }
 
-    private String storeRequestUrlFrom(UriTemplate endpointTemplate, Set<String> requestIds, Set<String> impIds) {
-        final UriTemplate.UriBuilder builder = endpointTemplate.toBuilder();
+    private String storeRequestUrlFrom(Uri endpoint, Set<String> requestIds, Set<String> impIds) {
+        final Uri.ParameterizedUri builder = endpoint.parameterized();
         if (!requestIds.isEmpty()) {
             if (isRfc3986Compatible) {
-                builder.queryParam("request-id", requestIds);
+                builder.addQueryParam("request-id", requestIds);
             } else {
-                builder.queryParam("request-ids", "[\"%s\"]".formatted(joinIds(requestIds)));
+                builder.addQueryParam("request-ids", "[\"%s\"]".formatted(joinIds(requestIds)));
             }
         }
         if (!impIds.isEmpty()) {
             if (isRfc3986Compatible) {
-                builder.queryParam("imp-id", impIds);
+                builder.addQueryParam("imp-id", impIds);
             } else {
-                builder.queryParam("imp-ids", "[\"%s\"]".formatted(joinIds(impIds)));
+                builder.addQueryParam("imp-ids", "[\"%s\"]".formatted(joinIds(impIds)));
             }
         }
-        return builder.build();
+        return builder.expand();
     }
 
     private StoredDataResult<String> processStoredDataResponse(HttpClientResponse httpClientResponse,

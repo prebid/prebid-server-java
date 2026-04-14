@@ -1,15 +1,17 @@
 package org.prebid.server.util;
 
 import io.vertx.uritemplate.ExpandOptions;
+import io.vertx.uritemplate.UriTemplate;
 import io.vertx.uritemplate.Variables;
 
 import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-public class UriTemplate {
+public class Uri {
 
     private static final ExpandOptions REQUIRE_ALL_PARAMS = new ExpandOptions().setAllowVariableMiss(false);
 
@@ -17,21 +19,21 @@ public class UriTemplate {
     private static final String DYNAMIC_QUERY_START_MACRO = "{?" + DYNAMIC_QUERY_PARAM + "*}";
     private static final String DYNAMIC_QUERY_CONTINUATION_MACRO = "{&" + DYNAMIC_QUERY_PARAM + "*}";
 
-    private final io.vertx.uritemplate.UriTemplate template;
+    private final UriTemplate template;
 
-    private UriTemplate(String uri) {
+    private Uri(String uri) {
         validateTemplate(Objects.requireNonNull(uri));
-        this.template = io.vertx.uritemplate.UriTemplate.of(uri + chooseMacro(uri));
+        this.template = UriTemplate.of(uri + chooseMacro(uri));
     }
 
-    public static UriTemplate of(String uri) throws IllegalArgumentException {
-        return new UriTemplate(uri);
+    public static Uri of(String uri) throws IllegalArgumentException {
+        return new Uri(uri);
     }
 
     private static void validateTemplate(String template) {
-        final int queryStartIndex = template.indexOf('?');
-        if (queryStartIndex != -1 && template.indexOf('}', queryStartIndex) != -1) {
-            throw new IllegalArgumentException(UriTemplate.class.getName() + " does not support query variables.");
+        if (template.contains("{?")) {
+            throw new IllegalArgumentException(
+                    Uri.class.getName() + " does not support optional query variables.");
         }
 
         HttpUtil.validateUrl(template
@@ -45,44 +47,60 @@ public class UriTemplate {
                 : DYNAMIC_QUERY_START_MACRO;
     }
 
-    public UriBuilder toBuilder() {
-        return new UriBuilder(template);
+    public ParameterizedUri parameterized() {
+        return new ParameterizedUri(template);
+    }
+
+    public ParameterizedUri replaceMacro(String key, String value) {
+        return parameterized().replaceMacro(key, value);
+    }
+
+    public ParameterizedUri replaceMacro(String key, List<String> value) {
+        return parameterized().replaceMacro(key, value);
+    }
+
+    public ParameterizedUri addQueryParam(String key, String value) {
+        return parameterized().addQueryParam(key, value);
+    }
+
+    public ParameterizedUri addQueryParam(String key, Collection<?> value) {
+        return parameterized().addQueryParam(key, value);
     }
 
     @Override
     public String toString() throws NoSuchElementException {
-        return toBuilder().build();
+        return parameterized().expand();
     }
 
-    public static class UriBuilder {
+    public static class ParameterizedUri {
 
-        private final io.vertx.uritemplate.UriTemplate template;
+        private final UriTemplate template;
         private final Variables variables;
 
-        public UriBuilder(io.vertx.uritemplate.UriTemplate template) {
+        private ParameterizedUri(UriTemplate template) {
             this.template = template;
             this.variables = Variables.variables();
             variables.set(DYNAMIC_QUERY_PARAM, new LinkedHashMap<>());
         }
 
-        public UriBuilder domainParam(String key, String value) {
+        public ParameterizedUri replaceMacro(String key, String value) {
             variables.set(key, value);
             return this;
         }
 
-        public UriBuilder pathParam(String key, String value) {
+        public ParameterizedUri replaceMacro(String key, List<String> value) {
             variables.set(key, value);
             return this;
         }
 
-        public UriBuilder queryParam(String key, String value) {
+        public ParameterizedUri addQueryParam(String key, String value) {
             if (value != null) {
                 variables.getMap(DYNAMIC_QUERY_PARAM).put(key, value);
             }
             return this;
         }
 
-        public UriBuilder queryParam(String key, Collection<?> value) {
+        public ParameterizedUri addQueryParam(String key, Collection<?> value) {
             if (value == null) {
                 return this;
             }
@@ -95,13 +113,13 @@ public class UriTemplate {
             return this;
         }
 
-        public String build() throws NoSuchElementException {
+        public String expand() throws NoSuchElementException {
             return template.expandToString(variables, REQUIRE_ALL_PARAMS);
         }
 
         @Override
         public String toString() {
-            return build();
+            return expand();
         }
     }
 }

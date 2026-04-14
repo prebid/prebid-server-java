@@ -57,7 +57,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidDsa;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
-import org.prebid.server.util.UriTemplate;
+import org.prebid.server.util.Uri;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -82,8 +82,8 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
     private static final int BANNER_MTYPE = 1;
     private static final int NATIVE_MTYPE = 4;
 
-    private final UriTemplate endpointTemplate;
-    private final UriTemplate euEndpointTemplate;
+    private final Uri endpoint;
+    private final Uri euEndpoint;
     private final Clock clock;
     private final JacksonMapper mapper;
 
@@ -92,8 +92,8 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
                            Clock clock,
                            JacksonMapper mapper) {
 
-        this.endpointTemplate = UriTemplate.of(endpointUrl);
-        this.euEndpointTemplate = euEndpoint != null ? UriTemplate.of(euEndpoint) : null;
+        this.endpoint = Uri.of(endpointUrl);
+        this.euEndpoint = euEndpoint != null ? Uri.of(euEndpoint) : null;
         this.clock = Objects.requireNonNull(clock);
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -261,21 +261,21 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
 
     private String makeEndpoint(BidRequest bidRequest, Boolean noCookies) {
         final String gdpr = extractGdpr(bidRequest.getRegs());
-        final UriTemplate template = StringUtils.isNotBlank(gdpr) ? euEndpointTemplate : endpointTemplate;
+        final Uri url = StringUtils.isNotBlank(gdpr) ? euEndpoint : endpoint;
 
-        if (template == null) {
+        if (url == null) {
             throw new PreBidException("an EU endpoint is required but invalid");
         }
 
         final String consent = extractConsent(bidRequest.getUser());
 
-        return template.toBuilder()
-                .queryParam("format", "prebidServer")
-                .queryParam("tzo", getTimeZoneOffset())
-                .queryParam("gdpr", StringUtils.isNotEmpty(gdpr) ? gdpr : null)
-                .queryParam("consentString", StringUtils.isNotEmpty(consent) ? consent : null)
-                .queryParam("noCookies", noCookies || extractNoCookies(bidRequest.getDevice()) ? "true" : null)
-                .build();
+        return url
+                .addQueryParam("format", "prebidServer")
+                .addQueryParam("tzo", getTimeZoneOffset())
+                .addQueryParam("gdpr", StringUtils.isNotEmpty(gdpr) ? gdpr : null)
+                .addQueryParam("consentString", StringUtils.isNotEmpty(consent) ? consent : null)
+                .addQueryParam("noCookies", noCookies || extractNoCookies(bidRequest.getDevice()) ? "true" : null)
+                .expand();
     }
 
     private String getTimeZoneOffset() {

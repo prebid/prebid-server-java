@@ -23,7 +23,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.nexx360.ExtImpNexx360;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.UriTemplate;
+import org.prebid.server.util.Uri;
 import org.prebid.server.version.PrebidVersionProvider;
 
 import java.util.ArrayList;
@@ -39,12 +39,12 @@ public class Nexx360Bidder implements Bidder<BidRequest> {
     };
     private static final String BIDDER_NAME = "nexx360";
 
-    private final UriTemplate endpointTemplate;
+    private final Uri endpoint;
     private final JacksonMapper mapper;
     private final PrebidVersionProvider prebidVersionProvider;
 
     public Nexx360Bidder(String endpointUrl, JacksonMapper mapper, PrebidVersionProvider prebidVersionProvider) {
-        this.endpointTemplate = UriTemplate.of(endpointUrl);
+        this.endpoint = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
         this.prebidVersionProvider = Objects.requireNonNull(prebidVersionProvider);
     }
@@ -98,10 +98,10 @@ public class Nexx360Bidder implements Bidder<BidRequest> {
     }
 
     private String makeUrl(String tagId, String placement) {
-        return endpointTemplate.toBuilder()
-                .queryParam("placement", StringUtils.isNotBlank(placement) ? placement : null)
-                .queryParam("tag_id", StringUtils.isNotBlank(tagId) ? tagId : null)
-                .build();
+        return endpoint
+                .addQueryParam("placement", StringUtils.isNotBlank(placement) ? placement : null)
+                .addQueryParam("tag_id", StringUtils.isNotBlank(tagId) ? tagId : null)
+                .expand();
     }
 
     @Override

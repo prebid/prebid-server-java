@@ -25,7 +25,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
-import org.prebid.server.util.UriTemplate;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -40,11 +40,11 @@ public class DxKultureBidder implements Bidder<BidRequest> {
             };
     private static final String X_OPENRTB_VERSION = "2.5";
 
-    private final UriTemplate endpointTemplate;
+    private final Uri endpoint;
     private final JacksonMapper mapper;
 
     public DxKultureBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointTemplate = UriTemplate.of(endpointUrl);
+        this.endpoint = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -77,10 +77,10 @@ public class DxKultureBidder implements Bidder<BidRequest> {
     }
 
     private String getUri(ExtImpDxKulture extImpDxKulture) {
-        return endpointTemplate.toBuilder()
-                .queryParam("publisher_id", extImpDxKulture.getPublisherId())
-                .queryParam("placement_id", extImpDxKulture.getPlacementId())
-                .build();
+        return endpoint
+                .addQueryParam("publisher_id", extImpDxKulture.getPublisherId())
+                .addQueryParam("placement_id", extImpDxKulture.getPlacementId())
+                .expand();
     }
 
     private static MultiMap resolveHeaders(BidRequest bidRequest) {

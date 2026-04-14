@@ -23,7 +23,7 @@ import org.prebid.server.proto.openrtb.ext.request.smartadserver.ExtImpSmartadse
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
-import org.prebid.server.util.UriTemplate;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -38,12 +38,12 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private final UriTemplate endpointTemplate;
+    private final Uri endpoint;
     private final String pgEndpoint;
     private final JacksonMapper mapper;
 
     public SmartadserverBidder(String endpointUrl, String pgEndpoint, JacksonMapper mapper) {
-        this.endpointTemplate = UriTemplate.of(endpointUrl);
+        this.endpoint = Uri.of(endpointUrl);
         this.pgEndpoint = HttpUtil.validateUrl(Objects.requireNonNull(pgEndpoint));
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -119,7 +119,7 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
     private String makeUrl(boolean isProgrammaticGuaranteed) {
         return isProgrammaticGuaranteed
                 ? pgEndpoint
-                : endpointTemplate.toBuilder().queryParam("callerId", "5").build();
+                : endpoint.addQueryParam("callerId", "5").expand();
     }
 
     @Override

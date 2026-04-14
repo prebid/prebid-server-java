@@ -42,11 +42,11 @@ public class ElementalTVBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private final String endpointTemplate;
+    private final String endpoint;
     private final JacksonMapper mapper;
 
-    public ElementalTVBidder(String endpointTemplate, JacksonMapper mapper) {
-        this.endpointTemplate = HttpUtil.validateUrl(Objects.requireNonNull(endpointTemplate));
+    public ElementalTVBidder(String endpoint, JacksonMapper mapper) {
+        this.endpoint = HttpUtil.validateUrl(Objects.requireNonNull(endpoint));
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -85,7 +85,7 @@ public class ElementalTVBidder implements Bidder<BidRequest> {
 
     private String resolveUrl(ExtImpElementalTV extImp) {
         try {
-            return endpointTemplate
+            return endpoint
                     .replace("{{AdUnit}}", HttpUtil.encodeUrl(extImp.getAdunit()));
         } catch (Exception e) {
             throw new PreBidException(e.getMessage());

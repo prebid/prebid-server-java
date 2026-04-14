@@ -51,12 +51,12 @@ public class TaboolaBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private final String endpointTemplate;
+    private final String endpoint;
     private final String gvlId;
     private final JacksonMapper mapper;
 
-    public TaboolaBidder(String endpointTemplate, Integer gvlId, JacksonMapper mapper) {
-        this.endpointTemplate = HttpUtil.validateUrl(Objects.requireNonNull(endpointTemplate));
+    public TaboolaBidder(String endpoint, Integer gvlId, JacksonMapper mapper) {
+        this.endpoint = HttpUtil.validateUrl(Objects.requireNonNull(endpoint));
         this.gvlId = gvlId != null ? String.valueOf(gvlId) : "";
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -219,7 +219,7 @@ public class TaboolaBidder implements Bidder<BidRequest> {
                 .or(() -> Optional.ofNullable(bidRequest.getApp()).map(App::getId))
                 .orElse(StringUtils.EMPTY);
 
-        return endpointTemplate
+        return endpoint
                 .replace("{{GvlID}}", gvlId)
                 .replace("{{MediaType}}", type)
                 .replace("{{PublisherID}}", HttpUtil.encodeUrl(publisherId));

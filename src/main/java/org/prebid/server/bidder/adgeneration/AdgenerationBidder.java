@@ -30,7 +30,7 @@ import org.prebid.server.proto.openrtb.ext.request.adgeneration.ExtImpAdgenerati
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
-import org.prebid.server.util.UriTemplate;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -50,11 +50,11 @@ public class AdgenerationBidder implements Bidder<Void> {
             new TypeReference<>() {
             };
 
-    private final UriTemplate endpointTemplate;
+    private final Uri endpoint;
     private final JacksonMapper mapper;
 
     public AdgenerationBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointTemplate = UriTemplate.of(endpointUrl);
+        this.endpoint = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -95,40 +95,41 @@ public class AdgenerationBidder implements Bidder<Void> {
     }
 
     private String getUri(String adSize, String id, String currency, BidRequest bidRequest) {
-        final UriTemplate.UriBuilder uriBuilder = endpointTemplate.toBuilder()
-                .queryParam("posall", "SSPLOC")
-                .queryParam("id", id)
-                .queryParam("hb", "true")
-                .queryParam("t", "json3")
-                .queryParam("currency", currency)
-                .queryParam("sdkname", "prebidserver")
-                .queryParam("adapterver", VERSION);
+        final Uri.ParameterizedUri parameterizedUri = endpoint
+                .addQueryParam("posall", "SSPLOC")
+                .addQueryParam("id", id)
+                .addQueryParam("hb", "true")
+                .addQueryParam("t", "json3")
+                .addQueryParam("currency", currency)
+                .addQueryParam("sdkname", "prebidserver")
+                .addQueryParam("adapterver", VERSION);
 
-        addParameterIfNotEmpty(uriBuilder, "sizes", adSize);
-        addParameterIfNotEmpty(uriBuilder, "tp", ObjectUtil.getIfNotNull(bidRequest.getSite(), Site::getPage));
-        addParameterIfNotEmpty(uriBuilder, "appbundle", ObjectUtil.getIfNotNull(bidRequest.getApp(), App::getBundle));
-        addParameterIfNotEmpty(uriBuilder, "appname", ObjectUtil.getIfNotNull(bidRequest.getApp(), App::getName));
+        addParameterIfNotEmpty(parameterizedUri, "sizes", adSize);
+        addParameterIfNotEmpty(parameterizedUri, "tp", ObjectUtil.getIfNotNull(bidRequest.getSite(), Site::getPage));
         addParameterIfNotEmpty(
-                uriBuilder, "transactionid", ObjectUtil.getIfNotNull(bidRequest.getSource(), Source::getTid));
+                parameterizedUri, "appbundle", ObjectUtil.getIfNotNull(bidRequest.getApp(), App::getBundle));
+        addParameterIfNotEmpty(parameterizedUri, "appname", ObjectUtil.getIfNotNull(bidRequest.getApp(), App::getName));
+        addParameterIfNotEmpty(
+                parameterizedUri, "transactionid", ObjectUtil.getIfNotNull(bidRequest.getSource(), Source::getTid));
 
         final Device device = bidRequest.getDevice();
         final String deviceOs = device != null ? device.getOs() : null;
         if ("android".equals(deviceOs)) {
-            uriBuilder.queryParam("sdktype", "1");
-            addParameterIfNotEmpty(uriBuilder, "advertising_id", device.getIfa());
+            parameterizedUri.addQueryParam("sdktype", "1");
+            addParameterIfNotEmpty(parameterizedUri, "advertising_id", device.getIfa());
         } else if ("ios".equals(deviceOs)) {
-            uriBuilder.queryParam("sdktype", "2");
-            addParameterIfNotEmpty(uriBuilder, "idfa", device.getIfa());
+            parameterizedUri.addQueryParam("sdktype", "2");
+            addParameterIfNotEmpty(parameterizedUri, "idfa", device.getIfa());
         } else {
-            uriBuilder.queryParam("sdktype", "0");
+            parameterizedUri.addQueryParam("sdktype", "0");
         }
 
-        return uriBuilder.build();
+        return parameterizedUri.expand();
     }
 
-    private static void addParameterIfNotEmpty(UriTemplate.UriBuilder uriBuilder, String parameter, String value) {
+    private static void addParameterIfNotEmpty(Uri.ParameterizedUri parameterizedUri, String parameter, String value) {
         if (StringUtils.isNotEmpty(value)) {
-            uriBuilder.queryParam(parameter, value);
+            parameterizedUri.addQueryParam(parameter, value);
         }
     }
 

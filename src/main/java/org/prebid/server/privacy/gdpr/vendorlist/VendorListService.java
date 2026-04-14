@@ -59,7 +59,7 @@ public class VendorListService {
 
     private final double logSamplingRate;
     private final String cacheDir;
-    private final String endpointTemplate;
+    private final String endpoint;
     private final int defaultTimeoutMs;
     private final long refreshMissingListPeriodMs;
     private final boolean deprecated;
@@ -82,7 +82,7 @@ public class VendorListService {
 
     public VendorListService(double logSamplingRate,
                              String cacheDir,
-                             String endpointTemplate,
+                             String endpoint,
                              int defaultTimeoutMs,
                              long refreshMissingListPeriodMs,
                              boolean deprecated,
@@ -97,7 +97,7 @@ public class VendorListService {
 
         this.logSamplingRate = logSamplingRate;
         this.cacheDir = Objects.requireNonNull(cacheDir);
-        this.endpointTemplate = Objects.requireNonNull(endpointTemplate);
+        this.endpoint = Objects.requireNonNull(endpoint);
         this.defaultTimeoutMs = defaultTimeoutMs;
         this.refreshMissingListPeriodMs = refreshMissingListPeriodMs;
         this.deprecated = deprecated;
@@ -276,7 +276,7 @@ public class VendorListService {
      * Proceeds obtaining new vendor list from HTTP resource.
      */
     private void fetchNewVendorListFor(int version) {
-        final String url = endpointTemplate.replace(VERSION_PLACEHOLDER, String.valueOf(version));
+        final String url = endpoint.replace(VERSION_PLACEHOLDER, String.valueOf(version));
 
         httpClient.get(url, defaultTimeoutMs)
                 .map(response -> processResponse(response, version))
