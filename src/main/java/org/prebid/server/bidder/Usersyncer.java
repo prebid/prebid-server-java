@@ -1,7 +1,6 @@
 package org.prebid.server.bidder;
 
 import lombok.Value;
-import org.prebid.server.spring.config.bidder.model.usersync.CookieFamilySource;
 
 import java.util.List;
 
@@ -13,8 +12,6 @@ public class Usersyncer {
     String bidder;
 
     String cookieFamilyName;
-
-    CookieFamilySource cookieFamilySource;
 
     UsersyncMethod iframe;
 
@@ -35,7 +32,6 @@ public class Usersyncer {
                 true,
                 bidder,
                 cookieFamilyName,
-                CookieFamilySource.ROOT,
                 iframe,
                 redirect,
                 skipWhenInGdprScope,

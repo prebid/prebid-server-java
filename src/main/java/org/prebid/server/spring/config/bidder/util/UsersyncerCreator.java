@@ -7,7 +7,6 @@ import org.prebid.server.bidder.UsersyncMethod;
 import org.prebid.server.bidder.UsersyncMethodType;
 import org.prebid.server.bidder.UsersyncUtil;
 import org.prebid.server.bidder.Usersyncer;
-import org.prebid.server.spring.config.bidder.model.usersync.CookieFamilySource;
 import org.prebid.server.spring.config.bidder.model.usersync.UsersyncBidderRegulationScopeProperties;
 import org.prebid.server.spring.config.bidder.model.usersync.UsersyncConfigurationProperties;
 import org.prebid.server.spring.config.bidder.model.usersync.UsersyncMethodConfigurationProperties;
@@ -24,9 +23,7 @@ public class UsersyncerCreator {
         return new UsersyncerCreator(externalUrl);
     }
 
-    public Usersyncer createAndValidate(String bidder,
-                                        UsersyncConfigurationProperties usersync,
-                                        CookieFamilySource cookieFamilySource) {
+    public Usersyncer createAndValidate(String bidder, UsersyncConfigurationProperties usersync) {
 
         final String cookieFamilyName = usersync.getCookieFamilyName();
         final UsersyncBidderRegulationScopeProperties skipwhenConfig = usersync.getSkipwhen();
@@ -35,16 +32,15 @@ public class UsersyncerCreator {
                 usersync.getEnabled(),
                 bidder,
                 cookieFamilyName,
-                cookieFamilySource,
-                toMethod(UsersyncMethodType.IFRAME, usersync.getIframe(), cookieFamilyName),
-                toMethod(UsersyncMethodType.REDIRECT, usersync.getRedirect(), cookieFamilyName),
+                toMethod(UsersyncMethodType.IFRAME, usersync.getIframe(), bidder),
+                toMethod(UsersyncMethodType.REDIRECT, usersync.getRedirect(), bidder),
                 skipwhenConfig != null && skipwhenConfig.isGdpr(),
                 skipwhenConfig == null ? null : skipwhenConfig.getGppSid());
     }
 
     private UsersyncMethod toMethod(UsersyncMethodType type,
-                                    UsersyncMethodConfigurationProperties properties,
-                                    String cookieFamilyName) {
+                                           UsersyncMethodConfigurationProperties properties,
+                                           String bidder) {
 
         if (properties == null) {
             return null;
@@ -53,14 +49,14 @@ public class UsersyncerCreator {
         return UsersyncMethod.builder()
                 .type(type)
                 .usersyncUrl(Objects.requireNonNull(properties.getUrl()))
-                .redirectUrl(toRedirectUrl(cookieFamilyName, externalUrl, properties.getUidMacro()))
+                .redirectUrl(toRedirectUrl(bidder, externalUrl, properties.getUidMacro()))
                 .supportCORS(properties.getSupportCors())
                 .formatOverride(properties.getFormatOverride())
                 .build();
     }
 
-    private static String toRedirectUrl(String cookieFamilyName, String externalUri, String uidMacro) {
+    private static String toRedirectUrl(String bidder, String externalUri, String uidMacro) {
         return UsersyncUtil.CALLBACK_URL_TEMPLATE.formatted(
-                HttpUtil.validateUrl(externalUri), cookieFamilyName, StringUtils.defaultString(uidMacro));
+                HttpUtil.validateUrl(externalUri), bidder, StringUtils.defaultString(uidMacro));
     }
 }

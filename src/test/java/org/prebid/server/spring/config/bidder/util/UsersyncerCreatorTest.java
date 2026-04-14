@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test;
 import org.prebid.server.bidder.UsersyncMethod;
 import org.prebid.server.bidder.UsersyncMethodType;
 import org.prebid.server.bidder.Usersyncer;
-import org.prebid.server.spring.config.bidder.model.usersync.CookieFamilySource;
 import org.prebid.server.spring.config.bidder.model.usersync.UsersyncConfigurationProperties;
 import org.prebid.server.spring.config.bidder.model.usersync.UsersyncMethodConfigurationProperties;
 
@@ -29,7 +28,7 @@ public class UsersyncerCreatorTest {
         config.setRedirect(methodConfig);
 
         // when and then
-        assertThat(UsersyncerCreator.create("http://localhost:8000").createAndValidate("rubicon", config, CookieFamilySource.ROOT))
+        assertThat(UsersyncerCreator.create("http://localhost:8000").createAndValidate("rubicon", config))
                 .extracting(usersyncer -> usersyncer.getRedirect().getRedirectUrl())
                 .isEqualTo("""
                         http://localhost:8000/setuid\
@@ -57,7 +56,7 @@ public class UsersyncerCreatorTest {
 
         // given, when and then
         assertThatThrownBy(() -> UsersyncerCreator.create(null)
-                .createAndValidate("bidder", config, CookieFamilySource.ROOT))
+                .createAndValidate("bidder", config))
                 .hasCauseExactlyInstanceOf(MalformedURLException.class)
                 .hasMessage("URL supplied is not valid: null");
     }
@@ -83,7 +82,8 @@ public class UsersyncerCreatorTest {
         config.setRedirect(redirectConfig);
 
         // when
-        final Usersyncer result = UsersyncerCreator.create("http://localhost:8000").createAndValidate("rubicon", config, CookieFamilySource.ROOT);
+        final Usersyncer result = UsersyncerCreator.create("http://localhost:8000")
+                .createAndValidate("rubicon", config);
 
         // then
         final UsersyncMethod expectedIframeMethod = UsersyncMethod.builder()
@@ -134,7 +134,7 @@ public class UsersyncerCreatorTest {
         config.setRedirect(methodConfig);
 
         // when and then
-        assertThat(UsersyncerCreator.create("http://localhost:8000").createAndValidate("rubicon", config, CookieFamilySource.ROOT))
+        assertThat(UsersyncerCreator.create("http://localhost:8000").createAndValidate("rubicon", config))
                 .extracting(usersyncer -> usersyncer.getRedirect().getRedirectUrl())
                 .isEqualTo("""
                         http://localhost:8000/setuid\
