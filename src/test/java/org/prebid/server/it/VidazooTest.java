@@ -25,11 +25,9 @@ public class VidazooTest extends IntegrationTest {
         // when
         final Response response = responseFor(
                 "openrtb2/vidazoo/test-auction-vidazoo-request.json",
-                Endpoint.openrtb2_auction
-        );
+                Endpoint.openrtb2_auction);
 
         // then
         assertJsonEquals("openrtb2/vidazoo/test-auction-vidazoo-response.json", response, List.of("vidazoo"));
     }
-
 }

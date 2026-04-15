@@ -39,8 +39,6 @@ import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.Uri;
 
 import java.math.BigDecimal;
-import java.net.MalformedURLException;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -276,7 +274,7 @@ public class EplanningBidder implements Bidder<Void> {
     private static URL parseUrl(String url) {
         try {
             return HttpUtil.parseUrl(url);
-        } catch (MalformedURLException | URISyntaxException e) {
+        } catch (IllegalArgumentException e) {
             throw new PreBidException("Invalid url: " + url, e);
         }
     }

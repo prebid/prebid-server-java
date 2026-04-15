@@ -39,10 +39,10 @@ import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
@@ -115,12 +115,12 @@ public class GumgumBidderTest extends VertxTest {
         assertNotNull(result);
         assertFalse(result.getValue().isEmpty());
 
-        final byte[] requestBody = result.getValue().get(0).getBody();
+        final byte[] requestBody = result.getValue().getFirst().getBody();
         final BidRequest modifiedRequest = mapper.readValue(requestBody, BidRequest.class);
 
         assertFalse(modifiedRequest.getImp().isEmpty());
 
-        final Imp modifiedImp = modifiedRequest.getImp().get(0);
+        final Imp modifiedImp = modifiedRequest.getImp().getFirst();
 
         assertNull(modifiedImp.getTagid());
         assertEquals("test-site", modifiedRequest.getSite().getId(), "zone123");
@@ -547,5 +547,4 @@ public class GumgumBidderTest extends VertxTest {
                 HttpResponse.of(200, null, body),
                 null);
     }
-
 }

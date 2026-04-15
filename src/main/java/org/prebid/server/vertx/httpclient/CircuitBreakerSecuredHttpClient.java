@@ -14,8 +14,6 @@ import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.CircuitBreaker;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
-import java.net.MalformedURLException;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.time.Clock;
 import java.util.Map;
@@ -149,7 +147,7 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
     private static URL parseUrl(String url) {
         try {
             return HttpUtil.parseUrl(url);
-        } catch (URISyntaxException | MalformedURLException e) {
+        } catch (IllegalArgumentException e) {
             throw new PreBidException("Invalid url: " + url, e);
         }
     }

@@ -48,8 +48,6 @@ import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URISyntaxException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -105,7 +103,7 @@ public class CoreCacheServiceTest extends VertxTest {
     private Timeout expiredTimeout;
 
     @BeforeEach
-    public void setUp() throws MalformedURLException, JsonProcessingException, URISyntaxException {
+    public void setUp() throws JsonProcessingException {
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
 
         target = new CoreCacheService(
@@ -256,7 +254,7 @@ public class CoreCacheServiceTest extends VertxTest {
 
     @Test
     public void cacheBidsOpenrtbShouldTryCallingInternalEndpointAndTolerateReadingHttpResponseFails()
-            throws JsonProcessingException, MalformedURLException, URISyntaxException {
+            throws JsonProcessingException {
 
         // given
         target = new CoreCacheService(
@@ -437,7 +435,7 @@ public class CoreCacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void cacheBidsOpenrtbShouldUseApiKeyWhenProvided() throws MalformedURLException, URISyntaxException {
+    public void cacheBidsOpenrtbShouldUseApiKeyWhenProvided() {
         // given
         target = new CoreCacheService(
                 httpClient,
@@ -1229,7 +1227,7 @@ public class CoreCacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void cachePutObjectsShouldCallInternalCacheEndpointWhenProvided() throws IOException, URISyntaxException {
+    public void cachePutObjectsShouldCallInternalCacheEndpointWhenProvided() throws IOException {
         // given
         target = new CoreCacheService(
                 httpClient,
@@ -1261,7 +1259,7 @@ public class CoreCacheServiceTest extends VertxTest {
                 .willReturn(new TextNode("modifiedVast"));
 
         // when
-        target.cachePutObjects(asList(firstBidPutObject), true, singleton("bidder1"), "account", 100, "pbjs", timeout);
+        target.cachePutObjects(singletonList(firstBidPutObject), true, singleton("bidder1"), "account", 100, "pbjs", timeout);
 
         // then
         verify(httpClient).post(eq("http://cache-service-internal/cache"), any(), any(), anyLong());
@@ -1281,7 +1279,7 @@ public class CoreCacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void cachePutObjectsShouldUseApiKeyWhenProvided() throws MalformedURLException, URISyntaxException {
+    public void cachePutObjectsShouldUseApiKeyWhenProvided() {
         // given
         target = new CoreCacheService(
                 httpClient,
@@ -1324,7 +1322,7 @@ public class CoreCacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void cacheBidsOpenrtbShouldPrependTraceInfoWhenEnabled() throws IOException, URISyntaxException {
+    public void cacheBidsOpenrtbShouldPrependTraceInfoWhenEnabled() throws IOException {
         // given
         target = new CoreCacheService(
                 httpClient,
@@ -1361,7 +1359,7 @@ public class CoreCacheServiceTest extends VertxTest {
                 .build();
 
         // when
-        final Future<CacheServiceResult> future = target.cacheBidsOpenrtb(
+        target.cacheBidsOpenrtb(
                 asList(bidInfo1, bidInfo2),
                 givenAuctionContext(),
                 CacheContext.builder()
@@ -1395,7 +1393,7 @@ public class CoreCacheServiceTest extends VertxTest {
 
     @Test
     public void cacheBidsOpenrtbShouldPrependTraceInfoWithDatacenterWhenEnabled()
-            throws IOException, URISyntaxException {
+            throws IOException {
 
         // given
         target = new CoreCacheService(
@@ -1433,7 +1431,7 @@ public class CoreCacheServiceTest extends VertxTest {
                 .build();
 
         // when
-        final Future<CacheServiceResult> future = target.cacheBidsOpenrtb(
+        target.cacheBidsOpenrtb(
                 asList(bidInfo1, bidInfo2),
                 givenAuctionContext(),
                 CacheContext.builder()
@@ -1466,7 +1464,7 @@ public class CoreCacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void cacheBidsOpenrtbShouldNotPrependTraceInfoToLowEntoryCacheIds() throws IOException, URISyntaxException {
+    public void cacheBidsOpenrtbShouldNotPrependTraceInfoToLowEntoryCacheIds() throws IOException {
         // given
         target = new CoreCacheService(
                 httpClient,
@@ -1497,7 +1495,7 @@ public class CoreCacheServiceTest extends VertxTest {
                 .build();
 
         // when
-        final Future<CacheServiceResult> future = target.cacheBidsOpenrtb(
+        target.cacheBidsOpenrtb(
                 singletonList(bidInfo),
                 givenAuctionContext(),
                 CacheContext.builder()
@@ -1517,7 +1515,7 @@ public class CoreCacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void cachePutObjectsShouldPrependTraceInfoWhenEnabled() throws IOException, URISyntaxException {
+    public void cachePutObjectsShouldPrependTraceInfoWhenEnabled() throws IOException {
         // given
         target = new CoreCacheService(
                 httpClient,
@@ -1566,8 +1564,7 @@ public class CoreCacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void cachePutObjectsShouldPrependTraceInfoWithDatacenterWhenEnabled()
-            throws IOException, URISyntaxException {
+    public void cachePutObjectsShouldPrependTraceInfoWithDatacenterWhenEnabled() throws IOException {
 
         // given
         target = new CoreCacheService(
@@ -1617,7 +1614,7 @@ public class CoreCacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void cachePutObjectsShouldNotPrependTraceInfoToPassedInKey() throws IOException, URISyntaxException {
+    public void cachePutObjectsShouldNotPrependTraceInfoToPassedInKey() throws IOException {
         // given
         target = new CoreCacheService(
                 httpClient,
@@ -1758,8 +1755,7 @@ public class CoreCacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void getCachedObjectShouldAddUuidQueryParamsToInternalBeforeSendingWhenChIsAbsent()
-            throws MalformedURLException, URISyntaxException {
+    public void getCachedObjectShouldAddUuidQueryParamsToInternalBeforeSendingWhenChIsAbsent() {
 
         // given
         target = new CoreCacheService(
@@ -1797,11 +1793,6 @@ public class CoreCacheServiceTest extends VertxTest {
     @Test
     public void getCachedObjectShouldNotLogErrorMetricsWhenCacheIsNotReached() {
         // given
-        final HttpClientResponse response = HttpClientResponse.of(
-                200,
-                MultiMap.caseInsensitiveMultiMap().add("Header", "Value"),
-                "body");
-
         given(httpClient.get(eq("http://cache-service/cache?uuid=key&ch=ch"), any(), anyLong()))
                 .willReturn(Future.failedFuture(new TimeoutException("Timeout")));
 

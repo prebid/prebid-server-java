@@ -48,5 +48,4 @@ public class ClientTimeFormatter {
     public String now() {
         return OffsetDateTime.now(clock).format(TIME_OUTPUT_FORMATTER);
     }
-
 }

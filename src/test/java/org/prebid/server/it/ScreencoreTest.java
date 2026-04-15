@@ -25,11 +25,9 @@ public class ScreencoreTest extends IntegrationTest {
         // when
         final Response response = responseFor(
                 "openrtb2/screencore/test-auction-screencore-request.json",
-                Endpoint.openrtb2_auction
-        );
+                Endpoint.openrtb2_auction);
 
         // then
         assertJsonEquals("openrtb2/screencore/test-auction-screencore-response.json", response, List.of("screencore"));
     }
-
 }

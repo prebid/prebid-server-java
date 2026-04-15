@@ -38,5 +38,4 @@ public class AdtrgtmeConfiguration {
                 .bidderCreator(config -> new AdtrgtmeBidder(config.getEndpoint(), mapper))
                 .assemble();
     }
-
 }

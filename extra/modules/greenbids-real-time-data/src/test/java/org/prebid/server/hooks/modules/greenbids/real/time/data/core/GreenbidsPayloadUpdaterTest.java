@@ -56,5 +56,4 @@ public class GreenbidsPayloadUpdaterTest {
         assertThat(result.getImp()).isEmpty();
 
     }
-
 }

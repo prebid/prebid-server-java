@@ -28,8 +28,6 @@ import org.prebid.server.util.HttpUtil;
 import org.prebid.server.version.PrebidVersionProvider;
 
 import java.math.BigDecimal;
-import java.net.MalformedURLException;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -173,7 +171,7 @@ public class MissenaBidder implements Bidder<MissenaAdRequest> {
                 final URL url = HttpUtil.parseUrl(site.getPage());
                 final String origin = url.getProtocol() + "://" + url.getHost();
                 HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ORIGIN_HEADER, origin);
-            } catch (MalformedURLException | URISyntaxException e) {
+            } catch (IllegalArgumentException e) {
                 // do nothing
             }
         }

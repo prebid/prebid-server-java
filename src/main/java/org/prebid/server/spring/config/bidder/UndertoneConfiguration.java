@@ -38,5 +38,4 @@ public class UndertoneConfiguration {
                 .bidderCreator(config -> new UndertoneBidder(config.getEndpoint(), mapper))
                 .assemble();
     }
-
 }

@@ -139,5 +139,4 @@ public class AdmaticBidder implements Bidder<BidRequest> {
                 .orElseThrow(() -> new PreBidException(
                         "The impression with ID %s is not present into the request".formatted(impId)));
     }
-
 }

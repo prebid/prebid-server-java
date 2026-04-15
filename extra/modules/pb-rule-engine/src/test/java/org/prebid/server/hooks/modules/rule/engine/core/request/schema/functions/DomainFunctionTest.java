@@ -132,5 +132,4 @@ public class DomainFunctionTest {
                 null,
                 RequestRuleContext.of(AuctionContext.builder().build(), Granularity.Request.instance(), "datacenter"));
     }
-
 }

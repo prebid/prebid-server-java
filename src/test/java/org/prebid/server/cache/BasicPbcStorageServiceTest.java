@@ -21,8 +21,6 @@ import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
-import java.net.MalformedURLException;
-import java.net.URISyntaxException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -49,7 +47,7 @@ public class BasicPbcStorageServiceTest extends VertxTest {
     private BasicPbcStorageService target;
 
     @BeforeEach
-    public void setUp() throws MalformedURLException, JsonProcessingException, URISyntaxException {
+    public void setUp() throws JsonProcessingException {
         target = new BasicPbcStorageService(
                 httpClient,
                 HttpUtil.parseUrl("http://cache-service/cache"),

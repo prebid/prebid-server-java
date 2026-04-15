@@ -148,5 +148,4 @@ public class MotorikBidder implements Bidder<BidRequest> {
 
         throw new PreBidException("Failed to find impression for ID: '%s'".formatted(impId));
     }
-
 }

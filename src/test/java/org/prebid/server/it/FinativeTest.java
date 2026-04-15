@@ -8,7 +8,6 @@ import org.prebid.server.model.Endpoint;
 import java.io.IOException;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
@@ -20,7 +19,6 @@ public class FinativeTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromFinative() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/finative-exchange"))
-                .withQueryParam("ssp", equalTo("pbs"))
                 .withRequestBody(equalToJson(
                         jsonFrom("openrtb2/finative/test-finative-bid-request.json")))
                 .willReturn(aResponse().withBody(

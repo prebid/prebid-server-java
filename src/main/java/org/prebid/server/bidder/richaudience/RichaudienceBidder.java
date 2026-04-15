@@ -30,8 +30,6 @@ import org.prebid.server.proto.openrtb.ext.request.richaudience.ExtImpRichaudien
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
-import java.net.MalformedURLException;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -172,7 +170,7 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
     private static URL parseUrl(String page) {
         try {
             return HttpUtil.parseUrl(page);
-        } catch (MalformedURLException | URISyntaxException e) {
+        } catch (IllegalArgumentException e) {
             return null;
         }
     }

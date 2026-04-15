@@ -153,5 +153,4 @@ public class ScreencoreBidder implements Bidder<BidRequest> {
                     "Unable to fetch mediaType " + bid.getMtype() + " in multi-format: " + bid.getImpid());
         };
     }
-
 }

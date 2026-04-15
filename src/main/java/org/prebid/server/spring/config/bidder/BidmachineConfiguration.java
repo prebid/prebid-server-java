@@ -38,5 +38,4 @@ public class BidmachineConfiguration {
                 .bidderCreator(config -> new BidmachineBidder(config.getEndpoint(), mapper))
                 .assemble();
     }
-
 }

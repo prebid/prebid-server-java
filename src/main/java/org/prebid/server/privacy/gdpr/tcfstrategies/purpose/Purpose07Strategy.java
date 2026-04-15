@@ -29,5 +29,4 @@ public class Purpose07Strategy extends PurposeStrategy {
     public PurposeCode getPurpose() {
         return PurposeCode.SEVEN;
     }
-
 }

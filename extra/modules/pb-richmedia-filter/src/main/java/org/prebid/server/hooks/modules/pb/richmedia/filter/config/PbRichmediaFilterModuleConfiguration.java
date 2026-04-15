@@ -34,5 +34,4 @@ public class PbRichmediaFilterModuleConfiguration {
                         new BidResponsesMraidFilter(),
                         new ModuleConfigResolver(mapper, globalProperties))));
     }
-
 }

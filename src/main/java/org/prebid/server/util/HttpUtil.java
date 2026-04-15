@@ -14,9 +14,7 @@ import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
 
-import java.net.MalformedURLException;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
@@ -84,16 +82,16 @@ public final class HttpUtil {
     private HttpUtil() {
     }
 
-    public static URL parseUrl(String url) throws URISyntaxException, MalformedURLException {
-        return new URI(url).toURL();
+    public static URL parseUrl(String url) {
+        try {
+            return new URI(url).toURL();
+        } catch (Exception e) {
+            throw new IllegalArgumentException("URL supplied is not valid: " + url, e);
+        }
     }
 
     public static String validateUrl(String url) {
-        try {
-            return parseUrl(url).toString();
-        } catch (URISyntaxException | MalformedURLException e) {
-            throw new IllegalArgumentException("URL supplied is not valid: " + url, e);
-        }
+        return parseUrl(url).toString();
     }
 
     public static String encodeUrl(String value) {
@@ -126,7 +124,7 @@ public final class HttpUtil {
 
         try {
             return parseUrl(url).getHost();
-        } catch (URISyntaxException | MalformedURLException e) {
+        } catch (IllegalArgumentException e) {
             return null;
         }
     }

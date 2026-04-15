@@ -292,5 +292,4 @@ public class AsoBidderTest extends VertxTest {
                 HttpResponse.of(200, null, body),
                 null);
     }
-
 }

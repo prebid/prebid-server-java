@@ -18,7 +18,7 @@ public class GreedyGameTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromTheGreedyGameBidder() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/greedygame-exchange/test.host/123456"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/greedygame-exchange"))
                 .withRequestBody(equalToJson(
                         jsonFrom("openrtb2/greedygame/test-greedygame-bid-request.json")))
                 .willReturn(aResponse().withBody(
