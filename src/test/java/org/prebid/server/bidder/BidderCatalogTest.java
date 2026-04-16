@@ -218,7 +218,7 @@ public class BidderCatalogTest {
     @Test
     public void usersyncerByNameShouldReturnUsersyncerForKnownBidderIgnoringCase() {
         // given
-        final Usersyncer usersyncer = Usersyncer.of("BIDder", "name", null, null, false, null);
+        final Usersyncer usersyncer = Usersyncer.of("name", null, null, false, null);
         final BidderDeps bidderDeps = BidderDeps.of(singletonList(BidderInstanceDeps.builder()
                 .name("BIDder")
                 .deprecatedNames(emptyList())
@@ -233,7 +233,7 @@ public class BidderCatalogTest {
     @Test
     public void cookieFamilyNameShouldReturnCookieFamilyForKnownBidderIgnoringCase() {
         // given
-        final Usersyncer usersyncer = Usersyncer.of("BIDder", "name", null, null, false, null);
+        final Usersyncer usersyncer = Usersyncer.of("name", null, null, false, null);
         final BidderDeps bidderDeps = BidderDeps.of(singletonList(BidderInstanceDeps.builder()
                 .name("BIDder")
                 .deprecatedNames(emptyList())
@@ -310,8 +310,7 @@ public class BidderCatalogTest {
                         .name("bidder-with-usersync")
                         .deprecatedNames(emptyList())
                         .bidderInfo(infoOfBidderWithUsersyncConfig)
-                        .usersyncer(Usersyncer.of("bidder-with-usersync",
-                                "bidder-with-usersync-family",
+                        .usersyncer(Usersyncer.of("bidder-with-usersync-family",
                                 null,
                                 null,
                                 false,
@@ -325,8 +324,7 @@ public class BidderCatalogTest {
                 BidderDeps.of(singletonList(BidderInstanceDeps.builder()
                         .name("disabled-bidder-with-usersync")
                         .bidderInfo(infoOfDisabledBidderWithUsersyncConfig)
-                        .usersyncer(Usersyncer.of("disabled-bidder-with-usersync",
-                                "disabled-bidder-with-usersync-family",
+                        .usersyncer(Usersyncer.of("disabled-bidder-with-usersync-family",
                                 null,
                                 null,
                                 false,

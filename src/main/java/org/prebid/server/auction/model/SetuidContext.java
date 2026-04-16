@@ -27,7 +27,7 @@ public class SetuidContext {
 
     Account account;
 
-    String bidderQueryParam;
+    String bidder;
 
     @JsonIgnore
     Usersyncer usersyncer;

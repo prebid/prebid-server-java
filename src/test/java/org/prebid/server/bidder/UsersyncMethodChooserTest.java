@@ -59,7 +59,6 @@ public class UsersyncMethodChooserTest extends VertxTest {
                         CookieSyncRequest.FilterType.exclude),
                 null);
         final Usersyncer usersyncer = Usersyncer.of(null,
-                null,
                 iframeMethod("url"),
                 redirectMethod("url"),
                 false,
@@ -99,7 +98,6 @@ public class UsersyncMethodChooserTest extends VertxTest {
                         CookieSyncRequest.FilterType.exclude),
                 null);
         final Usersyncer usersyncer = Usersyncer.of(null,
-                null,
                 iframeMethod("url"),
                 redirectMethod("url"),
                 false,
@@ -122,7 +120,6 @@ public class UsersyncMethodChooserTest extends VertxTest {
                         CookieSyncRequest.FilterType.exclude),
                 null);
         final Usersyncer usersyncer = Usersyncer.of(null,
-                null,
                 iframeMethod("url"),
                 redirectMethod("url"),
                 false,
@@ -196,7 +193,6 @@ public class UsersyncMethodChooserTest extends VertxTest {
                         CookieSyncRequest.FilterType.include),
                 null);
         final Usersyncer usersyncer = Usersyncer.of(null,
-                null,
                 iframeMethod("url"),
                 redirectMethod("url"),
                 false,
@@ -252,7 +248,6 @@ public class UsersyncMethodChooserTest extends VertxTest {
                         CookieSyncRequest.FilterType.include),
                 null);
         final Usersyncer usersyncer = Usersyncer.of(null,
-                null,
                 iframeMethod("url"),
                 redirectMethod("url"),
                 false,
@@ -274,7 +269,6 @@ public class UsersyncMethodChooserTest extends VertxTest {
                         CookieSyncRequest.FilterType.include),
                 null);
         final Usersyncer usersyncer = Usersyncer.of(null,
-                null,
                 iframeMethod("url"),
                 redirectMethod("url"),
                 false,
@@ -299,7 +293,6 @@ public class UsersyncMethodChooserTest extends VertxTest {
                         new TextNode("*"),
                         CookieSyncRequest.FilterType.include));
         final Usersyncer usersyncer = Usersyncer.of(null,
-                null,
                 iframeMethod("url"),
                 redirectMethod("url"),
                 false,
@@ -324,7 +317,6 @@ public class UsersyncMethodChooserTest extends VertxTest {
                         new TextNode("*"),
                         CookieSyncRequest.FilterType.exclude));
         final Usersyncer usersyncer = Usersyncer.of(null,
-                null,
                 iframeMethod("url"),
                 redirectMethod("url"),
                 false,
@@ -369,7 +361,7 @@ public class UsersyncMethodChooserTest extends VertxTest {
     }
 
     private Usersyncer iframeUsersyncer(String url) {
-        return Usersyncer.of(null, null, iframeMethod(url), null, false, null);
+        return Usersyncer.of(null, iframeMethod(url), null, false, null);
     }
 
     private UsersyncMethod iframeMethod(String url) {

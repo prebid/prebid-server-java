@@ -58,7 +58,6 @@ import org.prebid.server.vertx.verticles.server.HttpEndpoint;
 import org.prebid.server.vertx.verticles.server.application.ApplicationResource;
 
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -89,7 +88,6 @@ public class SetuidHandler implements ApplicationResource {
     private final Metrics metrics;
     private final TimeoutFactory timeoutFactory;
     private final Map<String, Usersyncer> bidderToUsersyncer;
-    private final Map<String, Usersyncer> cookieNameToUsersyncer;
 
     public SetuidHandler(long defaultTimeout,
                          UidsCookieService uidsCookieService,
@@ -113,9 +111,14 @@ public class SetuidHandler implements ApplicationResource {
         this.analyticsDelegator = Objects.requireNonNull(analyticsDelegator);
         this.metrics = Objects.requireNonNull(metrics);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
+        this.bidderToUsersyncer = collectUsersyncers(bidderCatalog);
+    }
+
+    private static Map<String, Usersyncer> collectUsersyncers(BidderCatalog bidderCatalog) {
         validateUsersyncersDuplicates(bidderCatalog);
-        this.bidderToUsersyncer = collectUsersyncersByBidderName(bidderCatalog);
-        this.cookieNameToUsersyncer = collectUsersyncersByCookieName(bidderCatalog);
+        return bidderCatalog.usersyncReadyBidders().stream()
+                .collect(Collectors.toMap(Function.identity(),
+                        bidder -> bidderCatalog.usersyncerByName(bidder).orElseThrow()));
     }
 
     private static void validateUsersyncersDuplicates(BidderCatalog bidderCatalog) {
@@ -146,20 +149,6 @@ public class SetuidHandler implements ApplicationResource {
                 && parentCookieFamilyName.equals(bidderCookieFamilyName);
     }
 
-    private static Map<String, Usersyncer> collectUsersyncersByBidderName(BidderCatalog bidderCatalog) {
-        return bidderCatalog.usersyncReadyBidders().stream()
-                .map(bidder -> bidderCatalog.usersyncerByName(bidder).orElseThrow())
-                .collect(Collectors.toMap(Usersyncer::getBidder, Function.identity()));
-    }
-
-    private static Map<String, Usersyncer> collectUsersyncersByCookieName(BidderCatalog bidderCatalog) {
-        return bidderCatalog.usersyncReadyBidders().stream()
-                .sorted(Comparator.comparing(bidderName -> BooleanUtils.toInteger(bidderCatalog.isAlias(bidderName))))
-                .filter(StreamUtil.distinctBy(bidderCatalog::cookieFamilyName))
-                .map(bidderName -> bidderCatalog.usersyncerByName(bidderName).orElseThrow())
-                .collect(Collectors.toMap(Usersyncer::getCookieFamilyName, Function.identity()));
-    }
-
     @Override
     public List<HttpEndpoint> endpoints() {
         return Collections.singletonList(HttpEndpoint.of(HttpMethod.GET, Endpoint.setuid.value()));
@@ -175,13 +164,10 @@ public class SetuidHandler implements ApplicationResource {
     private Future<SetuidContext> toSetuidContext(RoutingContext routingContext) {
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(routingContext);
         final HttpServerRequest httpRequest = routingContext.request();
-        final String bidderQueryParam = httpRequest.getParam(BIDDER_PARAM);
+        final String bidder = httpRequest.getParam(BIDDER_PARAM);
         final String requestAccount = httpRequest.getParam(ACCOUNT_PARAM);
         final Timeout timeout = timeoutFactory.create(defaultTimeout);
-
-        final Usersyncer usersyncer = ObjectUtils.firstNonNull(
-                bidderToUsersyncer.get(bidderQueryParam),
-                cookieNameToUsersyncer.get(bidderQueryParam));
+        final Usersyncer usersyncer = bidderToUsersyncer.get(bidder);
 
         return accountById(requestAccount, timeout)
                 .compose(account -> setuidPrivacyContextFactory.contextFrom(httpRequest, account, timeout)
@@ -190,7 +176,7 @@ public class SetuidHandler implements ApplicationResource {
                                 .uidsCookie(uidsCookie)
                                 .timeout(timeout)
                                 .account(account)
-                                .bidderQueryParam(bidderQueryParam)
+                                .bidder(bidder)
                                 .usersyncer(usersyncer)
                                 .privacyContext(privacyContext)
                                 .build()))
@@ -226,20 +212,18 @@ public class SetuidHandler implements ApplicationResource {
             return;
         }
 
-        final String bidderName = setuidContext.getUsersyncer().getBidder();
-
         final AccountPrivacyConfig privacyConfig = setuidContext.getAccount().getPrivacy();
         final AccountGdprConfig accountGdprConfig = privacyConfig != null ? privacyConfig.getGdpr() : null;
 
         Future.all(
                         tcfDefinerService.isAllowedForHostVendorId(tcfContext),
                         tcfDefinerService.resultForBidderNames(
-                                Collections.singleton(bidderName), tcfContext, accountGdprConfig))
+                                Collections.singleton(setuidContext.getBidder()), tcfContext, accountGdprConfig))
                 .onComplete(hostTcfResponseResult -> respondByTcfResponse(hostTcfResponseResult, setuidContext));
     }
 
     private void validateSetuidContext(SetuidContext setuidContext) {
-        if (StringUtils.isBlank(setuidContext.getBidderQueryParam())) {
+        if (StringUtils.isBlank(setuidContext.getBidder())) {
             throw new InvalidRequestException("\"bidder\" query param is required");
         }
 
@@ -283,7 +267,7 @@ public class SetuidHandler implements ApplicationResource {
 
             final Map<String, PrivacyEnforcementAction> vendorIdToAction = bidderTcfResponse.getActions();
             final PrivacyEnforcementAction action = vendorIdToAction != null
-                    ? vendorIdToAction.get(setuidContext.getUsersyncer().getBidder())
+                    ? vendorIdToAction.get(setuidContext.getBidder())
                     : null;
 
             final boolean notInGdprScope = BooleanUtils.isFalse(bidderTcfResponse.getUserInGdprScope());

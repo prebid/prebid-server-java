@@ -104,7 +104,6 @@ public class PrioritizedCoopSyncProviderTest {
         given(bidderCatalog.cookieFamilyName(bidder)).willReturn(Optional.of(bidder + "-cookie-family"));
         given(bidderCatalog.usersyncerByName(bidder)).willReturn(
                 Optional.of(Usersyncer.of(
-                        bidder,
                         "cookie-family-name",
                         UsersyncMethod.builder().build(),
                         null,

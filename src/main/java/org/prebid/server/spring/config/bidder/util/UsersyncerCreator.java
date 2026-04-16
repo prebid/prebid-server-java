@@ -30,7 +30,6 @@ public class UsersyncerCreator {
 
         return Usersyncer.of(
                 usersync.getEnabled(),
-                bidder,
                 cookieFamilyName,
                 toMethod(UsersyncMethodType.IFRAME, usersync.getIframe(), bidder),
                 toMethod(UsersyncMethodType.REDIRECT, usersync.getRedirect(), bidder),
