@@ -30,4 +30,21 @@ public class SeedtagTest extends IntegrationTest {
         assertJsonEquals("openrtb2/seedtag/test-auction-seedtag-response.json", response,
                 singletonList("seedtag"));
     }
+
+    @Test
+    public void openrtb2AuctionShouldRespondWithBidsFromSeedtagUsingPublisherIdAndRonIntegrationType()
+            throws IOException, JSONException {
+        // given
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/seedtag-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/seedtag/test-seedtag-ron-bid-request.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/seedtag/test-seedtag-ron-bid-response.json"))));
+
+        // when
+        final Response response = responseFor("openrtb2/seedtag/test-auction-seedtag-ron-request.json",
+                Endpoint.openrtb2_auction);
+
+        // then
+        assertJsonEquals("openrtb2/seedtag/test-auction-seedtag-ron-response.json", response,
+                singletonList("seedtag"));
+    }
 }
