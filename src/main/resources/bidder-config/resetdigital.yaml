@@ -1,21 +1,24 @@
 adapters:
   resetdigital:
-    endpoint: http://b-us-east14.resetdigital.co:9001
+    endpoint: https://prebid.resetdigital.co
+    endpoint-compression: gzip
     meta-info:
       maintainer-email: biddersupport@resetdigital.co
       app-media-types:
         - banner
         - video
+        - native
         - audio
       site-media-types:
         - banner
         - video
+        - native
         - audio
       supported-vendors:
       vendor-id: 1162
     usersync:
       cookie-family-name: resetdigital
       redirect:
-        url: https://sync.resetdigital.co/csync?pid=rubicon&redir={{redirect_url}}
-        support-cors: false
-        uid-macro: '$USER_ID'
+        url: https://sync.resetdigital.co/usersync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+        support-cors: true
+        uid-macro: '$UID'
