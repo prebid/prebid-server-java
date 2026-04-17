@@ -23,6 +23,7 @@ import org.prebid.server.proto.openrtb.ext.request.admatic.AdmaticImpExt;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -38,13 +39,13 @@ public class AdmaticBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, AdmaticImpExt>> TYPE_REFERENCE = new TypeReference<>() {
     };
-    private static final String HOST_MACRO = "{{Host}}";
+    private static final String HOST_MACRO = "Host";
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public AdmaticBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -79,7 +80,7 @@ public class AdmaticBidder implements Bidder<BidRequest> {
     }
 
     private String resolveEndpoint(AdmaticImpExt impExt) {
-        return endpointUrl.replace(HOST_MACRO, HttpUtil.encodeUrl(impExt.getHost()));
+        return endpointUrl.replaceMacro(HOST_MACRO, impExt.getHost()).expand();
     }
 
     private MultiMap headers(Device device) {

@@ -1,6 +1,6 @@
 adapters:
   smartrtb:
-    endpoint: http://market-east.smrtb.com/json/publisher/rtb?pubid=
+    endpoint: http://market-east.smrtb.com/json/publisher/rtb?pubid={PubId}
     meta-info:
       maintainer-email: engineering@smrtb.com
       app-media-types:

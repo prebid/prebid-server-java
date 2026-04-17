@@ -25,6 +25,7 @@ import org.prebid.server.proto.openrtb.ext.request.missena.ExtImpMissena;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 import org.prebid.server.version.PrebidVersionProvider;
 
 import java.math.BigDecimal;
@@ -40,9 +41,9 @@ public class MissenaBidder implements Bidder<MissenaAdRequest> {
     };
     private static final String USD_CURRENCY = "USD";
     private static final String EUR_CURRENCY = "EUR";
-    private static final String PUBLISHER_ID_MACRO = "{{PublisherID}}";
+    private static final String PUBLISHER_ID_MACRO = "PublisherID";
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
     private final CurrencyConversionService currencyConversionService;
     private final PrebidVersionProvider prebidVersionProvider;
@@ -52,7 +53,7 @@ public class MissenaBidder implements Bidder<MissenaAdRequest> {
                          CurrencyConversionService currencyConversionService,
                          PrebidVersionProvider prebidVersionProvider) {
 
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
         this.prebidVersionProvider = Objects.requireNonNull(prebidVersionProvider);
@@ -179,7 +180,7 @@ public class MissenaBidder implements Bidder<MissenaAdRequest> {
     }
 
     private String resolveEndpointUrl(String apiKey) {
-        return endpointUrl.replace(PUBLISHER_ID_MACRO, HttpUtil.encodeUrl(apiKey));
+        return endpointUrl.replaceMacro(PUBLISHER_ID_MACRO, apiKey).expand();
     }
 
     @Override

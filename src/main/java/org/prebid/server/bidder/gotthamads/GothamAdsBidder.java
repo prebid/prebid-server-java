@@ -24,6 +24,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,14 +35,14 @@ public class GothamAdsBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, GothamAdsImpExt>> TYPE_REFERENCE = new TypeReference<>() {
     };
-    private static final String ACCOUNT_ID_MACRO = "{{AccountID}}";
+    private static final String ACCOUNT_ID_MACRO = "AccountID";
     private static final String X_OPENRTB_VERSION = "2.5";
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public GothamAdsBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -82,7 +83,7 @@ public class GothamAdsBidder implements Bidder<BidRequest> {
     }
 
     private String resolveEndpoint(String accountId) {
-        return endpointUrl.replace(ACCOUNT_ID_MACRO, HttpUtil.encodeUrl(accountId));
+        return endpointUrl.replaceMacro(ACCOUNT_ID_MACRO, accountId).expand();
     }
 
     private static MultiMap makeHeaders(BidRequest bidRequest) {

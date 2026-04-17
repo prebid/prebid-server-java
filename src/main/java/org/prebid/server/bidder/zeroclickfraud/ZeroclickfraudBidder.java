@@ -21,7 +21,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.zeroclickfraud.ExtImpZeroclickfraud;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -37,14 +37,14 @@ public class ZeroclickfraudBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private static final String HOST = "{{Host}}";
-    private static final String SOURCE_ID = "{{SourceId}}";
+    private static final String HOST = "Host";
+    private static final String SOURCE_ID = "SourceId";
 
-    private final String endpoint;
+    private final Uri endpoint;
     private final JacksonMapper mapper;
 
     public ZeroclickfraudBidder(String endpoint, JacksonMapper mapper) {
-        this.endpoint = HttpUtil.validateUrl(Objects.requireNonNull(endpoint));
+        this.endpoint = Uri.of(endpoint);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -87,14 +87,16 @@ public class ZeroclickfraudBidder implements Bidder<BidRequest> {
         return extImpZeroclickfraud;
     }
 
-    private HttpRequest<BidRequest> makeHttpRequest(ExtImpZeroclickfraud extImpZeroclickfraud, List<Imp> imps,
+    private HttpRequest<BidRequest> makeHttpRequest(ExtImpZeroclickfraud extImpZeroclickfraud,
+                                                    List<Imp> imps,
                                                     BidRequest bidRequest) {
+
         final String uri = endpoint
-                .replace(HOST, extImpZeroclickfraud.getHost())
-                .replace(SOURCE_ID, extImpZeroclickfraud.getSourceId().toString());
+                .replaceMacro(HOST, extImpZeroclickfraud.getHost())
+                .replaceMacro(SOURCE_ID, extImpZeroclickfraud.getSourceId().toString())
+                .expand();
 
         final BidRequest outgoingRequest = bidRequest.toBuilder().imp(imps).build();
-
         return BidderUtil.defaultRequest(outgoingRequest, uri, mapper);
     }
 

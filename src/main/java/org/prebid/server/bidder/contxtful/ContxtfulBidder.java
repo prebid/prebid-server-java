@@ -31,6 +31,7 @@ import org.prebid.server.proto.openrtb.ext.request.contxtful.ExtImpContxtful;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -45,16 +46,16 @@ public class ContxtfulBidder implements Bidder<ContxtfulCompositeRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpContxtful>> TYPE_REFERENCE = new TypeReference<>() {
     };
-    private static final String ACCOUNT_ID_MACRO = "{{AccountId}}";
+    private static final String ACCOUNT_ID_MACRO = "AccountId";
     private static final String BIDDER_NAME = "contxtful";
     private static final String DEFAULT_ADAPTER_VERSION = "v1";
     private static final String DEFAULT_CURRENCY = "USD";
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public ContxtfulBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -129,7 +130,7 @@ public class ContxtfulBidder implements Bidder<ContxtfulCompositeRequest> {
     }
 
     private String makeUrl(String customerId) {
-        return endpointUrl.replace(ACCOUNT_ID_MACRO, HttpUtil.encodeUrl(customerId));
+        return endpointUrl.replaceMacro(ACCOUNT_ID_MACRO, customerId).expand();
     }
 
     @Override

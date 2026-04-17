@@ -22,7 +22,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.limelightdigital.ExtImpLimeLightDigital;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -38,10 +38,10 @@ public class LimeLightDigitalBidder implements Bidder<BidRequest> {
             };
 
     private static final String BIDDER_CURRENCY = "USD";
-    private static final String URL_HOST_MACRO = "{{Host}}";
-    private static final String URL_PUBLISHER_ID_MACRO = "{{PublisherID}}";
+    private static final String URL_HOST_MACRO = "Host";
+    private static final String URL_PUBLISHER_ID_MACRO = "PublisherID";
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final CurrencyConversionService currencyConversionService;
     private final JacksonMapper mapper;
 
@@ -49,7 +49,7 @@ public class LimeLightDigitalBidder implements Bidder<BidRequest> {
                                   CurrencyConversionService currencyConversionService,
                                   JacksonMapper mapper) {
 
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -84,9 +84,10 @@ public class LimeLightDigitalBidder implements Bidder<BidRequest> {
     }
 
     private String resolveEndpoint(ExtImpLimeLightDigital extImp) {
-        final String publisherId = String.valueOf(extImp.getPublisherId());
-        return endpointUrl.replace(URL_HOST_MACRO, HttpUtil.encodeUrl(extImp.getHost()))
-                .replace(URL_PUBLISHER_ID_MACRO, HttpUtil.encodeUrl(publisherId));
+        return endpointUrl
+                .replaceMacro(URL_HOST_MACRO, extImp.getHost())
+                .replaceMacro(URL_PUBLISHER_ID_MACRO, String.valueOf(extImp.getPublisherId()))
+                .expand();
     }
 
     private Imp modifyImp(Imp imp, BidRequest request) {

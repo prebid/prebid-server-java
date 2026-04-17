@@ -20,7 +20,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.datablocks.ExtImpDatablocks;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -36,11 +36,11 @@ public class DatablocksBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private final String endpoint;
+    private final Uri endpoint;
     private final JacksonMapper mapper;
 
     public DatablocksBidder(String endpoint, JacksonMapper mapper) {
-        this.endpoint = HttpUtil.validateUrl(Objects.requireNonNull(endpoint));
+        this.endpoint = Uri.of(endpoint);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -84,7 +84,8 @@ public class DatablocksBidder implements Bidder<BidRequest> {
 
         final ExtImpDatablocks extImpDatablocks = extToImps.getKey();
         final String uri = endpoint
-                .replace("{{SourceId}}", extImpDatablocks.getSourceId().toString());
+                .replaceMacro("SourceId", extImpDatablocks.getSourceId().toString())
+                .expand();
 
         final BidRequest outgoingRequest = bidRequest.toBuilder().imp(extToImps.getValue()).build();
 

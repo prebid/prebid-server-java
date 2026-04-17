@@ -1,6 +1,6 @@
 adapters:
   lemmadigital:
-    endpoint: https://pbid.lemmamedia.com/lemma/servad?src=prebid&pid={{PublisherID}}&aid={{AdUnit}}
+    endpoint: https://pbid.lemmamedia.com/lemma/servad?src=prebid&pid={PublisherID}&aid={AdUnit}
     meta-info:
       maintainer-email: support@lemmatechnologies.com
       endpoint-compression: gzip

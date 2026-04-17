@@ -24,6 +24,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.adkernel.ExtImpAdkernel;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -49,11 +50,11 @@ public class AdkernelBidder implements Bidder<BidRequest> {
 
     private static final int MF_SUFFIX_LENGTH = MF_SUFFIX.length() + 1;
 
-    private final String endpoint;
+    private final Uri endpoint;
     private final JacksonMapper mapper;
 
     public AdkernelBidder(String endpoint, JacksonMapper mapper) {
-        this.endpoint = HttpUtil.validateUrl(Objects.requireNonNull(endpoint));
+        this.endpoint = Uri.of(endpoint);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -183,7 +184,7 @@ public class AdkernelBidder implements Bidder<BidRequest> {
                                                       App app) {
 
         final ExtImpAdkernel impExt = extAndImp.getKey();
-        final String uri = endpoint.formatted(impExt.getZoneId());
+        final String uri = endpoint.replaceMacro("ZoneId", Objects.toString(impExt.getZoneId())).expand();
 
         final MultiMap headers = HttpUtil.headers()
                 .add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");

@@ -1,10 +1,10 @@
 adapters:
   aso:
-    endpoint: https://srv.aso1.net/pbs/bidder?zid={{ZoneID}}
+    endpoint: https://srv.aso1.net/pbs/bidder?zid={ZoneID}
     aliases:
       bcmint:
         enabled: false
-        endpoint: https://srv.datacygnal.io/pbs/bidder?zid={{ZoneID}}
+        endpoint: https://srv.datacygnal.io/pbs/bidder?zid={ZoneID}
         meta-info:
           maintainer-email: contact@bcm.ltd
         usersync:
@@ -15,7 +15,7 @@ adapters:
             uid-macro: '{uid}'
       bidagency:
         enabled: false
-        endpoint: https://srv.bidgx.com/pbs/bidder?zid={{ZoneID}}
+        endpoint: https://srv.bidgx.com/pbs/bidder?zid={ZoneID}
         meta-info:
           maintainer-email: aso@bidgency.com
         usersync:
@@ -26,7 +26,7 @@ adapters:
             uid-macro: '{uid}'
       kuantyx:
         enabled: false
-        endpoint: https://srv.kntxy.com/pbs/bidder?zid={{ZoneID}}
+        endpoint: https://srv.kntxy.com/pbs/bidder?zid={ZoneID}
         meta-info:
           maintainer-email: ssp@kuantyx.com
         usersync:

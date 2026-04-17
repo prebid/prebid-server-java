@@ -1,34 +1,34 @@
 adapters:
   smarthub:
-    endpoint: https://prebid.attekmi.com/pbserver?partnerName={{Host}}&seat={{AccountID}}&token={{SourceId}}
+    endpoint: https://prebid.attekmi.com/pbserver?partnerName={Host}&seat={AccountId}&token={SourceId}
     aliases:
       markapp:
         enabled: false
-        endpoint: https://markapp-prebid.attekmi.com/pbserver/?seat={{AccountID}}&token={{SourceId}}
+        endpoint: https://markapp-prebid.attekmi.com/pbserver/?seat={AccountId}&token={SourceId}
       jdpmedia:
         enabled: false
-        endpoint: https://jdpmedia-prebid.attekmi.com/pbserver/?seat={{AccountID}}&token={{SourceId}}
+        endpoint: https://jdpmedia-prebid.attekmi.com/pbserver/?seat={AccountId}&token={SourceId}
       tredio:
         enabled: false
-        endpoint: https://tredio-prebid.attekmi.com/pbserver/?seat={{AccountID}}&token={{SourceId}}
+        endpoint: https://tredio-prebid.attekmi.com/pbserver/?seat={AccountId}&token={SourceId}
       felixads:
         enabled: false
-        endpoint: https://felixads-prebid.attekmi.com/pbserver/?seat={{AccountID}}&token={{SourceId}}
+        endpoint: https://felixads-prebid.attekmi.com/pbserver/?seat={AccountId}&token={SourceId}
       jambojar:
         enabled: false
-        endpoint: https://jambojar-prebid.attekmi.com/pbserver/?seat={{AccountID}}&token={{SourceId}}
+        endpoint: https://jambojar-prebid.attekmi.com/pbserver/?seat={AccountId}&token={SourceId}
       adinify:
         enabled: false
-        endpoint: https://adinify-prebid.attekmi.com/pbserver/?seat={{AccountID}}&token={{SourceId}}
+        endpoint: https://adinify-prebid.attekmi.com/pbserver/?seat={AccountId}&token={SourceId}
       artechnology:
         enabled: false
-        endpoint: https://artechnology-prebid.attekmi.com/pbserver/?seat={{AccountID}}&token={{SourceId}}
+        endpoint: https://artechnology-prebid.attekmi.com/pbserver/?seat={AccountId}&token={SourceId}
       addigi:
         enabled: false
-        endpoint: https://addigi-prebid.attekmi.com/pbserver/?seat={{AccountID}}&token={{SourceId}}
+        endpoint: https://addigi-prebid.attekmi.com/pbserver/?seat={AccountId}&token={SourceId}
       radianfusion:
         enabled: false
-        endpoint: https://radiantfusion-prebid.attekmi.co/pbserver/?seat={{AccountID}}&token={{SourceId}}
+        endpoint: https://radiantfusion-prebid.attekmi.co/pbserver/?seat={AccountId}&token={SourceId}
     meta-info:
       maintainer-email: prebid@attekmi.com
       app-media-types:

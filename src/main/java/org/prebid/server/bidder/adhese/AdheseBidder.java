@@ -25,6 +25,7 @@ import org.prebid.server.proto.openrtb.ext.request.adhese.ExtImpAdhese;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -42,11 +43,11 @@ public class AdheseBidder implements Bidder<BidRequest> {
 
     private static final String SLOT_PARAMETER = "SL";
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public AdheseBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -78,7 +79,7 @@ public class AdheseBidder implements Bidder<BidRequest> {
     }
 
     private String getUrl(ExtImpAdhese extImpAdhese) {
-        return endpointUrl.replace("{{AccountId}}", extImpAdhese.getAccount());
+        return endpointUrl.replaceMacro("AccountId", extImpAdhese.getAccount()).expand();
     }
 
     private BidRequest modifyBidRequest(BidRequest bidRequest, ExtImpAdhese extImpAdhese) {

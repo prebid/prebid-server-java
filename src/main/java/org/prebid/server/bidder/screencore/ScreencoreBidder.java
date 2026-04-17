@@ -24,6 +24,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,14 +35,15 @@ public class ScreencoreBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ScreencoreImpExt>> TYPE_REFERENCE = new TypeReference<>() {
     };
-    private static final String ACCOUNT_ID_MACRO = "{{AccountId}}";
-    private static final String SOURCE_ID_MACRO = "{{SourceId}}";
+    private static final String ACCOUNT_ID_MACRO = "AccountId";
+    private static final String SOURCE_ID_MACRO = "SourceId";
     private static final String X_OPENRTB_VERSION = "2.5";
-    private final String endpointUrl;
+
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public ScreencoreBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -90,8 +92,9 @@ public class ScreencoreBidder implements Bidder<BidRequest> {
 
     private String resolveEndpoint(ScreencoreImpExt impExt) {
         return endpointUrl
-                .replace(ACCOUNT_ID_MACRO, HttpUtil.encodeUrl(impExt.getAccountId()))
-                .replace(SOURCE_ID_MACRO, HttpUtil.encodeUrl(impExt.getPlacementId()));
+                .replaceMacro(ACCOUNT_ID_MACRO, impExt.getAccountId())
+                .replaceMacro(SOURCE_ID_MACRO, impExt.getPlacementId())
+                .expand();
     }
 
     private static MultiMap makeHeaders(BidRequest bidRequest) {

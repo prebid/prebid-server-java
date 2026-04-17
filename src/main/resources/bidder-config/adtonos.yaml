@@ -1,6 +1,6 @@
 adapters:
   adtonos:
-    endpoint: https://exchange.adtonos.com/bid/{{PublisherId}}
+    endpoint: https://exchange.adtonos.com/bid/{PublisherId}
     geoscope:
       - global
     meta-info:

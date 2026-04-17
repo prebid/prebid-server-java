@@ -7,7 +7,7 @@ import org.prebid.server.spring.config.bidder.model.BidderConfigurationPropertie
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
-import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -21,7 +21,7 @@ import jakarta.validation.constraints.NotBlank;
 public class MedianetConfiguration {
 
     private static final String BIDDER_NAME = "medianet";
-    private static final String EXTERNAL_URL_MACRO = "{{PREBID_SERVER_ENDPOINT}}";
+    private static final String EXTERNAL_URL_MACRO = "PREBID_SERVER_ENDPOINT";
 
     @Bean("medianetConfigurationProperties")
     @ConfigurationProperties("adapters.medianet")
@@ -42,6 +42,6 @@ public class MedianetConfiguration {
     }
 
     private String resolveEndpoint(String configEndpoint, String externalUrl) {
-        return configEndpoint.replace(EXTERNAL_URL_MACRO, HttpUtil.encodeUrl(externalUrl));
+        return Uri.of(configEndpoint).replaceMacro(EXTERNAL_URL_MACRO, externalUrl).expand();
     }
 }

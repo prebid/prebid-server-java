@@ -23,9 +23,9 @@ import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.smartrtb.ExtImpSmartrtb;
-import org.prebid.server.proto.openrtb.ext.request.smartrtb.ExtRequestSmartrtb;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -41,11 +41,11 @@ public class SmartrtbBidder implements Bidder<BidRequest> {
     private static final String CREATIVE_TYPE_BANNER = "BANNER";
     private static final String CREATIVE_TYPE_VIDEO = "VIDEO";
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public SmartrtbBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -77,12 +77,10 @@ public class SmartrtbBidder implements Bidder<BidRequest> {
         if (StringUtils.isEmpty(pubId)) {
             errors.add(BidderError.badInput("Cannot infer publisher ID from bid ext"));
             return Result.of(null, errors);
-        } else {
-            ExtRequestSmartrtb.of(pubId, null, null);
         }
 
         final BidRequest outgoingRequest = request.toBuilder().imp(validImps).build();
-        final String requestUrl = endpointUrl + pubId;
+        final String requestUrl = endpointUrl.replaceMacro("PubId", pubId).expand();
         final MultiMap headers = HttpUtil.headers().add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
 
         return Result.of(Collections.singletonList(

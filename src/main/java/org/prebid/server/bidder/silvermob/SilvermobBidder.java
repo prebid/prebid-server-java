@@ -24,6 +24,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.silvermob.ExtImpSilvermob;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -37,14 +38,14 @@ public class SilvermobBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private static final String URL_HOST_MACRO = "{{Host}}";
-    private static final String URL_ZONE_ID_MACRO = "{{ZoneID}}";
+    private static final String URL_HOST_MACRO = "Host";
+    private static final String URL_ZONE_ID_MACRO = "ZoneID";
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public SilvermobBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -104,8 +105,9 @@ public class SilvermobBidder implements Bidder<BidRequest> {
 
     private String resolveEndpoint(ExtImpSilvermob extImp) {
         return endpointUrl
-                .replace(URL_HOST_MACRO, extImp.getHost())
-                .replace(URL_ZONE_ID_MACRO, HttpUtil.encodeUrl(extImp.getZoneId()));
+                .replaceMacro(URL_HOST_MACRO, extImp.getHost())
+                .replaceMacro(URL_ZONE_ID_MACRO, extImp.getZoneId())
+                .expand();
     }
 
     private static MultiMap resolveHeaders(Device device) {

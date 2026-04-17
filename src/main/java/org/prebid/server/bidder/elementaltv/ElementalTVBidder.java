@@ -27,6 +27,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.elementaltv.ExtImpElementalTV;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -42,11 +43,11 @@ public class ElementalTVBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private final String endpoint;
+    private final Uri endpoint;
     private final JacksonMapper mapper;
 
     public ElementalTVBidder(String endpoint, JacksonMapper mapper) {
-        this.endpoint = HttpUtil.validateUrl(Objects.requireNonNull(endpoint));
+        this.endpoint = Uri.of(endpoint);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -84,12 +85,7 @@ public class ElementalTVBidder implements Bidder<BidRequest> {
     }
 
     private String resolveUrl(ExtImpElementalTV extImp) {
-        try {
-            return endpoint
-                    .replace("{{AdUnit}}", HttpUtil.encodeUrl(extImp.getAdunit()));
-        } catch (Exception e) {
-            throw new PreBidException(e.getMessage());
-        }
+        return endpoint.replaceMacro("AdUnit", extImp.getAdunit()).expand();
     }
 
     private HttpRequest<BidRequest> createSingleRequest(Imp imp, BidRequest request, String url) {
