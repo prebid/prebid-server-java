@@ -105,7 +105,6 @@ import org.prebid.server.json.JsonMerger;
 import org.prebid.server.log.CriteriaLogManager;
 import org.prebid.server.log.CriteriaManager;
 import org.prebid.server.log.HttpInteractionLogger;
-import org.prebid.server.log.LoggerControlKnob;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.privacy.HostVendorTcfDefinerService;
@@ -1273,11 +1272,6 @@ public class ServiceConfiguration {
     @Bean
     HttpInteractionLogger httpInteractionLogger(JacksonMapper mapper) {
         return new HttpInteractionLogger(mapper);
-    }
-
-    @Bean
-    LoggerControlKnob loggerControlKnob(Vertx vertx) {
-        return new LoggerControlKnob(vertx);
     }
 
     @Bean

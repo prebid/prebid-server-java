@@ -10,14 +10,12 @@ import org.prebid.server.handler.admin.AdminResourceWrapper;
 import org.prebid.server.handler.admin.CollectedMetricsHandler;
 import org.prebid.server.handler.admin.CurrencyRatesHandler;
 import org.prebid.server.handler.admin.HttpInteractionLogHandler;
-import org.prebid.server.handler.admin.LoggerControlKnobHandler;
 import org.prebid.server.handler.admin.SettingsCacheNotificationHandler;
 import org.prebid.server.handler.admin.TracerLogHandler;
 import org.prebid.server.handler.admin.VersionHandler;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.CriteriaManager;
 import org.prebid.server.log.HttpInteractionLogger;
-import org.prebid.server.log.LoggerControlKnob;
 import org.prebid.server.settings.CachingApplicationSettings;
 import org.prebid.server.settings.SettingsCache;
 import org.prebid.server.util.VersionInfo;
@@ -136,22 +134,6 @@ public class AdminEndpointsConfiguration {
                 isOnApplicationPort,
                 isProtected,
                 new HttpInteractionLogHandler(maxLimit, httpInteractionLogger, path));
-    }
-
-    @Bean
-    @ConditionalOnExpression("${admin-endpoints.logging-changelevel.enabled} == true")
-    AdminResource loggingChangeLevelEndpoint(
-            @Value("${logging.change-level.max-duration-ms}") long maxDuration,
-            LoggerControlKnob loggerControlKnob,
-            @Value("${admin-endpoints.logging-changelevel.path}") String path,
-            @Value("${admin-endpoints.logging-changelevel.on-application-port}") boolean isOnApplicationPort,
-            @Value("${admin-endpoints.logging-changelevel.protected}") boolean isProtected) {
-
-        return new AdminResourceWrapper(
-                path,
-                isOnApplicationPort,
-                isProtected,
-                new LoggerControlKnobHandler(maxDuration, loggerControlKnob, path));
     }
 
     @Bean
