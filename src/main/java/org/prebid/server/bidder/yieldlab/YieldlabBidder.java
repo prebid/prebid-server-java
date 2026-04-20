@@ -44,6 +44,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidDsa;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.QueryString;
 import org.prebid.server.util.Uri;
 
 import java.math.BigDecimal;
@@ -75,7 +76,6 @@ public class YieldlabBidder implements Bidder<Void> {
     private static final String AD_SIZE_SEPARATOR = "x";
     private static final String CREATIVE_ID = "%s%s%s";
     private static final String AD_SOURCE_BANNER = "<script src=\"%s\"></script>";
-    private static final String AD_SOURCE_URL = "https://ad.yieldlab.net/d/%s/%s/%s?%s";
     private static final String TRANSPARENCY_TEMPLATE = "%s~%s";
     private static final String TRANSPARENCY_TEMPLATE_PARAMS_DELIMITER = "_";
     private static final String TRANSPARENCY_TEMPLATE_DELIMITER = "~~";
@@ -86,6 +86,12 @@ public class YieldlabBidder implements Bidder<Void> {
             <Impression></Impression>
             <Creatives></Creatives>
             </Wrapper></Ad></VAST>""";
+
+    private static final String AD_SLOT_MACRO = "AdSlot";
+    private static final String SUPPLY_ID_MACRO = "SupplyId";
+    private static final String AD_SIZE_MACRO = "AdSize";
+    private static final Uri AD_SOURCE_URL =
+            Uri.of("https://ad.yieldlab.net/d/{%s}/{%s}/{%s}".formatted(AD_SLOT_MACRO, SUPPLY_ID_MACRO, AD_SIZE_MACRO));
 
     private final Uri endpoint;
     private final Clock clock;
@@ -175,7 +181,9 @@ public class YieldlabBidder implements Bidder<Void> {
                 .addQueryParam("sizes", formats)
                 .addQueryParam("ids", buyerUid != null ? "ylid:" + buyerUid : null)
                 .addQueryParam("yl_rtb_ifa", device != null ? device.getIfa() : null)
-                .addQueryParam("yl_rtb_devicetype", device != null ? resolveNumberParameter(device.getDevicetype()) : null)
+                .addQueryParam("yl_rtb_devicetype", device != null
+                        ? resolveNumberParameter(device.getDevicetype())
+                        : null)
                 .addQueryParam("yl_rtb_connectiontype", device != null
                         ? resolveNumberParameter(device.getConnectiontype())
                         : null)
@@ -218,13 +226,13 @@ public class YieldlabBidder implements Bidder<Void> {
     }
 
     private String getTargetingValues(ExtImpYieldlab extImpYieldlab) {
-        final Uri.ParameterizedUri parameterizedUri = Uri.of(StringUtils.EMPTY).parameterized();
+        final QueryString queryString = QueryString.create();
 
         for (Map.Entry<String, String> targeting : extImpYieldlab.getTargeting().entrySet()) {
-            parameterizedUri.addQueryParam(targeting.getKey(), targeting.getValue());
+            queryString.add(targeting.getKey(), targeting.getValue());
         }
 
-        return parameterizedUri.expand().replace("?", "");
+        return queryString.expand().replace("?", "");
     }
 
     private static String getGdprParameter(Regs regs) {
@@ -497,7 +505,10 @@ public class YieldlabBidder implements Bidder<Void> {
     }
 
     private String makeNurl(BidRequest bidRequest, ExtImpYieldlab extImp, YieldlabBid yieldlabBid) {
-        final Uri.ParameterizedUri parameterizedUri = Uri.of(StringUtils.EMPTY)
+        final Uri.ParameterizedUri parameterizedUri = AD_SOURCE_URL
+                .replaceMacro(AD_SLOT_MACRO, extImp.getAdslotId())
+                .replaceMacro(SUPPLY_ID_MACRO, extImp.getSupplyId())
+                .replaceMacro(AD_SIZE_MACRO, yieldlabBid.getAdSize())
                 .addQueryParam("ts", resolveNumberParameter(clock.instant().getEpochSecond()))
                 .addQueryParam("id", extImp.getExtId())
                 .addQueryParam("pvid", yieldlabBid.getPvid());
@@ -515,11 +526,7 @@ public class YieldlabBidder implements Bidder<Void> {
                     .addQueryParam("gdpr_consent", consent);
         }
 
-        return AD_SOURCE_URL.formatted(
-                extImp.getAdslotId(),
-                extImp.getSupplyId(),
-                yieldlabBid.getAdSize(),
-                parameterizedUri.expand().replace("?", ""));
+        return parameterizedUri.expand();
     }
 
     private ObjectNode resolveBidExt(YieldlabBid bid, List<BidderError> errors) {

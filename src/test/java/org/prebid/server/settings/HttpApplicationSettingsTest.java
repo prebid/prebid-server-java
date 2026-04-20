@@ -344,7 +344,11 @@ public class HttpApplicationSettingsTest extends VertxTest {
                 jacksonMapper);
 
         // when
-        httpApplicationSettings.getStoredData(null, Set.of("id1", "id2"), Set.of("id1", "id2"), timeout);
+        httpApplicationSettings.getStoredData(
+                null,
+                new HashSet<>(Set.of("id1", "id2")),
+                new HashSet<>(Set.of("id1", "id2")),
+                timeout);
 
         // then
         final ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
@@ -357,10 +361,8 @@ public class HttpApplicationSettingsTest extends VertxTest {
                 .extracting(NameValuePair::getName, NameValuePair::getValue)
                 .containsExactlyInAnyOrder(
                         tuple("id", "1"),
-                        tuple("request-id", "id1"),
-                        tuple("request-id", "id2"),
-                        tuple("imp-id", "id1"),
-                        tuple("imp-id", "id2"));
+                        tuple("request-id", "id2,id1"),
+                        tuple("imp-id", "id2,id1"));
     }
 
     @Test

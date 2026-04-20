@@ -41,7 +41,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 public class SmartyAdsBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL =
-            "http://{{Host}}.test.com/bid?param1={{SourceId}}&param2={{AccountID}}";
+            "http://{Host}.test.com/bid?param1={SourceId}&param2={AccountID}";
 
     private final SmartyAdsBidder target = new SmartyAdsBidder(ENDPOINT_URL, jacksonMapper);
 

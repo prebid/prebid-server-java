@@ -36,7 +36,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class AxonixBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://randomurl.com/{{SupplyId}}";
+    private static final String ENDPOINT_URL = "https://randomurl.com/{SupplyId}";
 
     private final AxonixBidder target = new AxonixBidder(ENDPOINT_URL, jacksonMapper);
 

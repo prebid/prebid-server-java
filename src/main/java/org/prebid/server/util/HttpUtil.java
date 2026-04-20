@@ -7,6 +7,8 @@ import io.vertx.core.http.Cookie;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.uritemplate.UriTemplate;
+import io.vertx.uritemplate.Variables;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.Logger;
@@ -17,7 +19,6 @@ import org.prebid.server.model.HttpRequestContext;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
@@ -95,7 +96,7 @@ public final class HttpUtil {
     }
 
     public static String encodeUrl(String value) {
-        return URLEncoder.encode(value, StandardCharsets.UTF_8);
+        return UrlEncoder.encode(value);
     }
 
     public static String decodeUrl(String value) {
@@ -201,5 +202,15 @@ public final class HttpUtil {
 
     private static boolean isSensitiveHeader(String header) {
         return SENSITIVE_HEADERS.stream().anyMatch(header::equalsIgnoreCase);
+    }
+
+    private static class UrlEncoder {
+
+        private static final String CONTENT = "CONTENT";
+        private static final UriTemplate ENCODER = UriTemplate.of("{" + CONTENT + "}");
+
+        public static String encode(String value) {
+            return ENCODER.expandToString(Variables.variables().set(CONTENT, value));
+        }
     }
 }

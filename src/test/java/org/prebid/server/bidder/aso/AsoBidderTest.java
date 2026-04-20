@@ -40,7 +40,7 @@ import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
 
 public class AsoBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test-url.com?zid={{ZoneID}}";
+    private static final String ENDPOINT_URL = "https://test-url.com?zid={ZoneID}";
 
     private final AsoBidder target = new AsoBidder(ENDPOINT_URL, jacksonMapper);
 

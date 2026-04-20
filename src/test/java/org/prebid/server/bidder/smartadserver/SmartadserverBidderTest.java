@@ -37,8 +37,8 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class SmartadserverBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.endpoint.com/path?testParam=testVal";
-    private static final String SECONDARY_URL = "https://test.endpoint2.com/path?testParam=testVal";
+    private static final String ENDPOINT_URL = "https://test.endpoint.com/path/api/bid?testParam=testVal";
+    private static final String SECONDARY_URL = "https://test.endpoint2.com/path/ortb?testParam=testVal";
 
     private final SmartadserverBidder target = new SmartadserverBidder(ENDPOINT_URL, SECONDARY_URL, jacksonMapper);
 

@@ -21,12 +21,12 @@ public class Uri {
 
     private final UriTemplate template;
 
-    private Uri(String uri) {
-        validateTemplate(Objects.requireNonNull(uri));
+    Uri(String uri) {
         this.template = UriTemplate.of(uri + chooseMacro(uri));
     }
 
     public static Uri of(String uri) throws IllegalArgumentException {
+        validateTemplate(Objects.requireNonNull(uri));
         return new Uri(uri);
     }
 

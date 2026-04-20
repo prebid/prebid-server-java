@@ -32,7 +32,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class ZeroclickfraudBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_TEMPLATE = "http://{{Host}}/openrtb2?sid={{SourceId}}";
+    private static final String ENDPOINT_TEMPLATE = "http://{Host}/openrtb2?sid={SourceId}";
 
     private final ZeroclickfraudBidder target = new ZeroclickfraudBidder(ENDPOINT_TEMPLATE, jacksonMapper);
 

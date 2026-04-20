@@ -26,7 +26,6 @@ import org.prebid.server.proto.openrtb.ext.request.gumgum.ExtImpGumgum;
 import org.prebid.server.proto.openrtb.ext.request.gumgum.ExtImpGumgumBanner;
 import org.prebid.server.proto.openrtb.ext.request.gumgum.ExtImpGumgumVideo;
 
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Collections;
@@ -39,10 +38,6 @@ import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
@@ -91,7 +86,7 @@ public class GumgumBidderTest extends VertxTest {
     }
 
     @Test
-    public void testMakeHttpRequestsShouldNotSetTagIdFromZoneWhenAdUnitIdIsMissing() throws IOException {
+    public void makeHttpRequestsShouldNotSetTagIdFromZoneWhenAdUnitIdIsMissing() {
         // given
         final ObjectNode extImp = mapper.valueToTree(ExtPrebid.of(null,
                 ExtImpGumgum.of("zone123", BigInteger.TEN, "productA", null, "zone123")));
@@ -112,18 +107,12 @@ public class GumgumBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertNotNull(result);
-        assertFalse(result.getValue().isEmpty());
-
-        final byte[] requestBody = result.getValue().getFirst().getBody();
-        final BidRequest modifiedRequest = mapper.readValue(requestBody, BidRequest.class);
-
-        assertFalse(modifiedRequest.getImp().isEmpty());
-
-        final Imp modifiedImp = modifiedRequest.getImp().getFirst();
-
-        assertNull(modifiedImp.getTagid());
-        assertEquals("test-site", modifiedRequest.getSite().getId(), "zone123");
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .allSatisfy(request -> assertThat(request.getSite().getId()).isEqualTo("zone123"))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getTagid)
+                .containsOnlyNulls();
     }
 
     @Test

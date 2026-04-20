@@ -172,11 +172,11 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
         }
 
         final Matcher matcher = CONTENT_CODE_PATTERN.matcher(pageUrl);
-        if (!matcher.matches()) {
+        if (!matcher.find()) {
             return null;
         }
 
-        return matcher.group(0);
+        return HttpUtil.decodeUrl(matcher.group(1));
     }
 
     private static List<String> resolveKeywords(BidRequest bidRequest) {

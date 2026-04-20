@@ -36,7 +36,7 @@ import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
 
 public class DriftpixelBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.host.com/prebid/bid?env={{Host}}&pid={{SourceId}}";
+    private static final String ENDPOINT_URL = "https://test.host.com/prebid/bid?env={Host}&pid={SourceId}";
 
     private final DriftpixelBidder target = new DriftpixelBidder(ENDPOINT_URL, jacksonMapper);
 

@@ -146,7 +146,8 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 public class RubiconBidderTest extends VertxTest {
 
     private static final String BIDDER_NAME = "bidderName";
-    private static final String ENDPOINT_URL = "http://rubiconproject.com/exchange.json?tk_xint=prebid";
+    private static final String ENDPOINT_URL = "http://rubiconproject.com/exchange.json";
+    private static final String DEFAULT_TK_X_INT = "prebid";
     private static final String EXTERNAL_URL = "http://localhost:8080";
     private static final String APEX_RENDERER_URL = "https://video-outstream.rubiconproject.com/apex-2.2.1.js";
     private static final String USERNAME = "username";
@@ -174,6 +175,7 @@ public class RubiconBidderTest extends VertxTest {
         target = new RubiconBidder(
                 BIDDER_NAME,
                 ENDPOINT_URL,
+                DEFAULT_TK_X_INT,
                 EXTERNAL_URL,
                 USERNAME,
                 PASSWORD,
@@ -196,6 +198,7 @@ public class RubiconBidderTest extends VertxTest {
                 () -> new RubiconBidder(BIDDER_NAME,
                         "invalid_url",
                         EXTERNAL_URL,
+                        DEFAULT_TK_X_INT,
                         USERNAME,
                         PASSWORD,
                         SUPPORTED_VENDORS,
@@ -220,7 +223,7 @@ public class RubiconBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).hasSize(1).element(0).isNotNull()
                 .returns(HttpMethod.POST, HttpRequest::getMethod)
-                .returns(ENDPOINT_URL, HttpRequest::getUri);
+                .returns(ENDPOINT_URL + "?tk_xint=prebid", HttpRequest::getUri);
         assertThat(result.getValue().getFirst().getHeaders()).isNotNull()
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(
@@ -880,6 +883,7 @@ public class RubiconBidderTest extends VertxTest {
         target = new RubiconBidder(
                 BIDDER_NAME,
                 ENDPOINT_URL,
+                DEFAULT_TK_X_INT,
                 EXTERNAL_URL,
                 USERNAME,
                 PASSWORD,
@@ -3900,8 +3904,20 @@ public class RubiconBidderTest extends VertxTest {
     public void makeBidsShouldReturnBidWithCurrencyFromBidResponse() throws JsonProcessingException {
         // given
         target = new RubiconBidder(
-                BIDDER_NAME, ENDPOINT_URL, EXTERNAL_URL, USERNAME, PASSWORD, SUPPORTED_VENDORS, true, APEX_RENDERER_URL,
-                currencyConversionService, priceFloorResolver, versionProvider, idGenerator, jacksonMapper);
+                BIDDER_NAME,
+                ENDPOINT_URL,
+                DEFAULT_TK_X_INT,
+                EXTERNAL_URL,
+                USERNAME,
+                PASSWORD,
+                SUPPORTED_VENDORS,
+                true,
+                APEX_RENDERER_URL,
+                currencyConversionService,
+                priceFloorResolver,
+                versionProvider,
+                idGenerator,
+                jacksonMapper);
 
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(RubiconBidResponse.builder()

@@ -55,7 +55,7 @@ import static org.assertj.core.api.Assertions.tuple;
 
 public class YieldlabBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.endpoint.com";
+    private static final String ENDPOINT_URL = "https://test.endpoint.com/{AdSlotId}";
 
     private Clock clock;
 
@@ -72,29 +72,6 @@ public class YieldlabBidderTest extends VertxTest {
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> new YieldlabBidder("invalid_url", clock, jacksonMapper))
                 .withMessage("URL supplied is not valid: invalid_url");
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnErrorIfEndpointUrlComposingFails() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpYieldlab.builder()
-                                        .adslotId("invalid path")
-                                        .build())))
-                        .build()))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .allSatisfy(error -> {
-                    assertThat(error.getMessage()).startsWith("Invalid url: https://test.endpoint.com/invalid path");
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
-                });
     }
 
     @Test
@@ -118,43 +95,41 @@ public class YieldlabBidderTest extends VertxTest {
                                         .extId("extId")
                                         .build())))
                         .build()))
-                .device(Device.builder().ip("ip").ua("Agent").language("fr").devicetype(1).build())
+                .device(Device.builder().ip("ip").ifa("ifa").ua("Agent").language("fr").devicetype(1).build())
                 .regs(Regs.builder().coppa(1).ext(ExtRegs.of(1, "usPrivacy", null, null)).build())
                 .user(User.builder().buyeruid("buyeruid").ext(ExtUser.builder().consent("consent").build()).build())
                 .site(Site.builder().page("http://www.example.com").build())
-                .source(Source.builder().ext(ExtSource.of(SupplyChain.of(1, List.of(
-                        SupplyChainNode.of(
-                                "exchange1.com",
-                                "1234!abcd",
-                                "bid request&%1",
-                                "publisher",
-                                "publisher.com",
+                .source(Source.builder()
+                        .ext(ExtSource.of(SupplyChain.of(
                                 1,
-                                mapper.createObjectNode()
-                                        .put("freeFormData", 1)
-                                        .set("nested", mapper.createObjectNode().put("isTrue", true)))
-                ), "1.0", null))).build())
+                                List.of(SupplyChainNode.of(
+                                        "exchange1.com",
+                                        "1234!abcd",
+                                        "bid request&%1",
+                                        "publisher",
+                                        "publisher.com",
+                                        1,
+                                        mapper.createObjectNode()
+                                                .put("freeFormData", 1)
+                                                .set("nested", mapper.createObjectNode().put("isTrue", true)))),
+                                "1.0",
+                                null)))
+                        .build())
                 .build();
 
         // when
         final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        final long expectedTime = clock.instant().getEpochSecond();
-
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .allSatisfy(uri -> {
-                    assertThat(uri).startsWith("https://test.endpoint.com/1?content=json&pvid=true&ts=");
-                    assertThat(uri).endsWith("&t=key1%3Dvalue1%26key2%3Dvalue2&sizes=1%3A1x1%7C2x2&"
-                            + "ids=ylid%3Abuyeruid&yl_rtb_ifa&yl_rtb_devicetype=1&gdpr=1&gdpr_consent=consent&"
-                            + "schain=1.0%2C1%21exchange1.com%2C1234%2521abcd%2C1%2Cbid%2Brequest%2526%25251%2C"
-                            + "publisher%2Cpublisher.com%2C%257B%2522freeFormData%2522%253A1%252C%2522"
-                            + "nested%2522%253A%257B%2522isTrue%2522%253Atrue%257D%257D");
-                    final String ts = uri.substring(54, uri.indexOf("&t="));
-                    assertThat(Long.parseLong(ts)).isEqualTo(expectedTime);
-                });
+                .containsExactly("https://test.endpoint.com/1?content=json&pvid=true&ts=1564135200"
+                        + "&t=key1%3Dvalue1%26key2%3Dvalue2&sizes=1%3A1x1%7C2x2&ids=ylid%3Abuyeruid&yl_rtb_ifa=ifa"
+                        + "&yl_rtb_devicetype=1&gdpr=1&gdpr_consent=consent"
+                        + "&schain=1.0%2C1%21exchange1.com%2C1234%2521abcd%2C1%2Cbid%2520request"
+                        + "%2526%25251%2Cpublisher%2Cpublisher.com%2C%257B%2522freeFormData%2522%253A1%252C%2522"
+                        + "nested%2522%253A%257B%2522isTrue%2522%253Atrue%257D%257D");
 
         assertThat(result.getValue()).hasSize(1)
                 .flatExtracting(r -> r.getHeaders().entries())
@@ -211,11 +186,9 @@ public class YieldlabBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .allSatisfy(uri -> {
-                    assertThat(uri).startsWith("https://test.endpoint.com/1,2?content=json&pvid=true&ts=");
-                    assertThat(uri).endsWith("&t=key1%3Dvalue1&sizes=1%3A%2C2%3A&ids=ylid%3Abuyeruid&yl_rtb_ifa&"
-                            + "yl_rtb_devicetype=1&gdpr=1&gdpr_consent=consent");
-                });
+                .containsExactly("https://test.endpoint.com/1%2C2?content=json&pvid=true&ts=1564135200"
+                        + "&t=key1%3Dvalue1&sizes=1%3A%2C2%3A&ids=ylid%3Abuyeruid&yl_rtb_devicetype=1"
+                        + "&gdpr=1&gdpr_consent=consent");
     }
 
     @Test
@@ -336,15 +309,15 @@ public class YieldlabBidderTest extends VertxTest {
                 1, 2, 3, List.of(DsaTransparency.of("testDomain", List.of(1, 2, 3)))
         );
         final Regs regs = Regs.builder()
-                    .ext(ExtRegs.of(null, null, null, dsa))
-                    .build();
+                .ext(ExtRegs.of(null, null, null, dsa))
+                .build();
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                    .ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpYieldlab.builder()
-                            .adslotId("123")
-                            .build())))
-                    .build()))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpYieldlab.builder()
+                                        .adslotId("123")
+                                        .build())))
+                        .build()))
                 .regs(regs)
                 .build();
 
@@ -356,7 +329,7 @@ public class YieldlabBidderTest extends VertxTest {
                 "&dsarequired=1",
                 "&dsapubrender=2",
                 "&dsadatatopub=3",
-                "&dsatransparency=testDomain%7E1_2_3"
+                "&dsatransparency=testDomain~1_2_3"
         );
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue().getFirst().getUri())
@@ -368,8 +341,8 @@ public class YieldlabBidderTest extends VertxTest {
         //given
         final ExtRegsDsa dsa = ExtRegsDsa.of(
                 1, 2, 3, List.of(
-                    DsaTransparency.of("testDomain", List.of(1, 2, 3)),
-                    DsaTransparency.of("testDomain2", List.of(4, 5, 6))
+                        DsaTransparency.of("testDomain", List.of(1, 2, 3)),
+                        DsaTransparency.of("testDomain2", List.of(4, 5, 6))
                 )
         );
         final Regs regs = Regs.builder()
@@ -377,11 +350,8 @@ public class YieldlabBidderTest extends VertxTest {
                 .build();
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                    .ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpYieldlab.builder()
-                            .adslotId("123")
-                            .build())))
-                    .build()))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYieldlab.builder().adslotId("123").build())))
+                        .build()))
                 .regs(regs)
                 .build();
 
@@ -393,8 +363,7 @@ public class YieldlabBidderTest extends VertxTest {
                 "&dsarequired=1",
                 "&dsapubrender=2",
                 "&dsadatatopub=3",
-                "&dsatransparency=testDomain%7E1_2_3%7E%7EtestDomain2%7E4_5_6"
-        );
+                "&dsatransparency=testDomain~1_2_3~~testDomain2~4_5_6");
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue().getFirst().getUri())
                 .contains(expectations);
@@ -411,11 +380,8 @@ public class YieldlabBidderTest extends VertxTest {
                 .build();
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                    .ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpYieldlab.builder()
-                            .adslotId("123")
-                            .build())))
-                    .build()))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYieldlab.builder().adslotId("123").build())))
+                        .build()))
                 .regs(regs)
                 .build();
 
@@ -443,11 +409,8 @@ public class YieldlabBidderTest extends VertxTest {
                 .build();
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                    .ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpYieldlab.builder()
-                            .adslotId("123")
-                            .build())))
-                    .build()))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYieldlab.builder().adslotId("123").build())))
+                        .build()))
                 .regs(regs)
                 .build();
 
@@ -469,15 +432,15 @@ public class YieldlabBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                    .id("test-imp-id")
-                    .banner(Banner.builder().w(1).h(1).build())
-                    .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYieldlab.builder()
-                        .adslotId("1")
-                        .supplyId("2")
-                        .targeting(singletonMap("key", "value"))
-                        .extId("extId")
-                        .build())))
-                    .build()))
+                        .id("test-imp-id")
+                        .banner(Banner.builder().w(1).h(1).build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYieldlab.builder()
+                                .adslotId("1")
+                                .supplyId("2")
+                                .targeting(singletonMap("key", "value"))
+                                .extId("extId")
+                                .build())))
+                        .build()))
                 .build();
 
         final ExtBidDsa dsaResponse = ExtBidDsa.builder()

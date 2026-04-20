@@ -2,7 +2,7 @@ status-response: "ok"
 adapters:
   appnexus:
     enabled: true
-  ix:
+  rtbhouse:
     enabled: true
   openx:
     enabled: true

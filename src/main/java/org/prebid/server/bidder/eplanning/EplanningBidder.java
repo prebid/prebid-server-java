@@ -243,9 +243,8 @@ public class EplanningBidder implements Bidder<Void> {
 
                 .addQueryParam("r", "pbs")
                 .addQueryParam("ncb", "1")
-                .addQueryParam("e", String.join("+", requestsStrings))
-
                 .addQueryParam("ur", app == null ? pageUrl : null)
+                .addQueryParam("e", String.join("+", requestsStrings))
 
                 .addQueryParam("uid", buyeruid)
                 .addQueryParam("appn", StringUtils.isNotBlank(appName) ? appName : null)

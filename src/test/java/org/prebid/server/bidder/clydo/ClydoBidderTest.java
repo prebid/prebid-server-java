@@ -39,7 +39,7 @@ import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
 
 public class ClydoBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "http://region={{Region}}.clydo.io/partnerId={{PartnerId}}";
+    private static final String ENDPOINT_URL = "http://region={Region}.clydo.io/partnerId={PartnerId}";
 
     private final ClydoBidder target = new ClydoBidder(ENDPOINT_URL, jacksonMapper);
 

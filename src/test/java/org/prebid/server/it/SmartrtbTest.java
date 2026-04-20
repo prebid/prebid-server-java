@@ -18,7 +18,7 @@ public class SmartrtbTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromSmartrtb() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/smartrtb-exchange/1234"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/smartrtb-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/smartrtb/test-smartrtb-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/smartrtb/test-smartrtb-bid-response.json"))));
 

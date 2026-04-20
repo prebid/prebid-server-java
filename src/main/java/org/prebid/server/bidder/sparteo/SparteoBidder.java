@@ -222,9 +222,9 @@ public class SparteoBidder implements Bidder<BidRequest> {
 
     private String resolveEndpoint(String siteDomain, String appDomain, String networkId, String bundle) {
         return endpoint
+                .addQueryParam("network_id", StringUtils.isNotBlank(networkId) ? networkId : null)
                 .addQueryParam("site_domain", StringUtils.isNotBlank(siteDomain) ? siteDomain : null)
                 .addQueryParam("app_domain", StringUtils.isNotBlank(appDomain) ? appDomain : null)
-                .addQueryParam("network_id", StringUtils.isNotBlank(networkId) ? networkId : null)
                 .addQueryParam("bundle", StringUtils.isNotBlank(bundle) ? bundle : null)
                 .expand();
     }

@@ -162,7 +162,7 @@ public class APIClientImplTest extends BaseOptableTest {
     public void shouldBuildApiUrlByReplacingTenantAndOriginMacros() {
         //  given
         target = new APIClientImpl(
-                "http://endpoint.optable.com?t={{TENANT}}&o={{ORIGIN}}",
+                "http://endpoint.optable.com?t={TENANT}&o={ORIGIN}",
                 httpClient,
                 jacksonMapper,
                 10);

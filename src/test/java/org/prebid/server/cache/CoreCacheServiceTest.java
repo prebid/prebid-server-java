@@ -1259,7 +1259,14 @@ public class CoreCacheServiceTest extends VertxTest {
                 .willReturn(new TextNode("modifiedVast"));
 
         // when
-        target.cachePutObjects(singletonList(firstBidPutObject), true, singleton("bidder1"), "account", 100, "pbjs", timeout);
+        target.cachePutObjects(
+                singletonList(firstBidPutObject),
+                true,
+                singleton("bidder1"),
+                "account",
+                100,
+                "pbjs",
+                timeout);
 
         // then
         verify(httpClient).post(eq("http://cache-service-internal/cache"), any(), any(), anyLong());

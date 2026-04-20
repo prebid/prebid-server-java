@@ -1,6 +1,7 @@
 package org.prebid.server.cache.utils;
 
 import io.vertx.core.MultiMap;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.util.HttpUtil;
 
 import java.net.MalformedURLException;
@@ -42,6 +43,16 @@ public class CacheServiceUtil {
                              String path,
                              String cacheQuery) throws URISyntaxException, MalformedURLException {
 
-        return new URI(cacheSchema, cacheHost, path, cacheQuery, null).toURL();
+        return new URI(
+                cacheSchema,
+                cacheHost,
+                startsWithSlashOrNull(path) ? path : "/" + path,
+                cacheQuery,
+                null)
+                .toURL();
+    }
+
+    private static boolean startsWithSlashOrNull(String path) {
+        return path == null || StringUtils.startsWith(path, "/");
     }
 }

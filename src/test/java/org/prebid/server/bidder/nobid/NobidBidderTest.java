@@ -30,7 +30,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
 public class NobidBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.com/prebid/bid&key={{AccountID}}";
+    private static final String ENDPOINT_URL = "https://test.com/prebid/bid";
 
     private final NobidBidder target = new NobidBidder(ENDPOINT_URL, jacksonMapper);
 

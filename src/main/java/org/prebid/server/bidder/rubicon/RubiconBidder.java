@@ -178,6 +178,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private final String bidderName;
     private final Uri endpoint;
+    private final String defaultTkXInt;
     private final String externalUrl;
     private final String xapiUsername;
     private final Set<String> supportedVendors;
@@ -193,6 +194,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     public RubiconBidder(String bidderName,
                          String endpoint,
+                         String defaultTkXInt,
                          String externalUrl,
                          String xapiUsername,
                          String xapiPassword,
@@ -207,6 +209,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
         this.bidderName = Objects.requireNonNull(bidderName);
         this.endpoint = Uri.of(endpoint);
+        this.defaultTkXInt = defaultTkXInt;
         this.externalUrl = HttpUtil.validateUrl(Objects.requireNonNull(externalUrl));
         this.xapiUsername = Objects.requireNonNull(xapiUsername);
         this.supportedVendors = Set.copyOf(Objects.requireNonNull(supportedVendors));
@@ -449,7 +452,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private String makeUri(BidRequest bidRequest) {
         final String tkXint = tkXintValue(bidRequest);
         return endpoint
-                .addQueryParam(TK_XINT_QUERY_PARAMETER, StringUtils.isNotBlank(tkXint) ? tkXint : null)
+                .addQueryParam(TK_XINT_QUERY_PARAMETER, StringUtils.isNotBlank(tkXint) ? tkXint : defaultTkXInt)
                 .expand();
     }
 

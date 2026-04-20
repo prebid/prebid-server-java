@@ -34,7 +34,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class TrafficGateBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://{{subdomain}}.domain";
+    private static final String ENDPOINT_URL = "https://{subdomain}.domain";
 
     private final TrafficGateBidder target = new TrafficGateBidder(ENDPOINT_URL, jacksonMapper);
 

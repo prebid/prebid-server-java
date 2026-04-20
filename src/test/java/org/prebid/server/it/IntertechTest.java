@@ -19,7 +19,7 @@ public class IntertechTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromIntertech() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(post(
-                urlPathEqualTo("/intertech-exchange&target-ref=http%3A%2F%2Fwww.example.com&ssp-cur=USD"))
+                urlPathEqualTo("/intertech-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/intertech/test-intertech-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/intertech/test-intertech-bid-response.json"))));
 

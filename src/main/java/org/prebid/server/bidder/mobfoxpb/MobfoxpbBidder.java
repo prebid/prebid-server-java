@@ -86,7 +86,7 @@ public class MobfoxpbBidder implements Bidder<BidRequest> {
     private String buildUri(String key) {
         final boolean keyPresent = StringUtils.isNotEmpty(key);
         return endpointUrl
-                .replaceMacro(URL_KEY_MACROS, keyPresent ? key : null)
+                .replaceMacro(URL_KEY_MACROS, keyPresent ? key : "__" + URL_KEY_MACROS + "__")
                 .replaceMacro(URL_ROUTE_MACROS, keyPresent ? ROUTE_RTB : ROUTE_NATIVE)
                 .replaceMacro(URL_METHOD_MACROS, keyPresent ? METHOD_RTB : METHOD_NATIVE)
                 .expand();
