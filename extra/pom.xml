@@ -33,7 +33,7 @@
         <checkstyle.version>10.17.0</checkstyle.version>
 
         <!-- Project production dependency versions -->
-        <spring.boot.version>3.5.10</spring.boot.version>
+        <spring.boot.version>4.0.5</spring.boot.version>
         <vertx.version>5.0.10</vertx.version>
         <validation-api.version>2.0.1.Final</validation-api.version>
         <commons.collections.version>4.4</commons.collections.version>
@@ -61,9 +61,11 @@
 
         <!-- Project test dependency versions -->
         <wiremock.version>3.12.1</wiremock.version>
-        <spock.version>2.4-M6-groovy-4.0</spock.version>
+        <spock.version>2.4-groovy-5.0</spock.version>
         <!--TODO: replace with WireMock -->
         <mockserver.version>5.15.0</mockserver.version>
+        <testcontainers-bom.version>2.0.4</testcontainers-bom.version>
+        <rest-assured-bom.version>6.0.0</rest-assured-bom.version>
 
         <!-- Test properties -->
         <skipUnitTests>false</skipUnitTests>
@@ -104,6 +106,13 @@
                 <groupId>org.spockframework</groupId>
                 <artifactId>spock-bom</artifactId>
                 <version>${spock.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.rest-assured</groupId>
+                <artifactId>rest-assured-bom</artifactId>
+                <version>${rest-assured-bom.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>

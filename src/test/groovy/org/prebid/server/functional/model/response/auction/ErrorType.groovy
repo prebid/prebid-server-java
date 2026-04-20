@@ -19,7 +19,7 @@ enum ErrorType {
     AMX_UPPER_CASE("AMX"),
 
     @JsonValue
-    final String value
+    private final String value
 
     ErrorType(String value) {
         this.value = value
