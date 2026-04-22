@@ -42,6 +42,7 @@ import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.hooks.execution.model.HookExecutionContext;
+import org.prebid.server.hooks.execution.model.HookHttpEndpoint;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointPayload;
@@ -51,7 +52,6 @@ import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
-import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.model.UpdateResult;
 import org.prebid.server.privacy.model.PrivacyContext;
@@ -147,7 +147,7 @@ public class Ortb2RequestFactory {
         this.metrics = Objects.requireNonNull(metrics);
     }
 
-    public AuctionContext createAuctionContext(Endpoint endpoint, MetricName requestTypeMetric) {
+    public AuctionContext createAuctionContext(HookHttpEndpoint endpoint, MetricName requestTypeMetric) {
         return AuctionContext.builder()
                 .requestTypeMetric(requestTypeMetric)
                 .prebidErrors(new ArrayList<>())

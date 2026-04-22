@@ -1,8 +1,9 @@
 package org.prebid.server.hooks.execution.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import lombok.Value;
-import org.prebid.server.model.Endpoint;
+import org.prebid.server.json.deserializer.ExecutionPlanEndpointsConfigDeserializer;
 
 import java.util.List;
 import java.util.Map;
@@ -15,7 +16,8 @@ public class ExecutionPlan {
     @JsonProperty("abtests")
     List<ABTest> abTests;
 
-    Map<Endpoint, EndpointExecutionPlan> endpoints;
+    @JsonDeserialize(using = ExecutionPlanEndpointsConfigDeserializer.class)
+    Map<HookHttpEndpoint, EndpointExecutionPlan> endpoints;
 
     public static ExecutionPlan empty() {
         return EMPTY;

@@ -13,6 +13,7 @@ import org.prebid.server.hooks.execution.model.ExecutionStatus;
 import org.prebid.server.hooks.execution.model.GroupExecutionOutcome;
 import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.hooks.execution.model.HookExecutionOutcome;
+import org.prebid.server.hooks.execution.model.HookHttpEndpoint;
 import org.prebid.server.hooks.execution.model.HookId;
 import org.prebid.server.hooks.execution.model.Stage;
 import org.prebid.server.hooks.execution.model.StageExecutionOutcome;
@@ -21,7 +22,6 @@ import org.prebid.server.hooks.execution.v1.analytics.AppliedToImpl;
 import org.prebid.server.hooks.execution.v1.analytics.ResultImpl;
 import org.prebid.server.hooks.execution.v1.analytics.TagsImpl;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.model.Endpoint;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountEventsConfig;
@@ -59,7 +59,7 @@ public class HooksMetricsServiceTest extends VertxTest {
         // given
         final AuctionContext auctionContext = AuctionContext.builder()
                 .hookExecutionContext(HookExecutionContext.of(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         stageOutcomes(givenAppliedToImpl())))
                 .debugContext(DebugContext.empty())
                 .requestRejected(true)
@@ -121,7 +121,7 @@ public class HooksMetricsServiceTest extends VertxTest {
         // given
         final AuctionContext auctionContext = AuctionContext.builder()
                 .hookExecutionContext(HookExecutionContext.of(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         stageOutcomes(givenAppliedToImpl())))
                 .debugContext(DebugContext.empty())
                 .requestRejected(true)
