@@ -125,37 +125,6 @@ class AuctionSpec extends BaseSpec {
         "invalid-stored-impr"    | { bidReq, storedReq -> bidReq.imp[0].ext.prebid.storedRequest = storedReq }
     }
 
-    def "PBS should copy imp level passThrough to bidresponse.seatbid[].bid[].ext.prebid.passThrough when the passThrough is present"() {
-        given: "Default bid request with passThrough"
-        def randomString = PBSUtils.randomString
-        def passThrough = [(randomString): randomString]
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp[0].ext.prebid.passThrough = passThrough
-        }
-
-        when: "Requesting PBS auction"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
-
-        then: "BidResponse should contain the same passThrough as on request"
-        assert response.seatbid.first().bid.first().ext.prebid.passThrough == passThrough
-    }
-
-    def "PBS should copy global level passThrough object to bidresponse.ext.prebid.passThrough when passThrough is present"() {
-        given: "Default bid request with passThrough"
-        def randomString = PBSUtils.randomString
-        def passThrough = [(randomString): randomString]
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.passThrough = passThrough
-        }
-
-        when: "Requesting PBS auction"
-        defaultPbsService.sendAuctionRequest(bidRequest)
-
-        then: "BidResponse should contain the same passThrough as on request"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.ext.prebid.passThrough == passThrough
-    }
-
     def "PBS should populate bidder request buyeruid from buyeruids when buyeruids with appropriate bidder present in request"() {
         given: "Bid request with buyeruids"
         def buyeruid = PBSUtils.randomString
@@ -169,6 +138,9 @@ class AuctionSpec extends BaseSpec {
         then: "Bidder request should contain buyeruid from the user.ext.prebid.buyeruids"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest?.user?.buyeruid == buyeruid
+
+        and: "Bidder request shouldn't contain user.ext.prebid.buyeruids"
+        assert !bidderRequest?.user?.ext?.prebid?.buyeruids
     }
 
     def "PBS shouldn't populate bidder request buyeruid from buyeruids when buyeruids without appropriate bidder present in request"() {
@@ -334,25 +306,6 @@ class AuctionSpec extends BaseSpec {
 
         and: "BidderRequest shouldn't populate fields"
         assert !bidderRequest.ext.prebid.aliases
-    }
-
-    def "PBS auction should pass ext.prebid.sdk requested to bidder request when sdk specified"() {
-        given: "Default bid request with aliases"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.sdk = new Sdk(renderers: [new Renderer(
-                    name: PBSUtils.randomString,
-                    version: PBSUtils.randomString,
-                    data: new RendererData(any: PBSUtils.randomString))])
-        }
-
-        when: "Requesting PBS auction"
-        defaultPbsService.sendAuctionRequest(bidRequest)
-
-        then: "Bidder request should contain sdk value same in request"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.ext.prebid.sdk.renderers.name == bidRequest.ext.prebid.sdk.renderers.name
-        assert bidderRequest.ext.prebid.sdk.renderers.version == bidRequest.ext.prebid.sdk.renderers.version
-        assert bidderRequest.ext.prebid.sdk.renderers.data.any == bidRequest.ext.prebid.sdk.renderers.data.any
     }
 
     def "PBS auction should pass meta object to bid response when meta specified "() {

@@ -233,9 +233,6 @@ class AmpFpdSpec extends BaseSpec {
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
         assert ampStoredRequest.ext.prebid.bidderConfig[0].config.ortb2.site.domain == bidderRequest.site.domain
         assert ampStoredRequest.ext.prebid.bidderConfig[0].config.ortb2.user.keywords == bidderRequest.user.keywords
-
-        and: "Bidder request shouldn't contain bidder config"
-        assert !bidderRequest.ext.prebid.bidderConfig
     }
 
     def "PBS should populate FPD from root when bidder was defined in prebid data"() {

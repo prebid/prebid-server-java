@@ -262,9 +262,12 @@ class BidderParamsSpec extends BaseSpec {
         when: "PBS processes auction request"
         defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Response should contain zoneId value from imp[*].ext.prebid.bidder.BIDDER"
+        then: "Bidder request should contain zoneId value from imp[*].ext.prebid.bidder.BIDDER"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp[0]?.ext?.bidder?.firstParam == firstParam
+
+        and: "Bidder request should contain requested bidder param for related itself bidder"
+        assert bidderRequest.ext.prebid.bidderParams[GENERIC] == bidRequest.ext.prebid.bidderParams[GENERIC]
     }
 
     def "PBS should send bidder params from imp[*].ext.prebid.bidder.BIDDER when ext.prebid.bidderparams.BIDDER isn't specified"() {
@@ -782,7 +785,7 @@ class BidderParamsSpec extends BaseSpec {
         when: "Requesting PBS auction"
         defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Response should contain imp[0].secure same value as in request"
+        then: "Bidder request should contain imp[0].secure same value as in request"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp[0].secure == secureBidderRequest
 
@@ -1424,8 +1427,9 @@ class BidderParamsSpec extends BaseSpec {
         and: "Response should contain repose millis with corresponding bidder"
         assert response.ext.responsetimemillis.containsKey(ALIAS.value)
 
-        and: "Bidder request should be valid"
-        assert bidder.getBidderRequests(bidRequest.id)
+        and: "Bidder request should be valid and not contain aliases"
+        def bidderRequests = bidder.getBidderRequests(bidRequest.id).first
+        assert !bidderRequests.ext.prebid.aliases
     }
 
     def "PBS should populate same code for adapter code when make call for generic hard code alias"() {
