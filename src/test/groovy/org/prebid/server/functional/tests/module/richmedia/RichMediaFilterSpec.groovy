@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests.module.richmedia
 
+import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountHooksConfiguration
 import org.prebid.server.functional.model.config.ExecutionPlan
