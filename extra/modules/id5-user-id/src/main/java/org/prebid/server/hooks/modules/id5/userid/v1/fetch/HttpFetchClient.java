@@ -207,7 +207,7 @@ public class HttpFetchClient implements FetchClient {
     private Id5UserId parseResponse(HttpClientResponse response) {
         final String body = response.getBody();
         final int statusCode = response.getStatusCode();
-        if (response.getStatusCode() == 200) {
+        if (statusCode == 200) {
             logger.debug("id5-user-id: fetched id5Id succeeded, body {}", body);
             return decodeResponse(body);
         }

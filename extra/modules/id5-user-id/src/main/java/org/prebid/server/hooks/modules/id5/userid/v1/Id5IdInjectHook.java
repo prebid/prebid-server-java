@@ -67,7 +67,7 @@ public class Id5IdInjectHook implements BidderRequestHook {
                 return resultBuilder(invocationContext)
                         .status(InvocationStatus.success)
                         .action(InvocationAction.no_action)
-                        .debugMessages(List.of("id5-user-id-inject: no ids to inject"))
+                        .debugMessages(Collections.singletonList("id5-user-id-inject: no ids to inject"))
                         .build();
             }
             final User originalUser = payload.bidRequest().getUser();
@@ -87,8 +87,7 @@ public class Id5IdInjectHook implements BidderRequestHook {
                     .status(InvocationStatus.success)
                     .action(InvocationAction.update)
                     .payloadUpdate(initial -> BidderRequestPayloadImpl.of(updatedBidRequest))
-                    .debugMessages(List.of(
-                            "id5-user-id-inject: updated user with id5 eids"))
+                    .debugMessages(Collections.singletonList("id5-user-id-inject: updated user with id5 eids"))
                     .build();
         });
     }

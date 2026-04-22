@@ -68,11 +68,17 @@ public class FetchRequest {
     public static class PrebidServerMetadata {
 
         String channel;
+
         String channelVersion;
+
         Id5IdModuleProperties id5ModuleConfig;
+
         Publisher publisher;
+
         List<String> bidders;
+
         boolean transmitUfpdDisallowed;
+
         boolean transmitGeoDisallowed;
     }
 
@@ -81,7 +87,9 @@ public class FetchRequest {
     public static class Publisher {
 
         String id;
+
         String name;
+
         String domain;
     }
 }
