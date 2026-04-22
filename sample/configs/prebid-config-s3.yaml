@@ -7,7 +7,7 @@ server:
 adapters:
   appnexus:
     enabled: true
-  rtbhouse:
+  criteo:
     enabled: true
   openx:
     enabled: true
