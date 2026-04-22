@@ -135,6 +135,7 @@
         "name": "amp"
       },
       "pbs": {
+        "http_method": "GET",
         "endpoint": "/openrtb2/amp"
       },
       "server": {

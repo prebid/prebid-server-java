@@ -18,6 +18,7 @@ import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.SupplyChain;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
+import io.vertx.core.http.HttpMethod;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -138,6 +139,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         defaultBidRequest = BidRequest.builder().build();
 
         auctionContext = givenAuctionContext(HttpRequestContext.builder()
+                .httpMethod(HttpMethod.POST)
                 .headers(CaseInsensitiveMultiMap.empty())
                 .build());
 
@@ -299,6 +301,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     public void shouldNotSetDeviceDntIfHeaderHasInvalidValue() {
         // given
         final HttpRequestContext httpRequest = HttpRequestContext.builder()
+                .httpMethod(HttpMethod.POST)
                 .headers(CaseInsensitiveMultiMap.builder()
                         .add("DNT", "invalid")
                         .build())
@@ -316,6 +319,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     public void shouldSetDeviceDntIfHeaderExists() {
         // given
         final HttpRequestContext httpRequest = HttpRequestContext.builder()
+                .httpMethod(HttpMethod.POST)
                 .headers(CaseInsensitiveMultiMap.builder()
                         .add("DNT", "1")
                         .build())
@@ -333,6 +337,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     public void shouldOverrideDeviceDntIfHeaderExists() {
         // given
         final HttpRequestContext httpRequest = HttpRequestContext.builder()
+                .httpMethod(HttpMethod.POST)
                 .headers(CaseInsensitiveMultiMap.builder()
                         .add("DNT", "0")
                         .build())
@@ -2547,7 +2552,12 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .extracting(BidRequest::getExt)
                 .extracting(ExtRequest::getPrebid)
                 .extracting(ExtRequestPrebid::getServer)
-                .isEqualTo(ExtRequestPrebidServer.of("https://external.url/", 0, "datacenter-region", ENDPOINT));
+                .isEqualTo(ExtRequestPrebidServer.of(
+                        "https://external.url/",
+                        0,
+                        "datacenter-region",
+                        HttpMethod.POST.name(),
+                        ENDPOINT));
     }
 
     @Test

@@ -18,6 +18,7 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpMethod;
 import org.apache.commons.lang3.ObjectUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -941,6 +942,7 @@ public class SmaatoBidderTest extends VertxTest {
     private static BidRequest givenVideoBidRequest(
             UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
             UnaryOperator<Imp.ImpBuilder>... impCustomizers) {
+
         return bidRequestCustomizer.apply(BidRequest.builder()
                         .site(Site.builder().build())
                         .app(App.builder().build())
@@ -948,7 +950,12 @@ public class SmaatoBidderTest extends VertxTest {
                                 .map(SmaatoBidderTest::givenVideoImp)
                                 .toList()))
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .server(ExtRequestPrebidServer.of(null, null, null, Endpoint.openrtb2_video.value()))
+                        .server(ExtRequestPrebidServer.of(
+                                null,
+                                null,
+                                null,
+                                HttpMethod.POST.name(),
+                                Endpoint.openrtb2_video.value()))
                         .build()))
                 .build();
     }
