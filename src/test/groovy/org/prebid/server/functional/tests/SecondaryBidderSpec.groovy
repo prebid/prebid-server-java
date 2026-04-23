@@ -113,7 +113,7 @@ class SecondaryBidderSpec extends BaseSpec {
 
         and: "Account in the DB"
         def accountConfig = AccountConfig.defaultAccountConfig.tap {
-            it.auction = new AccountAuctionConfig(secondaryBidders: [OPENX])
+            it.auction = secondaryBiddersConfig
         }
         def account = new Account(uuid: bidRequest.accountId, config: accountConfig)
         accountDao.save(account)
@@ -142,6 +142,12 @@ class SecondaryBidderSpec extends BaseSpec {
         assert seatNonBid.seat == OPENX
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == ERROR_TIMED_OUT
+
+        where:
+        secondaryBiddersConfig << [
+                new AccountAuctionConfig(secondaryBidders: [OPENX]),
+                new AccountAuctionConfig(secondaryBiddersSnakeCase: [OPENX])
+        ]
     }
 
     def "PBS shouldn't treat alias as secondary when root bidder is secondary in account config"() {
@@ -405,7 +411,7 @@ class SecondaryBidderSpec extends BaseSpec {
 
         and: "Account in the DB"
         def accountConfig = AccountConfig.defaultAccountConfig.tap {
-            it.auction = new AccountAuctionConfig(secondaryBidders: [GENERIC])
+            it.auction = secondaryBiddersConfig
         }
         def account = new Account(uuid: bidRequest.accountId, config: accountConfig)
         accountDao.save(account)
@@ -431,6 +437,12 @@ class SecondaryBidderSpec extends BaseSpec {
         assert seatNonBid.seat == OPENX
         assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
         assert seatNonBid.nonBid[0].statusCode == ERROR_TIMED_OUT
+
+        where:
+        secondaryBiddersConfig << [
+                new AccountAuctionConfig(secondaryBidders: [OPENX]),
+                new AccountAuctionConfig(secondaryBiddersSnakeCase: [OPENX])
+        ]
     }
 
     private static BidRequest getEnrichedBidRequest(List<BidderName> bidderNames) {

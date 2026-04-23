@@ -59,5 +59,7 @@ class AccountAuctionConfig {
     BidRounding bidRoundingSnakeCase
     @JsonProperty("impression_limit")
     Integer impressionLimitSnakeCase
+    @JsonProperty("secondary_bidders")
+    List<BidderName> secondaryBiddersSnakeCase
 
 }
