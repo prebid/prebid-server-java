@@ -13,22 +13,23 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static java.util.Collections.singletonList;
 
-public class ResetDigitalTest extends IntegrationTest {
+public class NativoTest extends IntegrationTest {
 
     @Test
-    public void openrtb2AuctionShouldRespondWithBidsFromResetDigital() throws IOException, JSONException {
+    public void openrtb2AuctionShouldRespondWithBidsFromNativo() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/resetdigital-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/resetdigital/test-resetdigital-bid-request.json")))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/nativo-exchange"))
+                .withRequestBody(equalToJson(
+                        jsonFrom("openrtb2/nativo/test-nativo-bid-request.json")))
                 .willReturn(aResponse().withBody(
-                        jsonFrom("openrtb2/resetdigital/test-resetdigital-bid-response.json"))));
+                        jsonFrom("openrtb2/nativo/test-nativo-bid-response.json"))));
 
         // when
-        final Response response = responseFor("openrtb2/resetdigital/test-auction-resetdigital-request.json",
+        final Response response = responseFor("openrtb2/nativo/test-auction-nativo-request.json",
                 Endpoint.openrtb2_auction);
 
         // then
-        assertJsonEquals("openrtb2/resetdigital/test-auction-resetdigital-response.json",
-                response, singletonList("resetdigital"));
+        assertJsonEquals("openrtb2/nativo/test-auction-nativo-response.json", response,
+                singletonList("nativo"));
     }
 }

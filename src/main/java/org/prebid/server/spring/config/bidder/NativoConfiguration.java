@@ -1,8 +1,7 @@
 package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.resetdigital.ResetDigitalBidder;
-import org.prebid.server.currency.CurrencyConversionService;
+import org.prebid.server.bidder.nativo.NativoBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -17,30 +16,26 @@ import org.springframework.context.annotation.PropertySource;
 import jakarta.validation.constraints.NotBlank;
 
 @Configuration
-@PropertySource(value = "classpath:/bidder-config/resetdigital.yaml", factory = YamlPropertySourceFactory.class)
-public class ResetDigitalConfiguration {
+@PropertySource(value = "classpath:/bidder-config/nativo.yaml", factory = YamlPropertySourceFactory.class)
+public class NativoConfiguration {
 
-    private static final String BIDDER_NAME = "resetdigital";
+    private static final String BIDDER_NAME = "nativo";
 
-    @Bean("resetDigitalConfigurationProperties")
-    @ConfigurationProperties("adapters.resetdigital")
+    @Bean("nativoConfigurationProperties")
+    @ConfigurationProperties("adapters.nativo")
     BidderConfigurationProperties configurationProperties() {
         return new BidderConfigurationProperties();
     }
 
     @Bean
-    BidderDeps resetDigitalBidderDeps(BidderConfigurationProperties resetDigitalConfigurationProperties,
-                                      @NotBlank @Value("${external-url}") String externalUrl,
-                                      CurrencyConversionService currencyConversionService,
-                                      JacksonMapper mapper) {
+    BidderDeps nativoBidderDeps(BidderConfigurationProperties nativoConfigurationProperties,
+                                @NotBlank @Value("${external-url}") String externalUrl,
+                                JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
-                .withConfig(resetDigitalConfigurationProperties)
+                .withConfig(nativoConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new ResetDigitalBidder(
-                        config.getEndpoint(),
-                        currencyConversionService,
-                        mapper))
+                .bidderCreator(config -> new NativoBidder(config.getEndpoint(), mapper))
                 .assemble();
     }
 }
