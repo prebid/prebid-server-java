@@ -8,9 +8,8 @@
         "h": 250
       },
       "ext": {
-        "resetdigital": {
-          "pubId": "lb.ads",
-          "zoneId": "publisherTestID"
+        "360playvid": {
+          "placementId": "testPlacementId"
         }
       }
     }
