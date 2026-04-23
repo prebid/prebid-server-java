@@ -29,7 +29,8 @@ public class MycodemediaTest extends IntegrationTest {
         );
 
         // then
-        assertJsonEquals("openrtb2/mycodemedia/test-auction-mycodemedia-response.json", response, List.of("mycodemedia"));
+        assertJsonEquals("openrtb2/mycodemedia/test-auction-mycodemedia-response.json",
+                response, List.of("mycodemedia"));
     }
 
 }
