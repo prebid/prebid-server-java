@@ -30,7 +30,7 @@ class HttpSettings extends NetworkScaffolding {
     @Override
     protected RequestPatternBuilder getRequest(String accountId) {
         getRequestedFor(urlPathEqualTo(endpoint))
-                .withQueryParam("account-ids", equalTo("[\"" + accountId + "\"]"))
+                .withQueryParam("account-ids", equalTo("""["$accountId"]"""))
     }
 
     @Override

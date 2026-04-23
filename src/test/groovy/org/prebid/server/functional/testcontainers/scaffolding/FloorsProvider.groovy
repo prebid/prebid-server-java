@@ -28,7 +28,7 @@ class FloorsProvider extends NetworkScaffolding {
 
     @Override
     protected RequestPatternBuilder getRequest(String accountId) {
-        getRequestedFor(urlEqualTo(FLOORS_ENDPOINT + accountId))
+        getRequestedFor(urlEqualTo("$FLOORS_ENDPOINT$accountId"))
     }
 
     @Override

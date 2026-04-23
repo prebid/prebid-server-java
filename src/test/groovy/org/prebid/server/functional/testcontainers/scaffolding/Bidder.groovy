@@ -54,12 +54,12 @@ class Bidder extends NetworkScaffolding {
 
     @Override
     protected RequestPatternBuilder getRequest(String bidRequestId) {
-        postRequestedFor(urlMatching("^$endpoint(\\?.*)?\$"))
+        postRequestedFor(urlPathEqualTo(endpoint))
                 .withRequestBody(matchingJsonPath("\$.id", equalTo(bidRequestId)))
     }
 
     RequestPattern getRequest(String bidRequestId, String requestMatchPath) {
-        postRequestedFor(urlMatching("^${endpoint}(\\?.*)?\$"))
+        postRequestedFor(urlPathEqualTo(endpoint))
                 .withRequestBody(matchingJsonPath("\$[?(@.${requestMatchPath} == '${bidRequestId}')]"))
                 .build()
     }
