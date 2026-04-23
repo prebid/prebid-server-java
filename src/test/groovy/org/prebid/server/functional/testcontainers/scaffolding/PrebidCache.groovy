@@ -43,7 +43,7 @@ class PrebidCache extends NetworkScaffolding {
     }
 
     String getVTracGetRequestParams() {
-        getRecordedRequestsQueryParameters(getRequestedFor(urlMatching("^/cache(\\?.*)?\$")))
+        getRecordedRequestsQueryParameters(getRequestedFor(urlPathEqualTo(CACHE_ENDPOINT)))
     }
 
     int getXmlRequestCount(String payload) {

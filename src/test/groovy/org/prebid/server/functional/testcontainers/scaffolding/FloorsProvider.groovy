@@ -10,7 +10,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.any
 import static com.github.tomakehurst.wiremock.client.WireMock.anyRequestedFor
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
-import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching
 import static org.apache.http.HttpStatus.SC_OK
 
 class FloorsProvider extends NetworkScaffolding {
@@ -33,7 +33,7 @@ class FloorsProvider extends NetworkScaffolding {
 
     @Override
     void setResponse() {
-        wireMockClient.register(any(urlMatching("^.*$endpoint.*\$"))
+        wireMockClient.register(any(urlPathMatching("${endpoint}.*"))
                 .atPriority(Integer.MAX_VALUE)
                 .willReturn(aResponse()
                         .withStatus(SC_OK)

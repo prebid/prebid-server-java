@@ -58,8 +58,8 @@ class Dependencies {
 
     static void stop() {
         if (IS_LAUNCH_CONTAINERS) {
-            [networkServiceContainer, mysqlContainer, localStackContainer,
-             influxdbContainer].parallelStream()
+            [networkServiceContainer, mysqlContainer, localStackContainer, influxdbContainer]
+                    .parallelStream()
                     .forEach({ it.stop() })
         }
     }
