@@ -49,6 +49,7 @@ class Prebid {
     List<String> profileNames
     @JsonProperty("kvps")
     Map<String, String> keyValuePairs
+    List<BidderName> secondaryBidders
 
     static class Channel {
 
