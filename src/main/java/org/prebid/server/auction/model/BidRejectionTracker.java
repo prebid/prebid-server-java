@@ -45,24 +45,49 @@ public class BidRejectionTracker {
         rejections = new HashMap<>();
     }
 
-    public BidRejectionTracker(BidRejectionTracker anotherTracker, Set<String> additionalImpIds) {
-        this.bidder = anotherTracker.bidder;
-        this.logSamplingRate = anotherTracker.logSamplingRate;
-        this.involvedImpIds = new HashSet<>(anotherTracker.involvedImpIds);
-        this.involvedImpIds.addAll(additionalImpIds);
+    private BidRejectionTracker(
+            String bidder,
+            Set<String> involvedImpIds,
+            Map<String, Set<String>> succeededBidsIds,
+            Map<String, List<Rejection>> rejections,
+            double logSamplingRate
+    ) {
+        this.bidder = bidder;
+        this.involvedImpIds = new HashSet<>(involvedImpIds);
+        this.logSamplingRate = logSamplingRate;
 
-        this.succeededBidsIds = new HashMap<>(anotherTracker.succeededBidsIds);
-        this.rejections = new HashMap<>(anotherTracker.rejections);
+        this.succeededBidsIds = MapUtil.mapValues(succeededBidsIds, v -> new HashSet<>(v));
+        this.rejections = MapUtil.mapValues(rejections, ArrayList::new);
     }
 
-    public void succeed(Collection<BidderBid> bids) {
+    public static BidRejectionTracker copyOf(BidRejectionTracker anotherTracker) {
+        return new BidRejectionTracker(
+                anotherTracker.bidder,
+                anotherTracker.involvedImpIds,
+                anotherTracker.succeededBidsIds,
+                anotherTracker.rejections,
+                anotherTracker.logSamplingRate
+        );
+    }
+
+    public static BidRejectionTracker withAdditionalImpIds(
+            BidRejectionTracker anotherTracker,
+            Set<String> additionalImpIds
+    ) {
+        final BidRejectionTracker newTracker = copyOf(anotherTracker);
+        newTracker.involvedImpIds.addAll(additionalImpIds);
+        return newTracker;
+    }
+
+    public BidRejectionTracker succeed(Collection<BidderBid> bids) {
         bids.stream()
                 .map(BidderBid::getBid)
                 .filter(Objects::nonNull)
                 .forEach(this::succeed);
+        return this;
     }
 
-    private void succeed(Bid bid) {
+    private BidRejectionTracker succeed(Bid bid) {
         final String bidId = bid.getId();
         final String impId = bid.getImpid();
         if (involvedImpIds.contains(impId)) {
@@ -73,21 +98,23 @@ public class BidRejectionTracker {
                         logSamplingRate);
             }
         }
+        return this;
     }
 
     public void restoreFromRejection(Collection<BidderBid> bids) {
         succeed(bids);
     }
 
-    public void reject(Collection<Rejection> rejections) {
+    public BidRejectionTracker reject(Collection<Rejection> rejections) {
         rejections.forEach(this::reject);
+        return this;
     }
 
-    public void reject(Rejection rejection) {
+    public BidRejectionTracker reject(Rejection rejection) {
         if (rejection instanceof ImpRejection && rejection.reason().getValue() >= 300) {
             logger.warn("The rejected imp {} with the code {} equal to or higher than 300 assumes "
                     + "that there is a rejected bid that shouldn't be lost");
-            return;
+            return this;
         }
 
         final String impId = rejection.impId();
@@ -113,14 +140,18 @@ public class BidRejectionTracker {
                 }
             }
         }
+
+        return this;
     }
 
-    public void rejectImps(Collection<String> impIds, BidRejectionReason reason) {
+    public BidRejectionTracker rejectImps(Collection<String> impIds, BidRejectionReason reason) {
         impIds.forEach(impId -> reject(ImpRejection.of(impId, reason)));
+        return this;
     }
 
-    public void rejectAll(BidRejectionReason reason) {
+    public BidRejectionTracker rejectAll(BidRejectionReason reason) {
         involvedImpIds.forEach(impId -> reject(ImpRejection.of(impId, reason)));
+        return this;
     }
 
     public Set<Rejection> getRejected() {
