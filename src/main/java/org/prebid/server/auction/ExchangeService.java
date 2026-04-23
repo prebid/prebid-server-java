@@ -1173,11 +1173,7 @@ public class ExchangeService {
             AuctionContext auctionContext,
             Map<String, Future<BidderResponse>> bidderToFutureResponse) {
 
-        final Set<String> secondaryBidders = Optional.of(auctionContext)
-                .map(AuctionContext::getAccount)
-                .map(Account::getAuction)
-                .map(AccountAuctionConfig::getSecondaryBidders)
-                .orElse(Collections.emptySet());
+        final Set<String> secondaryBidders = resolveSecondaryBidders(auctionContext);
 
         final List<Future<BidderResponse>> primaryBiddersFutureResponses = bidderToFutureResponse.keySet().stream()
                 .filter(Predicate.not(secondaryBidders::contains))
@@ -1187,6 +1183,20 @@ public class ExchangeService {
         return Future.join(CollectionUtils.isNotEmpty(primaryBiddersFutureResponses)
                 ? primaryBiddersFutureResponses
                 : bidderToFutureResponse.values().stream().toList());
+    }
+
+    private static Set<String> resolveSecondaryBidders(AuctionContext auctionContext) {
+        final Set<String> accountSecondaryBidders = Optional.of(auctionContext)
+                .map(AuctionContext::getAccount)
+                .map(Account::getAuction)
+                .map(AccountAuctionConfig::getSecondaryBidders)
+                .orElse(Collections.emptySet());
+
+        return Optional.ofNullable(auctionContext.getBidRequest())
+                .map(BidRequest::getExt)
+                .map(ExtRequest::getPrebid)
+                .map(ExtRequestPrebid::getSecondaryBidders)
+                .orElse(accountSecondaryBidders);
     }
 
     private void mergeBidRejectionTrackers(AuctionContext auctionContext,

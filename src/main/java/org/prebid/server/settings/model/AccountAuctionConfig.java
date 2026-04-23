@@ -67,6 +67,6 @@ public class AccountAuctionConfig {
 
     AccountProfilesConfig profiles;
 
-    @JsonProperty("secondarybidders")
+    @JsonAlias("secondary-bidders")
     Set<String> secondaryBidders;
 }

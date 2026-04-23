@@ -187,6 +187,7 @@ import static java.math.BigDecimal.TWO;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
+import static java.util.Collections.emptySet;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
@@ -4479,6 +4480,97 @@ public class ExchangeServiceTest extends VertxTest {
                 .extracting(rejections -> rejections.stream().map(Rejection::reason).collect(Collectors.toSet()))
                 .hasSize(3)
                 .containsOnly(Set.of(REQUEST_BLOCKED_GENERAL, ERROR_GENERAL));
+    }
+
+    @Test
+    public void shouldUseRequestLevelSecondaryBiddersOverAccountLevel() {
+        // given
+        doReturn(Future.succeededFuture(givenSeatBid(emptyList()))).when(httpBidderRequester)
+                .requestBids(any(), argThat(bidderRequest -> bidderRequest.getBidder().equals("secondaryAccount")),
+                        any(), any(), any(), any(), anyBoolean());
+
+        doReturn(Promise.promise().future()).when(httpBidderRequester)
+                .requestBids(any(), argThat(bidderRequest -> bidderRequest.getBidder().equals("secondaryRequest")),
+                        any(), any(), any(), any(), anyBoolean());
+
+        final BidRequest bidRequest = givenBidRequest(
+                givenSingleImp(Map.of("secondaryAccount", 1, "secondaryRequest", 2)),
+                builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .secondaryBidders(Set.of("secondaryRequest"))
+                        .build())));
+
+        final Account account = Account.builder()
+                .auction(AccountAuctionConfig.builder()
+                        .secondaryBidders(Set.of("secondaryAccount"))
+                        .build())
+                .build();
+        final AuctionContext auctionContext = givenRequestContext(bidRequest, account);
+
+        // when
+        final Future<AuctionContext> result = target.holdAuction(auctionContext);
+
+        // then
+        assertThat(result.succeeded()).isTrue();
+    }
+
+    @Test
+    public void shouldTreatEmptyRequestLevelSecondaryBiddersAsOverrideOfAccountLevel() {
+        // given
+        doReturn(Promise.promise().future()).when(httpBidderRequester)
+                .requestBids(any(), argThat(bidderRequest -> bidderRequest.getBidder().equals("bidderA")),
+                        any(), any(), any(), any(), anyBoolean());
+
+        doReturn(Future.succeededFuture(givenSeatBid(emptyList()))).when(httpBidderRequester)
+                .requestBids(any(), argThat(bidderRequest -> bidderRequest.getBidder().equals("bidderB")),
+                        any(), any(), any(), any(), anyBoolean());
+
+        final BidRequest bidRequest = givenBidRequest(
+                givenSingleImp(Map.of("bidderA", 1, "bidderB", 2)),
+                builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .secondaryBidders(emptySet())
+                        .build())));
+
+        final Account account = Account.builder()
+                .auction(AccountAuctionConfig.builder()
+                        .secondaryBidders(Set.of("bidderA"))
+                        .build())
+                .build();
+        final AuctionContext auctionContext = givenRequestContext(bidRequest, account);
+
+        // when
+        final Future<AuctionContext> result = target.holdAuction(auctionContext);
+
+        // then
+        assertThat(result.isComplete()).isFalse();
+    }
+
+    @Test
+    public void shouldFallBackToAccountLevelSecondaryBiddersWhenRequestLevelIsAbsent() {
+        // given
+        doReturn(Future.succeededFuture(givenSeatBid(emptyList()))).when(httpBidderRequester)
+                .requestBids(any(), argThat(bidderRequest -> bidderRequest.getBidder().equals("primary")),
+                        any(), any(), any(), any(), anyBoolean());
+
+        doReturn(Promise.promise().future()).when(httpBidderRequester)
+                .requestBids(any(), argThat(bidderRequest -> bidderRequest.getBidder().equals("secondary")),
+                        any(), any(), any(), any(), anyBoolean());
+
+        final BidRequest bidRequest = givenBidRequest(
+                givenSingleImp(Map.of("primary", 1, "secondary", 2)),
+                builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder().build())));
+
+        final Account account = Account.builder()
+                .auction(AccountAuctionConfig.builder()
+                        .secondaryBidders(Set.of("secondary"))
+                        .build())
+                .build();
+        final AuctionContext auctionContext = givenRequestContext(bidRequest, account);
+
+        // when
+        final Future<AuctionContext> result = target.holdAuction(auctionContext);
+
+        // then
+        assertThat(result.succeeded()).isTrue();
     }
 
     @Test
