@@ -123,7 +123,7 @@ adapters:
           enabled: true
           cookie-family-name: mycodemedia
           iframe:
-            url: https://usersync.mycodemedia.com/pbserverIframe?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&pbserverUrl={{.RedirectURL}}
+            url: https://usersync.mycodemedia.com/pbserverIframe?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&pbserverUrl={{redirect_url}}
             support-cors: false
             uid-macro: '[UID]'
           redirect:
