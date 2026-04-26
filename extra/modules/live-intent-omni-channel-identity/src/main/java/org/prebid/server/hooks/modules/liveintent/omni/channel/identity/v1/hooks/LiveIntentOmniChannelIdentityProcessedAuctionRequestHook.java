@@ -61,6 +61,8 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
 
     private static final String INSERTER = "s2s.liveintent.com";
 
+    private static final String MATCHER = "itsLiveintent";
+
     private final LiveIntentOmniChannelProperties config;
     private final JacksonMapper mapper;
     private final HttpClient httpClient;
@@ -172,7 +174,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
         }
 
         final List<Eid> modifiedEids = eids.stream()
-                .map(eid -> eid.toBuilder().inserter(INSERTER).build())
+                .map(eid -> eid.toBuilder().inserter(INSERTER).matcher(MATCHER).build())
                 .toList();
 
         return IdResResponse.of(modifiedEids);
@@ -216,8 +218,8 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
     }
 
     private ExtRequest updateExtRequest(ExtRequest ext, List<Eid> resolvedEids) {
-        final Set<String> uniqueSources = CollectionUtils.emptyIfNull(resolvedEids).stream()
-                .map(Eid::getSource)
+        final Set<String> uniqueMatcher = CollectionUtils.emptyIfNull(resolvedEids).stream()
+                .map(Eid::getMatcher)
                 .filter(StringUtils::isNotEmpty)
                 .collect(Collectors.toSet());
 
@@ -227,8 +229,8 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
                 extPrebidData != null ? extPrebidData.getEidPermissions() : null;
 
         final List<ExtRequestPrebidDataEidPermissions> modifiedEidPermissions = CollectionUtils.isEmpty(eidPermissions)
-                ? createEidPermissions(uniqueSources)
-                : modifyEidPermissions(eidPermissions, uniqueSources);
+                ? createEidPermissions(uniqueMatcher)
+                : modifyEidPermissions(eidPermissions, uniqueMatcher);
 
         final ExtRequestPrebid updatedExtPrebid = Optional.ofNullable(extPrebid)
                 .map(ExtRequestPrebid::toBuilder)
@@ -257,10 +259,10 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
                 .build();
     }
 
-    private List<ExtRequestPrebidDataEidPermissions> createEidPermissions(Set<String> sources) {
-        return sources.stream()
-                .map(source -> ExtRequestPrebidDataEidPermissions.builder()
-                        .source(source)
+    private List<ExtRequestPrebidDataEidPermissions> createEidPermissions(Set<String> matcher) {
+        return matcher.stream()
+                .map(liMatcher -> ExtRequestPrebidDataEidPermissions.builder()
+                        .matcher(liMatcher)
                         .inserter(INSERTER)
                         .bidders(targetBidders.stream().toList())
                         .build())
@@ -269,12 +271,12 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
 
     private List<ExtRequestPrebidDataEidPermissions> modifyEidPermissions(
             List<ExtRequestPrebidDataEidPermissions> eidPermissions,
-            Set<String> sources) {
+            Set<String> matcher) {
         final List<ExtRequestPrebidDataEidPermissions> modifiedEidPermissions = eidPermissions.stream()
-                .map(it -> updateEidPermission(it, sources))
+                .map(it -> updateEidPermission(it, matcher))
                 .filter(Objects::nonNull)
                 .toList();
-        final List<ExtRequestPrebidDataEidPermissions> defaultEidPermissions = createEidPermissions(sources);
+        final List<ExtRequestPrebidDataEidPermissions> defaultEidPermissions = createEidPermissions(matcher);
         return ListUtils.union(modifiedEidPermissions, defaultEidPermissions);
     }
 
@@ -287,8 +289,8 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
     }
 
     private ExtRequestPrebidDataEidPermissions updateEidPermission(ExtRequestPrebidDataEidPermissions eidPermission,
-                                                                   Set<String> sources) {
-        if (!sources.contains(eidPermission.getSource()) || !INSERTER.equals(eidPermission.getInserter())) {
+                                                                   Set<String> matcher) {
+        if (!matcher.contains(eidPermission.getMatcher()) || !INSERTER.equals(eidPermission.getInserter())) {
             return eidPermission;
         }
 
