@@ -218,6 +218,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
     }
 
     private ExtRequest updateExtRequest(ExtRequest ext, List<Eid> resolvedEids) {
+        // can just use the constant MATCHER here
         final Set<String> uniqueMatcher = CollectionUtils.emptyIfNull(resolvedEids).stream()
                 .map(Eid::getMatcher)
                 .filter(StringUtils::isNotEmpty)
@@ -259,10 +260,10 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
                 .build();
     }
 
-    private List<ExtRequestPrebidDataEidPermissions> createEidPermissions(Set<String> matcher) {
-        return matcher.stream()
-                .map(liMatcher -> ExtRequestPrebidDataEidPermissions.builder()
-                        .matcher(liMatcher)
+    private List<ExtRequestPrebidDataEidPermissions> createEidPermissions(Set<String> matchers) {
+        return matchers.stream()
+                .map(matcherInEid -> ExtRequestPrebidDataEidPermissions.builder()
+                        .matcher(matcherInEid)
                         .inserter(INSERTER)
                         .bidders(targetBidders.stream().toList())
                         .build())
