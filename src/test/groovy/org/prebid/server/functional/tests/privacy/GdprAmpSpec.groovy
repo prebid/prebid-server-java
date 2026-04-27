@@ -1,6 +1,5 @@
 package org.prebid.server.functional.tests.privacy
 
-import org.mockserver.model.Delay
 import org.prebid.server.functional.model.ChannelType
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountGdprConfig
@@ -434,7 +433,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         vendorListResponse.reset()
 
         and: "Set vendor list response with delay"
-        vendorListResponse.setResponse(tcfPolicyVersion, Delay.seconds(EXPONENTIAL_BACKOFF_MAX_DELAY + 3))
+        vendorListResponse.setResponse(tcfPolicyVersion, EXPONENTIAL_BACKOFF_MAX_DELAY + 3)
 
         when: "PBS processes amp request"
         defaultPrivacyPbsService.sendAmpRequest(ampRequest)
