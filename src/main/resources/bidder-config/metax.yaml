@@ -1,7 +1,7 @@
 # The MetaX Bidding adapter requires setup before beginning. Please contact us at <adops@metaxsoft.com>
 adapters:
   metax:
-    endpoint: https://hb.metaxads.com/prebid?sid={{publisherId}}&adunit={{adUnit}}&source=prebid-server
+    endpoint: https://hb.metaxads.com/prebid?sid={publisherId}&adunit={adUnit}&source=prebid-server
     meta-info:
       maintainer-email: prebid@metaxsoft.com
       app-media-types:

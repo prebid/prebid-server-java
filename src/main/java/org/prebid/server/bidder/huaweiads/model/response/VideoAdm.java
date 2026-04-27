@@ -63,5 +63,4 @@ public class VideoAdm {
                 + "</Creatives>"
                 + "</InLine></Ad></VAST>";
     }
-
 }

@@ -39,7 +39,7 @@ import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
 
 public class BoldwinRapidBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.endpoint.com/?pub={{PublisherID}}&place={{PlacementID}}";
+    private static final String ENDPOINT_URL = "https://test.endpoint.com/?pub={PublisherID}&place={PlacementID}";
 
     private final BoldwinRapidBidder target = new BoldwinRapidBidder(ENDPOINT_URL, jacksonMapper);
 

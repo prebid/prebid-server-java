@@ -31,5 +31,4 @@ public class PrecisoTest extends IntegrationTest {
         // then
         assertJsonEquals("openrtb2/preciso/test-auction-preciso-response.json", response, singletonList("preciso"));
     }
-
 }

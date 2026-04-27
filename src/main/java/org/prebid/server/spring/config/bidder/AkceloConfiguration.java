@@ -39,5 +39,4 @@ public class AkceloConfiguration {
                 .bidderCreator(config -> new AkceloBidder(config.getEndpoint(), mapper))
                 .assemble();
     }
-
 }

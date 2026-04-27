@@ -40,7 +40,7 @@ import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
 
 public class EscalaxBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.endpoint.com?k={{AccountID}}&name={{SourceId}}";
+    private static final String ENDPOINT_URL = "https://test.endpoint.com?k={AccountID}&name={SourceId}";
 
     private final EscalaxBidder target = new EscalaxBidder(ENDPOINT_URL, jacksonMapper);
 
@@ -64,7 +64,7 @@ public class EscalaxBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getImp)
-                .extracting(imps -> imps.getFirst())
+                .extracting(List::getFirst)
                 .extracting(Imp::getExt)
                 .containsOnlyNulls();
 

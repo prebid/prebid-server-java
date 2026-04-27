@@ -1,8 +1,8 @@
 package org.prebid.server.hooks.modules.optable.targeting.v1.net;
 
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
-import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -122,8 +122,8 @@ public class APIClientImplTest extends BaseOptableTest {
     @Test
     public void shouldNotFailWhenInternalErrorOccurs() {
         //  given
-        when(httpClient.get(any(), any(), anyLong())).thenReturn(Future.succeededFuture(
-                givenFailHttpResponse(HttpStatus.SC_INTERNAL_SERVER_ERROR, "plain_text_response.json")));
+        when(httpClient.get(any(), any(), anyLong())).thenReturn(Future.succeededFuture(givenFailHttpResponse(
+                HttpResponseStatus.INTERNAL_SERVER_ERROR.code(), "plain_text_response.json")));
 
         // when
         final Future<TargetingResult> result = target.getTargeting(
@@ -143,8 +143,8 @@ public class APIClientImplTest extends BaseOptableTest {
         target = new APIClientImpl("http://endpoint.optable.com", httpClient, jacksonMapper, 10);
 
         when(httpClient.get(any(), any(), anyLong()))
-                .thenReturn(Future.succeededFuture(givenFailHttpResponse(HttpStatus.SC_INTERNAL_SERVER_ERROR,
-                        "plain_text_response.json")));
+                .thenReturn(Future.succeededFuture(givenFailHttpResponse(
+                        HttpResponseStatus.INTERNAL_SERVER_ERROR.code(), "plain_text_response.json")));
 
         // when
         final Future<TargetingResult> result = target.getTargeting(givenOptableTargetingProperties(false),
@@ -162,14 +162,14 @@ public class APIClientImplTest extends BaseOptableTest {
     public void shouldBuildApiUrlByReplacingTenantAndOriginMacros() {
         //  given
         target = new APIClientImpl(
-                "http://endpoint.optable.com?t={{TENANT}}&o={{ORIGIN}}",
+                "http://endpoint.optable.com?t={TENANT}&o={ORIGIN}",
                 httpClient,
                 jacksonMapper,
                 10);
 
         when(httpClient.get(any(), any(), anyLong()))
-                .thenReturn(Future.succeededFuture(givenFailHttpResponse(HttpStatus.SC_INTERNAL_SERVER_ERROR,
-                        "plain_text_response.json")));
+                .thenReturn(Future.succeededFuture(givenFailHttpResponse(
+                        HttpResponseStatus.INTERNAL_SERVER_ERROR.code(), "plain_text_response.json")));
 
         // when
         final Future<TargetingResult> result = target.getTargeting(givenOptableTargetingProperties(false),
@@ -187,7 +187,7 @@ public class APIClientImplTest extends BaseOptableTest {
     public void shouldNotUseAuthorizationHeaderIfApiKeyIsAbsent() {
         //  given
         when(httpClient.get(any(), any(), anyLong())).thenReturn(Future.succeededFuture(
-                givenFailHttpResponse(HttpStatus.SC_INTERNAL_SERVER_ERROR, "plain_text_response.json")));
+                givenFailHttpResponse(HttpResponseStatus.INTERNAL_SERVER_ERROR.code(), "plain_text_response.json")));
 
         // when
         final Future<TargetingResult> result = target.getTargeting(
@@ -209,7 +209,7 @@ public class APIClientImplTest extends BaseOptableTest {
     public void shouldPassThroughIpAddressesAndUserAgent() {
         //  given
         when(httpClient.get(any(), any(), anyLong())).thenReturn(Future.succeededFuture(
-                givenFailHttpResponse(HttpStatus.SC_INTERNAL_SERVER_ERROR, "plain_text_response.json")));
+                givenFailHttpResponse(HttpResponseStatus.INTERNAL_SERVER_ERROR.code(), "plain_text_response.json")));
 
         // when
         final Future<TargetingResult> result = target.getTargeting(
@@ -233,7 +233,7 @@ public class APIClientImplTest extends BaseOptableTest {
     public void shouldNotPassThroughIpAddressAndUserAgentWhenNotSpecified() {
         //  given
         when(httpClient.get(any(), any(), anyLong())).thenReturn(Future.succeededFuture(
-                givenFailHttpResponse(HttpStatus.SC_INTERNAL_SERVER_ERROR, "plain_text_response.json")));
+                givenFailHttpResponse(HttpResponseStatus.INTERNAL_SERVER_ERROR.code(), "plain_text_response.json")));
 
         // when
         final Future<TargetingResult> result = target.getTargeting(

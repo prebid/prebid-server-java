@@ -21,7 +21,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.roulax.ExtImpRoulax;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -31,18 +31,18 @@ import java.util.Objects;
 
 public class RoulaxBidder implements Bidder<BidRequest> {
 
-    private final String endpointUrl;
-    private final JacksonMapper mapper;
-
-    private static final String PUBLISHER_PATH_MACRO = "{{PublisherID}}";
-    private static final String ACCOUNT_ID_MACRO = "{{AccountID}}";
+    private static final String PUBLISHER_PATH_MACRO = "PublisherID";
+    private static final String ACCOUNT_ID_MACRO = "AccountID";
 
     private static final TypeReference<ExtPrebid<?, ExtImpRoulax>> ROULAX_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
 
+    private final Uri endpointUrl;
+    private final JacksonMapper mapper;
+
     public RoulaxBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -66,8 +66,9 @@ public class RoulaxBidder implements Bidder<BidRequest> {
 
     private String resolveEndpoint(ExtImpRoulax extImpRoulax) {
         return endpointUrl
-                .replace(PUBLISHER_PATH_MACRO, StringUtils.defaultString(extImpRoulax.getPublisherPath()).trim())
-                .replace(ACCOUNT_ID_MACRO, StringUtils.defaultString(extImpRoulax.getPid()).trim());
+                .replaceMacro(PUBLISHER_PATH_MACRO, StringUtils.defaultString(extImpRoulax.getPublisherPath()).trim())
+                .replaceMacro(ACCOUNT_ID_MACRO, StringUtils.defaultString(extImpRoulax.getPid()).trim())
+                .expand();
     }
 
     @Override

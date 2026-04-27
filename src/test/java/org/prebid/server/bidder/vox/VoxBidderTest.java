@@ -279,5 +279,4 @@ public class VoxBidderTest extends VertxTest {
         String imageUrl;
         Set<String> displaySizes;
     }
-
 }

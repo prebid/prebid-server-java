@@ -145,5 +145,4 @@ public class StartioBidder implements Bidder<BidRequest> {
             default -> null;
         };
     }
-
 }

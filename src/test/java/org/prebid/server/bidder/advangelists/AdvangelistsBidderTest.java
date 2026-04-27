@@ -42,7 +42,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
 public class AdvangelistsBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "http://test/get?pubid={{PublisherID}}";
+    private static final String ENDPOINT_URL = "http://test/get?pubid={PublisherID}";
 
     private final AdvangelistsBidder target = new AdvangelistsBidder(ENDPOINT_URL, jacksonMapper);
 

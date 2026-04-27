@@ -1,6 +1,6 @@
 adapters:
   eplanning:
-    endpoint: http://rtb.e-planning.net/pbs/1
+    endpoint: http://rtb.e-planning.net/pbs/1/{ClientId}/{DfpClientId}/{RequestTarget}/{Sec}
     meta-info:
       maintainer-email: producto@e-planning.net
       app-media-types:

@@ -45,7 +45,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 
 public class InvibesBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://{{ZoneID}}.videostep.com/bid/";
+    private static final String ENDPOINT_URL = "https://{ZoneID}.videostep.com/bid/";
     private static final int BANNER_H = 12;
     private static final int BANNER_W = 15;
     private static final String PAGE_URL = "www.test.com";

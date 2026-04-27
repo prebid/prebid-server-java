@@ -23,6 +23,7 @@ import org.prebid.server.proto.openrtb.ext.request.blis.ExtImpBlis;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -37,13 +38,13 @@ public class BlisBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpBlis>> BLIS_EXT_TYPE_REFERENCE = new TypeReference<>() {
     };
     private static final String AUCTION_PRICE_MACRO = "${AUCTION_PRICE}";
-    private static final String SUPPLY_ID_MACRO = "{{SupplyId}}";
+    private static final String SUPPLY_ID_MACRO = "SupplyId";
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public BlisBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -72,7 +73,7 @@ public class BlisBidder implements Bidder<BidRequest> {
     }
 
     private String makeUrl(String supplyId) {
-        return endpointUrl.replace(SUPPLY_ID_MACRO, HttpUtil.encodeUrl(supplyId));
+        return endpointUrl.replaceMacro(SUPPLY_ID_MACRO, supplyId).expand();
     }
 
     @Override

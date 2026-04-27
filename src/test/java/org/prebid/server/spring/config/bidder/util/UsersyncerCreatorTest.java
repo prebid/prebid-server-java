@@ -8,7 +8,7 @@ import org.prebid.server.spring.config.bidder.model.usersync.CookieFamilySource;
 import org.prebid.server.spring.config.bidder.model.usersync.UsersyncConfigurationProperties;
 import org.prebid.server.spring.config.bidder.model.usersync.UsersyncMethodConfigurationProperties;
 
-import java.net.MalformedURLException;
+import java.net.URISyntaxException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -56,9 +56,9 @@ public class UsersyncerCreatorTest {
         config.setRedirect(methodConfig);
 
         // given, when and then
-        assertThatThrownBy(() -> UsersyncerCreator.create(null).apply(config, CookieFamilySource.ROOT))
-                .hasCauseExactlyInstanceOf(MalformedURLException.class)
-                .hasMessage("URL supplied is not valid: null");
+        assertThatThrownBy(() -> UsersyncerCreator.create("/inv a lid").apply(config, CookieFamilySource.ROOT))
+                .hasCauseExactlyInstanceOf(URISyntaxException.class)
+                .hasMessage("URL supplied is not valid: /inv a lid");
     }
 
     @Test

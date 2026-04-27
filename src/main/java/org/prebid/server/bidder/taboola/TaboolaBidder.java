@@ -29,7 +29,7 @@ import org.prebid.server.proto.openrtb.ext.request.taboola.ExtImpTaboola;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.spring.config.bidder.model.MediaType;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -51,12 +51,12 @@ public class TaboolaBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private final String endpointTemplate;
+    private final Uri endpoint;
     private final String gvlId;
     private final JacksonMapper mapper;
 
-    public TaboolaBidder(String endpointTemplate, Integer gvlId, JacksonMapper mapper) {
-        this.endpointTemplate = HttpUtil.validateUrl(Objects.requireNonNull(endpointTemplate));
+    public TaboolaBidder(String endpoint, Integer gvlId, JacksonMapper mapper) {
+        this.endpoint = Uri.of(endpoint);
         this.gvlId = gvlId != null ? String.valueOf(gvlId) : "";
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -219,10 +219,11 @@ public class TaboolaBidder implements Bidder<BidRequest> {
                 .or(() -> Optional.ofNullable(bidRequest.getApp()).map(App::getId))
                 .orElse(StringUtils.EMPTY);
 
-        return endpointTemplate
-                .replace("{{GvlID}}", gvlId)
-                .replace("{{MediaType}}", type)
-                .replace("{{PublisherID}}", HttpUtil.encodeUrl(publisherId));
+        return endpoint
+                .replaceMacro("GvlID", gvlId)
+                .replaceMacro("MediaType", type)
+                .replaceMacro("PublisherID", publisherId)
+                .expand();
     }
 
     @Override

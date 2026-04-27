@@ -21,7 +21,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.mobfoxpb.ExtImpMobfoxpb;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -31,22 +31,23 @@ import java.util.Objects;
 
 public class MobfoxpbBidder implements Bidder<BidRequest> {
 
-    private static final String ROUTE_RTB = "rtb";
-    private static final String METHOD_RTB = "req";
-    private static final String ROUTE_NATIVE = "o";
-    private static final String METHOD_NATIVE = "ortb";
-    private static final String URL_KEY_MACROS = "__key__";
-    private static final String URL_ROUTE_MACROS = "__route__";
-    private static final String URL_METHOD_MACROS = "__method__";
-    private final String endpointUrl;
-    private final JacksonMapper mapper;
-
     private static final TypeReference<ExtPrebid<?, ExtImpMobfoxpb>> MOBFOXPB_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
 
+    private static final String ROUTE_RTB = "rtb";
+    private static final String METHOD_RTB = "req";
+    private static final String ROUTE_NATIVE = "o";
+    private static final String METHOD_NATIVE = "ortb";
+    private static final String URL_KEY_MACROS = "key";
+    private static final String URL_ROUTE_MACROS = "route";
+    private static final String URL_METHOD_MACROS = "method";
+
+    private final Uri endpointUrl;
+    private final JacksonMapper mapper;
+
     public MobfoxpbBidder(String endpoint, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpoint));
+        this.endpointUrl = Uri.of(endpoint);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -83,19 +84,12 @@ public class MobfoxpbBidder implements Bidder<BidRequest> {
     }
 
     private String buildUri(String key) {
-        final String route;
-        final String method;
-        String uri = endpointUrl;
-        if (StringUtils.isNotEmpty(key)) {
-            route = ROUTE_RTB;
-            method = METHOD_RTB;
-            uri = uri.replace(URL_KEY_MACROS, key);
-        } else {
-            route = ROUTE_NATIVE;
-            method = METHOD_NATIVE;
-        }
-
-        return uri.replace(URL_ROUTE_MACROS, route).replace(URL_METHOD_MACROS, method);
+        final boolean keyPresent = StringUtils.isNotEmpty(key);
+        return endpointUrl
+                .replaceMacro(URL_KEY_MACROS, keyPresent ? key : "__" + URL_KEY_MACROS + "__")
+                .replaceMacro(URL_ROUTE_MACROS, keyPresent ? ROUTE_RTB : ROUTE_NATIVE)
+                .replaceMacro(URL_METHOD_MACROS, keyPresent ? METHOD_RTB : METHOD_NATIVE)
+                .expand();
     }
 
     @Override

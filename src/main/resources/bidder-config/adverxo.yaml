@@ -1,11 +1,11 @@
 adapters:
   adverxo:
-    endpoint: https://pbsadverxo.com/auction?adUnitId={{adUnitId}}&auth={{auth}}
+    endpoint: https://pbsadverxo.com/auction?adUnitId={adUnitId}&auth={auth}
     endpoint-compression: gzip
     aliases:
       adport:
         enabled: false
-        endpoint: https://adport.pbsadverxo.com/auction?id={{adUnitId}}&auth={{auth}}
+        endpoint: https://adport.pbsadverxo.com/auction?id={adUnitId}&auth={auth}
         usersync:
           enabled: false
           cookie-family-name: adport
@@ -19,7 +19,7 @@ adapters:
             support-cors: false
       bidsmind:
         enabled: false
-        endpoint: https://bidsmind.pbsadverxo.com/auction?id={{adUnitId}}&auth={{auth}}
+        endpoint: https://bidsmind.pbsadverxo.com/auction?id={adUnitId}&auth={auth}
         usersync:
           enabled: false
           cookie-family-name: bidsmind

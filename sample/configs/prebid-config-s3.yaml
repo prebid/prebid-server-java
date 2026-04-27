@@ -7,7 +7,7 @@ server:
 adapters:
   appnexus:
     enabled: true
-  ix:
+  criteo:
     enabled: true
   openx:
     enabled: true

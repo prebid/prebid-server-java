@@ -23,6 +23,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.krushmedia.ExtImpKrushmedia;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -35,13 +36,13 @@ public class KrushmediaBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpKrushmedia>> KRUSHMEDIA_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
-    private static final String URI_ACCOUNT_ID_MACRO = "{{AccountID}}";
+    private static final String URI_ACCOUNT_ID_MACRO = "AccountID";
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public KrushmediaBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -83,7 +84,7 @@ public class KrushmediaBidder implements Bidder<BidRequest> {
     }
 
     private String resolveEndpoint(String accountId) {
-        return endpointUrl.replace(URI_ACCOUNT_ID_MACRO, StringUtils.stripToEmpty(accountId));
+        return endpointUrl.replaceMacro(URI_ACCOUNT_ID_MACRO, StringUtils.stripToEmpty(accountId)).expand();
     }
 
     private static List<Imp> removeFirstImpExt(List<Imp> imps) {

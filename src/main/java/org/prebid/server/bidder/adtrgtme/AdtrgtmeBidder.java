@@ -160,5 +160,4 @@ public class AdtrgtmeBidder implements Bidder<BidRequest> {
         }
         throw new PreBidException("Failed to find impression \"%s\"".formatted(impId));
     }
-
 }

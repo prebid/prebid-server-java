@@ -30,10 +30,8 @@ import org.prebid.server.proto.openrtb.ext.request.sparteo.ExtImpSparteo;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
-import org.apache.http.client.utils.URIBuilder;
+import org.prebid.server.util.Uri;
 
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -46,13 +44,14 @@ public class SparteoBidder implements Bidder<BidRequest> {
     private static final String UNKNOWN_VALUE = "unknown";
 
     private static final TypeReference<ExtPrebid<?, ExtImpSparteo>> TYPE_REFERENCE =
-            new TypeReference<>() { };
+            new TypeReference<>() {
+            };
 
-    private final String endpointUrl;
+    private final Uri endpoint;
     private final JacksonMapper mapper;
 
     public SparteoBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpoint = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -222,24 +221,12 @@ public class SparteoBidder implements Bidder<BidRequest> {
     }
 
     private String resolveEndpoint(String siteDomain, String appDomain, String networkId, String bundle) {
-        try {
-            final URIBuilder uriBuilder = new URIBuilder(endpointUrl);
-            if (StringUtils.isNotBlank(networkId)) {
-                uriBuilder.addParameter("network_id", networkId);
-            }
-            if (StringUtils.isNotBlank(siteDomain)) {
-                uriBuilder.addParameter("site_domain", siteDomain);
-            }
-            if (StringUtils.isNotBlank(appDomain)) {
-                uriBuilder.addParameter("app_domain", appDomain);
-            }
-            if (StringUtils.isNotBlank(bundle)) {
-                uriBuilder.addParameter("bundle", bundle);
-            }
-            return uriBuilder.build().toString();
-        } catch (URISyntaxException e) {
-            throw new PreBidException("Failed to build endpoint URL", e);
-        }
+        return endpoint
+                .addQueryParam("network_id", StringUtils.isNotBlank(networkId) ? networkId : null)
+                .addQueryParam("site_domain", StringUtils.isNotBlank(siteDomain) ? siteDomain : null)
+                .addQueryParam("app_domain", StringUtils.isNotBlank(appDomain) ? appDomain : null)
+                .addQueryParam("bundle", StringUtils.isNotBlank(bundle) ? bundle : null)
+                .expand();
     }
 
     @Override

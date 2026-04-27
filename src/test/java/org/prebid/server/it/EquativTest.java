@@ -18,7 +18,7 @@ public class EquativTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromEquativ() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/smartadserver-exchange/api/bid"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/smartadserver-exchange"))
                 .withRequestBody(
                         equalToJson(jsonFrom("openrtb2/equativ/test-equativ-bid-request.json")))
                 .willReturn(aResponse()

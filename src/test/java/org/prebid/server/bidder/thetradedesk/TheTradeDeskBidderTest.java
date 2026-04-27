@@ -45,7 +45,7 @@ import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
 
 public class TheTradeDeskBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.endpoint.com/{{SupplyId}}";
+    private static final String ENDPOINT_URL = "https://test.endpoint.com/{SupplyId}";
 
     private final TheTradeDeskBidder target = new TheTradeDeskBidder(ENDPOINT_URL, jacksonMapper, "supplyid");
 

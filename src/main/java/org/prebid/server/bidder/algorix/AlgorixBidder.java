@@ -30,6 +30,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.algorix.ExtImpAlgorix;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -46,15 +47,15 @@ public class AlgorixBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private static final String URL_REGION_MACRO = "{{HOST}}";
-    private static final String URL_SID_MACRO = "{{SID}}";
-    private static final String URL_TOKEN_MACRO = "{{TOKEN}}";
+    private static final String URL_REGION_MACRO = "HOST";
+    private static final String URL_SID_MACRO = "SID";
+    private static final String URL_TOKEN_MACRO = "TOKEN";
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public AlgorixBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -158,11 +159,12 @@ public class AlgorixBidder implements Bidder<BidRequest> {
         };
     }
 
-    private static String resolveUrl(String endpoint, ExtImpAlgorix extImp) {
+    private static String resolveUrl(Uri endpoint, ExtImpAlgorix extImp) {
         return endpoint
-                .replace(URL_REGION_MACRO, getRegionInfo(extImp))
-                .replace(URL_SID_MACRO, extImp.getSid())
-                .replace(URL_TOKEN_MACRO, extImp.getToken());
+                .replaceMacro(URL_REGION_MACRO, getRegionInfo(extImp))
+                .replaceMacro(URL_SID_MACRO, extImp.getSid())
+                .replaceMacro(URL_TOKEN_MACRO, extImp.getToken())
+                .expand();
     }
 
     private static MultiMap resolveHeaders() {

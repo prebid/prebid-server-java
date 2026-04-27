@@ -38,5 +38,4 @@ public class KargoConfiguration {
                 .bidderCreator(config -> new KargoBidder(config.getEndpoint(), mapper))
                 .assemble();
     }
-
 }

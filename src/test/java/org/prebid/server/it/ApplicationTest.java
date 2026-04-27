@@ -130,9 +130,7 @@ public class ApplicationTest extends IntegrationTest {
 
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/genericAlias-exchange"))
                 .withRequestBody(equalToJson(
-                        jsonFrom(
-                                "openrtb2/multi_bid/test-genericAlias-bid-request-1.json"
-                        )))
+                        jsonFrom("openrtb2/multi_bid/test-genericAlias-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom(
                         "openrtb2/multi_bid/test-genericAlias-bid-response-1.json"))));
 

@@ -25,11 +25,9 @@ public class ProgxTest extends IntegrationTest {
         // when
         final Response response = responseFor(
                 "openrtb2/progx/test-auction-progx-request.json",
-                Endpoint.openrtb2_auction
-        );
+                Endpoint.openrtb2_auction);
 
         // then
         assertJsonEquals("openrtb2/progx/test-auction-progx-response.json", response, List.of("progx"));
     }
-
 }

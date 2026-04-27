@@ -24,7 +24,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -40,15 +40,14 @@ public class YeahmobiBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpYeahmobi>> EXT_TYPE_REFERENCE = new TypeReference<>() {
     };
-    private static final String HOST_MACRO = "{{Host}}";
-    private static final String HOST_PATTERN = "gw-%s-bid.yeahtargeter.com";
+    private static final String ZONE_ID_MACRO = "ZoneId";
     private static final String NATIVE = "native";
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public YeahmobiBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -120,7 +119,7 @@ public class YeahmobiBidder implements Bidder<BidRequest> {
     private HttpRequest<BidRequest> makeHttpRequest(BidRequest request, String zoneId) {
         return BidderUtil.defaultRequest(
                 request,
-                endpointUrl.replace(HOST_MACRO, HOST_PATTERN.formatted(zoneId)),
+                endpointUrl.replaceMacro(ZONE_ID_MACRO, zoneId).expand(),
                 mapper);
     }
 

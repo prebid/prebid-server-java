@@ -177,5 +177,4 @@ public class SovrnXspBidder implements Bidder<BidRequest> {
         final Integer modifiedMtype = Optional.ofNullable(bid.getMtype()).orElse(mtype);
         return BidderBid.of(bid.toBuilder().mtype(modifiedMtype).build(), bidType, currency);
     }
-
 }

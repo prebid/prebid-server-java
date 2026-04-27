@@ -1,10 +1,10 @@
 adapters:
   seedingAlliance:
-    endpoint: https://b.nativendo.de/cds/rtb/bid?ssp={{AccountId}}
+    endpoint: https://b.nativendo.de/cds/rtb/bid?ssp={AccountId}
     aliases:
       suntContent:
         enabled: false
-        endpoint: https://b.suntcontent.se/cds/rtb/bid?ssp={{AccountId}}
+        endpoint: https://b.suntcontent.se/cds/rtb/bid?ssp={AccountId}
         meta-info:
           maintainer-email: tech@seeding-alliance.de
           vendor-id: 1097
@@ -16,7 +16,7 @@ adapters:
             uid-macro: '$UID'
       finative:
         enabled: false
-        endpoint: https://b.finative.cloud/cds/rtb/bid?ssp={{AccountId}}
+        endpoint: https://b.finative.cloud/cds/rtb/bid?ssp={AccountId}
     meta-info:
       maintainer-email: tech@seeding-alliance.de
       app-media-types:

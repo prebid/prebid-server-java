@@ -241,7 +241,7 @@ public class MarsmediaBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://test.endpoint.com/test&zone=zoneId");
+                .containsExactly("https://test.endpoint.com/test?zone=zoneId");
         assertThat(result.getValue())
                 .extracting(HttpRequest::getHeaders)
                 .flatExtracting(MultiMap::entries)

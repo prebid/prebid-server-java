@@ -43,7 +43,7 @@ import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
 
 public class FlatadsBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://endpoint.com/?publisher={{PublisherID}}&token={{TokenID}}";
+    private static final String ENDPOINT_URL = "https://endpoint.com/?publisher={PublisherID}&token={TokenID}";
 
     private final FlatadsBidder target = new FlatadsBidder(ENDPOINT_URL, jacksonMapper);
 

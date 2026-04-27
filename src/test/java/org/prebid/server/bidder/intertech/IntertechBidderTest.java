@@ -37,13 +37,29 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class IntertechBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.endpoint.com";
+    private static final String ENDPOINT_URL = "https://test.endpoint.com/{page_id}?imp_id={imp_id}";
 
     private final IntertechBidder target = new IntertechBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException().isThrownBy(() -> new IntertechBidder("invalid_url", jacksonMapper));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCreateCorrectUrl() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.ext(givenImpExt(123)), identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://test.endpoint.com/123456?imp_id=123");
     }
 
     @Test

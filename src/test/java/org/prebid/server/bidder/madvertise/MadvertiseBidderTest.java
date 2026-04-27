@@ -38,7 +38,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
 public class MadvertiseBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://mobile.mng-ads.com/bidrequest{{ZoneID}}";
+    private static final String ENDPOINT_URL = "https://mobile.mng-ads.com/bidrequest{ZoneID}";
 
     private final MadvertiseBidder target = new MadvertiseBidder(ENDPOINT_URL, jacksonMapper);
 

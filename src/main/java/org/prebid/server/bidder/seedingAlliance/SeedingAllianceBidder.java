@@ -24,6 +24,7 @@ import org.prebid.server.proto.openrtb.ext.request.seedingalliance.ExtImpSeeding
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -36,18 +37,19 @@ import java.util.Optional;
 public class SeedingAllianceBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpSeedingAlliance>> EXT_IMP_TYPE_REFERENCE =
-            new TypeReference<>() { };
+            new TypeReference<>() {
+            };
 
     private static final String EUR_CURRENCY = "EUR";
     private static final String AUCTION_PRICE_MACRO = "${AUCTION_PRICE}";
-    private static final String ACCOUNT_ID_MACRO = "{{AccountId}}";
+    private static final String ACCOUNT_ID_MACRO = "AccountId";
     private static final String DEFAULT_ACCOUNT_ID = "pbs";
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public SeedingAllianceBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -55,7 +57,7 @@ public class SeedingAllianceBidder implements Bidder<BidRequest> {
     public final Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         String accountId = null;
         final List<Imp> modifiedImps = new ArrayList<>();
-        for (Imp imp: bidRequest.getImp()) {
+        for (Imp imp : bidRequest.getImp()) {
             try {
                 final ExtImpSeedingAlliance impExt = parseImpExt(imp);
                 accountId = StringUtils.isNotBlank(impExt.getAccountId())
@@ -113,7 +115,7 @@ public class SeedingAllianceBidder implements Bidder<BidRequest> {
 
     private String makeEndpoint(String accountId) {
         final String marcoReplacement = StringUtils.isNotBlank(accountId) ? accountId : DEFAULT_ACCOUNT_ID;
-        return endpointUrl.replace(ACCOUNT_ID_MACRO, marcoReplacement);
+        return endpointUrl.replaceMacro(ACCOUNT_ID_MACRO, marcoReplacement).expand();
     }
 
     @Override

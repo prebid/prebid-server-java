@@ -36,7 +36,7 @@ import static org.assertj.core.groups.Tuple.tuple;
 
 public class BlastoBidderTest extends VertxTest {
 
-    private static final String ENDPOINT = "https://test.com/uri?source={{SourceId}}&account={{AccountID}}";
+    private static final String ENDPOINT = "https://test.com/uri?source={SourceId}&account={AccountID}";
     private static final String DEFAULT_HOST = "host";
     private static final String DEFAULT_ACCOUNT_ID = "accountId";
     private static final String DEFAULT_SOURCE_ID = "sourceId";

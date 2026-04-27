@@ -33,7 +33,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
 public class LemmaDigitalBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.endpoint.com/{{AdUnit}}/{{PublisherID}}";
+    private static final String ENDPOINT_URL = "https://test.endpoint.com/{AdUnit}/{PublisherID}";
 
     private final LemmaDigitalBidder target = new LemmaDigitalBidder(ENDPOINT_URL, jacksonMapper);
 

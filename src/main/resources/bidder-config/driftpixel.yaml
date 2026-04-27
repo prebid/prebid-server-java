@@ -1,6 +1,6 @@
 adapters:
   driftpixel:
-    endpoint: http://rtb.driftpixel.live?pid={{SourceId}}&host={{Host}}&pbs=1
+    endpoint: http://rtb.driftpixel.live?pid={SourceId}&host={Host}&pbs=1
     meta-info:
       maintainer-email: developer@driftpixel.ai
       app-media-types:

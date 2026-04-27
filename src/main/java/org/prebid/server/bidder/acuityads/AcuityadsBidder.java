@@ -24,6 +24,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.acuity.ExtImpAcuityads;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.Collections;
 import java.util.List;
@@ -36,14 +37,14 @@ public class AcuityadsBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
     private static final String OPENRTB_VERSION = "2.5";
-    private static final String URL_HOST_MACRO = "{{Host}}";
-    private static final String URL_ACCOUNT_ID_MACRO = "{{AccountID}}";
+    private static final String URL_HOST_MACRO = "Host";
+    private static final String URL_ACCOUNT_ID_MACRO = "AccountID";
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public AcuityadsBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -95,8 +96,9 @@ public class AcuityadsBidder implements Bidder<BidRequest> {
 
     private String resolveEndpoint(String host, String accountId) {
         return endpointUrl
-                .replace(URL_HOST_MACRO, StringUtils.stripToEmpty(host))
-                .replace(URL_ACCOUNT_ID_MACRO, StringUtils.stripToEmpty(accountId));
+                .replaceMacro(URL_HOST_MACRO, StringUtils.stripToEmpty(host))
+                .replaceMacro(URL_ACCOUNT_ID_MACRO, StringUtils.stripToEmpty(accountId))
+                .expand();
     }
 
     private static List<Imp> removeFirstImpExt(List<Imp> imps) {

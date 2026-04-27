@@ -25,11 +25,9 @@ public class GothamAdsTest extends IntegrationTest {
         // when
         final Response response = responseFor(
                 "openrtb2/gothamads/test-auction-gothamads-request.json",
-                Endpoint.openrtb2_auction
-        );
+                Endpoint.openrtb2_auction);
 
         // then
         assertJsonEquals("openrtb2/gothamads/test-auction-gothamads-response.json", response, List.of("gothamads"));
     }
-
 }

@@ -6,7 +6,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.model.NotificationEvent;
@@ -27,9 +26,9 @@ import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.util.Uri;
 import org.prebid.server.vertx.httpclient.HttpClient;
 
-import java.net.URISyntaxException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
@@ -43,6 +42,7 @@ public class LiveIntentAnalyticsReporter implements AnalyticsReporter {
 
     private final HttpClient httpClient;
     private final LiveIntentAnalyticsProperties properties;
+    private final Uri analyticsEndpoint;
     private final JacksonMapper jacksonMapper;
 
     public LiveIntentAnalyticsReporter(
@@ -52,6 +52,7 @@ public class LiveIntentAnalyticsReporter implements AnalyticsReporter {
 
         this.httpClient = Objects.requireNonNull(httpClient);
         this.properties = Objects.requireNonNull(properties);
+        this.analyticsEndpoint = Uri.of(properties.getAnalyticsEndpoint());
         this.jacksonMapper = Objects.requireNonNull(jacksonMapper);
     }
 
@@ -96,12 +97,9 @@ public class LiveIntentAnalyticsReporter implements AnalyticsReporter {
 
         try {
             return httpClient.post(
-                    new URIBuilder(properties.getAnalyticsEndpoint())
-                            .setPath("/analytic-events/pbsj-bids")
-                            .build()
-                            .toString(),
-                    jacksonMapper.encodeToString(pbsjBids),
-                    properties.getTimeoutMs())
+                            analyticsEndpoint.replaceMacro("path", "/analytic-events/pbsj-bids").expand(),
+                            jacksonMapper.encodeToString(pbsjBids),
+                            properties.getTimeoutMs())
                     .mapEmpty();
         } catch (Exception e) {
             logger.error("Error processing event: {}", e.getMessage());
@@ -169,18 +167,12 @@ public class LiveIntentAnalyticsReporter implements AnalyticsReporter {
     }
 
     private Future<Void> processNotificationEvent(NotificationEvent notificationEvent) {
-        try {
-            final String url = new URIBuilder(properties.getAnalyticsEndpoint())
-                    .setPath("/analytic-events/pbsj-winning-bid")
-                    .setParameter("b", notificationEvent.getBidder())
-                    .setParameter("bidId", notificationEvent.getBidId())
-                    .build()
-                    .toString();
-            return httpClient.get(url, properties.getTimeoutMs()).mapEmpty();
-        } catch (URISyntaxException e) {
-            logger.error("Error composing url for notification event: {}", e.getMessage());
-            return Future.failedFuture(e);
-        }
+        final String url = analyticsEndpoint
+                .replaceMacro("path", "/analytic-events/pbsj-winning-bid")
+                .addQueryParam("b", notificationEvent.getBidder())
+                .addQueryParam("bidId", notificationEvent.getBidId())
+                .expand();
+        return httpClient.get(url, properties.getTimeoutMs()).mapEmpty();
     }
 
     @Override
