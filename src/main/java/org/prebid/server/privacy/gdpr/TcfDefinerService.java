@@ -60,7 +60,7 @@ public class TcfDefinerService {
             new ConditionalLogger("undefined_corrupt_consent", logger);
 
     private static final String GDPR_ENABLED = "1";
-    private static final Instant MARCH_01_2026 = Year.of(2026)
+    private static final Instant TCF_2_3_ENFORCEMENT_CUTOFF_DATE = Year.of(2026)
             .atMonth(Month.MARCH)
             .atDay(1)
             .atStartOfDay()
@@ -432,20 +432,20 @@ public class TcfDefinerService {
     }
 
     private static boolean isDisclosedVendorsValid(TCString consent) {
-        return isCreatedBeforeMarch01Y2026(consent) || !consent.getDisclosedVendors().isEmpty();
+        return isCreatedBeforeTcfV2M3EnforcementCutoff(consent) || !consent.getDisclosedVendors().isEmpty();
     }
 
-    private static boolean isCreatedBeforeMarch01Y2026(TCString consent) {
+    private static boolean isCreatedBeforeTcfV2M3EnforcementCutoff(TCString consent) {
         final Instant created = consent.getCreated();
         final Instant lastUpdated = consent.getLastUpdated();
         final Instant latest = lastUpdated.isAfter(created) ? lastUpdated : created;
 
-        return latest.isBefore(MARCH_01_2026);
+        return latest.isBefore(TCF_2_3_ENFORCEMENT_CUTOFF_DATE);
     }
 
     public static boolean isVendorDisclosed(TCString consent, Integer vendorId) {
         return vendorId != null
-                && (isCreatedBeforeMarch01Y2026(consent) || consent.getDisclosedVendors().contains(vendorId));
+                && (isCreatedBeforeTcfV2M3EnforcementCutoff(consent) || consent.getDisclosedVendors().contains(vendorId));
     }
 
     public static boolean isConsentStringValid(String consentString) {
