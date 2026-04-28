@@ -52,268 +52,260 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements ProcessedAuctionRequestHook {
 
-        private static final ConditionalLogger conditionalLogger = new ConditionalLogger(LoggerFactory.getLogger(
-                        LiveIntentOmniChannelIdentityProcessedAuctionRequestHook.class));
+    private static final ConditionalLogger conditionalLogger = new ConditionalLogger(LoggerFactory.getLogger(
+            LiveIntentOmniChannelIdentityProcessedAuctionRequestHook.class));
 
-        private static final String CODE = "liveintent-omni-channel-identity-enrichment-hook";
+    private static final String CODE = "liveintent-omni-channel-identity-enrichment-hook";
 
-        private static final String INSERTER = "s2s.liveintent.com";
+    private static final String INSERTER = "s2s.liveintent.com";
 
-        private static final String MATCHER = "liveintentStamp";
+    private static final String MATCHER = "liveintentStamp";
 
-        private final LiveIntentOmniChannelProperties config;
-        private final JacksonMapper mapper;
-        private final HttpClient httpClient;
-        private final UserFpdActivityMask userFpdActivityMask;
-        private final double logSamplingRate;
-        private final Set<String> targetBidders;
+    private final LiveIntentOmniChannelProperties config;
+    private final JacksonMapper mapper;
+    private final HttpClient httpClient;
+    private final UserFpdActivityMask userFpdActivityMask;
+    private final double logSamplingRate;
+    private final Set<String> targetBidders;
 
-        public LiveIntentOmniChannelIdentityProcessedAuctionRequestHook(LiveIntentOmniChannelProperties config,
-                        UserFpdActivityMask userFpdActivityMask,
-                        JacksonMapper mapper,
-                        HttpClient httpClient,
-                        double logSamplingRate) {
+    public LiveIntentOmniChannelIdentityProcessedAuctionRequestHook(LiveIntentOmniChannelProperties config,
+                                                                    UserFpdActivityMask userFpdActivityMask,
+                                                                    JacksonMapper mapper,
+                                                                    HttpClient httpClient,
+                                                                    double logSamplingRate) {
 
-                this.config = Objects.requireNonNull(config);
-                HttpUtil.validateUrlSyntax(config.getIdentityResolutionEndpoint());
-                this.mapper = Objects.requireNonNull(mapper);
-                this.httpClient = Objects.requireNonNull(httpClient);
-                this.logSamplingRate = logSamplingRate;
-                this.userFpdActivityMask = Objects.requireNonNull(userFpdActivityMask);
-                this.targetBidders = SetUtils.emptyIfNull(config.getTargetBidders());
+        this.config = Objects.requireNonNull(config);
+        HttpUtil.validateUrlSyntax(config.getIdentityResolutionEndpoint());
+        this.mapper = Objects.requireNonNull(mapper);
+        this.httpClient = Objects.requireNonNull(httpClient);
+        this.logSamplingRate = logSamplingRate;
+        this.userFpdActivityMask = Objects.requireNonNull(userFpdActivityMask);
+        this.targetBidders = SetUtils.emptyIfNull(config.getTargetBidders());
+    }
+
+    @Override
+    public Future<InvocationResult<AuctionRequestPayload>> call(AuctionRequestPayload auctionRequestPayload,
+                                                                AuctionInvocationContext invocationContext) {
+
+        return config.getTreatmentRate() > ThreadLocalRandom.current().nextFloat()
+                ? requestIdentities(auctionRequestPayload.bidRequest(), invocationContext.auctionContext())
+                .<InvocationResult<AuctionRequestPayload>>map(this::update)
+                .onFailure(throwable -> conditionalLogger.error(
+                        "Failed enrichment: %s".formatted(throwable.getMessage()), logSamplingRate))
+                : noAction();
+    }
+
+    private Future<IdResResponse> requestIdentities(BidRequest bidRequest, AuctionContext auctionContext) {
+        final BidRequest restrictedBidRequest = applyActivityRestrictions(bidRequest, auctionContext);
+        return httpClient.post(
+                        config.getIdentityResolutionEndpoint(),
+                        headers(),
+                        mapper.encodeToString(restrictedBidRequest),
+                        config.getRequestTimeoutMs())
+                .map(this::processResponse);
+    }
+
+    private BidRequest applyActivityRestrictions(BidRequest bidRequest, AuctionContext auctionContext) {
+        final ActivityInvocationPayload activityInvocationPayload = BidRequestActivityInvocationPayload.of(
+                ActivityInvocationPayloadImpl.of(
+                        ComponentType.GENERAL_MODULE,
+                        LiveIntentOmniChannelIdentityModule.CODE),
+                bidRequest);
+        final ActivityInfrastructure activityInfrastructure = auctionContext.getActivityInfrastructure();
+
+        final boolean disallowTransmitUfpd = !activityInfrastructure.isAllowed(
+                Activity.TRANSMIT_UFPD, activityInvocationPayload);
+        final boolean disallowTransmitEids = !activityInfrastructure.isAllowed(
+                Activity.TRANSMIT_EIDS, activityInvocationPayload);
+        final boolean disallowTransmitGeo = !activityInfrastructure.isAllowed(
+                Activity.TRANSMIT_GEO, activityInvocationPayload);
+        final boolean disallowTransmitTid = !activityInfrastructure.isAllowed(
+                Activity.TRANSMIT_TID, activityInvocationPayload);
+
+        return maskUserPersonalInfo(
+                bidRequest,
+                disallowTransmitUfpd,
+                disallowTransmitEids,
+                disallowTransmitGeo,
+                disallowTransmitTid);
+    }
+
+    private BidRequest maskUserPersonalInfo(BidRequest bidRequest,
+                                            boolean disallowTransmitUfpd,
+                                            boolean disallowTransmitEids,
+                                            boolean disallowTransmitGeo,
+                                            boolean disallowTransmitTid) {
+
+        final User maskedUser = userFpdActivityMask.maskUser(
+                bidRequest.getUser(), disallowTransmitUfpd, disallowTransmitEids);
+        final Device maskedDevice = userFpdActivityMask.maskDevice(
+                bidRequest.getDevice(), disallowTransmitUfpd, disallowTransmitGeo);
+
+        final Source maskedSource = maskSource(bidRequest.getSource(), disallowTransmitUfpd, disallowTransmitTid);
+
+        return bidRequest.toBuilder()
+                .user(maskedUser)
+                .device(maskedDevice)
+                .source(maskedSource)
+                .build();
+    }
+
+    private Source maskSource(Source source, boolean mastUfpd, boolean maskTid) {
+        if (source == null || !(mastUfpd || maskTid)) {
+            return source;
         }
 
-        @Override
-        public Future<InvocationResult<AuctionRequestPayload>> call(AuctionRequestPayload auctionRequestPayload,
-                        AuctionInvocationContext invocationContext) {
+        return source.toBuilder().tid(null).build();
+    }
 
-                return config.getTreatmentRate() > ThreadLocalRandom.current().nextFloat()
-                                ? requestIdentities(auctionRequestPayload.bidRequest(),
-                                                invocationContext.auctionContext())
-                                                .<InvocationResult<AuctionRequestPayload>>map(this::update)
-                                                .onFailure(throwable -> conditionalLogger.error(
-                                                                "Failed enrichment: %s"
-                                                                                .formatted(throwable.getMessage()),
-                                                                logSamplingRate))
-                                : noAction();
+    private MultiMap headers() {
+        return MultiMap.caseInsensitiveMultiMap()
+                .add(HttpUtil.AUTHORIZATION_HEADER, "Bearer " + config.getAuthToken());
+    }
+
+    private IdResResponse processResponse(HttpClientResponse response) {
+        final IdResResponse res = mapper.decodeValue(response.getBody(), IdResResponse.class);
+        final List<Eid> eids = res.getEids();
+
+        if (CollectionUtils.isEmpty(eids)) {
+            return res;
         }
 
-        private Future<IdResResponse> requestIdentities(BidRequest bidRequest, AuctionContext auctionContext) {
-                final BidRequest restrictedBidRequest = applyActivityRestrictions(bidRequest, auctionContext);
-                return httpClient.post(
-                                config.getIdentityResolutionEndpoint(),
-                                headers(),
-                                mapper.encodeToString(restrictedBidRequest),
-                                config.getRequestTimeoutMs())
-                                .map(this::processResponse);
-        }
+        final List<Eid> modifiedEids = eids.stream()
+                .map(eid -> eid.toBuilder().inserter(INSERTER).matcher(MATCHER).build())
+                .toList();
 
-        private BidRequest applyActivityRestrictions(BidRequest bidRequest, AuctionContext auctionContext) {
-                final ActivityInvocationPayload activityInvocationPayload = BidRequestActivityInvocationPayload.of(
-                                ActivityInvocationPayloadImpl.of(
-                                                ComponentType.GENERAL_MODULE,
-                                                LiveIntentOmniChannelIdentityModule.CODE),
-                                bidRequest);
-                final ActivityInfrastructure activityInfrastructure = auctionContext.getActivityInfrastructure();
+        return IdResResponse.of(modifiedEids);
+    }
 
-                final boolean disallowTransmitUfpd = !activityInfrastructure.isAllowed(
-                                Activity.TRANSMIT_UFPD, activityInvocationPayload);
-                final boolean disallowTransmitEids = !activityInfrastructure.isAllowed(
-                                Activity.TRANSMIT_EIDS, activityInvocationPayload);
-                final boolean disallowTransmitGeo = !activityInfrastructure.isAllowed(
-                                Activity.TRANSMIT_GEO, activityInvocationPayload);
-                final boolean disallowTransmitTid = !activityInfrastructure.isAllowed(
-                                Activity.TRANSMIT_TID, activityInvocationPayload);
+    private static Future<InvocationResult<AuctionRequestPayload>> noAction() {
+        return Future.succeededFuture(InvocationResultImpl.<AuctionRequestPayload>builder()
+                .status(InvocationStatus.success)
+                .action(InvocationAction.no_action)
+                .build());
+    }
 
-                return maskUserPersonalInfo(
-                                bidRequest,
-                                disallowTransmitUfpd,
-                                disallowTransmitEids,
-                                disallowTransmitGeo,
-                                disallowTransmitTid);
-        }
+    private InvocationResultImpl<AuctionRequestPayload> update(IdResResponse resolutionResult) {
+        return InvocationResultImpl.<AuctionRequestPayload>builder()
+                .status(InvocationStatus.success)
+                .action(InvocationAction.update)
+                .payloadUpdate(payload -> updatedPayload(payload, resolutionResult.getEids()))
+                .analyticsTags(TagsImpl.of(List.of(
+                        ActivityImpl.of(
+                                "liveintent-enriched", "success",
+                                List.of(
+                                        ResultImpl.of(
+                                                "",
+                                                mapper.mapper().createObjectNode()
+                                                        .put("treatmentRate", config.getTreatmentRate()),
+                                                null))))))
+                .build();
+    }
 
-        private BidRequest maskUserPersonalInfo(BidRequest bidRequest,
-                        boolean disallowTransmitUfpd,
-                        boolean disallowTransmitEids,
-                        boolean disallowTransmitGeo,
-                        boolean disallowTransmitTid) {
+    private AuctionRequestPayload updatedPayload(AuctionRequestPayload requestPayload, List<Eid> resolvedEids) {
+        return CollectionUtils.isNotEmpty(resolvedEids)
+                ? AuctionRequestPayloadImpl.of(updateBidRequest(requestPayload.bidRequest(), resolvedEids))
+                : requestPayload;
+    }
 
-                final User maskedUser = userFpdActivityMask.maskUser(
-                                bidRequest.getUser(), disallowTransmitUfpd, disallowTransmitEids);
-                final Device maskedDevice = userFpdActivityMask.maskDevice(
-                                bidRequest.getDevice(), disallowTransmitUfpd, disallowTransmitGeo);
+    private BidRequest updateBidRequest(BidRequest bidRequest, List<Eid> resolvedEids) {
+        return bidRequest.toBuilder()
+                .ext(updateExtRequest(bidRequest.getExt(), resolvedEids))
+                .user(updateUser(bidRequest.getUser(), resolvedEids))
+                .build();
+    }
 
-                final Source maskedSource = maskSource(bidRequest.getSource(), disallowTransmitUfpd,
-                                disallowTransmitTid);
-
-                return bidRequest.toBuilder()
-                                .user(maskedUser)
-                                .device(maskedDevice)
-                                .source(maskedSource)
-                                .build();
-        }
-
-        private Source maskSource(Source source, boolean mastUfpd, boolean maskTid) {
-                if (source == null || !(mastUfpd || maskTid)) {
-                        return source;
-                }
-
-                return source.toBuilder().tid(null).build();
-        }
-
-        private MultiMap headers() {
-                return MultiMap.caseInsensitiveMultiMap()
-                                .add(HttpUtil.AUTHORIZATION_HEADER, "Bearer " + config.getAuthToken());
-        }
-
-        private IdResResponse processResponse(HttpClientResponse response) {
-                final IdResResponse res = mapper.decodeValue(response.getBody(), IdResResponse.class);
-                final List<Eid> eids = res.getEids();
-
-                if (CollectionUtils.isEmpty(eids)) {
-                        return res;
-                }
-
-                final List<Eid> modifiedEids = eids.stream()
-                                .map(eid -> eid.toBuilder().inserter(INSERTER).matcher(MATCHER).build())
-                                .toList();
-
-                return IdResResponse.of(modifiedEids);
-        }
-
-        private static Future<InvocationResult<AuctionRequestPayload>> noAction() {
-                return Future.succeededFuture(InvocationResultImpl.<AuctionRequestPayload>builder()
-                                .status(InvocationStatus.success)
-                                .action(InvocationAction.no_action)
-                                .build());
-        }
-
-        private InvocationResultImpl<AuctionRequestPayload> update(IdResResponse resolutionResult) {
-                return InvocationResultImpl.<AuctionRequestPayload>builder()
-                                .status(InvocationStatus.success)
-                                .action(InvocationAction.update)
-                                .payloadUpdate(payload -> updatedPayload(payload, resolutionResult.getEids()))
-                                .analyticsTags(TagsImpl.of(List.of(
-                                                ActivityImpl.of(
-                                                                "liveintent-enriched", "success",
-                                                                List.of(
-                                                                                ResultImpl.of(
-                                                                                                "",
-                                                                                                mapper.mapper().createObjectNode()
-                                                                                                                .put("treatmentRate",
-                                                                                                                                config.getTreatmentRate()),
-                                                                                                null))))))
-                                .build();
-        }
-
-        private AuctionRequestPayload updatedPayload(AuctionRequestPayload requestPayload, List<Eid> resolvedEids) {
-                return CollectionUtils.isNotEmpty(resolvedEids)
-                                ? AuctionRequestPayloadImpl
-                                                .of(updateBidRequest(requestPayload.bidRequest(), resolvedEids))
-                                : requestPayload;
-        }
-
-        private BidRequest updateBidRequest(BidRequest bidRequest, List<Eid> resolvedEids) {
-                return bidRequest.toBuilder()
-                                .ext(updateExtRequest(bidRequest.getExt(), resolvedEids))
-                                .user(updateUser(bidRequest.getUser(), resolvedEids))
-                                .build();
-        }
-
-        private ExtRequest updateExtRequest(ExtRequest ext, List<Eid> resolvedEids) {
+    private ExtRequest updateExtRequest(ExtRequest ext, List<Eid> resolvedEids) {
                 if (CollectionUtils.isEmpty(resolvedEids)) {
                         return ext;
                 }
 
-                final ExtRequestPrebid extPrebid = ext != null ? ext.getPrebid() : null;
-                final ExtRequestPrebidData extPrebidData = extPrebid != null ? extPrebid.getData() : null;
-                final List<ExtRequestPrebidDataEidPermissions> eidPermissions = extPrebidData != null
-                                ? extPrebidData.getEidPermissions()
-                                : null;
+        final ExtRequestPrebid extPrebid = ext != null ? ext.getPrebid() : null;
+        final ExtRequestPrebidData extPrebidData = extPrebid != null ? extPrebid.getData() : null;
+        final List<ExtRequestPrebidDataEidPermissions> eidPermissions =
+                extPrebidData != null ? extPrebidData.getEidPermissions() : null;
 
-                final List<ExtRequestPrebidDataEidPermissions> modifiedEidPermissions = CollectionUtils
-                                .isEmpty(eidPermissions)
-                                                ? createEidPermissions()
-                                                : modifyEidPermissions(eidPermissions);
+        final List<ExtRequestPrebidDataEidPermissions> modifiedEidPermissions = CollectionUtils
+                .isEmpty(eidPermissions)
+                ? createEidPermissions()
+                : modifyEidPermissions(eidPermissions);
 
-                final ExtRequestPrebid updatedExtPrebid = Optional.ofNullable(extPrebid)
-                                .map(ExtRequestPrebid::toBuilder)
-                                .orElseGet(ExtRequestPrebid::builder)
-                                .data(updatePrebidData(extPrebidData, modifiedEidPermissions))
-                                .build();
+        final ExtRequestPrebid updatedExtPrebid = Optional.ofNullable(extPrebid)
+                .map(ExtRequestPrebid::toBuilder)
+                .orElseGet(ExtRequestPrebid::builder)
+                .data(updatePrebidData(extPrebidData, modifiedEidPermissions))
+                .build();
 
-                final ExtRequest updatedExtRequest = ExtRequest.of(updatedExtPrebid);
-                if (ext != null) {
-                        mapper.fillExtension(updatedExtRequest, ext.getProperties());
-                }
-
-                return updatedExtRequest;
+        final ExtRequest updatedExtRequest = ExtRequest.of(updatedExtPrebid);
+        if (ext != null) {
+            mapper.fillExtension(updatedExtRequest, ext.getProperties());
         }
 
-        private static User updateUser(User user, List<Eid> resolvedEids) {
-                final List<Eid> updatedEids = Optional.ofNullable(user)
-                                .map(User::getEids)
-                                .map(eids -> ListUtil.union(eids, resolvedEids))
-                                .orElse(resolvedEids);
+        return updatedExtRequest;
+    }
 
-                return Optional.ofNullable(user)
-                                .map(User::toBuilder)
-                                .orElseGet(User::builder)
-                                .eids(updatedEids)
-                                .build();
-        }
+    private static User updateUser(User user, List<Eid> resolvedEids) {
+        final List<Eid> updatedEids = Optional.ofNullable(user)
+                .map(User::getEids)
+                .map(eids -> ListUtil.union(eids, resolvedEids))
+                .orElse(resolvedEids);
 
-        private List<ExtRequestPrebidDataEidPermissions> createEidPermissions() {
-                return List.of(ExtRequestPrebidDataEidPermissions.builder()
+        return Optional.ofNullable(user)
+                .map(User::toBuilder)
+                .orElseGet(User::builder)
+                .eids(updatedEids)
+                .build();
+    }
+
+    private List<ExtRequestPrebidDataEidPermissions> createEidPermissions() {
+        return List.of(ExtRequestPrebidDataEidPermissions.builder()
                                 .matcher(MATCHER)
                                 .inserter(INSERTER)
                                 .bidders(targetBidders.stream().toList())
                                 .build());
-        }
+    }
 
-        private List<ExtRequestPrebidDataEidPermissions> modifyEidPermissions(
-                        List<ExtRequestPrebidDataEidPermissions> eidPermissions) {
-                final List<ExtRequestPrebidDataEidPermissions> modifiedEidPermissions = eidPermissions.stream()
+    private List<ExtRequestPrebidDataEidPermissions> modifyEidPermissions(
+            List<ExtRequestPrebidDataEidPermissions> eidPermissions) {
+        final List<ExtRequestPrebidDataEidPermissions> modifiedEidPermissions = eidPermissions.stream()
                                 .map(this::updateEidPermission)
                                 .filter(Objects::nonNull)
                                 .toList();
-                final List<ExtRequestPrebidDataEidPermissions> defaultEidPermissions = createEidPermissions();
-                return ListUtils.union(modifiedEidPermissions, defaultEidPermissions);
-        }
+        final List<ExtRequestPrebidDataEidPermissions> defaultEidPermissions = createEidPermissions();
+        return ListUtils.union(modifiedEidPermissions, defaultEidPermissions);
+    }
 
-        private ExtRequestPrebidData updatePrebidData(ExtRequestPrebidData extPrebidData,
-                        List<ExtRequestPrebidDataEidPermissions> eidPermissions) {
+    private ExtRequestPrebidData updatePrebidData(ExtRequestPrebidData extPrebidData,
+                                                  List<ExtRequestPrebidDataEidPermissions> eidPermissions) {
 
-                final List<String> originalBidders = extPrebidData != null ? extPrebidData.getBidders() : null;
+        final List<String> originalBidders = extPrebidData != null ? extPrebidData.getBidders() : null;
 
-                return ExtRequestPrebidData.of(originalBidders, eidPermissions);
-        }
+        return ExtRequestPrebidData.of(originalBidders, eidPermissions);
+    }
 
-        private ExtRequestPrebidDataEidPermissions updateEidPermission(
-                        ExtRequestPrebidDataEidPermissions eidPermission) {
-                if (!MATCHER.equals(eidPermission.getMatcher()) || !INSERTER.equals(eidPermission.getInserter())) {
+    private ExtRequestPrebidDataEidPermissions updateEidPermission(ExtRequestPrebidDataEidPermissions eidPermission) {
+        if (!MATCHER.equals(eidPermission.getMatcher()) || !INSERTER.equals(eidPermission.getInserter())) {
                         return eidPermission;
-                }
-
-                final List<String> allowedBidders = ListUtils.emptyIfNull(eidPermission.getBidders());
-                final List<String> finalBidders = allowedBidders.stream()
-                                .filter(targetBidders::contains)
-                                .toList();
-
-                if (CollectionUtils.isEmpty(allowedBidders) || allowedBidders.contains("*")) {
-                        return eidPermission.toBuilder().bidders(targetBidders.stream().toList()).build();
-                }
-
-                if (CollectionUtils.isEmpty(finalBidders)) {
-                        return null;
-                }
-
-                return eidPermission.toBuilder().bidders(finalBidders).build();
         }
 
-        @Override
-        public String code() {
-                return CODE;
+        final List<String> allowedBidders = ListUtils.emptyIfNull(eidPermission.getBidders());
+        final List<String> finalBidders = allowedBidders.stream()
+                .filter(targetBidders::contains)
+                .toList();
+
+        if (CollectionUtils.isEmpty(allowedBidders) || allowedBidders.contains("*")) {
+            return eidPermission.toBuilder().bidders(targetBidders.stream().toList()).build();
         }
+
+        if (CollectionUtils.isEmpty(finalBidders)) {
+            return null;
+        }
+
+        return eidPermission.toBuilder().bidders(finalBidders).build();
+    }
+
+    @Override
+    public String code() {
+        return CODE;
+    }
 }
