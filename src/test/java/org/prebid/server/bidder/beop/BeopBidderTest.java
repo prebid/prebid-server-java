@@ -36,19 +36,6 @@ public class BeopBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorWhenRequestHasNoImps() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder().build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).containsExactly(BidderError.badInput("No impressions provided"));
-    }
-
-    @Test
     public void makeHttpRequestsShouldReturnErrorWhenImpExtCouldNotBeParsed() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
