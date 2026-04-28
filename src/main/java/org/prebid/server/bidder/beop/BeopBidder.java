@@ -46,9 +46,6 @@ public class BeopBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         final List<Imp> imps = bidRequest.getImp();
-        if (CollectionUtils.isEmpty(imps)) {
-            return Result.withError(BidderError.badInput("No impressions provided"));
-        }
 
         final ExtImpBeop extImpBeop;
         try {
@@ -83,17 +80,17 @@ public class BeopBidder implements Bidder<BidRequest> {
             throw new PreBidException("Invalid endpoint URL: " + e.getMessage());
         }
 
-        final String pid = StringUtils.trimToNull(ext.getBeopPublisherId());
+        final String pid = StringUtils.trimToNull(ext.getPid());
         if (StringUtils.isNotEmpty(pid)) {
             uriBuilder.addParameter("pid", pid);
         }
 
-        final String nid = StringUtils.trimToNull(ext.getBeopNetworkId());
+        final String nid = StringUtils.trimToNull(ext.getNid());
         if (StringUtils.isNotEmpty(nid)) {
             uriBuilder.addParameter("nid", nid);
         }
 
-        final String nptnid = StringUtils.trimToNull(ext.getBeopNetworkPartnerId());
+        final String nptnid = StringUtils.trimToNull(ext.getNtpnid());
         if (StringUtils.isNotEmpty(nptnid)) {
             uriBuilder.addParameter("nptnid", nptnid);
         }
@@ -142,14 +139,10 @@ public class BeopBidder implements Bidder<BidRequest> {
 
     private static BidType resolveBidType(Bid bid) {
         final Integer mtype = bid.getMtype();
-        if (mtype == null) {
-            throw new PreBidException(
-                    "Failed to parse bid mtype for impression \"%s\"".formatted(bid.getImpid()));
-        }
         return switch (mtype) {
             case 1 -> BidType.banner;
             case 2 -> BidType.video;
-            default -> throw new PreBidException(
+            case null, default -> throw new PreBidException(
                     "Failed to parse bid mtype for impression \"%s\"".formatted(bid.getImpid()));
         };
     }

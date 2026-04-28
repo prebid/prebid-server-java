@@ -1,6 +1,5 @@
 package org.prebid.server.proto.openrtb.ext.request.beop;
 
-import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Value;
 
@@ -8,12 +7,11 @@ import lombok.Value;
 public class ExtImpBeop {
 
     @JsonProperty("pid")
-    String beopPublisherId;
+    String pid;
 
     @JsonProperty("nid")
-    String beopNetworkId;
+    String nid;
 
-    @JsonProperty("nptnid")
-    @JsonAlias("ntpnid")
-    String beopNetworkPartnerId;
+    @JsonProperty("ntpnid")
+    String ntpnid;
 }

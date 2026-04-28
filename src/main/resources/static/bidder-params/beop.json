@@ -12,13 +12,9 @@
       "type": "string",
       "description": "Beop Network ID"
     },
-    "nptnid": {
-      "type": "string",
-      "description": "Network partner ID"
-    },
     "ntpnid": {
       "type": "string",
-      "description": "Legacy alias for network partner ID; use nptnid"
+      "description": "Network partner ID"
     }
   },
   "oneOf": [
@@ -30,7 +26,7 @@
     {
       "required": [
         "nid",
-        "nptnid"
+        "ntpnid"
       ]
     }
   ]

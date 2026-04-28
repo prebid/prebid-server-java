@@ -7,9 +7,6 @@ adapters:
       - USA
     meta-info:
       maintainer-email: "tech@collectiveaudience.co"
-      app-media-types:
-        - banner
-        - video
       site-media-types:
         - banner
         - video
