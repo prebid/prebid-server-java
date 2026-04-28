@@ -14,12 +14,6 @@ adapters:
       supported-vendors:
       vendor-id: 0
     usersync:
-      cookie-family-name: revantage
-      iframe:
-        url: https://sync.revantage.io/sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&r={{redirect_url}}
-        support-cors: false
-        format-override: blank
       redirect:
-        url: https://sync.revantage.io/sync?tag=img&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&r={{redirect_url}}
-        support-cors: false
-        format-override: blank
+        url: "https://sync.revantage.io/pbs/usersync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&r={{redirect_url}}"
+        uid-macro: "$UID"
