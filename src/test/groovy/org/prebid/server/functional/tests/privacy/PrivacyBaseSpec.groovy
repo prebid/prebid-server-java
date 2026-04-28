@@ -674,4 +674,16 @@ abstract class PrivacyBaseSpec extends BaseSpec {
         def availablePurposes = Purpose.values().toList() - excludeFromRandom
         availablePurposes.shuffled().first()
     }
+
+    protected void downloadAndWarmupGvtList(Integer vendorListVersion,
+                                            Map<Integer, VendorListResponse.Vendor> vendors = [(GENERIC_VENDOR_ID): VendorListResponse.Vendor.getDefaultVendor(GENERIC_VENDOR_ID)],
+                                            TcfConsent.TcfPolicyVersion tcfPolicyVersion = TCF_POLICY_V2,
+                                            PrebidServerService pbsService = privacyPbsService) {
+
+        def simpleTcfString = new TcfConsent.Builder().setVendorListVersion(vendorListVersion).build()
+        def bidRequest = getGdprBidRequest(simpleTcfString)
+        vendorListResponse.reset()
+        vendorListResponse.setResponse(tcfPolicyVersion, null, vendors)
+        pbsService.sendAuctionRequest(bidRequest)
+    }
 }

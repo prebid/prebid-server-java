@@ -34,6 +34,7 @@ class VendorListResponse {
         List<Integer> features
         List<Integer> specialFeatures
         String policyUrl
+        ZonedDateTime deletedDate
         Overflow overflow
         String cookieMaxAgeSeconds
         Boolean usesCookies
@@ -41,9 +42,9 @@ class VendorListResponse {
         Boolean usesNonCookieAccess
         Boolean deviceStorageDisclosureUrl
 
-        static Vendor getDefaultVendor(int id) {
+        static Vendor getDefaultVendor(int vendorId) {
             new Vendor().tap {
-                it.id = id
+                it.id = vendorId
                 it.name = PBSUtils.randomString
                 it.purposes = [1, 3, 4, 5]
                 it.legIntPurposes = [2, 7, 10]
