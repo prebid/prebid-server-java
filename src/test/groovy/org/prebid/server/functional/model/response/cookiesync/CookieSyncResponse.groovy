@@ -16,7 +16,11 @@ class CookieSyncResponse {
 
     @JsonIgnore
     BidderUserSyncStatus getBidderUserSync(BidderName bidderName) {
-        bidderStatus?.find { it.bidder == bidderName }
+        def results = bidderStatus?.findAll { it.bidder == bidderName }
+        if (results?.size() > 1) {
+            throw new RuntimeException("Expected single result, but found: ${results.size()}")
+        }
+        results ? results.first : null
     }
 
     enum Status {

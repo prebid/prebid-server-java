@@ -49,7 +49,7 @@ class Dependencies {
 
     static void start() {
         if (IS_LAUNCH_CONTAINERS) {
-            localStackContainer = new LocalStackContainer(DockerImageName.parse("localstack/localstack:s3-latest"))
+            localStackContainer = new LocalStackContainer(DockerImageName.parse("localstack/localstack:s3-community-archive"))
                     .withNetwork(network)
                     .withServices(S3)
             Startables.deepStart([networkServiceContainer, mysqlContainer, localStackContainer, influxdbContainer]).join()
