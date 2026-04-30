@@ -32,6 +32,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidDataEidPermissions;
+import org.prebid.server.util.ListUtil;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
@@ -77,6 +78,8 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
 
     private Set<String> configuredBidders;
 
+    private ExtRequestPrebidDataEidPermissions defaultPermissions;
+
     @BeforeEach
     public void setUp() {
         configuredBidders = Set.of("bidder1", "bidder2");
@@ -85,6 +88,12 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
         given(properties.getAuthToken()).willReturn("auth_token");
         given(properties.getTreatmentRate()).willReturn(1.0f);
         given(properties.getTargetBidders()).willReturn(configuredBidders);
+
+        defaultPermissions = ExtRequestPrebidDataEidPermissions.builder()
+                .inserter("s2s.liveintent.com")
+                .bidders(configuredBidders.stream().toList())
+                .source("liveintent.com")
+                .build();
 
         target = new LiveIntentOmniChannelIdentityProcessedAuctionRequestHook(
                 properties, userFpdActivityMask, MAPPER, httpClient, 0.01d);
@@ -248,6 +257,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
         final Eid expectedEid = Eid.builder()
                 .source("liveintent.com")
                 .uids(singletonList(Uid.builder().id("id2").atype(3).build()))
+                .matcher("liveintent.com")
                 .build();
 
         final String responseBody = MAPPER.encodeToString(IdResResponse.of(List.of(expectedEid)));
@@ -273,7 +283,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
                 .extracting(AuctionRequestPayload::bidRequest)
                 .extracting(BidRequest::getUser)
                 .extracting(User::getEids)
-                .isEqualTo(List.of(givenEid, expectedEid));
+                .isEqualTo(List.of(givenEid, expectedEid.toBuilder().inserter("s2s.liveintent.com").build()));
 
         verify(httpClient).post(
                 eq("https://test.com/idres"),
@@ -290,6 +300,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
         final Eid expectedEid = Eid.builder()
                 .source("liveintent.com")
                 .uids(singletonList(Uid.builder().id("id2").atype(3).build()))
+                .matcher("liveintent.com")
                 .build();
 
         final String responseBody = MAPPER.encodeToString(IdResResponse.of(List.of(expectedEid)));
@@ -315,7 +326,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
                 .extracting(AuctionRequestPayload::bidRequest)
                 .extracting(BidRequest::getUser)
                 .extracting(User::getEids)
-                .isEqualTo(List.of(expectedEid));
+                .isEqualTo(List.of(expectedEid.toBuilder().inserter("s2s.liveintent.com").build()));
 
         verify(httpClient).post(
                 eq("https://test.com/idres"),
@@ -384,15 +395,18 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
 
         final ExtRequestPrebidDataEidPermissions otherBidder = ExtRequestPrebidDataEidPermissions.builder()
                 .source("some.other-source.com")
+                .inserter("some.other-inserter.com")
                 .bidders(singletonList("bidderY"))
                 .build();
 
         final ExtRequestPrebidDataEidPermissions liBidder2 = ExtRequestPrebidDataEidPermissions.builder()
                 .source("liveintent.com")
+                .inserter("s2s.liveintent.com")
                 .bidders(singletonList("bidder2"))
                 .build();
         final ExtRequestPrebidDataEidPermissions liBidder23 = ExtRequestPrebidDataEidPermissions.builder()
                 .source("liveintent.com")
+                .inserter("s2s.liveintent.com")
                 .bidders(List.of("bidder2", "bidder3"))
                 .build();
 
@@ -407,7 +421,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
 
         final ExtRequestPrebidData expectedData = ExtRequestPrebidData.of(
                 List.of("bidderX"),
-                List.of(otherBidder, liBidder2));
+                ListUtil.union(List.of(otherBidder, liBidder2), List.of(defaultPermissions)));
 
         final Eid expectedEid = Eid.builder().source("liveintent.com").build();
 
@@ -450,10 +464,12 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
         final User givenUser = User.builder().eids(singletonList(givenEid)).build();
         final ExtRequestPrebidDataEidPermissions bidder1 = ExtRequestPrebidDataEidPermissions.builder()
                 .source("some.other-source.com")
+                .inserter("some.other-inserter.com")
                 .bidders(singletonList("bidder3"))
                 .build();
         final ExtRequestPrebidDataEidPermissions bidder2 = ExtRequestPrebidDataEidPermissions.builder()
                 .source("some.source.com")
+                .inserter("s2s.liveintent.com")
                 .bidders(singletonList("bidder3"))
                 .build();
 
@@ -467,7 +483,8 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
                         .build()))
                 .build();
 
-        final ExtRequestPrebidData expectedData = ExtRequestPrebidData.of(List.of("bidder3"), bidders);
+        final ExtRequestPrebidData expectedData = ExtRequestPrebidData.of(List.of("bidder3"),
+                ListUtil.union(bidders, List.of(defaultPermissions)));
 
         final Eid expectedEid = Eid.builder().source("liveintent.com").build();
 
@@ -514,6 +531,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
                 List.of(
                         ExtRequestPrebidDataEidPermissions.builder()
                                 .source("liveintent.com")
+                                .inserter("s2s.liveintent.com")
                                 .bidders(singletonList("not-allowed"))
                                 .build(),
                         ExtRequestPrebidDataEidPermissions.builder()
@@ -548,9 +566,10 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
         final ExtRequestPrebidData expectedData = ExtRequestPrebidData.of(
                 List.of("bidderGlobal"),
                 List.of(ExtRequestPrebidDataEidPermissions.builder()
-                        .source("keep.com")
-                        .bidders(singletonList("bidderGlobal"))
-                        .build()));
+                                .source("keep.com")
+                                .bidders(singletonList("bidderGlobal"))
+                                .build(),
+                        defaultPermissions));
 
         assertThat(result.status()).isEqualTo(InvocationStatus.success);
         assertThat(result.payloadUpdate().apply(AuctionRequestPayloadImpl.of(givenBidRequest)))
