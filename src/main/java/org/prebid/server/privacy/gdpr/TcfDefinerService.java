@@ -386,25 +386,25 @@ public class TcfDefinerService {
         }
     }
 
-    private static void logWarn(String consent, String message, RequestLogInfo requestLogInfo) {
+    private void logWarn(String consent, String message, RequestLogInfo requestLogInfo) {
         if (requestLogInfo == null || requestLogInfo.getRequestType() == null) {
             final String exceptionMessage = "Parsing consent string:\"%s\" failed for undefined type with exception %s"
                     .formatted(consent, message);
-            undefinedCorruptConsentLogger.info(exceptionMessage, 100);
+            undefinedCorruptConsentLogger.info(exceptionMessage, samplingRate);
             return;
         }
 
         switch (requestLogInfo.getRequestType()) {
             case amp -> ampCorruptConsentLogger.info(
-                    logMessage(consent, MetricName.amp.toString(), requestLogInfo, message), 100);
+                    logMessage(consent, MetricName.amp.toString(), requestLogInfo, message), samplingRate);
             case openrtb2app -> appCorruptConsentLogger.info(
-                    logMessage(consent, MetricName.openrtb2app.toString(), requestLogInfo, message), 100);
+                    logMessage(consent, MetricName.openrtb2app.toString(), requestLogInfo, message), samplingRate);
             case openrtb2dooh -> doohCorruptConsentLogger.info(
-                    logMessage(consent, MetricName.openrtb2dooh.toString(), requestLogInfo, message), 100);
+                    logMessage(consent, MetricName.openrtb2dooh.toString(), requestLogInfo, message), samplingRate);
             case openrtb2web -> siteCorruptConsentLogger.info(
-                    logMessage(consent, MetricName.openrtb2web.toString(), requestLogInfo, message), 100);
+                    logMessage(consent, MetricName.openrtb2web.toString(), requestLogInfo, message), samplingRate);
             default -> undefinedCorruptConsentLogger.info(
-                    logMessage(consent, "video or sync or setuid", requestLogInfo, message), 100);
+                    logMessage(consent, "video or sync or setuid", requestLogInfo, message), samplingRate);
         }
     }
 
