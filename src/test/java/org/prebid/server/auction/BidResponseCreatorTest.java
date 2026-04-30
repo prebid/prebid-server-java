@@ -163,6 +163,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.prebid.server.auction.model.BidRejectionReason.NO_BID;
 import static org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAdservertargetingRule.Source.xStatic;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.audio;
@@ -2719,6 +2720,8 @@ public class BidResponseCreatorTest extends VertxTest {
                 .flatExtracting(SeatBid::getBid)
                 .extracting(responseBid -> toExtBidPrebid(responseBid.getExt()).getEvents())
                 .containsNull();
+
+        verifyNoInteractions(eventsService);
     }
 
     @Test
@@ -2753,6 +2756,8 @@ public class BidResponseCreatorTest extends VertxTest {
                 .flatExtracting(SeatBid::getBid)
                 .extracting(responseBid -> toExtBidPrebid(responseBid.getExt()).getEvents())
                 .containsNull();
+
+        verifyNoInteractions(eventsService);
     }
 
     @Test
@@ -2776,7 +2781,7 @@ public class BidResponseCreatorTest extends VertxTest {
         final AuctionContext auctionContext = givenAuctionContext(
                 givenBidRequest(
                         identity(),
-                        extBuilder -> extBuilder.events(mapper.createObjectNode().put("enabled", true)),
+                        extBuilder -> extBuilder.events(mapper.createObjectNode().put("enabled", false)),
                         givenImp()),
                 contextBuilder -> contextBuilder
                         .account(account)
@@ -2790,6 +2795,8 @@ public class BidResponseCreatorTest extends VertxTest {
                 .flatExtracting(SeatBid::getBid)
                 .extracting(responseBid -> toExtBidPrebid(responseBid.getExt()).getEvents())
                 .containsNull();
+
+        verifyNoInteractions(eventsService);
     }
 
     @Test
@@ -2831,6 +2838,8 @@ public class BidResponseCreatorTest extends VertxTest {
                 .flatExtracting(SeatBid::getBid)
                 .extracting(responseBid -> toExtBidPrebid(responseBid.getExt()).getEvents())
                 .containsNull();
+
+        verifyNoInteractions(eventsService);
     }
 
     @Test
