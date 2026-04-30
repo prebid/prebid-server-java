@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.prebid.server.privacy.gdpr.DisclosedVendorsStrictness;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.settings.model.SpecialFeature;
@@ -17,6 +18,7 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mock.Strictness.LENIENT;
@@ -28,6 +30,9 @@ public class SpecialFeaturesOneStrategyTest {
 
     private static final int SPECIAL_FEATURE_ID = 1;
 
+    @Mock(strictness = LENIENT)
+    private DisclosedVendorsStrictness disclosedVendorsStrictness;
+
     private SpecialFeaturesOneStrategy target;
 
     @Mock(strictness = LENIENT)
@@ -37,10 +42,11 @@ public class SpecialFeaturesOneStrategyTest {
 
     @BeforeEach
     public void setUp() {
+        given(disclosedVendorsStrictness.isVendorDisclosed(any(), any())).willReturn(true);
         given(tcString.getSpecialFeatureOptIns()).willReturn(specialFeatureOptIns);
         given(specialFeatureOptIns.contains(anyInt())).willReturn(false);
 
-        target = new SpecialFeaturesOneStrategy();
+        target = new SpecialFeaturesOneStrategy(disclosedVendorsStrictness);
     }
 
     @Test

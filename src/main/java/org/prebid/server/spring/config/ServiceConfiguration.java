@@ -534,7 +534,8 @@ public class ServiceConfiguration {
                                         AmpPrivacyContextFactory ampPrivacyContextFactory,
                                         DebugResolver debugResolver,
                                         JacksonMapper mapper,
-                                        GeoLocationServiceWrapper geoLocationServiceWrapper) {
+                                        GeoLocationServiceWrapper geoLocationServiceWrapper,
+                                        TcfDefinerService tcfDefinerService) {
 
         return new AmpRequestFactory(
                 ortb2RequestFactory,
@@ -549,7 +550,8 @@ public class ServiceConfiguration {
                 ampPrivacyContextFactory,
                 debugResolver,
                 mapper,
-                geoLocationServiceWrapper);
+                geoLocationServiceWrapper,
+                tcfDefinerService);
     }
 
     @Bean
@@ -1332,9 +1334,9 @@ public class ServiceConfiguration {
 
         return listAsString != null
                 ? Stream.of(listAsString.split(","))
-                .map(String::trim)
-                .filter(StringUtils::isNotBlank)
-                .collect(Collectors.toCollection(collectionFactory))
+                  .map(String::trim)
+                  .filter(StringUtils::isNotBlank)
+                  .collect(Collectors.toCollection(collectionFactory))
                 : collectionFactory.get();
     }
 }

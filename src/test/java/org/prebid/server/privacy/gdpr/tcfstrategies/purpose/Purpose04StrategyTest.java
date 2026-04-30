@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.prebid.server.privacy.gdpr.DisclosedVendorsStrictness;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.privacy.gdpr.model.VendorPermissionWithGvl;
@@ -27,6 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -34,6 +36,9 @@ import static org.mockito.Mockito.verify;
 public class Purpose04StrategyTest {
 
     private static final PurposeCode PURPOSE_CODE = PurposeCode.FOUR;
+
+    @Mock(strictness = LENIENT)
+    private DisclosedVendorsStrictness disclosedVendorsStrictness;
 
     @Mock
     private FullEnforcePurposeStrategy fullEnforcePurposeStrategy;
@@ -51,7 +56,10 @@ public class Purpose04StrategyTest {
 
     @BeforeEach
     public void setUp() {
+        given(disclosedVendorsStrictness.isVendorDisclosed(any(), any())).willReturn(true);
+
         target = new Purpose04Strategy(
+                disclosedVendorsStrictness,
                 fullEnforcePurposeStrategy,
                 basicEnforcePurposeStrategy,
                 noEnforcePurposeStrategy);
