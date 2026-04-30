@@ -3,6 +3,7 @@ package org.prebid.server.privacy.gdpr.tcfstrategies.specialfeature;
 import com.iabtcf.decoder.TCString;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
+import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.settings.model.SpecialFeature;
@@ -22,10 +23,9 @@ public abstract class SpecialFeaturesStrategy {
                                                Collection<VendorPermission> vendorPermissions) {
 
         if (isOptIn(specialFeature, vendorConsent)) {
-            allowFor(vendorPermissions);
-        } else {
-            allowOnlyExcluded(vendorPermissions, specialFeature);
+            allowFor(disclosedVendors(vendorConsent, vendorPermissions));
         }
+        allowFor(excludedVendors(specialFeature, vendorPermissions));
     }
 
     private boolean isOptIn(SpecialFeature specialFeature, TCString vendorConsent) {
@@ -33,24 +33,26 @@ public abstract class SpecialFeaturesStrategy {
                 || vendorConsent.getSpecialFeatureOptIns().contains(getSpecialFeatureId());
     }
 
-    private void allowFor(Collection<VendorPermission> vendorPermissions) {
+    private Stream<VendorPermission> disclosedVendors(TCString vendorConsent,
+                                                      Collection<VendorPermission> vendorPermissions) {
+
+        return vendorPermissions.stream()
+                .filter(vendorPermission ->
+                        TcfDefinerService.isVendorDisclosed(vendorConsent, vendorPermission.getVendorId()));
+    }
+
+    private void allowFor(Stream<VendorPermission> vendorPermissions) {
         vendorPermissions.forEach(vendorPermission -> allow(vendorPermission.getPrivacyEnforcementAction()));
     }
 
-    private void allowOnlyExcluded(Collection<VendorPermission> vendorPermissions, SpecialFeature specialFeature) {
-        excludedVendors(vendorPermissions, specialFeature)
-                .map(VendorPermission::getPrivacyEnforcementAction)
-                .forEach(this::allow);
-    }
-
-    private Stream<VendorPermission> excludedVendors(Collection<VendorPermission> vendorPermissions,
-                                                     SpecialFeature specialFeature) {
+    private Stream<VendorPermission> excludedVendors(SpecialFeature specialFeature,
+                                                     Collection<VendorPermission> vendorPermissions) {
 
         final List<String> bidderNameExceptions = specialFeature.getVendorExceptions();
 
         return CollectionUtils.isEmpty(bidderNameExceptions)
                 ? Stream.empty()
                 : vendorPermissions.stream()
-                .filter(vendorPermission -> bidderNameExceptions.contains(vendorPermission.getBidderName()));
+                  .filter(vendorPermission -> bidderNameExceptions.contains(vendorPermission.getBidderName()));
     }
 }

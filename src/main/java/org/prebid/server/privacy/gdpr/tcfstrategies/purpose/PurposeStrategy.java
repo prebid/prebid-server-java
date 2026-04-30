@@ -3,6 +3,7 @@ package org.prebid.server.privacy.gdpr.tcfstrategies.purpose;
 import com.iabtcf.decoder.TCString;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
+import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.privacy.gdpr.model.VendorPermissionWithGvl;
@@ -63,7 +64,8 @@ public abstract class PurposeStrategy {
 
         final Collection<VendorPermissionWithGvl> excludedVendors = excludedVendors(vendorPermissions, purpose);
         final Collection<VendorPermissionWithGvl> vendorForPurpose = vendorPermissions.stream()
-                .filter(vendorPermission -> !excludedVendors.contains(vendorPermission))
+                .filter(vendorPermission -> !excludedVendors.contains(vendorPermission)
+                        || TcfDefinerService.isVendorDisclosed(vendorConsent, vendorPermission.getVendor().getId()))
                 .toList();
 
         allowedByTypeStrategy(vendorConsent, purpose, vendorForPurpose, excludedVendors)
