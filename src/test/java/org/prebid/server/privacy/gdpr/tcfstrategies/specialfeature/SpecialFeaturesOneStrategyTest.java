@@ -20,6 +20,7 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.verify;
@@ -152,6 +153,37 @@ public class SpecialFeaturesOneStrategyTest {
         assertThat(vendorPermission1).isEqualTo(vendorPermission1Changed);
         assertThat(vendorPermission2).isEqualTo(vendorPermission2Changed);
         assertThat(vendorPermission3).isEqualTo(vendorPermission3Changed);
+
+        verify(specialFeatureOptIns).contains(SPECIAL_FEATURE_ID);
+    }
+
+    @Test
+    public void processSpecialFeaturesStrategyShouldAllowExcludedAndDisclosedOptIn() {
+        // given
+        given(disclosedVendorsStrictness.isVendorDisclosed(any(), any())).willReturn(false);
+        given(disclosedVendorsStrictness.isVendorDisclosed(any(), eq(1))).willReturn(true);
+
+        final VendorPermission vendorPermission1 = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
+        final VendorPermission vendorPermission2 = VendorPermission.of(2, "b1", PrivacyEnforcementAction.restrictAll());
+        final VendorPermission vendorPermission3 = VendorPermission.of(3, "b3", PrivacyEnforcementAction.restrictAll());
+        final List<VendorPermission> vendorPermissions = asList(
+                vendorPermission1,
+                vendorPermission2,
+                vendorPermission3);
+
+        final SpecialFeature specialFeature = SpecialFeature.of(true, singletonList("b1"));
+
+        given(specialFeatureOptIns.contains(SPECIAL_FEATURE_ID)).willReturn(true);
+
+        // when
+        target.processSpecialFeaturesStrategy(tcString, specialFeature, vendorPermissions);
+
+        // then
+        final VendorPermission vendorPermission1Changed = VendorPermission.of(1, null, allowSpecialFeature());
+        final VendorPermission vendorPermission2Changed = VendorPermission.of(2, "b1", allowSpecialFeature());
+        assertThat(vendorPermission1).isEqualTo(vendorPermission1Changed);
+        assertThat(vendorPermission2).isEqualTo(vendorPermission2Changed);
+        assertThat(vendorPermission3).isEqualTo(VendorPermission.of(3, "b3", PrivacyEnforcementAction.restrictAll()));
 
         verify(specialFeatureOptIns).contains(SPECIAL_FEATURE_ID);
     }

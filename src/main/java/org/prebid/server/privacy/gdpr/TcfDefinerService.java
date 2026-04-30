@@ -352,6 +352,7 @@ public class TcfDefinerService {
             final String message = "Invalid TCF string: `disclosedVendors` list is empty.";
             warnings.add(message);
             logWarn(consentString, message, requestLogInfo);
+            metrics.updatePrivacyTcfInvalidMetric();
 
             return TCStringParsingResult.of(TCStringEmpty.create(), warnings);
         }

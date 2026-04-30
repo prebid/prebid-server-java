@@ -32,7 +32,7 @@ public class NoEnforcePurposeStrategyTest {
 
     private NoEnforcePurposeStrategy target;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private TCString tcString;
     @Mock(strictness = LENIENT)
     private IntIterable allowedVendors;
@@ -129,6 +129,56 @@ public class NoEnforcePurposeStrategyTest {
 
         // then
         assertThat(result).usingRecursiveFieldByFieldElementComparator().containsOnly(vendorPermission);
+    }
+
+    @Test
+    public void allowedByTypeStrategyShouldReturnExpectedValueWhenPurposeSupportsLIAndVendorEnforced() {
+        // given
+        final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
+        final VendorPermissionWithGvl vendorPermissionWitGvl = withGvl(vendorPermission, Vendor.empty(1));
+        final List<VendorPermissionWithGvl> vendorPurposeWithGvls = singletonList(vendorPermissionWitGvl);
+
+        given(allowedVendorsLI.contains(anyInt())).willReturn(true);
+
+        // when and then
+        assertThat(target.allowedByTypeStrategy(PurposeCode.ONE, tcString, vendorPurposeWithGvls, emptyList(), true))
+                .usingRecursiveFieldByFieldElementComparator()
+                .containsOnly(vendorPermission);
+        assertThat(target.allowedByTypeStrategy(PurposeCode.TWO, tcString, vendorPurposeWithGvls, emptyList(), true))
+                .usingRecursiveFieldByFieldElementComparator()
+                .containsOnly(vendorPermission);
+        assertThat(target.allowedByTypeStrategy(PurposeCode.SEVEN, tcString, vendorPurposeWithGvls, emptyList(), true))
+                .usingRecursiveFieldByFieldElementComparator()
+                .containsOnly(vendorPermission);
+        assertThat(target.allowedByTypeStrategy(PurposeCode.EIGHT, tcString, vendorPurposeWithGvls, emptyList(), true))
+                .usingRecursiveFieldByFieldElementComparator()
+                .containsOnly(vendorPermission);
+        assertThat(target.allowedByTypeStrategy(PurposeCode.NINE, tcString, vendorPurposeWithGvls, emptyList(), true))
+                .usingRecursiveFieldByFieldElementComparator()
+                .containsOnly(vendorPermission);
+        assertThat(target.allowedByTypeStrategy(PurposeCode.TEN, tcString, vendorPurposeWithGvls, emptyList(), true))
+                .usingRecursiveFieldByFieldElementComparator()
+                .containsOnly(vendorPermission);
+    }
+
+    @Test
+    public void allowedByTypeStrategyShouldReturnExpectedValueWhenPurposeDoesNotSupportLIAndVendorEnforced() {
+        // given
+        final VendorPermission vendorPermission = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
+        final VendorPermissionWithGvl vendorPermissionWitGvl = withGvl(vendorPermission, Vendor.empty(1));
+        final List<VendorPermissionWithGvl> vendorPurposeWithGvls = singletonList(vendorPermissionWitGvl);
+
+        given(allowedVendorsLI.contains(anyInt())).willReturn(true);
+
+        // when and then
+        assertThat(target.allowedByTypeStrategy(PurposeCode.THREE, tcString, vendorPurposeWithGvls, emptyList(), true))
+                .isEmpty();
+        assertThat(target.allowedByTypeStrategy(PurposeCode.FOUR, tcString, vendorPurposeWithGvls, emptyList(), true))
+                .isEmpty();
+        assertThat(target.allowedByTypeStrategy(PurposeCode.FIVE, tcString, vendorPurposeWithGvls, emptyList(), true))
+                .isEmpty();
+        assertThat(target.allowedByTypeStrategy(PurposeCode.SIX, tcString, vendorPurposeWithGvls, emptyList(), true))
+                .isEmpty();
     }
 
     @Test

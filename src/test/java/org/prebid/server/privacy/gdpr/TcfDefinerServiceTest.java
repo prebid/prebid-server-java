@@ -491,6 +491,7 @@ public class TcfDefinerServiceTest {
                 .gdpr("1")
                 .consentString("CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA")
                 .build();
+
         // when
         final Future<TcfContext> result = target.resolveTcfContext(
                 privacy, null, null, MetricName.setuid, null, null);
@@ -544,6 +545,32 @@ public class TcfDefinerServiceTest {
                 privacy, null, null, MetricName.setuid, null, null);
 
         // then
+        verify(metrics).updatePrivacyTcfInvalidMetric();
+    }
+
+    @Test
+    public void resolveTcfContextShouldIncrementInvalidConsentStringMetricWhenDisclosedVendorsIsInvalid() {
+        // given
+        given(disclosedVendorsStrictness.isValid(any())).willReturn(false);
+
+        final Privacy privacy = Privacy.builder()
+                .gdpr("1")
+                .consentString("CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA")
+                .build();
+
+        // when
+        final Future<TcfContext> result = target.resolveTcfContext(
+                privacy, null, null, MetricName.setuid, null, null);
+
+        // then
+        assertThat(result).isSucceeded();
+        assertThat(result.result()).satisfies(context -> {
+            assertThat(context.isInGdprScope()).isTrue();
+            assertThat(context.getConsentString()).isEqualTo("CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA");
+            assertThat(context.isConsentValid()).isFalse();
+            assertThat(context.getWarnings()).containsExactly("Invalid TCF string: `disclosedVendors` list is empty.");
+        });
+
         verify(metrics).updatePrivacyTcfInvalidMetric();
     }
 
@@ -671,5 +698,14 @@ public class TcfDefinerServiceTest {
     public void isConsentStringValidShouldReturnFalseWhenStringNotValid() {
         // when and then
         assertThat(target.isConsentStringValid("invalid")).isFalse();
+    }
+
+    @Test
+    public void isConsentStringValidShouldReturnFalseWhenDisclosedVendorsIsInvalid() {
+        // given
+        given(disclosedVendorsStrictness.isValid(any())).willReturn(false);
+
+        // when and then
+        assertThat(target.isConsentStringValid("CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA")).isFalse();
     }
 }
