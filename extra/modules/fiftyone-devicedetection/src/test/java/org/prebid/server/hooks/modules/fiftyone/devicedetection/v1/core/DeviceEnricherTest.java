@@ -273,6 +273,7 @@ public class DeviceEnricherTest {
                 "devicetype",
                 "make",
                 "model",
+                "hwv",
                 "os",
                 "osv",
                 "h",
@@ -336,6 +337,28 @@ public class DeviceEnricherTest {
     }
 
     @Test
+    public void populateDeviceInfoShouldEnrichModelWithHardwareNamePrefixWhenItIsMissing() throws Exception {
+        // given
+        final Device testDevice = buildCompleteDevice().toBuilder()
+                .model(null)
+                .build();
+        final String expectedModel = "NinjaTech";
+        when(deviceData.getHardwareNamePrefix())
+                .thenReturn(aspectPropertyValueWith(expectedModel));
+        when(deviceData.getHardwareModel()).thenThrow(new RuntimeException());
+
+        // when
+        final CollectedEvidence collectedEvidence = CollectedEvidence.builder()
+                .deviceUA("fake-UserAgent")
+                .build();
+        final EnrichmentResult result = target.populateDeviceInfo(testDevice, collectedEvidence);
+
+        // then
+        assertThat(result.enrichedFields()).hasSize(1);
+        assertThat(result.enrichedDevice().getModel()).isEqualTo(expectedModel);
+    }
+
+    @Test
     public void populateDeviceInfoShouldEnrichModelWithHWNameWhenHWModelIsMissing() throws Exception {
         // given
         final Device testDevice = buildCompleteDevice().toBuilder()
@@ -366,6 +389,7 @@ public class DeviceEnricherTest {
 
         // when
         buildCompleteDeviceData();
+        when(deviceData.getHardwareNamePrefix()).thenReturn(null);
         final CollectedEvidence collectedEvidence = CollectedEvidence.builder()
                 .deviceUA("fake-UserAgent")
                 .build();
@@ -374,6 +398,28 @@ public class DeviceEnricherTest {
         // then
         assertThat(result.enrichedFields()).hasSize(1);
         assertThat(result.enrichedDevice().getModel()).isEqualTo(buildCompleteDevice().getModel());
+    }
+
+    @Test
+    public void populateDeviceInfoShouldEnrichHwvWithHardwareNameVersionWhenItIsMissing() throws Exception {
+        // given
+        final Device testDevice = buildCompleteDevice().toBuilder()
+                .hwv(null)
+                .build();
+        final String expectedHwv = "NinjaTech";
+        when(deviceData.getHardwareNameVersion())
+                .thenReturn(aspectPropertyValueWith(expectedHwv));
+        when(deviceData.getHardwareModel()).thenReturn(null);
+
+        // when
+        final CollectedEvidence collectedEvidence = CollectedEvidence.builder()
+                .deviceUA("fake-UserAgent")
+                .build();
+        final EnrichmentResult result = target.populateDeviceInfo(testDevice, collectedEvidence);
+
+        // then
+        assertThat(result.enrichedFields()).hasSize(1);
+        assertThat(result.enrichedDevice().getHwv()).isEqualTo(expectedHwv);
     }
 
     @Test
@@ -534,6 +580,7 @@ public class DeviceEnricherTest {
                 .devicetype(1)
                 .make("StarFleet")
                 .model("communicator")
+                .hwv("hmv")
                 .os("NeutronAI")
                 .osv("X-502")
                 .h(5051)
@@ -551,6 +598,8 @@ public class DeviceEnricherTest {
         when(deviceData.getHardwareVendor()).thenReturn(aspectPropertyValueWith("StarFleet"));
         when(deviceData.getHardwareModel()).thenReturn(aspectPropertyValueWith("communicator"));
         when(deviceData.getPlatformName()).thenReturn(aspectPropertyValueWith("NeutronAI"));
+        when(deviceData.getHardwareNamePrefix()).thenReturn(aspectPropertyValueWith("Prefix"));
+        when(deviceData.getHardwareNameVersion()).thenReturn(aspectPropertyValueWith("Version"));
         when(deviceData.getPlatformVersion()).thenReturn(aspectPropertyValueWith("X-502"));
         when(deviceData.getScreenPixelsHeight()).thenReturn(aspectPropertyValueWith(5051));
         when(deviceData.getScreenPixelsWidth()).thenReturn(aspectPropertyValueWith(3001));
