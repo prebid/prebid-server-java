@@ -35,4 +35,7 @@ public class GdprConfig {
 
     @JsonProperty("purpose-one-treatment-interpretation")
     PurposeOneTreatmentInterpretation purposeOneTreatmentInterpretation;
+
+    @JsonProperty("strict-disclosed-vendors-treatment")
+    boolean strictDisclosedVendorsTreatment = true;
 }

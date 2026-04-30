@@ -3,16 +3,23 @@ package org.prebid.server.privacy.gdpr.tcfstrategies.specialfeature;
 import com.iabtcf.decoder.TCString;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
-import org.prebid.server.privacy.gdpr.TcfDefinerService;
+import org.prebid.server.privacy.gdpr.DisclosedVendorsStrictness;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.settings.model.SpecialFeature;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Stream;
 
 public abstract class SpecialFeaturesStrategy {
+
+    private final DisclosedVendorsStrictness disclosedVendorsStrictness;
+
+    protected SpecialFeaturesStrategy(DisclosedVendorsStrictness disclosedVendorsStrictness) {
+        this.disclosedVendorsStrictness = Objects.requireNonNull(disclosedVendorsStrictness);
+    }
 
     public abstract int getSpecialFeatureId();
 
@@ -37,8 +44,8 @@ public abstract class SpecialFeaturesStrategy {
                                                       Collection<VendorPermission> vendorPermissions) {
 
         return vendorPermissions.stream()
-                .filter(vendorPermission ->
-                        TcfDefinerService.isVendorDisclosed(vendorConsent, vendorPermission.getVendorId()));
+                .filter(vendorPermission -> disclosedVendorsStrictness
+                        .isVendorDisclosed(vendorConsent, vendorPermission.getVendorId()));
     }
 
     private void allowFor(Stream<VendorPermission> vendorPermissions) {
