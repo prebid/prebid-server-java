@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.beop;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
@@ -70,7 +69,7 @@ public class BeopBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldCreateRequestWithNidAndNptnidInUri() {
+    public void makeHttpRequestsShouldCreateRequestWithNidAndNtpnidInUri() {
         // given
         final BidRequest bidRequest = givenBidRequest(givenImp(ExtImpBeop.of(null, "networkId", "partnerId")));
 
@@ -82,31 +81,6 @@ public class BeopBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
                 .containsExactly(ENDPOINT_URL + "?nid=networkId&nptnid=partnerId");
-    }
-
-    @Test
-    public void makeHttpRequestsShouldAcceptLegacyNtpnidAlias() {
-        // given
-        final ObjectNode bidderNode = mapper.createObjectNode()
-                .put("nid", "networkId")
-                .put("ntpnid", "legacyPartnerId");
-        final ObjectNode ext = mapper.createObjectNode();
-        ext.set("bidder", bidderNode);
-
-        final Imp imp = Imp.builder()
-                .id("imp-1")
-                .ext(ext)
-                .build();
-        final BidRequest bidRequest = givenBidRequest(imp);
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(HttpRequest::getUri)
-                .containsExactly(ENDPOINT_URL + "?nid=networkId&nptnid=legacyPartnerId");
     }
 
     @Test
