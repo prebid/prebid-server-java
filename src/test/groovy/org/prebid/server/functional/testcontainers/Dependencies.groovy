@@ -45,7 +45,7 @@ class Dependencies {
     static final NetworkServiceContainer networkServiceContainer = new NetworkServiceContainer(MOCKSERVER_VERSION)
             .withNetwork(network)
 
-    static LocalStackContainer localStackContainer = new LocalStackContainer(DockerImageName.parse("localstack/localstack:s3-latest"))
+    static LocalStackContainer localStackContainer = new LocalStackContainer(DockerImageName.parse("localstack/localstack:s3-community-archive"))
             .withNetwork(network)
             .withServices(S3)
 

@@ -35,7 +35,7 @@ import static org.prebid.server.bidder.model.BidderError.badInput;
 
 public class OmsBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://randomurl.com";
+    private static final String ENDPOINT_URL = "https://randomurl.com?pid={{PublisherId}}";
 
     private final OmsBidder target = new OmsBidder(ENDPOINT_URL, jacksonMapper);
 
@@ -70,7 +70,7 @@ public class OmsBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://randomurl.com?publisherId=otherTagId");
+                .containsExactly("https://randomurl.com?pid=otherTagId");
     }
 
     @Test
@@ -86,7 +86,7 @@ public class OmsBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://randomurl.com?publisherId=12345");
+                .containsExactly("https://randomurl.com?pid=12345");
     }
 
     @Test

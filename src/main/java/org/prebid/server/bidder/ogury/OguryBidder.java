@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.ogury;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
@@ -71,14 +72,10 @@ public class OguryBidder implements Bidder<BidRequest> {
         }
 
         if (CollectionUtils.isEmpty(impsWithOguryParams)) {
-            if (bidRequest.getApp() != null) {
-                errors.add(BidderError.badInput("Invalid request. assetKey/adUnitId required"));
-                return Result.withErrors(errors);
-            }
-            // for "site" request we can serve ads with just publisher.id
+            // we can serve ads with just publisher.id
             if (!hasPublisherId(bidRequest)) {
                 errors.add(BidderError.badInput(
-                        "Invalid request. assetKey/adUnitId or request.site.publisher.id required"));
+                        "Invalid request. assetKey/adUnitId or request.site/app.publisher.id required"));
                 return Result.withErrors(errors);
             }
         }
@@ -145,8 +142,19 @@ public class OguryBidder implements Bidder<BidRequest> {
     }
 
     private boolean hasPublisherId(BidRequest request) {
+        return hasSitePublisherId(request) || hasAppPublisherId(request);
+    }
+
+    private boolean hasSitePublisherId(BidRequest request) {
         return Optional.ofNullable(request.getSite())
                 .map(Site::getPublisher)
+                .map(Publisher::getId)
+                .isPresent();
+    }
+
+    private boolean hasAppPublisherId(BidRequest request) {
+        return Optional.ofNullable(request.getApp())
+                .map(App::getPublisher)
                 .map(Publisher::getId)
                 .isPresent();
     }

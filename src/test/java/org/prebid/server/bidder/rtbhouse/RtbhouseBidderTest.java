@@ -34,7 +34,9 @@ import org.prebid.server.proto.openrtb.ext.request.rtbhouse.ExtImpRtbhouse;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
@@ -68,96 +70,6 @@ public class RtbhouseBidderTest extends VertxTest {
                 "invalid_url",
                 currencyConversionService,
                 jacksonMapper));
-    }
-
-    @Test
-    public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.banner(null));
-        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, "invalid");
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().getFirst().getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().getFirst().getType()).isEqualTo(BidderError.Type.bad_server_response);
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.banner(null));
-        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
-                mapper.writeValueAsString(null));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.banner(null));
-        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
-                mapper.writeValueAsString(BidResponse.builder().build()));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnBannerBidIfBannerIsPresent() throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").build()))
-                        .build();
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                bidRequest,
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
-    }
-
-    @Test
-    public void makeBidsShouldReturnVideoBidIfVideoIsPresent() throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .id("123")
-                        .video(Video.builder().build())
-                        .build()))
-                .build();
-
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                bidRequest,
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
     }
 
     @Test
@@ -274,56 +186,6 @@ public class RtbhouseBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
-    }
-
-    @Test
-    public void makeBidsShouldParseNativeAdmData() throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.id("123")
-                                        .banner(null)
-                                        .xNative(Native.builder().build()));
-        final ObjectNode admNode = mapper.createObjectNode();
-        final ObjectNode nativeNode = mapper.createObjectNode();
-        nativeNode.put("property1", "value1");
-        admNode.set("native", nativeNode);
-        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123")
-                                .adm(admNode.toString()))));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-
-        assertThat(result.getValue())
-                .extracting(BidderBid::getBid)
-                .extracting(Bid::getAdm)
-                .containsExactly("{\"property1\":\"value1\"}");
-    }
-
-    @Test
-    public void makeBidsShouldReturnBidWithResolvedMacros() throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.banner(null));
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
-                mapper.writeValueAsString(givenBidResponse(
-                        bidBuilder -> bidBuilder
-                                .nurl("nurl:${AUCTION_PRICE}")
-                                .adm("adm:${AUCTION_PRICE}")
-                                .price(BigDecimal.valueOf(12.34)))));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(BidderBid::getBid)
-                .extracting(Bid::getNurl, Bid::getAdm)
-                .containsExactly(tuple("nurl:12.34", "adm:12.34"));
     }
 
     @Test
@@ -518,6 +380,273 @@ public class RtbhouseBidderTest extends VertxTest {
                 .containsOnlyNulls();
     }
 
+    @Test
+    public void makeHttpRequestsShouldSetTagidFromGpid() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                bidReq -> bidReq.id("request_id"),
+                imp -> imp.id("imp123").ext(givenRtbhouseExt(node -> node.put("gpid", "gpid_value"))),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getTagid)
+                .containsExactly("gpid_value");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetTagidFromAdserverAdslot() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                bidReq -> bidReq.id("request_id"),
+                imp -> imp.id("imp123")
+                        .ext(givenRtbhouseExt(node ->
+                                node.set("data", mapper.valueToTree(
+                                        Map.of("adserver", Map.of("adslot", "adslot_value")))))),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getTagid)
+                .containsExactly("adslot_value");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetTagidFromPbadslot() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                bidReq -> bidReq.id("request_id"),
+                imp -> imp.id("imp123")
+                        .ext(givenRtbhouseExt(node ->
+                                node.set("data", mapper.valueToTree(Map.of("pbadslot", "pbadslot_value"))))),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getTagid)
+                .containsExactly("pbadslot_value");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetTagidFromImpIdWhenNoOtherFields() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                bidReq -> bidReq.id("request_id"),
+                imp -> imp.id("imp123"),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getTagid)
+                .containsExactly("imp123");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetTagidToNullWhenNoFieldsAvailable() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                bidReq -> bidReq.id("request_id"),
+                imp -> imp.id(null),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getTagid)
+                .containsOnlyNulls();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldPreserveExistingTagid() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                bidReq -> bidReq.id("request_id"),
+                imp -> imp.id("imp123")
+                        .tagid("existing_tagid")
+                        .ext(givenRtbhouseExt(node -> node.put("gpid", "gpid_value"))),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getTagid)
+                .containsExactly("existing_tagid");
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.banner(null));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, "invalid");
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors().getFirst().getMessage()).startsWith("Failed to decode: Unrecognized token");
+        assertThat(result.getErrors().getFirst().getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.banner(null));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
+                mapper.writeValueAsString(null));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.banner(null));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
+                mapper.writeValueAsString(BidResponse.builder().build()));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnBannerBidIfBannerIsPresent() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").build()))
+                        .build();
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                bidRequest,
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnVideoBidIfVideoIsPresent() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .id("123")
+                        .video(Video.builder().build())
+                        .build()))
+                .build();
+
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                bidRequest,
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldParseNativeAdmData() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.id("123")
+                                        .banner(null)
+                                        .xNative(Native.builder().build()));
+        final ObjectNode admNode = mapper.createObjectNode();
+        final ObjectNode nativeNode = mapper.createObjectNode();
+        nativeNode.put("property1", "value1");
+        admNode.set("native", nativeNode);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123")
+                                .adm(admNode.toString()))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getAdm)
+                .containsExactly("{\"property1\":\"value1\"}");
+    }
+
+    @Test
+    public void makeBidsShouldReturnBidWithResolvedMacros() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.banner(null));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
+                mapper.writeValueAsString(givenBidResponse(
+                        bidBuilder -> bidBuilder
+                                .nurl("nurl:${AUCTION_PRICE}")
+                                .adm("adm:${AUCTION_PRICE}")
+                                .price(BigDecimal.valueOf(12.34)))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getNurl, Bid::getAdm)
+                .containsExactly(tuple("nurl:12.34", "adm:12.34"));
+    }
+
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
                 .cur("USD")
@@ -561,5 +690,13 @@ public class RtbhouseBidderTest extends VertxTest {
                                                 .region("region"))
                                         .build()))))
                 .build();
+    }
+
+    private static ObjectNode givenRtbhouseExt(UnaryOperator<ObjectNode> extCustomizer) {
+        final ObjectNode extNode = mapper.valueToTree(ExtPrebid.of(null, ExtImpRtbhouse.builder()
+                .publisherId("publisherId")
+                .region("region")
+                .build()));
+        return extCustomizer.apply(extNode);
     }
 }
