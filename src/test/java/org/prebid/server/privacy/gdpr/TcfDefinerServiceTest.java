@@ -571,7 +571,7 @@ public class TcfDefinerServiceTest {
             assertThat(context.getWarnings()).containsExactly("Invalid TCF string: `disclosedVendors` list is empty.");
         });
 
-        verify(metrics).updatePrivacyTcfInvalidMetric();
+        verify(metrics).updatePrivacyTcfNoDisclosedVendorsMetric();
     }
 
     @Test
