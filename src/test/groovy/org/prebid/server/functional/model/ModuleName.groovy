@@ -6,10 +6,10 @@ enum ModuleName {
 
     PB_RICHMEDIA_FILTER("pb-richmedia-filter"),
     PB_RESPONSE_CORRECTION ("pb-response-correction"),
-    ORTB2_BLOCKING("ortb2-blocking"),
+    PB_ORTB2_BLOCKING("pb-ortb2-blocking"),
     PB_REQUEST_CORRECTION('pb-request-correction'),
-    OPTABLE_TARGETING('optable-targeting'),
-    PB_RULE_ENGINE('pb-rule-engine')
+    PB_RULE_ENGINE('pb-rule-engine'),
+    OPTABLE_TARGETING('optable-targeting')
 
     @JsonValue
     final String code

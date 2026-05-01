@@ -23,7 +23,7 @@ import java.util.Objects;
 
 public class RequestCorrectionProcessedAuctionHook implements ProcessedAuctionRequestHook {
 
-    private static final String CODE = "pb-request-correction-processed-auction-request";
+    private static final String CODE = "pb-request-correction-processed-auction-request-hook";
 
     private final RequestCorrectionProvider requestCorrectionProvider;
     private final ObjectMapper mapper;

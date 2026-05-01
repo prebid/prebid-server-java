@@ -19,7 +19,7 @@ import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.tests.module.ModuleBaseSpec
 import org.prebid.server.functional.util.PBSUtils
 
-import static org.prebid.server.functional.model.ModuleName.ORTB2_BLOCKING
+import static org.prebid.server.functional.model.ModuleName.PB_ORTB2_BLOCKING
 import static org.prebid.server.functional.model.ModuleName.PB_RICHMEDIA_FILTER
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.config.Endpoint.OPENRTB2_AUCTION
@@ -36,14 +36,14 @@ class AnalyticsTagsModuleSpec extends ModuleBaseSpec {
         pbsServiceFactory.removeContainer(getOrtb2BlockingSettings())
     }
 
-    def "PBS should include analytics tag for ortb2-blocking module in response when request and account allow client details"() {
+    def "PBS should include analytics tag for pb-ortb2-blocking module in response when request and account allow client details"() {
         given: "Default account with module config"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             it.ext.prebid.analytics = new PrebidAnalytics(options: new AnalyticsOptions(enableClientDetails: true))
         }
 
         and: "Account in the DB"
-        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB2_BLOCKING, [RAW_BIDDER_RESPONSE])
+        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, PB_ORTB2_BLOCKING, [RAW_BIDDER_RESPONSE])
         def hooksConfiguration = new AccountHooksConfiguration(executionPlan: executionPlan)
         def accountConfig = new AccountConfig(hooks: hooksConfiguration, analytics: new AccountAnalyticsConfig(allowClientDetails: true))
         def account = new Account(uuid: bidRequest.accountId, config: accountConfig)
@@ -55,7 +55,7 @@ class AnalyticsTagsModuleSpec extends ModuleBaseSpec {
         then: "Bid response should contain ext.prebid.analyticsTags with module record"
         def analyticsTagPrebid = bidResponse.ext.prebid.analytics.tags.first
         assert analyticsTagPrebid.stage == RAW_BIDDER_RESPONSE.value
-        assert analyticsTagPrebid.module == ORTB2_BLOCKING.code
+        assert analyticsTagPrebid.module == PB_ORTB2_BLOCKING.code
 
         and: "Analytics tag should contain results with name and success status"
         def analyticResult = analyticsTagPrebid.analyticsTags.activities.first
@@ -122,7 +122,7 @@ class AnalyticsTagsModuleSpec extends ModuleBaseSpec {
 
     def "PBS should include analytics tag in response when request and default account allow client details"() {
         given: "Default account with module config"
-        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB2_BLOCKING, [RAW_BIDDER_RESPONSE])
+        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, PB_ORTB2_BLOCKING, [RAW_BIDDER_RESPONSE])
         def hooksConfiguration = new AccountHooksConfiguration(executionPlan: executionPlan)
         def accountConfig = new AccountConfig(hooks: hooksConfiguration, analytics: new AccountAnalyticsConfig(allowClientDetails: true))
 
@@ -141,7 +141,7 @@ class AnalyticsTagsModuleSpec extends ModuleBaseSpec {
         then: "Bid response should contain ext.prebid.analyticsTags with module record"
         def analyticsTagPrebid = bidResponse.ext.prebid.analytics.tags.first
         assert analyticsTagPrebid.stage == RAW_BIDDER_RESPONSE.value
-        assert analyticsTagPrebid.module == ORTB2_BLOCKING.code
+        assert analyticsTagPrebid.module == PB_ORTB2_BLOCKING.code
 
         and: "Analytics tag should contain results with name and success status"
         def analyticResult = analyticsTagPrebid.analyticsTags.activities.first
@@ -161,7 +161,7 @@ class AnalyticsTagsModuleSpec extends ModuleBaseSpec {
 
     def "PBS should include analytics tag in response when request and account allow client details but default doesn't"() {
         given: "Default account with module config"
-        def defaultExecutionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB2_BLOCKING, [RAW_BIDDER_RESPONSE])
+        def defaultExecutionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, PB_ORTB2_BLOCKING, [RAW_BIDDER_RESPONSE])
         def defaultHooksConfiguration = new AccountHooksConfiguration(executionPlan: defaultExecutionPlan)
         def defaultAccountConfig = new AccountConfig(hooks: defaultHooksConfiguration, analytics: new AccountAnalyticsConfig(allowClientDetails: false))
 
@@ -175,7 +175,7 @@ class AnalyticsTagsModuleSpec extends ModuleBaseSpec {
         }
 
         and: "Account in the DB"
-        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB2_BLOCKING, [RAW_BIDDER_RESPONSE])
+        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, PB_ORTB2_BLOCKING, [RAW_BIDDER_RESPONSE])
         def hooksConfiguration = new AccountHooksConfiguration(executionPlan: executionPlan)
         def accountConfig = new AccountConfig(hooks: hooksConfiguration, analytics: new AccountAnalyticsConfig(allowClientDetails: true))
         def account = new Account(uuid: bidRequest.accountId, config: accountConfig)
@@ -187,7 +187,7 @@ class AnalyticsTagsModuleSpec extends ModuleBaseSpec {
         then: "Bid response should contain ext.prebid.analyticsTags with module record"
         def analyticsTagPrebid = bidResponse.ext.prebid.analytics.tags.first
         assert analyticsTagPrebid.stage == RAW_BIDDER_RESPONSE.value
-        assert analyticsTagPrebid.module == ORTB2_BLOCKING.code
+        assert analyticsTagPrebid.module == PB_ORTB2_BLOCKING.code
 
         and: "Analytics tag should contain results with name and success status"
         def analyticResult = analyticsTagPrebid.analyticsTags.activities.first
@@ -212,7 +212,7 @@ class AnalyticsTagsModuleSpec extends ModuleBaseSpec {
         }
 
         and: "Account in the DB"
-        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB2_BLOCKING, [RAW_BIDDER_RESPONSE])
+        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, PB_ORTB2_BLOCKING, [RAW_BIDDER_RESPONSE])
         def hooksConfiguration = new AccountHooksConfiguration(executionPlan: executionPlan)
         def accountConfig = new AccountConfig(hooks: hooksConfiguration, analytics: new AccountAnalyticsConfig(allowClientDetails: true))
         def account = new Account(uuid: bidRequest.accountId, config: accountConfig)
@@ -235,7 +235,7 @@ class AnalyticsTagsModuleSpec extends ModuleBaseSpec {
         }
 
         and: "Account in the DB"
-        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB2_BLOCKING, [RAW_BIDDER_RESPONSE])
+        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, PB_ORTB2_BLOCKING, [RAW_BIDDER_RESPONSE])
         def hooksConfiguration = new AccountHooksConfiguration(executionPlan: executionPlan)
         def accountConfig = new AccountConfig(hooks: hooksConfiguration, analytics: new AccountAnalyticsConfig(allowClientDetails: true))
         def account = new Account(uuid: bidRequest.accountId, config: accountConfig)
@@ -258,7 +258,7 @@ class AnalyticsTagsModuleSpec extends ModuleBaseSpec {
         }
 
         and: "Account in the DB"
-        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB2_BLOCKING, [RAW_BIDDER_RESPONSE])
+        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, PB_ORTB2_BLOCKING, [RAW_BIDDER_RESPONSE])
         def hooksConfiguration = new AccountHooksConfiguration(executionPlan: executionPlan)
         def accountConfig = new AccountConfig(hooks: hooksConfiguration, analytics: new AccountAnalyticsConfig(allowClientDetails: false))
         def account = new Account(uuid: bidRequest.accountId, config: accountConfig)
@@ -282,7 +282,7 @@ class AnalyticsTagsModuleSpec extends ModuleBaseSpec {
         }
 
         and: "Account in the DB"
-        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB2_BLOCKING, [RAW_BIDDER_RESPONSE])
+        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, PB_ORTB2_BLOCKING, [RAW_BIDDER_RESPONSE])
         def hooksConfiguration = new AccountHooksConfiguration(executionPlan: executionPlan)
         def accountConfig = new AccountConfig(hooks: hooksConfiguration, analytics: new AccountAnalyticsConfig(allowClientDetails: false))
         def account = new Account(uuid: bidRequest.accountId, config: accountConfig)
