@@ -59,7 +59,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
 
     private static final String INSERTER = "s2s.liveintent.com";
 
-    // from ulysses
+    // the IdResResponse is already stamped by Ulysses with "liveintent.com" as matcher
     private static final String MATCHER = "liveintent.com";
 
     private final LiveIntentOmniChannelProperties config;
@@ -173,7 +173,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
         }
 
         final List<Eid> modifiedEids = eids.stream()
-                .map(eid -> eid.toBuilder().inserter(INSERTER).matcher(MATCHER).build())
+                .map(eid -> eid.toBuilder().inserter(INSERTER).build())
                 .toList();
 
         return IdResResponse.of(modifiedEids);
@@ -260,7 +260,6 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
 
     private List<ExtRequestPrebidDataEidPermissions> createEidPermissions() {
         return List.of(ExtRequestPrebidDataEidPermissions.builder()
-                                .matcher(MATCHER)
                                 .inserter(INSERTER)
                                 .bidders(targetBidders.stream().toList())
                                 .build());
