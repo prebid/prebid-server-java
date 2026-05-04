@@ -59,7 +59,8 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
 
     private static final String INSERTER = "s2s.liveintent.com";
 
-    private static final String MATCHER = "liveintentStamp";
+    // from ulysses
+    private static final String MATCHER = "liveintent.com";
 
     private final LiveIntentOmniChannelProperties config;
     private final JacksonMapper mapper;
