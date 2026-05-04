@@ -59,7 +59,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
 
     private static final String INSERTER = "s2s.liveintent.com";
 
-    // the IdResResponse is already stamped by Ulysses with "liveintent.com" as matcher
+    // IdResResponse is already stamped by Ulysses, in the EID's matcher field, it has "liveintent.com"
     private static final String MATCHER = "liveintent.com";
 
     private final LiveIntentOmniChannelProperties config;
