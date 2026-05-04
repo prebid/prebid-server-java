@@ -103,6 +103,14 @@ public abstract class BaseOptableTest {
                 .build();
     }
 
+    protected BidRequest givenBidRequestWithUser(User user) {
+        return BidRequest.builder()
+                .user(user)
+                .device(givenDevice())
+                .cur(List.of("USD"))
+                .build();
+    }
+
     protected BidRequest givenBidRequestWithUserData(List<Data> data) {
         return BidRequest.builder()
                 .user(givenUserWithData(data))
@@ -253,5 +261,9 @@ public abstract class BaseOptableTest {
 
     protected Query givenQuery() {
         return Query.of("?que", "ry");
+    }
+
+    protected ObjectNode givenAccountConfig(String key, String tenant, String origin, boolean cacheEnabled) {
+        return mapper.valueToTree(givenOptableTargetingProperties(key, tenant, origin, cacheEnabled));
     }
 }

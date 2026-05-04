@@ -1,11 +1,16 @@
 package org.prebid.server.hooks.modules.optable.targeting.v1.core;
 
+import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Regs;
+import com.iab.openrtb.request.User;
 import org.apache.commons.collections4.SetUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.gpp.model.GppContext;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.hooks.modules.optable.targeting.model.OptableAttributes;
-import org.prebid.server.privacy.gdpr.model.TcfContext;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,18 +22,33 @@ public class OptableAttributesResolver {
     }
 
     public static OptableAttributes resolveAttributes(AuctionContext auctionContext, Long timeout) {
-        final TcfContext tcfContext = auctionContext.getPrivacyContext().getTcfContext();
         final GppContext.Scope gppScope = auctionContext.getGppContext().scope();
+
+        final BidRequest bidRequest = auctionContext.getBidRequest();
+        final Optional<Regs> regs = Optional.ofNullable(bidRequest.getRegs());
+        final Integer gdpr = regs
+                .map(Regs::getGdpr)
+                .orElseGet(() -> regs.map(Regs::getExt)
+                        .map(ExtRegs::getGdpr)
+                        .orElse(null));
 
         final OptableAttributes.OptableAttributesBuilder builder = OptableAttributes.builder()
                 .ips(resolveIp(auctionContext))
                 .userAgent(resolveUserAgent(auctionContext))
                 .timeout(timeout);
 
-        if (tcfContext.isConsentValid()) {
-            builder
-                    .gdprApplies(tcfContext.isInGdprScope())
-                    .gdprConsent(tcfContext.getConsentString());
+        if (gdpr != null && gdpr > 0) {
+            final Optional<User> user = Optional.ofNullable(bidRequest.getUser());
+            final String consent = user.map(User::getConsent)
+                    .orElseGet(() -> user.map(User::getExt)
+                    .map(ExtUser::getConsent)
+                    .orElse(null));
+
+            if (StringUtils.isNotEmpty(consent)) {
+                builder
+                        .gdprApplies(true)
+                        .gdprConsent(consent);
+            }
         }
 
         if (gppScope.getGppModel() != null) {

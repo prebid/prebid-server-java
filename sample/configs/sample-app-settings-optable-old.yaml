@@ -31,19 +31,6 @@ accounts:
           "endpoints": {
             "/openrtb2/auction": {
               "stages": {
-                "raw-auction-request": {
-                  "groups": [
-                    {
-                      "timeout": 1000,
-                      "hook-sequence": [
-                        {
-                          "module-code": "optable-targeting",
-                          "hook-impl-code": "optable-targeting-raw-auction-request-hook"
-                        }
-                      ]
-                    }
-                  ]
-                },
                 "processed-auction-request": {
                   "groups": [
                     {

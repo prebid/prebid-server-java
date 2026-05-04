@@ -1,31 +1,16 @@
 package org.prebid.server.hooks.modules.optable.targeting.v1;
 
-import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Device;
-import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
-import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.activity.Activity;
-import org.prebid.server.activity.ComponentType;
-import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
-import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
-import org.prebid.server.activity.infrastructure.payload.impl.ActivityInvocationPayloadImpl;
-import org.prebid.server.activity.infrastructure.payload.impl.BidRequestActivityInvocationPayload;
-import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
-import org.prebid.server.execution.timeout.Timeout;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.modules.optable.targeting.model.EnrichmentStatus;
 import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
-import org.prebid.server.hooks.modules.optable.targeting.model.OptableAttributes;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.AnalyticTagsResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidRequestCleaner;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidRequestEnricher;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableAttributesResolver;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargeting;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.NetworkCall;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
@@ -41,23 +26,22 @@ import java.util.Objects;
 public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuctionRequestHook {
 
     private static final ConditionalLogger conditionalLogger = new ConditionalLogger(
-            LoggerFactory.getLogger(OptableTargetingProcessedAuctionRequestHook.class));
+            LoggerFactory.getLogger(OptableRawAuctionRequestHook.class));
 
     public static final String CODE = "optable-targeting-processed-auction-request-hook";
 
+    private static final String AUCTION_NOT_PROPERLY_CONFIGURED =
+            "Account not properly configured: tenant and/or origin is missing.";
+
     private final ConfigResolver configResolver;
-    private final OptableTargeting optableTargeting;
-    private final UserFpdActivityMask userFpdActivityMask;
+    private final NetworkCall networkCall;
     private final double logSamplingRate;
 
     public OptableTargetingProcessedAuctionRequestHook(ConfigResolver configResolver,
-                                                       OptableTargeting optableTargeting,
-                                                       UserFpdActivityMask userFpdActivityMask,
+                                                       NetworkCall networkCall,
                                                        double logSamplingRate) {
-
         this.configResolver = Objects.requireNonNull(configResolver);
-        this.optableTargeting = Objects.requireNonNull(optableTargeting);
-        this.userFpdActivityMask = Objects.requireNonNull(userFpdActivityMask);
+        this.networkCall = Objects.requireNonNull(networkCall);
         this.logSamplingRate = logSamplingRate;
     }
 
@@ -66,80 +50,51 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
                                                                 AuctionInvocationContext invocationContext) {
 
         final OptableTargetingProperties properties = configResolver.resolve(invocationContext.accountConfig());
-        final ModuleContext moduleContext = new ModuleContext();
-        final long callTargetingAPITimestamp = System.currentTimeMillis();
+        final ModuleContext moduleContext = ModuleContext.of(invocationContext);
 
-        if (!isTargetingPropertiesValid(properties)) {
-            conditionalLogger.error(
-                    "Account not properly configured: tenant and/or origin is missing.", logSamplingRate);
+        final Future<TargetingResult> optableTargetingCall = moduleContext.isEarlyNetworkCallEnabled()
+                ? moduleContext.getOptableTargetingCall()
+                : makeOptableTargetingCall(auctionRequestPayload, invocationContext, moduleContext, properties);
 
-            moduleContext.setOptableTargetingExecutionTime(System.currentTimeMillis() - callTargetingAPITimestamp);
-            moduleContext.setEnrichRequestStatus(EnrichmentStatus.failure());
+        if (optableTargetingCall == null) {
+            moduleContext.failWithExecutionTime(
+                    System.currentTimeMillis() - moduleContext.getCallTargetingAPITimestamp());
             return update(BidRequestCleaner.instance(), moduleContext);
         }
 
-        final BidRequest bidRequest = applyActivityRestrictions(auctionRequestPayload.bidRequest(), invocationContext);
-
-        final Timeout timeout = getHookTimeout(invocationContext);
-        final OptableAttributes attributes = OptableAttributesResolver.resolveAttributes(
-                invocationContext.auctionContext(),
-                properties.getTimeout());
-
-        return optableTargeting.getTargeting(properties, bidRequest, attributes, timeout)
+        final Future<InvocationResult<AuctionRequestPayload>> future = optableTargetingCall
                 .compose(targetingResult -> {
                     moduleContext.setOptableTargetingExecutionTime(
-                            System.currentTimeMillis() - callTargetingAPITimestamp);
+                            System.currentTimeMillis() - moduleContext.getCallTargetingAPITimestamp());
                     return enrichedPayload(targetingResult, moduleContext, properties);
                 })
                 .recover(throwable -> {
-                    moduleContext.setOptableTargetingExecutionTime(
-                            System.currentTimeMillis() - callTargetingAPITimestamp);
-                    moduleContext.setEnrichRequestStatus(EnrichmentStatus.failure());
+                    moduleContext.failWithExecutionTime(
+                            System.currentTimeMillis() - moduleContext.getCallTargetingAPITimestamp());
                     return update(BidRequestCleaner.instance(), moduleContext);
                 });
+
+        return future;
     }
 
-    private boolean isTargetingPropertiesValid(OptableTargetingProperties properties) {
-        return !StringUtils.isEmpty(properties.getOrigin()) && !StringUtils.isEmpty(properties.getTenant());
-    }
+    private Future<TargetingResult> makeOptableTargetingCall(
+            AuctionRequestPayload payload,
+            AuctionInvocationContext invocationContext,
+            ModuleContext moduleContext,
+            OptableTargetingProperties properties) {
+        moduleContext.setCallTargetingAPITimestamp(System.currentTimeMillis());
+        if (!OptableHook.isTargetingPropertiesValid(properties)) {
+            conditionalLogger.error(AUCTION_NOT_PROPERLY_CONFIGURED, logSamplingRate);
 
-    private BidRequest applyActivityRestrictions(BidRequest bidRequest,
-                                                 AuctionInvocationContext auctionInvocationContext) {
+            moduleContext.failWithExecutionTime(
+                    System.currentTimeMillis() - moduleContext.getCallTargetingAPITimestamp());
+            return Future.failedFuture(AUCTION_NOT_PROPERLY_CONFIGURED);
+        }
 
-        final AuctionContext auctionContext = auctionInvocationContext.auctionContext();
-        final ActivityInvocationPayload activityInvocationPayload = BidRequestActivityInvocationPayload.of(
-                ActivityInvocationPayloadImpl.of(ComponentType.GENERAL_MODULE, OptableTargetingModule.CODE),
-                bidRequest);
-        final ActivityInfrastructure activityInfrastructure = auctionContext.getActivityInfrastructure();
-
-        final boolean disallowTransmitUfpd = !activityInfrastructure.isAllowed(
-                Activity.TRANSMIT_UFPD, activityInvocationPayload);
-        final boolean disallowTransmitEids = !activityInfrastructure.isAllowed(
-                Activity.TRANSMIT_EIDS, activityInvocationPayload);
-        final boolean disallowTransmitGeo = !activityInfrastructure.isAllowed(
-                Activity.TRANSMIT_GEO, activityInvocationPayload);
-
-        return maskUserPersonalInfo(bidRequest, disallowTransmitUfpd, disallowTransmitEids, disallowTransmitGeo);
-    }
-
-    private BidRequest maskUserPersonalInfo(BidRequest bidRequest,
-                                            boolean disallowTransmitUfpd,
-                                            boolean disallowTransmitEids,
-                                            boolean disallowTransmitGeo) {
-
-        final User maskedUser = userFpdActivityMask.maskUser(
-                bidRequest.getUser(), disallowTransmitUfpd, disallowTransmitEids);
-        final Device maskedDevice = userFpdActivityMask.maskDevice(
-                bidRequest.getDevice(), disallowTransmitUfpd, disallowTransmitGeo);
-
-        return bidRequest.toBuilder()
-                .user(maskedUser)
-                .device(maskedDevice)
-                .build();
-    }
-
-    private Timeout getHookTimeout(AuctionInvocationContext invocationContext) {
-        return invocationContext.timeout();
+        return networkCall.makeRequest(
+                payload,
+                invocationContext,
+                properties);
     }
 
     private Future<InvocationResult<AuctionRequestPayload>> enrichedPayload(TargetingResult targetingResult,

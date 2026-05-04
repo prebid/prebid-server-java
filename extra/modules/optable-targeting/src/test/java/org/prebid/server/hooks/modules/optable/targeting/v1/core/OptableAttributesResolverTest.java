@@ -2,6 +2,8 @@ package org.prebid.server.hooks.modules.optable.targeting.v1.core;
 
 import com.iab.gpp.encoder.GppModel;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Regs;
+import com.iab.openrtb.request.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,6 +17,8 @@ import org.prebid.server.hooks.modules.optable.targeting.v1.BaseOptableTest;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.privacy.model.PrivacyContext;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 
 import java.util.List;
 import java.util.Set;
@@ -42,15 +46,13 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
     }
 
     @Test
-    public void shouldResolveTcfAttributesWhenConsentIsValid() {
+    public void shouldResolveGdprAttributesForORTB26WhenConsentIsValid() {
         // given
         final GppModel gppModel = mock();
-        when(tcfContext.isConsentValid()).thenReturn(true);
-        when(tcfContext.isInGdprScope()).thenReturn(true);
-        when(tcfContext.getConsentString()).thenReturn("consent");
         when(gppModel.encode()).thenReturn("consent");
         when(gppContext.scope()).thenReturn(GppContext.Scope.of(gppModel, Set.of(1)));
-        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest(), tcfContext, gppContext);
+        final AuctionContext auctionContext =
+                givenAuctionContext(givenBidRequestWithGdprORTB26(true, "consent"), tcfContext, gppContext);
 
         // when
         final OptableAttributes result = OptableAttributesResolver.resolveAttributes(
@@ -60,6 +62,53 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
         assertThat(result).isNotNull()
                 .returns(true, OptableAttributes::isGdprApplies)
                 .returns("consent", OptableAttributes::getGdprConsent);
+    }
+
+    @Test
+    public void shouldResolveGdprAttributesForORTB25WhenConsentIsValid() {
+        // given
+        final GppModel gppModel = mock();
+        when(gppModel.encode()).thenReturn("consent");
+        when(gppContext.scope()).thenReturn(GppContext.Scope.of(gppModel, Set.of(1)));
+        final AuctionContext auctionContext =
+                givenAuctionContext(givenBidRequestWithGdprORTB25(true, "consent"), tcfContext, gppContext);
+
+        // when
+        final OptableAttributes result = OptableAttributesResolver.resolveAttributes(
+                auctionContext, properties.getTimeout());
+
+        // then
+        assertThat(result).isNotNull()
+                .returns(true, OptableAttributes::isGdprApplies)
+                .returns("consent", OptableAttributes::getGdprConsent);
+    }
+
+    private BidRequest givenBidRequestWithGdprORTB26(boolean isGdprEnabled, String consent) {
+        final User user = User.builder()
+                .consent(consent)
+                .build();
+
+        return BidRequest.builder()
+                .user(user)
+                .regs(Regs.builder()
+                        .gdpr(isGdprEnabled ? 1 : 0)
+                        .build())
+                .build();
+    }
+
+    private BidRequest givenBidRequestWithGdprORTB25(boolean isGdprEnabled, String consent) {
+        final User user = User.builder()
+                .ext(ExtUser.builder()
+                        .consent(consent)
+                        .build())
+                .build();
+
+        return BidRequest.builder()
+                .user(user)
+                .regs(Regs.builder()
+                        .ext(ExtRegs.of(isGdprEnabled ? 1 : 0, null, null, null))
+                        .build())
+                .build();
     }
 
     @Test

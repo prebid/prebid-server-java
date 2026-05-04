@@ -1,0 +1,87 @@
+package org.prebid.server.hooks.modules.optable.targeting.v1;
+
+import io.vertx.core.Future;
+import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
+import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
+import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
+import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.AnalyticTagsResolver;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidRequestCleaner;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.NetworkCall;
+import org.prebid.server.hooks.v1.InvocationAction;
+import org.prebid.server.hooks.v1.InvocationResult;
+import org.prebid.server.hooks.v1.InvocationStatus;
+import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
+import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
+import org.prebid.server.hooks.v1.auction.RawAuctionRequestHook;
+import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.log.LoggerFactory;
+
+import java.util.Objects;
+
+public class OptableRawAuctionRequestHook implements RawAuctionRequestHook {
+
+    private static final ConditionalLogger conditionalLogger = new ConditionalLogger(
+            LoggerFactory.getLogger(OptableRawAuctionRequestHook.class));
+
+    private static final String CODE = "optable-targeting-raw-auction-request-hook";
+
+    private final ConfigResolver configResolver;
+    private final NetworkCall networkCall;
+    private final double logSamplingRate;
+
+    public OptableRawAuctionRequestHook(ConfigResolver configResolver,
+                                        NetworkCall networkCall,
+                                        double logSamplingRate) {
+
+        this.configResolver = Objects.requireNonNull(configResolver);
+        this.networkCall = Objects.requireNonNull(networkCall);
+        this.logSamplingRate = logSamplingRate;
+    }
+
+    @Override
+    public Future<InvocationResult<AuctionRequestPayload>> call(AuctionRequestPayload payload,
+                                                                AuctionInvocationContext invocationContext) {
+
+        final OptableTargetingProperties properties = configResolver.resolve(invocationContext.accountConfig());
+        final ModuleContext moduleContext = new ModuleContext();
+        moduleContext.setEarlyNetworkCallEnabled(true);
+        moduleContext.setCallTargetingAPITimestamp(System.currentTimeMillis());
+
+        if (!OptableHook.isTargetingPropertiesValid(properties)) {
+            conditionalLogger.error(
+                    "Account not properly configured: tenant and/or origin is missing.", logSamplingRate);
+
+            moduleContext.failWithExecutionTime(
+                    System.currentTimeMillis() - moduleContext.getCallTargetingAPITimestamp());
+
+            return OptableHook.update(BidRequestCleaner.instance(), moduleContext);
+        }
+
+        final Future<TargetingResult> optableTargetingCall = networkCall.makeRequest(
+                payload,
+                invocationContext,
+                properties);
+
+        moduleContext.setOptableTargetingCall(optableTargetingCall);
+
+        return updateModuleContext(moduleContext);
+    }
+
+    private static Future<InvocationResult<AuctionRequestPayload>> updateModuleContext(ModuleContext moduleContext) {
+
+        return Future.succeededFuture(
+                InvocationResultImpl.<AuctionRequestPayload>builder()
+                        .status(InvocationStatus.success)
+                        .action(InvocationAction.no_action)
+                        .analyticsTags(AnalyticTagsResolver.toEnrichRequestAnalyticTags(moduleContext))
+                        .moduleContext(moduleContext)
+                        .build());
+    }
+
+    @Override
+    public String code() {
+        return CODE;
+    }
+}

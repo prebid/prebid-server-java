@@ -4,12 +4,14 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
 import org.prebid.server.cache.PbcStorageService;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
+import org.prebid.server.hooks.modules.optable.targeting.v1.OptableRawAuctionRequestHook;
 import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingAuctionResponseHook;
 import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingModule;
 import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingProcessedAuctionRequestHook;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.Cache;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.IdsMapper;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.NetworkCall;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargeting;
 import org.prebid.server.hooks.modules.optable.targeting.v1.net.APIClientImpl;
 import org.prebid.server.hooks.modules.optable.targeting.v1.net.CachedAPIClient;
@@ -87,17 +89,24 @@ public class OptableTargetingConfig {
     }
 
     @Bean
+    NetworkCall networkCall(OptableTargeting optableTargeting, UserFpdActivityMask userFpdActivityMask) {
+        return new NetworkCall(optableTargeting, userFpdActivityMask);
+    }
+
+    @Bean
     OptableTargetingModule optableTargetingModule(ConfigResolver configResolver,
-                                                  OptableTargeting optableTargeting,
-                                                  UserFpdActivityMask userFpdActivityMask,
+                                                  NetworkCall networkCall,
                                                   JsonMerger jsonMerger,
                                                   @Value("${logging.sampling-rate:0.01}") double logSamplingRate) {
 
         return new OptableTargetingModule(List.of(
+                new OptableRawAuctionRequestHook(
+                        configResolver,
+                        networkCall,
+                        logSamplingRate),
                 new OptableTargetingProcessedAuctionRequestHook(
                         configResolver,
-                        optableTargeting,
-                        userFpdActivityMask,
+                        networkCall,
                         logSamplingRate),
                 new OptableTargetingAuctionResponseHook(
                         configResolver,
