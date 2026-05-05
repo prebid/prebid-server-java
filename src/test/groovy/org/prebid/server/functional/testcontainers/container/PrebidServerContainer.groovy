@@ -37,6 +37,7 @@ class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
         def commonConfig = [:] << DEFAULT_ENV
                 << PbsConfig.defaultBiddersConfig
                 << PbsConfig.metricConfig
+                << PbsConfig.tracelogConfig
                 << PbsConfig.adminEndpointConfig
                 << PbsConfig.bidderConfig
                 << PbsConfig.bidderAliasConfig
