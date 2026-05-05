@@ -591,7 +591,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
     def "PBS cookie sync call when privacy module contain invalid GPP string should respond with required bidder URL and emit warning in response"() {
         given: "Cookie sync request with link to account"
         def accountId = PBSUtils.randomString
-        def invalidGpp = PBSUtils.randomString
+        def invalidGpp = invalidGppString
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             it.gppSid = US_NAT_V1.value
             it.account = accountId

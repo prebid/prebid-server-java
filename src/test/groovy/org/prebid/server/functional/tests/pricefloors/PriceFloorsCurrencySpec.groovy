@@ -167,8 +167,8 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
 
     def "PBS should not update bidFloor, bidFloorCur for signalling when currency conversion is not available"() {
         given: "Pbs config with disabled conversion"
-        def pbsService = pbsServiceFactory.getService(FLOORS_CONFIG +
-                ["currency-converter.external-rates.enabled": "false"])
+        def pbsConfig = FLOORS_CONFIG + ["currency-converter.external-rates.enabled": "false"]
+        def pbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "BidRequest with floorMinCur"
         def requestFloorCur = USD
@@ -231,6 +231,9 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
             ext?.prebid?.floors?.location == FETCH
             ext?.prebid?.floors?.fetchStatus == SUCCESS
         }
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS should forward bidFloor and bidFloorCur for signalling when they come in the bid request"() {
