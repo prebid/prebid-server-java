@@ -525,7 +525,7 @@ public class AmpRequestFactory {
      */
     private BidRequest overrideParameters(BidRequest bidRequest, HttpRequestContext httpRequest, List<String> errors) {
         final String requestTargeting = httpRequest.getQueryParams().get(TARGETING_REQUEST_PARAM);
-        final ObjectNode targetingNode = readTargeting(requestTargeting);
+        final ObjectNode targetingNode = readTargeting(requestTargeting, mapper);
         final String referer = implicitParametersExtractor.refererFrom(httpRequest);
         ortbTypesResolver.normalizeTargeting(targetingNode, errors, referer);
 
@@ -542,7 +542,7 @@ public class AmpRequestFactory {
         return bidRequest;
     }
 
-    private ObjectNode readTargeting(String jsonTargeting) {
+    public static ObjectNode readTargeting(String jsonTargeting, JacksonMapper mapper) {
         try {
             final String decodedJsonTargeting = HttpUtil.decodeUrl(jsonTargeting);
             final JsonNode jsonNodeTargeting = decodedJsonTargeting != null
@@ -554,7 +554,7 @@ public class AmpRequestFactory {
         }
     }
 
-    private ObjectNode validateAndGetTargeting(JsonNode jsonNodeTargeting) {
+    private static ObjectNode validateAndGetTargeting(JsonNode jsonNodeTargeting) {
         if (jsonNodeTargeting.isObject()) {
             return (ObjectNode) jsonNodeTargeting;
         } else {

@@ -247,7 +247,7 @@ public class OrtbDeviceUpdater implements PayloadUpdate<AuctionRequestPayload> {
     }
 
     private ExtDevice copyExtDevice(ExtDevice original) {
-        final ExtDevice copy = ExtDevice.of(original.getAtts(), original.getPrebid());
+        final ExtDevice copy = ExtDevice.of(original.getAtts(), original.getIfaType(), original.getPrebid());
         mapper.fillExtension(copy, original);
         return copy;
     }
