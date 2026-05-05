@@ -28,6 +28,7 @@
         <module>wurfl-devicedetection</module>
         <module>live-intent-omni-channel-identity</module>
         <module>pb-rule-engine</module>
+        <module>id5-user-id</module>
     </modules>
 
     <dependencyManagement>
