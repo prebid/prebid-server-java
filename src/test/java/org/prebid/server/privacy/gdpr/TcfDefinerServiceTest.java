@@ -45,6 +45,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -55,6 +56,8 @@ public class TcfDefinerServiceTest {
 
     private static final String EEA_COUNTRY = "ua";
 
+    @Mock(strictness = LENIENT)
+    private DisclosedVendorsStrictness disclosedVendorsStrictness;
     @Mock
     private Tcf2Service tcf2Service;
     @Mock
@@ -70,6 +73,8 @@ public class TcfDefinerServiceTest {
 
     @BeforeEach
     public void setUp() {
+        given(disclosedVendorsStrictness.isValid(any())).willReturn(true);
+
         final GdprConfig gdprConfig = GdprConfig.builder()
                 .defaultValue("1")
                 .enabled(true)
@@ -81,6 +86,7 @@ public class TcfDefinerServiceTest {
         target = new TcfDefinerService(
                 gdprConfig,
                 singleton(EEA_COUNTRY),
+                disclosedVendorsStrictness,
                 tcf2Service,
                 geoLocationServiceWrapper,
                 bidderCatalog,
@@ -96,6 +102,7 @@ public class TcfDefinerServiceTest {
         target = new TcfDefinerService(
                 gdprConfig,
                 singleton(EEA_COUNTRY),
+                disclosedVendorsStrictness,
                 tcf2Service,
                 geoLocationServiceWrapper,
                 bidderCatalog,
@@ -175,6 +182,7 @@ public class TcfDefinerServiceTest {
         target = new TcfDefinerService(
                 gdprConfig,
                 singleton(EEA_COUNTRY),
+                disclosedVendorsStrictness,
                 tcf2Service,
                 geoLocationServiceWrapper,
                 bidderCatalog,
@@ -208,6 +216,7 @@ public class TcfDefinerServiceTest {
         target = new TcfDefinerService(
                 gdprConfig,
                 singleton(EEA_COUNTRY),
+                disclosedVendorsStrictness,
                 tcf2Service,
                 geoLocationServiceWrapper,
                 bidderCatalog,
@@ -241,6 +250,7 @@ public class TcfDefinerServiceTest {
         target = new TcfDefinerService(
                 gdprConfig,
                 singleton(EEA_COUNTRY),
+                disclosedVendorsStrictness,
                 tcf2Service,
                 geoLocationServiceWrapper,
                 bidderCatalog,
@@ -285,6 +295,7 @@ public class TcfDefinerServiceTest {
         target = new TcfDefinerService(
                 gdprConfig,
                 singleton(EEA_COUNTRY),
+                disclosedVendorsStrictness,
                 tcf2Service,
                 geoLocationServiceWrapper,
                 bidderCatalog,
@@ -327,6 +338,7 @@ public class TcfDefinerServiceTest {
         target = new TcfDefinerService(
                 gdprConfig,
                 singleton(EEA_COUNTRY),
+                disclosedVendorsStrictness,
                 tcf2Service,
                 geoLocationServiceWrapper,
                 bidderCatalog,
@@ -447,6 +459,7 @@ public class TcfDefinerServiceTest {
         target = new TcfDefinerService(
                 gdprConfig,
                 singleton(EEA_COUNTRY),
+                disclosedVendorsStrictness,
                 tcf2Service,
                 geoLocationServiceWrapper,
                 bidderCatalog,
@@ -478,6 +491,7 @@ public class TcfDefinerServiceTest {
                 .gdpr("1")
                 .consentString("CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA")
                 .build();
+
         // when
         final Future<TcfContext> result = target.resolveTcfContext(
                 privacy, null, null, MetricName.setuid, null, null);
@@ -532,6 +546,32 @@ public class TcfDefinerServiceTest {
 
         // then
         verify(metrics).updatePrivacyTcfInvalidMetric();
+    }
+
+    @Test
+    public void resolveTcfContextShouldIncrementInvalidConsentStringMetricWhenDisclosedVendorsIsInvalid() {
+        // given
+        given(disclosedVendorsStrictness.isValid(any())).willReturn(false);
+
+        final Privacy privacy = Privacy.builder()
+                .gdpr("1")
+                .consentString("CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA")
+                .build();
+
+        // when
+        final Future<TcfContext> result = target.resolveTcfContext(
+                privacy, null, null, MetricName.setuid, null, null);
+
+        // then
+        assertThat(result).isSucceeded();
+        assertThat(result.result()).satisfies(context -> {
+            assertThat(context.isInGdprScope()).isTrue();
+            assertThat(context.getConsentString()).isEqualTo("CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA");
+            assertThat(context.isConsentValid()).isFalse();
+            assertThat(context.getWarnings()).containsExactly("Invalid TCF string: `disclosedVendors` list is empty.");
+        });
+
+        verify(metrics).updatePrivacyTcfNoDisclosedVendorsMetric();
     }
 
     @Test
@@ -645,19 +685,27 @@ public class TcfDefinerServiceTest {
     @Test
     public void isConsentStringValidShouldReturnTrueWhenStringIsValid() {
         // when and then
-        assertThat(TcfDefinerService.isConsentStringValid("CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA"))
-                .isTrue();
+        assertThat(target.isConsentStringValid("CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA")).isTrue();
     }
 
     @Test
     public void isConsentStringValidShouldReturnFalseWhenStringIsNull() {
         // when and then
-        assertThat(TcfDefinerService.isConsentStringValid(null)).isFalse();
+        assertThat(target.isConsentStringValid(null)).isFalse();
     }
 
     @Test
     public void isConsentStringValidShouldReturnFalseWhenStringNotValid() {
         // when and then
-        assertThat(TcfDefinerService.isConsentStringValid("invalid")).isFalse();
+        assertThat(target.isConsentStringValid("invalid")).isFalse();
+    }
+
+    @Test
+    public void isConsentStringValidShouldReturnFalseWhenDisclosedVendorsIsInvalid() {
+        // given
+        given(disclosedVendorsStrictness.isValid(any())).willReturn(false);
+
+        // when and then
+        assertThat(target.isConsentStringValid("CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA")).isFalse();
     }
 }

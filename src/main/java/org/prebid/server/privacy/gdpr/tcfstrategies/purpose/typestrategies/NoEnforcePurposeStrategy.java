@@ -1,6 +1,7 @@
 package org.prebid.server.privacy.gdpr.tcfstrategies.purpose.typestrategies;
 
 import com.iabtcf.decoder.TCString;
+import com.iabtcf.utils.BitSetIntIterable;
 import com.iabtcf.utils.IntIterable;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.privacy.gdpr.model.VendorPermissionWithGvl;
@@ -18,7 +19,9 @@ public class NoEnforcePurposeStrategy extends EnforcePurposeStrategy {
                                                           boolean isEnforceVendors) {
 
         final IntIterable vendorConsent = tcString.getVendorConsent();
-        final IntIterable vendorLIConsent = tcString.getVendorLegitimateInterest();
+        final IntIterable vendorLIConsent = LI_SUPPORTED_PURPOSES.contains(purpose)
+                ? tcString.getVendorLegitimateInterest()
+                : BitSetIntIterable.EMPTY;
 
         final Stream<VendorPermission> allowedVendorPermissions = toVendorPermissions(vendorsForPurpose)
                 .filter(vendorPermission -> vendorPermission.getVendorId() != null)

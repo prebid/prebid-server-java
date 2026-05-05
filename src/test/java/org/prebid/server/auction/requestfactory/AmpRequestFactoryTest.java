@@ -44,6 +44,7 @@ import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.privacy.ccpa.Ccpa;
+import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.privacy.model.PrivacyContext;
@@ -123,6 +124,8 @@ public class AmpRequestFactoryTest extends VertxTest {
     private DebugResolver debugResolver;
     @Mock(strictness = LENIENT)
     private GeoLocationServiceWrapper geoLocationServiceWrapper;
+    @Mock(strictness = LENIENT)
+    private TcfDefinerService tcfDefinerService;
 
     private AmpRequestFactory target;
 
@@ -207,7 +210,8 @@ public class AmpRequestFactoryTest extends VertxTest {
                 ampPrivacyContextFactory,
                 debugResolver,
                 jacksonMapper,
-                geoLocationServiceWrapper);
+                geoLocationServiceWrapper,
+                tcfDefinerService);
     }
 
     @Test
@@ -1244,6 +1248,7 @@ public class AmpRequestFactoryTest extends VertxTest {
     public void shouldReturnBidRequestWithUserExtConsentWhenGdprConsentIsValidAndConsentTypeIsNotPresent() {
         // given
         routingContext.queryParams().add("gdpr_consent", "BONV8oqONXwgmADACHENAO7pqzAAppY");
+        given(tcfDefinerService.isConsentStringValid(any())).willReturn(true);
 
         givenBidRequest();
 

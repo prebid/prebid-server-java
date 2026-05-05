@@ -104,6 +104,7 @@ public enum MetricName {
     specified,
     opt_out("opt-out"),
     invalid,
+    no_disclosed_vendors("no-disclosed-vendors"),
     in_geo("in-geo"),
     out_geo("out-geo"),
     unknown_geo("unknown-geo"),
