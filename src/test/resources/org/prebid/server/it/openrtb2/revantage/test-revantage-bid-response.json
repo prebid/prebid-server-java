@@ -1,0 +1,21 @@
+{
+  "id": "request_id",
+  "cur": "USD",
+  "seatbid": [
+    {
+      "seat": "revantage",
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "price": 1.50,
+          "adm": "<div>Revantage Ad</div>",
+          "crid": "creative_1",
+          "w": 300,
+          "h": 250,
+          "mtype": 1
+        }
+      ]
+    }
+  ]
+}
