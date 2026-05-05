@@ -7,6 +7,7 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -37,6 +38,7 @@ public class SeedtagBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
     private static final String BIDDER_CURRENCY = "USD";
+    private static final String INTEGRATION_TYPE_RON_ID = "ronId";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -58,8 +60,8 @@ public class SeedtagBidder implements Bidder<BidRequest> {
 
         for (Imp imp : request.getImp()) {
             try {
+                validateImpExt(imp);
                 final Price bidFloorPrice = resolveBidFloor(imp, request);
-
                 modifiedImps.add(modifyImp(imp, bidFloorPrice));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
@@ -77,6 +79,29 @@ public class SeedtagBidder implements Bidder<BidRequest> {
         return Result.of(
                 Collections.singletonList(BidderUtil.defaultRequest(modifiedBidRequest, endpointUrl, mapper)),
                 errors);
+    }
+
+    private void validateImpExt(Imp imp) {
+        final ExtImpSeedtag ext;
+        try {
+            ext = mapper.mapper().convertValue(imp.getExt(), SEEDTAG_EXT_TYPE_REFERENCE).getBidder();
+        } catch (Exception e) {
+            throw new PreBidException("Invalid imp.ext.bidder for imp id: %s".formatted(imp.getId()));
+        }
+
+        if (INTEGRATION_TYPE_RON_ID.equals(ext.getIntegrationType())) {
+            if (StringUtils.isBlank(ext.getPublisherId())) {
+                throw new PreBidException(
+                        "imp id %s: publisherId is required when integrationType is '%s'"
+                                .formatted(imp.getId(), INTEGRATION_TYPE_RON_ID));
+            }
+        } else {
+            if (StringUtils.isBlank(ext.getAdUnitId())) {
+                throw new PreBidException(
+                        "imp id %s: adUnitId is required when integrationType is not '%s'"
+                                .formatted(imp.getId(), INTEGRATION_TYPE_RON_ID));
+            }
+        }
     }
 
     private static Imp modifyImp(Imp imp, Price bidFloorPrice) {
