@@ -256,6 +256,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
 
         final Eid apiResponseEid = Eid.builder()
                 .source("liveintent.com")
+                .matcher("liveintent.com")
                 .uids(singletonList(Uid.builder().id("id2").atype(3).build()))
                 .build();
 
@@ -278,14 +279,24 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
         // then
         assertThat(result.status()).isEqualTo(InvocationStatus.success);
         assertThat(result.action()).isEqualTo(InvocationAction.update);
-        assertThat(result.payloadUpdate().apply(AuctionRequestPayloadImpl.of(givenBidRequest)))
+
+        final AuctionRequestPayload updatedPayload =
+                result.payloadUpdate().apply(AuctionRequestPayloadImpl.of(givenBidRequest));
+
+        assertThat(updatedPayload)
                 .extracting(AuctionRequestPayload::bidRequest)
                 .extracting(BidRequest::getUser)
                 .extracting(User::getEids)
                 .isEqualTo(List.of(givenEid, apiResponseEid.toBuilder()
                         .inserter("s2s.liveintent.com")
-                        .matcher("liveintent.com")
                         .build()));
+
+        assertThat(updatedPayload)
+                .extracting(AuctionRequestPayload::bidRequest)
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getData)
+                .isEqualTo(ExtRequestPrebidData.of(null, List.of(defaultPermissions)));
 
         verify(httpClient).post(
                 eq("https://test.com/idres"),
