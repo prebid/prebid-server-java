@@ -1,0 +1,21 @@
+adapters:
+  hypelab:
+    endpoint: https://api.hypelab.com/v1/rtb_requests
+    ortb-version: "2.6"
+    aliases:
+      hype: ~
+    meta-info:
+      maintainer-email: sdk@hypelab.com
+      app-media-types: []
+      site-media-types:
+        - banner
+        - native
+        - video
+      supported-vendors:
+      vendor-id: 0
+    usersync:
+      cookie-family-name: hypelab
+      redirect:
+        url: https://api.hypelab.com/v1/i?redirect_url={{redirect_url}}&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}
+        support-cors: false
+        uid-macro: '$UID'
