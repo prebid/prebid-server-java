@@ -10,7 +10,6 @@ import io.vertx.core.MultiMap;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.collections4.SetUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
@@ -50,7 +49,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.stream.Collectors;
 
 public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements ProcessedAuctionRequestHook {
 
@@ -60,6 +58,9 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
     private static final String CODE = "liveintent-omni-channel-identity-enrichment-hook";
 
     private static final String INSERTER = "s2s.liveintent.com";
+
+    // IdResResponse is already stamped by Ulysses, in the EID's matcher field, it has "liveintent.com"
+    private static final String MATCHER = "liveintent.com";
 
     private final LiveIntentOmniChannelProperties config;
     private final JacksonMapper mapper;
@@ -216,19 +217,19 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
     }
 
     private ExtRequest updateExtRequest(ExtRequest ext, List<Eid> resolvedEids) {
-        final Set<String> uniqueSources = CollectionUtils.emptyIfNull(resolvedEids).stream()
-                .map(Eid::getSource)
-                .filter(StringUtils::isNotEmpty)
-                .collect(Collectors.toSet());
+                if (CollectionUtils.isEmpty(resolvedEids)) {
+                        return ext;
+                }
 
         final ExtRequestPrebid extPrebid = ext != null ? ext.getPrebid() : null;
         final ExtRequestPrebidData extPrebidData = extPrebid != null ? extPrebid.getData() : null;
         final List<ExtRequestPrebidDataEidPermissions> eidPermissions =
                 extPrebidData != null ? extPrebidData.getEidPermissions() : null;
 
-        final List<ExtRequestPrebidDataEidPermissions> modifiedEidPermissions = CollectionUtils.isEmpty(eidPermissions)
-                ? createEidPermissions(uniqueSources)
-                : modifyEidPermissions(eidPermissions, uniqueSources);
+        final List<ExtRequestPrebidDataEidPermissions> modifiedEidPermissions = CollectionUtils
+                .isEmpty(eidPermissions)
+                ? createEidPermissions()
+                : modifyEidPermissions(eidPermissions);
 
         final ExtRequestPrebid updatedExtPrebid = Optional.ofNullable(extPrebid)
                 .map(ExtRequestPrebid::toBuilder)
@@ -257,24 +258,21 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
                 .build();
     }
 
-    private List<ExtRequestPrebidDataEidPermissions> createEidPermissions(Set<String> sources) {
-        return sources.stream()
-                .map(source -> ExtRequestPrebidDataEidPermissions.builder()
-                        .source(source)
-                        .inserter(INSERTER)
-                        .bidders(targetBidders.stream().toList())
-                        .build())
-                .toList();
+    private List<ExtRequestPrebidDataEidPermissions> createEidPermissions() {
+        return List.of(ExtRequestPrebidDataEidPermissions.builder()
+                                .matcher(MATCHER)
+                                .inserter(INSERTER)
+                                .bidders(targetBidders.stream().toList())
+                                .build());
     }
 
     private List<ExtRequestPrebidDataEidPermissions> modifyEidPermissions(
-            List<ExtRequestPrebidDataEidPermissions> eidPermissions,
-            Set<String> sources) {
+            List<ExtRequestPrebidDataEidPermissions> eidPermissions) {
         final List<ExtRequestPrebidDataEidPermissions> modifiedEidPermissions = eidPermissions.stream()
-                .map(it -> updateEidPermission(it, sources))
-                .filter(Objects::nonNull)
-                .toList();
-        final List<ExtRequestPrebidDataEidPermissions> defaultEidPermissions = createEidPermissions(sources);
+                                .map(this::updateEidPermission)
+                                .filter(Objects::nonNull)
+                                .toList();
+        final List<ExtRequestPrebidDataEidPermissions> defaultEidPermissions = createEidPermissions();
         return ListUtils.union(modifiedEidPermissions, defaultEidPermissions);
     }
 
@@ -286,10 +284,9 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
         return ExtRequestPrebidData.of(originalBidders, eidPermissions);
     }
 
-    private ExtRequestPrebidDataEidPermissions updateEidPermission(ExtRequestPrebidDataEidPermissions eidPermission,
-                                                                   Set<String> sources) {
-        if (!sources.contains(eidPermission.getSource()) || !INSERTER.equals(eidPermission.getInserter())) {
-            return eidPermission;
+    private ExtRequestPrebidDataEidPermissions updateEidPermission(ExtRequestPrebidDataEidPermissions eidPermission) {
+        if (!MATCHER.equals(eidPermission.getMatcher()) || !INSERTER.equals(eidPermission.getInserter())) {
+                        return eidPermission;
         }
 
         final List<String> allowedBidders = ListUtils.emptyIfNull(eidPermission.getBidders());
