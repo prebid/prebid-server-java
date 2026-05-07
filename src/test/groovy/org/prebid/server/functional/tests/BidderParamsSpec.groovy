@@ -1348,8 +1348,8 @@ class BidderParamsSpec extends BaseSpec {
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].ext.prebid.bidder.tap {
                 it.generic.exampleProperty = PBSUtils.randomNumber
-                //Nativo hard coded bidder alias in generic.yaml
-                it.nativo = new Generic(exampleProperty: PBSUtils.randomNumber)
+                //Adrino hard coded bidder alias in generic.yaml
+                it.adrino = new Adrino(hash: PBSUtils.randomNumber)
             }
         }
 
@@ -1362,9 +1362,9 @@ class BidderParamsSpec extends BaseSpec {
                 ["WARNING: request.imp[0].ext.prebid.bidder.generic was dropped with a reason: " +
                          "request.imp[0].ext.prebid.bidder.generic failed validation.\n" +
                          "\$.exampleProperty: integer found, string expected",
-                 "WARNING: request.imp[0].ext.prebid.bidder.nativo was dropped with a reason: " +
-                         "request.imp[0].ext.prebid.bidder.nativo failed validation.\n" +
-                         "\$.exampleProperty: integer found, string expected",
+                 "WARNING: request.imp[0].ext.prebid.bidder.adrino was dropped with a reason: " +
+                         "request.imp[0].ext.prebid.bidder.adrino failed validation.\n" +
+                         "\$.hash: integer found, string expected",
                  "WARNING: request.imp[0].ext must contain at least one valid bidder"]
 
         and: "PBS should not call bidder"

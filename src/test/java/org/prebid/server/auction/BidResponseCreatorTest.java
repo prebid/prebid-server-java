@@ -43,9 +43,9 @@ import org.prebid.server.auction.model.BidRequestCacheInfo;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.CachedDebugLog;
 import org.prebid.server.auction.model.CategoryMappingResult;
+import org.prebid.server.auction.model.ImpRejection;
 import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.PaaFormat;
-import org.prebid.server.auction.model.ImpRejection;
 import org.prebid.server.auction.model.TargetingInfo;
 import org.prebid.server.auction.model.TimeoutContext;
 import org.prebid.server.auction.model.debug.DebugContext;
@@ -163,6 +163,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.prebid.server.auction.model.BidRejectionReason.NO_BID;
 import static org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAdservertargetingRule.Source.xStatic;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.audio;
@@ -2719,6 +2720,8 @@ public class BidResponseCreatorTest extends VertxTest {
                 .flatExtracting(SeatBid::getBid)
                 .extracting(responseBid -> toExtBidPrebid(responseBid.getExt()).getEvents())
                 .containsNull();
+
+        verifyNoInteractions(eventsService);
     }
 
     @Test
@@ -2753,6 +2756,47 @@ public class BidResponseCreatorTest extends VertxTest {
                 .flatExtracting(SeatBid::getBid)
                 .extracting(responseBid -> toExtBidPrebid(responseBid.getExt()).getEvents())
                 .containsNull();
+
+        verifyNoInteractions(eventsService);
+    }
+
+    @Test
+    public void shouldNotAddExtPrebidEventsIfExtRequestPrebidEventsEnabledIsFalse() {
+        // given
+        final Account account = Account.builder()
+                .id("accountId")
+                .auction(AccountAuctionConfig.builder()
+                        .events(AccountEventsConfig.of(true))
+                        .build())
+                .build();
+
+        final Bid bid = Bid.builder()
+                .id("bidId1")
+                .price(BigDecimal.valueOf(5.67))
+                .impid(IMP_ID)
+                .build();
+        final List<BidderResponse> bidderResponses = singletonList(
+                BidderResponse.of("bidder1", givenSeatBid(BidderBid.of(bid, banner, "seat", "USD")), 100));
+
+        final AuctionContext auctionContext = givenAuctionContext(
+                givenBidRequest(
+                        identity(),
+                        extBuilder -> extBuilder.events(mapper.createObjectNode().put("enabled", false)),
+                        givenImp()),
+                contextBuilder -> contextBuilder
+                        .account(account)
+                        .auctionParticipations(toAuctionParticipant(bidderResponses)));
+
+        // when
+        final BidResponse bidResponse = target.create(auctionContext, CACHE_INFO, MULTI_BIDS).result();
+
+        // then
+        assertThat(bidResponse.getSeatbid()).hasSize(1)
+                .flatExtracting(SeatBid::getBid)
+                .extracting(responseBid -> toExtBidPrebid(responseBid.getExt()).getEvents())
+                .containsNull();
+
+        verifyNoInteractions(eventsService);
     }
 
     @Test
@@ -2794,6 +2838,8 @@ public class BidResponseCreatorTest extends VertxTest {
                 .flatExtracting(SeatBid::getBid)
                 .extracting(responseBid -> toExtBidPrebid(responseBid.getExt()).getEvents())
                 .containsNull();
+
+        verifyNoInteractions(eventsService);
     }
 
     @Test
