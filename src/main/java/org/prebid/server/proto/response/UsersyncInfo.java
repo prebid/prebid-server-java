@@ -12,13 +12,6 @@ import org.prebid.server.bidder.UsersyncMethodType;
 @Value(staticConstructor = "of")
 public class UsersyncInfo {
 
-    public static final String GDPR_PLACEHOLDER = "{{gdpr}}";
-    public static final String GDPR_CONSENT_PLACEHOLDER = "{{gdpr_consent}}";
-    public static final String US_PRIVACY_PLACEHOLDER = "{{us_privacy}}";
-    public static final String GPP_PLACEHOLDER = "{{gpp}}";
-    public static final String GPP_SID_PLACEHOLDER = "{{gpp_sid}}";
-    public static final String REDIRECT_URL_PLACEHOLDER = "{{redirect_url}}";
-
     String url;
 
     UsersyncMethodType type;
