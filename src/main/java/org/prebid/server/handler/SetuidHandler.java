@@ -28,7 +28,6 @@ import org.prebid.server.auction.privacy.contextfactory.SetuidPrivacyContextFact
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.UsersyncFormat;
 import org.prebid.server.bidder.UsersyncMethodType;
-import org.prebid.server.bidder.UsersyncUtil;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
@@ -75,6 +74,7 @@ public class SetuidHandler implements ApplicationResource {
     private static final String UID_PARAM = "uid";
     private static final String PIXEL_FILE_PATH = "static/tracking-pixel.png";
     private static final String ACCOUNT_PARAM = "account";
+    private static final String FORMAT_PARAM = "f";
     private static final int UNAVAILABLE_FOR_LEGAL_REASONS = 451;
 
     private final long defaultTimeout;
@@ -326,7 +326,7 @@ public class SetuidHandler implements ApplicationResource {
     private Consumer<HttpServerResponse> buildCookieResponseConsumer(SetuidContext setuidContext,
                                                                      int responseStatusCode) {
 
-        final String format = setuidContext.getRoutingContext().request().getParam(UsersyncUtil.FORMAT_PARAMETER);
+        final String format = setuidContext.getRoutingContext().request().getParam(FORMAT_PARAM);
         return shouldRespondWithPixel(format, preferredUserSyncType(setuidContext.getUsersyncer()))
                 ? response -> response.sendFile(PIXEL_FILE_PATH)
                 : response -> response

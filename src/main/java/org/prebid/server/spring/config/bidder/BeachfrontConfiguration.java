@@ -9,9 +9,7 @@ import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
-import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -34,13 +32,11 @@ public class BeachfrontConfiguration {
 
     @Bean
     BidderDeps beachfrontBidderDeps(BeachfrontConfigurationProperties beachfrontConfigurationProperties,
-                                    @NotBlank @Value("${external-url}") String externalUrl,
                                     CurrencyConversionService currencyConversionService,
                                     JacksonMapper mapper) {
 
         return BidderDepsAssembler.<BeachfrontConfigurationProperties>forBidder(BIDDER_NAME)
                 .withConfig(beachfrontConfigurationProperties)
-                .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config ->
                         new BeachfrontBidder(
                                 config.getEndpoint(),

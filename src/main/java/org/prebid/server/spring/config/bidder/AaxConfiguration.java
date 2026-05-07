@@ -5,7 +5,6 @@ import org.prebid.server.bidder.aax.AaxBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
-import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.prebid.server.util.HttpUtil;
 import org.springframework.beans.factory.annotation.Value;
@@ -36,7 +35,6 @@ public class AaxConfiguration {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(aaxConfigurationProperties)
-                .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new AaxBidder(resolveEndpoint(config.getEndpoint(), externalUrl), mapper))
                 .assemble();
     }

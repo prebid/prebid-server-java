@@ -50,7 +50,6 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
 
     private String bidderName;
     private CFG configProperties;
-    private UsersyncerCreator usersyncerCreator;
     private Function<CFG, Bidder<?>> bidderCreator;
 
     private BidderDepsAssembler() {
@@ -60,11 +59,6 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
         final BidderDepsAssembler<CFG> assembler = new BidderDepsAssembler<>();
         assembler.bidderName = bidderName;
         return assembler;
-    }
-
-    public BidderDepsAssembler<CFG> usersyncerCreator(UsersyncerCreator usersyncerCreator) {
-        this.usersyncerCreator = usersyncerCreator;
-        return this;
     }
 
     public BidderDepsAssembler<CFG> bidderCreator(Function<CFG, Bidder<?>> bidderCreator) {
@@ -94,7 +88,6 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
         validateCoreCapabilities(bidderName, configProperties);
         return deps(
                 bidderName,
-                usersyncer(bidderName, configProperties),
                 BidderInfoCreator.create(configProperties),
                 configProperties);
     }
@@ -118,13 +111,11 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
 
         return deps(
                 alias,
-                usersyncer(alias, aliasMergedProperties),
                 BidderInfoCreator.create(aliasMergedProperties, bidderName),
                 aliasMergedProperties);
     }
 
     private BidderInstanceDeps deps(String bidderName,
-                                    Usersyncer usersyncer,
                                     BidderInfo bidderInfo,
                                     CFG configProperties) {
 
@@ -132,16 +123,16 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
                 .name(bidderName)
                 .deprecatedNames(configProperties.getDeprecatedNames())
                 .bidderInfo(bidderInfo)
-                .usersyncer(usersyncer)
+                .usersyncer(usersyncer(configProperties))
                 .bidder(bidder(configProperties))
                 .build();
     }
 
-    private Usersyncer usersyncer(String bidder, CFG configProperties) {
+    private Usersyncer usersyncer(CFG configProperties) {
         final UsersyncConfigurationProperties usersync = configProperties.getUsersync();
         final boolean usersyncPresent = usersync != null
                 && ObjectUtils.anyNotNull(usersync.getRedirect(), usersync.getIframe());
-        return usersyncPresent ? usersyncerCreator.createAndValidate(bidder, usersync) : null;
+        return usersyncPresent ? UsersyncerUtil.create(usersync) : null;
     }
 
     private Bidder<?> bidder(CFG configProperties) {

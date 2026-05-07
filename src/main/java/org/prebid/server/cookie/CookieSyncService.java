@@ -15,9 +15,8 @@ import org.prebid.server.activity.infrastructure.payload.impl.TcfContextActivity
 import org.prebid.server.auction.privacy.enforcement.CcpaEnforcement;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderInfo;
-import org.prebid.server.bidder.UsersyncInfoBuilder;
+import org.prebid.server.bidder.UsersyncInfoFactory;
 import org.prebid.server.bidder.UsersyncMethod;
-import org.prebid.server.bidder.UsersyncUtil;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.cookie.exception.CookieSyncException;
 import org.prebid.server.cookie.exception.InvalidCookieSyncRequestException;
@@ -41,7 +40,6 @@ import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountCookieSyncConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.AccountPrivacyConfig;
-import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
 
 import java.util.ArrayList;
@@ -59,28 +57,27 @@ import java.util.stream.Collectors;
 
 public class CookieSyncService {
 
-    private final String externalUrl;
     private final int defaultLimit;
     private final int maxLimit;
 
     private final BidderCatalog bidderCatalog;
     private final HostVendorTcfDefinerService tcfDefinerService;
     private final CcpaEnforcement ccpaEnforcement;
+    private final UsersyncInfoFactory usersyncInfoFactory;
     private final UidsCookieService uidsCookieService;
     private final CoopSyncProvider coopSyncProvider;
     private final Metrics metrics;
 
-    public CookieSyncService(String externalUrl,
-                             int defaultLimit,
+    public CookieSyncService(int defaultLimit,
                              int maxLimit,
                              BidderCatalog bidderCatalog,
                              HostVendorTcfDefinerService tcfDefinerService,
                              CcpaEnforcement ccpaEnforcement,
+                             UsersyncInfoFactory usersyncInfoFactory,
                              UidsCookieService uidsCookieService,
                              CoopSyncProvider coopSyncProvider,
                              Metrics metrics) {
 
-        this.externalUrl = HttpUtil.validateUrl(Objects.requireNonNull(externalUrl));
         validateLimits(defaultLimit, maxLimit);
         this.defaultLimit = defaultLimit;
         this.maxLimit = maxLimit;
@@ -88,6 +85,7 @@ public class CookieSyncService {
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.tcfDefinerService = Objects.requireNonNull(tcfDefinerService);
         this.ccpaEnforcement = Objects.requireNonNull(ccpaEnforcement);
+        this.usersyncInfoFactory = Objects.requireNonNull(usersyncInfoFactory);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.coopSyncProvider = Objects.requireNonNull(coopSyncProvider);
         this.metrics = Objects.requireNonNull(metrics);
@@ -411,33 +409,12 @@ public class CookieSyncService {
         final Privacy privacy = cookieSyncContext.getPrivacyContext().getPrivacy();
         final String hostCookieUid = uidsCookieService.hostCookieUidToSync(routingContext, cookieFamilyName);
 
-        final UsersyncInfo usersyncInfo = toUsersyncInfo(usersyncMethod, bidder, hostCookieUid, privacy);
+        final UsersyncInfo usersyncInfo = usersyncInfoFactory.build(bidder, hostCookieUid, usersyncMethod, privacy);
 
         return BidderUsersyncStatus.builder()
                 .bidder(bidder)
                 .noCookie(true)
                 .usersync(usersyncInfo)
-                .build();
-    }
-
-    private UsersyncInfo toUsersyncInfo(UsersyncMethod usersyncMethod,
-                                        String bidder,
-                                        String hostCookieUid,
-                                        Privacy privacy) {
-
-        final UsersyncInfoBuilder usersyncInfoBuilder = UsersyncInfoBuilder.from(usersyncMethod);
-
-        if (hostCookieUid != null) {
-            final String url = UsersyncUtil.CALLBACK_URL_TEMPLATE.formatted(
-                    externalUrl, HttpUtil.encodeUrl(bidder), HttpUtil.encodeUrl(hostCookieUid));
-
-            usersyncInfoBuilder
-                    .usersyncUrl(UsersyncUtil.enrichUrlWithFormat(url, UsersyncUtil.resolveFormat(usersyncMethod)))
-                    .redirectUrl(null);
-        }
-
-        return usersyncInfoBuilder
-                .privacy(privacy)
                 .build();
     }
 
