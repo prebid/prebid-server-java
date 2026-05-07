@@ -52,7 +52,6 @@ import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.util.HttpUtil;
-import org.prebid.server.util.StreamUtil;
 import org.prebid.server.vertx.verticles.server.HttpEndpoint;
 import org.prebid.server.vertx.verticles.server.application.ApplicationResource;
 
@@ -61,9 +60,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class SetuidHandler implements ApplicationResource {
@@ -122,31 +121,42 @@ public class SetuidHandler implements ApplicationResource {
     }
 
     private static void validateUsersyncersDuplicates(BidderCatalog bidderCatalog) {
-        final List<String> duplicatedCookieFamilyNames = bidderCatalog.usersyncReadyBidders().stream()
-                .filter(bidderName -> !isAliasWithRootCookieFamilyName(bidderCatalog, bidderName))
-                .map(bidderCatalog::usersyncerByName)
-                .flatMap(Optional::stream)
-                .map(Usersyncer::getCookieFamilyName)
-                .filter(Predicate.not(StreamUtil.distinctBy(Function.identity())))
-                .distinct()
-                .sorted()
-                .toList();
+        bidderCatalog.usersyncReadyBidders().stream()
+                .collect(Collectors.groupingBy(bidder -> bidderCatalog.cookieFamilyName(bidder).orElseThrow()))
+                .values()
+                .forEach(bidders -> validateUsersyncersDuplicatesForSingleCookieFamilyName(bidders, bidderCatalog));
+    }
 
-        if (!duplicatedCookieFamilyNames.isEmpty()) {
+    private static void validateUsersyncersDuplicatesForSingleCookieFamilyName(List<String> bidders,
+                                                                               BidderCatalog bidderCatalog) {
+
+        validateBiddersHaveTheSameVendorId(bidders, bidderCatalog);
+        validateBiddersHaveTheSameUsersyncConfig(bidders, bidderCatalog);
+    }
+
+    private static void validateBiddersHaveTheSameVendorId(List<String> bidders, BidderCatalog bidderCatalog) {
+        final Set<Integer> vendorIds = bidders.stream()
+                .map(bidderCatalog::vendorIdByName)
+                .collect(Collectors.toSet());
+
+        if (vendorIds.size() > 1) {
             throw new IllegalArgumentException(
-                    "Duplicated \"cookie-family-name\" found, values: "
-                            + String.join(", ", duplicatedCookieFamilyNames));
+                    "Found bidders with the same cookie family name but different vendor ids. "
+                            + "Bidders: %s. Vendor ids: %s".formatted(bidders, vendorIds));
         }
     }
 
-    private static boolean isAliasWithRootCookieFamilyName(BidderCatalog bidderCatalog, String bidder) {
-        final String bidderCookieFamilyName = bidderCatalog.cookieFamilyName(bidder).orElse(StringUtils.EMPTY);
-        final String parentCookieFamilyName =
-                bidderCatalog.cookieFamilyName(bidderCatalog.resolveBaseBidder(bidder)).orElse(null);
+    private static void validateBiddersHaveTheSameUsersyncConfig(List<String> bidders, BidderCatalog bidderCatalog) {
+        final Set<Usersyncer> usersyncers = bidders.stream()
+                .map(bidderCatalog::usersyncerByName)
+                .map(Optional::orElseThrow)
+                .collect(Collectors.toSet());
 
-        return bidderCatalog.isAlias(bidder)
-                && parentCookieFamilyName != null
-                && parentCookieFamilyName.equals(bidderCookieFamilyName);
+        if (usersyncers.size() > 1) {
+            throw new IllegalArgumentException(
+                    "Found bidders with the same cookie family name but different usersync configs. "
+                            + "Bidders: %s. Usersync configs: %s".formatted(bidders, usersyncers));
+        }
     }
 
     @Override
