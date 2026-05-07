@@ -310,7 +310,11 @@ public class BidderCatalogTest {
                         .name("bidder-with-usersync")
                         .deprecatedNames(emptyList())
                         .bidderInfo(infoOfBidderWithUsersyncConfig)
-                        .usersyncer(Usersyncer.of("bidder-with-usersync-family", null, null, false, null))
+                        .usersyncer(Usersyncer.of("bidder-with-usersync-family",
+                                null,
+                                null,
+                                false,
+                                null))
                         .build())),
                 BidderDeps.of(singletonList(BidderInstanceDeps.builder()
                         .name("bidder-without-usersync")
@@ -320,7 +324,11 @@ public class BidderCatalogTest {
                 BidderDeps.of(singletonList(BidderInstanceDeps.builder()
                         .name("disabled-bidder-with-usersync")
                         .bidderInfo(infoOfDisabledBidderWithUsersyncConfig)
-                        .usersyncer(Usersyncer.of("isabled-bidder-with-usersync-family", null, null, false, null))
+                        .usersyncer(Usersyncer.of("disabled-bidder-with-usersync-family",
+                                null,
+                                null,
+                                false,
+                                null))
                         .deprecatedNames(emptyList())
                         .build())));
 

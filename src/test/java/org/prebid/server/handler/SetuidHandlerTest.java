@@ -473,7 +473,9 @@ public class SetuidHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldRespondWithCookieFromRequestParamWhenBidderAndCookieFamilyAreDifferent() throws IOException {
+    public void shouldRespondWithCookieFromRequestParamWhenBidderAndCookieFamilyAreDifferent()
+            throws IOException {
+
         // given
         final UidsCookie uidsCookie = emptyUidsCookie();
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
@@ -481,7 +483,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(uidsCookieService.updateUidsCookie(uidsCookie, ADNXS, "J5VLCWQP-26-CWFT"))
                 .willReturn(updated(uidsCookie.updateUid(ADNXS, "J5VLCWQP-26-CWFT")));
 
-        given(httpRequest.getParam("bidder")).willReturn(ADNXS);
+        given(httpRequest.getParam("bidder")).willReturn(APPNEXUS);
         given(httpRequest.getParam("uid")).willReturn("J5VLCWQP-26-CWFT");
 
         // when
@@ -717,7 +719,7 @@ public class SetuidHandlerTest extends VertxTest {
     public void shouldRespondWithCookieIfUserIsNotInGdprScope() throws IOException {
         // given
         given(tcfDefinerService.resultForVendorIds(anySet(), any()))
-                .willReturn(Future.succeededFuture(TcfResponse.of(false, emptyMap(), null)));
+                .willReturn(Future.succeededFuture(TcfResponse.<Integer>of(false, emptyMap(), null)));
 
         final UidsCookie uidsCookie = emptyUidsCookie();
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
