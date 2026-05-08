@@ -400,38 +400,69 @@ Test various behaviors by modifying the configuration or WireMock mappings:
 - **Error handling**: Change WireMock to return HTTP 503
 - **Filter testing**: Add bidder/account/country filters to configuration
 
-## Unit Tests
+## Running Tests
 
-Run the comprehensive unit test suite:
+All commands below are intended to be executed from the **project root** (`prebid-server-java/`).
 
-```bash
-# From the module directory
-cd extra/modules/id5-user-id
+### Prerequisites
 
-# Run all unit tests (excludes *IT.java integration tests)
-mvn test
+- Java 21+
+- Maven 3.8+
+- Docker (running) — required for functional tests (Testcontainers spin up MySQL, MockServer and the PBS image)
 
-# Run specific test class
-mvn test -Dtest=Id5IdFetchHookTest
+### Unit Tests
 
-# Run with debug logging
-mvn test -Dorg.slf4j.simpleLogger.defaultLogLevel=debug
-```
-
-## Integration Tests
-
-Integration tests for the ID5 module are part of the main Prebid Server functional test suite, located in:
-
-```
-src/test/groovy/org/prebid/server/functional/tests/module/id5userid/
-```
-
-To run them:
+The module depends on the main `prebid-server` artifact and on the `all-modules` / `prebid-server-aggregator` parent POMs. Both must be installed in the local Maven repo before the module can be built standalone.
 
 ```bash
-mvn verify -DskipModuleFunctionalTests=false -DskipFunctionalTests=true -DskipUnitTests=true \
-  -Dit.test="Id5UserIdModuleSpec" -DdockerfileName=Dockerfile-modules
+# 1) Install prebid-server and the aggregator/parent POMs into local MVN repo
+mvn install -Dmaven.test.skip=true -Dcheckstyle.skip
+mvn install -N -Dcheckstyle.skip --file extra/pom.xml
+mvn install -N -Dcheckstyle.skip --file extra/modules/pom.xml
+
+# 2) Run the module's unit tests
+mvn test --file extra/modules/id5-user-id/pom.xml
 ```
+
+Selective runs:
+
+```bash
+# Single test class
+mvn test --file extra/modules/id5-user-id/pom.xml -Dtest=Id5IdFetchHookTest
+
+# Debug logging
+mvn test --file extra/modules/id5-user-id/pom.xml \
+  -Dorg.slf4j.simpleLogger.defaultLogLevel=debug
+```
+
+### Functional Tests (BDD / Spock)
+
+Functional tests for the module live in the main test suite at:
+
+```
+src/test/groovy/org/prebid/server/functional/tests/module/id5userid/Id5UserIdModuleSpec.groovy
+```
+
+Functional tests start the PBS container from the `prebid/prebid-server:latest` Docker image. The image must be built from `Dockerfile-modules` (which packages `prebid-server-bundle.jar`), and the bundle must include the ID5 module (declared as a dependency in `extra/bundle/pom.xml`). The default `Dockerfile` packages the plain `prebid-server.jar` which does **not** contain any modules — using it leads to the container exiting with code 1 and the error `Hooks execution plan contains unknown or disabled hook: id5-user-id-fetch-hook`.
+
+Run from the project root:
+
+```bash
+# 1) Build the bundle JAR (includes the ID5 module)
+mvn package -Dcheckstyle.skip -DskipUnitTests=true --file extra/pom.xml
+
+# 2) Run only the ID5 functional spec against the modules-enabled image
+mvn -B verify \
+    --file extra/pom.xml \
+    -DskipUnitTests=true \
+    -DskipFunctionalTests=true \
+    -DskipModuleFunctionalTests=false \
+    -DdockerfileName=Dockerfile-modules \
+    -Dcheckstyle.skip \
+    -Dit.test=Id5UserIdModuleSpec
+```
+
+Reports land in `target/failsafe-reports/`. The same flow runs in CI via `.github/workflows/pr-module-functional-tests.yml`.
 
 For more details on the functional test framework, see [Functional Tests documentation](../../../docs/developers/functional-tests.md).
 
