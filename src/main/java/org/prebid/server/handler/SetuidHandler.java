@@ -122,7 +122,10 @@ public class SetuidHandler implements ApplicationResource {
 
     private static void validateUsersyncersDuplicates(BidderCatalog bidderCatalog) {
         bidderCatalog.usersyncReadyBidders().stream()
-                .collect(Collectors.groupingBy(bidder -> bidderCatalog.cookieFamilyName(bidder).orElseThrow()))
+                .collect(Collectors.groupingBy(bidder -> bidderCatalog.cookieFamilyName(bidder).orElseThrow(() ->
+                        new IllegalArgumentException(("Bidder %s is missing cookie family name in usersync config, "
+                                + "please provide it").formatted(bidder))
+                )))
                 .values()
                 .forEach(bidders -> validateUsersyncersDuplicatesForSingleCookieFamilyName(bidders, bidderCatalog));
     }

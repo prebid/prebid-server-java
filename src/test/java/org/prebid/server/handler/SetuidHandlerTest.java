@@ -51,6 +51,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -834,6 +835,43 @@ public class SetuidHandlerTest extends VertxTest {
                 .uid("updatedUid")
                 .success(true)
                 .build());
+    }
+
+    @Test
+    public void shouldDetectIfBidderDoesntProvideCookieFamilyNameInUsersyncConfig() {
+        // given
+        final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
+        final String bidderName = "bidderName";
+
+        given(bidderCatalog.usersyncReadyBidders()).willReturn(Collections.singleton(bidderName));
+        given(bidderCatalog.usersyncerByName(eq(bidderName))).willReturn(
+                Optional.of(Usersyncer.of(null, iframeMethod(), redirectMethod(), false, null)));
+        given(bidderCatalog.cookieFamilyName(eq(bidderName))).willReturn(Optional.empty());
+
+        // when
+        final Executable buildSetuidHandler = () -> new SetuidHandler(
+                2000,
+                uidsCookieService,
+                applicationSettings,
+                bidderCatalog,
+                setuidPrivacyContextFactory,
+                gppService,
+                activityInfrastructureCreator,
+                tcfDefinerService,
+                analyticsReporterDelegator,
+                metrics,
+                new TimeoutFactory(clock));
+
+        // then
+        final IllegalArgumentException exception =
+                Assertions.assertThrows(IllegalArgumentException.class, buildSetuidHandler);
+
+        final Matcher matcher = Pattern.compile(
+                "Bidder (.*) is missing cookie family name in usersync config, please provide it")
+                .matcher(exception.getMessage());
+
+        assertThat(matcher.matches()).isTrue();
+        assertThat(matcher.group(1)).isEqualTo(bidderName);
     }
 
     @Test
