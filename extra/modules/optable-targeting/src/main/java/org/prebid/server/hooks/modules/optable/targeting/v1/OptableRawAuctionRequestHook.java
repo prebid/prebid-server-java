@@ -1,12 +1,15 @@
 package org.prebid.server.hooks.modules.optable.targeting.v1;
 
+import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Future;
+import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.AnalyticTagsResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidRequestCleaner;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidderEnrichmentDicer;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.NetworkCall;
 import org.prebid.server.hooks.v1.InvocationAction;
@@ -19,6 +22,7 @@ import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.LoggerFactory;
 
 import java.util.Objects;
+import java.util.Set;
 
 public class OptableRawAuctionRequestHook implements RawAuctionRequestHook {
 
@@ -29,14 +33,17 @@ public class OptableRawAuctionRequestHook implements RawAuctionRequestHook {
 
     private final ConfigResolver configResolver;
     private final NetworkCall networkCall;
+    private final BidderEnrichmentDicer bidderEnrichmentDicer;
     private final double logSamplingRate;
 
     public OptableRawAuctionRequestHook(ConfigResolver configResolver,
                                         NetworkCall networkCall,
+                                        BidderEnrichmentDicer bidderEnrichmentDicer,
                                         double logSamplingRate) {
 
         this.configResolver = Objects.requireNonNull(configResolver);
         this.networkCall = Objects.requireNonNull(networkCall);
+        this.bidderEnrichmentDicer = Objects.requireNonNull(bidderEnrichmentDicer);
         this.logSamplingRate = logSamplingRate;
     }
 
@@ -48,6 +55,7 @@ public class OptableRawAuctionRequestHook implements RawAuctionRequestHook {
         final ModuleContext moduleContext = new ModuleContext();
         moduleContext.setEarlyNetworkCallEnabled(true);
         moduleContext.setCallTargetingAPITimestamp(System.currentTimeMillis());
+        moduleContext.setOptableTargetingProperties(properties);
 
         if (!OptableHook.isTargetingPropertiesValid(properties)) {
             conditionalLogger.error(
@@ -59,6 +67,13 @@ public class OptableRawAuctionRequestHook implements RawAuctionRequestHook {
             return OptableHook.update(BidRequestCleaner.instance(), moduleContext);
         }
 
+        final BidRequest bidRequest = invocationContext.auctionContext().getBidRequest();
+        final Set<String> biddersToEnrich = bidderEnrichmentDicer.dice(bidRequest, properties);
+        if (CollectionUtils.isEmpty(biddersToEnrich)) {
+            return OptableHook.update(BidRequestCleaner.instance(), moduleContext);
+        }
+
+        moduleContext.setBiddersToEnrich(biddersToEnrich);
         final Future<TargetingResult> optableTargetingCall = networkCall.makeRequest(
                 payload,
                 invocationContext,

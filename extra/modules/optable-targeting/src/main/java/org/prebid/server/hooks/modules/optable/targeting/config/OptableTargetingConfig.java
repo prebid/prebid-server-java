@@ -2,12 +2,16 @@ package org.prebid.server.hooks.modules.optable.targeting.config;
 
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
+import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cache.PbcStorageService;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
+import org.prebid.server.hooks.modules.optable.targeting.v1.OptableBidderRequestHook;
 import org.prebid.server.hooks.modules.optable.targeting.v1.OptableRawAuctionRequestHook;
 import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingAuctionResponseHook;
 import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingModule;
 import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingProcessedAuctionRequestHook;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.AliasesResolver;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidderEnrichmentDicer;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.Cache;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.IdsMapper;
@@ -97,17 +101,20 @@ public class OptableTargetingConfig {
     OptableTargetingModule optableTargetingModule(ConfigResolver configResolver,
                                                   NetworkCall networkCall,
                                                   JsonMerger jsonMerger,
+                                                  BidderCatalog bidderCatalog,
                                                   @Value("${logging.sampling-rate:0.01}") double logSamplingRate) {
 
         return new OptableTargetingModule(List.of(
                 new OptableRawAuctionRequestHook(
                         configResolver,
                         networkCall,
+                        BidderEnrichmentDicer.of(AliasesResolver.of(bidderCatalog)),
                         logSamplingRate),
                 new OptableTargetingProcessedAuctionRequestHook(
                         configResolver,
                         networkCall,
                         logSamplingRate),
+                new OptableBidderRequestHook(),
                 new OptableTargetingAuctionResponseHook(
                         configResolver,
                         ObjectMapperProvider.mapper(),

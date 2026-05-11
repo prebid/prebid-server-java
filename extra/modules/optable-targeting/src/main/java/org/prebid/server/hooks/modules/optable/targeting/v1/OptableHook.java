@@ -10,7 +10,6 @@ import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
 import org.prebid.server.hooks.v1.PayloadUpdate;
-import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 
 public class OptableHook {
 
@@ -21,12 +20,12 @@ public class OptableHook {
         return !StringUtils.isEmpty(properties.getOrigin()) && !StringUtils.isEmpty(properties.getTenant());
     }
 
-    public static Future<InvocationResult<AuctionRequestPayload>> update(
-            PayloadUpdate<AuctionRequestPayload> payloadUpdate,
+    public static <T> Future<InvocationResult<T>> update(
+            PayloadUpdate<T> payloadUpdate,
             ModuleContext moduleContext) {
 
         return Future.succeededFuture(
-                InvocationResultImpl.<AuctionRequestPayload>builder()
+                InvocationResultImpl.<T>builder()
                         .status(InvocationStatus.success)
                         .action(InvocationAction.update)
                         .analyticsTags(AnalyticTagsResolver.toEnrichRequestAnalyticTags(moduleContext))

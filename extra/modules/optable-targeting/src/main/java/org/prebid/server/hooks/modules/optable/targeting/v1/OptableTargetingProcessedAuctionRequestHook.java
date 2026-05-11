@@ -40,6 +40,7 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
     public OptableTargetingProcessedAuctionRequestHook(ConfigResolver configResolver,
                                                        NetworkCall networkCall,
                                                        double logSamplingRate) {
+
         this.configResolver = Objects.requireNonNull(configResolver);
         this.networkCall = Objects.requireNonNull(networkCall);
         this.logSamplingRate = logSamplingRate;
@@ -49,39 +50,72 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
     public Future<InvocationResult<AuctionRequestPayload>> call(AuctionRequestPayload auctionRequestPayload,
                                                                 AuctionInvocationContext invocationContext) {
 
-        final OptableTargetingProperties properties = configResolver.resolve(invocationContext.accountConfig());
         final ModuleContext moduleContext = ModuleContext.of(invocationContext);
+        final OptableTargetingProperties properties =
+                resolveOptableTargetingProperties(moduleContext, invocationContext);
 
         final Future<TargetingResult> optableTargetingCall = moduleContext.isEarlyNetworkCallEnabled()
-                ? moduleContext.getOptableTargetingCall()
-                : makeOptableTargetingCall(auctionRequestPayload, invocationContext, moduleContext, properties);
+                ? resolveEarlyNetworkCall(moduleContext)
+                : resolvePreEarlyNetworkCall(auctionRequestPayload, invocationContext, moduleContext, properties);
 
         if (optableTargetingCall == null) {
-            moduleContext.failWithExecutionTime(
-                    System.currentTimeMillis() - moduleContext.getCallTargetingAPITimestamp());
+            moduleContext.failWithExecutionTime(calcAPICallExecutionTime(moduleContext));
             return update(BidRequestCleaner.instance(), moduleContext);
         }
 
-        final Future<InvocationResult<AuctionRequestPayload>> future = optableTargetingCall
+        return optableTargetingCall
                 .compose(targetingResult -> {
-                    moduleContext.setOptableTargetingExecutionTime(
-                            System.currentTimeMillis() - moduleContext.getCallTargetingAPITimestamp());
-                    return enrichedPayload(targetingResult, moduleContext, properties);
+                    moduleContext.setOptableTargetingExecutionTime(calcAPICallExecutionTime(moduleContext));
+                    return enrichPayload(
+                            properties.isPerBidderEnrichmentEnabled(), targetingResult, moduleContext, properties);
                 })
                 .recover(throwable -> {
-                    moduleContext.failWithExecutionTime(
-                            System.currentTimeMillis() - moduleContext.getCallTargetingAPITimestamp());
+                    moduleContext.failWithExecutionTime(calcAPICallExecutionTime(moduleContext));
                     return update(BidRequestCleaner.instance(), moduleContext);
                 });
-
-        return future;
     }
 
-    private Future<TargetingResult> makeOptableTargetingCall(
+    private Future<InvocationResult<AuctionRequestPayload>> enrichPayload(
+            boolean perBidderEnrichmentEnabled,
+            TargetingResult targetingResult,
+            ModuleContext moduleContext,
+            OptableTargetingProperties properties) {
+
+        moduleContext.setTargeting(targetingResult.getAudience());
+        moduleContext.setEnrichRequestStatus(EnrichmentStatus.success());
+
+        final PayloadUpdate<AuctionRequestPayload> payloadUpdate = perBidderEnrichmentEnabled
+                ? BidRequestCleaner.instance()
+                : BidRequestCleaner.instance().andThen(BidRequestEnricher.of(targetingResult, properties))::apply;
+
+        return update(payloadUpdate, moduleContext);
+    }
+
+    private Future<TargetingResult> resolveEarlyNetworkCall(ModuleContext moduleContext) {
+        return moduleContext.getOptableTargetingCall();
+    }
+
+    private static long calcAPICallExecutionTime(ModuleContext moduleContext) {
+        return System.currentTimeMillis() - moduleContext.getCallTargetingAPITimestamp();
+    }
+
+    private OptableTargetingProperties resolveOptableTargetingProperties(ModuleContext moduleContext,
+                                                                         AuctionInvocationContext invocationContext) {
+
+        final OptableTargetingProperties properties = moduleContext.hasOptableTargetingProperties()
+                ? moduleContext.getOptableTargetingProperties()
+                : configResolver.resolve(invocationContext.accountConfig());
+        moduleContext.setOptableTargetingProperties(properties);
+
+        return properties;
+    }
+
+    private Future<TargetingResult> resolvePreEarlyNetworkCall(
             AuctionRequestPayload payload,
             AuctionInvocationContext invocationContext,
             ModuleContext moduleContext,
             OptableTargetingProperties properties) {
+
         moduleContext.setCallTargetingAPITimestamp(System.currentTimeMillis());
         if (!OptableHook.isTargetingPropertiesValid(properties)) {
             conditionalLogger.error(AUCTION_NOT_PROPERLY_CONFIGURED, logSamplingRate);
@@ -95,19 +129,6 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
                 payload,
                 invocationContext,
                 properties);
-    }
-
-    private Future<InvocationResult<AuctionRequestPayload>> enrichedPayload(TargetingResult targetingResult,
-                                                                            ModuleContext moduleContext,
-                                                                            OptableTargetingProperties properties) {
-
-        moduleContext.setTargeting(targetingResult.getAudience());
-        moduleContext.setEnrichRequestStatus(EnrichmentStatus.success());
-        return update(
-                BidRequestCleaner.instance()
-                        .andThen(BidRequestEnricher.of(targetingResult, properties))
-                        ::apply,
-                moduleContext);
     }
 
     private static Future<InvocationResult<AuctionRequestPayload>> update(

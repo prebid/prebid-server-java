@@ -3,6 +3,7 @@ package org.prebid.server.hooks.modules.optable.targeting.model.config;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.apache.commons.collections.MapUtils;
 
 import java.util.Map;
 import java.util.Set;
@@ -42,4 +43,13 @@ public final class OptableTargetingProperties {
     Set<String> optableInserterEidsIgnore = Set.of();
 
     CacheProperties cache = new CacheProperties();
+
+    Integer enrichmentPercentage = 100;
+
+    @JsonProperty("bidder-enrichment-percentages")
+    Map<String, Integer> bidderEnrichmentPercentages = Map.of();
+
+    public boolean isPerBidderEnrichmentEnabled() {
+        return enrichmentPercentage != 100 || MapUtils.isNotEmpty(bidderEnrichmentPercentages);
+    }
 }
