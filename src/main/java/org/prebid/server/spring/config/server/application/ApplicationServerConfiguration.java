@@ -63,6 +63,7 @@ import org.prebid.server.spring.config.server.admin.AdminResourcesBinder;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.validation.BidderParamValidator;
 import org.prebid.server.version.PrebidVersionProvider;
+import org.prebid.server.vertx.http.ParametrizedDecompressionHandler;
 import org.prebid.server.vertx.verticles.VerticleDefinition;
 import org.prebid.server.vertx.verticles.server.ServerVerticle;
 import org.prebid.server.vertx.verticles.server.application.ApplicationResource;
@@ -166,6 +167,7 @@ public class ApplicationServerConfiguration {
     @Bean
     Router applicationServerRouter(Vertx vertx,
                                    BodyHandler bodyHandler,
+                                   ParametrizedDecompressionHandler parametrizedDecompressionHandler,
                                    NoCacheHandler noCacheHandler,
                                    CorsHandler corsHandler,
                                    List<ApplicationResource> resources,
@@ -174,6 +176,7 @@ public class ApplicationServerConfiguration {
 
         final Router router = Router.router(vertx);
         router.route().handler(bodyHandler);
+        router.route().handler(parametrizedDecompressionHandler);
         router.route().handler(noCacheHandler);
         router.route().handler(corsHandler);
 
