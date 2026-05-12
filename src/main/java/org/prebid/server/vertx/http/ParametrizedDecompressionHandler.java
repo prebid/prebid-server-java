@@ -16,7 +16,9 @@ public class ParametrizedDecompressionHandler implements Handler<RoutingContext>
 
     private static final int MAX_BODY_LENGTH = 1024 * 1024;
 
+    private final ThreadLocal<byte[]> intermediateBuffer = ThreadLocal.withInitial(() -> new byte[1024]);
     private final ThreadLocal<byte[]> inputBuffer = ThreadLocal.withInitial(() -> new byte[MAX_BODY_LENGTH]);
+    private final ThreadLocal<byte[]> outputBuffer = ThreadLocal.withInitial(() -> new byte[2 * MAX_BODY_LENGTH]);
 
     @Override
     public void handle(RoutingContext routingContext) {
@@ -43,20 +45,20 @@ public class ParametrizedDecompressionHandler implements Handler<RoutingContext>
     }
 
     private Buffer decompressGzip(Buffer compressed) throws IOException {
-        final byte[] compressedBytes = inputBuffer.get();
-        compressed.getBytes(compressedBytes);
+        final byte[] decompressionBuffer = intermediateBuffer.get();
+        final byte[] compressedBuffer = inputBuffer.get();
+        final byte[] decompressedBuffer = outputBuffer.get();
 
-        try (ByteArrayInputStream input = new ByteArrayInputStream(compressedBytes);
+        compressed.getBytes(compressedBuffer);
+        try (ByteArrayInputStream input = new ByteArrayInputStream(compressedBuffer);
              GZIPInputStream gzip = new GZIPInputStream(input);
-             FastByteArrayOutputStream baos = new FastByteArrayOutputStream(compressed.length())) {
-
-            byte[] buffer = new byte[1024];
+             FastByteArrayOutputStream baos = new FastByteArrayOutputStream(decompressedBuffer)) {
 
             int totalLen = 0;
             int len;
-            while ((len = gzip.read(buffer)) > 0) {
+            while ((len = gzip.read(decompressionBuffer)) > 0) {
+                baos.write(decompressionBuffer, 0, len);
                 totalLen += len;
-                baos.write(buffer, 0, len);
             }
 
             compressed.setBytes(0, baos.getBuffer(), 0, totalLen);
@@ -66,8 +68,8 @@ public class ParametrizedDecompressionHandler implements Handler<RoutingContext>
 
     private static class FastByteArrayOutputStream extends ByteArrayOutputStream {
 
-        public FastByteArrayOutputStream(int size) {
-            super(size);
+        public FastByteArrayOutputStream(byte[] buf) {
+            this.buf = buf;
         }
 
         public byte[] getBuffer() {
