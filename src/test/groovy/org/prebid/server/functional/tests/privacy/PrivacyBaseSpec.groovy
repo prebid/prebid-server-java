@@ -41,6 +41,7 @@ import org.prebid.server.functional.model.request.auction.UserExtData
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.scaffolding.VendorList
 import org.prebid.server.functional.tests.BaseSpec
+import org.prebid.server.functional.util.Metrics
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.ConsentString
 import org.prebid.server.functional.util.privacy.TcfConsent
@@ -263,7 +264,7 @@ abstract class PrivacyBaseSpec extends BaseSpec {
 
             pbsService.sendAuctionRequest(bidRequest)
 
-            pbsService.sendCollectedMetricsRequest()["privacy.tcf.v2.vendorlist.missing"] == 0
+            pbsService.sendCollectedMetricsRequest()[Metrics.Privacy.tcfVendorListMissing(2)] == 0
         }
         PBSUtils.waitUntil(isVendorListCachedClosure, 10000, 1000)
     }

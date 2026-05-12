@@ -3,6 +3,7 @@ package org.prebid.server.functional.tests.privacy
 import org.prebid.server.functional.model.ChannelType
 import org.prebid.server.functional.model.config.AccountCcpaConfig
 import org.prebid.server.functional.model.request.auction.DistributionChannel
+import org.prebid.server.functional.util.Metrics
 import org.prebid.server.functional.util.privacy.BogusConsent
 import org.prebid.server.functional.util.privacy.CcpaConsent
 import spock.lang.PendingFeature
@@ -10,9 +11,6 @@ import spock.lang.PendingFeature
 import static org.prebid.server.functional.model.ChannelType.PBJS
 import static org.prebid.server.functional.model.ChannelType.WEB
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
-import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ACCOUNT_DISALLOWED_COUNT
-import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ADAPTER_DISALLOWED_COUNT
-import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_REQUEST_DISALLOWED_COUNT
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_EIDS
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_PRECISE_GEO
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_UFPD
@@ -145,15 +143,15 @@ class CcpaAuctionSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = privacyPbsService.sendCollectedMetricsRequest()
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)] == 1
-        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
-        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)] == 1
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)] == 1
+        assert metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_EIDS)] == 1
+        assert metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_PRECISE_GEO)] == 1
+        assert metrics[Metrics.Privacy.accountDisallowedActivityCount(bidRequest.accountId, TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.accountDisallowedActivityCount(bidRequest.accountId, TRANSMIT_EIDS)] == 1
+        assert metrics[Metrics.Privacy.accountDisallowedActivityCount(bidRequest.accountId, TRANSMIT_PRECISE_GEO)] == 1
+        assert metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_EIDS)] == 1
+        assert metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_PRECISE_GEO)] == 1
 
         where:
         ccpaConfig << [new AccountCcpaConfig(enabled: false, channelEnabled: [(ChannelType.APP): true]),
@@ -182,17 +180,17 @@ class CcpaAuctionSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = privacyPbsService.sendCollectedMetricsRequest()
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)] == 1
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)] == 1
+        assert metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_EIDS)] == 1
+        assert metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_PRECISE_GEO)] == 1
+        assert metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_EIDS)] == 1
+        assert metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_PRECISE_GEO)] == 1
 
         and: "Metrics account shouldn't be populated"
-        assert !metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)]
-        assert !metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)]
-        assert !metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)]
+        assert !metrics[Metrics.Privacy.accountDisallowedActivityCount(bidRequest.accountId, TRANSMIT_UFPD)]
+        assert !metrics[Metrics.Privacy.accountDisallowedActivityCount(bidRequest.accountId, TRANSMIT_EIDS)]
+        assert !metrics[Metrics.Privacy.accountDisallowedActivityCount(bidRequest.accountId, TRANSMIT_PRECISE_GEO)]
 
         where:
         ccpaConfig << [new AccountCcpaConfig(enabled: false, channelEnabled: [(ChannelType.APP): true]),
@@ -237,15 +235,15 @@ class CcpaAuctionSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities shouldn't be updated"
         def metrics = privacyPbsService.sendCollectedMetricsRequest()
-        assert !metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)]
-        assert !metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)]
-        assert !metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)]
-        assert !metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)]
-        assert !metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)]
-        assert !metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)]
-        assert !metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)]
-        assert !metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)]
-        assert !metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)]
+        assert !metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_UFPD)]
+        assert !metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_EIDS)]
+        assert !metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_PRECISE_GEO)]
+        assert !metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_UFPD)]
+        assert !metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_EIDS)]
+        assert !metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_PRECISE_GEO)]
+        assert !metrics[Metrics.Privacy.accountDisallowedActivityCount(bidRequest.accountId, TRANSMIT_UFPD)]
+        assert !metrics[Metrics.Privacy.accountDisallowedActivityCount(bidRequest.accountId, TRANSMIT_EIDS)]
+        assert !metrics[Metrics.Privacy.accountDisallowedActivityCount(bidRequest.accountId, TRANSMIT_PRECISE_GEO)]
 
         where:
         ccpaConfig << [new AccountCcpaConfig(enabled: true, channelEnabled: [(ChannelType.APP): false]),

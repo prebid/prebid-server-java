@@ -1,10 +1,10 @@
 package org.prebid.server.functional.tests.module
 
-import org.prebid.server.functional.model.config.ModuleName
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountHooksConfiguration
 import org.prebid.server.functional.model.config.AdminConfig
 import org.prebid.server.functional.model.config.ExecutionPlan
+import org.prebid.server.functional.model.config.ModuleName
 import org.prebid.server.functional.model.config.Ortb2BlockingConfig
 import org.prebid.server.functional.model.config.PbResponseCorrection
 import org.prebid.server.functional.model.config.PbsModulesConfig
@@ -14,13 +14,11 @@ import org.prebid.server.functional.model.request.auction.RichmediaFilter
 import org.prebid.server.functional.model.request.auction.TraceLevel
 import org.prebid.server.functional.model.response.auction.InvocationResult
 import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.util.Metrics
 
+import static org.prebid.server.functional.model.config.Endpoint.OPENRTB2_AUCTION
 import static org.prebid.server.functional.model.config.ModuleName.ORTB2_BLOCKING
 import static org.prebid.server.functional.model.config.ModuleName.PB_RICHMEDIA_FILTER
-import static org.prebid.server.functional.model.config.Endpoint.OPENRTB2_AUCTION
-import static org.prebid.server.functional.model.config.ModuleHookImplementation.ORTB2_BLOCKING_BIDDER_REQUEST
-import static org.prebid.server.functional.model.config.ModuleHookImplementation.ORTB2_BLOCKING_RAW_BIDDER_RESPONSE
-import static org.prebid.server.functional.model.config.ModuleHookImplementation.PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES
 import static org.prebid.server.functional.model.config.Stage.ALL_PROCESSED_BID_RESPONSES
 import static org.prebid.server.functional.model.config.Stage.BIDDER_REQUEST
 import static org.prebid.server.functional.model.config.Stage.RAW_BIDDER_RESPONSE
@@ -29,9 +27,6 @@ import static org.prebid.server.functional.model.response.auction.InvocationStat
 import static org.prebid.server.functional.model.response.auction.ResponseAction.NO_ACTION
 
 class GeneralModuleSpec extends ModuleBaseSpec {
-
-    private final static String CALL_METRIC = "modules.module.%s.stage.%s.hook.%s.call"
-    private final static String NOOP_METRIC = "modules.module.%s.stage.%s.hook.%s.success.noop"
 
     private final static Map<String, String> DISABLED_INVOKE_CONFIG = ['settings.modules.require-config-to-invoke': 'false']
     private final static Map<String, String> ENABLED_INVOKE_CONFIG = ['settings.modules.require-config-to-invoke': 'true']
@@ -78,14 +73,14 @@ class GeneralModuleSpec extends ModuleBaseSpec {
 
         and: "Ortb2blocking module call metrics should be updated"
         def metrics = pbsServiceWithMultipleModule.sendCollectedMetricsRequest()
-        assert metrics[CALL_METRIC.formatted(ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)] == 1
-        assert metrics[CALL_METRIC.formatted(ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)] == 1
-        assert metrics[NOOP_METRIC.formatted(ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)] == 1
-        assert metrics[NOOP_METRIC.formatted(ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)] == 1
+        assert metrics[Metrics.Module.call(ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
+        assert metrics[Metrics.Module.call(ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
+        assert metrics[Metrics.Module.noop(ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
+        assert metrics[Metrics.Module.noop(ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
 
         and: "RB-Richmedia-Filter module call metrics should be updated"
-        assert metrics[CALL_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.metricValue, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)] == 1
-        assert metrics[NOOP_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.metricValue, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)] == 1
+        assert metrics[Metrics.Module.call(PB_RICHMEDIA_FILTER, ALL_PROCESSED_BID_RESPONSES)] == 1
+        assert metrics[Metrics.Module.noop(PB_RICHMEDIA_FILTER, ALL_PROCESSED_BID_RESPONSES)] == 1
 
         where:
         modulesConfig << [null, new PbsModulesConfig()]
@@ -118,14 +113,14 @@ class GeneralModuleSpec extends ModuleBaseSpec {
 
         and: "Ortb2blocking module call metrics should be updated"
         def metrics = pbsServiceWithMultipleModule.sendCollectedMetricsRequest()
-        assert metrics[CALL_METRIC.formatted(ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)] == 1
-        assert metrics[CALL_METRIC.formatted(ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)] == 1
-        assert metrics[NOOP_METRIC.formatted(ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)] == 1
-        assert metrics[NOOP_METRIC.formatted(ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)] == 1
+        assert metrics[Metrics.Module.call(ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
+        assert metrics[Metrics.Module.call(ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
+        assert metrics[Metrics.Module.noop(ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
+        assert metrics[Metrics.Module.noop(ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
 
         and: "RB-Richmedia-Filter module call metrics should be updated"
-        assert metrics[CALL_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.metricValue, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)] == 1
-        assert metrics[NOOP_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.metricValue, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)] == 1
+        assert metrics[Metrics.Module.call(PB_RICHMEDIA_FILTER, ALL_PROCESSED_BID_RESPONSES)] == 1
+        assert metrics[Metrics.Module.noop(PB_RICHMEDIA_FILTER, ALL_PROCESSED_BID_RESPONSES)] == 1
 
         where:
         pbRichmediaFilterConfig                | pbResponseCorrectionConfig
@@ -166,14 +161,14 @@ class GeneralModuleSpec extends ModuleBaseSpec {
 
         and: "Ortb2blocking module call metrics should be updated"
         def metrics = pbsServiceWithMultipleModule.sendCollectedMetricsRequest()
-        assert metrics[CALL_METRIC.formatted(ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)] == 1
-        assert metrics[CALL_METRIC.formatted(ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)] == 1
-        assert metrics[NOOP_METRIC.formatted(ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)] == 1
-        assert metrics[NOOP_METRIC.formatted(ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)] == 1
+        assert metrics[Metrics.Module.call(ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
+        assert metrics[Metrics.Module.call(ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
+        assert metrics[Metrics.Module.noop(ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
+        assert metrics[Metrics.Module.noop(ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
 
         and: "RB-Richmedia-Filter module call metrics should be updated"
-        assert metrics[CALL_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.metricValue, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)] == 1
-        assert metrics[NOOP_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.metricValue, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)] == 1
+        assert metrics[Metrics.Module.call(PB_RICHMEDIA_FILTER, ALL_PROCESSED_BID_RESPONSES)] == 1
+        assert metrics[Metrics.Module.noop(PB_RICHMEDIA_FILTER, ALL_PROCESSED_BID_RESPONSES)] == 1
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsConfig)
@@ -206,14 +201,14 @@ class GeneralModuleSpec extends ModuleBaseSpec {
 
         and: "Ortb2blocking module call metrics should be updated"
         def metrics = pbsServiceWithMultipleModuleWithRequireInvoke.sendCollectedMetricsRequest()
-        assert metrics[CALL_METRIC.formatted(ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)] == 1
-        assert metrics[CALL_METRIC.formatted(ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)] == 1
-        assert metrics[NOOP_METRIC.formatted(ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)] == 1
-        assert metrics[NOOP_METRIC.formatted(ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)] == 1
+        assert metrics[Metrics.Module.call(ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
+        assert metrics[Metrics.Module.call(ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
+        assert metrics[Metrics.Module.noop(ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
+        assert metrics[Metrics.Module.noop(ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
 
         and: "RB-Richmedia-Filter module call metrics should be updated"
-        assert metrics[CALL_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.metricValue, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)] == 1
-        assert metrics[NOOP_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.metricValue, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)] == 1
+        assert metrics[Metrics.Module.call(PB_RICHMEDIA_FILTER, ALL_PROCESSED_BID_RESPONSES)] == 1
+        assert metrics[Metrics.Module.noop(PB_RICHMEDIA_FILTER, ALL_PROCESSED_BID_RESPONSES)] == 1
 
         where:
         pbRichmediaFilterConfig                | ortb2BlockingConfig
@@ -251,14 +246,14 @@ class GeneralModuleSpec extends ModuleBaseSpec {
 
         and: "Ortb2blocking module call metrics should be updated"
         def metrics = pbsServiceWithMultipleModuleWithRequireInvoke.sendCollectedMetricsRequest()
-        assert !metrics[CALL_METRIC.formatted(ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)]
-        assert !metrics[CALL_METRIC.formatted(ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)]
-        assert !metrics[NOOP_METRIC.formatted(ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)]
-        assert !metrics[NOOP_METRIC.formatted(ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)]
+        assert !metrics[Metrics.Module.call(ORTB2_BLOCKING, BIDDER_REQUEST)]
+        assert !metrics[Metrics.Module.call(ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)]
+        assert !metrics[Metrics.Module.noop(ORTB2_BLOCKING, BIDDER_REQUEST)]
+        assert !metrics[Metrics.Module.noop(ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)]
 
         and: "RB-Richmedia-Filter module call metrics should be updated"
-        assert metrics[CALL_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.metricValue, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)] == 1
-        assert metrics[NOOP_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.metricValue, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)] == 1
+        assert metrics[Metrics.Module.call(PB_RICHMEDIA_FILTER, ALL_PROCESSED_BID_RESPONSES)] == 1
+        assert metrics[Metrics.Module.noop(PB_RICHMEDIA_FILTER, ALL_PROCESSED_BID_RESPONSES)] == 1
     }
 
     def "PBS shouldn't call any modules and traces that in response when account config is empty and require-config-to-invoke is enabled"() {
@@ -283,14 +278,14 @@ class GeneralModuleSpec extends ModuleBaseSpec {
 
         and: "Ortb2blocking module call metrics shouldn't be updated"
         def metrics = pbsServiceWithMultipleModuleWithRequireInvoke.sendCollectedMetricsRequest()
-        assert !metrics[CALL_METRIC.formatted(ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)]
-        assert !metrics[CALL_METRIC.formatted(ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)]
-        assert !metrics[NOOP_METRIC.formatted(ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)]
-        assert !metrics[NOOP_METRIC.formatted(ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)]
+        assert !metrics[Metrics.Module.call(ORTB2_BLOCKING, BIDDER_REQUEST)]
+        assert !metrics[Metrics.Module.call(ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)]
+        assert !metrics[Metrics.Module.noop(ORTB2_BLOCKING, BIDDER_REQUEST)]
+        assert !metrics[Metrics.Module.noop(ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)]
 
         and: "RB-Richmedia-Filter module call metrics shouldn't be updated"
-        assert !metrics[CALL_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.metricValue, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)]
-        assert !metrics[NOOP_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.metricValue, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)]
+        assert !metrics[Metrics.Module.call(PB_RICHMEDIA_FILTER, ALL_PROCESSED_BID_RESPONSES)]
+        assert !metrics[Metrics.Module.noop(PB_RICHMEDIA_FILTER, ALL_PROCESSED_BID_RESPONSES)]
 
         where:
         modulesConfig << [null, new PbsModulesConfig()]
@@ -322,10 +317,10 @@ class GeneralModuleSpec extends ModuleBaseSpec {
 
         and: "Ortb2blocking module call metrics should be updated"
         def metrics = pbsServiceWithMultipleModule.sendCollectedMetricsRequest()
-        assert metrics[CALL_METRIC.formatted(ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)] == 1
-        assert metrics[CALL_METRIC.formatted(ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)] == 1
-        assert metrics[NOOP_METRIC.formatted(ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)] == 1
-        assert metrics[NOOP_METRIC.formatted(ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)] == 1
+        assert metrics[Metrics.Module.call(ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
+        assert metrics[Metrics.Module.call(ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
+        assert metrics[Metrics.Module.noop(ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
+        assert metrics[Metrics.Module.noop(ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsConfig)
@@ -353,10 +348,10 @@ class GeneralModuleSpec extends ModuleBaseSpec {
 
         and: "Ortb2blocking module call metrics shouldn't be updated"
         def metrics = pbsServiceWithMultipleModule.sendCollectedMetricsRequest()
-        assert !metrics[CALL_METRIC.formatted(ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)]
-        assert !metrics[CALL_METRIC.formatted(ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)]
-        assert !metrics[NOOP_METRIC.formatted(ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)]
-        assert !metrics[NOOP_METRIC.formatted(ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)]
+        assert !metrics[Metrics.Module.call(ORTB2_BLOCKING, BIDDER_REQUEST)]
+        assert !metrics[Metrics.Module.call(ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)]
+        assert !metrics[Metrics.Module.noop(ORTB2_BLOCKING, BIDDER_REQUEST)]
+        assert !metrics[Metrics.Module.noop(ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)]
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsConfig)
@@ -392,10 +387,10 @@ class GeneralModuleSpec extends ModuleBaseSpec {
 
         and: "Ortb2blocking module call metrics shouldn't be updated"
         def metrics = pbsServiceWithMultipleModule.sendCollectedMetricsRequest()
-        assert !metrics[CALL_METRIC.formatted(ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)]
-        assert !metrics[CALL_METRIC.formatted(ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)]
-        assert !metrics[NOOP_METRIC.formatted(ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)]
-        assert !metrics[NOOP_METRIC.formatted(ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)]
+        assert !metrics[Metrics.Module.call(ORTB2_BLOCKING, BIDDER_REQUEST)]
+        assert !metrics[Metrics.Module.call(ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)]
+        assert !metrics[Metrics.Module.noop(ORTB2_BLOCKING, BIDDER_REQUEST)]
+        assert !metrics[Metrics.Module.noop(ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)]
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsConfig)
@@ -434,10 +429,10 @@ class GeneralModuleSpec extends ModuleBaseSpec {
 
         and: "Ortb2blocking module call metrics should be updated"
         def metrics = pbsServiceWithMultipleModule.sendCollectedMetricsRequest()
-        assert metrics[CALL_METRIC.formatted(ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)] == 1
-        assert metrics[CALL_METRIC.formatted(ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)] == 1
-        assert metrics[NOOP_METRIC.formatted(ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)] == 1
-        assert metrics[NOOP_METRIC.formatted(ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)] == 1
+        assert metrics[Metrics.Module.call(ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
+        assert metrics[Metrics.Module.call(ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
+        assert metrics[Metrics.Module.noop(ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
+        assert metrics[Metrics.Module.noop(ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsConfig)
@@ -472,14 +467,14 @@ class GeneralModuleSpec extends ModuleBaseSpec {
 
         and: "Ortb2blocking module call metrics shouldn't be updated"
         def metrics = pbsServiceWithMultipleModule.sendCollectedMetricsRequest()
-        assert !metrics[CALL_METRIC.formatted(ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)]
-        assert !metrics[CALL_METRIC.formatted(ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)]
-        assert !metrics[NOOP_METRIC.formatted(ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)]
-        assert !metrics[NOOP_METRIC.formatted(ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)]
+        assert !metrics[Metrics.Module.call(ORTB2_BLOCKING, BIDDER_REQUEST)]
+        assert !metrics[Metrics.Module.call(ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)]
+        assert !metrics[Metrics.Module.noop(ORTB2_BLOCKING, BIDDER_REQUEST)]
+        assert !metrics[Metrics.Module.noop(ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)]
 
         and: "RB-Richmedia-Filter module call metrics shouldn't be updated"
-        assert !metrics[CALL_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.metricValue, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)]
-        assert !metrics[NOOP_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.metricValue, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)]
+        assert !metrics[Metrics.Module.call(PB_RICHMEDIA_FILTER, ALL_PROCESSED_BID_RESPONSES)]
+        assert !metrics[Metrics.Module.noop(PB_RICHMEDIA_FILTER, ALL_PROCESSED_BID_RESPONSES)]
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsConfig)
@@ -521,14 +516,14 @@ class GeneralModuleSpec extends ModuleBaseSpec {
 
         and: "Ortb2blocking module call metrics should be updated"
         def metrics = pbsServiceWithMultipleModule.sendCollectedMetricsRequest()
-        assert metrics[CALL_METRIC.formatted(ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)] == 1
-        assert metrics[CALL_METRIC.formatted(ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)] == 1
-        assert metrics[NOOP_METRIC.formatted(ORTB2_BLOCKING.code, BIDDER_REQUEST.metricValue, ORTB2_BLOCKING_BIDDER_REQUEST.code)] == 1
-        assert metrics[NOOP_METRIC.formatted(ORTB2_BLOCKING.code, RAW_BIDDER_RESPONSE.metricValue, ORTB2_BLOCKING_RAW_BIDDER_RESPONSE.code)] == 1
+        assert metrics[Metrics.Module.call(ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
+        assert metrics[Metrics.Module.call(ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
+        assert metrics[Metrics.Module.noop(ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
+        assert metrics[Metrics.Module.noop(ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
 
         and: "RB-Richmedia-Filter module call metrics shouldn't be updated"
-        assert !metrics[CALL_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.metricValue, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)]
-        assert !metrics[NOOP_METRIC.formatted(PB_RICHMEDIA_FILTER.code, ALL_PROCESSED_BID_RESPONSES.metricValue, PB_RICHMEDIA_FILTER_ALL_PROCESSED_RESPONSES.code)]
+        assert !metrics[Metrics.Module.call(PB_RICHMEDIA_FILTER, ALL_PROCESSED_BID_RESPONSES)]
+        assert !metrics[Metrics.Module.noop(PB_RICHMEDIA_FILTER, ALL_PROCESSED_BID_RESPONSES)]
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsConfig)

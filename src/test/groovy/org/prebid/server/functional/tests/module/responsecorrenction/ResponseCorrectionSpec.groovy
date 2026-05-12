@@ -2,8 +2,6 @@ package org.prebid.server.functional.tests.module.responsecorrenction
 
 import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountCacheConfig
-import org.prebid.server.functional.model.config.AccountConfig
-import org.prebid.server.functional.model.config.AccountHooksConfiguration
 import org.prebid.server.functional.model.config.AppVideoHtml
 import org.prebid.server.functional.model.config.PbResponseCorrection
 import org.prebid.server.functional.model.db.Account

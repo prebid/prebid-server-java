@@ -15,7 +15,7 @@ import org.prebid.server.functional.model.request.auction.Audio
 import org.prebid.server.functional.model.request.auction.Banner
 import org.prebid.server.functional.model.request.auction.BidderControls
 import org.prebid.server.functional.model.request.auction.GenericPreferredBidder
-import org.prebid.server.functional.model.request.auction.Ix
+import org.prebid.server.functional.model.bidder.Ix
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.Video
@@ -23,7 +23,6 @@ import org.prebid.server.functional.model.response.auction.Adm
 import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidMediaType
 import org.prebid.server.functional.model.response.auction.BidResponse
-import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.model.response.auction.MediaType
 import org.prebid.server.functional.model.response.auction.SeatBid
 import org.prebid.server.functional.tests.module.ModuleBaseSpec

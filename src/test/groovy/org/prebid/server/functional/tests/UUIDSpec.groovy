@@ -8,6 +8,7 @@ import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
 import org.prebid.server.functional.model.request.auction.Source
 import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.util.Metrics
 import org.prebid.server.functional.util.PBSUtils
 
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
@@ -53,7 +54,7 @@ class UUIDSpec extends BaseSpec {
 
         then: "Metric stored_requests_found should be updated"
         def metrics = pbsService.sendCollectedMetricsRequest()
-        assert metrics["stored_requests_found"] == 1
+        assert metrics[Metrics.General.storedRequestFound()] == 1
 
         and: "BidResponse should be merged with stored request"
         def bidderRequest = bidder.getBidderRequest(bidResponse.id)
@@ -144,7 +145,7 @@ class UUIDSpec extends BaseSpec {
 
         then: "Metric stored_requests_found should be updated"
         def metrics = pbsService.sendCollectedMetricsRequest()
-        assert metrics["stored_requests_found"] == 1
+        assert metrics[Metrics.General.storedRequestFound()] == 1
 
         and: "BidResponse should be merged with stored request"
         def bidderRequest = bidder.getBidderRequest(bidResponse.id)
@@ -210,7 +211,7 @@ class UUIDSpec extends BaseSpec {
 
         then: "Metric stored_requests_found should be updated"
         def metrics = pbsService.sendCollectedMetricsRequest()
-        assert metrics["stored_requests_found"] == 1
+        assert metrics[Metrics.General.storedRequestFound()] == 1
 
         and: "BidResponse should be merged with stored request"
         def bidderRequest = bidder.getBidderRequest(bidResponse.id)
@@ -296,7 +297,7 @@ class UUIDSpec extends BaseSpec {
 
         then: "Metric stored_requests_found should be updated"
         def metrics = storedRequestIdGenEnabledService.sendCollectedMetricsRequest()
-        assert metrics["stored_requests_found"] == 1
+        assert metrics[Metrics.General.storedRequestFound()] == 1
 
         and: "BidResponse should be merged with stored request"
         def bidderRequest = bidder.getBidderRequest(bidResponse.id)

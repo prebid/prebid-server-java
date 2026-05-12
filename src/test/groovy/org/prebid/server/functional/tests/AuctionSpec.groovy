@@ -25,6 +25,7 @@ import org.prebid.server.functional.model.response.cookiesync.UserSyncInfo
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.HttpUtil
+import org.prebid.server.functional.util.Metrics
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Shared
 
@@ -54,8 +55,6 @@ class AuctionSpec extends BaseSpec {
     @Shared
     PrebidServerService prebidServerService = pbsServiceFactory.getService(PBS_CONFIG)
 
-    private static final String IMPS_REQUESTED_METRIC = 'imps_requested'
-    private static final String IMPS_DROPPED_METRIC = 'imps_dropped'
     private static final Integer IMP_LIMIT = 1
     private static final Map<String, String> PBS_CONFIG = ["auction.biddertmax.max"    : MAX_TIMEOUT as String,
                                                            "auction.default-timeout-ms": DEFAULT_TIMEOUT as String]
@@ -92,7 +91,7 @@ class AuctionSpec extends BaseSpec {
 
         and: "account.<account-id>.requests.rejected.invalid-account metric should be updated"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        assert metrics["account.${accountId}.requests.rejected.invalid-account" as String] == 1
+        assert metrics[Metrics.Account.rejectedInvalidAccount(accountId)] == 1
     }
 
     def "PBS should update account.<account-id>.requests.rejected.#metricName metric when stored request is invalid"() {
@@ -770,8 +769,8 @@ class AuctionSpec extends BaseSpec {
 
         and: "Metrics for imps should be updated"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        assert metrics[IMPS_DROPPED_METRIC] == bidRequest.imp.size() - IMP_LIMIT
-        assert metrics[IMPS_REQUESTED_METRIC] == IMP_LIMIT
+        assert metrics[Metrics.General.impsDropped()] == bidRequest.imp.size() - IMP_LIMIT
+        assert metrics[Metrics.General.impsRequested()] == IMP_LIMIT
 
         and: "Response should contain seat bid"
         assert response.seatbid[0].bid.size() == IMP_LIMIT
@@ -812,8 +811,8 @@ class AuctionSpec extends BaseSpec {
 
         and: "Metrics for imps requested should be updated"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        assert metrics[IMPS_REQUESTED_METRIC] == bidRequest.imp.size()
-        assert !metrics[IMPS_DROPPED_METRIC]
+        assert metrics[Metrics.General.impsRequested()] == bidRequest.imp.size()
+        assert !metrics[Metrics.General.impsDropped()]
 
         and: "Response should contain seat bid"
         assert response.seatbid[0].bid.size() == bidRequest.imp.size()
@@ -849,8 +848,8 @@ class AuctionSpec extends BaseSpec {
 
         and: "Metrics for imps requested should be updated"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        assert metrics[IMPS_REQUESTED_METRIC] == bidRequest.imp.size()
-        assert !metrics[IMPS_DROPPED_METRIC]
+        assert metrics[Metrics.General.impsRequested()] == bidRequest.imp.size()
+        assert !metrics[Metrics.General.impsDropped()]
 
         and: "Response should contain seat bid"
         assert response.seatbid[0].bid.size() == bidRequest.imp.size()
@@ -885,8 +884,8 @@ class AuctionSpec extends BaseSpec {
 
         and: "Metrics for imps requested should be updated"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        assert metrics[IMPS_REQUESTED_METRIC] == bidRequest.imp.size()
-        assert !metrics[IMPS_DROPPED_METRIC]
+        assert metrics[Metrics.General.impsRequested()] == bidRequest.imp.size()
+        assert !metrics[Metrics.General.impsDropped()]
 
         and: "Response should contain seat bid"
         assert response.seatbid[0].bid.size() == bidRequest.imp.size()

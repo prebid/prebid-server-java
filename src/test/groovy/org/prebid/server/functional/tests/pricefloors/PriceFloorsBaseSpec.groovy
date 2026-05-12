@@ -22,6 +22,7 @@ import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.scaffolding.CurrencyConversion
 import org.prebid.server.functional.testcontainers.scaffolding.FloorsProvider
 import org.prebid.server.functional.tests.BaseSpec
+import org.prebid.server.functional.util.Metrics
 import org.prebid.server.functional.util.PBSUtils
 
 import java.math.RoundingMode
@@ -41,8 +42,6 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
 
     protected static final String BASIC_FETCH_URL = networkServiceContainer.rootUri + FloorsProvider.FLOORS_ENDPOINT
     protected static final int MAX_MODEL_WEIGHT = 100
-    protected static final Closure<String> INVALID_CONFIG_METRIC = { account -> "alerts.account_config.${account}.price-floors" }
-
     protected static final Closure<String> URL_EMPTY_ERROR = { url -> "Failed to fetch price floor from provider for fetch.url '${url}'"
     }
     protected static final String FETCHING_DISABLED_ERROR = "Fetching is disabled"

@@ -10,6 +10,7 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.ExtPrebidFloors
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
 import org.prebid.server.functional.model.response.auction.BidResponse
+import org.prebid.server.functional.util.Metrics
 import org.prebid.server.functional.util.PBSUtils
 
 import java.time.Instant
@@ -45,7 +46,6 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
     private static final int DEFAULT_FLOOR_VALUE_MIN = 0
     private static final int FLOOR_MIN = 0
 
-    private static final String FETCH_FAILURE_METRIC = "price-floors.fetch.failure"
     private static final String PRICE_FLOOR_VALUES_MISSING = 'Price floor rules values can\'t be null or empty, but were null'
     private static final String MODEL_WEIGHT_INVALID = "Price floor modelGroup modelWeight must be in range(1-100), but was %s"
     private static final String SKIP_RATE_INVALID = "Price floor modelGroup skipRate must be in range(0-100), but was %s"
@@ -163,7 +163,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         then: "Metric alerts.account_config.ACCOUNT.price-floors should be update"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
-        assert metrics[INVALID_CONFIG_METRIC(bidRequest.accountId) as String] == 1
+        assert metrics[Metrics.Account.invalidConfigFloors(bidRequest.accountId)] == 1
 
         and: "PBS floors validation failure should not reject the entire auction"
         assert !response.seatbid.isEmpty()
@@ -189,7 +189,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         then: "Metric alerts.account_config.ACCOUNT.price-floors  should be update"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
-        assert metrics[INVALID_CONFIG_METRIC(bidRequest.accountId) as String] == 1
+        assert metrics[Metrics.Account.invalidConfigFloors(bidRequest.accountId)] == 1
 
         and: "PBS floors validation failure should not reject the entire auction"
         assert !response.seatbid?.isEmpty()
@@ -216,7 +216,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         then: "Metric alerts.account_config.ACCOUNT.price-floors should be update"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
-        assert metrics[INVALID_CONFIG_METRIC(bidRequest.accountId) as String] == 1
+        assert metrics[Metrics.Account.invalidConfigFloors(bidRequest.accountId)] == 1
 
         and: "PBS floors validation failure should not reject the entire auction"
         assert !response.seatbid?.isEmpty()
@@ -237,7 +237,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         then: "Metric alerts.account_config.ACCOUNT.price-floors  should be update"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
-        assert metrics[INVALID_CONFIG_METRIC(bidRequest.accountId) as String] == 1
+        assert metrics[Metrics.Account.invalidConfigFloors(bidRequest.accountId)] == 1
 
         and: "PBS floors validation failure should not reject the entire auction"
         assert !response.seatbid?.isEmpty()
@@ -258,7 +258,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         then: "Metric alerts.account_config.ACCOUNT.price-floors  should be update"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
-        assert metrics[INVALID_CONFIG_METRIC(bidRequest.accountId) as String] == 1
+        assert metrics[Metrics.Account.invalidConfigFloors(bidRequest.accountId)] == 1
 
         and: "PBS floors validation failure should not reject the entire auction"
         assert !response.seatbid?.isEmpty()
@@ -288,7 +288,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         then: "Metric alerts.account_config.ACCOUNT.price-floors  should be update"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
-        assert metrics[INVALID_CONFIG_METRIC(bidRequest.accountId) as String] == 1
+        assert metrics[Metrics.Account.invalidConfigFloors(bidRequest.accountId)] == 1
 
         and: "PBS floors validation failure should not reject the entire auction"
         assert !response.seatbid?.isEmpty()
@@ -573,7 +573,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         then: "metric should be updated"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
-        assert metrics[FETCH_FAILURE_METRIC] == 1
+        assert metrics[Metrics.General.floorsFetchFailure()] == 1
 
         and: "PBS should fetch data"
         assert floorsProvider.getRequestCount(bidRequest.accountId) == 1
@@ -655,7 +655,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         then: "metric should be updated"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
-        assert metrics[FETCH_FAILURE_METRIC] == 1
+        assert metrics[Metrics.General.floorsFetchFailure()] == 1
 
         and: "PBS should add single warning"
         assert response.ext?.warnings[PREBID]*.code == [999]
@@ -764,7 +764,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
 
         then: "#FETCH_FAILURE_METRIC should be update"
-        assert metrics[FETCH_FAILURE_METRIC] == 1
+        assert metrics[Metrics.General.floorsFetchFailure()] == 1
 
         and: "PBS log should contain error"
         def message = "Failed to request, provider respond with status 400"
@@ -806,7 +806,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
 
         then: "#FETCH_FAILURE_METRIC should be update"
-        assert metrics[FETCH_FAILURE_METRIC] == 1
+        assert metrics[Metrics.General.floorsFetchFailure()] == 1
 
         and: "PBS log should contain error"
         def message = "Failed to parse price floor response, cause: DecodeException: Failed to decode"
@@ -847,7 +847,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
 
         then: "#FETCH_FAILURE_METRIC should be update"
-        assert metrics[FETCH_FAILURE_METRIC] == 1
+        assert metrics[Metrics.General.floorsFetchFailure()] == 1
 
         and: "PBS log should contain error"
         def message = "Failed to parse price floor response, response body can not be empty"
@@ -891,7 +891,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
 
         then: "#FETCH_FAILURE_METRIC should be update"
-        assert metrics[FETCH_FAILURE_METRIC] == 1
+        assert metrics[Metrics.General.floorsFetchFailure()] == 1
 
         and: "PBS log should contain error"
         def message = "Price floor rules should contain at least one model group"
@@ -935,7 +935,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
 
         then: "#FETCH_FAILURE_METRIC should be update"
-        assert metrics[FETCH_FAILURE_METRIC] == 1
+        assert metrics[Metrics.General.floorsFetchFailure()] == 1
 
         and: "PBS log should contain error"
         def logs = floorsPbsService.getLogsByTime(startTime)
@@ -981,7 +981,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
 
         then: "#FETCH_FAILURE_METRIC should be update"
-        assert metrics[FETCH_FAILURE_METRIC] == 1
+        assert metrics[Metrics.General.floorsFetchFailure()] == 1
 
         and: "PBS log should contain error"
         def message = "Price floor rules number 2 exceeded its maximum number $maxRules"
@@ -1029,7 +1029,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def metrics = pbsService.sendCollectedMetricsRequest()
 
         then: "#FETCH_FAILURE_METRIC should be update"
-        assert metrics[FETCH_FAILURE_METRIC] == 1
+        assert metrics[Metrics.General.floorsFetchFailure()] == 1
 
         and: "PBS log should contain error"
         def logs = pbsService.getLogsByTime(startTime)
@@ -1074,7 +1074,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
 
         then: "#FETCH_FAILURE_METRIC should be update"
-        assert metrics[FETCH_FAILURE_METRIC] == 1
+        assert metrics[Metrics.General.floorsFetchFailure()] == 1
 
         and: "PBS log should contain error"
         def message = "Response size $responseSize exceeded ${convertKilobyteSizeToByte(maxSize)} bytes limit"
@@ -1757,7 +1757,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "Alerts.general metrics shouldn't be populated"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
-        assert !metrics[ALERT_GENERAL]
+        assert !metrics[Metrics.General.alert()]
 
         where:
         bidRequest << [BidRequest.getDefaultBidRequest(), getBidRequestWithFloors().tap { it.ext.prebid.floors = null }]
@@ -1808,7 +1808,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "Alerts.general metrics should be populated"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[Metrics.General.alert()] == 1
 
         where:
         requestFloorEnabled << [null, true]
@@ -1849,7 +1849,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "Alerts.general metrics shouldn't be populated"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
-        assert !metrics[ALERT_GENERAL]
+        assert !metrics[Metrics.General.alert()]
     }
 
     def "PBS shouldn't emit error in log and response when data is invalid and floors fetching enabled for account"() {
@@ -1892,7 +1892,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "Alerts.general metrics shouldn't be populated"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
-        assert !metrics[ALERT_GENERAL]
+        assert !metrics[Metrics.General.alert()]
 
         where:
         requestEnabledFloors << [null, true]
@@ -1937,7 +1937,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "Alerts.general metrics shouldn't be populated"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
-        assert !metrics[ALERT_GENERAL]
+        assert !metrics[Metrics.General.alert()]
     }
 
     def "PBS should not invalidate previously good fetched data when floors provider return invalid data"() {
@@ -2031,7 +2031,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         assert bidderRequest.ext?.prebid?.floors?.fetchStatus == ERROR
 
         and: "#FETCH_FAILURE_METRIC should be update"
-        assert metrics[FETCH_FAILURE_METRIC] == 1
+        assert metrics[Metrics.General.floorsFetchFailure()] == 1
 
         and: "PBS log should contain error"
         def logs = floorsPbsService.getLogsByTime(startTime)
@@ -2088,7 +2088,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         assert bidderRequest.ext?.prebid?.floors?.fetchStatus == ERROR
 
         and: "#FETCH_FAILURE_METRIC should be update"
-        assert metrics[FETCH_FAILURE_METRIC] == 1
+        assert metrics[Metrics.General.floorsFetchFailure()] == 1
 
         and: "PBS log should contain error"
         def message = "Price floor data skipRate must be in range(0-100), but was $invalidSkipRate"
@@ -2146,7 +2146,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         assert bidderRequest.ext?.prebid?.floors?.fetchStatus == ERROR
 
         and: "#FETCH_FAILURE_METRIC should be update"
-        assert metrics[FETCH_FAILURE_METRIC] == 1
+        assert metrics[Metrics.General.floorsFetchFailure()] == 1
 
         and: "PBS log should contain error"
         def logs = floorsPbsService.getLogsByTime(startTime)
@@ -2203,7 +2203,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         assert bidderRequest.ext?.prebid?.floors?.fetchStatus == ERROR
 
         and: "#FETCH_FAILURE_METRIC should be update"
-        assert metrics[FETCH_FAILURE_METRIC] == 1
+        assert metrics[Metrics.General.floorsFetchFailure()] == 1
 
         and: "PBS log should contain error"
         def message = "Price floor modelGroup default must be positive float, but was $invalidDefaultFloor"
@@ -2410,7 +2410,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         then: "Metric alerts.account_config.ACCOUNT.price-floors should be update"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
-        assert metrics[INVALID_CONFIG_METRIC(bidRequest.accountId) as String] == 1
+        assert metrics[Metrics.Account.invalidConfigFloors(bidRequest.accountId)] == 1
 
         and: "PBS floors validation failure should not reject the entire auction"
         assert !response.seatbid?.isEmpty()
@@ -2439,7 +2439,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         then: "Metric alerts.account_config.ACCOUNT.price-floors should be update"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
-        assert metrics[INVALID_CONFIG_METRIC(bidRequest.accountId) as String] == 1
+        assert metrics[Metrics.Account.invalidConfigFloors(bidRequest.accountId)] == 1
 
         and: "PBS floors validation failure should not reject the entire auction"
         assert !response.seatbid?.isEmpty()
@@ -2466,7 +2466,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         then: "Metric alerts.account_config.ACCOUNT.price-floors should be update"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
-        assert metrics[INVALID_CONFIG_METRIC(bidRequest.accountId) as String] == 1
+        assert metrics[Metrics.Account.invalidConfigFloors(bidRequest.accountId)] == 1
 
         and: "PBS floors validation failure should not reject the entire auction"
         assert !response.seatbid?.isEmpty()
