@@ -8,7 +8,7 @@ import org.prebid.server.functional.model.config.CodesBidderConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.AdjustmentRule
 import org.prebid.server.functional.model.request.auction.AdjustmentType
-import org.prebid.server.functional.model.request.auction.Amx
+import org.prebid.server.functional.model.bidder.Amx
 import org.prebid.server.functional.model.request.auction.BidAdjustment
 import org.prebid.server.functional.model.request.auction.BidAdjustmentFactors
 import org.prebid.server.functional.model.request.auction.BidAdjustmentRule

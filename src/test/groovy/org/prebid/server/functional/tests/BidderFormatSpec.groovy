@@ -18,6 +18,7 @@ import org.prebid.server.functional.model.request.auction.Video
 import org.prebid.server.functional.model.response.auction.Adm
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.service.PrebidServerException
+import org.prebid.server.functional.util.Metrics
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.PendingFeature
 import spock.lang.Shared
@@ -191,8 +192,8 @@ class BidderFormatSpec extends BaseSpec {
 
         then: "Corresponding metric should increments"
         def metrics = pbsService.sendCollectedMetricsRequest()
-        assert metrics["account.${bidRequest.accountId}.response.validation.size.warn"] == 1
-        assert metrics["adapter.generic.response.validation.size.warn"] == 1
+        assert metrics[Metrics.Account.validationSizeWarn(bidRequest.accountId)] == 1
+        assert metrics[Metrics.Adapter.validationSizeWarn(BidderName.GENERIC)] == 1
 
         and: "Response should contain error"
         assert bidResponse.ext?.errors[GENERIC]*.code == [5]
@@ -255,8 +256,8 @@ class BidderFormatSpec extends BaseSpec {
 
         then: "Corresponding metric shouldn't increments"
         def metrics = pbsService.sendCollectedMetricsRequest()
-        assert !metrics["account.${bidRequest.accountId}.response.validation.size.warn"]
-        assert !metrics["account.${bidRequest.accountId}.response.validation.size.err"]
+        assert !metrics[Metrics.Account.validationSizeWarn(bidRequest.accountId)]
+        assert !metrics[Metrics.Account.validationSizeError(bidRequest.accountId)]
 
         and: "Response should contain error"
         assert !bidResponse.ext?.errors
@@ -322,8 +323,8 @@ class BidderFormatSpec extends BaseSpec {
 
         then: "Corresponding metric should increments"
         def metrics = pbsService.sendCollectedMetricsRequest()
-        assert metrics["account.${bidRequest.accountId}.response.validation.size.err"] == 1
-        assert metrics["adapter.generic.response.validation.size.err"] == 1
+        assert metrics[Metrics.Account.validationSizeError(bidRequest.accountId)] == 1
+        assert metrics[Metrics.Adapter.validationSizeError(BidderName.GENERIC)] == 1
 
         and: "Response should contain error"
         assert bidResponse.ext?.errors[GENERIC]*.code == [5]
@@ -382,8 +383,8 @@ class BidderFormatSpec extends BaseSpec {
 
         then: "Corresponding metric shouldn't increments"
         def metrics = pbsService.sendCollectedMetricsRequest()
-        assert !metrics["account.${bidRequest.accountId}.response.validation.size.warn"]
-        assert !metrics["account.${bidRequest.accountId}.response.validation.size.err"]
+        assert !metrics[Metrics.Account.validationSizeWarn(bidRequest.accountId)]
+        assert !metrics[Metrics.Account.validationSizeError(bidRequest.accountId)]
 
         and: "Response should contain error"
         assert !bidResponse.ext?.errors
@@ -438,8 +439,8 @@ class BidderFormatSpec extends BaseSpec {
 
         then: "Corresponding metric should increments"
         def metrics = pbsService.sendCollectedMetricsRequest()
-        assert !metrics["account.${bidRequest.accountId}.response.validation.size.err"]
-        assert !metrics["adapter.generic.response.validation.size.err"]
+        assert !metrics[Metrics.Account.validationSizeError(bidRequest.accountId)]
+        assert !metrics[Metrics.Adapter.validationSizeError(BidderName.GENERIC)]
 
         and: "Response shouldn't contain error"
         assert !bidResponse.ext?.errors
@@ -509,8 +510,8 @@ class BidderFormatSpec extends BaseSpec {
 
         then: "Corresponding metric should increments"
         def metrics = pbsService.sendCollectedMetricsRequest()
-        assert metrics["account.${bidRequest.accountId}.response.validation.size.err"] == 1
-        assert metrics["adapter.generic.response.validation.size.err"] == 1
+        assert metrics[Metrics.Account.validationSizeError(bidRequest.accountId)] == 1
+        assert metrics[Metrics.Adapter.validationSizeError(BidderName.GENERIC)] == 1
 
         and: "Bid response should contain error"
         assert bidResponse.ext?.errors[GENERIC]*.code == [5]
@@ -567,10 +568,10 @@ class BidderFormatSpec extends BaseSpec {
 
         then: "Corresponding metric shouldn't be increments"
         def metrics = pbsService.sendCollectedMetricsRequest()
-        assert !metrics["account.${bidRequest.accountId}.response.validation.secure.warn"]
-        assert !metrics["adapter.${BidderName.GENERIC.value}.response.validation.secure.warn"]
-        assert !metrics["account.${bidRequest.accountId}.response.validation.secure.err"]
-        assert !metrics["adapter.${BidderName.GENERIC.value}.response.validation.secure.err"]
+        assert !metrics[Metrics.Account.validationSizeWarn(bidRequest.accountId)]
+        assert !metrics[Metrics.Adapter.validationSizeWarn(BidderName.GENERIC)]
+        assert !metrics[Metrics.Account.validationSizeError(bidRequest.accountId)]
+        assert !metrics[Metrics.Adapter.validationSizeError(BidderName.GENERIC)]
 
         and: "Bid response should contain error"
         assert !bidResponse.ext?.errors
@@ -622,8 +623,8 @@ class BidderFormatSpec extends BaseSpec {
 
         then: "Corresponding metric should increments"
         def metrics = pbsService.sendCollectedMetricsRequest()
-        assert metrics["account.${bidRequest.accountId}.response.validation.secure.warn"] == 1
-        assert metrics["adapter.${BidderName.GENERIC.value}.response.validation.secure.warn"] == 1
+        assert metrics[Metrics.Account.validationSecureWarn(bidRequest.accountId)] == 1
+        assert metrics[Metrics.Adapter.validationSecureWarn(BidderName.GENERIC)] == 1
 
         and: "Bid response should contain error"
         assert bidResponse.ext?.errors[GENERIC]*.code == [5]
@@ -675,10 +676,10 @@ class BidderFormatSpec extends BaseSpec {
 
         then: "Corresponding metric should increments"
         def metrics = pbsService.sendCollectedMetricsRequest()
-        assert !metrics["account.${bidRequest.accountId}.response.validation.secure.warn"]
-        assert !metrics["account.${bidRequest.accountId}.response.validation.secure.err"]
-        assert !metrics["adapter.${BidderName.GENERIC.value}.response.validation.secure.warn"]
-        assert !metrics["adapter.${BidderName.GENERIC.value}.response.validation.secure.err"]
+        assert !metrics[Metrics.Account.validationSizeWarn(bidRequest.accountId)]
+        assert !metrics[Metrics.Adapter.validationSizeWarn(BidderName.GENERIC)]
+        assert !metrics[Metrics.Account.validationSizeError(bidRequest.accountId)]
+        assert !metrics[Metrics.Adapter.validationSizeError(BidderName.GENERIC)]
 
         and: "Bid response shouldn't contain error"
         assert !bidResponse.ext?.errors
@@ -730,8 +731,8 @@ class BidderFormatSpec extends BaseSpec {
 
         then: "Corresponding metric should increments"
         def metrics = pbsService.sendCollectedMetricsRequest()
-        assert metrics["account.${bidRequest.accountId}.response.validation.secure.err"] == 1
-        assert metrics["adapter.${BidderName.GENERIC.value}.response.validation.secure.err"] == 1
+        assert metrics[Metrics.Account.validationSecureError(bidRequest.accountId)] == 1
+        assert metrics[Metrics.Adapter.validationSecureError(BidderName.GENERIC)] == 1
 
         and: "Bid response should contain error"
         assert bidResponse.ext?.errors[GENERIC]*.code == [5]
@@ -783,10 +784,10 @@ class BidderFormatSpec extends BaseSpec {
 
         then: "Corresponding metric shouldn't increments"
         def metrics = pbsService.sendCollectedMetricsRequest()
-        assert !metrics["account.${bidRequest.accountId}.response.validation.secure.warn"]
-        assert !metrics["account.${bidRequest.accountId}.response.validation.secure.err"]
-        assert !metrics["adapter.${BidderName.GENERIC.value}.response.validation.secure.warn"]
-        assert !metrics["adapter.${BidderName.GENERIC.value}.response.validation.secure.err"]
+        assert !metrics[Metrics.Account.validationSizeWarn(bidRequest.accountId)]
+        assert !metrics[Metrics.Adapter.validationSizeWarn(BidderName.GENERIC)]
+        assert !metrics[Metrics.Account.validationSizeError(bidRequest.accountId)]
+        assert !metrics[Metrics.Adapter.validationSizeError(BidderName.GENERIC)]
 
         and: "Bid response shouldn't contain error"
         assert !bidResponse.ext?.errors
@@ -836,8 +837,10 @@ class BidderFormatSpec extends BaseSpec {
 
         then: "Corresponding metric shouldn't increments"
         def metrics = pbsService.sendCollectedMetricsRequest()
-        assert !metrics["account.${bidRequest.accountId}.response.validation.secure.warn"]
-        assert !metrics["adapter.${BidderName.GENERIC.value}.response.validation.secure.warn"]
+        assert !metrics[Metrics.Account.validationSizeWarn(bidRequest.accountId)]
+        assert !metrics[Metrics.Adapter.validationSizeWarn(BidderName.GENERIC)]
+        assert !metrics[Metrics.Account.validationSizeError(bidRequest.accountId)]
+        assert !metrics[Metrics.Adapter.validationSizeError(BidderName.GENERIC)]
 
         and: "Bid response shouldn't contain error"
         assert !bidResponse.ext?.errors

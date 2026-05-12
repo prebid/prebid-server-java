@@ -12,6 +12,7 @@ import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.service.PrebidServerException
+import org.prebid.server.functional.util.Metrics
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.PendingFeature
 
@@ -63,7 +64,7 @@ class BidValidationSpec extends BaseSpec {
 
         and: "Bid validation metric value is incremented"
         def metrics = strictPrebidService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[Metrics.General.alert()] == 1
 
         where:
         bidRequest << [BidRequest.getDefaultBidRequest(DistributionChannel.APP).tap {
@@ -105,7 +106,7 @@ class BidValidationSpec extends BaseSpec {
 
         and: "Bid validation metric value is incremented"
         def metrics = softPrebidService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[Metrics.General.alert()] == 1
 
         and: "PBS log should contain message"
         def logs = softPrebidService.getLogsByTime(startTime)
@@ -376,7 +377,7 @@ class BidValidationSpec extends BaseSpec {
 
         then: "Bid validation metric value is incremented"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        assert metrics["adapter.generic.requests.bid_validation"] == 1
+        assert metrics[Metrics.Adapter.bidValidation(GENERIC)] == 1
     }
 
     def "PBS shouldn't throw error when two separate eids with same eids.source"() {

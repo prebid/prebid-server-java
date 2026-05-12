@@ -12,6 +12,7 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.DistributionChannel
 import org.prebid.server.functional.model.request.auction.Regs
 import org.prebid.server.functional.model.request.auction.RegsExt
+import org.prebid.server.functional.util.Metrics
 import org.prebid.server.functional.tests.privacy.PrivacyBaseSpec
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.BogusConsent
@@ -30,8 +31,6 @@ import static org.prebid.server.functional.model.config.PurposeEnforcement.BASIC
 import static org.prebid.server.functional.model.config.PurposeEnforcement.NO
 import static org.prebid.server.functional.model.mock.services.vendorlist.GvlSpecificationVersion.V3
 import static org.prebid.server.functional.model.pricefloors.Country.BULGARIA
-import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ADAPTER_DISALLOWED_COUNT
-import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_REQUEST_DISALLOWED_COUNT
 import static org.prebid.server.functional.model.request.amp.ConsentType.BOGUS
 import static org.prebid.server.functional.model.request.amp.ConsentType.TCF_1
 import static org.prebid.server.functional.model.request.amp.ConsentType.US_PRIVACY
@@ -398,7 +397,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
 
         and: "Alerts.general metrics should be populated"
         def metrics = privacyPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[Metrics.General.alert()] == 1
 
         and: "Bidder should be called"
         assert bidder.getBidderRequest(ampStoredRequest.id)
@@ -507,8 +506,8 @@ class GdprAmpSpec extends PrivacyBaseSpec {
 
         then: "Metrics processed across activities should be updated"
         def metrics = privacyPbsService.sendCollectedMetricsRequest()
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, FETCH_BIDS)] == 1
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, FETCH_BIDS)] == 1
+        assert metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, FETCH_BIDS)] == 1
+        assert metrics[Metrics.Privacy.requestDisallowedActivityCount(FETCH_BIDS)] == 1
     }
 
     def "PBS auction should update activity controls privacy metrics when tcf requirement disallow privacy fields"() {
@@ -583,12 +582,12 @@ class GdprAmpSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = privacyPbsService.sendCollectedMetricsRequest()
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_EIDS)] == 1
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_PRECISE_GEO)] == 1
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_EIDS)] == 1
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_PRECISE_GEO)] == 1
+        assert metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_EIDS)] == 1
+        assert metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_PRECISE_GEO)] == 1
+        assert metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_EIDS)] == 1
+        assert metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_PRECISE_GEO)] == 1
     }
 
     def "PBS auction should not update activity controls privacy metrics when tcf requirement allow privacy fields"() {
@@ -660,12 +659,12 @@ class GdprAmpSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities shouldn't be updated"
         def metrics = privacyPbsService.sendCollectedMetricsRequest()
-        assert !metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)]
-        assert !metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_EIDS)]
-        assert !metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_PRECISE_GEO)]
-        assert !metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)]
-        assert !metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_EIDS)]
-        assert !metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_PRECISE_GEO)]
+        assert !metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_UFPD)]
+        assert !metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_EIDS)]
+        assert !metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_PRECISE_GEO)]
+        assert !metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_UFPD)]
+        assert !metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_EIDS)]
+        assert !metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_PRECISE_GEO)]
     }
 
     def "PBS amp should set 3 for tcfPolicyVersion when tcfPolicyVersion is #tcfPolicyVersion"() {
@@ -746,8 +745,8 @@ class GdprAmpSpec extends PrivacyBaseSpec {
 
         then: "Metrics processed across activities should be updated"
         def metrics = privacyPbsService.sendCollectedMetricsRequest()
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, FETCH_BIDS)] == 1
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, FETCH_BIDS)] == 1
+        assert metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, FETCH_BIDS)] == 1
+        assert metrics[Metrics.Privacy.requestDisallowedActivityCount(FETCH_BIDS)] == 1
 
         where:
         gdpr | coppa | extGdpr | extCoppa
@@ -829,8 +828,8 @@ class GdprAmpSpec extends PrivacyBaseSpec {
 
         then: "Metrics processed across activities should be updated"
         def metrics = privacyPbsService.sendCollectedMetricsRequest()
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, FETCH_BIDS)] == 1
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, FETCH_BIDS)] == 1
+        assert metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, FETCH_BIDS)] == 1
+        assert metrics[Metrics.Privacy.requestDisallowedActivityCount(FETCH_BIDS)] == 1
 
         where:
         requestCountry | accountCountry | requestIpV4 | requestIpV6 | header

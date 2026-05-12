@@ -1,6 +1,7 @@
 package org.prebid.server.functional.tests.module.pbruleengine
 
 import org.prebid.server.functional.model.config.RuleEngineFunctionArgs
+import org.prebid.server.functional.util.Metrics
 import org.prebid.server.functional.util.PBSUtils
 
 import java.time.Instant
@@ -59,12 +60,12 @@ class PbRuleEngineValidationSpec extends PbRuleEngineBaseSpec {
         assert !getAnalyticResults(bidResponse)
 
         and: "PBs should populate call and noop metrics"
-        def metrics = pbsServiceWithRulesEngineModule.sendCollectedMetricsRequest()
-        assert metrics[CALL_METRIC(PB_RULE_ENGINE, PROCESSED_AUCTION_REQUEST)] == 1
-        assert metrics[NOOP_METRIC(PB_RULE_ENGINE,PROCESSED_AUCTION_REQUEST)] == 1
+        def metrics = pbsServiceWithMultipleModules.sendCollectedMetricsRequest()
+        assert metrics[Metrics.Module.call(PB_RULE_ENGINE, PROCESSED_AUCTION_REQUEST)] == 1
+        assert metrics[Metrics.Module.noop(PB_RULE_ENGINE, PROCESSED_AUCTION_REQUEST)] == 1
 
         and: "PBs should populate update metrics"
-        assert !metrics[UPDATE_METRIC(PB_RULE_ENGINE,PROCESSED_AUCTION_REQUEST)]
+        assert !metrics[Metrics.Module.update(PB_RULE_ENGINE, PROCESSED_AUCTION_REQUEST)]
 
         where:
         pbRulesEngine << [
@@ -113,8 +114,8 @@ class PbRuleEngineValidationSpec extends PbRuleEngineBaseSpec {
         assert !getAnalyticResults(bidResponse)
 
         and: "PBs should populate noop metrics"
-        def metrics = pbsServiceWithRulesEngineModule.sendCollectedMetricsRequest()
-        assert metrics[NOOP_METRIC(PB_RULE_ENGINE,PROCESSED_AUCTION_REQUEST)] == 1
+        def metrics = pbsServiceWithMultipleModules.sendCollectedMetricsRequest()
+        assert metrics[Metrics.Module.noop(PB_RULE_ENGINE, PROCESSED_AUCTION_REQUEST)] == 1
     }
 
     def "PBS shouldn't remove bidder and emit a warning when args rule engine not fully configured in account"() {
@@ -151,8 +152,8 @@ class PbRuleEngineValidationSpec extends PbRuleEngineBaseSpec {
         assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
 
         and: "PBs should populate failer metrics"
-        def metrics = pbsServiceWithRulesEngineModule.sendCollectedMetricsRequest()
-        assert metrics[NOOP_METRIC(PB_RULE_ENGINE,PROCESSED_AUCTION_REQUEST)] == 1
+        def metrics = pbsServiceWithMultipleModules.sendCollectedMetricsRequest()
+        assert metrics[Metrics.Module.noop(PB_RULE_ENGINE, PROCESSED_AUCTION_REQUEST)] == 1
     }
 
     def "PBS shouldn't remove bidder and emit a warning when model group rule engine not fully configured in account"() {

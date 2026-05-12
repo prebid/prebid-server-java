@@ -33,6 +33,7 @@ import org.prebid.server.functional.repository.dao.ProfileRequestDao
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
+import org.prebid.server.functional.util.Metrics
 import org.prebid.server.functional.util.PBSUtils
 import org.testcontainers.images.builder.Transferable
 import spock.lang.PendingFeature
@@ -75,9 +76,6 @@ class ProfileSpec extends BaseSpec {
     private static final String NO_IMP_PROFILE_MESSAGE = "No imp profiles for ids [%s] were found"
     private static final String NO_REQUEST_PROFILE_MESSAGE = "No request profiles for ids [%s] were found"
     private static final String NO_PROFILE_MESSAGE = "No profile found for id: %s"
-
-    private static final String LIMIT_EXCEEDED_ACCOUNT_PROFILE_METRIC = "account.%s.profiles.limit_exceeded"
-    private static final String MISSING_ACCOUNT_PROFILE_METRIC = "account.%s.profiles.missing"
 
     private static final ProfileImpDao profileImpDao = repository.profileImpDao
     private static final ProfileRequestDao profileRequestDao = repository.profileRequestDao
@@ -645,7 +643,7 @@ class ProfileSpec extends BaseSpec {
 
         and: "Missing metric should increments"
         def metrics = pbsWithStoredProfiles.sendCollectedMetricsRequest()
-        assert metrics[LIMIT_EXCEEDED_ACCOUNT_PROFILE_METRIC.formatted(accountId)] == 1
+        assert metrics[Metrics.Account.profilesLimitExceeded(accountId)] == 1
 
         and: "Bidder request should contain data from profile"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -733,7 +731,7 @@ class ProfileSpec extends BaseSpec {
 
         and: "Missing metric shouldn't increments"
         def metrics = pbsWithStoredProfiles.sendCollectedMetricsRequest()
-        assert !metrics[LIMIT_EXCEEDED_ACCOUNT_PROFILE_METRIC.formatted(accountId)]
+        assert !metrics[Metrics.Account.profilesLimitExceeded(accountId)]
 
         and: "Bidder request should contain data from profiles"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -815,7 +813,7 @@ class ProfileSpec extends BaseSpec {
 
         and: "Missing metric should increments"
         def metrics = pbsWithStoredProfiles.sendCollectedMetricsRequest()
-        assert metrics[LIMIT_EXCEEDED_ACCOUNT_PROFILE_METRIC.formatted(accountId)] == 1
+        assert metrics[Metrics.Account.profilesLimitExceeded(accountId)] == 1
 
         and: "Bidder request should contain data from original request"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -995,7 +993,7 @@ class ProfileSpec extends BaseSpec {
 
         and: "Missing metric should increments"
         def metrics = pbsWithStoredProfiles.sendCollectedMetricsRequest()
-        assert metrics[MISSING_ACCOUNT_PROFILE_METRIC.formatted(accountId)] == 1
+        assert metrics[Metrics.Account.profilesMissing(accountId)] == 1
 
         where:
         profilesConfigs << [
@@ -1201,7 +1199,7 @@ class ProfileSpec extends BaseSpec {
 
         and: "Missing metric should increments"
         def metrics = pbsWithStoredProfiles.sendCollectedMetricsRequest()
-        assert metrics[LIMIT_EXCEEDED_ACCOUNT_PROFILE_METRIC.formatted(accountId)] == 1
+        assert metrics[Metrics.Account.profilesLimitExceeded(accountId)] == 1
 
         and: "Bidder request should contain data from original request"
         verifyAll(bidder.getBidderRequest(bidRequest.id)) {
@@ -1242,7 +1240,7 @@ class ProfileSpec extends BaseSpec {
 
         and: "Missing metric should increments"
         def metrics = pbsWithStoredProfiles.sendCollectedMetricsRequest()
-        assert metrics[MISSING_ACCOUNT_PROFILE_METRIC.formatted(accountId)] == 1
+        assert metrics[Metrics.Account.profilesMissing(accountId)] == 1
 
         and: "Bidder request should contain data from profile"
         verifyAll(bidder.getBidderRequest(bidRequest.id)) {
@@ -1296,7 +1294,7 @@ class ProfileSpec extends BaseSpec {
 
         and: "Missing metric should increments"
         def metrics = pbsWithStoredProfiles.sendCollectedMetricsRequest()
-        assert metrics[MISSING_ACCOUNT_PROFILE_METRIC.formatted(accountId)] == 1
+        assert metrics[Metrics.Account.profilesMissing(accountId)] == 1
 
         and: "Bidder request should contain data from profile"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -1349,7 +1347,7 @@ class ProfileSpec extends BaseSpec {
 
         and: "Missing metric should increments"
         def metrics = pbsWithStoredProfiles.sendCollectedMetricsRequest()
-        assert metrics[MISSING_ACCOUNT_PROFILE_METRIC.formatted(accountId)] == 1
+        assert metrics[Metrics.Account.profilesMissing(accountId)] == 1
 
         and: "Bidder request imp should contain data from original imp"
         assert bidder.getBidderRequest(bidRequest.id).imp.banner == bidRequest.imp.banner
@@ -1381,7 +1379,7 @@ class ProfileSpec extends BaseSpec {
 
         and: "Missing metric should increments"
         def metrics = pbsWithStoredProfiles.sendCollectedMetricsRequest()
-        assert metrics[MISSING_ACCOUNT_PROFILE_METRIC.formatted(accountId)] == 1
+        assert metrics[Metrics.Account.profilesMissing(accountId)] == 1
 
         and: "Bidder request should contain data from profile"
         verifyAll(bidder.getBidderRequest(bidRequest.id)) {
@@ -1429,7 +1427,7 @@ class ProfileSpec extends BaseSpec {
 
         and: "Missing metric should increments"
         def metrics = pbsWithStoredProfiles.sendCollectedMetricsRequest()
-        assert metrics[MISSING_ACCOUNT_PROFILE_METRIC.formatted(accountId)] == 1
+        assert metrics[Metrics.Account.profilesMissing(accountId)] == 1
 
         and: "Bidder request imp should contain data from original imp"
         assert bidder.getBidderRequest(bidRequest.id).imp.banner == bidRequest.imp.banner
@@ -1469,7 +1467,7 @@ class ProfileSpec extends BaseSpec {
 
         and: "Missing metric should increments"
         def metrics = pbsWithStoredProfiles.sendCollectedMetricsRequest()
-        assert metrics[MISSING_ACCOUNT_PROFILE_METRIC.formatted(accountId)] == 1
+        assert metrics[Metrics.Account.profilesMissing(accountId)] == 1
 
         and: "Bidder request should contain data from profile"
         verifyAll(bidder.getBidderRequest(bidRequest.id)) {
