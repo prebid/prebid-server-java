@@ -7,6 +7,7 @@ import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.Geo
+import org.prebid.server.functional.util.MetricsUtil
 import org.prebid.server.functional.util.PBSUtils
 
 import java.time.Instant
@@ -74,11 +75,13 @@ class GeoSpec extends BaseSpec {
         assert bidderRequests.device.geo.country == USA
         assert bidderRequests.device.geo.region == ALABAMA.abbreviation
 
-        and: "Metrics processed across activities should be updated"
+        and: "Metrics processed across activities should include successful geolocation metrics"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        assert metrics[GEO_LOCATION_REQUESTS] == 1
-        assert metrics[GEO_LOCATION_SUCCESSFUL] == 1
-        assert !metrics[GEO_LOCATION_FAIL]
+        assert metrics[MetricsUtil.General.geolocationRequests()] == 1
+        assert metrics[MetricsUtil.General.geolocationSuccessful()] == 1
+
+        and: "Metrics processed across activities should not include fail geolocation metrics"
+        assert !metrics[MetricsUtil.General.geolocationFail()]
 
         where:
         settingDefaultAccountGeoLookup                | settingAccountDefaultAccountGeoLookup
@@ -129,11 +132,13 @@ class GeoSpec extends BaseSpec {
         assert bidderRequests.device.geo.country == USA
         assert bidderRequests.device.geo.region == ALABAMA.abbreviation
 
-        and: "Metrics processed across activities should be updated"
+        and: "Metrics processed across activities should include successful geolocation metrics"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        assert metrics[GEO_LOCATION_REQUESTS] == 1
-        assert metrics[GEO_LOCATION_SUCCESSFUL] == 1
-        assert !metrics[GEO_LOCATION_FAIL]
+        assert metrics[MetricsUtil.General.geolocationRequests()] == 1
+        assert metrics[MetricsUtil.General.geolocationSuccessful()] == 1
+
+        and: "Metrics processed across activities should not include fail geolocation metrics"
+        assert !metrics[MetricsUtil.General.geolocationFail()]
 
         where:
         defaultAccountGeoLookup | accountGeoLookup
@@ -182,11 +187,13 @@ class GeoSpec extends BaseSpec {
         assert bidderRequests.device.geo.country == USA
         assert bidderRequests.device.geo.region == ALABAMA.abbreviation
 
-        and: "Metrics processed across activities should be updated"
+        and: "Metrics processed across activities should include successful geolocation metrics"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        assert metrics[GEO_LOCATION_REQUESTS] == 1
-        assert metrics[GEO_LOCATION_SUCCESSFUL] == 1
-        assert !metrics[GEO_LOCATION_FAIL]
+        assert metrics[MetricsUtil.General.geolocationRequests()] == 1
+        assert metrics[MetricsUtil.General.geolocationSuccessful()] == 1
+
+        and: "Metrics processed across activities should not include fail geolocation metrics"
+        assert !metrics[MetricsUtil.General.geolocationFail()]
 
         where:
         defaultAccountGeoLookup | accountGeoLookup
@@ -237,9 +244,9 @@ class GeoSpec extends BaseSpec {
 
         and: "Metrics processed across geo location shouldn't be updated"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        assert !metrics[GEO_LOCATION_REQUESTS]
-        assert !metrics[GEO_LOCATION_SUCCESSFUL]
-        assert !metrics[GEO_LOCATION_FAIL]
+        assert !metrics[MetricsUtil.General.geolocationRequests()]
+        assert !metrics[MetricsUtil.General.geolocationSuccessful()]
+        assert !metrics[MetricsUtil.General.geolocationFail()]
 
         where:
         defaultAccountGeoLookupConfig | hostGeolocation | accountGeoLookup
@@ -291,9 +298,9 @@ class GeoSpec extends BaseSpec {
 
         and: "Metrics processed across geo location shouldn't be updated"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        assert !metrics[GEO_LOCATION_REQUESTS]
-        assert !metrics[GEO_LOCATION_SUCCESSFUL]
-        assert !metrics[GEO_LOCATION_FAIL]
+        assert !metrics[MetricsUtil.General.geolocationRequests()]
+        assert !metrics[MetricsUtil.General.geolocationSuccessful()]
+        assert !metrics[MetricsUtil.General.geolocationFail()]
 
         where:
         defaultAccountGeoLookupConfig | hostGeolocation | accountGeoLookup
@@ -345,9 +352,9 @@ class GeoSpec extends BaseSpec {
 
         and: "Metrics processed across geo location should be updated"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        assert metrics[GEO_LOCATION_REQUESTS] == 1
-        assert metrics[GEO_LOCATION_FAIL] == 1
-        assert !metrics[GEO_LOCATION_SUCCESSFUL]
+        assert metrics[MetricsUtil.General.geolocationRequests()] == 1
+        assert metrics[MetricsUtil.General.geolocationFail()] == 1
+        assert !metrics[MetricsUtil.General.geolocationSuccessful()]
 
         and: "PBs should emit geo failed logs"
         def logs = defaultPbsService.getLogsByTime(startTime)
@@ -399,9 +406,9 @@ class GeoSpec extends BaseSpec {
 
         and: "Metrics processed across geo location should be updated"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        assert metrics[GEO_LOCATION_REQUESTS] == 1
-        assert metrics[GEO_LOCATION_FAIL] == 1
-        assert !metrics[GEO_LOCATION_SUCCESSFUL]
+        assert metrics[MetricsUtil.General.geolocationRequests()] == 1
+        assert metrics[MetricsUtil.General.geolocationFail()] == 1
+        assert !metrics[MetricsUtil.General.geolocationSuccessful()]
 
         and: "PBs should emit geo failed logs"
         def logs = defaultPbsService.getLogsByTime(startTime)
@@ -449,9 +456,9 @@ class GeoSpec extends BaseSpec {
 
         and: "Metrics processed across activities shouldn't be updated"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        assert !metrics[GEO_LOCATION_REQUESTS]
-        assert !metrics[GEO_LOCATION_SUCCESSFUL]
-        assert !metrics[GEO_LOCATION_FAIL]
+        assert !metrics[MetricsUtil.General.geolocationRequests()]
+        assert !metrics[MetricsUtil.General.geolocationSuccessful()]
+        assert !metrics[MetricsUtil.General.geolocationFail()]
     }
 
     def "PBS shouldn't populate country and region via geo when geo enabled in account and country and region specified in request and ip present in header"() {
@@ -492,8 +499,8 @@ class GeoSpec extends BaseSpec {
 
         and: "Metrics processed across activities shouldn't be updated"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        assert !metrics[GEO_LOCATION_REQUESTS]
-        assert !metrics[GEO_LOCATION_SUCCESSFUL]
-        assert !metrics[GEO_LOCATION_FAIL]
+        assert !metrics[MetricsUtil.General.geolocationRequests()]
+        assert !metrics[MetricsUtil.General.geolocationSuccessful()]
+        assert !metrics[MetricsUtil.General.geolocationFail()]
     }
 }
