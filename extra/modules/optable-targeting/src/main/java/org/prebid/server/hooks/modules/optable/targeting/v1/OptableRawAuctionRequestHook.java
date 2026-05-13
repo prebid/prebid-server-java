@@ -12,9 +12,11 @@ import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidRequestClean
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidderEnrichmentSampler;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.NetworkCall;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.PropertiesValidator;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
+import org.prebid.server.hooks.v1.PayloadUpdate;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.RawAuctionRequestHook;
@@ -57,20 +59,25 @@ public class OptableRawAuctionRequestHook implements RawAuctionRequestHook {
         moduleContext.setCallTargetingAPITimestamp(System.currentTimeMillis());
         moduleContext.setOptableTargetingProperties(properties);
 
-        if (!OptableHook.isTargetingPropertiesValid(properties)) {
+        if (!PropertiesValidator.isValid(properties)) {
             conditionalLogger.error(
                     "Account not properly configured: tenant and/or origin is missing.", logSamplingRate);
 
             moduleContext.failWithExecutionTime(
                     System.currentTimeMillis() - moduleContext.getCallTargetingAPITimestamp());
 
-            return OptableHook.update(BidRequestCleaner.instance(), moduleContext);
+            return update(BidRequestCleaner.instance(), moduleContext);
         }
 
         final BidRequest bidRequest = invocationContext.auctionContext().getBidRequest();
+        if (!PropertiesValidator.isTrafficSourceValid(bidRequest, properties)) {
+            moduleContext.setShouldSkipEnrichment(true);
+            return update(BidRequestCleaner.instance(), moduleContext);
+        }
+
         final Set<String> biddersToEnrich = bidderEnrichmentSampler.sample(bidRequest, properties);
         if (CollectionUtils.isEmpty(biddersToEnrich)) {
-            return OptableHook.update(BidRequestCleaner.instance(), moduleContext);
+            return update(BidRequestCleaner.instance(), moduleContext);
         }
 
         moduleContext.setBiddersToEnrich(biddersToEnrich);
@@ -91,6 +98,20 @@ public class OptableRawAuctionRequestHook implements RawAuctionRequestHook {
                         .status(InvocationStatus.success)
                         .action(InvocationAction.no_action)
                         .analyticsTags(AnalyticTagsResolver.toEnrichRequestAnalyticTags(moduleContext))
+                        .moduleContext(moduleContext)
+                        .build());
+    }
+
+    public static <T> Future<InvocationResult<T>> update(
+            PayloadUpdate<T> payloadUpdate,
+            ModuleContext moduleContext) {
+
+        return Future.succeededFuture(
+                InvocationResultImpl.<T>builder()
+                        .status(InvocationStatus.success)
+                        .action(InvocationAction.update)
+                        .analyticsTags(AnalyticTagsResolver.toEnrichRequestAnalyticTags(moduleContext))
+                        .payloadUpdate(payloadUpdate)
                         .moduleContext(moduleContext)
                         .build());
     }

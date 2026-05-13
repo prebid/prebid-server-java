@@ -9,6 +9,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.hooks.execution.v1.auction.AuctionResponsePayloadImpl;
+import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Audience;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.AudienceId;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
@@ -125,6 +126,26 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
                         List.of(new AudienceId("audienceId")),
                         "keyspace",
                         1))));
+
+        // when
+        final Future<InvocationResult<AuctionResponsePayload>> future =
+                target.call(auctionResponsePayload, invocationContext);
+        final InvocationResult<AuctionResponsePayload> result = future.result();
+
+        // then
+        assertThat(future).isNotNull();
+        assertThat(future.succeeded()).isTrue();
+        assertThat(result).isNotNull()
+                .returns(InvocationStatus.success, InvocationResult::status)
+                .returns(InvocationAction.no_action, InvocationResult::action);
+    }
+
+    @Test
+    public void shouldReturnSuccessWhenSkipEnrichmentIsTrue() {
+        // given
+        final ModuleContext moduleContext = givenModuleContext();
+        moduleContext.setShouldSkipEnrichment(true);
+        when(invocationContext.moduleContext()).thenReturn(moduleContext);
 
         // when
         final Future<InvocationResult<AuctionResponsePayload>> future =

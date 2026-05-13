@@ -1,5 +1,6 @@
 package org.prebid.server.hooks.modules.optable.targeting.v1;
 
+import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Future;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
@@ -126,6 +127,41 @@ public class OptableRawAuctionRequestHookTest extends BaseOptableTest {
                         final ModuleContext moduleContext = cxt.result();
                         assertThat(moduleContext.getOptableTargetingCall()).isNull();
                         assertThat(moduleContext.isEarlyNetworkCallEnabled()).isTrue();
+                    });
+                    vertxTestContext.completeNow();
+                });
+    }
+
+    @SneakyThrows
+    @Test
+    public void shouldNotInjectEarlyNetworkCallWhenTrafficSourceIsInvalid(VertxTestContext vertxTestContext) {
+        // given
+        when(invocationContext.accountConfig())
+                .thenReturn(givenAccountConfig("key", "tenant", "origin", true));
+        final BidRequest bidRequestWithoutTrafficSource = givenBidRequest(bidRequestCustomizer ->
+                bidRequestCustomizer.site(null).app(null));
+        when(auctionRequestPayload.bidRequest()).thenReturn(bidRequestWithoutTrafficSource);
+        when(invocationContext.auctionContext()).thenReturn(
+                givenAuctionContext(activityInfrastructure, timeout)
+                        .toBuilder()
+                        .bidRequest(bidRequestWithoutTrafficSource)
+                        .build());
+
+        configResolver = new ConfigResolver(mapper, jsonMerger, givenOptableTargetingProperties(false));
+        target = new OptableRawAuctionRequestHook(configResolver, networkCall, bidderEnrichmentSampler, 0.01);
+
+        // when
+        final Future<InvocationResult<AuctionRequestPayload>> result =
+                target.call(auctionRequestPayload, invocationContext);
+
+        // then
+        assertThat(result).isNotNull();
+        result.map(res -> (ModuleContext) res.moduleContext())
+                .onComplete(cxt -> {
+                    vertxTestContext.verify(() -> {
+                        final ModuleContext moduleContext = cxt.result();
+                        assertThat(moduleContext.isShouldSkipEnrichment()).isTrue();
+                        assertThat(moduleContext.getOptableTargetingCall()).isNull();
                     });
                     vertxTestContext.completeNow();
                 });

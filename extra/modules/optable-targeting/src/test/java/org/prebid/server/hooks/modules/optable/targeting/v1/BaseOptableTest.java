@@ -10,6 +10,7 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Segment;
+import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Uid;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
@@ -92,13 +93,14 @@ public abstract class BaseOptableTest {
     }
 
     protected static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer) {
-        return bidRequestCustomizer.apply(BidRequest.builder().id("requestId")).build();
+        return bidRequestCustomizer.apply(BidRequest.builder().id("requestId").site(Site.builder().build())).build();
     }
 
     protected BidRequest givenBidRequestWithUserEids(List<Eid> eids) {
         return BidRequest.builder()
                 .user(givenUser(eids))
                 .device(givenDevice())
+                .site(Site.builder().build())
                 .cur(List.of("USD"))
                 .build();
     }
@@ -107,6 +109,7 @@ public abstract class BaseOptableTest {
         return BidRequest.builder()
                 .user(user)
                 .device(givenDevice())
+                .site(Site.builder().build())
                 .cur(List.of("USD"))
                 .build();
     }
@@ -115,6 +118,7 @@ public abstract class BaseOptableTest {
         return BidRequest.builder()
                 .user(givenUserWithData(data))
                 .device(givenDevice())
+                .site(Site.builder().build())
                 .cur(List.of("USD"))
                 .build();
     }
@@ -253,6 +257,7 @@ public abstract class BaseOptableTest {
         optableTargetingProperties.setApiKey(key);
         optableTargetingProperties.setPpidMapping(Map.of("c", "id"));
         optableTargetingProperties.setAdserverTargeting(true);
+        optableTargetingProperties.setEnrichWeb(true);
         optableTargetingProperties.setTimeout(100L);
         optableTargetingProperties.setCache(cacheProperties);
 

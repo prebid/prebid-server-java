@@ -33,6 +33,8 @@ public class ModuleContext {
 
     private OptableTargetingProperties optableTargetingProperties;
 
+    private boolean shouldSkipEnrichment;
+
     public static ModuleContext of(AuctionInvocationContext invocationContext) {
         final ModuleContext moduleContext = (ModuleContext) invocationContext.moduleContext();
         return moduleContext != null ? moduleContext : new ModuleContext();

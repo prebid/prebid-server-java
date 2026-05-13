@@ -27,6 +27,8 @@ accounts:
             rubicon: 75
             pubmatic: 100
             criteo: 0
+          enrich-web: true
+          enrich-app: true
           ppid-mapping: { "pubcid.org": "c" }
           adserver-targeting: true
           cache:

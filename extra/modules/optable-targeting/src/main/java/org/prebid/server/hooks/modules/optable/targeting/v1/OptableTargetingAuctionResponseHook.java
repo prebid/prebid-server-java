@@ -52,7 +52,7 @@ public class OptableTargetingAuctionResponseHook implements AuctionResponseHook 
         final ModuleContext moduleContext = ModuleContext.of(invocationContext);
         moduleContext.setAdserverTargetingEnabled(adserverTargeting);
 
-        if (!adserverTargeting) {
+        if (moduleContext.isShouldSkipEnrichment() || !adserverTargeting) {
             return success(moduleContext);
         }
 

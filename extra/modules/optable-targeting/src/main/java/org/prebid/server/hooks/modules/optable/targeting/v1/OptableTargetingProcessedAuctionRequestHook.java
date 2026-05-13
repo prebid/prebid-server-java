@@ -11,6 +11,7 @@ import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidRequestClean
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidRequestEnricher;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.NetworkCall;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.PropertiesValidator;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
@@ -51,6 +52,11 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
                                                                 AuctionInvocationContext invocationContext) {
 
         final ModuleContext moduleContext = ModuleContext.of(invocationContext);
+        if (moduleContext.isShouldSkipEnrichment()) {
+            moduleContext.setOptableTargetingExecutionTime(calcAPICallExecutionTime(moduleContext));
+            return update(BidRequestCleaner.instance(), moduleContext);
+        }
+
         final OptableTargetingProperties properties =
                 resolveOptableTargetingProperties(moduleContext, invocationContext);
 
@@ -117,7 +123,7 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
             OptableTargetingProperties properties) {
 
         moduleContext.setCallTargetingAPITimestamp(System.currentTimeMillis());
-        if (!OptableHook.isTargetingPropertiesValid(properties)) {
+        if (!PropertiesValidator.isValid(properties)) {
             conditionalLogger.error(AUCTION_NOT_PROPERLY_CONFIGURED, logSamplingRate);
 
             moduleContext.failWithExecutionTime(
