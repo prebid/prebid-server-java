@@ -1,9 +1,11 @@
 package org.prebid.server.hooks.modules.optable.targeting.config;
 
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cache.PbcStorageService;
+import org.prebid.server.hooks.execution.model.ExecutionPlan;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
 import org.prebid.server.hooks.modules.optable.targeting.v1.OptableBidderRequestHook;
 import org.prebid.server.hooks.modules.optable.targeting.v1.OptableRawAuctionRequestHook;
@@ -102,6 +104,9 @@ public class OptableTargetingConfig {
                                                   NetworkCall networkCall,
                                                   JsonMerger jsonMerger,
                                                   BidderCatalog bidderCatalog,
+                                                  JacksonMapper mapper,
+                                                  @Value("${hooks.host-execution-plan}")
+                                                  String executionPlan,
                                                   @Value("${logging.sampling-rate:0.01}") double logSamplingRate) {
 
         return new OptableTargetingModule(List.of(
@@ -113,6 +118,9 @@ public class OptableTargetingConfig {
                 new OptableTargetingProcessedAuctionRequestHook(
                         configResolver,
                         networkCall,
+                        StringUtils.isNoneEmpty(executionPlan)
+                                ? mapper.decodeValue(executionPlan, ExecutionPlan.class)
+                                : null,
                         logSamplingRate),
                 new OptableBidderRequestHook(),
                 new OptableTargetingAuctionResponseHook(

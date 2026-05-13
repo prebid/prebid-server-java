@@ -1,6 +1,7 @@
 package org.prebid.server.hooks.modules.optable.targeting.v1;
 
 import io.vertx.core.Future;
+import org.prebid.server.hooks.execution.model.ExecutionPlan;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.modules.optable.targeting.model.EnrichmentStatus;
 import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
@@ -9,6 +10,7 @@ import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Targeting
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.AnalyticTagsResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidRequestCleaner;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidRequestEnricher;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.CompositeHookExecutionPlan;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.NetworkCall;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.PropertiesValidator;
@@ -37,19 +39,30 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
     private final ConfigResolver configResolver;
     private final NetworkCall networkCall;
     private final double logSamplingRate;
+    private final ExecutionPlan globalHooksExecutionPlan;
 
     public OptableTargetingProcessedAuctionRequestHook(ConfigResolver configResolver,
                                                        NetworkCall networkCall,
+                                                       ExecutionPlan globalHooksExecutionPlan,
                                                        double logSamplingRate) {
 
         this.configResolver = Objects.requireNonNull(configResolver);
         this.networkCall = Objects.requireNonNull(networkCall);
+        this.globalHooksExecutionPlan = globalHooksExecutionPlan;
         this.logSamplingRate = logSamplingRate;
     }
 
     @Override
     public Future<InvocationResult<AuctionRequestPayload>> call(AuctionRequestPayload auctionRequestPayload,
                                                                 AuctionInvocationContext invocationContext) {
+
+        final ExecutionPlan accountSpecificHoksExecutionPlan =
+                java.util.Optional.ofNullable(invocationContext.auctionContext().getAccount())
+                        .map(org.prebid.server.settings.model.Account::getHooks)
+                        .map(org.prebid.server.settings.model.AccountHooksConfiguration::getExecutionPlan)
+                        .orElse(null);
+        final CompositeHookExecutionPlan hooksExecutionPlan =
+                CompositeHookExecutionPlan.of(globalHooksExecutionPlan, accountSpecificHoksExecutionPlan);
 
         final ModuleContext moduleContext = ModuleContext.of(invocationContext);
         if (moduleContext.isShouldSkipEnrichment()) {
@@ -60,7 +73,7 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
         final OptableTargetingProperties properties =
                 resolveOptableTargetingProperties(moduleContext, invocationContext);
 
-        final Future<TargetingResult> optableTargetingCall = moduleContext.isEarlyNetworkCallEnabled()
+        final Future<TargetingResult> optableTargetingCall = hooksExecutionPlan.hasRawAuctionRequestHook()
                 ? resolveEarlyNetworkCall(moduleContext)
                 : resolvePreEarlyNetworkCall(auctionRequestPayload, invocationContext, moduleContext, properties);
 
@@ -73,7 +86,7 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
                 .compose(targetingResult -> {
                     moduleContext.setOptableTargetingExecutionTime(calcAPICallExecutionTime(moduleContext));
                     return enrichPayload(
-                            properties.isPerBidderEnrichmentEnabled(), targetingResult, moduleContext, properties);
+                            hooksExecutionPlan.hasBidderRequestHook(), targetingResult, moduleContext, properties);
                 })
                 .recover(throwable -> {
                     moduleContext.failWithExecutionTime(calcAPICallExecutionTime(moduleContext));
