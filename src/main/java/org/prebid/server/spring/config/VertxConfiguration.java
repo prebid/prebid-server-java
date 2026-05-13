@@ -17,6 +17,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import jakarta.validation.constraints.Min;
+
 @Configuration
 public class VertxConfiguration {
 
@@ -57,15 +59,17 @@ public class VertxConfiguration {
 
     @Bean
     BodyHandler bodyHandler(@Value("${vertx.uploads-dir}") String uploadsDir,
-                            @Value("${server.max-body-size}") long maxBodySize) {
+                            @Value("${server.max-body-size}") @Min(0) long maxBodySize) {
 
         return BodyHandler.create(uploadsDir)
-                .setBodyLimit(maxBodySize > 0 ? maxBodySize : -1);
+                .setBodyLimit(maxBodySize);
     }
 
     @Bean
-    ParametrizedDecompressionHandler gzipParamDecompressionHandler() {
-        return new ParametrizedDecompressionHandler();
+    ParametrizedDecompressionHandler gzipParamDecompressionHandler(
+            @Value("${server.max-body-size}") @Min(0) int maxBodySize) {
+
+        return new ParametrizedDecompressionHandler(maxBodySize);
     }
 
     @Bean

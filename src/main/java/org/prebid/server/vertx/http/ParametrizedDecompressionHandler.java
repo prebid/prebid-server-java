@@ -14,11 +14,15 @@ import java.util.zip.GZIPInputStream;
 
 public class ParametrizedDecompressionHandler implements Handler<RoutingContext> {
 
-    private static final int MAX_BODY_LENGTH = 1024 * 1024;
+    private final ThreadLocal<byte[]> intermediateBuffer;
+    private final ThreadLocal<byte[]> inputBuffer;
+    private final ThreadLocal<byte[]> outputBuffer;
 
-    private final ThreadLocal<byte[]> intermediateBuffer = ThreadLocal.withInitial(() -> new byte[1024]);
-    private final ThreadLocal<byte[]> inputBuffer = ThreadLocal.withInitial(() -> new byte[MAX_BODY_LENGTH]);
-    private final ThreadLocal<byte[]> outputBuffer = ThreadLocal.withInitial(() -> new byte[2 * MAX_BODY_LENGTH]);
+    public ParametrizedDecompressionHandler(int maxBodySize) {
+        intermediateBuffer = ThreadLocal.withInitial(() -> new byte[1024]);
+        inputBuffer = ThreadLocal.withInitial(() -> new byte[maxBodySize]);
+        outputBuffer = ThreadLocal.withInitial(() -> new byte[2 * maxBodySize]);
+    }
 
     @Override
     public void handle(RoutingContext routingContext) {
@@ -32,9 +36,7 @@ public class ParametrizedDecompressionHandler implements Handler<RoutingContext>
             ((RoutingContextInternal) routingContext).setBody(decompressed);
             routingContext.next();
         } catch (IOException e) {
-            respondWithBadRequest(routingContext, "Invalid gzip body: " + e.getMessage());
-        } catch (IndexOutOfBoundsException e) {
-            respondWithBadRequest(routingContext, "Too big body: " + e.getMessage());
+            respondWithBadRequest(routingContext, "Invalid body: " + e.getMessage());
         }
     }
 
@@ -62,7 +64,7 @@ public class ParametrizedDecompressionHandler implements Handler<RoutingContext>
             }
 
             compressed.setBytes(0, baos.getBuffer(), 0, totalLen);
-            return compressed;
+            return compressed.slice(0, totalLen);
         }
     }
 
