@@ -56,8 +56,11 @@ public class VertxConfiguration {
     }
 
     @Bean
-    BodyHandler bodyHandler(@Value("${vertx.uploads-dir}") String uploadsDir) {
-        return BodyHandler.create(uploadsDir);
+    BodyHandler bodyHandler(@Value("${vertx.uploads-dir}") String uploadsDir,
+                            @Value("${server.max-body-size}") long maxBodySize) {
+
+        return BodyHandler.create(uploadsDir)
+                .setBodyLimit(maxBodySize > 0 ? maxBodySize : -1);
     }
 
     @Bean

@@ -28,7 +28,7 @@ public class ParametrizedDecompressionHandler implements Handler<RoutingContext>
         }
 
         try {
-            Buffer decompressed = decompressGzip(routingContext.body().buffer());
+            final Buffer decompressed = decompressGzip(routingContext.body().buffer());
             ((RoutingContextInternal) routingContext).setBody(decompressed);
             routingContext.next();
         } catch (IOException e) {
@@ -51,8 +51,8 @@ public class ParametrizedDecompressionHandler implements Handler<RoutingContext>
 
         compressed.getBytes(compressedBuffer);
         try (ByteArrayInputStream input = new ByteArrayInputStream(compressedBuffer);
-             GZIPInputStream gzip = new GZIPInputStream(input);
-             FastByteArrayOutputStream baos = new FastByteArrayOutputStream(decompressedBuffer)) {
+                GZIPInputStream gzip = new GZIPInputStream(input);
+                FastByteArrayOutputStream baos = new FastByteArrayOutputStream(decompressedBuffer)) {
 
             int totalLen = 0;
             int len;
@@ -68,7 +68,7 @@ public class ParametrizedDecompressionHandler implements Handler<RoutingContext>
 
     private static class FastByteArrayOutputStream extends ByteArrayOutputStream {
 
-        public FastByteArrayOutputStream(byte[] buf) {
+        FastByteArrayOutputStream(byte[] buf) {
             this.buf = buf;
         }
 
