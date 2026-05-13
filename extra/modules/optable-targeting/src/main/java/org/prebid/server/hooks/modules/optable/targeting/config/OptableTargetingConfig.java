@@ -11,7 +11,7 @@ import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingAuct
 import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingModule;
 import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingProcessedAuctionRequestHook;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.AliasesResolver;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidderEnrichmentDicer;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidderEnrichmentSampler;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.Cache;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.IdsMapper;
@@ -108,7 +108,7 @@ public class OptableTargetingConfig {
                 new OptableRawAuctionRequestHook(
                         configResolver,
                         networkCall,
-                        BidderEnrichmentDicer.of(AliasesResolver.of(bidderCatalog)),
+                        BidderEnrichmentSampler.of(AliasesResolver.of(bidderCatalog)),
                         logSamplingRate),
                 new OptableTargetingProcessedAuctionRequestHook(
                         configResolver,

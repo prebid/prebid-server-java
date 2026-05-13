@@ -13,29 +13,33 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.IntSupplier;
 import java.util.stream.Collectors;
 
 @AllArgsConstructor(staticName = "of")
-public class BidderEnrichmentDicer {
+public class BidderEnrichmentSampler {
 
     private final AliasesResolver aliasesResolver;
+    private final IntSupplier randomSupplier;
 
-    public Set<String> dice(BidRequest bidRequest, OptableTargetingProperties optableTargetingProperties) {
+    public static BidderEnrichmentSampler of(AliasesResolver aliasesResolver) {
+        return of(aliasesResolver, () -> ThreadLocalRandom.current().nextInt(100));
+    }
+
+    public Set<String> sample(BidRequest bidRequest, OptableTargetingProperties optableTargetingProperties) {
         final Integer defaultEnrichmentPercentage = optableTargetingProperties.getEnrichmentPercentage();
         final Map<String, Integer> bidderEnrichmentPercentage =
                 optableTargetingProperties.getBidderEnrichmentPercentages();
 
         final BidderAliases aliases = aliasesResolver.resolve(bidRequest);
-        final Set<String> bidders = extractUniqueBidders(bidRequest)
+        return extractUniqueBidders(bidRequest)
                 .stream()
                 .filter(bidder -> {
                     final int percentage =
                             resolvePercentage(aliases, bidder, defaultEnrichmentPercentage, bidderEnrichmentPercentage);
-                    return ThreadLocalRandom.current().nextInt(100) <= percentage;
+                    return randomSupplier.getAsInt() <= percentage;
                 })
                 .collect(Collectors.toSet());
-
-        return bidders;
     }
 
     private static int resolvePercentage(BidderAliases aliases, String bidder,

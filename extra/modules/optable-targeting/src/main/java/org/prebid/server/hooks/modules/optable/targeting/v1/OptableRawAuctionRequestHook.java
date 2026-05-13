@@ -9,7 +9,7 @@ import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTar
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.AnalyticTagsResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidRequestCleaner;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidderEnrichmentDicer;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidderEnrichmentSampler;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.NetworkCall;
 import org.prebid.server.hooks.v1.InvocationAction;
@@ -33,17 +33,17 @@ public class OptableRawAuctionRequestHook implements RawAuctionRequestHook {
 
     private final ConfigResolver configResolver;
     private final NetworkCall networkCall;
-    private final BidderEnrichmentDicer bidderEnrichmentDicer;
+    private final BidderEnrichmentSampler bidderEnrichmentSampler;
     private final double logSamplingRate;
 
     public OptableRawAuctionRequestHook(ConfigResolver configResolver,
                                         NetworkCall networkCall,
-                                        BidderEnrichmentDicer bidderEnrichmentDicer,
+                                        BidderEnrichmentSampler bidderEnrichmentSampler,
                                         double logSamplingRate) {
 
         this.configResolver = Objects.requireNonNull(configResolver);
         this.networkCall = Objects.requireNonNull(networkCall);
-        this.bidderEnrichmentDicer = Objects.requireNonNull(bidderEnrichmentDicer);
+        this.bidderEnrichmentSampler = Objects.requireNonNull(bidderEnrichmentSampler);
         this.logSamplingRate = logSamplingRate;
     }
 
@@ -68,7 +68,7 @@ public class OptableRawAuctionRequestHook implements RawAuctionRequestHook {
         }
 
         final BidRequest bidRequest = invocationContext.auctionContext().getBidRequest();
-        final Set<String> biddersToEnrich = bidderEnrichmentDicer.dice(bidRequest, properties);
+        final Set<String> biddersToEnrich = bidderEnrichmentSampler.sample(bidRequest, properties);
         if (CollectionUtils.isEmpty(biddersToEnrich)) {
             return OptableHook.update(BidRequestCleaner.instance(), moduleContext);
         }
