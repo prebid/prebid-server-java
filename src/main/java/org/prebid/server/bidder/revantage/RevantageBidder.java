@@ -34,24 +34,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-/**
- * Prebid Server adapter for Revantage SSP.
- *
- * <p>Mirrors the Prebid.js client adapter (revantageBidAdapter.js): impressions
- * are grouped by feedId and each feed becomes a separate POST to
- * {@code https://bid.revantage.io/bid?feed=<feedId>}. The imp.ext payload is
- * rewritten to the shape expected by the upstream endpoint:
- *
- * <pre>
- * {
- *   "feedId": "...",
- *   "bidder": {
- *     "placementId": "...",   // optional
- *     "publisherId": "..."    // optional
- *   }
- * }
- * </pre>
- */
 public class RevantageBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpRevantage>> REVANTAGE_EXT_TYPE_REFERENCE =
@@ -70,7 +52,6 @@ public class RevantageBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<BidderError> errors = new ArrayList<>();
-        // LinkedHashMap preserves first-seen feedId order for deterministic output.
         final Map<String, List<Imp>> impsByFeed = new LinkedHashMap<>();
 
         for (Imp imp : request.getImp()) {
@@ -189,7 +170,6 @@ public class RevantageBidder implements Bidder<BidRequest> {
                 case 2:
                     return BidType.video;
                 default:
-                    // fall through
             }
         }
 
@@ -221,7 +201,6 @@ public class RevantageBidder implements Bidder<BidRequest> {
                 return BidType.video;
             }
             if (hasBanner) {
-                // banner-only or multi-format with no signal — default to banner
                 return BidType.banner;
             }
             break;
