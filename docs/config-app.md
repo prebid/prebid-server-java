@@ -18,6 +18,7 @@ This parameter exists to allow to change the location of the directory Vert.x wi
 
 ## Server
 - `server.max-headers-size` - set the maximum length of all headers.
+- `server.max-body-size` - set the maximum length of body.
 - `server.ssl` - enable SSL/TLS support.
 - `server.jks-path` - path to the java keystore (if ssl is enabled).
 - `server.jks-password` - password for the keystore (if ssl is enabled).
@@ -91,7 +92,6 @@ Removes and downloads file again if depending service cant process probably corr
 - `auction.biddertmax.max` - maximum operation timeout for OpenRTB Auction requests.
 - `auction.biddertmax.percent` - adjustment factor for `request.tmax` for bidders.
 - `auction.tmax-upstream-response-time` - the amount of time that PBS needs to respond to the original caller.
-- `auction.max-request-size` - set the maximum size in bytes of OpenRTB Auction request.
 - `auction.stored-requests-timeout-ms` - timeout for stored requests fetching.
 - `auction.ad-server-currency` - default currency for auction, if its value was not specified in request. Important note: PBS uses ISO-4217 codes for the representation of currencies.
 - `auction.cache.expected-request-time-ms` - approximate value in milliseconds for Cache Service interacting.
