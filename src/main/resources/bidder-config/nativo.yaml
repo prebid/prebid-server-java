@@ -1,0 +1,23 @@
+adapters:
+  nativo:
+    endpoint: https://exchange.postrelease.com/esi?ntv_epid=7
+    ortb-version: "2.6"
+    pbs-enforces-ccpa: false
+    meta-info:
+      maintainer-email: prebiddev@nativo.com
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 263
+    usersync:
+      cookie-family-name: nativo
+      redirect:
+        url: https://jadserve.postrelease.com/suid/101787?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&ntv_gpp_consent={{gpp}}&ntv_r={{redirect_url}}
+        support-cors: false
+        uid-macro: 'NTV_USER_ID'
