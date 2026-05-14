@@ -45,59 +45,59 @@ public class BidderEnrichmentSamplerTest extends BaseOptableTest {
     }
 
     @Test
-    public void diceShouldReturnEmptySetWhenRequestHasNoImpressions() {
+    public void sampleShouldReturnEmptySetWhenRequestHasNoImpressions() {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Set<String> result = target.sample(bidRequest, givenDiceProperties(100, Collections.emptyMap()));
+        final Set<String> result = target.sample(bidRequest, givenSampleProperties(100, Collections.emptyMap()));
 
         // then
         assertThat(result).isEmpty();
     }
 
     @Test
-    public void diceShouldReturnEmptySetWhenImpHasNoExt() {
+    public void sampleShouldReturnEmptySetWhenImpHasNoExt() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 request -> request.imp(List.of(givenImp(identity()))));
 
         // when
-        final Set<String> result = target.sample(bidRequest, givenDiceProperties(100, Collections.emptyMap()));
+        final Set<String> result = target.sample(bidRequest, givenSampleProperties(100, Collections.emptyMap()));
 
         // then
         assertThat(result).isEmpty();
     }
 
     @Test
-    public void diceShouldReturnEmptySetWhenImpExtHasNoPrebidBidderNode() {
+    public void sampleShouldReturnEmptySetWhenImpExtHasNoPrebidBidderNode() {
         // given
         final ObjectNode ext = mapper.createObjectNode();
         final BidRequest bidRequest = givenBidRequest(
                 request -> request.imp(List.of(givenImp(imp -> imp.ext(ext)))));
 
         // when
-        final Set<String> result = target.sample(bidRequest, givenDiceProperties(100, Collections.emptyMap()));
+        final Set<String> result = target.sample(bidRequest, givenSampleProperties(100, Collections.emptyMap()));
 
         // then
         assertThat(result).isEmpty();
     }
 
     @Test
-    public void diceShouldReturnEmptySetWhenBidderNodeIsEmpty() {
+    public void sampleShouldReturnEmptySetWhenBidderNodeIsEmpty() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 request -> request.imp(List.of(givenImp(imp -> imp.ext(givenBidderExt())))));
 
         // when
-        final Set<String> result = target.sample(bidRequest, givenDiceProperties(100, Collections.emptyMap()));
+        final Set<String> result = target.sample(bidRequest, givenSampleProperties(100, Collections.emptyMap()));
 
         // then
         assertThat(result).isEmpty();
     }
 
     @Test
-    public void diceShouldIncludeAllBiddersWhenDefaultPercentageIs100() {
+    public void sampleShouldIncludeAllBiddersWhenDefaultPercentageIs100() {
         // given
         given(bidderAliases.resolveBidder(any())).willAnswer(inv -> inv.getArgument(0));
         given(randomSupplier.getAsInt()).willReturn(99);
@@ -106,14 +106,14 @@ public class BidderEnrichmentSamplerTest extends BaseOptableTest {
                 request -> request.imp(List.of(givenImp(imp -> imp.ext(givenBidderExt("bidderA", "bidderB"))))));
 
         // when
-        final Set<String> result = target.sample(bidRequest, givenDiceProperties(100, Collections.emptyMap()));
+        final Set<String> result = target.sample(bidRequest, givenSampleProperties(100, Collections.emptyMap()));
 
         // then
         assertThat(result).containsExactlyInAnyOrder("bidderA", "bidderB");
     }
 
     @Test
-    public void diceShouldExcludeAllBiddersWhenDefaultPercentageIsNegative() {
+    public void sampleShouldExcludeAllBiddersWhenDefaultPercentageIsNegative() {
         // given
         given(bidderAliases.resolveBidder(any())).willAnswer(inv -> inv.getArgument(0));
         given(randomSupplier.getAsInt()).willReturn(0);
@@ -122,14 +122,14 @@ public class BidderEnrichmentSamplerTest extends BaseOptableTest {
                 request -> request.imp(List.of(givenImp(imp -> imp.ext(givenBidderExt("bidderA", "bidderB"))))));
 
         // when
-        final Set<String> result = target.sample(bidRequest, givenDiceProperties(-1, Collections.emptyMap()));
+        final Set<String> result = target.sample(bidRequest, givenSampleProperties(-1, Collections.emptyMap()));
 
         // then
         assertThat(result).isEmpty();
     }
 
     @Test
-    public void diceShouldIncludeBidderWhenRandomValueEqualsPercentage() {
+    public void sampleShouldIncludeBidderWhenRandomValueEqualsPercentage() {
         // given
         given(bidderAliases.resolveBidder(any())).willAnswer(inv -> inv.getArgument(0));
         given(randomSupplier.getAsInt()).willReturn(50);
@@ -138,14 +138,14 @@ public class BidderEnrichmentSamplerTest extends BaseOptableTest {
                 request -> request.imp(List.of(givenImp(imp -> imp.ext(givenBidderExt("bidderA"))))));
 
         // when
-        final Set<String> result = target.sample(bidRequest, givenDiceProperties(50, Collections.emptyMap()));
+        final Set<String> result = target.sample(bidRequest, givenSampleProperties(50, Collections.emptyMap()));
 
         // then
         assertThat(result).containsExactly("bidderA");
     }
 
     @Test
-    public void diceShouldIncludeBidderWhenRandomValueIsBelowPercentage() {
+    public void sampleShouldIncludeBidderWhenRandomValueIsBelowPercentage() {
         // given
         given(bidderAliases.resolveBidder(any())).willAnswer(inv -> inv.getArgument(0));
         given(randomSupplier.getAsInt()).willReturn(49);
@@ -154,14 +154,14 @@ public class BidderEnrichmentSamplerTest extends BaseOptableTest {
                 request -> request.imp(List.of(givenImp(imp -> imp.ext(givenBidderExt("bidderA"))))));
 
         // when
-        final Set<String> result = target.sample(bidRequest, givenDiceProperties(50, Collections.emptyMap()));
+        final Set<String> result = target.sample(bidRequest, givenSampleProperties(50, Collections.emptyMap()));
 
         // then
         assertThat(result).containsExactly("bidderA");
     }
 
     @Test
-    public void diceShouldExcludeBidderWhenRandomValueExceedsPercentage() {
+    public void sampleShouldExcludeBidderWhenRandomValueExceedsPercentage() {
         // given
         given(bidderAliases.resolveBidder(any())).willAnswer(inv -> inv.getArgument(0));
         given(randomSupplier.getAsInt()).willReturn(51);
@@ -170,15 +170,15 @@ public class BidderEnrichmentSamplerTest extends BaseOptableTest {
                 request -> request.imp(List.of(givenImp(imp -> imp.ext(givenBidderExt("bidderA"))))));
 
         // when
-        final Set<String> result = target.sample(bidRequest, givenDiceProperties(50, Collections.emptyMap()));
+        final Set<String> result = target.sample(bidRequest, givenSampleProperties(50, Collections.emptyMap()));
 
         // then
         assertThat(result).isEmpty();
     }
 
     @Test
-    public void diceShouldIncludeBidderWhenPercentageIsZeroAndRandomIsZero() {
-        // given — 0% still includes exactly when random == 0
+    public void sampleShouldIncludeBidderWhenPercentageIsZeroAndRandomIsZero() {
+        // given
         given(bidderAliases.resolveBidder(any())).willAnswer(inv -> inv.getArgument(0));
         given(randomSupplier.getAsInt()).willReturn(0);
 
@@ -186,14 +186,14 @@ public class BidderEnrichmentSamplerTest extends BaseOptableTest {
                 request -> request.imp(List.of(givenImp(imp -> imp.ext(givenBidderExt("bidderA"))))));
 
         // when
-        final Set<String> result = target.sample(bidRequest, givenDiceProperties(0, Collections.emptyMap()));
+        final Set<String> result = target.sample(bidRequest, givenSampleProperties(0, Collections.emptyMap()));
 
         // then
         assertThat(result).containsExactly("bidderA");
     }
 
     @Test
-    public void diceShouldExcludeBidderWhenPercentageIsZeroAndRandomIsOne() {
+    public void sampleShouldExcludeBidderWhenPercentageIsZeroAndRandomIsOne() {
         // given
         given(bidderAliases.resolveBidder(any())).willAnswer(inv -> inv.getArgument(0));
         given(randomSupplier.getAsInt()).willReturn(1);
@@ -202,14 +202,14 @@ public class BidderEnrichmentSamplerTest extends BaseOptableTest {
                 request -> request.imp(List.of(givenImp(imp -> imp.ext(givenBidderExt("bidderA"))))));
 
         // when
-        final Set<String> result = target.sample(bidRequest, givenDiceProperties(0, Collections.emptyMap()));
+        final Set<String> result = target.sample(bidRequest, givenSampleProperties(0, Collections.emptyMap()));
 
         // then
         assertThat(result).isEmpty();
     }
 
     @Test
-    public void diceShouldUseBidderSpecificPercentageWhenAvailable() {
+    public void sampleShouldUseBidderSpecificPercentageWhenAvailable() {
         // given
         given(bidderAliases.resolveBidder(any())).willAnswer(inv -> inv.getArgument(0));
         given(randomSupplier.getAsInt()).willReturn(99);
@@ -218,14 +218,14 @@ public class BidderEnrichmentSamplerTest extends BaseOptableTest {
                 request -> request.imp(List.of(givenImp(imp -> imp.ext(givenBidderExt("bidderA", "bidderB"))))));
 
         // when
-        final Set<String> result = target.sample(bidRequest, givenDiceProperties(-1, Map.of("bidderA", 100)));
+        final Set<String> result = target.sample(bidRequest, givenSampleProperties(-1, Map.of("bidderA", 100)));
 
         // then
         assertThat(result).containsExactly("bidderA");
     }
 
     @Test
-    public void diceShouldUseAliasSpecificPercentageWhenBidderResolvesToAlias() {
+    public void sampleShouldUseAliasSpecificPercentageWhenBidderResolvesToAlias() {
         // given
         given(bidderAliases.resolveBidder("bidderA")).willReturn("bidderA");
         given(bidderAliases.resolveBidder("bidderB")).willReturn("aliasB");
@@ -235,14 +235,14 @@ public class BidderEnrichmentSamplerTest extends BaseOptableTest {
                 request -> request.imp(List.of(givenImp(imp -> imp.ext(givenBidderExt("bidderA", "bidderB"))))));
 
         // when
-        final Set<String> result = target.sample(bidRequest, givenDiceProperties(-1, Map.of("aliasB", 100)));
+        final Set<String> result = target.sample(bidRequest, givenSampleProperties(-1, Map.of("aliasB", 100)));
 
         // then
         assertThat(result).containsExactly("bidderB");
     }
 
     @Test
-    public void diceShouldDeduplicateBiddersAppearingInMultipleImps() {
+    public void sampleShouldDeduplicateBiddersAppearingInMultipleImps() {
         // given
         given(bidderAliases.resolveBidder(any())).willAnswer(inv -> inv.getArgument(0));
         given(randomSupplier.getAsInt()).willReturn(0);
@@ -253,13 +253,13 @@ public class BidderEnrichmentSamplerTest extends BaseOptableTest {
                 givenImp(imp -> imp.ext(ext)))));
 
         // when
-        final Set<String> result = target.sample(bidRequest, givenDiceProperties(100, Collections.emptyMap()));
+        final Set<String> result = target.sample(bidRequest, givenSampleProperties(100, Collections.emptyMap()));
 
         // then
         assertThat(result).containsExactly("bidderA");
     }
 
-    private OptableTargetingProperties givenDiceProperties(int defaultPct, Map<String, Integer> bidderPcts) {
+    private OptableTargetingProperties givenSampleProperties(int defaultPct, Map<String, Integer> bidderPcts) {
         final OptableTargetingProperties props = new OptableTargetingProperties();
         props.setEnrichmentPercentage(defaultPct);
         props.setBidderEnrichmentPercentages(bidderPcts);

@@ -55,12 +55,12 @@ public class OptableTargetingConfig {
                             @Value("${logging.sampling-rate:0.01}")
                             double logSamplingRate,
                             OptableTargetingProperties optableTargetingProperties,
-                            JacksonMapper jacksonMapperr) {
+                            JacksonMapper jacksonMapper) {
 
         return new APIClientImpl(
                 optableTargetingProperties.getApiEndpoint(),
                 httpClient,
-                jacksonMapperr,
+                jacksonMapper,
                 logSamplingRate);
     }
 
@@ -106,7 +106,7 @@ public class OptableTargetingConfig {
                                                   JsonMerger jsonMerger,
                                                   BidderCatalog bidderCatalog,
                                                   JacksonMapper mapper,
-                                                  @Value("${hooks.host-execution-plan}")
+                                                  @Value("${hooks.host-execution-plan:}")
                                                   String executionPlan,
                                                   @Value("${logging.sampling-rate:0.01}") double logSamplingRate) {
 

@@ -110,10 +110,10 @@ class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
         assertThat(future.succeeded()).isTrue();
 
         final InvocationResult<AuctionRequestPayload> result = future.result();
-        assertThat(result).isNotNull();
-        assertThat(result.status()).isEqualTo(InvocationStatus.success);
-        assertThat(result.action()).isEqualTo(InvocationAction.update);
-        assertThat(result.errors()).isNull();
+        assertThat(result).isNotNull()
+                .returns(InvocationStatus.success, InvocationResult::status)
+                .returns(InvocationAction.update, InvocationResult::action)
+                .extracting(InvocationResult::errors).isNull();
         assertThat(result.analyticsTags().activities().getFirst()
                 .results().getFirst().values().get("execution-time")).isNotNull();
     }
@@ -134,10 +134,10 @@ class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
         assertThat(future.succeeded()).isTrue();
 
         final InvocationResult<AuctionRequestPayload> result = future.result();
-        assertThat(result).isNotNull();
-        assertThat(result.status()).isEqualTo(InvocationStatus.success);
-        assertThat(result.action()).isEqualTo(InvocationAction.update);
-        assertThat(result.errors()).isNull();
+        assertThat(result).isNotNull()
+                .returns(InvocationStatus.success, InvocationResult::status)
+                .returns(InvocationAction.update, InvocationResult::action)
+                .extracting(InvocationResult::errors).isNull();
         final BidRequest bidRequest = result
                 .payloadUpdate()
                 .apply(AuctionRequestPayloadImpl.of(givenBidRequest()))
@@ -175,10 +175,10 @@ class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
         assertThat(future.succeeded()).isTrue();
 
         final InvocationResult<AuctionRequestPayload> result = future.result();
-        assertThat(result).isNotNull();
-        assertThat(result.status()).isEqualTo(InvocationStatus.success);
-        assertThat(result.action()).isEqualTo(InvocationAction.update);
-        assertThat(result.errors()).isNull();
+        assertThat(result).isNotNull()
+                .returns(InvocationStatus.success, InvocationResult::status)
+                .returns(InvocationAction.update, InvocationResult::action)
+                .extracting(InvocationResult::errors).isNull();
         final BidRequest bidRequest = result
                 .payloadUpdate()
                 .apply(AuctionRequestPayloadImpl.of(givenBidRequest()))
@@ -211,10 +211,10 @@ class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
         assertThat(future.succeeded()).isTrue();
 
         final InvocationResult<AuctionRequestPayload> result = future.result();
-        assertThat(result).isNotNull();
-        assertThat(result.status()).isEqualTo(InvocationStatus.success);
-        assertThat(result.action()).isEqualTo(InvocationAction.update);
-        assertThat(result.errors()).isNull();
+        assertThat(result).isNotNull()
+                .returns(InvocationStatus.success, InvocationResult::status)
+                .returns(InvocationAction.update, InvocationResult::action)
+                .extracting(InvocationResult::errors).isNull();
         final BidRequest bidRequest = result
                 .payloadUpdate()
                 .apply(AuctionRequestPayloadImpl.of(givenBidRequest()))
@@ -247,10 +247,10 @@ class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
         assertThat(future.succeeded()).isTrue();
 
         final InvocationResult<AuctionRequestPayload> result = future.result();
-        assertThat(result).isNotNull();
-        assertThat(result.status()).isEqualTo(InvocationStatus.success);
-        assertThat(result.action()).isEqualTo(InvocationAction.update);
-        assertThat(result.errors()).isNull();
+        assertThat(result).isNotNull()
+                .returns(InvocationStatus.success, InvocationResult::status)
+                .returns(InvocationAction.update, InvocationResult::action)
+                .extracting(InvocationResult::errors).isNull();
         final BidRequest bidRequest = result
                 .payloadUpdate()
                 .apply(AuctionRequestPayloadImpl.of(givenBidRequest()))
@@ -282,10 +282,10 @@ class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
         assertThat(future.succeeded()).isTrue();
 
         final InvocationResult<AuctionRequestPayload> result = future.result();
-        assertThat(result).isNotNull();
-        assertThat(result.status()).isEqualTo(InvocationStatus.success);
-        assertThat(result.action()).isEqualTo(InvocationAction.update);
-        assertThat(result.errors()).isNull();
+        assertThat(result).isNotNull()
+                .returns(InvocationStatus.success, InvocationResult::status)
+                .returns(InvocationAction.update, InvocationResult::action)
+                .extracting(InvocationResult::errors).isNull();
         final BidRequest bidRequest = result
                 .payloadUpdate()
                 .apply(AuctionRequestPayloadImpl.of(givenBidRequest()))
@@ -315,9 +315,9 @@ class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
         assertThat(future.succeeded()).isTrue();
 
         final InvocationResult<AuctionRequestPayload> result = future.result();
-        assertThat(result).isNotNull();
-        assertThat(result.status()).isEqualTo(InvocationStatus.success);
-        assertThat(result.action()).isEqualTo(InvocationAction.update);
+        assertThat(result).isNotNull()
+                .returns(InvocationStatus.success, InvocationResult::status)
+                .returns(InvocationAction.update, InvocationResult::action);
         assertThat((ModuleContext) result.moduleContext())
                 .extracting(it -> it.getEnrichRequestStatus().getStatus())
                 .isEqualTo(Status.FAIL);
@@ -344,9 +344,9 @@ class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
         assertThat(future.succeeded()).isTrue();
 
         final InvocationResult<AuctionRequestPayload> result = future.result();
-        assertThat(result).isNotNull();
-        assertThat(result.status()).isEqualTo(InvocationStatus.success);
-        assertThat(result.action()).isEqualTo(InvocationAction.update);
+        assertThat(result).isNotNull()
+                .returns(InvocationStatus.success, InvocationResult::status)
+                .returns(InvocationAction.update, InvocationResult::action);
         assertThat((ModuleContext) result.moduleContext())
                 .extracting(it -> it.getEnrichRequestStatus().getStatus())
                 .isEqualTo(Status.FAIL);
@@ -368,10 +368,10 @@ class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
         assertThat(future.succeeded()).isTrue();
 
         final InvocationResult<AuctionRequestPayload> result = future.result();
-        assertThat(result).isNotNull();
-        assertThat(result.status()).isEqualTo(InvocationStatus.success);
-        assertThat(result.action()).isEqualTo(InvocationAction.update);
-        assertThat(result.errors()).isNull();
+        assertThat(result).isNotNull()
+                .returns(InvocationStatus.success, InvocationResult::status)
+                .returns(InvocationAction.update, InvocationResult::action)
+                .extracting(InvocationResult::errors).isNull();
         final ObjectNode optable = (ObjectNode) result
                 .payloadUpdate()
                 .apply(AuctionRequestPayloadImpl.of(givenBidRequest()))
@@ -396,10 +396,10 @@ class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
         assertThat(future.succeeded()).isTrue();
 
         final InvocationResult<AuctionRequestPayload> result = future.result();
-        assertThat(result).isNotNull();
-        assertThat(result.status()).isEqualTo(InvocationStatus.success);
-        assertThat(result.action()).isEqualTo(InvocationAction.update);
-        assertThat(result.errors()).isNull();
+        assertThat(result).isNotNull()
+                .returns(InvocationStatus.success, InvocationResult::status)
+                .returns(InvocationAction.update, InvocationResult::action)
+                .extracting(InvocationResult::errors).isNull();
     }
 
     @Test
@@ -418,10 +418,10 @@ class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
         assertThat(future.succeeded()).isTrue();
 
         final InvocationResult<AuctionRequestPayload> result = future.result();
-        assertThat(result).isNotNull();
-        assertThat(result.status()).isEqualTo(InvocationStatus.success);
-        assertThat(result.action()).isEqualTo(InvocationAction.update);
-        assertThat(result.errors()).isNull();
+        assertThat(result).isNotNull()
+                .returns(InvocationStatus.success, InvocationResult::status)
+                .returns(InvocationAction.update, InvocationResult::action)
+                .extracting(InvocationResult::errors).isNull();
     }
 
     private ObjectNode givenAccountConfig(boolean cacheEnabled) {

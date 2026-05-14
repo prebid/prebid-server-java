@@ -29,7 +29,7 @@ import java.util.Objects;
 public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuctionRequestHook {
 
     private static final ConditionalLogger conditionalLogger = new ConditionalLogger(
-            LoggerFactory.getLogger(OptableRawAuctionRequestHook.class));
+            LoggerFactory.getLogger(OptableTargetingProcessedAuctionRequestHook.class));
 
     public static final String CODE = "optable-targeting-processed-auction-request-hook";
 
@@ -40,7 +40,7 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
     private final NetworkCall networkCall;
     private final double logSamplingRate;
 
-    final CompositeHookExecutionPlan hooksExecutionPlan;
+    private final CompositeHookExecutionPlan hooksExecutionPlan;
 
     public OptableTargetingProcessedAuctionRequestHook(ConfigResolver configResolver,
                                                        NetworkCall networkCall,

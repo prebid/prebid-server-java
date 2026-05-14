@@ -7,7 +7,6 @@ import org.prebid.server.hooks.modules.optable.targeting.model.EnrichmentStatus;
 import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.AnalyticTagsResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidderRequestEnricher;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
@@ -60,7 +59,6 @@ public class OptableBidderRequestHook implements BidderRequestHook {
                 InvocationResultImpl.<BidderRequestPayload>builder()
                         .status(InvocationStatus.success)
                         .action(InvocationAction.no_action)
-                        .analyticsTags(AnalyticTagsResolver.toEnrichRequestAnalyticTags(moduleContext))
                         .moduleContext(moduleContext)
                         .build());
     }
@@ -73,7 +71,6 @@ public class OptableBidderRequestHook implements BidderRequestHook {
                 InvocationResultImpl.<BidderRequestPayload>builder()
                         .status(InvocationStatus.success)
                         .action(InvocationAction.update)
-                        .analyticsTags(AnalyticTagsResolver.toEnrichRequestAnalyticTags(moduleContext))
                         .payloadUpdate(payloadUpdate)
                         .moduleContext(moduleContext)
                         .build());

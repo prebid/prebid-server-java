@@ -7,7 +7,6 @@ import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.AnalyticTagsResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidRequestCleaner;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidderEnrichmentSampler;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
@@ -97,20 +96,18 @@ public class OptableRawAuctionRequestHook implements RawAuctionRequestHook {
                 InvocationResultImpl.<AuctionRequestPayload>builder()
                         .status(InvocationStatus.success)
                         .action(InvocationAction.no_action)
-                        .analyticsTags(AnalyticTagsResolver.toEnrichRequestAnalyticTags(moduleContext))
                         .moduleContext(moduleContext)
                         .build());
     }
 
-    public static <T> Future<InvocationResult<T>> update(
-            PayloadUpdate<T> payloadUpdate,
+    public static <AuctionRequestPayload> Future<InvocationResult<AuctionRequestPayload>> update(
+            PayloadUpdate<AuctionRequestPayload> payloadUpdate,
             ModuleContext moduleContext) {
 
         return Future.succeededFuture(
-                InvocationResultImpl.<T>builder()
+                InvocationResultImpl.<AuctionRequestPayload>builder()
                         .status(InvocationStatus.success)
                         .action(InvocationAction.update)
-                        .analyticsTags(AnalyticTagsResolver.toEnrichRequestAnalyticTags(moduleContext))
                         .payloadUpdate(payloadUpdate)
                         .moduleContext(moduleContext)
                         .build());

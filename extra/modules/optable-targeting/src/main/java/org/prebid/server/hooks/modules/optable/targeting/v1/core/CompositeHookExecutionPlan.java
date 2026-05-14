@@ -46,9 +46,9 @@ public class CompositeHookExecutionPlan {
 
         return StringUtils.isNotEmpty(accountId)
                 ? rawAuctionRequestHookCache.computeIfAbsent(accountId, id -> {
-                    final ExecutionPlan accountSpecificHoksExecutionPlan = resolveExecutionPlan(account);
+                    final ExecutionPlan accountSpecificHooksExecutionPlan = resolveExecutionPlan(account);
                     return hasHook(
-                            accountSpecificHoksExecutionPlan, STAGE_RAW_AUCTION_REQUEST, HOOK_CODE_OPTABLE_RAW_AUCTION)
+                            accountSpecificHooksExecutionPlan, STAGE_RAW_AUCTION_REQUEST, HOOK_CODE_OPTABLE_RAW_AUCTION)
                             || hasGlobalRawAuctionRequestHook;
                 })
                 : false;

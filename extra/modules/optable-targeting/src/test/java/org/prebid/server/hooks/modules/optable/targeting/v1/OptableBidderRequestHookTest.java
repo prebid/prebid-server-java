@@ -10,7 +10,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.prebid.server.hooks.execution.v1.bidder.BidderRequestPayloadImpl;
+import org.prebid.server.hooks.modules.optable.targeting.model.EnrichmentStatus;
 import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
+import org.prebid.server.hooks.modules.optable.targeting.model.Status;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
@@ -62,8 +64,9 @@ public class OptableBidderRequestHookTest extends BaseOptableTest {
         // then
         assertThat(future.succeeded()).isTrue();
         final InvocationResult<BidderRequestPayload> result = future.result();
-        assertThat(result.status()).isEqualTo(InvocationStatus.success);
-        assertThat(result.action()).isEqualTo(InvocationAction.no_action);
+        assertThat(result).isNotNull()
+                .returns(InvocationStatus.success, InvocationResult::status)
+                .returns(InvocationAction.no_action, InvocationResult::action);
         assertThat(result.moduleContext()).isSameAs(moduleContext);
     }
 
@@ -82,8 +85,9 @@ public class OptableBidderRequestHookTest extends BaseOptableTest {
         // then
         assertThat(future.succeeded()).isTrue();
         final InvocationResult<BidderRequestPayload> result = future.result();
-        assertThat(result.status()).isEqualTo(InvocationStatus.success);
-        assertThat(result.action()).isEqualTo(InvocationAction.no_action);
+        assertThat(result).isNotNull()
+                .returns(InvocationStatus.success, InvocationResult::status)
+                .returns(InvocationAction.no_action, InvocationResult::action);
     }
 
     @Test
@@ -100,8 +104,9 @@ public class OptableBidderRequestHookTest extends BaseOptableTest {
         // then
         assertThat(future.succeeded()).isTrue();
         final InvocationResult<BidderRequestPayload> result = future.result();
-        assertThat(result.status()).isEqualTo(InvocationStatus.success);
-        assertThat(result.action()).isEqualTo(InvocationAction.no_action);
+        assertThat(result).isNotNull()
+                .returns(InvocationStatus.success, InvocationResult::status)
+                .returns(InvocationAction.no_action, InvocationResult::action);
     }
 
     @Test
@@ -120,9 +125,10 @@ public class OptableBidderRequestHookTest extends BaseOptableTest {
         // then
         assertThat(future.succeeded()).isTrue();
         final InvocationResult<BidderRequestPayload> result = future.result();
-        assertThat(result.status()).isEqualTo(InvocationStatus.success);
-        assertThat(result.action()).isEqualTo(InvocationAction.update);
-        assertThat(result.errors()).isNull();
+        assertThat(result).isNotNull()
+                .returns(InvocationStatus.success, InvocationResult::status)
+                .returns(InvocationAction.update, InvocationResult::action)
+                .extracting(InvocationResult::errors).isNull();
 
         final BidRequest enrichedRequest = result
                 .payloadUpdate()
@@ -146,10 +152,12 @@ public class OptableBidderRequestHookTest extends BaseOptableTest {
         // when
         target.call(bidderRequestPayload, invocationContext);
 
-        // then — the moduleContext is mutated in-place with audience targeting
+        // then
         assertThat(moduleContext.getTargeting()).isNotNull().isNotEmpty();
-        assertThat(moduleContext.getEnrichRequestStatus()).isNotNull();
-        assertThat(moduleContext.getEnrichRequestStatus().getStatus().getValue()).isEqualTo("success");
+        assertThat(moduleContext.getEnrichRequestStatus()).isNotNull()
+                .extracting(EnrichmentStatus::getStatus)
+                .extracting(Status::getValue)
+                .isEqualTo("success");
     }
 
     @Test
@@ -169,48 +177,9 @@ public class OptableBidderRequestHookTest extends BaseOptableTest {
         // then
         assertThat(future.succeeded()).isTrue();
         final InvocationResult<BidderRequestPayload> result = future.result();
-        assertThat(result.status()).isEqualTo(InvocationStatus.success);
-        assertThat(result.action()).isEqualTo(InvocationAction.no_action);
-    }
-
-    @Test
-    public void shouldIncludeAnalyticsTagsInNoActionResponse() {
-        // given
-        final ModuleContext moduleContext = givenModuleContextWithProperties(
-                givenOptableTargetingProperties(false));
-        when(invocationContext.moduleContext()).thenReturn(moduleContext);
-
-        // when
-        final Future<InvocationResult<BidderRequestPayload>> future =
-                target.call(bidderRequestPayload, invocationContext);
-
-        // then
-        final InvocationResult<BidderRequestPayload> result = future.result();
-        assertThat(result.analyticsTags()).isNotNull();
-        assertThat(result.analyticsTags().activities()).isNotEmpty();
-        assertThat(result.analyticsTags().activities().getFirst().name())
-                .isEqualTo("optable-enrich-request");
-    }
-
-    @Test
-    public void shouldIncludeAnalyticsTagsInUpdateResponse() {
-        // given
-        final ModuleContext moduleContext = givenModuleContextWithProperties(
-                givenPropertiesWithPerBidderEnrichmentEnabled());
-        moduleContext.setBiddersToEnrich(Set.of("bidder1"));
-        moduleContext.setOptableTargetingCall(Future.succeededFuture(givenTargetingResult()));
-        when(invocationContext.moduleContext()).thenReturn(moduleContext);
-
-        // when
-        final Future<InvocationResult<BidderRequestPayload>> future =
-                target.call(bidderRequestPayload, invocationContext);
-
-        // then
-        final InvocationResult<BidderRequestPayload> result = future.result();
-        assertThat(result.analyticsTags()).isNotNull();
-        assertThat(result.analyticsTags().activities()).isNotEmpty();
-        assertThat(result.analyticsTags().activities().getFirst().name())
-                .isEqualTo("optable-enrich-request");
+        assertThat(result).isNotNull()
+                .returns(InvocationStatus.success, InvocationResult::status)
+                .returns(InvocationAction.no_action, InvocationResult::action);
     }
 
     private static ModuleContext givenModuleContextWithProperties(OptableTargetingProperties properties) {
