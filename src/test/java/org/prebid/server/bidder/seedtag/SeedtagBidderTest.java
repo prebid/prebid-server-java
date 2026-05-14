@@ -135,7 +135,7 @@ public class SeedtagBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
                 requestBuilder -> requestBuilder.imp(singletonList(
-                        givenImp(identity(), ExtImpSeedtag.of(null, "somePubId", "ronId")))));
+                        givenImp(ExtImpSeedtag.of(null, "somePubId", "ronId")))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -152,7 +152,7 @@ public class SeedtagBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
                 requestBuilder -> requestBuilder.imp(singletonList(
-                        givenImp(identity(), ExtImpSeedtag.of("someAdUnitId", "somePubId", "ronId")))));
+                        givenImp(ExtImpSeedtag.of("someAdUnitId", "somePubId", "ronId")))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -168,7 +168,7 @@ public class SeedtagBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
                 requestBuilder -> requestBuilder.imp(singletonList(
-                        givenImp(identity(), ExtImpSeedtag.of("someAdUnitId", null, null)))));
+                        givenImp(ExtImpSeedtag.of("someAdUnitId", null, null)))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -184,7 +184,7 @@ public class SeedtagBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
                 requestBuilder -> requestBuilder.imp(singletonList(
-                        givenImp(identity(), ExtImpSeedtag.of("someAdUnitId", null, "ronId")))));
+                        givenImp(ExtImpSeedtag.of("someAdUnitId", null, "ronId")))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -204,7 +204,7 @@ public class SeedtagBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
                 requestBuilder -> requestBuilder.imp(singletonList(
-                        givenImp(identity(), ExtImpSeedtag.of(null, "somePubId", null)))));
+                        givenImp(ExtImpSeedtag.of(null, "somePubId", null)))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -224,7 +224,7 @@ public class SeedtagBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
                 requestBuilder -> requestBuilder.imp(singletonList(
-                        givenImp(identity(), ExtImpSeedtag.of(null, null, null)))));
+                        givenImp(ExtImpSeedtag.of(null, null, null)))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -342,13 +342,15 @@ public class SeedtagBidderTest extends VertxTest {
     }
 
     private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
-        return givenImp(impCustomizer, ExtImpSeedtag.of("someAdUnitId", null, null));
+        final ObjectNode bidderExt = mapper.createObjectNode();
+        bidderExt.set("bidder", mapper.valueToTree(ExtImpSeedtag.of("someAdUnitId", null, null)));
+        return impCustomizer.apply(Imp.builder().id("123").ext(bidderExt)).build();
     }
 
-    private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer, ExtImpSeedtag extImpSeedtag) {
+    private static Imp givenImp(ExtImpSeedtag extImpSeedtag) {
         final ObjectNode bidderExt = mapper.createObjectNode();
         bidderExt.set("bidder", mapper.valueToTree(extImpSeedtag));
-        return impCustomizer.apply(Imp.builder().id("123").ext(bidderExt)).build();
+        return Imp.builder().id("123").ext(bidderExt).build();
     }
 
     private static BidResponse givenBidResponse(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
