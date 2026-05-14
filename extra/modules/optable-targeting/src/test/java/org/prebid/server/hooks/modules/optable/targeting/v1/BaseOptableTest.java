@@ -41,6 +41,7 @@ import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
+import org.prebid.server.settings.model.Account;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.io.IOException;
@@ -72,7 +73,9 @@ public abstract class BaseOptableTest {
         return moduleContext;
     }
 
-    protected AuctionContext givenAuctionContext(ActivityInfrastructure activityInfrastructure, Timeout timeout) {
+    protected AuctionContext givenAuctionContext(ActivityInfrastructure activityInfrastructure,
+                                                 Timeout timeout,
+                                                 Account account) {
         final GppModel gppModel = new GppModel();
         final TcfContext tcfContext = TcfContext.builder().build();
         final GppContext gppContext = new GppContext(
@@ -81,11 +84,16 @@ public abstract class BaseOptableTest {
 
         return AuctionContext.builder()
                 .bidRequest(givenBidRequest())
+                .account(account)
                 .activityInfrastructure(activityInfrastructure)
                 .privacyContext(PrivacyContext.of(Privacy.builder().build(), tcfContext, "8.8.8.8"))
                 .gppContext(gppContext)
                 .timeoutContext(TimeoutContext.of(0, timeout, 1))
                 .build();
+    }
+
+    protected AuctionContext givenAuctionContext(ActivityInfrastructure activityInfrastructure, Timeout timeout) {
+        return givenAuctionContext(activityInfrastructure, timeout, null);
     }
 
     protected BidRequest givenBidRequest() {

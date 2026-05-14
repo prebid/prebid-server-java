@@ -15,6 +15,7 @@ import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingProc
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.AliasesResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidderEnrichmentSampler;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.Cache;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.CompositeHookExecutionPlan;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.IdsMapper;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.NetworkCall;
@@ -109,6 +110,11 @@ public class OptableTargetingConfig {
                                                   String executionPlan,
                                                   @Value("${logging.sampling-rate:0.01}") double logSamplingRate) {
 
+        final CompositeHookExecutionPlan hooksExecutionPlan = CompositeHookExecutionPlan.of(
+                StringUtils.isNoneEmpty(executionPlan)
+                        ? mapper.decodeValue(executionPlan, ExecutionPlan.class)
+                        : null);
+
         return new OptableTargetingModule(List.of(
                 new OptableRawAuctionRequestHook(
                         configResolver,
@@ -118,9 +124,7 @@ public class OptableTargetingConfig {
                 new OptableTargetingProcessedAuctionRequestHook(
                         configResolver,
                         networkCall,
-                        StringUtils.isNoneEmpty(executionPlan)
-                                ? mapper.decodeValue(executionPlan, ExecutionPlan.class)
-                                : null,
+                        hooksExecutionPlan,
                         logSamplingRate),
                 new OptableBidderRequestHook(),
                 new OptableTargetingAuctionResponseHook(
