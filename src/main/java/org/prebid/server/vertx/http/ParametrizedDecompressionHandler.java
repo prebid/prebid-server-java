@@ -19,7 +19,7 @@ public class ParametrizedDecompressionHandler implements Handler<RoutingContext>
     private final ThreadLocal<byte[]> outputBuffer;
 
     public ParametrizedDecompressionHandler(int maxBodySize) {
-        intermediateBuffer = ThreadLocal.withInitial(() -> new byte[1024]);
+        intermediateBuffer = ThreadLocal.withInitial(() -> new byte[16384]);
         inputBuffer = ThreadLocal.withInitial(() -> new byte[maxBodySize]);
         outputBuffer = ThreadLocal.withInitial(() -> new byte[2 * maxBodySize]);
     }
