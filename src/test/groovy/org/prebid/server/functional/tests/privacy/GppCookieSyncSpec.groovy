@@ -385,11 +385,11 @@ class GppCookieSyncSpec extends BaseSpec {
         ]
     }
 
-    def "PBS shouldn't emit error message when request doesn't contain gdpr config and global skip gdpr config for adapter"() {
+    def "PBS should allow sync without error when GPP SID is not excluded and GDPR is out of scope"() {
         given: "Default CookieSyncRequest with gdpr config"
-        def gppSid = TCF_EU_V2
+        def gppSidExcludeSkipValues = PBSUtils.getRandomEnum(GppSectionId.class, [FIRST_GPP_SECTION, SECOND_GPP_SECTION])
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
-            it.gppSid = gppSid.intValue
+            it.gppSid = gppSidExcludeSkipValues.intValue
             it.gdpr = 0
             it.gdprConsent = new TcfConsent.Builder().build()
         }
@@ -400,7 +400,7 @@ class GppCookieSyncSpec extends BaseSpec {
         then: "Response userSync url should contain cookies and userSync"
         def bidderStatus = response.getBidderUserSync(GENERIC)
         assert HttpUtil.findUrlParameterValue(bidderStatus.userSync?.url, "gpp") == ""
-        assert HttpUtil.findUrlParameterValue(bidderStatus.userSync?.url, "gpp_sid") == gppSid.value
+        assert HttpUtil.findUrlParameterValue(bidderStatus.userSync?.url, "gpp_sid") == gppSidExcludeSkipValues.value
 
         and: "Response shouldn't contains any error"
         assert !bidderStatus.error
