@@ -211,13 +211,13 @@ public class PrivacyServiceConfiguration {
     @Bean
     Purpose02Strategy purpose02Strategy(DisclosedVendorsStrictness disclosedVendorsStrictness,
                                         FullEnforcePurposeStrategy fullEnforcePurposeStrategy,
-                                        BasicEnforcePurposeStrategy basicEnforcePurposeStrategy,
+                                        PurposeTwoBasicEnforcePurposeStrategy purposeTwoBasicEnforcePurposeStrategy,
                                         NoEnforcePurposeStrategy noEnforcePurposeStrategy) {
 
         return new Purpose02Strategy(
                 disclosedVendorsStrictness,
                 fullEnforcePurposeStrategy,
-                basicEnforcePurposeStrategy,
+                purposeTwoBasicEnforcePurposeStrategy,
                 noEnforcePurposeStrategy);
     }
 
