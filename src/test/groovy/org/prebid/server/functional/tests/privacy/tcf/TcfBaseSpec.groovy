@@ -4,6 +4,7 @@ import org.prebid.server.functional.model.config.Purpose
 import org.prebid.server.functional.model.privacy.EnforcementRequirement
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.tests.privacy.PrivacyBaseSpec
+import org.prebid.server.functional.util.PBSUtils
 import org.testcontainers.images.builder.Transferable
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
@@ -17,30 +18,49 @@ import static org.prebid.server.functional.util.privacy.TcfConsent.RestrictionTy
 
 class TcfBaseSpec extends PrivacyBaseSpec {
 
-    private static final Map<String, String> PBS_CONFIG = SETTING_CONFIG + GENERIC_VENDOR_CONFIG + GENERIC_CONFIG + ["gdpr.vendorlist.v2.http-endpoint-template": null,
-                                                                                                                     "gdpr.vendorlist.v3.http-endpoint-template": null]
+
     private static String prepareEncodeResponseBodyWithPurposesOnly = getVendorListContent(true, false, false)
     private static String prepareEncodeResponseBodyWithLegIntPurposes = getVendorListContent(false, true, false)
     private static String prepareEncodeResponseBodyWithLegIntAndFlexiblePurposes = getVendorListContent(false, true, true)
     private static String prepareEncodeResponseBodyWithPurposesAndFlexiblePurposes = getVendorListContent(true, false, true)
-    private static Map<String, Transferable> GLV_LISTS_FILES = [(getVendorListPath(PURPOSES_ONLY_GVL_VERSION) )               : Transferable.of(prepareEncodeResponseBodyWithPurposesOnly),
-                                                                (getVendorListPath(LEG_INT_PURPOSES_ONLY_GVL_VERSION) )       : Transferable.of(prepareEncodeResponseBodyWithLegIntPurposes),
-                                                                (getVendorListPath(LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION)): Transferable.of(prepareEncodeResponseBodyWithLegIntAndFlexiblePurposes),
-                                                                (getVendorListPath(PURPOSES_AND_LEG_INT_PURPOSES_GVL_VERSION)): Transferable.of(prepareEncodeResponseBodyWithPurposesAndFlexiblePurposes)
+
+    protected static final int PURPOSES_ONLY_GVL_VERSION = PBSUtils.getRandomNumber(0, 4095)
+    protected static final int LEG_INT_PURPOSES_ONLY_GVL_VERSION = PBSUtils.getRandomNumberWithExclusion(PURPOSES_ONLY_GVL_VERSION, 0, 4095)
+    protected static final int LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION = PBSUtils.getRandomNumberWithExclusion([PURPOSES_ONLY_GVL_VERSION, LEG_INT_PURPOSES_ONLY_GVL_VERSION], 0, 4095)
+    protected static final int PURPOSES_AND_LEG_INT_PURPOSES_GVL_VERSION = PBSUtils.getRandomNumberWithExclusion([PURPOSES_ONLY_GVL_VERSION, LEG_INT_PURPOSES_ONLY_GVL_VERSION, LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION], 0, 4095)
+    protected static Map<String, Transferable> GLV_LISTS_FILES = [(getVendorListPath(PURPOSES_ONLY_GVL_VERSION))                : Transferable.of(prepareEncodeResponseBodyWithPurposesOnly),
+                                                                  (getVendorListPath(LEG_INT_PURPOSES_ONLY_GVL_VERSION))        : Transferable.of(prepareEncodeResponseBodyWithLegIntPurposes),
+                                                                  (getVendorListPath(LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION)): Transferable.of(prepareEncodeResponseBodyWithLegIntAndFlexiblePurposes),
+                                                                  (getVendorListPath(PURPOSES_AND_LEG_INT_PURPOSES_GVL_VERSION)): Transferable.of(prepareEncodeResponseBodyWithPurposesAndFlexiblePurposes)
     ]
 
+    private static final Map<String, String> GDPR_RESTRICTION_CONFIG = ["gdpr.strict-disclosed-vendors-treatment": 'false']
+    protected static final Map<String, String> VENDOR_LIST_EMPTY_CONFIG = ["gdpr.vendorlist.v2.http-endpoint-template": null,
+                                                                         "gdpr.vendorlist.v3.http-endpoint-template": null]
+
+    protected static final Map<String, String> TCF_BASE_CONFIG = SETTING_CONFIG + GENERIC_VENDOR_CONFIG + GENERIC_CONFIG + GDPR_RESTRICTION_CONFIG
     protected static PrebidServerService privacyPbsServiceWithMultipleGvl
     protected static PrebidServerService activityPbsServiceExcludeGvl
 
     def setupSpec() {
-        activityPbsServiceExcludeGvl = pbsServiceFactory.getService(PBS_CONFIG)
+        activityPbsServiceExcludeGvl = pbsServiceFactory.getService(TCF_BASE_CONFIG + VENDOR_LIST_EMPTY_CONFIG)
         privacyPbsServiceWithMultipleGvl = pbsServiceFactory.getService(GENERAL_PRIVACY_CONFIG, GLV_LISTS_FILES)
     }
 
     protected static List<EnforcementRequirement> getBasicTcfCompanyBasedEnforcementRequirements(Purpose purpose) {
-        [new EnforcementRequirement(purpose: purpose, enforcePurpose: BASIC, enforceVendor: false, disclosedVendorsId: [GENERIC_VENDOR_ID]),
-         new EnforcementRequirement(purpose: purpose, enforcePurpose: NO, enforceVendor: false, disclosedVendorsId: [GENERIC_VENDOR_ID]),
-         new EnforcementRequirement(purpose: purpose, enforcePurpose: NO, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID, disclosedVendorsId: [GENERIC_VENDOR_ID])
+        [new EnforcementRequirement(purpose: purpose,
+                enforcePurpose: BASIC,
+                enforceVendor: false,
+                disclosedVendorsId: [GENERIC_VENDOR_ID]),
+         new EnforcementRequirement(purpose: purpose,
+                 enforcePurpose: NO,
+                 enforceVendor: false,
+                 disclosedVendorsId: [GENERIC_VENDOR_ID]),
+         new EnforcementRequirement(purpose: purpose,
+                 enforcePurpose: NO,
+                 enforceVendor: true,
+                 vendorConsentBitField: GENERIC_VENDOR_ID,
+                 disclosedVendorsId: [GENERIC_VENDOR_ID])
         ]
     }
 
@@ -50,17 +70,25 @@ class TcfBaseSpec extends PrivacyBaseSpec {
                 enforceVendor: true,
                 vendorConsentBitField: GENERIC_VENDOR_ID,
                 disclosedVendorsId: [GENERIC_VENDOR_ID]),
-         new EnforcementRequirement(purpose: purpose, vendorExceptions: [GENERIC])
+         new EnforcementRequirement(purpose: purpose,
+                 vendorExceptions: [GENERIC])
         ]
     }
 
     protected static List<EnforcementRequirement> getBasicTcfCompanySoftVendorExceptionsRequirements(Purpose purpose) {
-        [new EnforcementRequirement(purpose: purpose, enforcePurpose: BASIC, vendorExceptions: [GENERIC]),
-         new EnforcementRequirement(purpose: purpose, enforcePurpose: NO, vendorExceptions: [GENERIC])]
+        [new EnforcementRequirement(purpose: purpose,
+                enforcePurpose: BASIC,
+                vendorExceptions: [GENERIC]),
+         new EnforcementRequirement(purpose: purpose,
+                 enforcePurpose: NO,
+                 vendorExceptions: [GENERIC])]
     }
 
     protected static List<EnforcementRequirement> getBasicTcfLegalPurposesLITEnforcementRequirements(Purpose purpose) {
-        [new EnforcementRequirement(purpose: purpose, enforcePurpose: BASIC, purposesLITransparency: true, disclosedVendorsId: [GENERIC_VENDOR_ID])]
+        [new EnforcementRequirement(purpose: purpose,
+                enforcePurpose: BASIC,
+                purposesLITransparency: true,
+                disclosedVendorsId: [GENERIC_VENDOR_ID])]
     }
 
     protected static List<EnforcementRequirement> getFullTcfLegalEnforcementRequirements(Purpose purpose, boolean isPurposeExcludedAndListRandom = false) {
@@ -71,30 +99,24 @@ class TcfBaseSpec extends PrivacyBaseSpec {
                 vendorConsentBitField: GENERIC_VENDOR_ID,
                 vendorListVersion: PURPOSES_ONLY_GVL_VERSION,
                 disclosedVendorsId: [GENERIC_VENDOR_ID]),
-
          new EnforcementRequirement(purpose: isPurposeExcludedAndListRandom ? getRandomPurposeWithExclusion(purpose) : purpose,
                  vendorIdGvl: GENERIC_VENDOR_ID,
                  restrictionType: [UNDEFINED],
                  vendorConsentBitField: GENERIC_VENDOR_ID,
                  vendorListVersion: LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION,
                  disclosedVendorsId: [GENERIC_VENDOR_ID]),
-
          new EnforcementRequirement(purpose: isPurposeExcludedAndListRandom ? getRandomPurposeWithExclusion(purpose) : purpose,
                  vendorIdGvl: GENERIC_VENDOR_ID,
                  restrictionType: [REQUIRE_CONSENT],
                  vendorConsentBitField: GENERIC_VENDOR_ID,
                  vendorListVersion: LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION,
                  disclosedVendorsId: [GENERIC_VENDOR_ID]),
-
-
          new EnforcementRequirement(purpose: isPurposeExcludedAndListRandom ? getRandomPurposeWithExclusion(purpose) : purpose,
                  vendorIdGvl: GENERIC_VENDOR_ID,
                  restrictionType: [UNDEFINED],
                  vendorConsentBitField: GENERIC_VENDOR_ID,
                  vendorListVersion: PURPOSES_AND_LEG_INT_PURPOSES_GVL_VERSION,
                  disclosedVendorsId: [GENERIC_VENDOR_ID]),
-
-
          new EnforcementRequirement(purpose: isPurposeExcludedAndListRandom ? getRandomPurposeWithExclusion(purpose) : purpose,
                  vendorIdGvl: GENERIC_VENDOR_ID,
                  restrictionType: [REQUIRE_CONSENT],
@@ -216,7 +238,6 @@ class TcfBaseSpec extends PrivacyBaseSpec {
                  enforceVendor: false,
                  vendorListVersion: LEG_INT_PURPOSES_ONLY_GVL_VERSION,
                  disclosedVendorsId: [GENERIC_VENDOR_ID]),
-
 
          new EnforcementRequirement(purpose: isPurposeExcludedAndListRandom ? getRandomPurposeWithExclusion(purpose) : purpose,
                  vendorIdGvl: GENERIC_VENDOR_ID,

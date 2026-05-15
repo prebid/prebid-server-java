@@ -100,11 +100,6 @@ abstract class PrivacyBaseSpec extends BaseSpec {
                                                                         "gdpr.host-vendor-id"                 : GENERIC_VENDOR_ID as String,
                                                                         "adapters.generic.ccpa-enforced"      : "true"]
 
-    protected static final int PURPOSES_ONLY_GVL_VERSION = PBSUtils.getRandomNumber(0, 4095)
-    protected static final int LEG_INT_PURPOSES_ONLY_GVL_VERSION = PBSUtils.getRandomNumberWithExclusion(PURPOSES_ONLY_GVL_VERSION, 0, 4095)
-    protected static final int LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION = PBSUtils.getRandomNumberWithExclusion([PURPOSES_ONLY_GVL_VERSION, LEG_INT_PURPOSES_ONLY_GVL_VERSION], 0, 4095)
-    protected static final int PURPOSES_AND_LEG_INT_PURPOSES_GVL_VERSION = PBSUtils.getRandomNumberWithExclusion([PURPOSES_ONLY_GVL_VERSION, LEG_INT_PURPOSES_ONLY_GVL_VERSION, LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION], 0, 4095)
-
     protected static final int EXPONENTIAL_BACKOFF_MAX_DELAY = 1
 
     private static final Map<String, String> RETRY_POLICY_EXPONENTIAL_CONFIG = [

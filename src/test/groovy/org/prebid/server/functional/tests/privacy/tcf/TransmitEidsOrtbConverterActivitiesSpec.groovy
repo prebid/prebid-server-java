@@ -7,10 +7,7 @@ import org.prebid.server.functional.model.request.auction.AllowActivities
 import org.prebid.server.functional.model.request.auction.Condition
 import org.prebid.server.functional.model.request.auction.Eid
 import org.prebid.server.functional.service.PrebidServerService
-import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
 import org.prebid.server.functional.util.privacy.TcfUtils
-import org.testcontainers.images.builder.Transferable
-import spock.lang.Shared
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.config.Purpose.P1
@@ -28,33 +25,18 @@ import static org.prebid.server.functional.model.request.auction.TraceLevel.VERB
 
 class TransmitEidsOrtbConverterActivitiesSpec extends TcfBaseSpec {
 
-    private static final Map<String, String> PBS_CONFIG = SETTING_CONFIG + GENERIC_VENDOR_CONFIG + GENERIC_CONFIG + ["gdpr.vendorlist.v2.http-endpoint-template": null,
-                                                                                                                     "gdpr.vendorlist.v3.http-endpoint-template": null]
-    private final PrebidServerService activityPbsServiceExcludeGvlWithElderOrtb = pbsServiceFactory.getService(PBS_CONFIG + ["adapters.generic.ortb-version": "2.5"])
-
-    @Shared
+    private final static Map<String, String> ORTB_2_5_TCF_CONFIG = TCF_BASE_CONFIG + ["adapters.generic.ortb-version": "2.5"]
+    private static PrebidServerService activityPbsServiceExcludeGvlWithElderOrtb
     private static PrebidServerService privacyPbsServiceWithMultipleGvlWithElderOrtb
 
-    @Shared
-    private static PrebidServerContainer privacyPbsContainerWithMultipleGvlWithElderOrtb
-
     def setupSpec() {
-        def prepareEncodeResponseBodyWithPurposesOnly = getVendorListContent(true, false, false)
-        def prepareEncodeResponseBodyWithLegIntPurposes = getVendorListContent(false, true, false)
-        def prepareEncodeResponseBodyWithLegIntAndFlexiblePurposes = getVendorListContent(false, true, true)
-        def prepareEncodeResponseBodyWithPurposesAndFlexiblePurposes = getVendorListContent(true, false, true)
-        privacyPbsContainerWithMultipleGvlWithElderOrtb = new PrebidServerContainer(PBS_CONFIG + ["adapters.generic.ortb-version": "2.5"])
-        privacyPbsContainerWithMultipleGvlWithElderOrtb.withCopyToContainer(Transferable.of(prepareEncodeResponseBodyWithPurposesOnly), getVendorListPath(PURPOSES_ONLY_GVL_VERSION))
-        privacyPbsContainerWithMultipleGvlWithElderOrtb.withCopyToContainer(Transferable.of(prepareEncodeResponseBodyWithLegIntPurposes), getVendorListPath(LEG_INT_PURPOSES_ONLY_GVL_VERSION))
-        privacyPbsContainerWithMultipleGvlWithElderOrtb.withCopyToContainer(Transferable.of(prepareEncodeResponseBodyWithLegIntAndFlexiblePurposes), getVendorListPath(LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION))
-        privacyPbsContainerWithMultipleGvlWithElderOrtb.withCopyToContainer(Transferable.of(prepareEncodeResponseBodyWithPurposesAndFlexiblePurposes), getVendorListPath(PURPOSES_AND_LEG_INT_PURPOSES_GVL_VERSION))
-        privacyPbsContainerWithMultipleGvlWithElderOrtb.start()
-        privacyPbsServiceWithMultipleGvlWithElderOrtb = new PrebidServerService(privacyPbsContainerWithMultipleGvlWithElderOrtb)
+        activityPbsServiceExcludeGvlWithElderOrtb = pbsServiceFactory.getService(ORTB_2_5_TCF_CONFIG + VENDOR_LIST_EMPTY_CONFIG)
+        privacyPbsServiceWithMultipleGvlWithElderOrtb = pbsServiceFactory.getService(ORTB_2_5_TCF_CONFIG, GLV_LISTS_FILES)
     }
 
     def cleanupSpec() {
-        privacyPbsContainerWithMultipleGvlWithElderOrtb.stop()
-        pbsServiceFactory.removeContainer(PBS_CONFIG + ["adapters.generic.ortb-version": "2.5"])
+        pbsServiceFactory.removeContainer(ORTB_2_5_TCF_CONFIG + VENDOR_LIST_EMPTY_CONFIG)
+        pbsServiceFactory.removeContainer(ORTB_2_5_TCF_CONFIG)
     }
 
     def "PPBS should leave ext.eids for older ORTB versions when requireConsent is enabled and #enforcementRequirements.purpose have any basic consent"() {

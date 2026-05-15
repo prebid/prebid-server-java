@@ -1,10 +1,12 @@
 package org.prebid.server.functional.tests.privacy.tcf
 
-
+import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.config.AccountGdprConfig
+import org.prebid.server.functional.model.config.Purpose
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.privacy.EnforcementRequirement
 import org.prebid.server.functional.model.response.auction.NoBidResponse
+import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.TcfUtils
 
@@ -16,7 +18,22 @@ import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDO
 
 class TcfGeneralSpec extends TcfBaseSpec {
 
-    private static final ZonedDateTime TCF_2_3_ENFORCEMENT_DATE = ZonedDateTime.parse("2026-03-01T00:00:00Z")
+    private final static ZonedDateTime TCF_2_3_ENFORCEMENT_DATE = ZonedDateTime.parse("2026-03-01T00:00:00Z")
+    private final static Map<String, String> STRICT_DISCLOSED_VENDOR_TREATMENT_CONFIG = TCF_BASE_CONFIG + ["gdpr.strict-disclosed-vendors-treatment": 'true']
+    private final static TCF_NO_DISCLOSED_VENDORS_METRIC = 'privacy.tcf.no-disclosed-vendors'
+
+    private static PrebidServerService pbsWithoutGvlVendorsWithStrictDvTreatment
+    private static PrebidServerService pbsWithMultipleGvlListsWithStrictDvTreatment
+
+    def setupSpec() {
+        pbsWithoutGvlVendorsWithStrictDvTreatment = pbsServiceFactory.getService(STRICT_DISCLOSED_VENDOR_TREATMENT_CONFIG + VENDOR_LIST_EMPTY_CONFIG)
+        pbsWithMultipleGvlListsWithStrictDvTreatment = pbsServiceFactory.getService(STRICT_DISCLOSED_VENDOR_TREATMENT_CONFIG, GLV_LISTS_FILES)
+    }
+
+    def cleanupSpec() {
+        pbsServiceFactory.removeContainer(STRICT_DISCLOSED_VENDOR_TREATMENT_CONFIG + VENDOR_LIST_EMPTY_CONFIG)
+        pbsServiceFactory.removeContainer(STRICT_DISCLOSED_VENDOR_TREATMENT_CONFIG)
+    }
 
     def "PBS should accept base consent when disclosedVendors includes vendor after TCF v2.3 enforcement"() {
         given: "Generic BidRequests with valid tcf string"
@@ -31,18 +48,25 @@ class TcfGeneralSpec extends TcfBaseSpec {
         def account = generateDefaultTcfAccount(bidRequest.accountId, enforcementRequirements)
         accountDao.save(account)
 
+        and: "Flush metric"
+        flushMetrics(pbsWithoutGvlVendorsWithStrictDvTreatment)
+
         when: "PBS processes auction requests"
-        def response = activityPbsServiceExcludeGvl.sendAuctionRequest(bidRequest)
+        def response = pbsWithoutGvlVendorsWithStrictDvTreatment.sendAuctionRequest(bidRequest)
 
         then: "Response should contain seatBid"
         assert response?.seatbid?.bid?.flatten()?.size() == 1
 
-        and: "PBS should emit proper nbr code"
+        and: "PBS shouldn't emit nbr code"
         assert !response.noBidResponse
 
         and: "Response shouldn't contain errors or warnings"
         assert !response.ext.errors
         assert !response.ext.warnings
+
+        and: "PBS shouldn't emit no disclosed vendors metric"
+        def metrics = pbsWithoutGvlVendorsWithStrictDvTreatment.sendCollectedMetricsRequest()
+        assert !metrics[TCF_NO_DISCLOSED_VENDORS_METRIC]
 
         and: "PBS should sent bid request to bidder"
         assert bidder.getBidderRequests(bidRequest.id).size() == 1
@@ -61,18 +85,25 @@ class TcfGeneralSpec extends TcfBaseSpec {
         def account = generateDefaultTcfAccount(bidRequest.accountId, enforcementRequirements)
         accountDao.save(account)
 
+        and: "Flush metric"
+        flushMetrics(pbsWithMultipleGvlListsWithStrictDvTreatment)
+
         when: "PBS processes auction requests"
-        def response = privacyPbsServiceWithMultipleGvl.sendAuctionRequest(bidRequest)
+        def response = pbsWithMultipleGvlListsWithStrictDvTreatment.sendAuctionRequest(bidRequest)
 
         then: "Response should contain seatBid"
         assert response?.seatbid?.bid?.flatten()?.size() == 1
 
-        and: "PBS should emit proper nbr code"
+        and: "PBS shouldn't emit nbr code"
         assert !response.noBidResponse
 
         and: "Response shouldn't contain errors or warnings"
         assert !response.ext.errors
         assert !response.ext.warnings
+
+        and: "PBS shouldn't emit no disclosed vendors metric"
+        def metrics = pbsWithMultipleGvlListsWithStrictDvTreatment.sendCollectedMetricsRequest()
+        assert !metrics[TCF_NO_DISCLOSED_VENDORS_METRIC]
 
         and: "PBS should sent bid request to bidder"
         assert bidder.getBidderRequests(bidRequest.id).size() == 1
@@ -92,18 +123,25 @@ class TcfGeneralSpec extends TcfBaseSpec {
         def account = generateDefaultTcfAccount(bidRequest.accountId, enforcementRequirements)
         accountDao.save(account)
 
+        and: "Flush metric"
+        flushMetrics(pbsWithoutGvlVendorsWithStrictDvTreatment)
+
         when: "PBS processes auction requests"
-        def response = activityPbsServiceExcludeGvl.sendAuctionRequest(bidRequest)
+        def response = pbsWithoutGvlVendorsWithStrictDvTreatment.sendAuctionRequest(bidRequest)
 
         then: "Response should contain seatBid"
         assert response?.seatbid?.bid?.flatten()?.size() == 1
 
-        and: "PBS should emit proper nbr code"
+        and: "PBS shouldn't emit nbr code"
         assert !response.noBidResponse
 
         and: "Response shouldn't contain errors or warnings"
         assert !response.ext.errors
         assert !response.ext.warnings
+
+        and: "PBS shouldn't emit no disclosed vendors metric"
+        def metrics = pbsWithoutGvlVendorsWithStrictDvTreatment.sendCollectedMetricsRequest()
+        assert !metrics[TCF_NO_DISCLOSED_VENDORS_METRIC]
 
         and: "PBS should sent bid request to bidder"
         assert bidder.getBidderRequests(bidRequest.id).size() == 1
@@ -126,18 +164,25 @@ class TcfGeneralSpec extends TcfBaseSpec {
         def account = generateDefaultTcfAccount(bidRequest.accountId, enforcementRequirements)
         accountDao.save(account)
 
+        and: "Flush metric"
+        flushMetrics(pbsWithMultipleGvlListsWithStrictDvTreatment)
+
         when: "PBS processes auction requests"
-        def response = privacyPbsServiceWithMultipleGvl.sendAuctionRequest(bidRequest)
+        def response = pbsWithMultipleGvlListsWithStrictDvTreatment.sendAuctionRequest(bidRequest)
 
         then: "Response should contain seatBid"
         assert response?.seatbid?.bid?.flatten()?.size() == 1
 
-        and: "PBS should emit proper nbr code"
+        and: "PBS shouldn't emit nbr code"
         assert !response.noBidResponse
 
         and: "Response shouldn't contain errors or warnings"
         assert !response.ext.errors
         assert !response.ext.warnings
+
+        and: "PBS shouldn't emit no disclosed vendors metric"
+        def metrics = pbsWithMultipleGvlListsWithStrictDvTreatment.sendCollectedMetricsRequest()
+        assert !metrics[TCF_NO_DISCLOSED_VENDORS_METRIC]
 
         and: "PBS should sent bid request to bidder"
         assert bidder.getBidderRequests(bidRequest.id).size() == 1
@@ -158,8 +203,11 @@ class TcfGeneralSpec extends TcfBaseSpec {
         def account = generateDefaultTcfAccount(bidRequest.accountId, enforcementRequirements)
         accountDao.save(account)
 
+        and: "Flush metric"
+        flushMetrics(pbsWithoutGvlVendorsWithStrictDvTreatment)
+
         when: "PBS processes auction requests"
-        def response = activityPbsServiceExcludeGvl.sendAuctionRequest(bidRequest)
+        def response = pbsWithoutGvlVendorsWithStrictDvTreatment.sendAuctionRequest(bidRequest)
 
         then: "Response shouldn't contain seatBid"
         assert response?.seatbid?.bid?.flatten()?.isEmpty()
@@ -172,6 +220,10 @@ class TcfGeneralSpec extends TcfBaseSpec {
 
         and: "PBS response should include warnings"
         assert response.ext.warnings[PREBID].message == ['Invalid TCF string: `disclosedVendors` list is empty.']
+
+        and: "PBS should emit no disclosed vendors metric"
+        def metrics = pbsWithoutGvlVendorsWithStrictDvTreatment.sendCollectedMetricsRequest()
+        assert metrics[TCF_NO_DISCLOSED_VENDORS_METRIC] == 1
 
         and: "PBS should not send bid request to bidder"
         assert bidder.getBidderRequests(bidRequest.id).isEmpty()
@@ -192,8 +244,11 @@ class TcfGeneralSpec extends TcfBaseSpec {
         def account = generateDefaultTcfAccount(bidRequest.accountId, enforcementRequirements)
         accountDao.save(account)
 
+        and: "Flush metric"
+        flushMetrics(pbsWithMultipleGvlListsWithStrictDvTreatment)
+
         when: "PBS processes auction requests"
-        def response = privacyPbsServiceWithMultipleGvl.sendAuctionRequest(bidRequest)
+        def response = pbsWithMultipleGvlListsWithStrictDvTreatment.sendAuctionRequest(bidRequest)
 
         then: "Response shouldn't contain seatBid"
         assert response?.seatbid?.bid?.flatten()?.isEmpty()
@@ -206,6 +261,10 @@ class TcfGeneralSpec extends TcfBaseSpec {
 
         and: "PBS response should include warnings"
         assert response.ext.warnings[PREBID].message == ['Invalid TCF string: `disclosedVendors` list is empty.']
+
+        and: "PBS should emit no disclosed vendors metric"
+        def metrics = pbsWithMultipleGvlListsWithStrictDvTreatment.sendCollectedMetricsRequest()
+        assert metrics[TCF_NO_DISCLOSED_VENDORS_METRIC] == 1
 
         and: "PBS should not send bid request to bidder"
         assert bidder.getBidderRequests(bidRequest.id).isEmpty()
@@ -227,7 +286,7 @@ class TcfGeneralSpec extends TcfBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        def response = activityPbsServiceExcludeGvl.sendAuctionRequest(bidRequest)
+        def response = pbsWithoutGvlVendorsWithStrictDvTreatment.sendAuctionRequest(bidRequest)
 
         then: "Response shouldn't contain seatBid"
         assert response?.seatbid?.bid?.flatten()?.isEmpty()
@@ -256,7 +315,7 @@ class TcfGeneralSpec extends TcfBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        def response = privacyPbsServiceWithMultipleGvl.sendAuctionRequest(bidRequest)
+        def response = pbsWithMultipleGvlListsWithStrictDvTreatment.sendAuctionRequest(bidRequest)
 
         then: "Response shouldn't contain seatBid"
         assert response?.seatbid?.bid?.flatten()?.isEmpty()
@@ -287,7 +346,7 @@ class TcfGeneralSpec extends TcfBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        def response = activityPbsServiceExcludeGvl.sendAuctionRequest(bidRequest)
+        def response = pbsWithoutGvlVendorsWithStrictDvTreatment.sendAuctionRequest(bidRequest)
 
         then: "Response shouldn't contain seatBid"
         assert response?.seatbid?.bid?.flatten()?.isEmpty()
@@ -317,6 +376,50 @@ class TcfGeneralSpec extends TcfBaseSpec {
 
         TCF_2_3_ENFORCEMENT_DATE.minusSeconds(1).withZoneSameInstant(ZoneId.of("Pacific/Honolulu")) | TCF_2_3_ENFORCEMENT_DATE.withZoneSameInstant(ZoneId.of("Pacific/Kiritimati"))
         TCF_2_3_ENFORCEMENT_DATE.withZoneSameInstant(ZoneId.of("Pacific/Kiritimati"))               | TCF_2_3_ENFORCEMENT_DATE.minusSeconds(1).withZoneSameInstant(ZoneId.of("Pacific/Honolulu"))
+    }
+
+    def "PBS should allow auction when disclosed vendors are empty under strict enforcement #serviceName"() {
+        given: "Generic BidRequests with invalid tcf string"
+        def enforcementRequirements = new EnforcementRequirement().tap {
+            it.disclosedVendorsId = null
+            it.created = null
+            it.updated = null
+            it.purpose = Purpose.P2
+            it.vendorExceptions = [BidderName.GENERIC]
+        }
+        def tcfConsent = TcfUtils.getConsentString(enforcementRequirements)
+        def bidRequest = getGdprBidRequest(tcfConsent)
+
+        and: "Save account config with requireConsent into DB"
+        def account = generateDefaultTcfAccount(bidRequest.accountId, enforcementRequirements)
+        accountDao.save(account)
+
+        and: "Flush metric"
+        flushMetrics(pbsService)
+
+        when: "PBS processes auction requests"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain seatBid"
+        assert response?.seatbid?.bid?.flatten()?.size() == 1
+
+        and: "PBS shouldn't emit nbr code"
+        assert !response.noBidResponse
+
+        and: "Response shouldn't contain errors"
+        assert !response.ext.errors
+
+        and: "PBS response should include warnings"
+        assert response.ext.warnings[PREBID].message == ['Invalid TCF string: `disclosedVendors` list is empty.']
+
+        and: "PBS should emit no disclosed vendors metric"
+        def metrics = pbsService.sendCollectedMetricsRequest()
+        assert metrics[TCF_NO_DISCLOSED_VENDORS_METRIC] == 1
+
+        where:
+        pbsService                                      | serviceName
+        pbsWithoutGvlVendorsWithStrictDvTreatment       | "without GVL vendors"
+        pbsWithMultipleGvlListsWithStrictDvTreatment    | "with multiple GVL lists"
     }
 
     private static Account generateDefaultTcfAccount(String accountId, EnforcementRequirement enforcementRequirements) {
