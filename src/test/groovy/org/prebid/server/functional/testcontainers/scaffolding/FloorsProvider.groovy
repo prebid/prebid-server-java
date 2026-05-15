@@ -1,43 +1,42 @@
 package org.prebid.server.functional.testcontainers.scaffolding
 
-import org.mockserver.matchers.TimeToLive
-import org.mockserver.matchers.Times
-import org.mockserver.model.HttpRequest
-import org.mockserver.model.HttpResponse
+import com.github.tomakehurst.wiremock.matching.RequestPattern
+import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder
 import org.prebid.server.functional.model.pricefloors.PriceFloorData
-import org.testcontainers.containers.MockServerContainer
+import org.prebid.server.functional.testcontainers.container.NetworkServiceContainer
 
-import static org.mockserver.model.HttpRequest.request
-import static org.mockserver.model.HttpResponse.response
-import static org.mockserver.model.HttpStatusCode.OK_200
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse
+import static com.github.tomakehurst.wiremock.client.WireMock.any
+import static com.github.tomakehurst.wiremock.client.WireMock.anyRequestedFor
+import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching
+import static org.apache.http.HttpStatus.SC_OK
 
 class FloorsProvider extends NetworkScaffolding {
 
     public static final String FLOORS_ENDPOINT = "/floors-provider/"
 
-    FloorsProvider(MockServerContainer mockServerContainer) {
-        super(mockServerContainer, FLOORS_ENDPOINT)
+    FloorsProvider(NetworkServiceContainer wireMockContainer) {
+        super(wireMockContainer, FLOORS_ENDPOINT)
+    }
+
+    protected RequestPattern getRequest() {
+        anyRequestedFor(urlEqualTo(FLOORS_ENDPOINT))
+                .build()
     }
 
     @Override
-    protected HttpRequest getRequest(String accountId) {
-        request().withPath(FLOORS_ENDPOINT + accountId)
-    }
-
-    @Override
-    protected HttpRequest getRequest() {
-        request().withPath(FLOORS_ENDPOINT)
+    protected RequestPatternBuilder getRequest(String accountId) {
+        getRequestedFor(urlEqualTo("$FLOORS_ENDPOINT$accountId"))
     }
 
     @Override
     void setResponse() {
-        mockServerClient.when(request().withPath("^.*$endpoint.*\$"), Times.unlimited(), TimeToLive.unlimited(), -10)
-                        .respond{request -> request.withPath(endpoint)
-                                ? response().withStatusCode(OK_200.code()).withBody(defaultResponse)
-                                : HttpResponse.notFoundResponse()}
-    }
-
-    private String getDefaultResponse() {
-        encode(PriceFloorData.priceFloorData)
+        wireMockClient.register(any(urlPathMatching("${endpoint}.*"))
+                .atPriority(Integer.MAX_VALUE)
+                .willReturn(aResponse()
+                        .withStatus(SC_OK)
+                        .withBody(encode(PriceFloorData.priceFloorData))))
     }
 }

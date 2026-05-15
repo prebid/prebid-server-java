@@ -62,8 +62,6 @@
         <!-- Project test dependency versions -->
         <wiremock.version>3.12.1</wiremock.version>
         <spock.version>2.4-M6-groovy-4.0</spock.version>
-        <!--TODO: replace with WireMock -->
-        <mockserver.version>5.15.0</mockserver.version>
 
         <!-- Test properties -->
         <skipUnitTests>false</skipUnitTests>
@@ -261,21 +259,6 @@
                 <groupId>io.github.jamsesso</groupId>
                 <artifactId>json-logic-java</artifactId>
                 <version>${json-logic.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.mock-server</groupId>
-                <artifactId>mockserver-client-java</artifactId>
-                <version>${mockserver.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>com.google.code.findbugs</groupId>
-                        <artifactId>jsr305</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>commons-logging</groupId>
-                        <artifactId>commons-logging</artifactId>
-                    </exclusion>
-                </exclusions>
             </dependency>
         </dependencies>
     </dependencyManagement>
