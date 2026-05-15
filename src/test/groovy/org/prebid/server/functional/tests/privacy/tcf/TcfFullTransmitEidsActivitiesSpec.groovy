@@ -1,10 +1,6 @@
 package org.prebid.server.functional.tests.privacy.tcf
 
-import org.prebid.server.functional.model.config.AccountGdprConfig
-import org.prebid.server.functional.model.request.auction.Activity
-import org.prebid.server.functional.model.request.auction.ActivityRule
-import org.prebid.server.functional.model.request.auction.AllowActivities
-import org.prebid.server.functional.model.request.auction.Condition
+
 import org.prebid.server.functional.model.request.auction.Eid
 import org.prebid.server.functional.util.privacy.TcfUtils
 
@@ -18,11 +14,10 @@ import static org.prebid.server.functional.model.config.Purpose.P6
 import static org.prebid.server.functional.model.config.Purpose.P7
 import static org.prebid.server.functional.model.config.Purpose.P8
 import static org.prebid.server.functional.model.config.Purpose.P9
-import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_EIDS
 
 class TcfFullTransmitEidsActivitiesSpec extends TcfBaseSpec {
 
-    def "PBS should preserve eids from original request when requireConsent is enabled and #enforcementRequirements.purpose have full consent"() {
+    def "PBS should preserve eids from original request when requireConsent is enabled and #enforcementRequirements.purpose has full consent"() {
         given: "Default Generic BidRequests with Eid field"
         def userEids = [Eid.defaultEid]
         def tcfConsent = TcfUtils.getConsentString(enforcementRequirements)
@@ -30,13 +25,8 @@ class TcfFullTransmitEidsActivitiesSpec extends TcfBaseSpec {
             it.user.eids = userEids
         }
 
-        and: "Save account config with requireConsent into DB"
-        def purposes = TcfUtils.getPurposeConfigsForPersonalizedAds(enforcementRequirements, true)
-        def accountGdprConfig = new AccountGdprConfig(purposes: purposes)
-        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, true)])
-        def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig).tap {
-            config.privacy.allowActivities = AllowActivities.getDefaultAllowActivities(TRANSMIT_EIDS, activity)
-        }
+        and: "Save account GDPR config into DB"
+        def account = generateAccountWithGdprEidsConfig(enforcementRequirements, bidRequest.accountId, true)
         accountDao.save(account)
 
         when: "PBS processes auction requests"
@@ -59,13 +49,8 @@ class TcfFullTransmitEidsActivitiesSpec extends TcfBaseSpec {
             it.user.eids = userEids
         }
 
-        and: "Save account config with requireConsent into DB"
-        def purposes = TcfUtils.getPurposeConfigsForPersonalizedAds(enforcementRequirements, true)
-        def accountGdprConfig = new AccountGdprConfig(purposes: purposes)
-        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, true)])
-        def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig).tap {
-            config.privacy.allowActivities = AllowActivities.getDefaultAllowActivities(TRANSMIT_EIDS, activity)
-        }
+        and: "Save account GDPR config into DB"
+        def account = generateAccountWithGdprEidsConfig(enforcementRequirements, bidRequest.accountId, true)
         accountDao.save(account)
 
         when: "PBS processes auction requests"
@@ -81,7 +66,7 @@ class TcfFullTransmitEidsActivitiesSpec extends TcfBaseSpec {
                 getFullTcfCompanyLegitimateInterestsRequirements(P4)
     }
 
-    def "PBS should not transmit eids from original request when requireConsent is enabled and #enforcementRequirements.purpose have full consent"() {
+    def "PBS should not transmit eids from original request when requireConsent is enabled and #enforcementRequirements.purpose has full consent"() {
         given: "Default Generic BidRequests with Eid field"
         def userEids = [Eid.defaultEid]
         def tcfConsent = TcfUtils.getConsentString(enforcementRequirements)
@@ -89,13 +74,8 @@ class TcfFullTransmitEidsActivitiesSpec extends TcfBaseSpec {
             it.user.eids = userEids
         }
 
-        and: "Save account config with requireConsent into DB"
-        def purposes = TcfUtils.getPurposeConfigsForPersonalizedAds(enforcementRequirements, true)
-        def accountGdprConfig = new AccountGdprConfig(purposes: purposes)
-        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, true)])
-        def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig).tap {
-            config.privacy.allowActivities = AllowActivities.getDefaultAllowActivities(TRANSMIT_EIDS, activity)
-        }
+        and: "Save account GDPR config into DB"
+        def account = generateAccountWithGdprEidsConfig(enforcementRequirements, bidRequest.accountId, true)
         accountDao.save(account)
 
         when: "PBS processes auction requests"
@@ -149,7 +129,7 @@ class TcfFullTransmitEidsActivitiesSpec extends TcfBaseSpec {
                 getFullTcfCompanyLegitimateInterestsRequirements(P10)
     }
 
-    def "PBS should preserve eids from original request when requireConsent is enabled but bidder is excepted and #enforcementRequirements.purpose have full consent"() {
+    def "PBS should preserve eids from original request when requireConsent is enabled but bidder is exempted and #enforcementRequirements.purpose has full consent"() {
         given: "Default Generic BidRequests with Eid field"
         def userEids = [Eid.defaultEid]
         def tcfConsent = TcfUtils.getConsentString(enforcementRequirements)
@@ -157,13 +137,8 @@ class TcfFullTransmitEidsActivitiesSpec extends TcfBaseSpec {
             it.user.eids = userEids
         }
 
-        and: "Save account config with requireConsent into DB"
-        def purposes = TcfUtils.getPurposeConfigsForPersonalizedAds(enforcementRequirements, true, userEids.source)
-        def accountGdprConfig = new AccountGdprConfig(purposes: purposes)
-        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, true)])
-        def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig).tap {
-            config.privacy.allowActivities = AllowActivities.getDefaultAllowActivities(TRANSMIT_EIDS, activity)
-        }
+        and: "Save account GDPR config into DB"
+        def account = generateAccountWithGdprEidsConfig(enforcementRequirements, bidRequest.accountId, true, userEids.source)
         accountDao.save(account)
 
         when: "PBS processes auction requests"
@@ -192,7 +167,7 @@ class TcfFullTransmitEidsActivitiesSpec extends TcfBaseSpec {
                 getFullTcfLegalLegitimateInterestsRequirements(P10)
     }
 
-    def "PBS should not transmit eids from original request when requireConsent is enabled, bidder is excepted and #enforcementRequirements.purpose have unsupported full consent"() {
+    def "PBS should not transmit eids from original request when requireConsent is enabled, bidder is exempted and #enforcementRequirements.purpose have unsupported full consent"() {
         given: "Default Generic BidRequests with Eid field"
         def userEids = [Eid.defaultEid]
         def tcfConsent = TcfUtils.getConsentString(enforcementRequirements)
@@ -200,13 +175,8 @@ class TcfFullTransmitEidsActivitiesSpec extends TcfBaseSpec {
             it.user.eids = userEids
         }
 
-        and: "Save account config with requireConsent into DB"
-        def purposes = TcfUtils.getPurposeConfigsForPersonalizedAds(enforcementRequirements, true, userEids.source)
-        def accountGdprConfig = new AccountGdprConfig(purposes: purposes)
-        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, true)])
-        def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig).tap {
-            config.privacy.allowActivities = AllowActivities.getDefaultAllowActivities(TRANSMIT_EIDS, activity)
-        }
+        and: "Save account GDPR config into DB"
+        def account = generateAccountWithGdprEidsConfig(enforcementRequirements, bidRequest.accountId, true, userEids.source)
         accountDao.save(account)
 
         when: "PBS processes auction requests"
@@ -242,7 +212,7 @@ class TcfFullTransmitEidsActivitiesSpec extends TcfBaseSpec {
                 getFullTcfCompanyLegitimateInterestsRequirements(P10)
     }
 
-    def "PBS should preserve eids from original request when requireConsent is disabled and #enforcementRequirements.purpose have full consent"() {
+    def "PBS should preserve eids from original request when requireConsent is disabled and #enforcementRequirements.purpose has full consent"() {
         given: "Default Generic BidRequests with Eid field"
         def userEids = [Eid.defaultEid]
         def tcfConsent = TcfUtils.getConsentString(enforcementRequirements)
@@ -250,13 +220,8 @@ class TcfFullTransmitEidsActivitiesSpec extends TcfBaseSpec {
             it.user.eids = userEids
         }
 
-        and: "Save account config with requireConsent into DB"
-        def purposes = TcfUtils.getPurposeConfigsForPersonalizedAds(enforcementRequirements, false)
-        def accountGdprConfig = new AccountGdprConfig(purposes: purposes)
-        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, true)])
-        def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig).tap {
-            config.privacy.allowActivities = AllowActivities.getDefaultAllowActivities(TRANSMIT_EIDS, activity)
-        }
+        and: "Save account GDPR config into DB"
+        def account = generateAccountWithGdprEidsConfig(enforcementRequirements, bidRequest.accountId, false)
         accountDao.save(account)
 
         when: "PBS processes auction requests"
@@ -293,13 +258,8 @@ class TcfFullTransmitEidsActivitiesSpec extends TcfBaseSpec {
             it.user.eids = userEids
         }
 
-        and: "Save account config with requireConsent into DB"
-        def purposes = TcfUtils.getPurposeConfigsForPersonalizedAds(enforcementRequirements, false)
-        def accountGdprConfig = new AccountGdprConfig(purposes: purposes)
-        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, true)])
-        def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig).tap {
-            config.privacy.allowActivities = AllowActivities.getDefaultAllowActivities(TRANSMIT_EIDS, activity)
-        }
+        and: "Save account GDPR config into DB"
+        def account = generateAccountWithGdprEidsConfig(enforcementRequirements, bidRequest.accountId, false)
         accountDao.save(account)
 
         when: "PBS processes auction requests"
@@ -342,13 +302,8 @@ class TcfFullTransmitEidsActivitiesSpec extends TcfBaseSpec {
             it.user.eids = userEids
         }
 
-        and: "Save account config with requireConsent into DB"
-        def purposes = TcfUtils.getPurposeConfigsForPersonalizedAds(enforcementRequirements, false)
-        def accountGdprConfig = new AccountGdprConfig(purposes: purposes)
-        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, true)])
-        def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig).tap {
-            config.privacy.allowActivities = AllowActivities.getDefaultAllowActivities(TRANSMIT_EIDS, activity)
-        }
+        and: "Save account GDPR config into DB"
+        def account = generateAccountWithGdprEidsConfig(enforcementRequirements, bidRequest.accountId, false)
         accountDao.save(account)
 
         when: "PBS processes auction requests"

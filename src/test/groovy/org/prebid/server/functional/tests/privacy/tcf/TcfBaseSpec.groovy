@@ -1,23 +1,30 @@
 package org.prebid.server.functional.tests.privacy.tcf
 
+import org.prebid.server.functional.model.config.AccountGdprConfig
 import org.prebid.server.functional.model.config.Purpose
+import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.privacy.EnforcementRequirement
+import org.prebid.server.functional.model.request.auction.Activity
+import org.prebid.server.functional.model.request.auction.ActivityRule
+import org.prebid.server.functional.model.request.auction.AllowActivities
+import org.prebid.server.functional.model.request.auction.Condition
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.tests.privacy.PrivacyBaseSpec
 import org.prebid.server.functional.util.PBSUtils
+import org.prebid.server.functional.util.privacy.TcfUtils
 import org.testcontainers.images.builder.Transferable
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.config.PurposeEnforcement.BASIC
 import static org.prebid.server.functional.model.config.PurposeEnforcement.FULL
 import static org.prebid.server.functional.model.config.PurposeEnforcement.NO
+import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_EIDS
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 import static org.prebid.server.functional.util.privacy.TcfConsent.RestrictionType.REQUIRE_CONSENT
 import static org.prebid.server.functional.util.privacy.TcfConsent.RestrictionType.REQUIRE_LEGITIMATE_INTEREST
 import static org.prebid.server.functional.util.privacy.TcfConsent.RestrictionType.UNDEFINED
 
 class TcfBaseSpec extends PrivacyBaseSpec {
-
 
     private static String prepareEncodeResponseBodyWithPurposesOnly = getVendorListContent(true, false, false)
     private static String prepareEncodeResponseBodyWithLegIntPurposes = getVendorListContent(false, true, false)
@@ -404,6 +411,29 @@ class TcfBaseSpec extends PrivacyBaseSpec {
                         vendorListVersion: PURPOSES_AND_LEG_INT_PURPOSES_GVL_VERSION,
                         disclosedVendorsId: [GENERIC_VENDOR_ID])
         ]
+    }
+
+    protected static Account generateAccountWithGdprEidsConfig(EnforcementRequirement enforcementRequirement,
+                                                               String accountId,
+                                                               Boolean requireConsent,
+                                                               List<String> eidsExceptions = []) {
+
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, true)])
+
+        generateDefaultTcfAccount(accountId, enforcementRequirement, requireConsent, eidsExceptions).tap {
+            config.privacy.allowActivities = AllowActivities.getDefaultAllowActivities(TRANSMIT_EIDS, activity)
+        }
+    }
+
+    protected static Account generateDefaultTcfAccount(String accountId,
+                                                       EnforcementRequirement enforcementRequirement,
+                                                       Boolean requireConsent = true,
+                                                       List<String> eidsExceptions = []) {
+
+        def purposes = TcfUtils.getPurposeConfigsForPersonalizedAds(enforcementRequirement, requireConsent, eidsExceptions)
+        def accountGdprConfig = new AccountGdprConfig(purposes: purposes)
+
+        getAccountWithGdpr(accountId, accountGdprConfig)
     }
 
     private static Purpose getRandomPurposeWithExclusion(Purpose excludeFromRandom) {

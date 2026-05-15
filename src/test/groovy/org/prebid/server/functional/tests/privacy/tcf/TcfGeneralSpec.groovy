@@ -1,9 +1,7 @@
 package org.prebid.server.functional.tests.privacy.tcf
 
 import org.prebid.server.functional.model.bidder.BidderName
-import org.prebid.server.functional.model.config.AccountGdprConfig
 import org.prebid.server.functional.model.config.Purpose
-import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.privacy.EnforcementRequirement
 import org.prebid.server.functional.model.response.auction.NoBidResponse
 import org.prebid.server.functional.service.PrebidServerService
@@ -21,6 +19,7 @@ class TcfGeneralSpec extends TcfBaseSpec {
     private final static ZonedDateTime TCF_2_3_ENFORCEMENT_DATE = ZonedDateTime.parse("2026-03-01T00:00:00Z")
     private final static Map<String, String> STRICT_DISCLOSED_VENDOR_TREATMENT_CONFIG = TCF_BASE_CONFIG + ["gdpr.strict-disclosed-vendors-treatment": 'true']
     private final static TCF_NO_DISCLOSED_VENDORS_METRIC = 'privacy.tcf.no-disclosed-vendors'
+    private final static DISCLOSED_VENDORS_MESSAGE = 'Invalid TCF string: `disclosedVendors` list is empty.'
 
     private static PrebidServerService pbsWithoutGvlVendorsWithStrictDvTreatment
     private static PrebidServerService pbsWithMultipleGvlListsWithStrictDvTreatment
@@ -68,7 +67,7 @@ class TcfGeneralSpec extends TcfBaseSpec {
         def metrics = pbsWithoutGvlVendorsWithStrictDvTreatment.sendCollectedMetricsRequest()
         assert !metrics[TCF_NO_DISCLOSED_VENDORS_METRIC]
 
-        and: "PBS should sent bid request to bidder"
+        and: "PBS should send bid request to bidder"
         assert bidder.getBidderRequests(bidRequest.id).size() == 1
     }
 
@@ -105,7 +104,7 @@ class TcfGeneralSpec extends TcfBaseSpec {
         def metrics = pbsWithMultipleGvlListsWithStrictDvTreatment.sendCollectedMetricsRequest()
         assert !metrics[TCF_NO_DISCLOSED_VENDORS_METRIC]
 
-        and: "PBS should sent bid request to bidder"
+        and: "PBS should send bid request to bidder"
         assert bidder.getBidderRequests(bidRequest.id).size() == 1
     }
 
@@ -143,7 +142,7 @@ class TcfGeneralSpec extends TcfBaseSpec {
         def metrics = pbsWithoutGvlVendorsWithStrictDvTreatment.sendCollectedMetricsRequest()
         assert !metrics[TCF_NO_DISCLOSED_VENDORS_METRIC]
 
-        and: "PBS should sent bid request to bidder"
+        and: "PBS should send bid request to bidder"
         assert bidder.getBidderRequests(bidRequest.id).size() == 1
 
         where:
@@ -184,7 +183,7 @@ class TcfGeneralSpec extends TcfBaseSpec {
         def metrics = pbsWithMultipleGvlListsWithStrictDvTreatment.sendCollectedMetricsRequest()
         assert !metrics[TCF_NO_DISCLOSED_VENDORS_METRIC]
 
-        and: "PBS should sent bid request to bidder"
+        and: "PBS should send bid request to bidder"
         assert bidder.getBidderRequests(bidRequest.id).size() == 1
 
         where:
@@ -219,14 +218,14 @@ class TcfGeneralSpec extends TcfBaseSpec {
         assert !response.ext.errors
 
         and: "PBS response should include warnings"
-        assert response.ext.warnings[PREBID].message == ['Invalid TCF string: `disclosedVendors` list is empty.']
+        assert response.ext.warnings[PREBID].message == [DISCLOSED_VENDORS_MESSAGE]
 
         and: "PBS should emit no disclosed vendors metric"
         def metrics = pbsWithoutGvlVendorsWithStrictDvTreatment.sendCollectedMetricsRequest()
         assert metrics[TCF_NO_DISCLOSED_VENDORS_METRIC] == 1
 
         and: "PBS should not send bid request to bidder"
-        assert bidder.getBidderRequests(bidRequest.id).isEmpty()
+        assert !bidder.getBidderRequests(bidRequest.id)
 
         where:
         disclosedIds << [null, []]
@@ -260,14 +259,14 @@ class TcfGeneralSpec extends TcfBaseSpec {
         assert !response.ext.errors
 
         and: "PBS response should include warnings"
-        assert response.ext.warnings[PREBID].message == ['Invalid TCF string: `disclosedVendors` list is empty.']
+        assert response.ext.warnings[PREBID].message == [DISCLOSED_VENDORS_MESSAGE]
 
         and: "PBS should emit no disclosed vendors metric"
         def metrics = pbsWithMultipleGvlListsWithStrictDvTreatment.sendCollectedMetricsRequest()
         assert metrics[TCF_NO_DISCLOSED_VENDORS_METRIC] == 1
 
         and: "PBS should not send bid request to bidder"
-        assert bidder.getBidderRequests(bidRequest.id).isEmpty()
+        assert !bidder.getBidderRequests(bidRequest.id)
 
         where:
         disclosedIds << [null, []]
@@ -299,7 +298,7 @@ class TcfGeneralSpec extends TcfBaseSpec {
         assert !response.ext.warnings
 
         and: "PBS should not send bid request to bidder"
-        assert bidder.getBidderRequests(bidRequest.id).isEmpty()
+        assert !bidder.getBidderRequests(bidRequest.id)
     }
 
     def "PBS should reject full consent without warning when disclosedVendors does not match vendor after TCF v2.3 enforcement"() {
@@ -328,7 +327,7 @@ class TcfGeneralSpec extends TcfBaseSpec {
         assert !response.ext.warnings
 
         and: "PBS should not send bid request to bidder"
-        assert bidder.getBidderRequests(bidRequest.id).isEmpty()
+        assert !bidder.getBidderRequests(bidRequest.id)
     }
 
     def "PBS should use latest UTC timestamp between created and updated for processing TCF string"() {
@@ -358,10 +357,10 @@ class TcfGeneralSpec extends TcfBaseSpec {
         assert !response.ext.errors
 
         and: "PBS response should include warnings"
-        assert response.ext.warnings[PREBID].message == ['Invalid TCF string: `disclosedVendors` list is empty.']
+        assert response.ext.warnings[PREBID].message == [DISCLOSED_VENDORS_MESSAGE]
 
         and: "PBS should not send bid request to bidder"
-        assert bidder.getBidderRequests(bidRequest.id).isEmpty()
+        assert !bidder.getBidderRequests(bidRequest.id)
 
         where:
         createDate                                                                                  | updateDate
@@ -410,7 +409,7 @@ class TcfGeneralSpec extends TcfBaseSpec {
         assert !response.ext.errors
 
         and: "PBS response should include warnings"
-        assert response.ext.warnings[PREBID].message == ['Invalid TCF string: `disclosedVendors` list is empty.']
+        assert response.ext.warnings[PREBID].message == [DISCLOSED_VENDORS_MESSAGE]
 
         and: "PBS should emit no disclosed vendors metric"
         def metrics = pbsService.sendCollectedMetricsRequest()
@@ -420,11 +419,5 @@ class TcfGeneralSpec extends TcfBaseSpec {
         pbsService                                      | serviceName
         pbsWithoutGvlVendorsWithStrictDvTreatment       | "without GVL vendors"
         pbsWithMultipleGvlListsWithStrictDvTreatment    | "with multiple GVL lists"
-    }
-
-    private static Account generateDefaultTcfAccount(String accountId, EnforcementRequirement enforcementRequirements) {
-        def purposes = TcfUtils.getPurposeConfigsForPersonalizedAds(enforcementRequirements, true)
-        def accountGdprConfig = new AccountGdprConfig(purposes: purposes)
-        getAccountWithGdpr(accountId, accountGdprConfig)
     }
 }
