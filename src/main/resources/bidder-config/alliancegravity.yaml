@@ -1,0 +1,23 @@
+adapters:
+  alliancegravity:
+    endpoint: https://pbs.production.agrvt.com/openrtb2/auction
+    modifying-vast-xml-allowed: true
+    meta-info:
+      maintainer-email: produit@alliancegravity.com
+      app-media-types:
+        - banner
+        - video
+        - audio
+        - native
+      site-media-types:
+        - banner
+        - video
+        - audio
+        - native
+      supported-vendors:
+      vendor-id: 501
+    usersync:
+      cookie-family-name: alliancegravity
+      iframe:
+        url: https://pbs.production.agrvt.com/static/cookie_sync.html?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect_url={{redirect_url}}
+        support-cors: false
