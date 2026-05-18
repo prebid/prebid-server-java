@@ -1,13 +1,12 @@
 package org.prebid.server.bidder.hypelab;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -28,18 +27,22 @@ import org.prebid.server.util.HttpUtil;
 import org.prebid.server.version.PrebidVersionProvider;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class HypeLabBidder implements Bidder<BidRequest> {
 
     private static final String DISPLAY_MANAGER = "HypeLab Prebid Server";
     private static final String SOURCE = "prebid-server";
+    private static final String PROVIDER_VERSION_PREFIX = "prebid-server@";
     private static final String UNKNOWN_VERSION = "unknown";
+    private static final TypeReference<ExtPrebid<?, ExtImpHypeLab>> HYPELAB_EXT_TYPE_REFERENCE =
+            new TypeReference<>() {
+            };
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -58,14 +61,15 @@ public class HypeLabBidder implements Bidder<BidRequest> {
 
         for (Imp imp : request.getImp()) {
             try {
-                validImps.add(makeOutgoingImp(imp));
+                final ExtImpHypeLab extImp = parseImpExt(imp);
+                validImps.add(makeOutgoingImp(imp, extImp));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
         }
 
         if (validImps.isEmpty()) {
-            return Result.of(Collections.emptyList(), errors);
+            return Result.withErrors(errors);
         }
 
         final BidRequest outgoingRequest = request.toBuilder()
@@ -73,20 +77,12 @@ public class HypeLabBidder implements Bidder<BidRequest> {
                 .ext(makeOutgoingRequestExt(request.getExt()))
                 .build();
 
-        return Result.of(Collections.singletonList(
-                        HttpRequest.<BidRequest>builder()
-                                .method(HttpMethod.POST)
-                                .uri(endpointUrl)
-                                .headers(headers())
-                                .impIds(BidderUtil.impIds(outgoingRequest))
-                                .body(mapper.encodeToBytes(outgoingRequest))
-                                .payload(outgoingRequest)
-                                .build()),
+        return Result.of(Collections.singletonList(BidderUtil.defaultRequest(outgoingRequest, headers(), endpointUrl,
+                        mapper)),
                 errors);
     }
 
-    private Imp makeOutgoingImp(Imp imp) {
-        final ExtImpHypeLab extImp = parseImpExt(imp);
+    private Imp makeOutgoingImp(Imp imp, ExtImpHypeLab extImp) {
         final String pbsVersion = pbsVersion();
 
         return imp.toBuilder()
@@ -102,16 +98,17 @@ public class HypeLabBidder implements Bidder<BidRequest> {
             throw new PreBidException("imp %s: unable to unmarshal ext".formatted(imp.getId()));
         }
 
-        final JsonNode bidderNode = imp.getExt().get("bidder");
-        if (bidderNode == null || bidderNode.isNull()) {
-            throw new PreBidException("imp %s: unable to unmarshal ext.bidder".formatted(imp.getId()));
-        }
-
         final ExtImpHypeLab extImp;
         try {
-            extImp = mapper.mapper().convertValue(bidderNode, ExtImpHypeLab.class);
+            final ExtPrebid<?, ExtImpHypeLab> extPrebid =
+                    mapper.mapper().convertValue(imp.getExt(), HYPELAB_EXT_TYPE_REFERENCE);
+            extImp = extPrebid != null ? extPrebid.getBidder() : null;
         } catch (IllegalArgumentException e) {
             throw new PreBidException("imp %s: unable to unmarshal ext.bidder".formatted(imp.getId()), e);
+        }
+
+        if (extImp == null) {
+            throw new PreBidException("imp %s: unable to unmarshal ext.bidder".formatted(imp.getId()));
         }
 
         if (StringUtils.isBlank(extImp.getPropertySlug()) || StringUtils.isBlank(extImp.getPlacementSlug())) {
@@ -124,13 +121,12 @@ public class HypeLabBidder implements Bidder<BidRequest> {
     private ExtRequest makeOutgoingRequestExt(ExtRequest ext) {
         final ExtRequest outgoingExt = ext != null ? ExtRequest.of(ext.getPrebid()) : ExtRequest.empty();
         if (ext != null) {
-            outgoingExt.addProperties(ext.getProperties());
+            mapper.fillExtension(outgoingExt, ext.getProperties());
         }
 
-        outgoingExt.addProperty("source", mapper.mapper().valueToTree(SOURCE));
-        outgoingExt.addProperty("provider_version", mapper.mapper().valueToTree(pbsVersion()));
-
-        return outgoingExt;
+        return mapper.fillExtension(outgoingExt, Map.of(
+                "source", SOURCE,
+                "provider_version", PROVIDER_VERSION_PREFIX + pbsVersion()));
     }
 
     private static MultiMap headers() {
@@ -161,23 +157,10 @@ public class HypeLabBidder implements Bidder<BidRequest> {
 
         return response.getSeatbid().stream()
                 .filter(Objects::nonNull)
-                .map(seatBid -> bidsFromSeatBid(seatBid, impIdToImp, response.getCur(), errors))
-                .flatMap(Collection::stream)
-                .toList();
-    }
-
-    private static List<BidderBid> bidsFromSeatBid(SeatBid seatBid, Map<String, Imp> impIdToImp, String currency,
-                                                   List<BidderError> errors) {
-
-        final List<Bid> bids = seatBid.getBid();
-        if (CollectionUtils.isEmpty(bids)) {
-            return Collections.emptyList();
-        }
-
-        return bids.stream()
-                .filter(Objects::nonNull)
-                .map(bid -> makeBidderBid(bid, seatBid.getSeat(), impIdToImp, currency, errors))
-                .filter(Objects::nonNull)
+                .flatMap(seatBid -> CollectionUtils.emptyIfNull(seatBid.getBid()).stream()
+                        .filter(Objects::nonNull)
+                        .map(bid -> makeBidderBid(bid, seatBid.getSeat(), impIdToImp, response.getCur(), errors))
+                        .filter(Objects::nonNull))
                 .toList();
     }
 
@@ -193,46 +176,65 @@ public class HypeLabBidder implements Bidder<BidRequest> {
     }
 
     private static BidType resolveBidType(Bid bid, Map<String, Imp> impIdToImp) {
-        final BidType bidTypeFromMtype = bidTypeFromMtype(bid.getMtype());
-        if (bidTypeFromMtype != null) {
-            return bidTypeFromMtype;
-        }
-
-        final BidType bidTypeFromExt = bidTypeFromExt(bid);
-        if (bidTypeFromExt != null) {
-            return bidTypeFromExt;
-        }
-
-        if (StringUtils.startsWith(StringUtils.trimToEmpty(bid.getAdm()), "<VAST")) {
-            return BidType.video;
-        }
-
-        if (impIdToImp.containsKey(bid.getImpid())) {
-            return BidderUtil.getBidType(bid, impIdToImp);
-        }
-
-        throw new PreBidException("unable to determine media type for bid %s on imp %s"
-                .formatted(bid.getId(), bid.getImpid()));
+        return bidTypeFromMtype(bid.getMtype())
+                .or(() -> bidTypeFromExt(bid))
+                .or(() -> bidTypeFromAdm(bid.getAdm()))
+                .or(() -> bidTypeFromImp(bid, impIdToImp))
+                .orElseThrow(() -> new PreBidException("unable to determine media type for bid %s on imp %s"
+                        .formatted(bid.getId(), bid.getImpid())));
     }
 
-    private static BidType bidTypeFromMtype(Integer mtype) {
-        return switch (Objects.requireNonNullElse(mtype, 0)) {
+    private static Optional<BidType> bidTypeFromMtype(Integer mtype) {
+        return Optional.ofNullable(switch (mtype) {
             case 1 -> BidType.banner;
             case 2 -> BidType.video;
             case 4 -> BidType.xNative;
-            default -> null;
-        };
+            case null, default -> null;
+        });
     }
 
-    private static BidType bidTypeFromExt(Bid bid) {
-        final JsonNode hypelabExt = bid.getExt() != null ? bid.getExt().get("hypelab") : null;
-        final String creativeType = hypelabExt != null ? hypelabExt.path("creative_type").asText() : null;
+    private static Optional<BidType> bidTypeFromExt(Bid bid) {
+        return Optional.ofNullable(bid.getExt())
+                .map(ext -> ext.get("hypelab"))
+                .map(hypelab -> hypelab.get("creative_type"))
+                .filter(JsonNode::isTextual)
+                .map(JsonNode::asText)
+                .map(creativeType -> switch (creativeType) {
+                    case "display" -> BidType.banner;
+                    case "video" -> BidType.video;
+                    case "native" -> BidType.xNative;
+                    default -> null;
+                });
+    }
 
-        return switch (StringUtils.defaultString(creativeType)) {
-            case "display" -> BidType.banner;
-            case "video" -> BidType.video;
-            default -> null;
-        };
+    private static Optional<BidType> bidTypeFromAdm(String adm) {
+        return StringUtils.startsWith(StringUtils.trimToEmpty(adm), "<VAST")
+                ? Optional.of(BidType.video)
+                : Optional.empty();
+    }
+
+    private static Optional<BidType> bidTypeFromImp(Bid bid, Map<String, Imp> impIdToImp) {
+        final Imp imp = impIdToImp.get(bid.getImpid());
+        if (imp == null) {
+            return Optional.empty();
+        }
+
+        BidType bidType = null;
+        int mediaTypeCount = 0;
+        if (imp.getBanner() != null) {
+            bidType = BidType.banner;
+            mediaTypeCount++;
+        }
+        if (imp.getVideo() != null) {
+            bidType = BidType.video;
+            mediaTypeCount++;
+        }
+        if (imp.getXNative() != null) {
+            bidType = BidType.xNative;
+            mediaTypeCount++;
+        }
+
+        return mediaTypeCount == 1 ? Optional.of(bidType) : Optional.empty();
     }
 
     private String pbsVersion() {

@@ -100,7 +100,8 @@ public class HypeLabBidderTest extends VertxTest {
 
         assertThat(payload.getExt().getProperty("existing")).isEqualTo(mapper.valueToTree("value"));
         assertThat(payload.getExt().getProperty("source")).isEqualTo(mapper.valueToTree("prebid-server"));
-        assertThat(payload.getExt().getProperty("provider_version")).isEqualTo(mapper.valueToTree(PBS_VERSION));
+        assertThat(payload.getExt().getProperty("provider_version"))
+                .isEqualTo(mapper.valueToTree("prebid-server@" + PBS_VERSION));
         assertThat(jacksonMapper.decodeValue(request.getBody(), BidRequest.class)).isEqualTo(payload);
     }
 
@@ -117,7 +118,8 @@ public class HypeLabBidderTest extends VertxTest {
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(payload.getImp().getFirst().getDisplaymanagerver()).isEqualTo("unknown");
-        assertThat(payload.getExt().getProperty("provider_version")).isEqualTo(mapper.valueToTree("unknown"));
+        assertThat(payload.getExt().getProperty("provider_version"))
+                .isEqualTo(mapper.valueToTree("prebid-server@unknown"));
     }
 
     @Test
@@ -240,17 +242,22 @@ public class HypeLabBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldUseHypeLabBidExtForBidType() throws JsonProcessingException {
         // given
-        final Bid videoBid = givenBid(bid -> bid.ext(givenBidExt("video")));
+        final Bid bannerBid = givenBid(bid -> bid.id("banner").ext(givenBidExt("display")));
+        final Bid videoBid = givenBid(bid -> bid.id("video").ext(givenBidExt("video")));
+        final Bid nativeBid = givenBid(bid -> bid.id("native").ext(givenBidExt("native")));
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(),
-                givenBidResponse(videoBid));
+                givenBidResponse(bannerBid, videoBid, nativeBid));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsExactly(BidderBid.of(videoBid, BidType.video, "hypelab", "USD"));
+        assertThat(result.getValue()).containsExactly(
+                BidderBid.of(bannerBid, BidType.banner, "hypelab", "USD"),
+                BidderBid.of(videoBid, BidType.video, "hypelab", "USD"),
+                BidderBid.of(nativeBid, BidType.xNative, "hypelab", "USD"));
     }
 
     @Test
@@ -298,6 +305,22 @@ public class HypeLabBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).containsExactly(BidderError.badServerResponse(
                 "unable to determine media type for bid bidId on imp unknown"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorWhenImpHasMultipleMediaTypes() throws JsonProcessingException {
+        // given
+        final Bid bid = givenBid(UnaryOperator.identity());
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.xNative(Native.builder().build()));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, givenBidResponse(bid));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).containsExactly(BidderError.badServerResponse(
+                "unable to determine media type for bid bidId on imp impId"));
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder>... impCustomizers) {
