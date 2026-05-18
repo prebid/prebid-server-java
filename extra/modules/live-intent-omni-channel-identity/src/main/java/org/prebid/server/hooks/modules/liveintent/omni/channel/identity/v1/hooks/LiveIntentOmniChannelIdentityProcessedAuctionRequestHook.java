@@ -226,8 +226,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
         final List<ExtRequestPrebidDataEidPermissions> eidPermissions =
                 extPrebidData != null ? extPrebidData.getEidPermissions() : null;
 
-        final List<ExtRequestPrebidDataEidPermissions> modifiedEidPermissions = CollectionUtils
-                .isEmpty(eidPermissions)
+        final List<ExtRequestPrebidDataEidPermissions> modifiedEidPermissions = CollectionUtils.isEmpty(eidPermissions)
                 ? createEidPermissions()
                 : modifyEidPermissions(eidPermissions);
 
@@ -259,7 +258,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
     }
 
     private List<ExtRequestPrebidDataEidPermissions> createEidPermissions() {
-        return List.of(ExtRequestPrebidDataEidPermissions.builder()
+        return Collections.singletonList(ExtRequestPrebidDataEidPermissions.builder()
                                 .matcher(MATCHER)
                                 .inserter(INSERTER)
                                 .bidders(targetBidders.stream().toList())
