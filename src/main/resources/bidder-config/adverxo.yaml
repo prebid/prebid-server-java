@@ -33,7 +33,7 @@ adapters:
             support-cors: false
       harrenmedia:
         enabled: false
-        endpoint: https://harrenmedia.pbsadverxo.com/auction?id={{adUnitId}}&auth={{auth}}
+        endpoint: https://harrenmedia.pbsadverxo.com/auction?id={adUnitId}&auth={auth}
         usersync:
           enabled: false
           cookie-family-name: harrenmedia
