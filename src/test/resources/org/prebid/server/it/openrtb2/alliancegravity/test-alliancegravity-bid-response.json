@@ -11,7 +11,12 @@
           "crid": "test-creative-id",
           "w": 300,
           "h": 250,
-          "mtype": 1
+          "mtype": 1,
+          "ext": {
+            "prebid": {
+              "type": "banner"
+            }
+          }
         }
       ]
     }

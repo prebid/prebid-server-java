@@ -1,9 +1,13 @@
 package org.prebid.server.bidder.alliancegravity;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -27,7 +31,6 @@ import java.util.List;
 import java.util.function.UnaryOperator;
 
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
 public class AllianceGravityBidderTest extends VertxTest {
@@ -143,6 +146,102 @@ public class AllianceGravityBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldAddUserAgentAndForwardedForFromDeviceIp() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .device(Device.builder().ua("test-ua").ip("1.2.3.4").ipv6("::1").build())
+                .imp(singletonList(givenImp(UnaryOperator.identity())))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getHeaders)
+                .allSatisfy(headers -> {
+                    assertThat(headers.get("User-Agent")).isEqualTo("test-ua");
+                    assertThat(headers.get("X-Forwarded-For")).isEqualTo("1.2.3.4");
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldFallBackToDeviceIpv6WhenIpIsBlank() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .device(Device.builder().ipv6("2001:db8::1").build())
+                .imp(singletonList(givenImp(UnaryOperator.identity())))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getHeaders)
+                .extracting(headers -> headers.get("X-Forwarded-For"))
+                .containsExactly("2001:db8::1");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldAddRefererFromSitePage() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .site(Site.builder().page("http://example.com").build())
+                .imp(singletonList(givenImp(UnaryOperator.identity())))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getHeaders)
+                .extracting(headers -> headers.get("Referer"))
+                .containsExactly("http://example.com");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldAddCookieWithBuyerUid() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .user(User.builder().buyeruid("buyer-uid-1").build())
+                .imp(singletonList(givenImp(UnaryOperator.identity())))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getHeaders)
+                .extracting(headers -> headers.get("Cookie"))
+                .containsExactly("uids=buyer-uid-1");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotAddCookieWhenBuyerUidIsBlank() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .user(User.builder().buyeruid("").build())
+                .imp(singletonList(givenImp(UnaryOperator.identity())))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getHeaders)
+                .extracting(headers -> headers.get("Cookie"))
+                .containsOnlyNulls();
+    }
+
+    @Test
     public void makeBidsShouldReturnErrorWhenResponseCannotBeParsed() {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall("invalid");
@@ -171,10 +270,10 @@ public class AllianceGravityBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBidForMtype1() throws JsonProcessingException {
+    public void makeBidsShouldReturnBannerBidWhenBidExtPrebidTypeIsBanner() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                givenBidResponse(bid -> bid.id("bid1").impid("imp1").mtype(1)));
+                givenBidResponse(bid -> bid.id("bid1").impid("imp1").ext(bidExtWithPrebidType("banner"))));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -190,10 +289,10 @@ public class AllianceGravityBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnVideoBidForMtype2() throws JsonProcessingException {
+    public void makeBidsShouldReturnVideoBidWhenBidExtPrebidTypeIsVideo() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                givenBidResponse(bid -> bid.id("bid1").impid("imp1").mtype(2)));
+                givenBidResponse(bid -> bid.id("bid1").impid("imp1").ext(bidExtWithPrebidType("video"))));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -205,10 +304,10 @@ public class AllianceGravityBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnAudioBidForMtype3() throws JsonProcessingException {
+    public void makeBidsShouldReturnAudioBidWhenBidExtPrebidTypeIsAudio() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                givenBidResponse(bid -> bid.id("bid1").impid("imp1").mtype(3)));
+                givenBidResponse(bid -> bid.id("bid1").impid("imp1").ext(bidExtWithPrebidType("audio"))));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -220,10 +319,10 @@ public class AllianceGravityBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnNativeBidForMtype4() throws JsonProcessingException {
+    public void makeBidsShouldReturnNativeBidWhenBidExtPrebidTypeIsNative() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                givenBidResponse(bid -> bid.id("bid1").impid("imp1").mtype(4)));
+                givenBidResponse(bid -> bid.id("bid1").impid("imp1").ext(bidExtWithPrebidType("native"))));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -235,7 +334,7 @@ public class AllianceGravityBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorWhenMtypeIsMissing() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorWhenBidExtIsMissing() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidResponse(bid -> bid.id("bid1").impid("imp1")));
@@ -248,15 +347,15 @@ public class AllianceGravityBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
                     assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
-                    assertThat(error.getMessage()).contains("Missing MType");
+                    assertThat(error.getMessage()).contains("Failed to parse impression \"imp1\" mediatype");
                 });
     }
 
     @Test
-    public void makeBidsShouldReturnErrorWhenMtypeIsUnsupported() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorWhenBidExtPrebidTypeIsUnknown() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                givenBidResponse(bid -> bid.id("bid1").impid("imp1").mtype(99)));
+                givenBidResponse(bid -> bid.id("bid1").impid("imp1").ext(bidExtWithPrebidType("unknown"))));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -297,5 +396,11 @@ public class AllianceGravityBidderTest extends VertxTest {
                                 .build()))
                         .build()))
                 .build());
+    }
+
+    private ObjectNode bidExtWithPrebidType(String type) {
+        final ObjectNode ext = mapper.createObjectNode();
+        ext.set("prebid", mapper.createObjectNode().put("type", type));
+        return ext;
     }
 }

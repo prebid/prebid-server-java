@@ -1,12 +1,19 @@
 package org.prebid.server.bidder.alliancegravity;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.vertx.core.MultiMap;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -21,6 +28,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredRequest;
 import org.prebid.server.proto.openrtb.ext.request.alliancegravity.ExtImpAllianceGravity;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
@@ -29,6 +37,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 public class AllianceGravityBidder implements Bidder<BidRequest> {
 
@@ -64,7 +73,8 @@ public class AllianceGravityBidder implements Bidder<BidRequest> {
 
         final BidRequest modifiedRequest = request.toBuilder().imp(modifiedImps).build();
         return Result.of(
-                Collections.singletonList(BidderUtil.defaultRequest(modifiedRequest, endpointUrl, mapper)),
+                Collections.singletonList(
+                        BidderUtil.defaultRequest(modifiedRequest, makeHeaders(modifiedRequest), endpointUrl, mapper)),
                 errors);
     }
 
@@ -86,6 +96,29 @@ public class AllianceGravityBidder implements Bidder<BidRequest> {
                 .build();
     }
 
+    private static MultiMap makeHeaders(BidRequest request) {
+        final MultiMap headers = HttpUtil.headers();
+
+        final Device device = request.getDevice();
+        if (device != null) {
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
+            final String forwardedFor = StringUtils.isNotBlank(device.getIp()) ? device.getIp() : device.getIpv6();
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, forwardedFor);
+        }
+
+        final Site site = request.getSite();
+        if (site != null) {
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.REFERER_HEADER, site.getPage());
+        }
+
+        final User user = request.getUser();
+        if (user != null && StringUtils.isNotBlank(user.getBuyeruid())) {
+            headers.add(HttpUtil.COOKIE_HEADER, "uids=" + user.getBuyeruid());
+        }
+
+        return headers;
+    }
+
     @Override
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
@@ -97,7 +130,7 @@ public class AllianceGravityBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static List<BidderBid> extractBids(BidResponse bidResponse, List<BidderError> errors) {
+    private List<BidderBid> extractBids(BidResponse bidResponse, List<BidderError> errors) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
@@ -113,31 +146,30 @@ public class AllianceGravityBidder implements Bidder<BidRequest> {
                 .toList();
     }
 
-    private static BidderBid resolveBidderBid(Bid bid, String currency, List<BidderError> errors) {
-        final BidType bidType = getBidType(bid, errors);
-        if (bidType == null) {
+    private BidderBid resolveBidderBid(Bid bid, String currency, List<BidderError> errors) {
+        try {
+            return BidderBid.of(bid, getBidType(bid), currency);
+        } catch (PreBidException e) {
+            errors.add(BidderError.badServerResponse(e.getMessage()));
             return null;
         }
-        return BidderBid.of(bid, bidType, currency);
     }
 
-    private static BidType getBidType(Bid bid, List<BidderError> errors) {
-        final Integer mtype = bid.getMtype();
-        if (mtype == null) {
-            errors.add(BidderError.badServerResponse(
-                    "Missing MType for bid: " + bid.getId()));
+    private BidType getBidType(Bid bid) {
+        return Optional.ofNullable(bid.getExt())
+                .map(ext -> ext.get("prebid"))
+                .filter(JsonNode::isObject)
+                .map(this::parseExtBidPrebid)
+                .map(ExtBidPrebid::getType)
+                .orElseThrow(() -> new PreBidException(
+                        "Failed to parse impression \"%s\" mediatype".formatted(bid.getImpid())));
+    }
+
+    private ExtBidPrebid parseExtBidPrebid(JsonNode prebidNode) {
+        try {
+            return mapper.mapper().treeToValue(prebidNode, ExtBidPrebid.class);
+        } catch (JsonProcessingException e) {
             return null;
         }
-        return switch (mtype) {
-            case 1 -> BidType.banner;
-            case 2 -> BidType.video;
-            case 3 -> BidType.audio;
-            case 4 -> BidType.xNative;
-            default -> {
-                errors.add(BidderError.badServerResponse(
-                        "Unsupported MType %d for bid: %s".formatted(mtype, bid.getId())));
-                yield null;
-            }
-        };
     }
 }
