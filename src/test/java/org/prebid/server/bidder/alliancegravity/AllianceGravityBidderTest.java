@@ -32,6 +32,7 @@ import java.util.function.UnaryOperator;
 
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.prebid.server.assertion.FutureAssertion.assertThat;
 
 public class AllianceGravityBidderTest extends VertxTest {
 
