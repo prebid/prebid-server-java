@@ -9,6 +9,7 @@ adapters:
           maintainer-email: prebid@360playvid.com
         usersync:
           enabled: true
+          cookie-family-name: 360playvid
           redirect:
             url: https://cookie.360playvid.com/pbserver?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&coppa={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redir={{redirect_url}}
             support-cors: false
