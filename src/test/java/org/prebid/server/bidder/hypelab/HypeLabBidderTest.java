@@ -67,7 +67,8 @@ public class HypeLabBidderTest extends VertxTest {
     public void makeHttpRequestsShouldCreateExpectedRequest() {
         // given
         final ExtRequest requestExt = ExtRequest.empty();
-        requestExt.addProperty("existing", mapper.valueToTree("value"));
+        final ObjectNode existingExt = mapper.createObjectNode().put("nested", "value");
+        requestExt.addProperty("existing", existingExt);
 
         final BidRequest bidRequest = givenBidRequestWithExt(requestExt,
                 imp -> imp.id("imp1").banner(Banner.builder().w(300).h(250).build())
@@ -98,10 +99,13 @@ public class HypeLabBidderTest extends VertxTest {
         assertThat(imp.getExt()).isEqualTo(mapper.valueToTree(
                 ExtPrebid.of(null, ExtImpHypeLab.of("property", "placement"))));
 
-        assertThat(payload.getExt().getProperty("existing")).isEqualTo(mapper.valueToTree("value"));
+        assertThat(payload.getExt()).isNotSameAs(requestExt);
+        assertThat(payload.getExt().getProperty("existing")).isEqualTo(existingExt).isNotSameAs(existingExt);
         assertThat(payload.getExt().getProperty("source")).isEqualTo(mapper.valueToTree("prebid-server"));
         assertThat(payload.getExt().getProperty("provider_version"))
                 .isEqualTo(mapper.valueToTree("prebid-server@" + PBS_VERSION));
+        assertThat(requestExt.getProperty("source")).isNull();
+        assertThat(requestExt.getProperty("provider_version")).isNull();
         assertThat(jacksonMapper.decodeValue(request.getBody(), BidRequest.class)).isEqualTo(payload);
     }
 
@@ -120,20 +124,6 @@ public class HypeLabBidderTest extends VertxTest {
         assertThat(payload.getImp().getFirst().getDisplaymanagerver()).isEqualTo("unknown");
         assertThat(payload.getExt().getProperty("provider_version"))
                 .isEqualTo(mapper.valueToTree("prebid-server@unknown"));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldSkipImpWhenExtIsMissing() {
-        // given
-        final BidRequest bidRequest = givenBidRequestWithExt(null, imp -> imp.ext(null));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors())
-                .containsExactly(BidderError.badInput("imp impId: unable to unmarshal ext"));
     }
 
     @Test

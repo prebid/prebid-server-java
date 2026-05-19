@@ -2,6 +2,7 @@ package org.prebid.server.bidder.hypelab;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
@@ -32,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class HypeLabBidder implements Bidder<BidRequest> {
@@ -77,7 +79,11 @@ public class HypeLabBidder implements Bidder<BidRequest> {
                 .ext(makeOutgoingRequestExt(request.getExt()))
                 .build();
 
-        return Result.of(Collections.singletonList(BidderUtil.defaultRequest(outgoingRequest, headers(), endpointUrl,
+        return Result.of(
+                Collections.singletonList(BidderUtil.defaultRequest(
+                        outgoingRequest,
+                        headers(),
+                        endpointUrl,
                         mapper)),
                 errors);
     }
@@ -94,21 +100,11 @@ public class HypeLabBidder implements Bidder<BidRequest> {
     }
 
     private ExtImpHypeLab parseImpExt(Imp imp) {
-        if (imp.getExt() == null) {
-            throw new PreBidException("imp %s: unable to unmarshal ext".formatted(imp.getId()));
-        }
-
         final ExtImpHypeLab extImp;
         try {
-            final ExtPrebid<?, ExtImpHypeLab> extPrebid =
-                    mapper.mapper().convertValue(imp.getExt(), HYPELAB_EXT_TYPE_REFERENCE);
-            extImp = extPrebid != null ? extPrebid.getBidder() : null;
+            extImp = mapper.mapper().convertValue(imp.getExt(), HYPELAB_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException("imp %s: unable to unmarshal ext.bidder".formatted(imp.getId()), e);
-        }
-
-        if (extImp == null) {
-            throw new PreBidException("imp %s: unable to unmarshal ext.bidder".formatted(imp.getId()));
         }
 
         if (StringUtils.isBlank(extImp.getPropertySlug()) || StringUtils.isBlank(extImp.getPlacementSlug())) {
@@ -124,9 +120,10 @@ public class HypeLabBidder implements Bidder<BidRequest> {
             mapper.fillExtension(outgoingExt, ext.getProperties());
         }
 
-        return mapper.fillExtension(outgoingExt, Map.of(
-                "source", SOURCE,
-                "provider_version", PROVIDER_VERSION_PREFIX + pbsVersion()));
+        outgoingExt.addProperty("source", TextNode.valueOf(SOURCE));
+        outgoingExt.addProperty("provider_version", TextNode.valueOf(PROVIDER_VERSION_PREFIX + pbsVersion()));
+
+        return outgoingExt;
     }
 
     private static MultiMap headers() {
@@ -153,7 +150,7 @@ public class HypeLabBidder implements Bidder<BidRequest> {
         }
 
         final Map<String, Imp> impIdToImp = request.getImp().stream()
-                .collect(Collectors.toMap(Imp::getId, imp -> imp));
+                .collect(Collectors.toMap(Imp::getId, Function.identity()));
 
         return response.getSeatbid().stream()
                 .filter(Objects::nonNull)
@@ -234,7 +231,7 @@ public class HypeLabBidder implements Bidder<BidRequest> {
             mediaTypeCount++;
         }
 
-        return mediaTypeCount == 1 ? Optional.of(bidType) : Optional.empty();
+        return mediaTypeCount == 1 ? Optional.ofNullable(bidType) : Optional.empty();
     }
 
     private String pbsVersion() {
