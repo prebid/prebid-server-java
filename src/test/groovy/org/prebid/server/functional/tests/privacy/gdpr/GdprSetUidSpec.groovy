@@ -1,4 +1,4 @@
-package org.prebid.server.functional.tests.privacy
+package org.prebid.server.functional.tests.privacy.gdpr
 
 import org.prebid.server.functional.model.UidsCookie
 import org.prebid.server.functional.model.config.AccountAuctionConfig
@@ -11,6 +11,8 @@ import org.prebid.server.functional.model.request.setuid.SetuidRequest
 import org.prebid.server.functional.model.response.cookiesync.UserSyncInfo
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.testcontainers.Dependencies
+import org.prebid.server.functional.tests.privacy.PrivacyBaseSpec
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.TcfConsent
 import org.prebid.server.util.ResourceUtil
@@ -23,14 +25,13 @@ import static org.prebid.server.functional.model.config.PurposeEnforcement.FULL
 import static org.prebid.server.functional.model.config.PurposeEnforcement.NO
 import static org.prebid.server.functional.model.request.setuid.UidWithExpiry.getDefaultUidWithExpiry
 import static org.prebid.server.functional.model.response.cookiesync.UserSyncInfo.Type.REDIRECT
-import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.DEVICE_ACCESS
 
 class GdprSetUidSpec extends PrivacyBaseSpec {
 
     private static final boolean CORS_SUPPORT = false
-    private static final String USER_SYNC_URL = "$networkServiceContainer.rootUri/generic-usersync"
+    private static final String USER_SYNC_URL = "$Dependencies.networkServiceContainer.rootUri/generic-usersync"
     private static final UserSyncInfo.Type USER_SYNC_TYPE = REDIRECT
     private static final Map<String, String> VENDOR_GENERIC_PBS_CONFIG = GENERIC_VENDOR_CONFIG +
             ["gdpr.purposes.p1.enforce-purpose"                                       : NO.value,

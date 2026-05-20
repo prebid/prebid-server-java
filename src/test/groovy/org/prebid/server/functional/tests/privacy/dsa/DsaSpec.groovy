@@ -1,4 +1,4 @@
-package org.prebid.server.functional.tests.privacy
+package org.prebid.server.functional.tests.privacy.dsa
 
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.config.AccountDsaConfig
@@ -12,6 +12,7 @@ import org.prebid.server.functional.model.response.auction.BidExt
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.DsaResponse
 import org.prebid.server.functional.model.response.auction.DsaResponse as BidDsa
+import org.prebid.server.functional.tests.privacy.PrivacyBaseSpec
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.TcfConsent
 

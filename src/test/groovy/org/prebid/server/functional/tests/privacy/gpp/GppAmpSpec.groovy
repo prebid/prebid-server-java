@@ -1,4 +1,4 @@
-package org.prebid.server.functional.tests.privacy
+package org.prebid.server.functional.tests.privacy.gpp
 
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
@@ -6,6 +6,7 @@ import org.prebid.server.functional.model.request.amp.ConsentType
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Regs
 import org.prebid.server.functional.model.request.auction.RegsExt
+import org.prebid.server.functional.tests.privacy.PrivacyBaseSpec
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.gpp.v2.TcfEuV2Consent
 import org.prebid.server.functional.util.privacy.gpp.v1.UspV1Consent
