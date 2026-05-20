@@ -131,6 +131,12 @@ adapters:
             url: https://usersync.mycodemedia.com/pbserver?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redir={{redirect_url}}
             support-cors: false
             uid-macro: '[UID]'
+      appMonstaMedia:
+        enabled: false
+        endpoint: https://ssp-us.appmonsta.ai/pserver
+        meta-info:
+          maintainer-email: media.support@appmonsta.ai
+          vendor-id: 1283
     meta-info:
       maintainer-email: github@teqblaze.com
       app-media-types:
