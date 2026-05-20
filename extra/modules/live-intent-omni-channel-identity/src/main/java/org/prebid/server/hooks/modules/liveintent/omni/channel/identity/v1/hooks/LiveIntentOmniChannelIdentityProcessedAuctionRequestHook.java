@@ -218,7 +218,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
 
     private ExtRequest updateExtRequest(ExtRequest ext, List<Eid> resolvedEids) {
         if (CollectionUtils.isEmpty(resolvedEids)) {
-                return ext;
+            return ext;
         }
 
         final ExtRequestPrebid extPrebid = ext != null ? ext.getPrebid() : null;
@@ -285,7 +285,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
 
     private ExtRequestPrebidDataEidPermissions updateEidPermission(ExtRequestPrebidDataEidPermissions eidPermission) {
         if (!MATCHER.equals(eidPermission.getMatcher()) || !INSERTER.equals(eidPermission.getInserter())) {
-                return eidPermission;
+            return eidPermission;
         }
 
         final List<String> allowedBidders = ListUtils.emptyIfNull(eidPermission.getBidders());
