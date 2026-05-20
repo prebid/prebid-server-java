@@ -5,8 +5,9 @@
   "request_id" : "request_id",
   "timeout" : "${json-unit.any-number}",
   "params" : {
+    "apiKey" : "apiKey",
     "placement" : "placement",
-    "test" : "test"
+    "sample" : "sample"
   },
   "ortb2" : {
     "id" : "request_id",
@@ -22,7 +23,7 @@
         "bidder" : {
           "apiKey" : "apiKey",
           "placement" : "placement",
-          "test" : "test"
+          "sample" : "sample"
         }
       }
     } ],
