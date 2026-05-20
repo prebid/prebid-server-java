@@ -100,6 +100,7 @@ class TcfConsent implements ConsentString {
 
         Builder setDisclosedVendors(List<Integer> vendorIds) {
             vendorIds.forEach { id -> tcStringEncoder.addDisclosedVendors(id) }
+            this
         }
 
         Builder setCreateTime(ZonedDateTime time) {
