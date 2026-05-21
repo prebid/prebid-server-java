@@ -12,7 +12,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
-import org.springframework.validation.annotation.Validated;
 
 import jakarta.validation.constraints.NotBlank;
 
@@ -24,7 +23,6 @@ public class RevantageConfiguration {
 
     @Bean("revantageConfigurationProperties")
     @ConfigurationProperties("adapters.revantage")
-    @Validated
     BidderConfigurationProperties configurationProperties() {
         return new BidderConfigurationProperties();
     }
