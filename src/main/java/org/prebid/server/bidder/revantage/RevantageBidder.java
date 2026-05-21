@@ -8,8 +8,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.MultiMap;
-import io.vertx.core.http.HttpMethod;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -24,15 +23,16 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.revantage.ExtImpRevantage;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 public class RevantageBidder implements Bidder<BidRequest> {
 
@@ -59,10 +59,12 @@ public class RevantageBidder implements Bidder<BidRequest> {
                 final ExtImpRevantage ext = parseImpExt(imp);
                 final String feedId = StringUtils.trimToNull(ext.getFeedId());
                 if (feedId == null) {
-                    throw new PreBidException("imp %s: missing required param feedId".formatted(imp.getId()));
+                    errors.add(BidderError.badInput(
+                            "imp %s: missing required param feedId".formatted(imp.getId())));
+                    continue;
                 }
-                final Imp rewrittenImp = rewriteImpExt(imp, feedId, ext);
-                impsByFeed.computeIfAbsent(feedId, k -> new ArrayList<>()).add(rewrittenImp);
+                final Imp updatedImp = updateImp(imp, feedId, ext);
+                impsByFeed.computeIfAbsent(feedId, k -> new ArrayList<>()).add(updatedImp);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -82,60 +84,40 @@ public class RevantageBidder implements Bidder<BidRequest> {
 
     private ExtImpRevantage parseImpExt(Imp imp) {
         try {
-            final ExtPrebid<?, ExtImpRevantage> wrapper =
-                    mapper.mapper().convertValue(imp.getExt(), REVANTAGE_EXT_TYPE_REFERENCE);
-            if (wrapper == null || wrapper.getBidder() == null) {
-                throw new PreBidException("imp %s: missing imp.ext.bidder".formatted(imp.getId()));
-            }
-            return wrapper.getBidder();
+            return mapper.mapper().convertValue(imp.getExt(), REVANTAGE_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(
                     "imp %s: invalid imp.ext: %s".formatted(imp.getId(), e.getMessage()));
         }
     }
 
-    private Imp rewriteImpExt(Imp imp, String feedId, ExtImpRevantage ext) {
-        final ObjectNode bidderNode = mapper.mapper().createObjectNode();
-        if (StringUtils.isNotBlank(ext.getPlacementId())) {
-            bidderNode.put("placementId", ext.getPlacementId());
+    private Imp updateImp(Imp imp, String feedId, ExtImpRevantage ext) {
+        final ObjectNode newExt = mapper.mapper().createObjectNode();
+        newExt.put("feedId", feedId);
+        final ObjectNode bidderNode = newExt.putObject("bidder");
+
+        final String placementId = ext.getPlacementId();
+        if (StringUtils.isNotBlank(placementId)) {
+            bidderNode.put("placementId", placementId);
         }
-        if (StringUtils.isNotBlank(ext.getPublisherId())) {
-            bidderNode.put("publisherId", ext.getPublisherId());
+        final String publisherId = ext.getPublisherId();
+        if (StringUtils.isNotBlank(publisherId)) {
+            bidderNode.put("publisherId", publisherId);
         }
 
-        final ObjectNode rewritten = mapper.mapper().createObjectNode();
-        rewritten.put("feedId", feedId);
-        rewritten.set("bidder", bidderNode);
-
-        return imp.toBuilder().ext(rewritten).build();
+        return imp.toBuilder().ext(newExt).build();
     }
 
     private HttpRequest<BidRequest> buildHttpRequest(BidRequest request, String feedId) {
-        final String uri = endpointUrl + "?feed=" + URLEncoder.encode(feedId, StandardCharsets.UTF_8);
-
-        final MultiMap headers = HttpUtil.headers();
-        headers.set(HttpUtil.ACCEPT_HEADER, "application/json");
-
-        return HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(uri)
-                .headers(headers)
-                .body(mapper.encodeToBytes(request))
-                .impIds(collectImpIds(request))
-                .payload(request)
-                .build();
-    }
-
-    private static List<String> collectImpIds(BidRequest request) {
-        final List<String> ids = new ArrayList<>(request.getImp().size());
-        for (Imp imp : request.getImp()) {
-            ids.add(imp.getId());
-        }
-        return ids;
+        final String uri = endpointUrl + "?feed=" + HttpUtil.encodeUrl(feedId);
+        return BidderUtil.defaultRequest(request, HttpUtil.headers(), uri, mapper);
     }
 
     @Override
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
+        if (httpCall.getResponse().getStatusCode() == HttpResponseStatus.NO_CONTENT.code()) {
+            return Result.empty();
+        }
         try {
             final BidResponse response = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.withValues(extractBids(response, bidRequest));
@@ -146,7 +128,7 @@ public class RevantageBidder implements Bidder<BidRequest> {
 
     private static List<BidderBid> extractBids(BidResponse response, BidRequest request) {
         if (response == null || CollectionUtils.isEmpty(response.getSeatbid())) {
-            return List.of();
+            return Collections.emptyList();
         }
         final String currency = StringUtils.defaultIfBlank(response.getCur(), DEFAULT_CURRENCY);
         final List<BidderBid> bids = new ArrayList<>();
@@ -155,66 +137,69 @@ public class RevantageBidder implements Bidder<BidRequest> {
                 continue;
             }
             for (Bid bid : seatBid.getBid()) {
-                final BidType type = resolveMediaType(bid, request.getImp());
+                final BidType type = resolveBidType(bid, request.getImp());
                 bids.add(BidderBid.of(bid, type, seatBid.getSeat(), currency));
             }
         }
         return bids;
     }
 
-    private static BidType resolveMediaType(Bid bid, List<Imp> imps) {
-        if (bid.getMtype() != null) {
-            switch (bid.getMtype()) {
-                case 1:
-                    return BidType.banner;
-                case 2:
-                    return BidType.video;
-                default:
-            }
-        }
+    private static BidType resolveBidType(Bid bid, List<Imp> imps) {
+        return bidTypeFromMtype(bid.getMtype())
+                .or(() -> bidTypeFromExt(bid.getExt()))
+                .or(() -> bidTypeFromAdm(bid.getAdm()))
+                .or(() -> bidTypeFromImp(bid.getImpid(), imps))
+                .orElseThrow(() -> new PreBidException(
+                        "Cannot determine media type for bid %s on imp %s"
+                                .formatted(bid.getId(), bid.getImpid())));
+    }
 
-        final JsonNode ext = bid.getExt();
-        if (ext != null) {
-            final JsonNode mediaTypeNode = ext.get("mediaType");
-            if (mediaTypeNode != null && mediaTypeNode.isTextual()) {
-                final String value = mediaTypeNode.asText().toLowerCase();
-                if ("banner".equals(value)) {
-                    return BidType.banner;
-                }
-                if ("video".equals(value)) {
-                    return BidType.video;
-                }
-            }
-        }
+    private static Optional<BidType> bidTypeFromMtype(Integer mType) {
+        return Optional.ofNullable(switch (mType) {
+            case 1 -> BidType.banner;
+            case 2 -> BidType.video;
+            case null, default -> null;
+        });
+    }
 
-        if (isVastMarkup(bid.getAdm())) {
-            return BidType.video;
-        }
+    private static Optional<BidType> bidTypeFromExt(ObjectNode bidExt) {
+        return Optional.ofNullable(bidExt)
+                .map(ext -> ext.get("mediaType"))
+                .filter(JsonNode::isTextual)
+                .map(JsonNode::asText)
+                .map(String::toLowerCase)
+                .map(mediaType -> switch (mediaType) {
+                    case "banner" -> BidType.banner;
+                    case "video" -> BidType.video;
+                    default -> null;
+                });
+    }
 
+    private static Optional<BidType> bidTypeFromAdm(String adm) {
+        if (StringUtils.isBlank(adm)) {
+            return Optional.empty();
+        }
+        final String trimmed = adm.trim().toUpperCase();
+        return trimmed.startsWith("<VAST") || trimmed.startsWith("<?XML")
+                ? Optional.of(BidType.video)
+                : Optional.empty();
+    }
+
+    private static Optional<BidType> bidTypeFromImp(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
-            if (!Objects.equals(imp.getId(), bid.getImpid())) {
+            if (!Objects.equals(imp.getId(), impId)) {
                 continue;
             }
             final boolean hasBanner = imp.getBanner() != null;
             final boolean hasVideo = imp.getVideo() != null;
             if (hasVideo && !hasBanner) {
-                return BidType.video;
+                return Optional.of(BidType.video);
             }
             if (hasBanner) {
-                return BidType.banner;
+                return Optional.of(BidType.banner);
             }
             break;
         }
-
-        throw new PreBidException(
-                "Cannot determine media type for bid %s on imp %s".formatted(bid.getId(), bid.getImpid()));
-    }
-
-    private static boolean isVastMarkup(String adm) {
-        if (StringUtils.isBlank(adm)) {
-            return false;
-        }
-        final String trimmed = adm.trim().toUpperCase();
-        return trimmed.startsWith("<VAST") || trimmed.startsWith("<?XML");
+        return Optional.empty();
     }
 }
