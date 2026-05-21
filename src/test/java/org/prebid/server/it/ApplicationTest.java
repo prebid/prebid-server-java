@@ -329,11 +329,11 @@ public class ApplicationTest extends IntegrationTest {
                                 UsersyncMethodType.REDIRECT, false))
                         .build(),
                 BidderUsersyncStatus.builder()
-                        .bidder(APPNEXUS_COOKIE_FAMILY)
+                        .bidder(APPNEXUS)
                         .noCookie(true)
                         .usersync(UsersyncInfo.of(
                                 "//usersync-url/getuid?http%3A%2F%2Flocalhost%3A8080%2Fsetuid%3Fbidder"
-                                        + "%3Dadnxs%26gdpr%3D1%26gdpr_consent%3D" + gdprConsent
+                                        + "%3Dappnexus%26gdpr%3D1%26gdpr_consent%3D" + gdprConsent
                                         + "%26us_privacy%3D1YNN"
                                         + "%26gpp%3D"
                                         + "%26gpp_sid%3D"
