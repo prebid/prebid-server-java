@@ -260,7 +260,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
     }
 
     private List<ExtRequestPrebidDataEidPermissions> createEidPermissions() {
-        return List.of(ExtRequestPrebidDataEidPermissions.builder()
+        return Collections.singletonList(ExtRequestPrebidDataEidPermissions.builder()
                                 .matcher(MATCHER)
                                 .inserter(INSERTER)
                                 .bidders(targetBidders.stream().toList())
