@@ -11,6 +11,11 @@ import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeviceInt;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevicePrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSdk;
+
+import java.math.BigDecimal;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
@@ -72,6 +77,28 @@ public class InterstitialProcessorTest extends VertxTest {
     }
 
     @Test
+    public void processShouldReturnBidRequestUpdatedWithInterstitialFormatsUsingDeviceSizeInDipsWhenFormatIsEmpty() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder().banner(Banner.builder().build()).instl(1).build()))
+                .device(Device.builder().w(1080).h(1920).pxratio(BigDecimal.valueOf(3))
+                        .ext(ExtDevice.of(null, ExtDevicePrebid.of(ExtDeviceInt.of(60, 60))))
+                        .build())
+                .ext(usePxRatioExt())
+                .build();
+
+        // when
+        final BidRequest result = interstitialProcessor.process(bidRequest);
+
+        // then
+        assertThat(result.getImp())
+                .extracting(Imp::getBanner)
+                .flatExtracting(Banner::getFormat)
+                .contains(Format.builder().w(320).h(480).build())
+                .doesNotContain(Format.builder().w(768).h(1024).build());
+    }
+
+    @Test
     public void processShouldReturnBidRequestUpdatedWithInterstitialFormatsUsingSizesFromDeviceWhenFormatIsOneToOne() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
@@ -94,6 +121,97 @@ public class InterstitialProcessorTest extends VertxTest {
                         Format.builder().w(320).h(568).build(),
                         Format.builder().w(320).h(500).build(),
                         Format.builder().w(320).h(481).build());
+    }
+
+    @Test
+    public void processShouldReturnBidRequestUpdatedWithInterstitialFormatsUsingDeviceSizeInDipsWhenFormatIsOneToOne() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder().banner(Banner.builder().format(singletonList(
+                        Format.builder().w(1).h(1).build())).build()).instl(1).build()))
+                .device(Device.builder().w(1080).h(1920).pxratio(BigDecimal.valueOf(3))
+                        .ext(ExtDevice.of(null, ExtDevicePrebid.of(ExtDeviceInt.of(60, 60))))
+                        .build())
+                .ext(usePxRatioExt())
+                .build();
+
+        // when
+        final BidRequest result = interstitialProcessor.process(bidRequest);
+
+        // then
+        assertThat(result.getImp())
+                .extracting(Imp::getBanner)
+                .flatExtracting(Banner::getFormat)
+                .contains(Format.builder().w(320).h(480).build())
+                .doesNotContain(Format.builder().w(768).h(1024).build());
+    }
+
+    @Test
+    public void processShouldNotConvertExplicitFormatSizeUsingDevicePxratio() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder().banner(Banner.builder()
+                                .format(singletonList(Format.builder().w(400).h(600).build())).build()).instl(1)
+                        .build()))
+                .device(Device.builder().w(1080).h(1920).pxratio(BigDecimal.valueOf(3))
+                        .ext(ExtDevice.of(null, ExtDevicePrebid.of(ExtDeviceInt.of(80, 80))))
+                        .build())
+                .ext(usePxRatioExt())
+                .build();
+
+        // when
+        final BidRequest result = interstitialProcessor.process(bidRequest);
+
+        // then
+        assertThat(result.getImp())
+                .extracting(Imp::getBanner)
+                .flatExtracting(Banner::getFormat)
+                .containsOnly(Format.builder().w(320).h(480).build(),
+                        Format.builder().w(336).h(544).build(),
+                        Format.builder().w(320).h(568).build(),
+                        Format.builder().w(320).h(500).build(),
+                        Format.builder().w(320).h(481).build());
+    }
+
+    @Test
+    public void processShouldKeepCurrentDeviceSizeBehaviorWhenUsePxRatioIsTrueAndDevicePxRatioIsAbsent() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder().banner(Banner.builder().build()).instl(1).build()))
+                .device(Device.builder().w(1080).h(1920)
+                        .ext(ExtDevice.of(null, ExtDevicePrebid.of(ExtDeviceInt.of(1, 1))))
+                        .build())
+                .ext(usePxRatioExt())
+                .build();
+
+        // when
+        final BidRequest result = interstitialProcessor.process(bidRequest);
+
+        // then
+        assertThat(result.getImp())
+                .extracting(Imp::getBanner)
+                .flatExtracting(Banner::getFormat)
+                .contains(Format.builder().w(768).h(1024).build());
+    }
+
+    @Test
+    public void processShouldKeepCurrentDeviceSizeBehaviorWhenUsePxRatioIsAbsent() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder().banner(Banner.builder().build()).instl(1).build()))
+                .device(Device.builder().w(1080).h(1920).pxratio(BigDecimal.valueOf(3))
+                        .ext(ExtDevice.of(null, ExtDevicePrebid.of(ExtDeviceInt.of(1, 1))))
+                        .build())
+                .build();
+
+        // when
+        final BidRequest result = interstitialProcessor.process(bidRequest);
+
+        // then
+        assertThat(result.getImp())
+                .extracting(Imp::getBanner)
+                .flatExtracting(Banner::getFormat)
+                .contains(Format.builder().w(768).h(1024).build());
     }
 
     @Test
@@ -264,6 +382,12 @@ public class InterstitialProcessorTest extends VertxTest {
                 .device(Device.builder()
                         .ext(ExtDevice.of(null, ExtDevicePrebid.of(ExtDeviceInt.of(80, 80))))
                         .build())
+                .build());
+    }
+
+    private static ExtRequest usePxRatioExt() {
+        return ExtRequest.of(ExtRequestPrebid.builder()
+                .sdk(ExtRequestPrebidSdk.of(null, true))
                 .build());
     }
 }
