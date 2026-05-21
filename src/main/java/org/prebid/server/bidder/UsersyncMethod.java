@@ -11,7 +11,7 @@ public class UsersyncMethod {
 
     String usersyncUrl;
 
-    String redirectUrl;
+    String uidMacro;
 
     boolean supportCORS;
 
