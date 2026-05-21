@@ -2,12 +2,10 @@ package org.prebid.server.functional.tests.privacy
 
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
+import org.prebid.server.functional.util.Metrics
 import spock.lang.PendingFeature
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
-import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ACCOUNT_DISALLOWED_COUNT
-import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ADAPTER_DISALLOWED_COUNT
-import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_REQUEST_DISALLOWED_COUNT
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_EIDS
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_PRECISE_GEO
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_UFPD
@@ -185,27 +183,27 @@ class CoppaSpec extends PrivacyBaseSpec {
             bidderRequest.device.geo.ext == bidRequest.device.geo.ext
 
             bidderRequest.user.id == bidRequest.user.id
-            bidderRequest.user.buyeruid == bidRequest.user.buyeruid
+            bidderRequest.user.buyerUid == bidRequest.user.buyerUid
             bidderRequest.user.yob == bidRequest.user.yob
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.eids[0].source == bidRequest.user.eids[0].source
             bidderRequest.user.data == bidRequest.user.data
             bidderRequest.user.geo.lat == bidRequest.user.geo.lat
             bidderRequest.user.geo.lon == bidRequest.user.geo.lon
-            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == bidRequest.user.ext.data.buyerUid
         }
 
         and: "Metrics processed across activities shouldn't be updated"
         def metrics = privacyPbsService.sendCollectedMetricsRequest()
-        assert !metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)]
-        assert !metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)]
-        assert !metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)]
-        assert !metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)]
-        assert !metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)]
-        assert !metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)]
-        assert !metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)]
-        assert !metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)]
-        assert !metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)]
+        assert !metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_UFPD)]
+        assert !metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_EIDS)]
+        assert !metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_PRECISE_GEO)]
+        assert !metrics[Metrics.Privacy.accountDisallowedActivityCount(bidRequest.accountId, TRANSMIT_UFPD)]
+        assert !metrics[Metrics.Privacy.accountDisallowedActivityCount(bidRequest.accountId, TRANSMIT_EIDS)]
+        assert !metrics[Metrics.Privacy.accountDisallowedActivityCount(bidRequest.accountId, TRANSMIT_PRECISE_GEO)]
+        assert !metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_UFPD)]
+        assert !metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_EIDS)]
+        assert !metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_PRECISE_GEO)]
     }
 
     def "PBS should mask device and user fields for auction request when coppa = 1 was passed and trace level verbose"() {
@@ -254,7 +252,7 @@ class CoppaSpec extends PrivacyBaseSpec {
         and: "Bidder request should mask user personal data"
         verifyAll(bidderRequest.user) {
             !id
-            !buyeruid
+            !buyerUid
             !yob
             !gender
             !eids
@@ -267,15 +265,15 @@ class CoppaSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)] == 1
-        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
-        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)] == 1
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)] == 1
+        assert metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_EIDS)] == 1
+        assert metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_PRECISE_GEO)] == 1
+        assert metrics[Metrics.Privacy.accountDisallowedActivityCount(bidRequest.accountId, TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.accountDisallowedActivityCount(bidRequest.accountId, TRANSMIT_EIDS)] == 1
+        assert metrics[Metrics.Privacy.accountDisallowedActivityCount(bidRequest.accountId, TRANSMIT_PRECISE_GEO)] == 1
+        assert metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_EIDS)] == 1
+        assert metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_PRECISE_GEO)] == 1
     }
 
     def "PBS should mask device and user fields for auction request when coppa = 1 was passed and trace level basic"() {
@@ -324,7 +322,7 @@ class CoppaSpec extends PrivacyBaseSpec {
         and: "Bidder request should mask user personal data"
         verifyAll(bidderRequest.user) {
             !id
-            !buyeruid
+            !buyerUid
             !yob
             !gender
             !eids
@@ -337,17 +335,17 @@ class CoppaSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)] == 1
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)] == 1
+        assert metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_EIDS)] == 1
+        assert metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_PRECISE_GEO)] == 1
+        assert metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_EIDS)] == 1
+        assert metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_PRECISE_GEO)] == 1
 
         and: "Account metrics shouldn't be updated"
-        assert !metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)]
-        assert !metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)]
-        assert !metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)]
+        assert !metrics[Metrics.Privacy.accountDisallowedActivityCount(bidRequest.accountId, TRANSMIT_UFPD)]
+        assert !metrics[Metrics.Privacy.accountDisallowedActivityCount(bidRequest.accountId, TRANSMIT_EIDS)]
+        assert !metrics[Metrics.Privacy.accountDisallowedActivityCount(bidRequest.accountId, TRANSMIT_PRECISE_GEO)]
     }
 
     def "PBS shouldn't mask device and user fields for amp request when coppa = 0 was passed"() {
@@ -389,27 +387,27 @@ class CoppaSpec extends PrivacyBaseSpec {
             bidderRequest.device.geo.ext == ampStoredRequest.device.geo.ext
 
             bidderRequest.user.id == ampStoredRequest.user.id
-            bidderRequest.user.buyeruid == ampStoredRequest.user.buyeruid
+            bidderRequest.user.buyerUid == ampStoredRequest.user.buyerUid
             bidderRequest.user.yob == ampStoredRequest.user.yob
             bidderRequest.user.gender == ampStoredRequest.user.gender
             bidderRequest.user.eids[0].source == ampStoredRequest.user.eids[0].source
             bidderRequest.user.data == ampStoredRequest.user.data
             bidderRequest.user.geo.lat == ampStoredRequest.user.geo.lat
             bidderRequest.user.geo.lon == ampStoredRequest.user.geo.lon
-            bidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == ampStoredRequest.user.ext.data.buyerUid
         }
 
         and: "Metrics processed across activities shouldn't be updated"
         def metrics = privacyPbsService.sendCollectedMetricsRequest()
-        assert !metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)]
-        assert !metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_EIDS)]
-        assert !metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_PRECISE_GEO)]
-        assert !metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)]
-        assert !metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_EIDS)]
-        assert !metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_PRECISE_GEO)]
-        assert !metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)]
-        assert !metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_EIDS)]
-        assert !metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_PRECISE_GEO)]
+        assert !metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_UFPD)]
+        assert !metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_EIDS)]
+        assert !metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_PRECISE_GEO)]
+        assert !metrics[Metrics.Privacy.accountDisallowedActivityCount(ampStoredRequest.accountId, TRANSMIT_UFPD)]
+        assert !metrics[Metrics.Privacy.accountDisallowedActivityCount(ampStoredRequest.accountId, TRANSMIT_EIDS)]
+        assert !metrics[Metrics.Privacy.accountDisallowedActivityCount(ampStoredRequest.accountId, TRANSMIT_PRECISE_GEO)]
+        assert !metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_UFPD)]
+        assert !metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_EIDS)]
+        assert !metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_PRECISE_GEO)]
     }
 
     def "PBS should mask device and user fields for amp request when coppa = 1 was passed"() {
@@ -462,7 +460,7 @@ class CoppaSpec extends PrivacyBaseSpec {
         and: "Bidder request should mask user personal data"
         verifyAll(bidderRequest.user) {
             !id
-            !buyeruid
+            !buyerUid
             !yob
             !gender
             !eids
@@ -475,11 +473,11 @@ class CoppaSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_EIDS)] == 1
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_PRECISE_GEO)] == 1
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_EIDS)] == 1
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_PRECISE_GEO)] == 1
+        assert metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_EIDS)] == 1
+        assert metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_PRECISE_GEO)] == 1
+        assert metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_EIDS)] == 1
+        assert metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_PRECISE_GEO)] == 1
     }
 }

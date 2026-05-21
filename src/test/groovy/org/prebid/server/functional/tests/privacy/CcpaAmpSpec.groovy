@@ -7,6 +7,7 @@ import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.response.auction.ErrorType
+import org.prebid.server.functional.util.Metrics
 import org.prebid.server.functional.util.privacy.BogusConsent
 import org.prebid.server.functional.util.privacy.CcpaConsent
 import org.prebid.server.functional.util.privacy.TcfConsent
@@ -14,8 +15,6 @@ import spock.lang.PendingFeature
 
 import static org.prebid.server.functional.model.ChannelType.AMP
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
-import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ADAPTER_DISALLOWED_COUNT
-import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_REQUEST_DISALLOWED_COUNT
 import static org.prebid.server.functional.model.request.amp.ConsentType.BOGUS
 import static org.prebid.server.functional.model.request.amp.ConsentType.TCF_1
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_EIDS
@@ -130,12 +129,12 @@ class CcpaAmpSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = privacyPbsService.sendCollectedMetricsRequest()
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, ampRequest.account, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, ampRequest.account, TRANSMIT_EIDS)] == 1
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, ampRequest.account, TRANSMIT_PRECISE_GEO)] == 1
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, ampRequest.account, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, ampRequest.account, TRANSMIT_EIDS)] == 1
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, ampRequest.account, TRANSMIT_PRECISE_GEO)] == 1
+        assert metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_EIDS)] == 1
+        assert metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_PRECISE_GEO)] == 1
+        assert metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_EIDS)] == 1
+        assert metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_PRECISE_GEO)] == 1
 
         where:
         ccpaConfig << [new AccountCcpaConfig(enabled: false, channelEnabled: [(AMP): true]),
@@ -172,12 +171,12 @@ class CcpaAmpSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities shouldn't be updated"
         def metrics = privacyPbsService.sendCollectedMetricsRequest()
-        assert !metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, ampRequest.account, TRANSMIT_UFPD)]
-        assert !metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, ampRequest.account, TRANSMIT_EIDS)]
-        assert !metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, ampRequest.account, TRANSMIT_PRECISE_GEO)]
-        assert !metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, ampRequest.account, TRANSMIT_UFPD)]
-        assert !metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, ampRequest.account, TRANSMIT_EIDS)]
-        assert !metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, ampRequest.account, TRANSMIT_PRECISE_GEO)]
+        assert !metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_UFPD)]
+        assert !metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_EIDS)]
+        assert !metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_PRECISE_GEO)]
+        assert !metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_UFPD)]
+        assert !metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_EIDS)]
+        assert !metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_PRECISE_GEO)]
 
         where:
         ccpaConfig << [new AccountCcpaConfig(enabled: true, channelEnabled: [(AMP): false]),

@@ -1,4 +1,4 @@
-package org.prebid.server.functional.model.request.auction
+package org.prebid.server.functional.model.bidder
 
 import groovy.transform.ToString
 

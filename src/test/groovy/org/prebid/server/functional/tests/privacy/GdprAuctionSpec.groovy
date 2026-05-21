@@ -12,6 +12,7 @@ import org.prebid.server.functional.model.request.auction.DistributionChannel
 import org.prebid.server.functional.model.request.auction.Regs
 import org.prebid.server.functional.model.request.auction.RegsExt
 import org.prebid.server.functional.model.response.auction.ErrorType
+import org.prebid.server.functional.util.Metrics
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.BogusConsent
 import org.prebid.server.functional.util.privacy.TcfConsent
@@ -33,9 +34,6 @@ import static org.prebid.server.functional.model.mock.services.vendorlist.GvlSpe
 import static org.prebid.server.functional.model.pricefloors.Country.BULGARIA
 import static org.prebid.server.functional.model.pricefloors.Country.CAN
 import static org.prebid.server.functional.model.pricefloors.Country.USA
-import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ACCOUNT_DISALLOWED_COUNT
-import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ADAPTER_DISALLOWED_COUNT
-import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_REQUEST_DISALLOWED_COUNT
 import static org.prebid.server.functional.model.request.auction.ActivityType.FETCH_BIDS
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_EIDS
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_PRECISE_GEO
@@ -342,7 +340,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
 
         and: "Alerts.general metrics should be populated"
         def metrics = privacyPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[Metrics.General.alert()] == 1
 
         and: "Bid response should contain seatBid"
         assert response.seatbid.size() == 1
@@ -439,8 +437,8 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
 
         then: "PBs should increment metrics when eea-country matched"
         def metricsRequest = privacyPbsService.sendCollectedMetricsRequest()
-        assert metricsRequest["privacy.tcf.v2.in-geo"] == 1
-        assert !metricsRequest["privacy.tcf.v2.out-geo"]
+        assert metricsRequest[Metrics.Privacy.tcfInGeo(2)] == 1
+        assert !metricsRequest[Metrics.Privacy.tcfOutGeo(2)]
     }
 
     def "PBS should apply gdpr and not emit metrics when host and device.geo.country doesn't contain same eea-country"() {
@@ -467,8 +465,9 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
 
         then: "PBs should increment metrics when eea-country doens't matched"
         def metricsRequest = privacyPbsService.sendCollectedMetricsRequest()
-        assert !metricsRequest["privacy.tcf.v2.in-geo"]
-        assert metricsRequest["privacy.tcf.v2.out-geo"] == 1
+        assert !metricsRequest[Metrics.Privacy.tcfInGeo(2)]
+        assert metricsRequest[Metrics.Privacy.tcfOutGeo(2)] == 1
+        
     }
 
     def "PBS should apply gdpr and emit metrics when account and device.geo.country contains same eea-country"() {
@@ -495,8 +494,8 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
 
         then: "PBs should increment metrics when eea-country matched"
         def metricsRequest = privacyPbsService.sendCollectedMetricsRequest()
-        assert metricsRequest["privacy.tcf.v2.in-geo"] == 1
-        assert !metricsRequest["privacy.tcf.v2.out-geo"]
+        assert metricsRequest[Metrics.Privacy.tcfInGeo(2)] == 1
+        assert !metricsRequest[Metrics.Privacy.tcfOutGeo(2)]
     }
 
     def "PBS should apply gdpr and not emit metrics when account and device.geo.country doesn't contain same eea-country"() {
@@ -523,8 +522,8 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
 
         then: "PBs shouldn't increment metrics when eea-country matched"
         def metricsRequest = privacyPbsService.sendCollectedMetricsRequest()
-        assert !metricsRequest["privacy.tcf.v2.in-geo"]
-        assert metricsRequest["privacy.tcf.v2.out-geo"] == 1
+        assert !metricsRequest[Metrics.Privacy.tcfInGeo(2)]
+        assert metricsRequest[Metrics.Privacy.tcfOutGeo(2)] == 1
     }
 
     def "PBS auction should update activity controls fetch bids metrics when tcf requirement disallow request"() {
@@ -552,9 +551,9 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
 
         then: "Metrics processed across activities should be updated"
         def metrics = privacyPbsService.sendCollectedMetricsRequest()
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
-        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+        assert metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, FETCH_BIDS)] == 1
+        assert metrics[Metrics.Privacy.accountDisallowedActivityCount(bidRequest.accountId, FETCH_BIDS)] == 1
+        assert metrics[Metrics.Privacy.requestDisallowedActivityCount(FETCH_BIDS)] == 1
     }
 
     def "PBS auction should update activity controls privacy metrics when tcf requirement disallow privacy fields and trace level verbosity"() {
@@ -611,7 +610,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         and: "Bidder request should mask user personal data"
         verifyAll(bidderRequest.user) {
             !id
-            !buyeruid
+            !buyerUid
             !yob
             !gender
             !eids
@@ -624,15 +623,15 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = privacyPbsService.sendCollectedMetricsRequest()
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)] == 1
-        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
-        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)] == 1
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)] == 1
+        assert metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_EIDS)] == 1
+        assert metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_PRECISE_GEO)] == 1
+        assert metrics[Metrics.Privacy.accountDisallowedActivityCount(bidRequest.accountId, TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.accountDisallowedActivityCount(bidRequest.accountId, TRANSMIT_EIDS)] == 1
+        assert metrics[Metrics.Privacy.accountDisallowedActivityCount(bidRequest.accountId, TRANSMIT_PRECISE_GEO)] == 1
+        assert metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_EIDS)] == 1
+        assert metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_PRECISE_GEO)] == 1
     }
 
     def "PBS auction should update activity controls privacy metrics when tcf requirement disallow privacy fields and trace level basic"() {
@@ -689,7 +688,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         and: "Bidder request should mask user personal data"
         verifyAll(bidderRequest.user) {
             !id
-            !buyeruid
+            !buyerUid
             !yob
             !gender
             !eids
@@ -702,17 +701,17 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = privacyPbsService.sendCollectedMetricsRequest()
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)] == 1
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)] == 1
+        assert metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_EIDS)] == 1
+        assert metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_PRECISE_GEO)] == 1
+        assert metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_EIDS)] == 1
+        assert metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_PRECISE_GEO)] == 1
 
         and: "Account metrics shouldn't be updated"
-        assert !metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)]
-        assert !metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)]
-        assert !metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)]
+        assert !metrics[Metrics.Privacy.accountDisallowedActivityCount(bidRequest.accountId, TRANSMIT_UFPD)]
+        assert !metrics[Metrics.Privacy.accountDisallowedActivityCount(bidRequest.accountId, TRANSMIT_EIDS)]
+        assert !metrics[Metrics.Privacy.accountDisallowedActivityCount(bidRequest.accountId, TRANSMIT_PRECISE_GEO)]
     }
 
     def "PBS auction should not update activity controls privacy metrics when tcf requirement allow privacy fields"() {
@@ -765,27 +764,27 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
             bidderRequest.device.geo.ext == bidRequest.device.geo.ext
 
             bidderRequest.user.id == bidRequest.user.id
-            bidderRequest.user.buyeruid == bidRequest.user.buyeruid
+            bidderRequest.user.buyerUid == bidRequest.user.buyerUid
             bidderRequest.user.yob == bidRequest.user.yob
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.eids[0].source == bidRequest.user.eids[0].source
             bidderRequest.user.data == bidRequest.user.data
             bidderRequest.user.geo.lat == bidRequest.user.geo.lat
             bidderRequest.user.geo.lon == bidRequest.user.geo.lon
-            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == bidRequest.user.ext.data.buyerUid
         }
 
         and: "Metrics processed across activities shouldn't be updated"
         def metrics = privacyPbsService.sendCollectedMetricsRequest()
-        assert !metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)]
-        assert !metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)]
-        assert !metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)]
-        assert !metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)]
-        assert !metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)]
-        assert !metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)]
-        assert !metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)]
-        assert !metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)]
-        assert !metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)]
+        assert !metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_UFPD)]
+        assert !metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_EIDS)]
+        assert !metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_PRECISE_GEO)]
+        assert !metrics[Metrics.Privacy.accountDisallowedActivityCount(bidRequest.accountId, TRANSMIT_UFPD)]
+        assert !metrics[Metrics.Privacy.accountDisallowedActivityCount(bidRequest.accountId, TRANSMIT_EIDS)]
+        assert !metrics[Metrics.Privacy.accountDisallowedActivityCount(bidRequest.accountId, TRANSMIT_PRECISE_GEO)]
+        assert !metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_UFPD)]
+        assert !metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_EIDS)]
+        assert !metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_PRECISE_GEO)]
     }
 
     def "PBS auction should set 3 for tcfPolicyVersion when tcfPolicyVersion is #tcfPolicyVersion"() {
@@ -850,8 +849,8 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
 
         then: "Metrics processed across activities should be updated"
         def metrics = privacyPbsService.sendCollectedMetricsRequest()
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+        assert metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, FETCH_BIDS)] == 1
+        assert metrics[Metrics.Privacy.requestDisallowedActivityCount(FETCH_BIDS)] == 1
 
         where:
         gdpr | coppa | extGdpr | extCoppa
@@ -926,8 +925,8 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
 
         then: "Metrics processed across activities should be updated"
         def metrics = privacyPbsService.sendCollectedMetricsRequest()
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+        assert metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, FETCH_BIDS)] == 1
+        assert metrics[Metrics.Privacy.requestDisallowedActivityCount(FETCH_BIDS)] == 1
 
         where:
         requestCountry | accountCountry | requestIpV4 | requestIpV6 | header
@@ -969,7 +968,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         given: "Default bid requests with personal data"
         def bidRequest = bidRequestWithPersonalData.tap {
             regs.gdpr = 1
-            user.buyeruid = null
+            user.buyerUid = null
             user.ext.consent = new TcfConsent.Builder().build()
             ext.prebid.trace = VERBOSE
         }
@@ -992,7 +991,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         verifyAll(bidderRequest.user) {
             !id
-            !buyeruid
+            !buyerUid
             !yob
             !gender
             !eids
@@ -1005,8 +1004,8 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
 
         and: "Metrics buyeruid scrubbed shouldn't be updated"
         def metrics = privacyPbsService.sendCollectedMetricsRequest()
-        assert !metrics["adapter.${GENERIC.value}.requests.buyeruid_scrubbed"]
-        assert !metrics["account.${account.uuid}.adapter.${GENERIC.value}.requests.buyeruid_scrubbed"]
+        assert !metrics[Metrics.Adapter.buyerUidScrubbed(GENERIC)]
+        assert !metrics[Metrics.Account.buyerUidScrubbed(account.uuid, GENERIC)]
 
         where:
         verbosityLevel << [DETAILED, AccountMetricsVerbosityLevel.BASIC]
@@ -1038,7 +1037,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         verifyAll(bidderRequest.user) {
             !id
-            !buyeruid
+            !buyerUid
             !yob
             !gender
             !eids
@@ -1051,10 +1050,10 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
 
         and: "Metrics buyeruid scrubbed should be updated"
         def metrics = privacyPbsService.sendCollectedMetricsRequest()
-        assert metrics["adapter.${GENERIC.value}.requests.buyeruid_scrubbed"] == 1
+        assert metrics[Metrics.Adapter.buyerUidScrubbed(GENERIC)] == 1
 
         and: "Account metric shouldn't be populated"
-        assert !metrics["account.${account.uuid}.adapter.${GENERIC.value}.requests.buyeruid_scrubbed"]
+        assert !metrics[Metrics.Account.buyerUidScrubbed(account.uuid, GENERIC)]
     }
 
     def "PBS auction should update buyeruid scrubbed general and account metrics when user.buyeruid requested and verbosityLevel DETAILED"() {
@@ -1083,7 +1082,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         verifyAll(bidderRequest.user) {
             !id
-            !buyeruid
+            !buyerUid
             !yob
             !gender
             !eids
@@ -1096,7 +1095,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
 
         and: "Metrics buyeruid scrubbed should be updated"
         def metrics = privacyPbsService.sendCollectedMetricsRequest()
-        assert metrics["adapter.${GENERIC.value}.requests.buyeruid_scrubbed"] == 1
-        assert metrics["account.${account.uuid}.adapter.${GENERIC.value}.requests.buyeruid_scrubbed"] == 1
+        assert metrics[Metrics.Adapter.buyerUidScrubbed(GENERIC)] == 1
+        assert metrics[Metrics.Account.buyerUidScrubbed(account.uuid, GENERIC)] == 1
     }
 }

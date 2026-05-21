@@ -1,10 +1,12 @@
 package org.prebid.server.functional.tests.module.pbruleengine
 
 import org.prebid.server.functional.model.config.RuleEngineFunctionArgs
+import org.prebid.server.functional.util.Metrics
 import org.prebid.server.functional.util.PBSUtils
 
 import java.time.Instant
 
+import static org.prebid.server.functional.model.config.ModuleName.PB_RULE_ENGINE
 import static org.prebid.server.functional.model.config.PbRulesEngine.createRulesEngineWithRule
 import static org.prebid.server.functional.model.config.RuleEngineFunction.AD_UNIT_CODE
 import static org.prebid.server.functional.model.config.RuleEngineFunction.BUNDLE
@@ -17,6 +19,7 @@ import static org.prebid.server.functional.model.config.RuleEngineFunction.FPD_A
 import static org.prebid.server.functional.model.config.RuleEngineFunction.GPP_SID_AVAILABLE
 import static org.prebid.server.functional.model.config.RuleEngineFunction.TCF_IN_SCOPE
 import static org.prebid.server.functional.model.config.RuleEngineFunction.USER_FPD_AVAILABLE
+import static org.prebid.server.functional.model.config.Stage.PROCESSED_AUCTION_REQUEST
 import static org.prebid.server.functional.model.pricefloors.Country.BULGARIA
 
 class RuleEngineValidationSpec extends RuleEngineBaseSpec {
@@ -35,10 +38,10 @@ class RuleEngineValidationSpec extends RuleEngineBaseSpec {
         waitUntilSuccessfullyParsedAndCacheAccount(bidRequest)
 
         and: "Flush metrics"
-        flushMetrics(pbsServiceWithRulesEngineModule)
+        flushMetrics(pbsServiceWithMultipleModules)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBs should perform bidder request"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -57,12 +60,12 @@ class RuleEngineValidationSpec extends RuleEngineBaseSpec {
         assert !getAnalyticResults(bidResponse)
 
         and: "PBs should populate call and noop metrics"
-        def metrics = pbsServiceWithRulesEngineModule.sendCollectedMetricsRequest()
-        assert metrics[CALL_METRIC] == 1
-        assert metrics[NOOP_METRIC] == 1
+        def metrics = pbsServiceWithMultipleModules.sendCollectedMetricsRequest()
+        assert metrics[Metrics.Module.call(PB_RULE_ENGINE, PROCESSED_AUCTION_REQUEST)] == 1
+        assert metrics[Metrics.Module.noop(PB_RULE_ENGINE, PROCESSED_AUCTION_REQUEST)] == 1
 
         and: "PBs should populate update metrics"
-        assert !metrics[UPDATE_METRIC]
+        assert !metrics[Metrics.Module.update(PB_RULE_ENGINE, PROCESSED_AUCTION_REQUEST)]
 
         where:
         pbRulesEngine << [
@@ -89,10 +92,10 @@ class RuleEngineValidationSpec extends RuleEngineBaseSpec {
         waitUntilSuccessfullyParsedAndCacheAccount(bidRequest)
 
         and: "Flush metrics"
-        flushMetrics(pbsServiceWithRulesEngineModule)
+        flushMetrics(pbsServiceWithMultipleModules)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBs should perform bidder request"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -111,8 +114,8 @@ class RuleEngineValidationSpec extends RuleEngineBaseSpec {
         assert !getAnalyticResults(bidResponse)
 
         and: "PBs should populate noop metrics"
-        def metrics = pbsServiceWithRulesEngineModule.sendCollectedMetricsRequest()
-        assert metrics[NOOP_METRIC] == 1
+        def metrics = pbsServiceWithMultipleModules.sendCollectedMetricsRequest()
+        assert metrics[Metrics.Module.noop(PB_RULE_ENGINE, PROCESSED_AUCTION_REQUEST)] == 1
     }
 
     def "PBS shouldn't remove bidder and emit a warning when args rule engine not fully configured in account"() {
@@ -130,10 +133,10 @@ class RuleEngineValidationSpec extends RuleEngineBaseSpec {
         waitUntilFailedParsedAndCacheAccount(bidRequest)
 
         and: "Flush metrics"
-        flushMetrics(pbsServiceWithRulesEngineModule)
+        flushMetrics(pbsServiceWithMultipleModules)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBs should perform bidder request"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -149,8 +152,8 @@ class RuleEngineValidationSpec extends RuleEngineBaseSpec {
         assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
 
         and: "PBs should populate failer metrics"
-        def metrics = pbsServiceWithRulesEngineModule.sendCollectedMetricsRequest()
-        assert metrics[NOOP_METRIC] == 1
+        def metrics = pbsServiceWithMultipleModules.sendCollectedMetricsRequest()
+        assert metrics[Metrics.Module.noop(PB_RULE_ENGINE, PROCESSED_AUCTION_REQUEST)] == 1
     }
 
     def "PBS shouldn't remove bidder and emit a warning when model group rule engine not fully configured in account"() {
@@ -171,7 +174,7 @@ class RuleEngineValidationSpec extends RuleEngineBaseSpec {
         waitUntilFailedParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBs should perform bidder request"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -187,7 +190,7 @@ class RuleEngineValidationSpec extends RuleEngineBaseSpec {
         assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
 
         and: "PBs should emit failed logs"
-        def logs = pbsServiceWithRulesEngineModule.getLogsByTime(startTime)
+        def logs = pbsServiceWithMultipleModules.getLogsByTime(startTime)
         assert getLogsByText(logs, "Failed to parse rule-engine config for account $bidRequest.accountId:" +
                 " Weighted list cannot be empty")
     }
@@ -209,7 +212,7 @@ class RuleEngineValidationSpec extends RuleEngineBaseSpec {
         waitUntilSuccessfullyParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
         assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
@@ -239,7 +242,7 @@ class RuleEngineValidationSpec extends RuleEngineBaseSpec {
         accountDao.save(accountWithRulesEngine)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBs should perform bidder request"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -278,7 +281,7 @@ class RuleEngineValidationSpec extends RuleEngineBaseSpec {
         waitUntilSuccessfullyParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBs should perform bidder request"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -312,7 +315,7 @@ class RuleEngineValidationSpec extends RuleEngineBaseSpec {
         accountDao.save(accountWithRulesEngine)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
         assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
@@ -331,7 +334,7 @@ class RuleEngineValidationSpec extends RuleEngineBaseSpec {
         assert !getAnalyticResults(bidResponse)
 
         and: "PBs should emit failed logs"
-        def logs = pbsServiceWithRulesEngineModule.getLogsByTime(startTime)
+        def logs = pbsServiceWithMultipleModules.getLogsByTime(startTime)
         assert getLogsByText(logs, "Parsing rule for account $bidRequest.accountId").size() == 1
     }
 
@@ -357,7 +360,7 @@ class RuleEngineValidationSpec extends RuleEngineBaseSpec {
         waitUntilFailedParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
         assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
@@ -376,7 +379,7 @@ class RuleEngineValidationSpec extends RuleEngineBaseSpec {
         assert !getAnalyticResults(bidResponse)
 
         and: "PBS should emit log"
-        def logsByTime = pbsServiceWithRulesEngineModule.getLogsByTime(start)
+        def logsByTime = pbsServiceWithMultipleModules.getLogsByTime(start)
         assert getLogsByText(logsByTime, "Failed to parse rule-engine config for account $bidRequest.accountId:" +
                 " Weight must be greater than zero")
 
@@ -407,7 +410,7 @@ class RuleEngineValidationSpec extends RuleEngineBaseSpec {
         waitUntilFailedParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBs should perform bidder request"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -426,7 +429,7 @@ class RuleEngineValidationSpec extends RuleEngineBaseSpec {
         assert !bidResponse.ext?.errors
 
         and: "Logs should contain error"
-        def logs = pbsServiceWithRulesEngineModule.getLogsByTime(startTime)
+        def logs = pbsServiceWithMultipleModules.getLogsByTime(startTime)
         assert getLogsByText(logs, "Failed to parse rule-engine config for account ${bidRequest.accountId}: " +
                 "Function '${function.value}' configuration is invalid: No arguments allowed")
 

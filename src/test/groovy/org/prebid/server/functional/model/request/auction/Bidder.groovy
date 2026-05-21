@@ -3,8 +3,11 @@ package org.prebid.server.functional.model.request.auction
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonProperty
 import groovy.transform.ToString
+import org.prebid.server.functional.model.bidder.Adrino
+import org.prebid.server.functional.model.bidder.Amx
 import org.prebid.server.functional.model.bidder.AppNexus
 import org.prebid.server.functional.model.bidder.Generic
+import org.prebid.server.functional.model.bidder.Ix
 import org.prebid.server.functional.model.bidder.Openx
 import org.prebid.server.functional.model.bidder.Rubicon
 

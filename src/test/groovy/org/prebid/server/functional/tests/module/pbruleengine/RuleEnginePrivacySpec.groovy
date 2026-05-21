@@ -19,10 +19,10 @@ import org.prebid.server.functional.util.privacy.TcfConsent
 
 import java.time.Instant
 
-import static org.prebid.server.functional.model.ModuleName.PB_RULE_ENGINE
 import static org.prebid.server.functional.model.bidder.BidderName.AMX
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
+import static org.prebid.server.functional.model.config.ModuleName.PB_RULE_ENGINE
 import static org.prebid.server.functional.model.config.PbRulesEngine.createRulesEngineWithRule
 import static org.prebid.server.functional.model.config.RuleEngineFunction.EID_AVAILABLE
 import static org.prebid.server.functional.model.config.RuleEngineFunction.EID_IN
@@ -32,7 +32,7 @@ import static org.prebid.server.functional.model.config.RuleEngineFunction.GPP_S
 import static org.prebid.server.functional.model.config.RuleEngineFunction.TCF_IN_SCOPE
 import static org.prebid.server.functional.model.config.RuleEngineFunction.USER_FPD_AVAILABLE
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
-import static org.prebid.server.functional.model.request.auction.FetchStatus.SUCCESS
+import static org.prebid.server.functional.model.response.auction.AnalyticTagStatus.SUCCESS
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.REQUEST_BIDDER_REMOVED_BY_RULE_ENGINE_MODULE
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
@@ -58,7 +58,7 @@ class RuleEnginePrivacySpec extends RuleEngineBaseSpec {
         waitUntilSuccessfullyParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
         assert bidResponse.seatbid.seat.sort() == [GENERIC, AMX].sort()
@@ -120,7 +120,7 @@ class RuleEnginePrivacySpec extends RuleEngineBaseSpec {
         waitUntilFailedParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
         assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
@@ -167,7 +167,7 @@ class RuleEnginePrivacySpec extends RuleEngineBaseSpec {
         waitUntilFailedParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBs should perform bidder request"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -186,7 +186,7 @@ class RuleEnginePrivacySpec extends RuleEngineBaseSpec {
         assert !getAnalyticResults(bidResponse)
 
         and: "Logs should contain error"
-        def logs = pbsServiceWithRulesEngineModule.getLogsByTime(startTime)
+        def logs = pbsServiceWithMultipleModules.getLogsByTime(startTime)
         assert getLogsByText(logs, INVALID_CONFIGURATION_FOR_STRINGS_LOG_WARNING(bidRequest.accountId, EID_IN))
     }
 
@@ -213,7 +213,7 @@ class RuleEnginePrivacySpec extends RuleEngineBaseSpec {
         waitUntilSuccessfullyParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
         assert bidResponse.seatbid.seat.sort() == [GENERIC, AMX].sort()
@@ -275,7 +275,7 @@ class RuleEnginePrivacySpec extends RuleEngineBaseSpec {
         waitUntilSuccessfullyParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
         assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
@@ -313,7 +313,7 @@ class RuleEnginePrivacySpec extends RuleEngineBaseSpec {
         waitUntilSuccessfullyParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
         assert bidResponse.seatbid.seat.sort() == [GENERIC, AMX].sort()
@@ -377,7 +377,7 @@ class RuleEnginePrivacySpec extends RuleEngineBaseSpec {
         waitUntilSuccessfullyParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
         assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
@@ -416,7 +416,7 @@ class RuleEnginePrivacySpec extends RuleEngineBaseSpec {
         waitUntilSuccessfullyParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
         assert bidResponse.seatbid.seat.sort() == [GENERIC, AMX].sort()
@@ -492,7 +492,7 @@ class RuleEnginePrivacySpec extends RuleEngineBaseSpec {
         waitUntilSuccessfullyParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
         assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
@@ -554,7 +554,7 @@ class RuleEnginePrivacySpec extends RuleEngineBaseSpec {
         waitUntilSuccessfullyParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
         assert bidResponse.seatbid.seat.sort() == [GENERIC, AMX].sort()
@@ -613,7 +613,7 @@ class RuleEnginePrivacySpec extends RuleEngineBaseSpec {
         waitUntilSuccessfullyParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
         assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
@@ -660,7 +660,7 @@ class RuleEnginePrivacySpec extends RuleEngineBaseSpec {
         waitUntilFailedParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBs should perform bidder request"
         assert bidder.getBidderRequests(bidRequest.id)
@@ -679,7 +679,7 @@ class RuleEnginePrivacySpec extends RuleEngineBaseSpec {
         assert !getAnalyticResults(bidResponse)
 
         and: "Logs should contain error"
-        def logs = pbsServiceWithRulesEngineModule.getLogsByTime(startTime)
+        def logs = pbsServiceWithMultipleModules.getLogsByTime(startTime)
         assert getLogsByText(logs, INVALID_CONFIGURATION_FOR_INTEGERS_LOG_WARNING(bidRequest.accountId, GPP_SID_IN))
     }
 
@@ -705,7 +705,7 @@ class RuleEnginePrivacySpec extends RuleEngineBaseSpec {
         waitUntilSuccessfullyParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
         assert bidResponse.seatbid.seat.sort() == [GENERIC, AMX].sort()
@@ -770,7 +770,7 @@ class RuleEnginePrivacySpec extends RuleEngineBaseSpec {
         waitUntilSuccessfullyParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
         assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS
@@ -818,7 +818,7 @@ class RuleEnginePrivacySpec extends RuleEngineBaseSpec {
         waitUntilSuccessfullyParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
         assert bidResponse.seatbid.seat.sort() == [GENERIC, AMX].sort()
@@ -889,7 +889,7 @@ class RuleEnginePrivacySpec extends RuleEngineBaseSpec {
         waitUntilSuccessfullyParsedAndCacheAccount(bidRequest)
 
         when: "PBS processes auction request"
-        def bidResponse = pbsServiceWithRulesEngineModule.sendAuctionRequest(bidRequest)
+        def bidResponse = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain seats"
         assert bidResponse.seatbid.seat.sort() == MULTI_BID_ADAPTERS

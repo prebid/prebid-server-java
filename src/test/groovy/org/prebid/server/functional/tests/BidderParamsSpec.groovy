@@ -7,8 +7,8 @@ import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredImp
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
-import org.prebid.server.functional.model.request.auction.Adrino
-import org.prebid.server.functional.model.request.auction.Amx
+import org.prebid.server.functional.model.bidder.Adrino
+import org.prebid.server.functional.model.bidder.Amx
 import org.prebid.server.functional.model.request.auction.AuctionEnvironment
 import org.prebid.server.functional.model.request.auction.Banner
 import org.prebid.server.functional.model.request.auction.BidRequest

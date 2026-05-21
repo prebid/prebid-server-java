@@ -1,10 +1,10 @@
-package org.prebid.server.functional.model.request.auction
+package org.prebid.server.functional.model.bidder
 
 import groovy.transform.EqualsAndHashCode
 import org.prebid.server.functional.util.PBSUtils
 
 @EqualsAndHashCode
-class Ix {
+class Ix implements BidderAdapter {
 
     String siteId
     List<Integer> size
