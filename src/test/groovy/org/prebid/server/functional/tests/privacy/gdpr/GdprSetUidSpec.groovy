@@ -56,6 +56,7 @@ class GdprSetUidSpec extends PrivacyBaseSpec {
             it.gdprConsent = new TcfConsent.Builder()
                     .setPurposesLITransparency(DEVICE_ACCESS)
                     .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                    .setDisclosedVendors([GENERIC_VENDOR_ID])
                     .build()
         }
 
@@ -96,6 +97,7 @@ class GdprSetUidSpec extends PrivacyBaseSpec {
             it.gdprConsent = new TcfConsent.Builder()
                     .setPurposesLITransparency(DEVICE_ACCESS)
                     .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                    .setDisclosedVendors([GENERIC_VENDOR_ID])
                     .build()
         }
 
@@ -134,6 +136,7 @@ class GdprSetUidSpec extends PrivacyBaseSpec {
             it.gdprConsent = new TcfConsent.Builder()
                     .setPurposesLITransparency(DEVICE_ACCESS)
                     .setVendorLegitimateInterest([PBSUtils.getRandomNumberWithExclusion(GENERIC_VENDOR_ID, 0, 65534)])
+                    .setDisclosedVendors([GENERIC_VENDOR_ID])
                     .build()
         }
 
@@ -175,6 +178,7 @@ class GdprSetUidSpec extends PrivacyBaseSpec {
             it.gdprConsent = new TcfConsent.Builder()
                     .setPurposesLITransparency(DEVICE_ACCESS)
                     .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                    .setDisclosedVendors([GENERIC_VENDOR_ID])
                     .build()
         }
 
@@ -220,6 +224,7 @@ class GdprSetUidSpec extends PrivacyBaseSpec {
             it.gdprConsent = new TcfConsent.Builder()
                     .setPurposesLITransparency(DEVICE_ACCESS)
                     .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                    .setDisclosedVendors([GENERIC_VENDOR_ID])
                     .build()
         }
 
@@ -269,6 +274,7 @@ class GdprSetUidSpec extends PrivacyBaseSpec {
             it.gdprConsent = new TcfConsent.Builder()
                     .setPurposesLITransparency(DEVICE_ACCESS)
                     .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                    .setDisclosedVendors([GENERIC_VENDOR_ID])
                     .build()
         }
 
@@ -310,6 +316,7 @@ class GdprSetUidSpec extends PrivacyBaseSpec {
             it.gdprConsent = new TcfConsent.Builder()
                     .setPurposesLITransparency(DEVICE_ACCESS)
                     .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                    .setDisclosedVendors([GENERIC_VENDOR_ID])
                     .build()
         }
 

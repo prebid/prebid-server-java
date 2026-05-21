@@ -78,6 +78,7 @@ class GppSetUidSpec extends PrivacyBaseSpec {
         def setUidRequest = SetuidRequest.defaultSetuidRequest.tap {
             def tcfEuV2Consent = new TcfEuV2Consent.Builder()
                     .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                    .setDisclosedVendors([GENERIC_VENDOR_ID])
                     .build()
                     .encodeSection()
             it.gpp = tcfEuV2Consent

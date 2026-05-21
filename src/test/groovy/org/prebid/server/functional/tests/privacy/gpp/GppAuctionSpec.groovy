@@ -150,6 +150,7 @@ class GppAuctionSpec extends PrivacyBaseSpec {
         def validConsentString = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
                 .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .setDisclosedVendors([GENERIC_VENDOR_ID])
                 .build()
         def gppSidIds = [TCF_EU_V2.intValue]
         def gpp = new TcfEuV2Consent.Builder().build()

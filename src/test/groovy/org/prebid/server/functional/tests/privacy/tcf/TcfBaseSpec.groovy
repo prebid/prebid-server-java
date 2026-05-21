@@ -46,13 +46,6 @@ class TcfBaseSpec extends PrivacyBaseSpec {
                                                                          "gdpr.vendorlist.v3.http-endpoint-template": null]
 
     protected static final Map<String, String> TCF_BASE_CONFIG = SETTING_CONFIG + GENERIC_VENDOR_CONFIG + GENERIC_CONFIG + GDPR_RESTRICTION_CONFIG
-    protected static PrebidServerService privacyPbsServiceWithMultipleGvl
-    protected static PrebidServerService activityPbsServiceExcludeGvl
-
-    def setupSpec() {
-        activityPbsServiceExcludeGvl = pbsServiceFactory.getService(TCF_BASE_CONFIG + VENDOR_LIST_EMPTY_CONFIG)
-        privacyPbsServiceWithMultipleGvl = pbsServiceFactory.getService(GENERAL_PRIVACY_CONFIG, GLV_LISTS_FILES)
-    }
 
     protected static List<EnforcementRequirement> getBasicTcfCompanyBasedEnforcementRequirements(Purpose purpose) {
         [new EnforcementRequirement(purpose: purpose,

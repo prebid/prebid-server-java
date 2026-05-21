@@ -132,7 +132,9 @@ class GppCookieSyncSpec extends BaseSpec {
             it.gppSid = PBSUtils.getRandomNumberWithExclusion(TCF_EU_V2.intValue)
             it.gpp = null
             it.gdpr = 1
-            it.gdprConsent = new TcfConsent.Builder().build() // mandatory parameter when gdpr is resolved to 1
+            it.gdprConsent = new TcfConsent.Builder()
+                    .setDisclosedVendors([GENERIC_VENDOR_ID])
+                    .build() // mandatory parameter when gdpr is resolved to 1
         }
 
         when: "PBS processes cookie sync request"
@@ -191,8 +193,10 @@ class GppCookieSyncSpec extends BaseSpec {
             it.gppSid = TCF_EU_V2.value
             it.gpp = new TcfEuV2Consent.Builder().build()
             it.gdpr = null
-            it.gdprConsent = new TcfConsent.Builder().setPurposesLITransparency(DEVICE_ACCESS)
+            it.gdprConsent = new TcfConsent.Builder()
+                    .setPurposesLITransparency(DEVICE_ACCESS)
                     .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                    .setDisclosedVendors([GENERIC_VENDOR_ID])
                     .build()
         }
 
@@ -288,7 +292,7 @@ class GppCookieSyncSpec extends BaseSpec {
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             it.gppSid = TCF_EU_V2.intValue
             it.gdpr = 1
-            it.gdprConsent = new TcfConsent.Builder().build()
+            it.gdprConsent = new TcfConsent.Builder().setDisclosedVendors([GENERIC_VENDOR_ID]).build()
         }
 
         when: "PBS processes cookie sync request"
@@ -309,7 +313,7 @@ class GppCookieSyncSpec extends BaseSpec {
             it.bidders = [ALIAS]
             it.gppSid = TCF_EU_V2.intValue
             it.gdpr = 1
-            it.gdprConsent = new TcfConsent.Builder().build()
+            it.gdprConsent = new TcfConsent.Builder().setDisclosedVendors([GENERIC_VENDOR_ID]).build()
         }
 
         when: "PBS processes cookie sync request"
@@ -422,6 +426,7 @@ class GppCookieSyncSpec extends BaseSpec {
             it.gdprConsent = new TcfConsent.Builder()
                     .setPurposesLITransparency(DEVICE_ACCESS)
                     .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                    .setDisclosedVendors([GENERIC_VENDOR_ID])
                     .build()
             it.account = PBSUtils.randomNumber
         }
@@ -455,6 +460,7 @@ class GppCookieSyncSpec extends BaseSpec {
             it.gdprConsent = new TcfConsent.Builder()
                     .setPurposesLITransparency(DEVICE_ACCESS)
                     .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                    .setDisclosedVendors([GENERIC_VENDOR_ID])
                     .build()
             it.account = PBSUtils.randomNumber
         }
@@ -503,7 +509,7 @@ class GppCookieSyncSpec extends BaseSpec {
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             it.gppSid = PBSUtils.getRandomNumberWithExclusion(TCF_EU_V2.intValue)
             it.gdpr = 1
-            it.gdprConsent = new TcfConsent.Builder().build()
+            it.gdprConsent = new TcfConsent.Builder().setDisclosedVendors([GENERIC_VENDOR_ID]).build()
         }
 
         when: "PBS processes cookie sync request"

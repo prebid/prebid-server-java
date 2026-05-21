@@ -15,13 +15,14 @@ import static org.prebid.server.functional.model.request.GppSectionId.TCF_EU_V2
 import static org.prebid.server.functional.model.request.GppSectionId.USP_V1
 import static org.prebid.server.functional.model.request.amp.ConsentType.GPP
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
+import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 
 class GppAmpSpec extends PrivacyBaseSpec {
 
     def "PBS should populate bid request with regs when consent type is GPP and consent string, gppSid are present"() {
         given: "Default AmpRequest with consent_type = gpp"
         def gppSids = "${TCF_EU_V2.value},${USP_V1.value}" as String
-        def consentString = new TcfEuV2Consent.Builder().build().toString()
+        def consentString = new TcfEuV2Consent.Builder().setDisclosedVendors([GENERIC_VENDOR_ID]).build().toString()
         def ampRequest = getGppAmpRequest(consentString, gppSids)
         def ampStoredRequest = BidRequest.defaultBidRequest.tap {
             setAccountId(ampRequest.account)

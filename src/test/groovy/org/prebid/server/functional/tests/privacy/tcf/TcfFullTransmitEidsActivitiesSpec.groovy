@@ -2,6 +2,7 @@ package org.prebid.server.functional.tests.privacy.tcf
 
 
 import org.prebid.server.functional.model.request.auction.Eid
+import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.privacy.TcfUtils
 
 import static org.prebid.server.functional.model.config.Purpose.P1
@@ -16,6 +17,16 @@ import static org.prebid.server.functional.model.config.Purpose.P8
 import static org.prebid.server.functional.model.config.Purpose.P9
 
 class TcfFullTransmitEidsActivitiesSpec extends TcfBaseSpec {
+
+    private static PrebidServerService privacyPbsServiceWithMultipleGvl
+
+    def setupSpec() {
+        privacyPbsServiceWithMultipleGvl = pbsServiceFactory.getService(GENERAL_PRIVACY_CONFIG, GLV_LISTS_FILES)
+    }
+
+    def cleanupSpec() {
+        pbsServiceFactory.removeContainer(GENERAL_PRIVACY_CONFIG)
+    }
 
     def "PBS should preserve eids from original request when requireConsent is enabled and #enforcementRequirements.purpose has full consent"() {
         given: "Default Generic BidRequests with Eid field"

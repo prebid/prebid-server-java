@@ -423,6 +423,7 @@ class DsaSpec extends PrivacyBaseSpec {
         def consentString = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
                 .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .setDisclosedVendors([GENERIC_VENDOR_ID])
                 .build()
 
         def accountId = PBSUtils.randomNumber.toString()
