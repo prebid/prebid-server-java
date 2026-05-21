@@ -50,6 +50,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
+import java.util.Collections;
+
 public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements ProcessedAuctionRequestHook {
 
     private static final ConditionalLogger conditionalLogger = new ConditionalLogger(LoggerFactory.getLogger(
@@ -258,7 +260,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
     }
 
     private List<ExtRequestPrebidDataEidPermissions> createEidPermissions() {
-        return Collections.singletonList(ExtRequestPrebidDataEidPermissions.builder()
+        return List.of(ExtRequestPrebidDataEidPermissions.builder()
                                 .matcher(MATCHER)
                                 .inserter(INSERTER)
                                 .bidders(targetBidders.stream().toList())
