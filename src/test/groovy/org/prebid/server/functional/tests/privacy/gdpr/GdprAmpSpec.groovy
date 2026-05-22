@@ -1,4 +1,4 @@
-package org.prebid.server.functional.tests.privacy
+package org.prebid.server.functional.tests.privacy.gdpr
 
 import org.mockserver.model.Delay
 import org.prebid.server.functional.model.ChannelType
@@ -13,6 +13,7 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.DistributionChannel
 import org.prebid.server.functional.model.request.auction.Regs
 import org.prebid.server.functional.model.request.auction.RegsExt
+import org.prebid.server.functional.tests.privacy.PrivacyBaseSpec
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.BogusConsent
 import org.prebid.server.functional.util.privacy.CcpaConsent
@@ -207,6 +208,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         given: "Default AmpRequest with invalid consent_type"
         def consentString = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
+                .setDisclosedVendors([GENERIC_VENDOR_ID])
                 .build()
         def ampRequest = getGdprAmpRequest(consentString).tap {
             consentType = BOGUS
@@ -254,6 +256,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         def validConsentString = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
                 .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .setDisclosedVendors([GENERIC_VENDOR_ID])
                 .build()
         def ampRequest = getGdprAmpRequest(validConsentString)
 
@@ -327,6 +330,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
                 .setTcfPolicyVersion(tcfPolicyVersion.value)
                 .setVendorListVersion(tcfPolicyVersion.vendorListVersion)
                 .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .setDisclosedVendors([GENERIC_VENDOR_ID])
                 .build()
 
         and: "AMP request"
@@ -369,6 +373,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
                 .setPurposesLITransparency(BASIC_ADS)
                 .setTcfPolicyVersion(invalidTcfPolicyVersion)
                 .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .setDisclosedVendors([GENERIC_VENDOR_ID])
                 .build()
 
         and: "AMP request"
@@ -418,6 +423,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
                 .setTcfPolicyVersion(tcfPolicyVersion.value)
                 .setVendorListVersion(tcfPolicyVersion.vendorListVersion)
                 .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .setDisclosedVendors([GENERIC_VENDOR_ID])
                 .build()
 
         and: "AMP request"
@@ -511,7 +517,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         def ampStoredRequest = bidRequestWithPersonalData
 
         and: "Amp default request"
-        def tcfConsent = new TcfConsent.Builder().build()
+        def tcfConsent = new TcfConsent.Builder().setDisclosedVendors([GENERIC_VENDOR_ID]).build()
         def ampRequest = getGdprAmpRequest(tcfConsent).tap {
             account = ampStoredRequest.accountId
         }
@@ -591,7 +597,10 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         def ampStoredRequest = bidRequestWithPersonalData
 
         and: "Amp default request"
-        def tcfConsent = new TcfConsent.Builder().setSpecialFeatureOptIns(DEVICE_ACCESS).build()
+        def tcfConsent = new TcfConsent.Builder()
+                .setSpecialFeatureOptIns(DEVICE_ACCESS)
+                .setDisclosedVendors([GENERIC_VENDOR_ID])
+                .build()
         def ampRequest = getGdprAmpRequest(tcfConsent).tap {
             account = ampStoredRequest.accountId
         }
@@ -670,6 +679,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
                 .setTcfPolicyVersion(tcfPolicyVersion.value)
                 .setVendorListVersion(tcfPolicyVersion.vendorListVersion)
                 .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .setDisclosedVendors([GENERIC_VENDOR_ID])
                 .build()
 
         and: "AMP request"

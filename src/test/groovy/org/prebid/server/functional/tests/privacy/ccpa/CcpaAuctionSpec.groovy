@@ -1,8 +1,9 @@
-package org.prebid.server.functional.tests.privacy
+package org.prebid.server.functional.tests.privacy.ccpa
 
 import org.prebid.server.functional.model.ChannelType
 import org.prebid.server.functional.model.config.AccountCcpaConfig
 import org.prebid.server.functional.model.request.auction.DistributionChannel
+import org.prebid.server.functional.tests.privacy.PrivacyBaseSpec
 import org.prebid.server.functional.util.privacy.BogusConsent
 import org.prebid.server.functional.util.privacy.CcpaConsent
 import spock.lang.PendingFeature

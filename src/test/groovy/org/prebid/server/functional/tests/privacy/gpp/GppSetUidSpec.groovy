@@ -1,9 +1,10 @@
-package org.prebid.server.functional.tests.privacy
+package org.prebid.server.functional.tests.privacy.gpp
 
 import org.prebid.server.functional.model.UidsCookie
 import org.prebid.server.functional.model.request.GppSectionId
 import org.prebid.server.functional.model.request.setuid.SetuidRequest
 import org.prebid.server.functional.service.PrebidServerException
+import org.prebid.server.functional.tests.privacy.PrivacyBaseSpec
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.gpp.v2.TcfEuV2Consent
 import org.prebid.server.functional.util.privacy.gpp.v1.UspV1Consent
@@ -77,6 +78,7 @@ class GppSetUidSpec extends PrivacyBaseSpec {
         def setUidRequest = SetuidRequest.defaultSetuidRequest.tap {
             def tcfEuV2Consent = new TcfEuV2Consent.Builder()
                     .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                    .setDisclosedVendors([GENERIC_VENDOR_ID])
                     .build()
                     .encodeSection()
             it.gpp = tcfEuV2Consent
