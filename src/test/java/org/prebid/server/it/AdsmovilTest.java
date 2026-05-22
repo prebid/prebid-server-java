@@ -25,8 +25,7 @@ public class AdsmovilTest extends IntegrationTest {
         // when
         final Response response = responseFor(
                 "openrtb2/adsmovil/test-auction-adsmovil-request.json",
-                Endpoint.openrtb2_auction
-        );
+                Endpoint.openrtb2_auction);
 
         // then
         assertJsonEquals("openrtb2/adsmovil/test-auction-adsmovil-response.json", response, List.of("adsmovil"));
