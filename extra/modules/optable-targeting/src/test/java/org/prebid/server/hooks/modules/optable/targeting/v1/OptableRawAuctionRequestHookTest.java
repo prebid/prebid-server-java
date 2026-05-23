@@ -14,8 +14,11 @@ import org.mockito.quality.Strictness;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
 import org.prebid.server.execution.timeout.Timeout;
+import org.prebid.server.execution.timeout.TimeoutFactory;
+import org.prebid.server.hooks.execution.model.ExecutionPlan;
 import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidderEnrichmentSampler;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.CompositeHookExecutionPlan;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.NetworkCall;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargeting;
@@ -47,6 +50,8 @@ public class OptableRawAuctionRequestHookTest extends BaseOptableTest {
     @Mock
     private Timeout timeout;
     @Mock
+    private TimeoutFactory timeoutFactory;
+    @Mock
     private BidderEnrichmentSampler bidderEnrichmentSampler;
 
     private ConfigResolver configResolver;
@@ -58,8 +63,10 @@ public class OptableRawAuctionRequestHookTest extends BaseOptableTest {
         when(userFpdActivityMask.maskDevice(any(), anyBoolean(), anyBoolean()))
                 .thenAnswer(answer -> answer.getArgument(0));
         configResolver = new ConfigResolver(mapper, jsonMerger, givenOptableTargetingProperties(false));
-        networkCall = new NetworkCall(optableTargeting, userFpdActivityMask);
-        target = new OptableRawAuctionRequestHook(configResolver, networkCall, bidderEnrichmentSampler, 0.01);
+        networkCall = new NetworkCall(optableTargeting, userFpdActivityMask, timeoutFactory);
+        target = new OptableRawAuctionRequestHook(
+                configResolver, networkCall, bidderEnrichmentSampler,
+                CompositeHookExecutionPlan.of(ExecutionPlan.empty()), 0.01);
         when(invocationContext.auctionContext()).thenReturn(givenAuctionContext(activityInfrastructure, timeout));
         when(invocationContext.timeout()).thenReturn(timeout);
         when(activityInfrastructure.isAllowed(any(), any())).thenReturn(true);
@@ -113,7 +120,9 @@ public class OptableRawAuctionRequestHookTest extends BaseOptableTest {
 
         configResolver = new ConfigResolver(
                 mapper, jsonMerger, givenOptableTargetingProperties("key", "tenant", null, true));
-        target = new OptableRawAuctionRequestHook(configResolver, networkCall, bidderEnrichmentSampler, 0.01);
+        target = new OptableRawAuctionRequestHook(
+                configResolver, networkCall, bidderEnrichmentSampler,
+                CompositeHookExecutionPlan.of(ExecutionPlan.empty()), 0.01);
 
         // when
         final Future<InvocationResult<AuctionRequestPayload>> result =
@@ -148,7 +157,9 @@ public class OptableRawAuctionRequestHookTest extends BaseOptableTest {
                         .build());
 
         configResolver = new ConfigResolver(mapper, jsonMerger, givenOptableTargetingProperties(false));
-        target = new OptableRawAuctionRequestHook(configResolver, networkCall, bidderEnrichmentSampler, 0.01);
+        target = new OptableRawAuctionRequestHook(
+                configResolver, networkCall, bidderEnrichmentSampler,
+                CompositeHookExecutionPlan.of(ExecutionPlan.empty()), 0.01);
 
         // when
         final Future<InvocationResult<AuctionRequestPayload>> result =

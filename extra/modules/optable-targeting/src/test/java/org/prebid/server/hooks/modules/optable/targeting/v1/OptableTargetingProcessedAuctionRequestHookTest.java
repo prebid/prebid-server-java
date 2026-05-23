@@ -15,6 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
 import org.prebid.server.execution.timeout.Timeout;
+import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.hooks.execution.model.EndpointExecutionPlan;
 import org.prebid.server.hooks.execution.model.ExecutionGroup;
 import org.prebid.server.hooks.execution.model.ExecutionPlan;
@@ -67,6 +68,9 @@ class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
     @Mock(strictness = Mock.Strictness.LENIENT)
     private Timeout timeout;
 
+    @Mock(strictness = Mock.Strictness.LENIENT)
+    private TimeoutFactory timeoutFactory;
+
     private NetworkCall networkCall;
 
     private OptableTargetingProcessedAuctionRequestHook target;
@@ -76,7 +80,7 @@ class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
         when(userFpdActivityMask.maskDevice(any(), anyBoolean(), anyBoolean()))
                 .thenAnswer(answer -> answer.getArgument(0));
         configResolver = new ConfigResolver(mapper, jsonMerger, givenOptableTargetingProperties(false));
-        networkCall = new NetworkCall(optableTargeting, userFpdActivityMask);
+        networkCall = new NetworkCall(optableTargeting, userFpdActivityMask, timeoutFactory);
         target = new OptableTargetingProcessedAuctionRequestHook(
                 configResolver, networkCall, CompositeHookExecutionPlan.of(ExecutionPlan.empty()), 0.01);
 
@@ -164,7 +168,7 @@ class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
         when(auctionRequestPayload.bidRequest()).thenReturn(givenBidRequest());
         moduleContext.setOptableTargetingCall(
                 networkCall.makeRequest(auctionRequestPayload, invocationContext, givenOptableTargetingProperties(
-                        "key", "tenant", "origin", false)));
+                        "key", "tenant", "origin", false), null));
 
         // when
         final Future<InvocationResult<AuctionRequestPayload>> future = target.call(auctionRequestPayload,
@@ -271,7 +275,7 @@ class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
         when(auctionRequestPayload.bidRequest()).thenReturn(givenBidRequest());
         moduleContext.setOptableTargetingCall(
                 networkCall.makeRequest(auctionRequestPayload, invocationContext, givenOptableTargetingProperties(
-                        "key", "tenant", "origin", false)));
+                        "key", "tenant", "origin", false), null));
 
         // when
         final Future<InvocationResult<AuctionRequestPayload>> future = target.call(auctionRequestPayload,

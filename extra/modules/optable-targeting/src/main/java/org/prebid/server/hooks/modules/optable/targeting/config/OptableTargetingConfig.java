@@ -5,6 +5,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cache.PbcStorageService;
+import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.hooks.execution.model.ExecutionPlan;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
 import org.prebid.server.hooks.modules.optable.targeting.v1.OptableBidderRequestHook;
@@ -96,8 +97,11 @@ public class OptableTargetingConfig {
     }
 
     @Bean
-    NetworkCall networkCall(OptableTargeting optableTargeting, UserFpdActivityMask userFpdActivityMask) {
-        return new NetworkCall(optableTargeting, userFpdActivityMask);
+    NetworkCall networkCall(OptableTargeting optableTargeting,
+                            UserFpdActivityMask userFpdActivityMask,
+                            TimeoutFactory timeoutFactory) {
+
+        return new NetworkCall(optableTargeting, userFpdActivityMask, timeoutFactory);
     }
 
     @Bean
@@ -120,6 +124,7 @@ public class OptableTargetingConfig {
                         configResolver,
                         networkCall,
                         BidderEnrichmentSampler.of(AliasesResolver.of(bidderCatalog)),
+                        hooksExecutionPlan,
                         logSamplingRate),
                 new OptableTargetingProcessedAuctionRequestHook(
                         configResolver,

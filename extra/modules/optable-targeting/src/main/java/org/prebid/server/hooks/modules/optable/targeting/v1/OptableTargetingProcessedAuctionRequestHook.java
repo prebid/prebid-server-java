@@ -66,7 +66,6 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
         final Account account = invocationContext.auctionContext().getAccount();
         final boolean hasRawAuctionRequestHook = hooksExecutionPlan.hasRawAuctionRequestHook(account);
         final boolean hasBidderRequestHook = hooksExecutionPlan.hasBidderRequestHook(account);
-
         final OptableTargetingProperties properties =
                 resolveOptableTargetingProperties(moduleContext, invocationContext);
 
@@ -143,7 +142,8 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
         return networkCall.makeRequest(
                 payload,
                 invocationContext,
-                properties);
+                properties,
+                null);
     }
 
     private static Future<InvocationResult<AuctionRequestPayload>> update(

@@ -9,6 +9,7 @@ import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTar
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidRequestCleaner;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidderEnrichmentSampler;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.CompositeHookExecutionPlan;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.NetworkCall;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.PropertiesValidator;
@@ -21,6 +22,7 @@ import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.RawAuctionRequestHook;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.LoggerFactory;
+import org.prebid.server.settings.model.Account;
 
 import java.util.Objects;
 import java.util.Set;
@@ -30,21 +32,24 @@ public class OptableRawAuctionRequestHook implements RawAuctionRequestHook {
     private static final ConditionalLogger conditionalLogger = new ConditionalLogger(
             LoggerFactory.getLogger(OptableRawAuctionRequestHook.class));
 
-    private static final String CODE = "optable-targeting-raw-auction-request-hook";
+    public static final String CODE = "optable-targeting-raw-auction-request-hook";
 
     private final ConfigResolver configResolver;
     private final NetworkCall networkCall;
     private final BidderEnrichmentSampler bidderEnrichmentSampler;
+    private final CompositeHookExecutionPlan hooksExecutionPlan;
     private final double logSamplingRate;
 
     public OptableRawAuctionRequestHook(ConfigResolver configResolver,
                                         NetworkCall networkCall,
                                         BidderEnrichmentSampler bidderEnrichmentSampler,
+                                        CompositeHookExecutionPlan hooksExecutionPlan,
                                         double logSamplingRate) {
 
         this.configResolver = Objects.requireNonNull(configResolver);
         this.networkCall = Objects.requireNonNull(networkCall);
         this.bidderEnrichmentSampler = Objects.requireNonNull(bidderEnrichmentSampler);
+        this.hooksExecutionPlan = hooksExecutionPlan;
         this.logSamplingRate = logSamplingRate;
     }
 
@@ -80,10 +85,15 @@ public class OptableRawAuctionRequestHook implements RawAuctionRequestHook {
         }
 
         moduleContext.setBiddersToEnrich(biddersToEnrich);
+        final Account account = invocationContext.auctionContext().getAccount();
+        final long processedAuctionHookTimeout =
+                hooksExecutionPlan.getOptableTargetingProcessedAuctionRequestTimeout(account);
+
         final Future<TargetingResult> optableTargetingCall = networkCall.makeRequest(
                 payload,
                 invocationContext,
-                properties);
+                properties,
+                processedAuctionHookTimeout);
 
         moduleContext.setOptableTargetingCall(optableTargetingCall);
 

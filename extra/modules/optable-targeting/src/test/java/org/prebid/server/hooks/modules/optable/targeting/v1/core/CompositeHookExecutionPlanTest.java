@@ -234,9 +234,117 @@ public class CompositeHookExecutionPlanTest {
         assertThat(target.hasBidderRequestHook(account)).isFalse();
     }
 
+    @Test
+    public void getProcessedAuctionRequestTimeoutShouldReturnGlobalTimeoutWhenConfigured() {
+        // given
+        final ExecutionPlan globalPlan = givenExecutionPlanWithTimeout(
+                "processed_auction_request",
+                "optable-targeting-processed-auction-request-hook",
+                500L);
+        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(globalPlan);
+        final Account account = Account.builder().id("accountId").build();
+
+        // when and then
+        assertThat(target.getOptableTargetingProcessedAuctionRequestTimeout(account)).isEqualTo(500L);
+    }
+
+    @Test
+    public void getProcessedAuctionRequestTimeoutShouldReturnAccountTimeoutWhenAccountPlanOverrides() {
+        // given
+        final ExecutionPlan globalPlan = givenExecutionPlanWithTimeout(
+                "processed_auction_request",
+                "optable-targeting-processed-auction-request-hook",
+                500L);
+        final ExecutionPlan accountPlan = givenExecutionPlanWithTimeout(
+                "processed_auction_request",
+                "optable-targeting-processed-auction-request-hook",
+                200L);
+        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(globalPlan);
+        final Account account = givenAccount("accountId", accountPlan);
+
+        // when and then
+        assertThat(target.getOptableTargetingProcessedAuctionRequestTimeout(account)).isEqualTo(200L);
+    }
+
+    @Test
+    public void getProcessedAuctionRequestTimeoutShouldFallbackToGlobalWhenAccountPlanHasNoTimeout() {
+        // given
+        final ExecutionPlan globalPlan = givenExecutionPlanWithTimeout(
+                "processed_auction_request",
+                "optable-targeting-processed-auction-request-hook",
+                300L);
+        final ExecutionPlan accountPlan = givenExecutionPlan(
+                "raw_auction_request", "optable-targeting-raw-auction-request-hook");
+        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(globalPlan);
+        final Account account = givenAccount("accountId", accountPlan);
+
+        // when and then
+        assertThat(target.getOptableTargetingProcessedAuctionRequestTimeout(account)).isEqualTo(300L);
+    }
+
+    @Test
+    public void getProcessedAuctionRequestTimeoutShouldReturnZeroWhenNoPlanIsConfigured() {
+        // given
+        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(null);
+        final Account account = Account.builder().id("accountId").build();
+
+        // when and then
+        assertThat(target.getOptableTargetingProcessedAuctionRequestTimeout(account)).isEqualTo(0L);
+    }
+
+    @Test
+    public void getProcessedAuctionRequestTimeoutShouldReturnGlobalTimeoutWhenAccountIsNull() {
+        // given
+        final ExecutionPlan globalPlan = givenExecutionPlanWithTimeout(
+                "processed_auction_request",
+                "optable-targeting-processed-auction-request-hook",
+                400L);
+        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(globalPlan);
+
+        // when and then
+        assertThat(target.getOptableTargetingProcessedAuctionRequestTimeout(null)).isEqualTo(400L);
+    }
+
+    @Test
+    public void getProcessedAuctionRequestTimeoutShouldReturnGlobalTimeoutWhenAccountIdIsEmpty() {
+        // given
+        final ExecutionPlan globalPlan = givenExecutionPlanWithTimeout(
+                "processed_auction_request",
+                "optable-targeting-processed-auction-request-hook",
+                150L);
+        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(globalPlan);
+        final Account account = Account.builder().id("").build();
+
+        // when and then
+        assertThat(target.getOptableTargetingProcessedAuctionRequestTimeout(account)).isEqualTo(150L);
+    }
+
+    @Test
+    public void getProcessedAuctionRequestTimeoutShouldReturnSameResultOnRepeatedCallsForSameAccount() {
+        // given
+        final ExecutionPlan accountPlan = givenExecutionPlanWithTimeout(
+                "processed_auction_request",
+                "optable-targeting-processed-auction-request-hook",
+                250L);
+        final CompositeHookExecutionPlan target = CompositeHookExecutionPlan.of(null);
+        final Account account = givenAccount("accountId", accountPlan);
+
+        // when and then
+        assertThat(target.getOptableTargetingProcessedAuctionRequestTimeout(account)).isEqualTo(250L);
+        assertThat(target.getOptableTargetingProcessedAuctionRequestTimeout(account)).isEqualTo(250L);
+    }
+
     private ExecutionPlan givenExecutionPlan(String stage, String hookCode) {
         final HookId hookId = HookId.of("optable-targeting", hookCode);
         final ExecutionGroup group = ExecutionGroup.of(null, List.of(hookId));
+        final StageExecutionPlan stagePlan = StageExecutionPlan.of(List.of(group));
+        final EndpointExecutionPlan endpointPlan = EndpointExecutionPlan.of(Map.of(Stage.valueOf(stage), stagePlan));
+        return ExecutionPlan.of(null, Map.of(Endpoint.openrtb2_auction, endpointPlan));
+    }
+
+    private ExecutionPlan givenExecutionPlanWithTimeout(String stage, String hookCode, long timeout) {
+        final HookId hookId = HookId.of("optable-targeting", hookCode);
+        final ExecutionGroup group = ExecutionGroup.of(timeout, List.of(hookId));
         final StageExecutionPlan stagePlan = StageExecutionPlan.of(List.of(group));
         final EndpointExecutionPlan endpointPlan = EndpointExecutionPlan.of(Map.of(Stage.valueOf(stage), stagePlan));
         return ExecutionPlan.of(null, Map.of(Endpoint.openrtb2_auction, endpointPlan));

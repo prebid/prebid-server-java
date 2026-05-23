@@ -42,7 +42,7 @@ accounts:
                 "raw-auction-request": {
                   "groups": [
                     {
-                      "timeout": 1000,
+                      "timeout": 50,
                       "hook-sequence": [
                         {
                           "module-code": "optable-targeting",
@@ -55,7 +55,7 @@ accounts:
                 "bidder-request": {
                   "groups": [
                     {
-                      "timeout": 500,
+                      "timeout": 50,
                       "hook-sequence": [
                         {
                           "module-code": "optable-targeting",
