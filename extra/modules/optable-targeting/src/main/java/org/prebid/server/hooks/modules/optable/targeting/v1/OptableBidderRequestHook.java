@@ -33,7 +33,8 @@ public class OptableBidderRequestHook implements BidderRequestHook {
         }
 
         final Set<String> biddersToEnrich = moduleContext.getBiddersToEnrich();
-        if (CollectionUtils.isEmpty(biddersToEnrich)) {
+        if (CollectionUtils.isEmpty(biddersToEnrich)
+                || !biddersToEnrich.contains(invocationContext.bidder())) {
             return noAction(moduleContext);
         }
 

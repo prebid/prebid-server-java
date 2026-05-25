@@ -116,7 +116,6 @@ public class BidderEnrichmentSamplerTest extends BaseOptableTest {
     public void sampleShouldExcludeAllBiddersWhenDefaultPercentageIsNegative() {
         // given
         given(bidderAliases.resolveBidder(any())).willAnswer(inv -> inv.getArgument(0));
-        given(randomSupplier.getAsInt()).willReturn(0);
 
         final BidRequest bidRequest = givenBidRequest(
                 request -> request.imp(List.of(givenImp(imp -> imp.ext(givenBidderExt("bidderA", "bidderB"))))));
@@ -129,7 +128,7 @@ public class BidderEnrichmentSamplerTest extends BaseOptableTest {
     }
 
     @Test
-    public void sampleShouldIncludeBidderWhenRandomValueEqualsPercentage() {
+    public void sampleShouldExcludeBidderWhenRandomValueEqualsPercentage() {
         // given
         given(bidderAliases.resolveBidder(any())).willAnswer(inv -> inv.getArgument(0));
         given(randomSupplier.getAsInt()).willReturn(50);
@@ -141,7 +140,7 @@ public class BidderEnrichmentSamplerTest extends BaseOptableTest {
         final Set<String> result = target.sample(bidRequest, givenSampleProperties(50, Collections.emptyMap()));
 
         // then
-        assertThat(result).containsExactly("bidderA");
+        assertThat(result).isEmpty();
     }
 
     @Test
@@ -177,26 +176,9 @@ public class BidderEnrichmentSamplerTest extends BaseOptableTest {
     }
 
     @Test
-    public void sampleShouldIncludeBidderWhenPercentageIsZeroAndRandomIsZero() {
+    public void sampleShouldExcludeBidderWhenPercentageIsZeroAndRandomIsZero() {
         // given
         given(bidderAliases.resolveBidder(any())).willAnswer(inv -> inv.getArgument(0));
-        given(randomSupplier.getAsInt()).willReturn(0);
-
-        final BidRequest bidRequest = givenBidRequest(
-                request -> request.imp(List.of(givenImp(imp -> imp.ext(givenBidderExt("bidderA"))))));
-
-        // when
-        final Set<String> result = target.sample(bidRequest, givenSampleProperties(0, Collections.emptyMap()));
-
-        // then
-        assertThat(result).containsExactly("bidderA");
-    }
-
-    @Test
-    public void sampleShouldExcludeBidderWhenPercentageIsZeroAndRandomIsOne() {
-        // given
-        given(bidderAliases.resolveBidder(any())).willAnswer(inv -> inv.getArgument(0));
-        given(randomSupplier.getAsInt()).willReturn(1);
 
         final BidRequest bidRequest = givenBidRequest(
                 request -> request.imp(List.of(givenImp(imp -> imp.ext(givenBidderExt("bidderA"))))));

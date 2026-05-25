@@ -25,8 +25,8 @@ accounts:
           bidder-enrichment-percentages:
             appnexus: 75
             rubicon: 75
-            pubmatic: 100
-            criteo: 0
+            pubmatic: 0
+            improvedigital: 50
           enrich-web: true
           enrich-app: true
           id-prefix-order: "e,v,c"

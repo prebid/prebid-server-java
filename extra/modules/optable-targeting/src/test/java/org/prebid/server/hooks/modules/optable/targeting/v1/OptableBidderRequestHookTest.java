@@ -117,6 +117,7 @@ public class OptableBidderRequestHookTest extends BaseOptableTest {
         moduleContext.setBiddersToEnrich(Set.of("bidder1"));
         moduleContext.setOptableTargetingCall(Future.succeededFuture(givenTargetingResult()));
         when(invocationContext.moduleContext()).thenReturn(moduleContext);
+        when(invocationContext.bidder()).thenReturn("bidder1");
 
         // when
         final Future<InvocationResult<BidderRequestPayload>> future =
@@ -148,6 +149,7 @@ public class OptableBidderRequestHookTest extends BaseOptableTest {
         moduleContext.setBiddersToEnrich(Set.of("bidder1"));
         moduleContext.setOptableTargetingCall(Future.succeededFuture(givenTargetingResult()));
         when(invocationContext.moduleContext()).thenReturn(moduleContext);
+        when(invocationContext.bidder()).thenReturn("bidder1");
 
         // when
         target.call(bidderRequestPayload, invocationContext);
@@ -169,6 +171,7 @@ public class OptableBidderRequestHookTest extends BaseOptableTest {
         moduleContext.setOptableTargetingCall(
                 Future.failedFuture(new RuntimeException("targeting service error")));
         when(invocationContext.moduleContext()).thenReturn(moduleContext);
+        when(invocationContext.bidder()).thenReturn("bidder1");
 
         // when
         final Future<InvocationResult<BidderRequestPayload>> future =

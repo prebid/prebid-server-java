@@ -37,7 +37,7 @@ public class BidderEnrichmentSampler {
                 .filter(bidder -> {
                     final int percentage =
                             resolvePercentage(aliases, bidder, defaultEnrichmentPercentage, bidderEnrichmentPercentage);
-                    return randomSupplier.getAsInt() <= percentage;
+                    return percentage > 0 && randomSupplier.getAsInt() < percentage;
                 })
                 .collect(Collectors.toSet());
     }
