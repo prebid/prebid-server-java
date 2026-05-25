@@ -111,7 +111,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfig;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigOrtb;
 import org.prebid.server.proto.openrtb.ext.request.ExtDooh;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
-import org.prebid.server.proto.openrtb.ext.request.ExtImpAuctionEnvironment;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestCurrency;
@@ -150,7 +149,6 @@ import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceInvocationRes
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceStage;
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceStageOutcome;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
-import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAlternateBidderCodes;
 import org.prebid.server.settings.model.AccountAlternateBidderCodesBidder;
@@ -1298,51 +1296,6 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(result.getBidResponse().getSeatbid()).hasSize(2)
                 .extracting(seatBid -> seatBid.getBid().size())
                 .containsOnly(1, 1);
-    }
-
-    @Test
-    public void shouldPropagateFledgeResponseWithBidderAlias() {
-        // given
-        final FledgeAuctionConfig fledgeAuctionConfig = givenFledgeAuctionConfig("impId");
-        given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), any(), anyBoolean()))
-                .willReturn(Future.succeededFuture(givenEmptySeatBid()
-                        .toBuilder()
-                        .fledgeAuctionConfigs(List.of(fledgeAuctionConfig))
-                        .build()));
-
-        final BidRequest bidRequest = givenBidRequest(
-                singletonList(Imp.builder()
-                        .id("impId")
-                        .ext(mapper.valueToTree(
-                                Map.of("prebid", singletonMap("bidder", singletonMap("bidderAlias", 1)),
-                                        "ae", 1)))
-                        .build()),
-                builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .aliases(singletonMap("bidderAlias", "bidder"))
-                        .build())));
-
-        // when
-        target.holdAuction(givenRequestContext(bidRequest));
-
-        verify(httpBidderRequester, times(1))
-                .requestBids(any(), any(), any(), any(), any(), any(), anyBoolean());
-
-        // then
-        final BidRequest capturedBidRequest = captureBidRequest();
-
-        assertThat(capturedBidRequest.getImp())
-                .extracting(Imp::getExt)
-                .containsOnly(mapper.valueToTree(ExtPrebid.of(null, 1,
-                        ExtImpAuctionEnvironment.ON_DEVICE_IG_AUCTION_FLEDGE)));
-
-        final List<AuctionParticipation> auctionParticipations = captureAuctionParticipations();
-
-        assertThat(auctionParticipations)
-                .hasSize(1)
-                .extracting(AuctionParticipation::getBidderResponse)
-                .extracting(BidderResponse::getSeatBid)
-                .extracting(BidderSeatBid::getFledgeAuctionConfigs)
-                .containsExactly(List.of(fledgeAuctionConfig));
     }
 
     @Test
@@ -4327,13 +4280,6 @@ public class ExchangeServiceTest extends VertxTest {
                         .id("bidId")
                         .price(BigDecimal.ONE)
                         .ext(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.builder().build(), null))))
-                .build();
-    }
-
-    private static FledgeAuctionConfig givenFledgeAuctionConfig(String impId) {
-        return FledgeAuctionConfig.builder()
-                .impId(impId)
-                .config(mapper.createObjectNode().put("references", impId))
                 .build();
     }
 

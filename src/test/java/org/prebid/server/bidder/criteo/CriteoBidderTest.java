@@ -15,13 +15,10 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.CompositeBidderResponse;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
-import org.prebid.server.proto.openrtb.ext.response.ExtIgi;
-import org.prebid.server.proto.openrtb.ext.response.ExtIgiIgs;
 
 import java.util.List;
 import java.util.Set;
@@ -76,12 +73,12 @@ public class CriteoBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidderResponseShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
+    public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall("invalid");
 
         // when
-        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -89,114 +86,114 @@ public class CriteoBidderTest extends VertxTest {
                     assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
                     assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token");
                 });
-        assertThat(result.getBids()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
-    public void makeBidderResponseShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
+    public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(null));
 
         // when
-        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getBids()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
-    public void makeBidderResponseShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
+    public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getBids()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
-    public void makeBidderResponseShouldReturnEmptyListIfBidResponseSeatBidIsEmpty() throws JsonProcessingException {
+    public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsEmpty() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 mapper.writeValueAsString(BidResponse.builder().seatbid(emptyList()).build()));
 
         // when
-        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getBids()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
-    public void makeBidderResponseShouldReturnErrorWhenBidExtPrebidTypeIsNotPresent() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorWhenBidExtPrebidTypeIsNotPresent() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidResponse(bid -> bid.impid("123")));
 
         // when
-        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors())
                 .containsExactly(BidderError.badServerResponse("Missing ext.prebid.type in bid for impression : 123."));
-        assertThat(result.getBids()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
-    public void makeBidderResponseShouldReturnBannerBid() throws JsonProcessingException {
+    public void makeBidsShouldReturnBannerBid() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidResponse(bid -> bid.ext(givenBidExt(BidType.banner))));
 
         // when
-        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getBids())
+        assertThat(result.getValue())
                 .extracting(BidderBid::getType)
                 .containsExactly(BidType.banner);
     }
 
     @Test
-    public void makeBidderResponseShouldReturnVideoBid() throws JsonProcessingException {
+    public void makeBidsShouldReturnVideoBid() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidResponse(bid -> bid.ext(givenBidExt(BidType.video))));
 
         // when
-        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getBids())
+        assertThat(result.getValue())
                 .extracting(BidderBid::getType)
                 .containsExactly(BidType.video);
     }
 
     @Test
-    public void makeBidderResponseShouldReturnBidWithCurFromResponse() throws JsonProcessingException {
+    public void makeBidsShouldReturnBidWithCurFromResponse() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidResponse(bid -> bid.ext(givenBidExt(BidType.banner))));
 
         // when
-        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getBids())
+        assertThat(result.getValue())
                 .extracting(BidderBid::getBidCurrency)
                 .containsExactly("CUR");
     }
 
     @Test
-    public void makeBidderResponseShouldReturnBidWithNetworkNameFromExtPrebid() throws JsonProcessingException {
+    public void makeBidsShouldReturnBidWithNetworkNameFromExtPrebid() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidResponse(bid -> bid
@@ -204,11 +201,11 @@ public class CriteoBidderTest extends VertxTest {
                         .ext(givenBidExtWithNetwork("anyNetworkName"))));
 
         // when
-        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getBids())
+        assertThat(result.getValue())
                 .extracting(BidderBid::getBid)
                 .extracting(Bid::getExt)
                 .extracting(ext -> ext.get("meta"))
@@ -216,62 +213,22 @@ public class CriteoBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidderResponseShouldReturnEmptyNetworkNameWhenBidExtPrebidNotContainNetworkName()
+    public void makeBidsShouldReturnEmptyNetworkNameWhenBidExtPrebidNotContainNetworkName()
             throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidResponse(bid -> bid.ext(givenBidExtWithNetwork(null))));
 
         // when
-        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getBids())
+        assertThat(result.getValue())
                 .extracting(BidderBid::getBid)
                 .extracting(Bid::getExt)
                 .extracting(ext -> ext.get("meta"))
                 .doesNotContain(mapper.createObjectNode().put("networkName", "anyNetworkName"));
-    }
-
-    @Test
-    public void makeBidderResponseShouldReturnFledgeConfigs() throws JsonProcessingException {
-        // given
-        final List<ExtIgiIgs> igs = List.of(
-                ExtIgiIgs.builder().config(mapper.createObjectNode().put("proterty1", "value1")).build(),
-                ExtIgiIgs.builder().config(mapper.createObjectNode().put("proterty2", "value2")).build());
-
-        final CriteoBidResponse bidResponseWithFledge = CriteoBidResponse.builder()
-                .ext(CriteoExtBidResponse.of(List.of(
-                        ExtIgi.builder()
-                                .impid("imp_id1")
-                                .igs(igs)
-                                .build())))
-                .build();
-        final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(bidResponseWithFledge));
-
-        // when
-        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
-
-        // then
-        final List<ExtIgiIgs> expectedIgs = List.of(
-                ExtIgiIgs.builder().config(mapper.createObjectNode().put("proterty1", "value1")).build(),
-                ExtIgiIgs.builder().config(mapper.createObjectNode().put("proterty2", "value2")).build());
-
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getIgi()).containsExactly(ExtIgi.builder().impid("imp_id1").igs(expectedIgs).build());
-    }
-
-    @Test
-    public void makeBidsShouldFail() throws JsonProcessingException {
-        //given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder().build()));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).containsExactly(BidderError.generic("Deprecated adapter method invoked"));
     }
 
     private static String givenBidResponse(UnaryOperator<Bid.BidBuilder> bidCustomizer)
@@ -305,5 +262,4 @@ public class CriteoBidderTest extends VertxTest {
         prebid.put("networkName", networkNameValue);
         return ext;
     }
-
 }
