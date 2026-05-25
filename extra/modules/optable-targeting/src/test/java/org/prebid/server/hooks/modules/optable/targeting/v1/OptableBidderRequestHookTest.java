@@ -42,6 +42,7 @@ public class OptableBidderRequestHookTest extends BaseOptableTest {
     public void setUp() {
         target = new OptableBidderRequestHook();
         when(bidderRequestPayload.bidRequest()).thenReturn(givenBidRequest());
+        when(invocationContext.bidder()).thenReturn("bidder1");
     }
 
     @Test
@@ -139,6 +140,11 @@ public class OptableBidderRequestHookTest extends BaseOptableTest {
                 .isEqualTo("id");
         assertThat(enrichedRequest.getUser().getData().getFirst().getSegment().getFirst().getId())
                 .isEqualTo("id");
+        assertThat(result.analyticsTags().activities().getFirst())
+                .satisfies(activity -> {
+                    assertThat(activity.status()).isEqualTo("success");
+                    assertThat(activity.results().getFirst().values().get("bidder").asText()).isEqualTo("bidder1");
+                });
     }
 
     @Test
@@ -183,6 +189,11 @@ public class OptableBidderRequestHookTest extends BaseOptableTest {
         assertThat(result).isNotNull()
                 .returns(InvocationStatus.success, InvocationResult::status)
                 .returns(InvocationAction.no_action, InvocationResult::action);
+        assertThat(result.analyticsTags().activities().getFirst())
+                .satisfies(activity -> {
+                    assertThat(activity.status()).isEqualTo("fail");
+                    assertThat(activity.results().getFirst().values().get("bidder").asText()).isEqualTo("bidder1");
+                });
     }
 
     private static ModuleContext givenModuleContextWithProperties(OptableTargetingProperties properties) {

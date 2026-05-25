@@ -24,6 +24,7 @@ public class AnalyticTagsResolver {
     private static final String ACTIVITY_ENRICH_RESPONSE = "optable-enrich-response";
     private static final String STATUS_EXECUTION_TIME = "execution-time";
     private static final String STATUS_REASON = "reason";
+    private static final String STATUS_BIDDER_NAME = "bidder";
 
     private AnalyticTagsResolver() {
     }
@@ -33,6 +34,20 @@ public class AnalyticTagsResolver {
                 ACTIVITY_ENRICH_REQUEST,
                 toEnrichmentStatusValue(moduleContext.getEnrichRequestStatus()),
                 toResults(STATUS_EXECUTION_TIME, String.valueOf(moduleContext.getOptableTargetingExecutionTime())))));
+    }
+
+    public static Tags toEnrichBidderRequestAnalyticTags(String bidderName, ModuleContext moduleContext) {
+        return TagsImpl.of(Collections.singletonList(ActivityImpl.of(
+                ACTIVITY_ENRICH_REQUEST,
+                toEnrichmentStatusValue(moduleContext.getEnrichRequestStatus()),
+                toResults(STATUS_BIDDER_NAME, bidderName))));
+    }
+
+    public static Tags toEnrichErrorBidderRequestAnalyticTags(String bidderName) {
+        return TagsImpl.of(Collections.singletonList(ActivityImpl.of(
+                ACTIVITY_ENRICH_REQUEST,
+                toEnrichmentStatusValue(EnrichmentStatus.failure()),
+                toResults(STATUS_BIDDER_NAME, bidderName))));
     }
 
     public static Tags toEnrichResponseAnalyticTags(ModuleContext moduleContext) {

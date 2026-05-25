@@ -7,6 +7,7 @@ import org.prebid.server.hooks.modules.optable.targeting.model.EnrichmentStatus;
 import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.AnalyticTagsResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidderRequestEnricher;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
@@ -41,18 +42,22 @@ public class OptableBidderRequestHook implements BidderRequestHook {
         return moduleContext.getOptableTargetingCall()
                 .compose(targetingResult ->
                         enrichedPayload(
-                                targetingResult, moduleContext, moduleContext.getOptableTargetingProperties()))
-                .recover(throwable -> noAction(moduleContext));
+                                targetingResult,
+                                moduleContext,
+                                moduleContext.getOptableTargetingProperties(),
+                                invocationContext.bidder()))
+                .recover(throwable -> error(moduleContext, invocationContext.bidder()));
     }
 
     private Future<InvocationResult<BidderRequestPayload>> enrichedPayload(TargetingResult targetingResult,
-                                                                            ModuleContext moduleContext,
-                                                                            OptableTargetingProperties properties) {
+                                                                           ModuleContext moduleContext,
+                                                                           OptableTargetingProperties properties,
+                                                                           String bidderName) {
 
         moduleContext.setTargeting(targetingResult.getAudience());
         moduleContext.setEnrichRequestStatus(EnrichmentStatus.success());
 
-        return update(BidderRequestEnricher.of(targetingResult, properties), moduleContext);
+        return update(BidderRequestEnricher.of(targetingResult, properties), moduleContext, bidderName);
     }
 
     private Future<InvocationResult<BidderRequestPayload>> noAction(ModuleContext moduleContext) {
@@ -64,15 +69,29 @@ public class OptableBidderRequestHook implements BidderRequestHook {
                         .build());
     }
 
+    private Future<InvocationResult<BidderRequestPayload>> error(ModuleContext moduleContext, String bidderName) {
+        return Future.succeededFuture(
+                InvocationResultImpl.<BidderRequestPayload>builder()
+                        .status(InvocationStatus.success)
+                        .action(InvocationAction.no_action)
+                        .analyticsTags(
+                                AnalyticTagsResolver.toEnrichErrorBidderRequestAnalyticTags(bidderName))
+                        .moduleContext(moduleContext)
+                        .build());
+    }
+
     private static Future<InvocationResult<BidderRequestPayload>> update(
             PayloadUpdate<BidderRequestPayload> payloadUpdate,
-            ModuleContext moduleContext) {
+            ModuleContext moduleContext,
+            String bidderName) {
 
         return Future.succeededFuture(
                 InvocationResultImpl.<BidderRequestPayload>builder()
                         .status(InvocationStatus.success)
                         .action(InvocationAction.update)
                         .payloadUpdate(payloadUpdate)
+                        .analyticsTags(
+                                AnalyticTagsResolver.toEnrichBidderRequestAnalyticTags(bidderName, moduleContext))
                         .moduleContext(moduleContext)
                         .build());
     }
