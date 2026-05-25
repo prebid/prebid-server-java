@@ -19,8 +19,17 @@ accounts:
       modules:
         optable-targeting:
           api-key: key
-          tenant: optable
-          origin: web-sdk-demo
+          tenant: prebidtest
+          origin: js-sdk
+          enrichment-percentage: 100
+          bidder-enrichment-percentages:
+            appnexus: 75
+            rubicon: 75
+            pubmatic: 100
+            criteo: 0
+          enrich-web: true
+          enrich-app: true
+          id-prefix-order: "e,v,c"
           ppid-mapping: { "pubcid.org": "c" }
           adserver-targeting: true
           cache:
@@ -31,14 +40,27 @@ accounts:
           "endpoints": {
             "/openrtb2/auction": {
               "stages": {
-                "processed-auction-request": {
+                "raw-auction-request": {
                   "groups": [
                     {
-                      "timeout": 600,
+                      "timeout": 50,
                       "hook-sequence": [
                         {
                           "module-code": "optable-targeting",
-                          "hook-impl-code": "optable-targeting-processed-auction-request-hook"
+                          "hook-impl-code": "optable-targeting-raw-auction-request-hook"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "bidder-request": {
+                  "groups": [
+                    {
+                      "timeout": 50,
+                      "hook-sequence": [
+                        {
+                          "module-code": "optable-targeting",
+                          "hook-impl-code": "optable-targeting-bidder-request-hook"
                         }
                       ]
                     }
