@@ -6,6 +6,7 @@ import org.prebid.server.hooks.modules.optable.targeting.model.OptableAttributes
 import org.prebid.server.hooks.modules.optable.targeting.model.Query;
 
 import java.util.List;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -110,6 +111,79 @@ public class QueryBuilderTest {
 
         // then
         assertThat(query).isNull();
+    }
+
+    @Test
+    public void shouldBuildQueryStringWithGppSid() {
+        // given
+        final List<Id> ids = List.of(Id.of(Id.EMAIL, "email"));
+        final OptableAttributes attributes = OptableAttributes.builder()
+                .ips(List.of("8.8.8.8"))
+                .gpp("DBABzw~1YNY~BVQqAAAAAgA")
+                .gppSid(Set.of(7, 22))
+                .build();
+
+        // when
+        final String query = QueryBuilder.build(ids, attributes, null).toQueryString();
+
+        // then
+        assertThat(query).contains("&gpp=DBABzw~1YNY~BVQqAAAAAgA");
+        assertThat(query).containsPattern("&gpp_sid=\\d+,\\d+");
+        assertThat(query).doesNotContain("Optional");
+    }
+
+    @Test
+    public void shouldBuildQueryStringWithSingleGppSid() {
+        // given
+        final List<Id> ids = List.of(Id.of(Id.EMAIL, "email"));
+        final OptableAttributes attributes = OptableAttributes.builder()
+                .ips(List.of("8.8.8.8"))
+                .gpp("DBABzw~1YNY")
+                .gppSid(Set.of(7))
+                .build();
+
+        // when
+        final String query = QueryBuilder.build(ids, attributes, null).toQueryString();
+
+        // then
+        assertThat(query).contains("&gpp_sid=7");
+        assertThat(query).doesNotContain("Optional");
+    }
+
+    @Test
+    public void shouldLimitGppSidToTwoValues() {
+        // given
+        final List<Id> ids = List.of(Id.of(Id.EMAIL, "email"));
+        final OptableAttributes attributes = OptableAttributes.builder()
+                .ips(List.of("8.8.8.8"))
+                .gpp("DBABzw~1YNY~BVQqAAAAAgA")
+                .gppSid(Set.of(5, 7, 22))
+                .build();
+
+        // when
+        final String query = QueryBuilder.build(ids, attributes, null).toQueryString();
+
+        // then
+        final String gppSidValue = query.split("gpp_sid=")[1].split("&")[0];
+        assertThat(gppSidValue.split(",")).hasSize(2);
+        assertThat(query).doesNotContain("Optional");
+    }
+
+    @Test
+    public void shouldNotIncludeGppSidWhenEmpty() {
+        // given
+        final List<Id> ids = List.of(Id.of(Id.EMAIL, "email"));
+        final OptableAttributes attributes = OptableAttributes.builder()
+                .ips(List.of("8.8.8.8"))
+                .gpp("DBABzw~1YNY")
+                .gppSid(Set.of())
+                .build();
+
+        // when
+        final String query = QueryBuilder.build(ids, attributes, null).toQueryString();
+
+        // then
+        assertThat(query).doesNotContain("gpp_sid");
     }
 
     private OptableAttributes givenOptableAttributes() {

@@ -78,7 +78,8 @@ public class QueryBuilder {
                 .ifPresent(gpp -> sb.append("&gpp=").append(gpp));
         Optional.ofNullable(optableAttributes.getGppSid())
                 .filter(Predicate.not(Collection::isEmpty))
-                .ifPresent(gppSids -> sb.append("&gpp_sid=").append(gppSids.stream().findFirst()));
+                .ifPresent(gppSids -> sb.append("&gpp_sid=").append(
+                        gppSids.stream().limit(2).map(String::valueOf).collect(Collectors.joining(","))));
 
         Optional.ofNullable(optableAttributes.getTimeout())
                 .ifPresent(timeout -> sb.append("&timeout=").append(timeout).append("ms"));
