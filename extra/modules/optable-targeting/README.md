@@ -165,10 +165,11 @@ configuration.
 
 ### Timeout considerations
 
-The timeout value specified in the execution plan for the `bidder-request` hook should allow enough time for the Optable
-Targeting API call to complete. The API call is initiated earlier in the `raw-auction-request` stage and runs in parallel
-with other auction processing, so the effective wait time at the `bidder-request` stage is typically much shorter than
-the full API roundtrip.
+The `bidder-request` hook timeout is used as the timeout budget for the Optable Targeting API call Future that is
+initiated in the `raw-auction-request` stage. The API call runs in parallel with other auction processing, so the
+effective wait time at the `bidder-request` stage is typically much shorter than the full API roundtrip. The
+`raw-auction-request` hook timeout only needs to cover its own lightweight setup (validation, sampling) and can be kept
+short.
 
 **Note:** Do not confuse hook timeout value with the module timeout parameter which is optional. The hook timeout value
 would depend on the cloud/region where the PBS instance is hosted and the latency to reach the Optable's servers. This
