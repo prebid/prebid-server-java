@@ -97,17 +97,7 @@ public class OptableRawAuctionRequestHook implements RawAuctionRequestHook {
 
         moduleContext.setOptableTargetingCall(optableTargetingCall);
 
-        return updateModuleContext(moduleContext);
-    }
-
-    private static Future<InvocationResult<AuctionRequestPayload>> updateModuleContext(ModuleContext moduleContext) {
-
-        return Future.succeededFuture(
-                InvocationResultImpl.<AuctionRequestPayload>builder()
-                        .status(InvocationStatus.success)
-                        .action(InvocationAction.no_action)
-                        .moduleContext(moduleContext)
-                        .build());
+        return update(BidRequestCleaner.instance(), moduleContext);
     }
 
     public static <AuctionRequestPayload> Future<InvocationResult<AuctionRequestPayload>> update(
