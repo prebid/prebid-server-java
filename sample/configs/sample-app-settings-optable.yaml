@@ -56,7 +56,7 @@ accounts:
                 "bidder-request": {
                   "groups": [
                     {
-                      "timeout": 50,
+                      "timeout": 500,
                       "hook-sequence": [
                         {
                           "module-code": "optable-targeting",
