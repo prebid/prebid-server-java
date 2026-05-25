@@ -66,6 +66,11 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
         final Account account = invocationContext.auctionContext().getAccount();
         final boolean hasRawAuctionRequestHook = hooksExecutionPlan.hasRawAuctionRequestHook(account);
         final boolean hasBidderRequestHook = hooksExecutionPlan.hasBidderRequestHook(account);
+
+        if (hasRawAuctionRequestHook && hasBidderRequestHook) {
+            return update(BidRequestCleaner.instance(), moduleContext);
+        }
+
         final OptableTargetingProperties properties =
                 resolveOptableTargetingProperties(moduleContext, invocationContext);
 
@@ -81,7 +86,7 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
         return optableTargetingCall
                 .compose(targetingResult -> {
                     moduleContext.setOptableTargetingExecutionTime(calcAPICallExecutionTime(moduleContext));
-                    return enrichPayload(hasBidderRequestHook, targetingResult, moduleContext, properties);
+                    return enrichPayload(targetingResult, moduleContext, properties);
                 })
                 .recover(throwable -> {
                     moduleContext.failWithExecutionTime(calcAPICallExecutionTime(moduleContext));
@@ -90,7 +95,6 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
     }
 
     private Future<InvocationResult<AuctionRequestPayload>> enrichPayload(
-            boolean perBidderEnrichmentEnabled,
             TargetingResult targetingResult,
             ModuleContext moduleContext,
             OptableTargetingProperties properties) {
@@ -98,9 +102,8 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
         moduleContext.setTargeting(targetingResult.getAudience());
         moduleContext.setEnrichRequestStatus(EnrichmentStatus.success());
 
-        final PayloadUpdate<AuctionRequestPayload> payloadUpdate = perBidderEnrichmentEnabled
-                ? BidRequestCleaner.instance()
-                : BidRequestCleaner.instance().andThen(BidRequestEnricher.of(targetingResult, properties))::apply;
+        final PayloadUpdate<AuctionRequestPayload> payloadUpdate =
+                BidRequestCleaner.instance().andThen(BidRequestEnricher.of(targetingResult, properties))::apply;
 
         return update(payloadUpdate, moduleContext);
     }

@@ -234,7 +234,7 @@ class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
     }
 
     @Test
-    void callShouldReturnResultWithoutEnrichedBidRequestWhenOnlyBidderRequestHookIsPresent() {
+    void callShouldReturnResultWithEnrichedBidRequestWhenOnlyBidderRequestHookIsPresent() {
         // given
         target = new OptableTargetingProcessedAuctionRequestHook(
                 configResolver, networkCall, CompositeHookExecutionPlan.of(givenExecutionPlan(false, true)), 0.01);
@@ -259,23 +259,22 @@ class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
                 .payloadUpdate()
                 .apply(AuctionRequestPayloadImpl.of(givenBidRequest()))
                 .bidRequest();
-        assertThat(bidRequest.getUser().getEids()).isNull();
-        assertThat(bidRequest.getUser().getData()).isNull();
+        assertThat(bidRequest.getUser().getEids())
+                .flatExtracting(Eid::getUids)
+                .extracting(Uid::getId)
+                .containsExactly("id");
+        assertThat(bidRequest.getUser().getData())
+                .flatExtracting(Data::getSegment)
+                .extracting(Segment::getId)
+                .containsExactly("id");
     }
 
     @Test
     void callShouldReturnResultWithoutEnrichedBidRequestWhenBothHooksArePresent() {
         // given
-        final ModuleContext moduleContext = new ModuleContext();
         target = new OptableTargetingProcessedAuctionRequestHook(
                 configResolver, networkCall, CompositeHookExecutionPlan.of(givenExecutionPlan(true, true)), 0.01);
-        when(optableTargeting.getTargeting(any(), any(), any(), any()))
-                .thenReturn(Future.succeededFuture(givenTargetingResult()));
-        when(invocationContext.moduleContext()).thenReturn(moduleContext);
-        when(auctionRequestPayload.bidRequest()).thenReturn(givenBidRequest());
-        moduleContext.setOptableTargetingCall(
-                networkCall.makeRequest(auctionRequestPayload, invocationContext, givenOptableTargetingProperties(
-                        "key", "tenant", "origin", false), null));
+        when(invocationContext.moduleContext()).thenReturn(new ModuleContext());
 
         // when
         final Future<InvocationResult<AuctionRequestPayload>> future = target.call(auctionRequestPayload,
