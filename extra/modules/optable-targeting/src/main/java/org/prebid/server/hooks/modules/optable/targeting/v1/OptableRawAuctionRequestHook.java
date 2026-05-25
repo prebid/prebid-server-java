@@ -86,14 +86,14 @@ public class OptableRawAuctionRequestHook implements RawAuctionRequestHook {
 
         moduleContext.setBiddersToEnrich(biddersToEnrich);
         final Account account = invocationContext.auctionContext().getAccount();
-        final long processedAuctionHookTimeout =
-                hooksExecutionPlan.getOptableTargetingProcessedAuctionRequestTimeout(account);
+        final long crossHookFutureTimeout =
+                hooksExecutionPlan.getOptableTargetingBidderRequestTimeout(account);
 
         final Future<TargetingResult> optableTargetingCall = networkCall.makeRequest(
                 payload,
                 invocationContext,
                 properties,
-                processedAuctionHookTimeout);
+                crossHookFutureTimeout);
 
         moduleContext.setOptableTargetingCall(optableTargetingCall);
 

@@ -8,7 +8,6 @@ import org.prebid.server.hooks.execution.model.Stage;
 import org.prebid.server.hooks.execution.model.StageExecutionPlan;
 import org.prebid.server.hooks.modules.optable.targeting.v1.OptableBidderRequestHook;
 import org.prebid.server.hooks.modules.optable.targeting.v1.OptableRawAuctionRequestHook;
-import org.prebid.server.hooks.modules.optable.targeting.v1.OptableTargetingProcessedAuctionRequestHook;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.settings.model.Account;
 
@@ -21,30 +20,27 @@ public class CompositeHookExecutionPlan {
     private static final String ENDPOINT_AUCTION = "openrtb2_auction";
     private static final String STAGE_RAW_AUCTION_REQUEST = "raw_auction_request";
     private static final String STAGE_BIDDER_REQUEST = "bidder_request";
-    private static final String STAGE_PROCESSED_AUCTION_REQUEST = "processed_auction_request";
     private static final String HOOK_CODE_OPTABLE_RAW_AUCTION = OptableRawAuctionRequestHook.CODE;
     private static final String HOOK_CODE_OPTABLE_BIDDER_REQUEST = OptableBidderRequestHook.CODE;
-    private static final String HOOK_CODE_OPTABLE_PROCESSED_AUCTION_REQUEST =
-            OptableTargetingProcessedAuctionRequestHook.CODE;
 
     private final boolean hasGlobalRawAuctionRequestHook;
 
     private final boolean hasGlobalBidderRequestHook;
 
-    private final long globalProcessedAuctionRequestHookTimeout;
+    private final long globalBidderRequestHookTimeout;
 
     private final ConcurrentHashMap<String, Boolean> rawAuctionRequestHookCache = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Boolean> bidderRequestHookCache = new ConcurrentHashMap<>();
 
-    private final ConcurrentHashMap<String, Long> processedAuctionRequestHookTimeoutCache = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Long> bidderRequestHookTimeoutCache = new ConcurrentHashMap<>();
 
     private CompositeHookExecutionPlan(boolean hasGlobalRawAuctionRequestHook,
                                        boolean hasGlobalBidderRequestHook,
-                                       long globalProcessedAuctionRequestHookTimeout) {
+                                       long globalBidderRequestHookTimeout) {
 
         this.hasGlobalRawAuctionRequestHook = hasGlobalRawAuctionRequestHook;
         this.hasGlobalBidderRequestHook = hasGlobalBidderRequestHook;
-        this.globalProcessedAuctionRequestHookTimeout = globalProcessedAuctionRequestHookTimeout;
+        this.globalBidderRequestHookTimeout = globalBidderRequestHookTimeout;
     }
 
     public static CompositeHookExecutionPlan of(ExecutionPlan globalExecutionPlan) {
@@ -54,7 +50,7 @@ public class CompositeHookExecutionPlan {
                         hasHook(globalExecutionPlan, STAGE_RAW_AUCTION_REQUEST, HOOK_CODE_OPTABLE_RAW_AUCTION),
                         hasHook(globalExecutionPlan, STAGE_BIDDER_REQUEST, HOOK_CODE_OPTABLE_BIDDER_REQUEST),
                         getHookTimeout(globalExecutionPlan,
-                                STAGE_PROCESSED_AUCTION_REQUEST, HOOK_CODE_OPTABLE_PROCESSED_AUCTION_REQUEST));
+                                STAGE_BIDDER_REQUEST, HOOK_CODE_OPTABLE_BIDDER_REQUEST));
     }
 
     public boolean hasRawAuctionRequestHook(Account account) {
@@ -83,19 +79,19 @@ public class CompositeHookExecutionPlan {
                 : false;
     }
 
-    public long getOptableTargetingProcessedAuctionRequestTimeout(Account account) {
+    public long getOptableTargetingBidderRequestTimeout(Account account) {
         final String accountId = account != null ? account.getId() : null;
 
         return StringUtils.isNotEmpty(accountId)
-                ? processedAuctionRequestHookTimeoutCache.computeIfAbsent(accountId, id -> {
+                ? bidderRequestHookTimeoutCache.computeIfAbsent(accountId, id -> {
                     final ExecutionPlan accountSpecificHoksExecutionPlan = resolveExecutionPlan(account);
                     final long hookTimeOut = getHookTimeout(
                             accountSpecificHoksExecutionPlan,
-                            STAGE_PROCESSED_AUCTION_REQUEST,
-                            HOOK_CODE_OPTABLE_PROCESSED_AUCTION_REQUEST);
-                    return hookTimeOut != 0 ? hookTimeOut : globalProcessedAuctionRequestHookTimeout;
+                            STAGE_BIDDER_REQUEST,
+                            HOOK_CODE_OPTABLE_BIDDER_REQUEST);
+                    return hookTimeOut != 0 ? hookTimeOut : globalBidderRequestHookTimeout;
                 })
-                : globalProcessedAuctionRequestHookTimeout;
+                : globalBidderRequestHookTimeout;
     }
 
     private ExecutionPlan resolveExecutionPlan(Account account) {
