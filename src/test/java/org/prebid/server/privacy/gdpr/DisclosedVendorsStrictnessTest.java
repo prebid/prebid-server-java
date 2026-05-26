@@ -53,6 +53,17 @@ public class DisclosedVendorsStrictnessTest {
     }
 
     @Test
+    public void isValidShouldReturnTrueIfTCStringVersionEquals1() {
+        // given
+        final TCString tcString = TCStringEncoder.newBuilder()
+                .version(1)
+                .toTCString();
+
+        // when and then
+        assertThat(target.isValid(tcString)).isTrue();
+    }
+
+    @Test
     public void isValidShouldReturnTrueOnInvalidIfLatestUpdateBeforeCutoffDate() {
         // given
         final TCString tcString = TCStringEncoder.newBuilder()
@@ -123,6 +134,17 @@ public class DisclosedVendorsStrictnessTest {
 
         // when and then
         assertThat(target.isVendorDisclosed(tcString, null)).isFalse();
+    }
+
+    @Test
+    public void isVendorDisclosedShouldReturnTrueIfTCStringVersionEquals1() {
+        // given
+        final TCString tcString = TCStringEncoder.newBuilder()
+                .version(1)
+                .toTCString();
+
+        // when and then
+        assertThat(target.isVendorDisclosed(tcString, 1)).isTrue();
     }
 
     @Test
