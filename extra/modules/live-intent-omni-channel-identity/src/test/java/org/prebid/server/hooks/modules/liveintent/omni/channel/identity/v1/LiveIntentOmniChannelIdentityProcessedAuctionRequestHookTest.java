@@ -91,7 +91,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
 
         defaultPermissions = ExtRequestPrebidDataEidPermissions.builder()
                 .inserter("s2s.liveintent.com")
-                .matcher("liveintent.com")
+                .matcher("test.matcher.com")
                 .bidders(configuredBidders.stream().toList())
                 .build();
 
@@ -256,7 +256,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
 
         final Eid apiResponseEid = Eid.builder()
                 .source("liveintent.com")
-                .matcher("liveintent.com")
+                .matcher("test.matcher.com")
                 .uids(singletonList(Uid.builder().id("id2").atype(3).build()))
                 .build();
 
@@ -312,6 +312,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
 
         final Eid apiResponseEid = Eid.builder()
                 .source("liveintent.com")
+                .matcher("test.matcher.com")
                 .uids(singletonList(Uid.builder().id("id2").atype(3).build()))
                 .build();
 
@@ -340,7 +341,6 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
                 .extracting(User::getEids)
                 .isEqualTo(List.of(apiResponseEid.toBuilder()
                         .inserter("s2s.liveintent.com")
-                        .matcher("liveintent.com")
                         .build()));
 
         verify(httpClient).post(
@@ -415,12 +415,12 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
                 .build();
 
         final ExtRequestPrebidDataEidPermissions liBidder2 = ExtRequestPrebidDataEidPermissions.builder()
-                .matcher("liveintent.com")
+                .matcher("test.matcher.com")
                 .inserter("s2s.liveintent.com")
                 .bidders(singletonList("bidder2"))
                 .build();
         final ExtRequestPrebidDataEidPermissions liBidder23 = ExtRequestPrebidDataEidPermissions.builder()
-                .matcher("liveintent.com")
+                .matcher("test.matcher.com")
                 .inserter("s2s.liveintent.com")
                 .bidders(List.of("bidder2", "bidder3"))
                 .build();
@@ -438,7 +438,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
                 List.of("bidderX"),
                 ListUtil.union(List.of(otherBidder, liBidder2), List.of(defaultPermissions)));
 
-        final Eid expectedEid = Eid.builder().source("liveintent.com").build();
+        final Eid expectedEid = Eid.builder().source("liveintent.com").matcher("test.matcher.com").build();
 
         final String responseBody = MAPPER.encodeToString(IdResResponse.of(List.of(expectedEid)));
         given(httpClient.post(any(), any(), any(), anyLong()))
@@ -482,7 +482,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
                 List.of("bidderGlobal"),
                 List.of(
                         ExtRequestPrebidDataEidPermissions.builder()
-                                .matcher("liveintent.com")
+                                .matcher("test.matcher.com")
                                 .inserter("s2s.liveintent.com")
                                 .bidders(singletonList("not-allowed"))
                                 .build(),
@@ -497,7 +497,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHookTest {
                 .ext(ExtRequest.of(ExtRequestPrebid.builder().data(givenData).build()))
                 .build();
 
-        final Eid expectedEid = Eid.builder().source("liveintent.com").build();
+        final Eid expectedEid = Eid.builder().source("liveintent.com").matcher("test.matcher.com").build();
         final String responseBody = MAPPER.encodeToString(IdResResponse.of(List.of(expectedEid)));
         given(httpClient.post(any(), any(), any(), anyLong()))
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, responseBody)));
