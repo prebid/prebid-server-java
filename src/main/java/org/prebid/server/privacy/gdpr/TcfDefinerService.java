@@ -421,8 +421,11 @@ public class TcfDefinerService {
     }
 
     private static String logMessage(String consent, String type, RequestLogInfo requestLogInfo, String message) {
-        return "Parsing consent string: \"%s\" failed for: %s type for account id: %s with ref: %s with exception: %s"
-                .formatted(consent, type, requestLogInfo.getAccountId(), requestLogInfo.getRefUrl(), message);
+        return """
+                Parsing consent string: "%s" failed for: \
+                %s type for account id: %s from source: \
+                %s with exception: %s"""
+                .formatted(consent, type, requestLogInfo.getAccountId(), requestLogInfo.getSource(), message);
     }
 
     private static boolean isConsentValid(TCString consent) {
