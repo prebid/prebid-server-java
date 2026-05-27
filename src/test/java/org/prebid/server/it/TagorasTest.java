@@ -25,11 +25,9 @@ public class TagorasTest extends IntegrationTest {
         // when
         final Response response = responseFor(
                 "openrtb2/tagoras/test-auction-tagoras-request.json",
-                Endpoint.openrtb2_auction
-        );
+                Endpoint.openrtb2_auction);
 
         // then
         assertJsonEquals("openrtb2/tagoras/test-auction-tagoras-response.json", response, List.of("tagoras"));
     }
-
 }

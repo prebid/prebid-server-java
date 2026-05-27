@@ -37,7 +37,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class AdotBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.endpoint{{PUBLISHER_PATH}}.com";
+    private static final String ENDPOINT_URL = "https://test.endpoint.com{+PUBLISHER_PATH}";
 
     private final AdotBidder target = new AdotBidder(ENDPOINT_URL, jacksonMapper);
 
@@ -78,7 +78,7 @@ public class AdotBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://test.endpoint/publisherPath.com");
+                .containsExactly("https://test.endpoint.com/publisherPath");
     }
 
     @Test

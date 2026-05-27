@@ -38,5 +38,4 @@ public class PwbidConfiguration {
                 .bidderCreator(config -> new PwbidBidder(config.getEndpoint(), mapper))
                 .assemble();
     }
-
 }

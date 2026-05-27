@@ -15,10 +15,10 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.impl.headers.HeadersMultiMap;
 import org.apache.commons.io.IOUtils;
-import org.apache.http.HttpStatus;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.auction.gpp.model.GppContext;
 import org.prebid.server.auction.model.AuctionContext;
@@ -194,11 +194,11 @@ public abstract class BaseOptableTest {
 
     protected HttpClientResponse givenSuccessHttpResponse(String fileName) {
         final MultiMap headers = HeadersMultiMap.headers().add("Content-Type", "application/json");
-        return HttpClientResponse.of(HttpStatus.SC_OK, headers, givenBodyFromFile(fileName));
+        return HttpClientResponse.of(HttpResponseStatus.OK.code(), headers, givenBodyFromFile(fileName));
     }
 
     protected HttpClientResponse givenFailHttpResponse(String fileName) {
-        return givenFailHttpResponse(HttpStatus.SC_BAD_REQUEST, fileName);
+        return givenFailHttpResponse(HttpResponseStatus.BAD_REQUEST.code(), fileName);
     }
 
     protected HttpClientResponse givenFailHttpResponse(int statusCode, String fileName) {

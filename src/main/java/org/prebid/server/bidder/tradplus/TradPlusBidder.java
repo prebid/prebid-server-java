@@ -23,6 +23,7 @@ import org.prebid.server.proto.openrtb.ext.request.tradplus.ExtImpTradPlus;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -36,14 +37,14 @@ public class TradPlusBidder implements Bidder<BidRequest> {
 
     public static final String X_OPENRTB_VERSION = "2.5";
 
-    private static final String ZONE_ID = "{{ZoneID}}";
-    private static final String ACCOUNT_ID = "{{AccountID}}";
+    private static final String ZONE_ID = "ZoneID";
+    private static final String ACCOUNT_ID = "AccountID";
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public TradPlusBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -76,14 +77,16 @@ public class TradPlusBidder implements Bidder<BidRequest> {
         }
     }
 
-    private HttpRequest<BidRequest> makeHttpRequest(ExtImpTradPlus extImpTradPlus, List<Imp> imps,
+    private HttpRequest<BidRequest> makeHttpRequest(ExtImpTradPlus extImpTradPlus,
+                                                    List<Imp> imps,
                                                     BidRequest bidRequest) {
-        final String uri;
-        uri = endpointUrl.replace(ZONE_ID, extImpTradPlus.getZoneId()).replace(ACCOUNT_ID,
-                extImpTradPlus.getAccountId());
+
+        final String uri = endpointUrl
+                .replaceMacro(ZONE_ID, extImpTradPlus.getZoneId())
+                .replaceMacro(ACCOUNT_ID, extImpTradPlus.getAccountId())
+                .expand();
 
         final BidRequest outgoingRequest = bidRequest.toBuilder().imp(removeImpsExt(imps)).build();
-
         return BidderUtil.defaultRequest(outgoingRequest, makeHeaders(), uri, mapper);
     }
 
@@ -131,5 +134,4 @@ public class TradPlusBidder implements Bidder<BidRequest> {
         throw new PreBidException(
                 "Invalid bid imp ID #%s does not match any imp IDs from the original bid request".formatted(impId));
     }
-
 }

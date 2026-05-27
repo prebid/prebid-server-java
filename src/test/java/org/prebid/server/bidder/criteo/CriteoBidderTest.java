@@ -305,5 +305,4 @@ public class CriteoBidderTest extends VertxTest {
         prebid.put("networkName", networkNameValue);
         return ext;
     }
-
 }

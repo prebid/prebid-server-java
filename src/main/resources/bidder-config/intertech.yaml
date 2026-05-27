@@ -1,6 +1,6 @@
 adapters:
   intertech:
-    endpoint: https://prebid.intertechsrvcs.com/prebid/{{page_id}}?imp-id={{imp_id}}&ssp-id=10500
+    endpoint: https://prebid.intertechsrvcs.com/prebid/{page_id}?imp-id={imp_id}&ssp-id=10500
     endpoint-compression: gzip
     meta-info:
       maintainer-email: prebid@intertechsrvcs.com

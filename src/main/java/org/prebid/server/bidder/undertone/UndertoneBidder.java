@@ -220,5 +220,4 @@ public class UndertoneBidder implements Bidder<BidRequest> {
 
         return BidType.banner;
     }
-
 }

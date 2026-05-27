@@ -25,11 +25,9 @@ public class OmnidexTest extends IntegrationTest {
         // when
         final Response response = responseFor(
                 "openrtb2/omnidex/test-auction-omnidex-request.json",
-                Endpoint.openrtb2_auction
-        );
+                Endpoint.openrtb2_auction);
 
         // then
         assertJsonEquals("openrtb2/omnidex/test-auction-omnidex-response.json", response, List.of("omnidex"));
     }
-
 }

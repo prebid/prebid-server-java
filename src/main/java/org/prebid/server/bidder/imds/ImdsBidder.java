@@ -24,10 +24,8 @@ import org.prebid.server.proto.openrtb.ext.request.imds.ExtImpImds;
 import org.prebid.server.proto.openrtb.ext.request.imds.ExtRequestImds;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -40,12 +38,12 @@ public class ImdsBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final String prebidVersion;
     private final JacksonMapper mapper;
 
     public ImdsBidder(String endpointUrl, String prebidVersion, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.prebidVersion = Objects.requireNonNull(prebidVersion);
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -85,21 +83,18 @@ public class ImdsBidder implements Bidder<BidRequest> {
         return Result.of(
                 Collections.singletonList(
                         BidderUtil.defaultRequest(
-                            outgoingRequest,
-                            generateEndpointUrl(firstExtImp),
-                            mapper
-                    )
-                ),
+                                outgoingRequest,
+                                generateEndpointUrl(firstExtImp),
+                                mapper)),
                 errors
         );
     }
 
     private String generateEndpointUrl(ExtImpImds firstExtImp) {
-        final String accountId = URLEncoder.encode(firstExtImp.getSeatId(), StandardCharsets.UTF_8);
-        final String sourceId = URLEncoder.encode(prebidVersion, StandardCharsets.UTF_8);
         return endpointUrl
-                .replaceAll("\\{\\{AccountID}}", accountId)
-                .replaceAll("\\{\\{SourceId}}", sourceId);
+                .replaceMacro("AccountID", firstExtImp.getSeatId())
+                .replaceMacro("SourceId", prebidVersion)
+                .expand();
     }
 
     private ExtImpImds parseAndValidateExtImp(ObjectNode impExt) {

@@ -42,7 +42,7 @@ import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
 
 public class ScreencoreBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "http://h1.screencore.io/?kp={{AccountId}}&kn={{SourceId}}";
+    private static final String ENDPOINT_URL = "http://h1.screencore.io/?kp={AccountId}&kn={SourceId}";
 
     private final ScreencoreBidder target = new ScreencoreBidder(ENDPOINT_URL, jacksonMapper);
 

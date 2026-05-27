@@ -9,8 +9,6 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -25,9 +23,8 @@ import org.prebid.server.proto.openrtb.ext.request.smartadserver.ExtImpSmartadse
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -41,13 +38,13 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private final String endpointUrl;
-    private final String secondaryEndpointUrl;
+    private final Uri endpoint;
+    private final String pgEndpoint;
     private final JacksonMapper mapper;
 
-    public SmartadserverBidder(String endpointUrl, String secondaryEndpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
-        this.secondaryEndpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(secondaryEndpointUrl));
+    public SmartadserverBidder(String endpointUrl, String pgEndpoint, JacksonMapper mapper) {
+        this.endpoint = Uri.of(endpointUrl);
+        this.pgEndpoint = HttpUtil.validateUrl(Objects.requireNonNull(pgEndpoint));
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -120,21 +117,9 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
     }
 
     private String makeUrl(boolean isProgrammaticGuaranteed) {
-        final String url = isProgrammaticGuaranteed ? secondaryEndpointUrl : endpointUrl;
-        try {
-            final URI uri = new URI(url);
-            final String path = isProgrammaticGuaranteed ? "/ortb" : "/api/bid";
-            final URIBuilder uriBuilder = new URIBuilder(uri)
-                    .setPath(StringUtils.removeEnd(uri.getPath(), "/") + path);
-
-            if (!isProgrammaticGuaranteed) {
-                uriBuilder.addParameter("callerId", "5");
-            }
-
-            return uriBuilder.toString();
-        } catch (URISyntaxException e) {
-            throw new PreBidException("Malformed URL: %s.".formatted(url));
-        }
+        return isProgrammaticGuaranteed
+                ? pgEndpoint
+                : endpoint.addQueryParam("callerId", "5").expand();
     }
 
     @Override

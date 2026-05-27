@@ -23,8 +23,8 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.adot.ExtImpAdot;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
+import org.prebid.server.util.Uri;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -39,16 +39,16 @@ public class AdotBidder implements Bidder<BidRequest> {
     private static final List<BidType> ALLOWED_BID_TYPES = Arrays.asList(BidType.banner, BidType.video,
             BidType.xNative);
     private static final String PRICE_MACRO = "${AUCTION_PRICE}";
-    private static final String PUBLISHER_MACRO = "{{PUBLISHER_PATH}}";
+    private static final String PUBLISHER_MACRO = "PUBLISHER_PATH";
     private static final TypeReference<ExtPrebid<?, ExtImpAdot>> ADOT_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public AdotBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -66,7 +66,7 @@ public class AdotBidder implements Bidder<BidRequest> {
     }
 
     private String resolveEndpointUrl(String publisherPath) {
-        return StringUtils.replace(endpointUrl, PUBLISHER_MACRO, publisherPath);
+        return endpointUrl.replaceMacro(PUBLISHER_MACRO, publisherPath).expand();
     }
 
     private ExtImpAdot parseImpExt(Imp firstImp) {

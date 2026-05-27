@@ -38,8 +38,7 @@ public class SmartadserverConfiguration {
         return BidderDepsAssembler.<SmartadserverConfigurationProperties>forBidder(BIDDER_NAME)
                 .withConfig(smartadserverConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new SmartadserverBidder(
-                        config.getEndpoint(), config.getSecondaryEndpoint(), mapper))
+                .bidderCreator(config -> new SmartadserverBidder(config.getEndpoint(), config.getPgEndpoint(), mapper))
                 .assemble();
     }
 
@@ -48,6 +47,6 @@ public class SmartadserverConfiguration {
     @NoArgsConstructor
     private static class SmartadserverConfigurationProperties extends BidderConfigurationProperties {
 
-        private String secondaryEndpoint;
+        private String pgEndpoint;
     }
 }

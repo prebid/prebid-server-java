@@ -18,7 +18,7 @@ public class EmbimediaTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromTheEmbimediaBidder() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/embimedia-exchange/test.host/123456"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/embimedia-exchange"))
                 .withRequestBody(equalToJson(
                         jsonFrom("openrtb2/embimedia/test-embimedia-bid-request.json")))
                 .willReturn(aResponse().withBody(

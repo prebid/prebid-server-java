@@ -194,5 +194,4 @@ public class GeoLocationConfiguration {
                 implicitParametersResolver,
                 metrics);
     }
-
 }

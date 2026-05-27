@@ -27,6 +27,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.lunamedia.ExtImpLunamedia;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -42,11 +43,11 @@ public class LunamediaBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public LunamediaBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -149,11 +150,9 @@ public class LunamediaBidder implements Bidder<BidRequest> {
             final List<Imp> imps = impExtAndListOfImps.getValue();
             final BidRequest updatedBidRequest = makeBidRequest(bidRequest, extImpLunamedia, imps);
 
-            final String url = endpointUrl + extImpLunamedia.getPubid();
-
             final HttpRequest<BidRequest> createdBidRequest = HttpRequest.<BidRequest>builder()
                     .method(HttpMethod.POST)
-                    .uri(url)
+                    .uri(endpointUrl.replaceMacro("Pid", extImpLunamedia.getPubid()).expand())
                     .body(mapper.encodeToBytes(updatedBidRequest))
                     .headers(headers())
                     .payload(updatedBidRequest)

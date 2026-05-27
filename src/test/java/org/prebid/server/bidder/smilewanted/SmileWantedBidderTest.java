@@ -36,7 +36,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
 public class SmileWantedBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://prebid-server.smilewanted.com/java/{{ZoneId}}";
+    private static final String ENDPOINT_URL = "https://prebid-server.smilewanted.com/java/{ZoneId}";
 
     private final SmileWantedBidder target = new SmileWantedBidder(ENDPOINT_URL, jacksonMapper);
 
@@ -85,7 +85,7 @@ public class SmileWantedBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
-        final HttpRequest<BidRequest> httpRequest = result.getValue().get(0);
+        final HttpRequest<BidRequest> httpRequest = result.getValue().getFirst();
         assertThat(httpRequest.getPayload()).isNotNull();
         assertThat(httpRequest.getPayload().getImp()).hasSize(2);
         assertThat(httpRequest.getPayload().getAt()).isEqualTo(1);

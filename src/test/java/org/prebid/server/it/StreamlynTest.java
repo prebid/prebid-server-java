@@ -18,7 +18,7 @@ public class StreamlynTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromTheStreamlynBidder() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/streamlyn-exchange/test.host/123456"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/streamlyn-exchange"))
                 .withRequestBody(equalToJson(
                         jsonFrom("openrtb2/streamlyn/test-streamlyn-bid-request.json")))
                 .willReturn(aResponse().withBody(

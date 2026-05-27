@@ -52,6 +52,7 @@ public class RubiconConfiguration {
                         new RubiconBidder(
                                 BIDDER_NAME,
                                 config.getEndpoint(),
+                                config.getDefaultTkXInt(),
                                 externalUrl,
                                 config.getXapi().getUsername(),
                                 config.getXapi().getPassword(),
@@ -80,6 +81,8 @@ public class RubiconConfiguration {
 
         @NotNull
         private String apexRendererUrl;
+
+        private String defaultTkXInt;
     }
 
     @Data

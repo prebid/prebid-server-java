@@ -17,7 +17,7 @@ import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -26,11 +26,11 @@ import java.util.Objects;
 
 public class InteractiveOffersBidder implements Bidder<BidRequest> {
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public InteractiveOffersBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -38,7 +38,7 @@ public class InteractiveOffersBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final ObjectNode impExt = request.getImp().getFirst().getExt();
         final String resolvedPartnerId = StringUtils.defaultString(resolvePartnerId(impExt));
-        final String resolvedEndpointUrl = endpointUrl.replace("{{PartnerId}}", resolvedPartnerId);
+        final String resolvedEndpointUrl = endpointUrl.replaceMacro("PartnerId", resolvedPartnerId).expand();
 
         return Result.withValue(BidderUtil.defaultRequest(request, resolvedEndpointUrl, mapper));
     }

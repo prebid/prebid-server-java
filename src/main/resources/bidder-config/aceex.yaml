@@ -1,6 +1,6 @@
 adapters:
   aceex:
-    endpoint: http://bl-us.aceex.io/?uqhash={{AccountId}}
+    endpoint: http://bl-us.aceex.io/?uqhash={AccountId}
     meta-info:
       maintainer-email: tech@aceex.io
       app-media-types:
