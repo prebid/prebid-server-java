@@ -12,9 +12,9 @@ adapters:
         - video
         - audio
       supported-vendors:
-      vendor-id: 0
+      vendor-id: 1169
     usersync:
       cookie-family-name: alkimi
       redirect:
-        url: https://user-sync.alkimi-onboarding.com/ssp-sync?gdpr={{gdpr}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+        url: https://user-sync.alkimi-onboarding.com/ssp-sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redirect={{redirect_url}}
         uid-macro: '${UID}'

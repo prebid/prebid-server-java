@@ -21,5 +21,5 @@ adapters:
         url: https://hbx.media.net/checksync.php?cid=8CUEHS6F9&cs=87&type=mpbc&cv=37&vsSync=1&uspstring={{us_privacy}}&gdpr={{gdpr}}&gdprstring={{gdpr_consent}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redirect={{redirect_url}}
         uid-macro: '<vsid>'
       redirect:
-        url: https://hbx.media.net/cksync.php?cs=1&type=pbs&ovsid=setstatuscode&bidder=medianet&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redirect={{redirect_url}}
+        url: https://cs.media.net/cksync.php?cs=1&type=pbs&ovsid=setstatuscode&bidder=medianet&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redirect={{redirect_url}}
         uid-macro: '<vsid>'

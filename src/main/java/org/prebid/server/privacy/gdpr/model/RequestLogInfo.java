@@ -8,7 +8,7 @@ public class RequestLogInfo {
 
     MetricName requestType;
 
-    String refUrl;
+    String source;
 
     String accountId;
 }
