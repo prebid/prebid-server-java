@@ -8,7 +8,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -22,9 +21,8 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.beop.ExtImpBeop;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -35,11 +33,11 @@ public class BeopBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpBeop>> BEOP_EXT_TYPE_REFERENCE = new TypeReference<>() {
     };
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public BeopBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -73,29 +71,24 @@ public class BeopBidder implements Bidder<BidRequest> {
     }
 
     private String buildEndpointUrl(ExtImpBeop ext) {
-        final URIBuilder uriBuilder;
-        try {
-            uriBuilder = new URIBuilder(endpointUrl);
-        } catch (URISyntaxException e) {
-            throw new PreBidException("Invalid endpoint URL: " + e.getMessage());
-        }
+        final Uri.ParameterizedUri uriBuilder = endpointUrl.parameterized();
 
         final String pid = StringUtils.trimToNull(ext.getPid());
         if (StringUtils.isNotEmpty(pid)) {
-            uriBuilder.addParameter("pid", pid);
+            uriBuilder.addQueryParam("pid", pid);
         }
 
         final String nid = StringUtils.trimToNull(ext.getNid());
         if (StringUtils.isNotEmpty(nid)) {
-            uriBuilder.addParameter("nid", nid);
+            uriBuilder.addQueryParam("nid", nid);
         }
 
         final String nptnid = StringUtils.trimToNull(ext.getNtpnid());
         if (StringUtils.isNotEmpty(nptnid)) {
-            uriBuilder.addParameter("nptnid", nptnid);
+            uriBuilder.addQueryParam("nptnid", nptnid);
         }
 
-        return uriBuilder.toString();
+        return uriBuilder.expand();
     }
 
     @Override
