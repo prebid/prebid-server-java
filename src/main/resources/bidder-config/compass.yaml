@@ -17,9 +17,7 @@ adapters:
       cookie-family-name: compass
       redirect:
         url: https://sa-cs.deliverimp.com/pbserver?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redir={{redirect_url}}
-        support-cors: false
         uid-macro: '[UID]'
       iframe:
-        support-cors: false
         url: https://sa-cs.deliverimp.com/pbserverIframe?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&pbserverUrl={{redirect_url}}
         uid-macro: '[UID]'

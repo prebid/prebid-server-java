@@ -13,4 +13,3 @@ adapters:
       redirect-url: /setuid?bidder=intertech&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid={UID}
       cookie-family-name: intertech
       type: redirect
-      support-cors: false

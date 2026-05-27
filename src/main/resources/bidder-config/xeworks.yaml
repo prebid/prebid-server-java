@@ -18,11 +18,9 @@ adapters:
           cookie-family-name: adipolo
           redirect:
             url: https://sync.adipolo.live/psync?t=s&e=0&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&cb={{redirect_url}}
-            support-cors: false
             uid-macro: '$UID'
           iframe:
             url: https://sync.adipolo.live/static/adisync.html?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&cb={{redirect_url}}
-            support-cors: false
             uid-macro: '$UID'
     meta-info:
       maintainer-email: team@xe.works
@@ -40,4 +38,3 @@ adapters:
       cookie-family-name: xeworks
       redirect:
         url: GET_FROM_team@xe.works
-        support-cors: false

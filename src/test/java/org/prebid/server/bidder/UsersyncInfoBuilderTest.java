@@ -168,7 +168,6 @@ public class UsersyncInfoBuilderTest {
                 .type(UsersyncMethodType.REDIRECT)
                 .usersyncUrl(usersyncUrl)
                 .redirectUrl(redirectUrl)
-                .supportCORS(false)
                 .build();
     }
 }

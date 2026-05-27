@@ -19,9 +19,7 @@ adapters:
       cookie-family-name: mgidX
       iframe:
         url: https://cm.mgid.com/i.gif?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&adu={{redirect_url}}
-        support-cors: false
         uid-macro: '{muidn}'
       redirect:
         url: https://cm.mgid.com/i.html?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&adu={{redirect_url}}
-        support-cors: false
         uid-macro: '{muidn}'

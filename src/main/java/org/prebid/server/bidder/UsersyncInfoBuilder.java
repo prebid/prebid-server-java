@@ -14,7 +14,6 @@ public class UsersyncInfoBuilder {
     private String usersyncUrl;
     private String redirectUrl;
     private UsersyncMethodType type;
-    private Boolean supportCORS;
 
     public static UsersyncInfoBuilder from(UsersyncMethod usersyncMethod) {
         final UsersyncInfoBuilder usersyncInfoBuilder = new UsersyncInfoBuilder();
@@ -23,7 +22,6 @@ public class UsersyncInfoBuilder {
                 StringUtils.stripToEmpty(usersyncMethod.getRedirectUrl()),
                 UsersyncUtil.resolveFormat(usersyncMethod));
         usersyncInfoBuilder.type = usersyncMethod.getType();
-        usersyncInfoBuilder.supportCORS = usersyncMethod.isSupportCORS();
 
         return usersyncInfoBuilder;
     }
@@ -88,7 +86,7 @@ public class UsersyncInfoBuilder {
         final String resolvedUsersyncUrl = usersyncUrl.replace(
                 UsersyncInfo.REDIRECT_URL_PLACEHOLDER, resolvedRedirectUrl);
 
-        return UsersyncInfo.of(resolvedUsersyncUrl, type, supportCORS);
+        return UsersyncInfo.of(resolvedUsersyncUrl, type);
     }
 
     private static String resolveQueryParams(String redirectUrl) {

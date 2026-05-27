@@ -16,6 +16,5 @@ adapters:
     usersync:
       cookie-family-name: boldwin
       redirect:
-        support-cors: false
         url: https://sync.videowalldirect.com/pbserver?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&redir={{redirect_url}}
         uid-macro: '[UID]'

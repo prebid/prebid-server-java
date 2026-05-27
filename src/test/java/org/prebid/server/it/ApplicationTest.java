@@ -327,7 +327,7 @@ public class ApplicationTest extends IntegrationTest {
                                         + "&gpp_sid="
                                         + "&f=i"
                                         + "&uid=host-cookie-uid",
-                                UsersyncMethodType.REDIRECT, false))
+                                UsersyncMethodType.REDIRECT))
                         .build(),
                 BidderUsersyncStatus.builder()
                         .bidder(APPNEXUS_COOKIE_FAMILY)
@@ -340,7 +340,7 @@ public class ApplicationTest extends IntegrationTest {
                                         + "%26gpp_sid%3D"
                                         + "%26f%3Db"
                                         + "%26uid%3D%24UID",
-                                UsersyncMethodType.IFRAME, false))
+                                UsersyncMethodType.IFRAME))
                         .build());
     }
 

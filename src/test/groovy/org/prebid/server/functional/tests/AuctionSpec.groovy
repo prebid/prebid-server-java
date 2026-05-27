@@ -43,14 +43,12 @@ import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
 class AuctionSpec extends BaseSpec {
 
     private static final String USER_SYNC_URL = "$networkServiceContainer.rootUri/generic-usersync"
-    private static final Boolean CORS_SUPPORT = false
     private static final UserSyncInfo.Type USER_SYNC_TYPE = REDIRECT
     private static final Integer DEFAULT_TIMEOUT = getRandomTimeout()
     private static final Integer MIN_BID_ID_LENGTH = 17
     private static final Integer DEFAULT_UUID_LENGTH = 36
     private static final Map<String, String> GENERIC_CONFIG = [
-            "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url"         : USER_SYNC_URL,
-            "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.support-cors": CORS_SUPPORT.toString()]
+            "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url"         : USER_SYNC_URL]
     @Shared
     PrebidServerService prebidServerService = pbsServiceFactory.getService(PBS_CONFIG)
 
@@ -189,8 +187,7 @@ class AuctionSpec extends BaseSpec {
     def "PBS should populate buyeruid from uids cookie when buyeruids with appropriate bidder but without value present in request"() {
         given: "PBS config"
         def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG
-                + ["adapters.${GENERIC.value}.usersync.${REDIRECT.value}.url"         : USER_SYNC_URL,
-                   "adapters.${GENERIC.value}.usersync.${REDIRECT.value}.support-cors": "false"])
+                + ["adapters.${GENERIC.value}.usersync.${REDIRECT.value}.url"         : USER_SYNC_URL])
 
         and: "Bid request with buyeruids"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -212,8 +209,7 @@ class AuctionSpec extends BaseSpec {
     def "PBS shouldn't populate buyeruid from uids cookie when buyeruids with appropriate bidder but without value present in request"() {
         given: "PBS config"
         def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG
-                + ["adapters.${GENERIC.value}.usersync.${REDIRECT.value}.url"         : USER_SYNC_URL,
-                   "adapters.${GENERIC.value}.usersync.${REDIRECT.value}.support-cors": "false"])
+                + ["adapters.${GENERIC.value}.usersync.${REDIRECT.value}.url"         : USER_SYNC_URL])
 
         and: "Bid request with buyeruids"
         def bidRequest = BidRequest.defaultBidRequest.tap {
