@@ -36,7 +36,6 @@ adapters:
           iframe:
             url: https://hmidssp.com/usync?type=iframe&gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
             uid-macro: '$UID'
-            support-cors: false
           redirect:
             url:  https://hmidssp.com/usync?type=image&gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
             uid-macro: '$UID'
