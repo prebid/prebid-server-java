@@ -1,16 +1,20 @@
 package org.prebid.server.functional.tests.privacy.tcf
 
 import org.prebid.server.functional.model.bidder.BidderName
+import org.prebid.server.functional.model.config.AccountGdprConfig
 import org.prebid.server.functional.model.config.Purpose
+import org.prebid.server.functional.model.config.PurposeConfig
 import org.prebid.server.functional.model.privacy.EnforcementRequirement
 import org.prebid.server.functional.model.response.auction.NoBidResponse
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
+import org.prebid.server.functional.util.privacy.TcfConsent
 import org.prebid.server.functional.util.privacy.TcfUtils
 
 import java.time.ZoneId
 import java.time.ZonedDateTime
 
+import static org.prebid.server.functional.model.config.PurposeEnforcement.NO
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 
@@ -416,8 +420,53 @@ class TcfGeneralSpec extends TcfBaseSpec {
         assert metrics[TCF_NO_DISCLOSED_VENDORS_METRIC] == 1
 
         where:
-        pbsService                                      | serviceName
-        pbsWithoutGvlVendorsWithStrictDvTreatment       | "without GVL vendors"
-        pbsWithMultipleGvlListsWithStrictDvTreatment    | "with multiple GVL lists"
+        pbsService                                   | serviceName
+        pbsWithoutGvlVendorsWithStrictDvTreatment    | "without GVL vendors"
+        pbsWithMultipleGvlListsWithStrictDvTreatment | "with multiple GVL lists"
+    }
+
+    def "PBS should reject auction for deprecated TCF v1 consent regardless of disclosed vendors configuration #serviceName"() {
+        given: "BidRequest with deprecated TCF v1 consent"
+        def tcfConsent = new TcfConsent.Builder()
+                .setPurposesConsent(TcfConsent.PurposeId.BASIC_ADS)
+                .setVersion(1)
+                .setDisclosedVendors([GENERIC_VENDOR_ID])
+                .setCreateTime(ZonedDateTime.now())
+                .setUpdatedTime(ZonedDateTime.now())
+                .build()
+        def bidRequest = getGdprBidRequest(tcfConsent)
+
+        and: "Account GDPR config with disabled vendor enforcement"
+        def purposes = [(Purpose.P2): new PurposeConfig(enforcePurpose: NO, enforceVendors: false)]
+        def accountGdprConfig = new AccountGdprConfig(purposes: purposes)
+        def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig)
+        accountDao.save(account)
+
+        and: "Flush metric"
+        flushMetrics(pbsService)
+
+        when: "PBS processes auction requests"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response shouldn't contain seatBid"
+        assert response?.seatbid?.bid?.flatten()?.isEmpty()
+
+        and: "PBS should emit proper nbr code"
+        assert response.noBidResponse == NoBidResponse.UNKNOWN_ERROR
+
+        and: "PBS response shouldn't provide proper error"
+        assert !response.ext.errors
+
+        and: "PBS should contain TCF deprecation warning"
+        assert response.ext.warnings[PREBID].message == ["Parsing consent string:\"${tcfConsent}\" failed. " +
+                                                                 "TCF version 1 is deprecated and treated as corrupted TCF version 2"]
+
+        and: "PBS should not send bid request to bidder"
+        assert !bidder.getBidderRequests(bidRequest.id)
+
+        where:
+        pbsService                                   | serviceName
+        pbsWithoutGvlVendorsWithStrictDvTreatment    | "without GVL vendors"
+        pbsWithMultipleGvlListsWithStrictDvTreatment | "with multiple GVL lists"
     }
 }

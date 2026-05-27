@@ -24,6 +24,7 @@ public class DisclosedVendorsStrictness {
 
     public boolean isValid(TCString consent) {
         return !strictnessEnabled
+                || consent.getVersion() == 1
                 || isCreatedBeforeTcfV2M3EnforcementCutoff(consent)
                 || !consent.getDisclosedVendors().isEmpty();
     }
@@ -38,6 +39,7 @@ public class DisclosedVendorsStrictness {
 
     public boolean isVendorDisclosed(TCString consent, Integer vendorId) {
         return !strictnessEnabled
+                || consent.getVersion() == 1
                 || (vendorId != null
                 && (isCreatedBeforeTcfV2M3EnforcementCutoff(consent)
                 || consent.getDisclosedVendors().contains(vendorId)));
