@@ -7,7 +7,8 @@ adapters:
       152media: ~
       xapads:
         enabled: false
-        vendor-id: 1320
+        meta-info:
+          vendor-id: 1320
         usersync:
           enabled: true
           cookie-family-name: xapads

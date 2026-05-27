@@ -1,0 +1,25 @@
+{
+  "id": "test-request-id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "test-imp-id",
+          "price": 1.50,
+          "adm": "test-ad-markup",
+          "crid": "test-creative-id",
+          "w": 300,
+          "h": 250,
+          "mtype": 1,
+          "ext": {
+            "prebid": {
+              "type": "banner"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "cur": "USD"
+}
