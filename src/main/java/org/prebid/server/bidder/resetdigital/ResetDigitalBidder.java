@@ -1,10 +1,12 @@
 package org.prebid.server.bidder.resetdigital;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.vertx.core.MultiMap;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -12,171 +14,157 @@ import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
-import org.prebid.server.bidder.model.Price;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.resetdigital.ExtImpResetDigital;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Stream;
+import java.util.Optional;
 
 public class ResetDigitalBidder implements Bidder<BidRequest> {
 
     private static final String DEFAULT_CURRENCY = "USD";
+    private static final TypeReference<ExtPrebid<?, ExtImpResetDigital>> EXT_TYPE_REFERENCE =
+            new TypeReference<>() {
+            };
 
     private final String endpointUrl;
-    private final CurrencyConversionService currencyConversionService;
     private final JacksonMapper mapper;
 
-    public ResetDigitalBidder(String endpointUrl,
-                              CurrencyConversionService currencyConversionService,
-                              JacksonMapper mapper) {
-
+    public ResetDigitalBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
-        this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final List<Imp> bannerImps = new ArrayList<>();
-        final List<Imp> videoImps = new ArrayList<>();
-        final List<Imp> audioImps = new ArrayList<>();
-        Price bidFloorPrice;
-
-        for (Imp imp : request.getImp()) {
-            try {
-                bidFloorPrice = resolveBidFloor(imp, request);
-            } catch (PreBidException e) {
-                return Result.withError(BidderError.badInput(e.getMessage()));
-            }
-            populateBannerImps(bannerImps, bidFloorPrice, imp);
-            populateVideoImps(videoImps, bidFloorPrice, imp);
-            populateAudiImps(audioImps, bidFloorPrice, imp);
+        if (request.getImp().size() != 1) {
+            return Result.withError(BidderError.badInput(
+                    "ResetDigital adapter supports only one impression per request"));
         }
 
-        return Result.withValues(getHttpRequests(request, bannerImps, videoImps, audioImps));
-    }
-
-    private List<HttpRequest<BidRequest>> getHttpRequests(BidRequest request,
-                                                          List<Imp> bannerImps,
-                                                          List<Imp> videoImps,
-                                                          List<Imp> audioImps) {
-
-        return Stream.of(bannerImps, videoImps, audioImps)
-                .filter(CollectionUtils::isNotEmpty)
-                .map(imp -> makeHttpRequest(request, imp))
-                .toList();
-    }
-
-    private HttpRequest<BidRequest> makeHttpRequest(BidRequest bidRequest, List<Imp> imp) {
-        final BidRequest outgoingRequest = bidRequest.toBuilder().imp(imp).build();
-
-        return BidderUtil.defaultRequest(outgoingRequest, endpointUrl, mapper);
-    }
-
-    private static Imp modifyImp(Imp imp, Price bidFloorPrice) {
-        return imp.toBuilder()
-                .bidfloorcur(bidFloorPrice.getCurrency())
-                .bidfloor(bidFloorPrice.getValue())
-                .build();
-    }
-
-    private Price resolveBidFloor(Imp imp, BidRequest bidRequest) {
-        final Price initialBidFloorPrice = Price.of(imp.getBidfloorcur(), imp.getBidfloor());
-        return BidderUtil.isValidPrice(initialBidFloorPrice)
-                ? convertBidFloor(initialBidFloorPrice, imp.getId(), bidRequest)
-                : initialBidFloorPrice;
-    }
-
-    private Price convertBidFloor(Price bidFloorPrice, String impId, BidRequest bidRequest) {
-        final String bidFloorCur = bidFloorPrice.getCurrency();
+        final Imp imp = request.getImp().getFirst();
+        final ExtImpResetDigital extImp;
         try {
-            final BigDecimal convertedPrice = currencyConversionService
-                    .convertCurrency(bidFloorPrice.getValue(), bidRequest, bidFloorCur, DEFAULT_CURRENCY);
-
-            return Price.of(DEFAULT_CURRENCY, convertedPrice);
+            extImp = parseImpExt(imp);
         } catch (PreBidException e) {
-            throw new PreBidException(
-                    "Unable to convert provided bid floor currency from %s to %s for imp `%s`"
-                            .formatted(bidFloorCur, DEFAULT_CURRENCY, impId));
+            return Result.withError(BidderError.badInput(e.getMessage()));
+        }
+
+        final Imp modifiedImp = modifyImp(imp, extImp);
+        final BidRequest outgoingRequest = request.toBuilder()
+                .imp(Collections.singletonList(modifiedImp))
+                .build();
+
+        final String uri = endpointUrl + "?pid=" + HttpUtil.encodeUrl(extImp.getPlacementId());
+        final MultiMap headers = HttpUtil.headers()
+                .add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
+
+        return Result.withValue(BidderUtil.defaultRequest(outgoingRequest, headers, uri, mapper));
+    }
+
+    private ExtImpResetDigital parseImpExt(Imp imp) {
+        try {
+            return mapper.mapper().convertValue(imp.getExt(), EXT_TYPE_REFERENCE).getBidder();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException("Error parsing resetDigitalExt from imp.ext: " + e.getMessage());
         }
     }
 
-    private static void populateBannerImps(List<Imp> bannerImps, Price bidFloorPrice, Imp imp) {
-        if (imp.getBanner() != null) {
-            final Imp bannerImp = imp.toBuilder().video(null).xNative(null).audio(null).build();
-            bannerImps.add(modifyImp(bannerImp, bidFloorPrice));
-        }
-    }
-
-    private static void populateVideoImps(List<Imp> videoImps, Price bidFloorPrice, Imp imp) {
-        if (imp.getVideo() != null) {
-            final Imp videoImp = imp.toBuilder().banner(null).xNative(null).audio(null).build();
-            videoImps.add(modifyImp(videoImp, bidFloorPrice));
-        }
-    }
-
-    private static void populateAudiImps(List<Imp> audioImps, Price bidFloorPrice, Imp imp) {
-        if (imp.getAudio() != null) {
-            final Imp audioImp = imp.toBuilder().banner(null).xNative(null).video(null).build();
-            audioImps.add(modifyImp(audioImp, bidFloorPrice));
-        }
+    private static Imp modifyImp(Imp imp, ExtImpResetDigital extImp) {
+        return StringUtils.isBlank(imp.getTagid())
+                ? imp.toBuilder().tagid(extImp.getPlacementId()).build()
+                : imp;
     }
 
     @Override
     public final Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
+            final List<BidderError> errors = new ArrayList<>();
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.withValues(extractBids(bidResponse, httpCall.getRequest().getPayload()));
+            return Result.of(extractBids(bidResponse, httpCall.getRequest().getPayload(), errors), errors);
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private static List<BidderBid> extractBids(BidResponse bidResponse, BidRequest bidRequest) {
+    private static List<BidderBid> extractBids(BidResponse bidResponse,
+                                               BidRequest bidRequest,
+                                               List<BidderError> errors) {
+
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
-        if (bidResponse.getCur() != null && !StringUtils.equalsIgnoreCase(DEFAULT_CURRENCY, bidResponse.getCur())) {
-            throw new PreBidException("Bidder support only USD currency");
-        }
-        return bidsFromResponse(bidResponse, bidRequest);
-    }
 
-    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse, BidRequest bidRequest) {
-        return bidResponse.getSeatbid().stream()
-                .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getBidType(bid, bidRequest.getImp()), DEFAULT_CURRENCY))
-                .toList();
-    }
+        final Imp imp = bidRequest.getImp().getFirst();
+        final String currency = StringUtils.isNotBlank(bidResponse.getCur())
+                ? bidResponse.getCur()
+                : bidRequest.getCur().stream().findFirst().orElse(DEFAULT_CURRENCY);
 
-    private static BidType getBidType(Bid bid, List<Imp> imps) {
-        final String impId = bid.getImpid();
-        for (Imp imp : imps) {
-            if (imp.getId().equals(impId)) {
-                if (imp.getBanner() != null) {
-                    return BidType.banner;
-                } else if (imp.getVideo() != null) {
-                    return BidType.video;
-                } else if (imp.getAudio() != null) {
-                    return BidType.audio;
+        final List<BidderBid> bidderBids = new ArrayList<>();
+        for (SeatBid seatBid : bidResponse.getSeatbid()) {
+            if (seatBid == null || CollectionUtils.isEmpty(seatBid.getBid())) {
+                continue;
+            }
+
+            for (Bid bid : seatBid.getBid()) {
+                try {
+                    bidderBids.add(makeBidderBid(bid, seatBid.getSeat(), currency, imp));
+                } catch (PreBidException e) {
+                    errors.add(BidderError.badServerResponse(e.getMessage()));
                 }
             }
         }
-        throw new PreBidException("Failed to find banner/video/audio impression " + impId);
+
+        return bidderBids;
+    }
+
+    private static BidderBid makeBidderBid(Bid bid, String seat, String currency, Imp imp) {
+        if (!BidderUtil.isValidPrice(bid.getPrice())) {
+            throw new PreBidException("price %s <= 0 filtered out".formatted(bid.getPrice()));
+        }
+
+        final BidType bidType = Optional.ofNullable(getBidType(bid))
+                .orElseGet(() -> getBidType(bid, imp));
+
+        return StringUtils.isNotBlank(seat)
+                ? BidderBid.of(bid, bidType, seat, currency)
+                : BidderBid.of(bid, bidType, currency);
+    }
+
+    private static BidType getBidType(Bid bid) {
+        final Integer mtype = bid.getMtype();
+        return switch (mtype) {
+            case 1 -> BidType.banner;
+            case 2 -> BidType.video;
+            case 3 -> BidType.audio;
+            case 4 -> BidType.xNative;
+            case null -> null;
+            default -> throw new PreBidException("Unsupported MType: " + mtype);
+        };
+    }
+
+    private static BidType getBidType(Bid bid, Imp imp) {
+        if (!imp.getId().equals(bid.getImpid())) {
+            throw new PreBidException("No matching impression found for ImpID: " + bid.getImpid());
+        }
+
+        if (imp.getVideo() != null) {
+            return BidType.video;
+        } else if (imp.getAudio() != null) {
+            return BidType.audio;
+        } else if (imp.getXNative() != null) {
+            return BidType.xNative;
+        }
+        return BidType.banner;
     }
 }
