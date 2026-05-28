@@ -1,5 +1,7 @@
 package org.prebid.server.analytics.reporter.liveintent;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
@@ -7,11 +9,11 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
-import org.junit.jupiter.api.Test;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.analytics.model.AuctionEvent;
@@ -23,20 +25,18 @@ import org.prebid.server.hooks.execution.model.ExecutionStatus;
 import org.prebid.server.hooks.execution.model.GroupExecutionOutcome;
 import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.hooks.execution.model.HookExecutionOutcome;
+import org.prebid.server.hooks.execution.model.HookHttpEndpoint;
 import org.prebid.server.hooks.execution.model.HookId;
 import org.prebid.server.hooks.execution.model.Stage;
 import org.prebid.server.hooks.execution.model.StageExecutionOutcome;
 import org.prebid.server.hooks.execution.v1.analytics.ActivityImpl;
-import org.prebid.server.hooks.execution.v1.analytics.TagsImpl;
 import org.prebid.server.hooks.execution.v1.analytics.AppliedToImpl;
 import org.prebid.server.hooks.execution.v1.analytics.ResultImpl;
+import org.prebid.server.hooks.execution.v1.analytics.TagsImpl;
 import org.prebid.server.json.ObjectMapperProvider;
-import org.prebid.server.model.Endpoint;
 import org.prebid.server.util.ListUtil;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.math.BigDecimal;
 import java.util.EnumMap;
@@ -183,15 +183,25 @@ public class LiveintentAnalyticsReporterTest extends VertxTest {
 
         final EnumMap<Stage, List<StageExecutionOutcome>> stageOutcomes = new EnumMap<>(Stage.class);
         stageOutcomes.put(Stage.processed_auction_request, List.of(stageExecutionOutcome));
-        return AuctionEvent.builder().auctionContext(AuctionContext.builder()
-                .bidRequest(BidRequest.builder().id("request-id")
-                        .imp(List.of(Imp.builder().id("imp-id").tagid("ad-unit-id").build())).build())
-                .bidResponse(BidResponse.builder().bidid("bid-id").cur("USD")
-                        .seatbid(List.of(SeatBid.builder()
-                                .bid(List.of(Bid.builder().id("bid-id").impid("imp-id").price(BigDecimal.ONE).build()))
-                                .build()))
+        return AuctionEvent.builder()
+                .auctionContext(AuctionContext.builder()
+                        .bidRequest(BidRequest.builder()
+                                .id("request-id")
+                                .imp(List.of(Imp.builder().id("imp-id").tagid("ad-unit-id").build()))
+                                .build())
+                        .bidResponse(BidResponse.builder()
+                                .bidid("bid-id")
+                                .cur("USD")
+                                .seatbid(List.of(SeatBid.builder()
+                                        .bid(List.of(Bid.builder()
+                                                .id("bid-id")
+                                                .impid("imp-id")
+                                                .price(BigDecimal.ONE)
+                                                .build()))
+                                        .build()))
+                                .build())
+                        .hookExecutionContext(HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION, stageOutcomes))
                         .build())
-                .hookExecutionContext(HookExecutionContext.of(Endpoint.openrtb2_auction, stageOutcomes)).build())
                 .build();
     }
 }
