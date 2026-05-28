@@ -37,6 +37,7 @@ import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.typestrategies.NoEnf
 import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.typestrategies.PurposeTwoBasicEnforcePurposeStrategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.specialfeature.SpecialFeaturesOneStrategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.specialfeature.SpecialFeaturesStrategy;
+import org.prebid.server.privacy.gdpr.vendorlist.LiveVendorListService;
 import org.prebid.server.privacy.gdpr.vendorlist.VendorListFetchThrottler;
 import org.prebid.server.privacy.gdpr.vendorlist.VendorListService;
 import org.prebid.server.privacy.gdpr.vendorlist.VersionedVendorListService;
@@ -136,10 +137,34 @@ public class PrivacyServiceConfiguration {
     }
 
     @Bean
-    VersionedVendorListService versionedVendorListService(VendorListService vendorListServiceV2,
-                                                          VendorListService vendorListServiceV3) {
+    LiveVendorListService liveVendorListService(
+            @Value("${gdpr.vendorlist.live-gvl-url}") String liveGvlUrl,
+            @Value("${gdpr.vendorlist.live-gvl-refresh-period-ms}") long refreshPeriodMs,
+            @Value("${gdpr.vendorlist.default-timeout-ms}") int defaultTimeoutMs,
+            Vertx vertx,
+            HttpClient httpClient,
+            JacksonMapper mapper,
+            Metrics metrics,
+            Clock clock) {
 
-        return new VersionedVendorListService(vendorListServiceV2, vendorListServiceV3);
+        return new LiveVendorListService(
+                liveGvlUrl,
+                refreshPeriodMs,
+                defaultTimeoutMs,
+                vertx,
+                httpClient,
+                mapper,
+                metrics,
+                clock);
+    }
+
+    @Bean
+    VersionedVendorListService versionedVendorListService(VendorListService vendorListServiceV2,
+                                                          VendorListService vendorListServiceV3,
+                                                          LiveVendorListService liveVendorListService) {
+
+        return new VersionedVendorListService(
+                vendorListServiceV2, vendorListServiceV3, liveVendorListService);
     }
 
     @Bean

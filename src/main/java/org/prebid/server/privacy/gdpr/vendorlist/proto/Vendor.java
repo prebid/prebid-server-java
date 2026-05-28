@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.Instant;
 import java.util.EnumSet;
 
 @AllArgsConstructor
@@ -15,6 +16,9 @@ import java.util.EnumSet;
 public class Vendor {
 
     Integer id;
+
+    @JsonProperty("deletedDate")
+    Instant deletedDate;
 
     EnumSet<PurposeCode> purposes;
 
