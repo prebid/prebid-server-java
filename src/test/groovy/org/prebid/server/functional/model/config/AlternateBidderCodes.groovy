@@ -12,5 +12,5 @@ import org.prebid.server.functional.model.bidder.BidderName
 class AlternateBidderCodes {
 
     Boolean enabled
-    Map<BidderName, BidderConfig> bidders
+    Map<BidderName, CodesBidderConfig> bidders
 }

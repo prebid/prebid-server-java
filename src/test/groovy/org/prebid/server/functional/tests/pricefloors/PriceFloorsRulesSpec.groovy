@@ -5,7 +5,7 @@ import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.bidder.Openx
 import org.prebid.server.functional.model.bidderspecific.BidderRequest
 import org.prebid.server.functional.model.config.AlternateBidderCodes
-import org.prebid.server.functional.model.config.BidderConfig
+import org.prebid.server.functional.model.config.CodesBidderConfig
 import org.prebid.server.functional.model.db.StoredImp
 import org.prebid.server.functional.model.pricefloors.Country
 import org.prebid.server.functional.model.pricefloors.FloorModelGroup
@@ -13,6 +13,7 @@ import org.prebid.server.functional.model.pricefloors.MediaType
 import org.prebid.server.functional.model.pricefloors.PriceFloorData
 import org.prebid.server.functional.model.pricefloors.PriceFloorSchema
 import org.prebid.server.functional.model.pricefloors.Rule
+import org.prebid.server.functional.model.request.Channel
 import org.prebid.server.functional.model.request.auction.Amx
 import org.prebid.server.functional.model.request.auction.Banner
 import org.prebid.server.functional.model.request.auction.BidRequest
@@ -61,7 +62,6 @@ import static org.prebid.server.functional.model.request.auction.DistributionCha
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 import static org.prebid.server.functional.model.request.auction.FetchStatus.ERROR
 import static org.prebid.server.functional.model.request.auction.Location.NO_DATA
-import static org.prebid.server.functional.model.request.auction.Prebid.Channel
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.RESPONSE_REJECTED_DUE_TO_PRICE_FLOOR
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 
@@ -1179,7 +1179,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
                 returnAllBidStatus = true
                 alternateBidderCodes = new AlternateBidderCodes(
                         enabled: true,
-                        bidders: [(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])])
+                        bidders: [(AMX): new CodesBidderConfig(enabled: true, allowedBidderCodes: [GENERIC])])
             }
         }
 

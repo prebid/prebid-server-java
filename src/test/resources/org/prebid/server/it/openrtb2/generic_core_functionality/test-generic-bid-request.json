@@ -94,9 +94,6 @@
         "includewinners" : true,
         "includebidderkeys" : true
       },
-      "cache" : {
-        "bids" : { }
-      },
       "auctiontimestamp" : 0,
       "server" : {
         "externalurl" : "http://localhost:8080",
