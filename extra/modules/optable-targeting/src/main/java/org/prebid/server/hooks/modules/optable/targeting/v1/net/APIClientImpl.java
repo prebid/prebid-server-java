@@ -69,7 +69,7 @@ public class APIClientImpl implements APIClient {
     }
 
     private static MultiMap headers(OptableTargetingProperties properties, List<String> ips, String userAgent) {
-        final MultiMap headers = HeadersMultiMap.headers()
+        final MultiMap headers = HeadersMultiMap.httpHeaders()
                 .add(HttpUtil.ACCEPT_HEADER, "application/json");
 
         if (userAgent != null) {
