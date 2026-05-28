@@ -6,6 +6,11 @@ adapters:
       1accord: ~
       easybid: ~
       prismassp: ~
+      ybidder:
+        enabled: false
+        meta-info:
+          maintainer-email: team@yieldbird.com
+          vendor-id: 1253
     meta-info:
       maintainer-email: tech@nexx360.io
       app-media-types:

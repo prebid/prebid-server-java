@@ -97,6 +97,12 @@ public class DeviceEnricher {
             updatedFields.add("model");
         }
 
+        final UpdateResult<String> resolvedHwv = resolveDeviceHwv(device, deviceData);
+        if (resolvedHwv.isUpdated()) {
+            deviceBuilder.hwv(resolvedHwv.getValue());
+            updatedFields.add("hwv");
+        }
+
         final UpdateResult<String> resolvedOs = resolveOs(device, deviceData);
         if (resolvedOs.isUpdated()) {
             deviceBuilder.os(resolvedOs.getValue());
@@ -182,6 +188,11 @@ public class DeviceEnricher {
         final String currentModel = device.getModel();
         if (StringUtils.isNotBlank(currentModel)) {
             return UpdateResult.unaltered(currentModel);
+        }
+
+        final String hardwareNamePrefix = getSafe(deviceData, DeviceData::getHardwareNamePrefix);
+        if (StringUtils.isNotBlank(hardwareNamePrefix)) {
+            return UpdateResult.updated(hardwareNamePrefix);
         }
 
         final String model = getSafe(deviceData, DeviceData::getHardwareModel);
@@ -282,6 +293,18 @@ public class DeviceEnricher {
         return StringUtils.isNotBlank(deviceID)
                 ? UpdateResult.updated(deviceID)
                 : UpdateResult.unaltered(currentDeviceId);
+    }
+
+    private UpdateResult<String> resolveDeviceHwv(Device device, DeviceData deviceData) {
+        final String currentDeviceHwv = device.getHwv();
+        if (StringUtils.isNotEmpty(currentDeviceHwv)) {
+            return UpdateResult.unaltered(currentDeviceHwv);
+        }
+
+        final String deviceHwv = getSafe(deviceData, DeviceData::getHardwareNameVersion);
+        return StringUtils.isNotEmpty(deviceHwv)
+                ? UpdateResult.updated(deviceHwv)
+                : UpdateResult.unaltered(currentDeviceHwv);
     }
 
     private static boolean isPositive(Integer value) {
