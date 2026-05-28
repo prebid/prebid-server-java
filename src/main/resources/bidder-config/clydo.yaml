@@ -1,0 +1,21 @@
+adapters:
+  clydo:
+    endpoint: http://region={{Region}}.clydo.io/partnerId={{PartnerId}}
+    modifying-vast-xml-allowed: true
+    endpoint-compression: gzip
+    geoscope:
+      - global
+    meta-info:
+      maintainer-email: cto@clydo.io
+      app-media-types:
+        - banner
+        - video
+        - audio
+        - native
+      site-media-types:
+        - banner
+        - video
+        - audio
+        - native
+      supported-vendors:
+      vendor-id: 0

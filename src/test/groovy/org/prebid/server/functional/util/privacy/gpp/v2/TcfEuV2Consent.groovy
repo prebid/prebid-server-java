@@ -50,6 +50,11 @@ class TcfEuV2Consent extends GppConsent {
             this
         }
 
+        Builder setDisclosedVendors(List<Integer> vendorIds) {
+            fieldValues[TcfEuV2Field.VENDORS_DISCLOSED] = vendorIds
+            this
+        }
+
         @Override
         TcfEuV2Consent build() {
             new TcfEuV2Consent(section, fieldValues)

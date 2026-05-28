@@ -103,6 +103,7 @@ public class AmpRequestFactory {
     private final DebugResolver debugResolver;
     private final JacksonMapper mapper;
     private final GeoLocationServiceWrapper geoLocationServiceWrapper;
+    private final TcfDefinerService tcfDefinerService;
 
     public AmpRequestFactory(Ortb2RequestFactory ortb2RequestFactory,
                              StoredRequestProcessor storedRequestProcessor,
@@ -116,7 +117,8 @@ public class AmpRequestFactory {
                              AmpPrivacyContextFactory ampPrivacyContextFactory,
                              DebugResolver debugResolver,
                              JacksonMapper mapper,
-                             GeoLocationServiceWrapper geoLocationServiceWrapper) {
+                             GeoLocationServiceWrapper geoLocationServiceWrapper,
+                             TcfDefinerService tcfDefinerService) {
 
         this.ortb2RequestFactory = Objects.requireNonNull(ortb2RequestFactory);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
@@ -131,6 +133,7 @@ public class AmpRequestFactory {
         this.ampPrivacyContextFactory = Objects.requireNonNull(ampPrivacyContextFactory);
         this.mapper = Objects.requireNonNull(mapper);
         this.geoLocationServiceWrapper = Objects.requireNonNull(geoLocationServiceWrapper);
+        this.tcfDefinerService = Objects.requireNonNull(tcfDefinerService);
     }
 
     /**
@@ -218,7 +221,7 @@ public class AmpRequestFactory {
         return Future.succeededFuture(bidRequest);
     }
 
-    private static ConsentParam consentParamFromQueryStringParams(HttpRequestContext httpRequest) {
+    private ConsentParam consentParamFromQueryStringParams(HttpRequestContext httpRequest) {
         final ConsentType specifiedConsentType = ConsentType.from(httpRequest.getQueryParams().get(CONSENT_TYPE_PARAM));
         final CaseInsensitiveMultiMap queryParams = httpRequest.getQueryParams();
 
@@ -230,12 +233,12 @@ public class AmpRequestFactory {
                 : toConsentParam(gdprConsentParam, GDPR_CONSENT_PARAM, specifiedConsentType);
     }
 
-    private static ConsentParam toConsentParam(String consent, String fromParam, ConsentType specifiedConsentType) {
+    private ConsentParam toConsentParam(String consent, String fromParam, ConsentType specifiedConsentType) {
         return ConsentParam.of(
                 consent,
                 fromParam,
                 specifiedConsentType,
-                TcfDefinerService.isConsentStringValid(consent),
+                tcfDefinerService.isConsentStringValid(consent),
                 Ccpa.isValid(consent));
     }
 
@@ -260,10 +263,10 @@ public class AmpRequestFactory {
 
         return !StringUtils.isAllBlank(accountId, canonicalUrl, domain)
                 ? Site.builder()
-                .publisher(Publisher.builder().id(accountId).build())
-                .page(canonicalUrl)
-                .domain(domain)
-                .build()
+                  .publisher(Publisher.builder().id(accountId).build())
+                  .page(canonicalUrl)
+                  .domain(domain)
+                  .build()
                 : null;
     }
 
@@ -279,9 +282,9 @@ public class AmpRequestFactory {
 
         final ExtUser extUser = consentedProvidersSettings != null
                 ? ExtUser.builder()
-                .deprecatedConsentedProvidersSettings(consentedProvidersSettings)
-                .consentedProvidersSettings(consentedProvidersSettings)
-                .build()
+                  .deprecatedConsentedProvidersSettings(consentedProvidersSettings)
+                  .consentedProvidersSettings(consentedProvidersSettings)
+                  .build()
                 : null;
 
         return User.builder().consent(consent).ext(extUser).build();
@@ -302,12 +305,12 @@ public class AmpRequestFactory {
 
         return gdpr != null || usPrivacy != null || gppSid != null || gpp != null || gpc != null
                 ? Regs.builder()
-                .gdpr(gdpr)
-                .usPrivacy(usPrivacy)
-                .gppSid(gppSid)
-                .gpp(gpp)
-                .ext(gpc != null ? ExtRegs.of(null, null, gpc, null) : null)
-                .build()
+                  .gdpr(gdpr)
+                  .usPrivacy(usPrivacy)
+                  .gppSid(gppSid)
+                  .gpp(gpp)
+                  .ext(gpc != null ? ExtRegs.of(null, null, gpc, null) : null)
+                  .build()
                 : null;
     }
 
@@ -360,8 +363,8 @@ public class AmpRequestFactory {
         try {
             final List<Integer> gppSid = StringUtils.isNotBlank(gppSidParam)
                     ? Arrays.stream(gppSidParam.split(","))
-                    .map(Integer::valueOf)
-                    .toList()
+                      .map(Integer::valueOf)
+                      .toList()
                     : null;
 
             return GppSidExtraction.success(gppSid);
