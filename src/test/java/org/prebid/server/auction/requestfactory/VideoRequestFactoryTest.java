@@ -137,7 +137,6 @@ public class VideoRequestFactoryTest extends VertxTest {
                 .willReturn(Future.succeededFuture(defaultPrivacyContext));
 
         target = new VideoRequestFactory(
-                Integer.MAX_VALUE,
                 false,
                 null,
                 ortb2RequestFactory,
@@ -173,7 +172,6 @@ public class VideoRequestFactoryTest extends VertxTest {
         given(routingContext.request().headers()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add(HttpUtil.USER_AGENT_HEADER, "123"));
         target = new VideoRequestFactory(
-                Integer.MAX_VALUE,
                 true,
                 null,
                 ortb2RequestFactory,
@@ -193,34 +191,6 @@ public class VideoRequestFactoryTest extends VertxTest {
         assertThat(future.cause())
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessage("Unable to find required stored request id");
-    }
-
-    @Test
-    public void shouldReturnFailedFutureIfRequestBodyExceedsMaxRequestSize() {
-        // given
-        target = new VideoRequestFactory(
-                2,
-                true,
-                null,
-                ortb2RequestFactory,
-                videoStoredRequestProcessor,
-                ortbVersionConversionManager,
-                paramsResolver,
-                auctionPrivacyContextFactory,
-                debugResolver,
-                jacksonMapper,
-                geoLocationServiceWrapper);
-
-        given(requestBody.asString()).willReturn("body");
-
-        // when
-        final Future<?> future = target.fromRequest(routingContext, 0L);
-
-        // then
-        assertThat(future.failed()).isTrue();
-        assertThat(future.cause())
-                .isInstanceOf(InvalidRequestException.class)
-                .hasMessage("Request size exceeded max size of 2 bytes.");
     }
 
     @Test
