@@ -1,15 +1,20 @@
 package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.model.ChannelType
+import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.config.AccountAnalyticsConfig
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
+import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Events
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
 import org.prebid.server.functional.util.PBSUtils
 
+import java.time.Instant
+
+import static org.prebid.server.functional.model.ChannelType.AMP
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.DOOH
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
@@ -126,8 +131,7 @@ class EventsSpec extends BaseSpec {
         }
 
         and: "Account with analytics events disabled for corresponding channel"
-        def analyticsConfig = new AccountAnalyticsConfig(auctionEvents: [(accountConfigChannelType): false])
-        def account = new Account(uuid: accountId, eventsEnabled: true, config: new AccountConfig(analytics: analyticsConfig))
+        def account = getAccountWithAuctionEvent(accountId, [(accountConfigChannelType): false])
         accountDao.save(account)
 
         when: "Auction request is processed"
@@ -152,8 +156,7 @@ class EventsSpec extends BaseSpec {
         }
 
         and: "Account with analytics events disabled for corresponding channel"
-        def analyticsConfig = new AccountAnalyticsConfig(auctionEvents: [(accountConfigChannelType): false])
-        def account = new Account(uuid: accountId, eventsEnabled: true, config: new AccountConfig(analytics: analyticsConfig))
+        def account = getAccountWithAuctionEvent(accountId, [(accountConfigChannelType): false])
         accountDao.save(account)
 
         when: "Auction request is processed"
@@ -178,15 +181,13 @@ class EventsSpec extends BaseSpec {
     def "Request-level events disabled should override account-level analytics settings"() {
         given: "BidRequest with events explicitly disabled at request level"
         def accountId = PBSUtils.randomNumber as String
-
         def bidRequest = BidRequest.getDefaultBidRequest(requestType).tap {
             setAccountId(accountId)
             ext.prebid.events = new Events(enabled: false)
         }
 
         and: "Account with analytics events enabled for corresponding channel"
-        def analyticsConfig = new AccountAnalyticsConfig(auctionEvents: [(accountConfigChannelType): true])
-        def account = new Account(uuid: accountId, eventsEnabled: true, config: new AccountConfig(analytics: analyticsConfig))
+        def account = getAccountWithAuctionEvent(accountId, [(accountConfigChannelType): true])
         accountDao.save(account)
 
         when: "Auction request is processed"
@@ -219,8 +220,7 @@ class EventsSpec extends BaseSpec {
         storedRequestDao.save(StoredRequest.getStoredRequest(accountId, storedRequestId, storedRequest))
 
         and: "Account with analytics events enabled for corresponding channel"
-        def analyticsConfig = new AccountAnalyticsConfig(auctionEvents: [(accountConfigChannelType): true])
-        def account = new Account(uuid: accountId, eventsEnabled: true, config: new AccountConfig(analytics: analyticsConfig))
+        def account = getAccountWithAuctionEvent(accountId, [(accountConfigChannelType): true])
         accountDao.save(account)
 
         when: "Auction request is processed"
@@ -234,5 +234,122 @@ class EventsSpec extends BaseSpec {
         SITE                | ChannelType.WEB
         APP                 | ChannelType.APP
         DOOH                | ChannelType.DOOH
+    }
+
+    def "AMP request-level events config should override account analytics settings"() {
+        given: "Test start time"
+        def startTime = Instant.now()
+
+        and: "Stored AMP request with events enabled at request level"
+        def accountId = PBSUtils.randomNumber as String
+        def ampStoredRequest = BidRequest.getDefaultBidRequest(SITE).tap {
+            setAccountId(accountId)
+            ext.prebid.events = requestEventToggle
+        }
+
+        and: "AMP request referencing stored request"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.account = ampStoredRequest.accountId
+        }
+
+        and: "Stored request saved in DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        and: "Account with analytics events disabled for AMP channel"
+        def account = getAccountWithAuctionEvent(accountId, [(AMP): false])
+        accountDao.save(account)
+
+        and: "Trace logging enabled for account"
+        defaultPbsService.sendAccountTracelogConfig(accountId, BidderName.GENERIC)
+
+        when: "AMP request is processed"
+        defaultPbsService.sendAmpRequest(ampRequest)
+
+        then: "Events should be present in trace logs bid response"
+        def logs = defaultPbsService.getLogsByTime(startTime)
+        def loggedBidResponse = getTraceLoggedResponse(logs, ampStoredRequest.id)
+        verifyAll(loggedBidResponse?.seatbid[0]?.bid[0]?.ext?.prebid?.events) {
+            it.win?.contains("a=${accountId}")
+            it.imp?.contains("a=${accountId}")
+        }
+
+        where:
+        requestEventToggle << [new Events(), new Events(enabled: true)]
+    }
+
+    def "AMP request-level events disabled should override account analytics settings"() {
+        given: "Test start time"
+        def startTime = Instant.now()
+
+        and: "Stored AMP request with events explicitly disabled"
+        def accountId = PBSUtils.randomNumber as String
+        def ampStoredRequest = BidRequest.getDefaultBidRequest(SITE).tap {
+            setAccountId(accountId)
+            ext.prebid.events = new Events(enabled: false)
+        }
+
+        and: "AMP request referencing stored request"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.account = accountId
+        }
+
+        and: "Stored request saved in DB"
+        storedRequestDao.save(StoredRequest.getStoredRequest(ampRequest, ampStoredRequest))
+
+        and: "Account with analytics events enabled for AMP channel"
+        def account = getAccountWithAuctionEvent(accountId, [(AMP): true])
+        accountDao.save(account)
+
+        and: "Trace logging enabled for account"
+        defaultPbsService.sendAccountTracelogConfig(accountId, BidderName.GENERIC)
+
+        when: "AMP request is processed"
+        defaultPbsService.sendAmpRequest(ampRequest)
+
+        then: "Events should not be present in trace logs due to request-level disablement"
+        def logs = defaultPbsService.getLogsByTime(startTime)
+        def loggedBidResponse = getTraceLoggedResponse(logs, ampStoredRequest.id)
+        assert !loggedBidResponse?.seatbid[0]?.bid[0]?.ext?.prebid?.events
+    }
+
+    def "AMP request without events config should fallback to account analytics settings"() {
+        given: "Test start time"
+        def startTime = Instant.now()
+
+        and: "Stored AMP request with null events config"
+        def accountId = PBSUtils.randomNumber as String
+        def ampStoredRequest = BidRequest.getDefaultBidRequest(SITE).tap {
+            setAccountId(accountId)
+            ext.prebid.events = null
+        }
+
+        and: "AMP request referencing stored request"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.account = ampStoredRequest.accountId
+        }
+
+        and: "Stored request saved in DB"
+        storedRequestDao.save(StoredRequest.getStoredRequest(ampRequest, ampStoredRequest))
+
+        and: "Account with analytics events disabled for AMP channel"
+        def account = getAccountWithAuctionEvent(accountId, [(AMP): false])
+        accountDao.save(account)
+
+        and: "Trace logging enabled for account"
+        defaultPbsService.sendAccountTracelogConfig(accountId, BidderName.GENERIC)
+
+        when: "AMP request is processed"
+        defaultPbsService.sendAmpRequest(ampRequest)
+
+        then: "Events should not be present in trace logs due to fallback to account-level disablement"
+        def logs = defaultPbsService.getLogsByTime(startTime)
+        def loggedBidResponse = getTraceLoggedResponse(logs, ampStoredRequest.id)
+        assert !loggedBidResponse?.seatbid[0]?.bid[0]?.ext?.prebid?.events
+    }
+
+    private static Account getAccountWithAuctionEvent(String accountId, Map<ChannelType, Boolean> auctionEvents) {
+        def analyticsConfig = new AccountAnalyticsConfig(auctionEvents: auctionEvents)
+        new Account(uuid: accountId, eventsEnabled: true, config: new AccountConfig(analytics: analyticsConfig))
     }
 }

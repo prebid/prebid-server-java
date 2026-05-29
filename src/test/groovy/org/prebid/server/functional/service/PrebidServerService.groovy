@@ -61,6 +61,7 @@ class PrebidServerService implements ObjectMapperWrapper {
     static final String CURRENCY_RATES_ENDPOINT = "/currency/rates"
     static final String HTTP_INTERACTION_ENDPOINT = "/logging/httpinteraction"
     static final String COLLECTED_METRICS_ENDPOINT = "/collected-metrics"
+    static final String TRACELOG_ENDPOINT = "/pbs-admin/tracelog"
     static final String PROMETHEUS_METRICS_ENDPOINT = "/metrics"
     static final String INFLUX_DB_ENDPOINT = "/query"
     static final String UIDS_COOKIE_NAME = "uids"
@@ -295,6 +296,21 @@ class PrebidServerService implements ObjectMapperWrapper {
 
         checkResponseStatusCode(response)
         decode(response.asString(), new TypeReference<Map<String, Number>>() {})
+    }
+
+    void sendAccountTracelogConfig(String accountId, BidderName bidderCode) {
+        def params = [
+                level     : "info",
+                duration  : 300000L,
+                bidderCode: bidderCode.value,
+                account   : accountId
+        ]
+
+        def response = given(adminRequestSpecification)
+                .queryParams(params)
+                .get(TRACELOG_ENDPOINT)
+
+        checkResponseStatusCode(response)
     }
 
     Map<String, Number> sendInfluxMetricsRequest() {
