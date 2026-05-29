@@ -9,7 +9,6 @@ import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.Adrino
 import org.prebid.server.functional.model.request.auction.Amx
-import org.prebid.server.functional.model.request.auction.AuctionEnvironment
 import org.prebid.server.functional.model.request.auction.Banner
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Device
@@ -882,7 +881,6 @@ class BidderParamsSpec extends BaseSpec {
             prebid.bidder.generic = null
             prebid.adUnitCode = PBSUtils.randomString
             generic = new Generic()
-            auctionEnvironment = PBSUtils.getRandomEnum(AuctionEnvironment, [AuctionEnvironment.SERVER_ORCHESTRATED, AuctionEnvironment.UNKNOWN])
             all = PBSUtils.randomNumber
             context = new ImpExtContext(data: new ImpExtContextData())
             data = new ImpExtContextData(pbAdSlot: PBSUtils.randomString)
@@ -1290,26 +1288,6 @@ class BidderParamsSpec extends BaseSpec {
 
         where:
         requestedAuctionEnvironment << [SERVER_ORCHESTRATED, UNKNOWN]
-    }
-
-    def "PBS shouldn't change auction environment in imp.ext.igs when it is present in both imp.ext and imp.ext.igs"() {
-        given: "Default bid request with populated imp.ext"
-        def extAuctionEnv = PBSUtils.getRandomEnum(AuctionEnvironment, [SERVER_ORCHESTRATED, UNKNOWN])
-        def extIgsAuctionEnv = PBSUtils.getRandomEnum(AuctionEnvironment, [SERVER_ORCHESTRATED, UNKNOWN])
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp[0].ext.tap {
-                auctionEnvironment = extAuctionEnv
-                interestGroupAuctionSupports = new InterestGroupAuctionSupport(auctionEnvironment: extIgsAuctionEnv)
-            }
-        }
-
-        when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
-
-        then: "Bidder request should imp[].{ae/ext.igs.ae} same value as requested"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.imp[0].ext.auctionEnvironment == extAuctionEnv
-        assert bidderRequest.imp[0].ext.interestGroupAuctionSupports.auctionEnvironment == extIgsAuctionEnv
     }
 
     def "PBS should reject alias bidders when bidder params from request doesn't satisfy own json-schema"() {

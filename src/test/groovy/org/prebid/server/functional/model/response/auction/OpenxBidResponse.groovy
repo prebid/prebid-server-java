@@ -8,8 +8,6 @@ import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 @ToString(includeNames = true, ignoreNulls = true)
 class OpenxBidResponse extends BidResponse {
 
-    OpenxBidResponseExt ext
-
     static OpenxBidResponse getDefaultBidResponse(BidRequest bidRequest) {
         def openxBidResponse = new OpenxBidResponse(id: bidRequest.id)
         def bids = Bid.getDefaultBids(bidRequest.imp)
