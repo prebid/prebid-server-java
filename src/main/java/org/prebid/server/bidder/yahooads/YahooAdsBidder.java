@@ -162,6 +162,7 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
                 .build();
     }
 
+    // Promote legacy 2.5 regs.ext gpp/gpp_sid/coppa to their 2.6 top-level slots.
     private static Regs modifyRegs(Regs regs) {
         final ExtRegs originalExt = regs.getExt();
         if (originalExt == null
@@ -186,7 +187,7 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
                 .gpp(resolvedGpp)
                 .gppSid(resolvedGppSid)
                 .coppa(resolvedCoppa)
-                .ext(stripPromotedFromExt(originalExt))
+                .ext(stripPromotedFromExt(originalExt, resolvedGpp, resolvedGppSid, resolvedCoppa))
                 .build();
     }
 
@@ -223,16 +224,22 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
         return node != null && node.isIntegralNumber() ? node.asInt() : null;
     }
 
-    private static ExtRegs stripPromotedFromExt(ExtRegs original) {
+    // Drop a key from ext only if it was promoted; keep gpc/dsa, unknown, and non-promoted values.
+    private static ExtRegs stripPromotedFromExt(ExtRegs original,
+                                                String resolvedGpp,
+                                                List<Integer> resolvedGppSid,
+                                                Integer resolvedCoppa) {
         final ExtRegs stripped = ExtRegs.of(
                 original.getGdpr(),
                 original.getUsPrivacy(),
                 original.getGpc(),
                 original.getDsa());
         original.getProperties().forEach((key, value) -> {
-            if (!GPP_PROPERTY.equals(key)
-                    && !GPP_SID_PROPERTY.equals(key)
-                    && !COPPA_PROPERTY.equals(key)) {
+            final boolean promoted =
+                    (GPP_PROPERTY.equals(key) && resolvedGpp != null)
+                            || (GPP_SID_PROPERTY.equals(key) && !CollectionUtils.isEmpty(resolvedGppSid))
+                            || (COPPA_PROPERTY.equals(key) && resolvedCoppa != null);
+            if (!promoted) {
                 stripped.addProperty(key, value);
             }
         });

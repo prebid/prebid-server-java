@@ -393,8 +393,6 @@ public class YahooAdsBidderTest extends VertxTest {
 
     @Test
     public void makeHttpRequestsShouldPreserveTopLevel26RegsAndExtTypedFields() {
-        // 2.6-shape publisher: all regulatory signals at top-level + typed ext fields.
-        // Bidder should pass them through untouched.
         final ExtRegsDsa dsa = ExtRegsDsa.of(2, 2, 3, emptyList());
         final BidRequest bidRequest = givenBidRequest(identity(),
                 requestBuilder -> requestBuilder.regs(Regs.builder()
@@ -412,13 +410,11 @@ public class YahooAdsBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         final Regs regs = result.getValue().getFirst().getPayload().getRegs();
-        // 2.6 top-level fields preserved
         assertThat(regs.getGdpr()).isEqualTo(1);
         assertThat(regs.getUsPrivacy()).isEqualTo("1YNN");
         assertThat(regs.getGpp()).isEqualTo("gppconsent");
         assertThat(regs.getGppSid()).containsExactly(6);
         assertThat(regs.getCoppa()).isEqualTo(1);
-        // Typed ext fields preserved (gpc, dsa have no top-level slot in 2.6)
         assertThat(regs.getExt()).isNotNull();
         assertThat(regs.getExt().getGpc()).isEqualTo("1");
         assertThat(regs.getExt().getDsa()).isEqualTo(dsa);
@@ -426,8 +422,6 @@ public class YahooAdsBidderTest extends VertxTest {
 
     @Test
     public void makeHttpRequestsShouldPromoteLegacyExtGppGppSidAndCoppaToTopLevel() {
-        // 2.5-shape publisher: gpp/gpp_sid/coppa carried as ext properties.
-        // Bidder should promote them to 2.6 top-level slots and strip from ext.
         final BidRequest bidRequest = givenBidRequest(identity(),
                 requestBuilder -> requestBuilder.regs(Regs.builder()
                         .ext(ExtRegs.of(null, null, null, null))
@@ -445,17 +439,14 @@ public class YahooAdsBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         final Regs regs = result.getValue().getFirst().getPayload().getRegs();
-        // promoted to top-level
         assertThat(regs.getGpp()).isEqualTo("legacy_gpp_value");
         assertThat(regs.getGppSid()).containsExactly(6, 8);
         assertThat(regs.getCoppa()).isEqualTo(1);
-        // stripped from ext (ext was empty after stripping, so it becomes null)
         assertThat(regs.getExt()).isNull();
     }
 
     @Test
     public void makeHttpRequestsShouldPromoteOnlyGppFromExtAndStripIt() {
-        // Only gpp lives in ext; gpp_sid and coppa remain unset everywhere.
         final BidRequest bidRequest = givenBidRequest(identity(),
                 requestBuilder -> requestBuilder.regs(Regs.builder()
                         .ext(ExtRegs.of(null, null, null, null))
@@ -476,7 +467,6 @@ public class YahooAdsBidderTest extends VertxTest {
 
     @Test
     public void makeHttpRequestsShouldPreserveTopLevelGdprWhilePromotingGppFromExt() {
-        // Mixed-shape publisher: 2.6 gdpr top-level + legacy 2.5 gpp in ext.
         final BidRequest bidRequest = givenBidRequest(identity(),
                 requestBuilder -> requestBuilder.regs(Regs.builder()
                         .gdpr(1)
@@ -497,9 +487,6 @@ public class YahooAdsBidderTest extends VertxTest {
 
     @Test
     public void makeHttpRequestsShouldKeepGpcAndUnrelatedExtPropertyAfterPromotion() {
-        // Publisher sent gpp in ext + typed gpc + an unrelated ext property.
-        // After promoting gpp: gpc must stay in typed ext, the unrelated property must
-        // also survive, and ext must NOT be nulled.
         final BidRequest bidRequest = givenBidRequest(identity(),
                 requestBuilder -> requestBuilder.regs(Regs.builder()
                         .ext(ExtRegs.of(null, null, "1", null))
@@ -514,7 +501,6 @@ public class YahooAdsBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         final Regs regs = result.getValue().getFirst().getPayload().getRegs();
         assertThat(regs.getGpp()).isEqualTo("with_gpc");
-        // ext survives: gpc kept, unrelated property kept, gpp stripped
         assertThat(regs.getExt()).isNotNull();
         assertThat(regs.getExt().getGpc()).isEqualTo("1");
         assertThat(regs.getExt().getProperty("gpp")).isNull();
@@ -523,8 +509,6 @@ public class YahooAdsBidderTest extends VertxTest {
 
     @Test
     public void makeHttpRequestsShouldNotPromoteWhenExtPropertyHasWrongType() {
-        // Defensive type guards: gpp as integer (not text), gpp_sid as text (not array),
-        // coppa as text (not integer). None should promote; regs should be unchanged.
         final BidRequest bidRequest = givenBidRequest(identity(),
                 requestBuilder -> requestBuilder.regs(Regs.builder()
                         .ext(ExtRegs.of(null, null, null, null))
@@ -542,7 +526,6 @@ public class YahooAdsBidderTest extends VertxTest {
         assertThat(regs.getGpp()).isNull();
         assertThat(regs.getGppSid()).isNull();
         assertThat(regs.getCoppa()).isNull();
-        // ext is preserved with the malformed properties untouched
         assertThat(regs.getExt()).isNotNull();
         assertThat(regs.getExt().getProperty("gpp").asInt()).isEqualTo(99);
         assertThat(regs.getExt().getProperty("gpp_sid").asText()).isEqualTo("not_array");
@@ -550,8 +533,29 @@ public class YahooAdsBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldLeaveMalformedExtValueInExtWhenSiblingFieldIsPromoted() {
+        final BidRequest bidRequest = givenBidRequest(identity(),
+                requestBuilder -> requestBuilder.regs(Regs.builder()
+                        .ext(ExtRegs.of(null, null, null, null))
+                        .build()).device(Device.builder().ua("UA").build()));
+        bidRequest.getRegs().getExt().addProperty("coppa", IntNode.valueOf(1));
+        bidRequest.getRegs().getExt().addProperty("gpp", IntNode.valueOf(99));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        final Regs regs = result.getValue().getFirst().getPayload().getRegs();
+        assertThat(regs.getCoppa()).isEqualTo(1);
+        assertThat(regs.getGpp()).isNull();
+        assertThat(regs.getExt()).isNotNull();
+        assertThat(regs.getExt().getProperty("coppa")).isNull();
+        assertThat(regs.getExt().getProperty("gpp").asInt()).isEqualTo(99);
+    }
+
+    @Test
     public void makeHttpRequestsShouldShortCircuitWhenRegsHasNoExt() {
-        // regs is set but ext is null — modifyRegs should return regs unchanged.
         final BidRequest bidRequest = givenBidRequest(identity(),
                 requestBuilder -> requestBuilder.regs(Regs.builder()
                         .gdpr(0)
