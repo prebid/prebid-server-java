@@ -1,0 +1,26 @@
+status-response: "ok"
+adapters:
+  generic:
+    enabled: true
+    endpoint: http://localhost:8091/generic-exchange
+cache:
+  scheme: http
+  host: localhost
+  path: /cache
+  query: uuid=
+settings:
+  enforce-valid-account: false
+  filesystem:
+    settings-filename: sample/configs/sample-app-settings.yaml
+    stored-requests-dir: sample/stored
+    stored-imps-dir: sample/stored
+    profiles-dir: sample/profiles
+    stored-responses-dir: sample/stored
+    categories-dir:
+gdpr:
+  default-value: 1
+  vendorlist:
+    v2:
+      cache-dir: /var/tmp/vendor2
+    v3:
+      cache-dir: /var/tmp/vendor3

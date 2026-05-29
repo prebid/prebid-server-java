@@ -1,0 +1,10 @@
+services:
+  wiremock:
+    image: wiremock/wiremock:3.13.2
+    container_name: wiremock-prebid-server
+    command: ["--port", "8080", "--root-dir", "/home/wiremock", "--verbose"]
+    ports:
+      - "8091:8080"
+    volumes:
+      - ./:/home/wiremock:ro
+    restart: unless-stopped
