@@ -71,6 +71,15 @@ public class HttpUtilTest {
         assertThat(HttpUtil.validateDomainName("sub.domain-example.com")).isEqualTo("sub.domain-example.com");
         assertThat(HttpUtil.validateDomainName("127.0.0.1")).isEqualTo("127.0.0.1");
         assertThat(HttpUtil.validateDomainName("example.com:8080")).isEqualTo("example.com:8080");
+        assertThat(HttpUtil.validateDomainName("")).isEqualTo("");
+    }
+
+    @Test
+    public void validateDomainNameShouldFailOnNull() {
+        // when and then
+        assertThatExceptionOfType(PreBidException.class)
+                .isThrownBy(() -> HttpUtil.validateDomainName(null))
+                .withMessage("Domain name is null");
     }
 
     @Test

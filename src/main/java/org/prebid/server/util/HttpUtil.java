@@ -125,6 +125,12 @@ public final class HttpUtil {
     }
 
     public static String validateDomainName(String domainName) {
+        if (domainName == null) {
+            throw new PreBidException("Domain name is null");
+        }
+        if (domainName.isEmpty()) {
+            return domainName;
+        }
         if (!VALID_DOMAIN.matcher(domainName).matches()) {
             throw new PreBidException("Domain name %s contains invalid characters".formatted(domainName));
         }
