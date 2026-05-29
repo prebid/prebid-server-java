@@ -32,21 +32,15 @@ To prepare the PBS image, follow these steps from the root directory:
 
 ## Running Functional Tests
 
-You have two options for running functional tests:
+To run functional tests without modules (extra/modules), use:
 
-1. Use `mvn verify` to include all previous steps (including Java tests and modular tests) because Groovy runs in the `failsafe:integration-test` phase.
-2. For functional tests only, use a more granular command:
-
-`mvn -B verify -DskipModuleFunctionalTests=true`
+`mvn verify -Drun-functional-tests=true`
 
 ## Running Module Functional Tests
 
-You have two options for running modular tests:
+To run module-only functional tests, use:
 
-1. Use `mvn verify -DdockerfileName=Dockerfile-modules` to include all previous steps (including Java tests and functional tests) because Groovy runs in the `failsafe:integration-test` phase.
-2. For modular tests only, use a more granular command:
-
-`mvn -B verify -DskipUnitTests=true -DskipFunctionalTests=true -DskipModuleFunctionalTests=false -DdockerfileName=Dockerfile-modules`
+`mvn verify -Drun-module-functional-tests=true -DdockerfileName=Dockerfile-modules`
 
 ## Developing
 
@@ -58,20 +52,17 @@ Functional tests need to have name template **.\*Spec.groovy**
   Primary Key will be inserted after saving instance into DB.
 - `/functional/service/PrebidServerService` - responsible for all PBS http calls.
 - `/functional/testcontainers/Dependencies` - stores dependencies and manages mySql and NetworkServiceContainer containers.
-- `/functional/testcontainers/ErrorListener` - logs request and response in case of falling test.
 - `/functional/testcontainers/PbsConfig` - collects PBS properties.
 - `/functional/testcontainers/PbsServiceFactory` - manage PBS containers according to container limit.
-- `/functional/testcontainers/PBSTestExtension` - allows to hook into a spec’s lifecycle to add ErrorListener using annotation `PBSTest`.
 - `/functional/testcontainers/TestcontainersExtension` - allow to hook into a spec’s lifecycle to start and stop support service containers using global extension.
-- `/functional/testcontainers/container` - responsible for creating and configuring containers.
-- `/functional/testcontainers/scaffolding/NetworkScaffolding` -  makes HTTP requests to a MockServer.
+- `/functional/testcontainers/container/*` - responsible for creating and configuring containers.
+- `/functional/testcontainers/scaffolding/NetworkScaffolding` - makes HTTP requests to a MockServer.
 
 
 **Properties:**
 
-`launchContainers` - responsible for starting the MockServer and the MySQLContainer container. Default value is false to not launch containers for unit tests.
+`launchContainers` - responsible for starting the MockServer and MySQLContainer container. Default value is false to not launch containers for functional tests.
 `tests.max-container-count` - maximum number of simultaneously running PBS containers. Default value is 5.
-`skipFunctionalTests` - allow to skip funtional tests. Default value is false.
 `skipUnitTests` - allow to skip unit tests. Default value is false.
 
 **Debug:**
