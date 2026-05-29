@@ -10,7 +10,11 @@ import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeviceInt;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevicePrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSdk;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -36,15 +40,17 @@ public class InterstitialProcessor {
         if (extDeviceInt != null) {
             final int minWidthPerc = extDeviceInt.getMinWidthPerc();
             final int minHeightPerc = extDeviceInt.getMinHeightPerc();
+            final boolean usePxRatio = usePxRatio(bidRequest);
             final List<Imp> updatedImps = bidRequest.getImp().stream()
-                    .map(imp -> processInterstitialImp(imp, device, minWidthPerc, minHeightPerc))
+                    .map(imp -> processInterstitialImp(imp, device, minWidthPerc, minHeightPerc, usePxRatio))
                     .toList();
             bidRequest = bidRequest.toBuilder().imp(updatedImps).build();
         }
         return bidRequest;
     }
 
-    private Imp processInterstitialImp(Imp imp, Device device, int minWidthPerc, int minHeightPerc) {
+    private Imp processInterstitialImp(Imp imp, Device device, int minWidthPerc, int minHeightPerc,
+                                       boolean usePxRatio) {
         if (!isInterstitial(imp)) {
             return imp;
         }
@@ -62,6 +68,11 @@ public class InterstitialProcessor {
         if (maxHeight == null || maxWidth == null || (maxHeight == 1 && maxWidth == 1)) {
             maxHeight = device.getH();
             maxWidth = device.getW();
+            if (usePxRatio) {
+                final BigDecimal pxratio = device.getPxratio();
+                maxHeight = deviceSizeToDips(maxHeight, pxratio);
+                maxWidth = deviceSizeToDips(maxWidth, pxratio);
+            }
         }
 
         if (maxHeight == null || maxWidth == null) {
@@ -90,6 +101,21 @@ public class InterstitialProcessor {
         final ExtDevice extDevice = device != null ? device.getExt() : null;
         final ExtDevicePrebid extDevicePrebid = extDevice != null ? extDevice.getPrebid() : null;
         return extDevicePrebid != null ? extDevicePrebid.getInterstitial() : null;
+    }
+
+    private static boolean usePxRatio(BidRequest bidRequest) {
+        final ExtRequest extRequest = bidRequest.getExt();
+        final ExtRequestPrebid prebid = extRequest != null ? extRequest.getPrebid() : null;
+        final ExtRequestPrebidSdk sdk = prebid != null ? prebid.getSdk() : null;
+        return sdk != null && Objects.equals(sdk.getUsePxRatio(), true);
+    }
+
+    private static Integer deviceSizeToDips(Integer size, BigDecimal pxratio) {
+        if (size == null || pxratio == null || pxratio.signum() <= 0) {
+            return size;
+        }
+
+        return Math.max(1, (int) Math.round(size / pxratio.doubleValue()));
     }
 
     private static class InterstitialSize {
