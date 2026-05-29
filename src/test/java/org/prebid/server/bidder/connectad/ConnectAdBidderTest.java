@@ -49,6 +49,7 @@ public class ConnectAdBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .id("123")
+                        .banner(Banner.builder().w(300).h(250).build())
                         .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
                         .build()))
                 .build();
@@ -158,6 +159,26 @@ public class ConnectAdBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldReturnErrorIfNoMediaTypePresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        .banner(null)
+                        .video(null)
+                        .xNative(null)
+                        .audio(null));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(2);
+        assertThat(result.getErrors(),
+                containsInAnyOrder(BidderError.badInput("We need a Banner, Video, Native or Audio Object in the request"),
+                        BidderError.badInput("Error in preprocess of Imp")));
+    }
+
+    @Test
     public void impSecureShouldBeOneIfSitePageStartsFromHttps() {
         // given
         final BidRequest bidRequest = givenBidRequest(
@@ -178,6 +199,58 @@ public class ConnectAdBidderTest extends VertxTest {
                 .extracting(imp -> imp.getFirst().getSecure())
                 .hasSize(1)
                 .containsOnly(1);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldPropagateSiteIdAndNetworkId() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        .id("123")
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpConnectAd.of("12345", "67890", BigDecimal.ONE)))));
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .hasSize(1)
+                .first()
+                .satisfies(imp -> {
+                    assertThat(imp.getTagid()).isEqualTo("67890");
+                    assertThat(imp.getExt().get("networkId").asInt()).isEqualTo(12345);
+                    assertThat(imp.getExt().get("siteId").asInt()).isEqualTo(67890);
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldPropagateSiteIdAndNetworkIdAsStringsIfNonNumeric() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        .id("123")
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpConnectAd.of("net_abc", "site_xyz", BigDecimal.ONE)))));
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .hasSize(1)
+                .first()
+                .satisfies(imp -> {
+                    assertThat(imp.getTagid()).isEqualTo("site_xyz");
+                    assertThat(imp.getExt().get("networkId").asText()).isEqualTo("net_abc");
+                    assertThat(imp.getExt().get("siteId").asText()).isEqualTo("site_xyz");
+                });
     }
 
     private static BidRequest givenBidRequest(
