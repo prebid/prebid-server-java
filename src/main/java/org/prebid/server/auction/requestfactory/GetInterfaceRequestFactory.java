@@ -1,0 +1,979 @@
+package org.prebid.server.auction.requestfactory;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.App;
+import com.iab.openrtb.request.Audio;
+import com.iab.openrtb.request.Banner;
+import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Content;
+import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Dooh;
+import com.iab.openrtb.request.Format;
+import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Publisher;
+import com.iab.openrtb.request.Regs;
+import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.User;
+import com.iab.openrtb.request.Video;
+import io.vertx.core.Future;
+import io.vertx.ext.web.RoutingContext;
+import lombok.Value;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.DebugResolver;
+import org.prebid.server.auction.FpdResolver;
+import org.prebid.server.auction.GeoLocationServiceWrapper;
+import org.prebid.server.auction.ImplicitParametersExtractor;
+import org.prebid.server.auction.InterstitialProcessor;
+import org.prebid.server.auction.IpAddressHelper;
+import org.prebid.server.auction.OrtbTypesResolver;
+import org.prebid.server.auction.externalortb.ProfilesProcessor;
+import org.prebid.server.auction.externalortb.StoredRequestProcessor;
+import org.prebid.server.auction.gpp.AuctionGppService;
+import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.ConsentType;
+import org.prebid.server.auction.model.IpAddress;
+import org.prebid.server.auction.privacy.contextfactory.AuctionPrivacyContextFactory;
+import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
+import org.prebid.server.bidadjustments.BidAdjustmentsEnricher;
+import org.prebid.server.cookie.CookieDeprecationService;
+import org.prebid.server.exception.InvalidRequestException;
+import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.metric.MetricName;
+import org.prebid.server.model.Endpoint;
+import org.prebid.server.model.HttpRequestContext;
+import org.prebid.server.privacy.ccpa.Ccpa;
+import org.prebid.server.privacy.gdpr.TcfDefinerService;
+import org.prebid.server.proto.openrtb.ext.request.ConsentedProvidersSettings;
+import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtStoredAuctionResponse;
+import org.prebid.server.proto.openrtb.ext.request.ExtStoredRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtUser;
+import org.prebid.server.settings.model.Account;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+
+public class GetInterfaceRequestFactory {
+
+    private static final String ENDPOINT = Endpoint.openrtb2_get_interface.value();
+
+    private final Ortb2RequestFactory ortb2RequestFactory;
+    private final StoredRequestProcessor storedRequestProcessor;
+    private final ProfilesProcessor profilesProcessor;
+    private final BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
+    private final AuctionGppService gppService;
+    private final CookieDeprecationService cookieDeprecationService;
+    private final ImplicitParametersExtractor paramsExtractor;
+    private final OrtbTypesResolver ortbTypesResolver;
+    private final IpAddressHelper ipAddressHelper;
+    private final Ortb2ImplicitParametersResolver paramsResolver;
+    private final FpdResolver fpdResolver;
+    private final InterstitialProcessor interstitialProcessor;
+    private final AuctionPrivacyContextFactory auctionPrivacyContextFactory;
+    private final DebugResolver debugResolver;
+    private final JacksonMapper mapper;
+    private final GeoLocationServiceWrapper geoLocationServiceWrapper;
+    private final BidAdjustmentsEnricher bidAdjustmentsEnricher;
+
+    public GetInterfaceRequestFactory(Ortb2RequestFactory ortb2RequestFactory,
+                                      StoredRequestProcessor storedRequestProcessor,
+                                      ProfilesProcessor profilesProcessor,
+                                      BidRequestOrtbVersionConversionManager ortbVersionConversionManager,
+                                      AuctionGppService gppService,
+                                      CookieDeprecationService cookieDeprecationService,
+                                      ImplicitParametersExtractor paramsExtractor,
+                                      OrtbTypesResolver ortbTypesResolver,
+                                      IpAddressHelper ipAddressHelper,
+                                      Ortb2ImplicitParametersResolver paramsResolver,
+                                      FpdResolver fpdResolver,
+                                      InterstitialProcessor interstitialProcessor,
+                                      AuctionPrivacyContextFactory auctionPrivacyContextFactory,
+                                      DebugResolver debugResolver,
+                                      JacksonMapper mapper,
+                                      GeoLocationServiceWrapper geoLocationServiceWrapper,
+                                      BidAdjustmentsEnricher bidAdjustmentsEnricher) {
+
+        this.ortb2RequestFactory = Objects.requireNonNull(ortb2RequestFactory);
+        this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
+        this.profilesProcessor = Objects.requireNonNull(profilesProcessor);
+        this.ortbVersionConversionManager = Objects.requireNonNull(ortbVersionConversionManager);
+        this.gppService = Objects.requireNonNull(gppService);
+        this.cookieDeprecationService = Objects.requireNonNull(cookieDeprecationService);
+        this.paramsExtractor = Objects.requireNonNull(paramsExtractor);
+        this.ortbTypesResolver = Objects.requireNonNull(ortbTypesResolver);
+        this.ipAddressHelper = Objects.requireNonNull(ipAddressHelper);
+        this.paramsResolver = Objects.requireNonNull(paramsResolver);
+        this.fpdResolver = Objects.requireNonNull(fpdResolver);
+        this.interstitialProcessor = Objects.requireNonNull(interstitialProcessor);
+        this.auctionPrivacyContextFactory = Objects.requireNonNull(auctionPrivacyContextFactory);
+        this.debugResolver = Objects.requireNonNull(debugResolver);
+        this.mapper = Objects.requireNonNull(mapper);
+        this.geoLocationServiceWrapper = Objects.requireNonNull(geoLocationServiceWrapper);
+        this.bidAdjustmentsEnricher = Objects.requireNonNull(bidAdjustmentsEnricher);
+    }
+
+    public Future<AuctionContext> fromRequest(RoutingContext routingContext, long startTime) {
+        final String body = routingContext.body().asString();
+
+        final AuctionContext initialAuctionContext = ortb2RequestFactory.createAuctionContext(
+                Endpoint.openrtb2_get_interface, MetricName.openrtb2web);
+
+        return ortb2RequestFactory.executeEntrypointHooks(routingContext, body, initialAuctionContext)
+
+                .map(httpRequest -> ortb2RequestFactory.enrichAuctionContext(
+                        initialAuctionContext,
+                        httpRequest,
+                        initialBidRequest(httpRequest, initialAuctionContext.getPrebidErrors()),
+                        startTime))
+
+                .recover(ortb2RequestFactory::restoreResultFromRejection);
+    }
+
+    public Future<AuctionContext> enrichAuctionContext(AuctionContext initialContext) {
+        if (initialContext.isRequestRejected()) {
+            return Future.succeededFuture(initialContext);
+        }
+
+        return Future.succeededFuture(addTmpPublisher(initialContext))
+
+                .compose(auctionContext -> ortb2RequestFactory.fetchAccount(auctionContext)
+                        .map(auctionContext::with))
+
+                .map(auctionContext -> auctionContext.with(removeTmpPublisher(auctionContext.getBidRequest())))
+
+                .map(auctionContext -> auctionContext.with(debugResolver.debugContextFrom(auctionContext)))
+
+                .compose(auctionContext -> storedRequestProcessor.processAmpRequest(
+                                auctionContext.getAccount().getId(),
+                                storedRequestId(auctionContext.getBidRequest()),
+                                auctionContext.getBidRequest())
+                        .map(auctionContext::with))
+
+                .map(auctionContext -> auctionContext.with(completeBidRequest(auctionContext)))
+
+                .map(auctionContext -> auctionContext.with(requestTypeMetric(auctionContext.getBidRequest())))
+
+                .compose(auctionContext -> profilesProcessor.process(auctionContext, auctionContext.getBidRequest())
+                        .map(auctionContext::with))
+
+                .compose(auctionContext -> geoLocationServiceWrapper.lookup(auctionContext)
+                        .map(auctionContext::with))
+
+                .compose(auctionContext -> ortb2RequestFactory.enrichBidRequestWithGeolocationData(auctionContext)
+                        .map(auctionContext::with))
+
+                .compose(auctionContext -> gppService.contextFrom(auctionContext)
+                        .map(auctionContext::with))
+
+                .compose(auctionContext -> ortb2RequestFactory.activityInfrastructureFrom(auctionContext)
+                        .map(auctionContext::with))
+
+                .compose(auctionContext -> updateAndValidateBidRequest(auctionContext)
+                        .map(auctionContext::with))
+
+                .compose(auctionContext -> auctionPrivacyContextFactory.contextFrom(auctionContext)
+                        .map(auctionContext::with))
+
+                .compose(auctionContext -> ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(auctionContext)
+                        .map(auctionContext::with))
+
+                .map(auctionContext -> auctionContext.with(bidAdjustmentsEnricher.enrichBidRequest(auctionContext)))
+
+                .compose(auctionContext -> ortb2RequestFactory.executeProcessedAuctionRequestHooks(auctionContext)
+                        .map(auctionContext::with))
+
+                .map(ortb2RequestFactory::updateTimeout)
+
+                .recover(ortb2RequestFactory::restoreResultFromRejection);
+    }
+
+    private BidRequest initialBidRequest(HttpRequestContext httpRequest, List<String> errors) {
+        final GetInterfaceParams params = new GetInterfaceParams(httpRequest, errors);
+        final Consent consent = params.consent();
+
+        return BidRequest.builder()
+                .device(initialDevice(params))
+                .user(initialUser(params, consent))
+                .tmax(params.tmax())
+                .bcat(params.bCat())
+                .badv(params.bAdv())
+                .regs(initialRegs(params, consent))
+                .ext(initialExtRequest(params))
+                .build();
+    }
+
+    private static Device initialDevice(GetInterfaceParams params) {
+        final IpAddress ipAddress = params.ip();
+        return Device.builder()
+                .dnt(params.dnt())
+                .lmt(params.lmt())
+                .ua(params.ua())
+                .ip(ipAddress.getVersion() == IpAddress.IP.v4 ? ipAddress.getIp() : null)
+                .ipv6(ipAddress.getVersion() == IpAddress.IP.v6 ? ipAddress.getIp() : null)
+                .devicetype(params.deviceType())
+                .ifa(params.ifa())
+                .ext(ExtDevice.of(null, params.ifaType(), null))
+                .build();
+    }
+
+    private static User initialUser(GetInterfaceParams params, Consent consent) {
+        return User.builder()
+                .consent(consent.getTcfConsent())
+                .ext(ExtUser.builder()
+                        .consentedProvidersSettings(ConsentedProvidersSettings.of(params.consentedProviders()))
+                        .build())
+                .build();
+    }
+
+    private static Regs initialRegs(GetInterfaceParams params, Consent consent) {
+        return Regs.builder()
+                .coppa(params.coppa())
+                .gdpr(params.gdpr())
+                .usPrivacy(consent.getUsPrivacy())
+                .gpp(consent.getGpp())
+                .gppSid(params.gppSid())
+                .ext(ExtRegs.of(null, null, params.gpc(), null))
+                .build();
+    }
+
+    private static ExtRequest initialExtRequest(GetInterfaceParams params) {
+        return ExtRequest.of(ExtRequestPrebid.builder()
+                .debug(params.debug())
+                .storedrequest(ExtStoredRequest.of(params.storedRequestId()))
+                .profiles(params.requestProfiles())
+                .storedAuctionResponse(ExtStoredAuctionResponse.of(params.storedAuctionResponseId(), null, null))
+                .outputFormat(params.outputFormat())
+                .outputModule(params.outputModule())
+                .build());
+    }
+
+    private AuctionContext addTmpPublisher(AuctionContext auctionContext) {
+        final GetInterfaceParams params = new GetInterfaceParams(
+                auctionContext.getHttpRequest(), auctionContext.getPrebidErrors());
+
+        final BidRequest bidRequestWithTmpPublisher = auctionContext.getBidRequest().toBuilder()
+                .site(Site.builder()
+                        .publisher(Publisher.builder().id(params.accountId()).build())
+                        .build())
+                .build();
+
+        return auctionContext.with(bidRequestWithTmpPublisher);
+    }
+
+    private static BidRequest removeTmpPublisher(BidRequest bidRequest) {
+        return bidRequest.toBuilder().site(null).build();
+    }
+
+    private static String storedRequestId(BidRequest bidRequest) {
+        return bidRequest.getExt().getPrebid().getStoredrequest().getId();
+    }
+
+    private BidRequest completeBidRequest(AuctionContext auctionContext) {
+        final Account account = auctionContext.getAccount();
+        final GetInterfaceParams params = new GetInterfaceParams(
+                auctionContext.getHttpRequest(), auctionContext.getPrebidErrors());
+
+        final BidRequest bidRequest = auctionContext.getBidRequest();
+        final List<Imp> imps = bidRequest.getImp();
+        if (CollectionUtils.isNotEmpty(imps) && imps.size() != 1) {
+            auctionContext.getPrebidErrors().add(
+                    "Request includes %d imp elements. Only the first one will remain.".formatted(imps.size()));
+        }
+
+        final Imp imp = CollectionUtils.isNotEmpty(imps) ? imps.getFirst() : null;
+
+        return bidRequest.toBuilder()
+                .imp(imp != null ? Collections.singletonList(completeImp(imp, params)) : null)
+                .site(completeSite(bidRequest.getSite(), params, account))
+                .app(completeApp(bidRequest.getApp(), params, account))
+                .dooh(completeDooh(bidRequest.getDooh(), params, account))
+                .build();
+    }
+
+    private Imp completeImp(Imp imp, GetInterfaceParams params) {
+        return imp.toBuilder()
+                .banner(completeBanner(imp.getBanner(), params))
+                .video(completeVideo(imp.getVideo(), params))
+                .audio(completeAudio(imp.getAudio(), params))
+                .tagid(ObjectUtils.defaultIfNull(params.tagId(), imp.getTagid()))
+                .ext(completeImpExt(imp.getExt(), params))
+                .build();
+    }
+
+    private static Banner completeBanner(Banner banner, GetInterfaceParams params) {
+        if (banner == null) {
+            return null;
+        }
+
+        return banner.toBuilder()
+                .format(ObjectUtils.defaultIfNull(params.format(), banner.getFormat()))
+                .w(ObjectUtils.defaultIfNull(params.w(), banner.getW()))
+                .h(ObjectUtils.defaultIfNull(params.h(), banner.getH()))
+                .btype(ObjectUtils.defaultIfNull(params.bType(), banner.getBtype()))
+                .mimes(ObjectUtils.defaultIfNull(params.mimes(), banner.getMimes()))
+                .battr(ObjectUtils.defaultIfNull(params.bAttr(), banner.getBattr()))
+                .pos(ObjectUtils.defaultIfNull(params.pos(), banner.getPos()))
+                .topframe(ObjectUtils.defaultIfNull(params.topFrame(), banner.getTopframe()))
+                .expdir(ObjectUtils.defaultIfNull(params.expDir(), banner.getExpdir()))
+                .api(ObjectUtils.defaultIfNull(params.api(), banner.getApi()))
+                .build();
+    }
+
+    private static Video completeVideo(Video video, GetInterfaceParams params) {
+        if (video == null) {
+            return null;
+        }
+
+        return video.toBuilder()
+                .w(ObjectUtils.defaultIfNull(params.w(), video.getW()))
+                .h(ObjectUtils.defaultIfNull(params.h(), video.getH()))
+                .mimes(ObjectUtils.defaultIfNull(params.mimes(), video.getMimes()))
+                .minduration(ObjectUtils.defaultIfNull(params.minDuration(), video.getMinduration()))
+                .maxduration(ObjectUtils.defaultIfNull(params.maxDuration(), video.getMaxduration()))
+                .startdelay(ObjectUtils.defaultIfNull(params.startDelay(), video.getStartdelay()))
+                .maxseq(ObjectUtils.defaultIfNull(params.maxSeq(), video.getMaxseq()))
+                .poddur(ObjectUtils.defaultIfNull(params.podDur(), video.getPoddur()))
+                .protocols(ObjectUtils.defaultIfNull(params.protocols(), video.getProtocols()))
+                .podid(ObjectUtils.defaultIfNull(params.podId(), video.getPodid()))
+                .podseq(ObjectUtils.defaultIfNull(params.podSeq(), video.getPodseq()))
+                .rqddurs(ObjectUtils.defaultIfNull(params.rqdDurs(), video.getRqddurs()))
+                .placement(ObjectUtils.defaultIfNull(params.placement(), video.getPlacement()))
+                .plcmt(ObjectUtils.defaultIfNull(params.plcmt(), video.getPlcmt()))
+                .linearity(ObjectUtils.defaultIfNull(params.linearity(), video.getLinearity()))
+                .skip(ObjectUtils.defaultIfNull(params.skip(), video.getSkip()))
+                .skipmin(ObjectUtils.defaultIfNull(params.skipMin(), video.getSkipmin()))
+                .skipafter(ObjectUtils.defaultIfNull(params.skipAfter(), video.getSkipafter()))
+                .sequence(ObjectUtils.defaultIfNull(params.sequence(), video.getSequence()))
+                .slotinpod(ObjectUtils.defaultIfNull(params.slotInPod(), video.getSlotinpod()))
+                .mincpmpersec(ObjectUtils.defaultIfNull(params.minCpmPerSec(), video.getMincpmpersec()))
+                .battr(ObjectUtils.defaultIfNull(params.bAttr(), video.getBattr()))
+                .pos(ObjectUtils.defaultIfNull(params.pos(), video.getPos()))
+                .maxextended(ObjectUtils.defaultIfNull(params.maxExtended(), video.getMaxextended()))
+                .minbitrate(ObjectUtils.defaultIfNull(params.minBitrate(), video.getMinbitrate()))
+                .maxbitrate(ObjectUtils.defaultIfNull(params.maxBitrate(), video.getMaxbitrate()))
+                .boxingallowed(ObjectUtils.defaultIfNull(params.boxingAllowed(), video.getBoxingallowed()))
+                .playbackmethod(ObjectUtils.defaultIfNull(params.playbackMethod(), video.getPlaybackmethod()))
+                .playbackend(ObjectUtils.defaultIfNull(params.playbackEnd(), video.getPlaybackend()))
+                .delivery(ObjectUtils.defaultIfNull(params.delivery(), video.getDelivery()))
+                .api(ObjectUtils.defaultIfNull(params.api(), video.getApi()))
+                .build();
+    }
+
+    private static Audio completeAudio(Audio audio, GetInterfaceParams params) {
+        if (audio == null) {
+            return null;
+        }
+
+        return audio.toBuilder()
+                .mimes(ObjectUtils.defaultIfNull(params.mimes(), audio.getMimes()))
+                .minduration(ObjectUtils.defaultIfNull(params.minDuration(), audio.getMinduration()))
+                .maxduration(ObjectUtils.defaultIfNull(params.maxDuration(), audio.getMaxduration()))
+                .startdelay(ObjectUtils.defaultIfNull(params.startDelay(), audio.getStartdelay()))
+                .maxseq(ObjectUtils.defaultIfNull(params.maxSeq(), audio.getMaxseq()))
+                .poddur(ObjectUtils.defaultIfNull(params.podDur(), audio.getPoddur()))
+                .protocols(ObjectUtils.defaultIfNull(params.protocols(), audio.getProtocols()))
+                .podid(ObjectUtils.defaultIfNull(params.podId(), audio.getPodid()))
+                .podseq(ObjectUtils.defaultIfNull(params.podSeq(), audio.getPodseq()))
+                .rqddurs(ObjectUtils.defaultIfNull(params.rqdDurs(), audio.getRqddurs()))
+                .sequence(ObjectUtils.defaultIfNull(params.sequence(), audio.getSequence()))
+                .slotinpod(ObjectUtils.defaultIfNull(params.slotInPod(), audio.getSlotinpod()))
+                .mincpmpersec(ObjectUtils.defaultIfNull(params.minCpmPerSec(), audio.getMincpmpersec()))
+                .battr(ObjectUtils.defaultIfNull(params.bAttr(), audio.getBattr()))
+                .maxextended(ObjectUtils.defaultIfNull(params.maxExtended(), audio.getMaxextended()))
+                .minbitrate(ObjectUtils.defaultIfNull(params.minBitrate(), audio.getMinbitrate()))
+                .maxbitrate(ObjectUtils.defaultIfNull(params.maxBitrate(), audio.getMaxbitrate()))
+                .delivery(ObjectUtils.defaultIfNull(params.delivery(), audio.getDelivery()))
+                .api(ObjectUtils.defaultIfNull(params.api(), audio.getApi()))
+                .feed(ObjectUtils.defaultIfNull(params.feed(), audio.getFeed()))
+                .stitched(ObjectUtils.defaultIfNull(params.stitched(), audio.getStitched()))
+                .nvol(ObjectUtils.defaultIfNull(params.nvol(), audio.getNvol()))
+                .build();
+    }
+
+    private ObjectNode completeImpExt(ObjectNode ext, GetInterfaceParams params) {
+        final ObjectNode extWithTargeting = enrichImpExtWithTargeting(ext, params);
+        return enrichImpExtWithProfiles(extWithTargeting, params);
+    }
+
+    private ObjectNode enrichImpExtWithTargeting(ObjectNode ext, GetInterfaceParams params) {
+        final ObjectNode targetingNode = params.targeting();
+
+        return targetingNode != null
+                ? fpdResolver.resolveImpExt(ext, targetingNode)
+                : ext;
+    }
+
+    private ObjectNode enrichImpExtWithProfiles(ObjectNode ext, GetInterfaceParams params) {
+        final List<String> impProfiles = params.impProfiles();
+        if (CollectionUtils.isEmpty(impProfiles)) {
+            return ext;
+        }
+
+        final ObjectNode modifiedExt = ext != null ? ext : mapper.mapper().createObjectNode();
+        final ObjectNode extPrebid = Optional.ofNullable(modifiedExt.get("prebid"))
+                .filter(JsonNode::isObject)
+                .map(ObjectNode.class::cast)
+                .orElseGet(() -> modifiedExt.putObject("prebid"));
+        final ArrayNode profiles = extPrebid.putArray("profiles");
+        impProfiles.forEach(profiles::add);
+
+        return modifiedExt;
+    }
+
+    private static Site completeSite(Site site, GetInterfaceParams params, Account account) {
+        if (site == null) {
+            return null;
+        }
+
+        return site.toBuilder()
+                .page(ObjectUtils.defaultIfNull(params.page(), site.getPage()))
+                .publisher(completePublisher(site.getPublisher(), account))
+                .content(completeContent(site.getContent(), params))
+                .build();
+    }
+
+    private static App completeApp(App app, GetInterfaceParams params, Account account) {
+        if (app == null) {
+            return null;
+        }
+
+        return app.toBuilder()
+                .name(ObjectUtils.defaultIfNull(params.name(), app.getName()))
+                .bundle(ObjectUtils.defaultIfNull(params.bundle(), app.getBundle()))
+                .storeurl(ObjectUtils.defaultIfNull(params.storeUrl(), app.getStoreurl()))
+                .publisher(completePublisher(app.getPublisher(), account))
+                .content(completeContent(app.getContent(), params))
+                .build();
+    }
+
+    private static Dooh completeDooh(Dooh dooh, GetInterfaceParams params, Account account) {
+        if (dooh == null) {
+            return null;
+        }
+
+        return dooh.toBuilder()
+                .publisher(completePublisher(dooh.getPublisher(), account))
+                .content(completeContent(dooh.getContent(), params))
+                .build();
+    }
+
+    private static Publisher completePublisher(Publisher publisher, Account account) {
+        return Optional.ofNullable(publisher)
+                .map(Publisher::toBuilder)
+                .orElseGet(Publisher::builder)
+                .id(account.getId())
+                .build();
+    }
+
+    private static Content completeContent(Content content, GetInterfaceParams params) {
+        final Content safeContent = content != null ? content : Content.builder().build();
+
+        return safeContent.toBuilder()
+                .title(ObjectUtils.defaultIfNull(params.title(), safeContent.getTitle()))
+                .series(ObjectUtils.defaultIfNull(params.series(), safeContent.getSeries()))
+                .genre(ObjectUtils.defaultIfNull(params.genre(), safeContent.getGenre()))
+                .url(ObjectUtils.defaultIfNull(params.url(), safeContent.getUrl()))
+                .cattax(ObjectUtils.defaultIfNull(params.catTax(), safeContent.getCattax()))
+                .cat(ObjectUtils.defaultIfNull(params.cat(), safeContent.getCat()))
+                .contentrating(ObjectUtils.defaultIfNull(params.contentRating(), safeContent.getContentrating()))
+                .livestream(ObjectUtils.defaultIfNull(params.liveStream(), safeContent.getLivestream()))
+                .language(ObjectUtils.defaultIfNull(params.language(), safeContent.getLanguage()))
+                .build();
+    }
+
+    private Future<BidRequest> updateAndValidateBidRequest(AuctionContext auctionContext) {
+        final Account account = auctionContext.getAccount();
+        final HttpRequestContext httpRequest = auctionContext.getHttpRequest();
+        final List<String> debugWarnings = auctionContext.getDebugWarnings();
+
+        return updateBidRequest(auctionContext)
+                .compose(bidRequest -> ortb2RequestFactory.limitImpressions(account, bidRequest, debugWarnings))
+                .compose(bidRequest -> ortb2RequestFactory.validateRequest(
+                        account, bidRequest, httpRequest, auctionContext.getDebugContext(), debugWarnings))
+                .map(interstitialProcessor::process);
+    }
+
+    private Future<BidRequest> updateBidRequest(AuctionContext auctionContext) {
+        return Future.succeededFuture(auctionContext.getBidRequest())
+                .map(ortbVersionConversionManager::convertToAuctionSupportedVersion)
+                .map(bidRequest -> gppService.updateBidRequest(bidRequest, auctionContext))
+                .map(bidRequest -> paramsResolver.resolve(bidRequest, auctionContext, ENDPOINT, true))
+                .map(bidRequest -> cookieDeprecationService.updateBidRequestDevice(bidRequest, auctionContext))
+                .map(bidRequest -> ortb2RequestFactory.removeEmptyEids(bidRequest, auctionContext.getDebugWarnings()));
+    }
+
+    private static MetricName requestTypeMetric(BidRequest bidRequest) {
+        if (bidRequest.getApp() != null) {
+            return MetricName.openrtb2app;
+        } else if (bidRequest.getDooh() != null) {
+            return MetricName.openrtb2dooh;
+        } else {
+            return MetricName.openrtb2web;
+        }
+    }
+
+    private class GetInterfaceParams {
+
+        private final HttpRequestContext httpRequestContext;
+
+        private final List<String> errors;
+
+        GetInterfaceParams(HttpRequestContext httpRequestContext, List<String> errors) {
+            this.httpRequestContext = Objects.requireNonNull(httpRequestContext);
+            this.errors = Objects.requireNonNull(errors);
+        }
+
+        public String storedRequestId() {
+            return Optional.ofNullable(getString("srid"))
+                    .or(() -> Optional.ofNullable(getString("tag_id")))
+                    .orElseThrow(() -> new InvalidRequestException("Request require the stored request id."));
+        }
+
+        public String accountId() {
+            return Optional.ofNullable(getString("pubid"))
+                    .orElseGet(() -> getString("account"));
+        }
+
+        public Long tmax() {
+            try {
+                final String value = getString("tmax");
+                return StringUtils.isNotBlank(value) ? Long.parseLong(value) : null;
+            } catch (NumberFormatException e) {
+                throw new InvalidRequestException("Invalid number: " + e.getMessage());
+            }
+        }
+
+        public int debug() {
+            return Optional.ofNullable(getInteger("debug")).orElse(0);
+        }
+
+        public String outputFormat() {
+            return getString("of");
+        }
+
+        public String outputModule() {
+            return getString("om");
+        }
+
+        public List<String> requestProfiles() {
+            return getListOfStrings("rprof");
+        }
+
+        public List<String> impProfiles() {
+            return getListOfStrings("iprof");
+        }
+
+        public String storedAuctionResponseId() {
+            return getString("sarid");
+        }
+
+        public List<String> mimes() {
+            return getListOfStrings("mimes");
+        }
+
+        public Integer w() {
+            return Optional.ofNullable(getInteger("ow"))
+                    .orElseGet(() -> getInteger("w"));
+        }
+
+        public Integer h() {
+            return Optional.ofNullable(getInteger("oh"))
+                    .orElseGet(() -> getInteger("h"));
+        }
+
+        public List<Format> format() {
+            final List<Format> formats = new ArrayList<>();
+            final Integer w = w();
+            final Integer h = h();
+
+            if (w != null && h != null) {
+                formats.add(Format.builder().w(w).h(h).build());
+            }
+
+            final String sizesAsString = Optional.ofNullable(getString("sizes"))
+                    .orElseGet(() -> getString("ms"));
+
+            if (StringUtils.isNotBlank(sizesAsString)) {
+                Arrays.stream(sizesAsString.split(","))
+                        .map(sizeAsString -> sizeAsString.split("x"))
+                        .filter(size -> size.length == 2)
+                        .forEach(size -> formats.add(Format.builder()
+                                .w(toInt(size[0]))
+                                .h(toInt(size[1]))
+                                .build()));
+            }
+
+            return formats.isEmpty() ? null : formats;
+        }
+
+        public String tagId() {
+            return getString("slot");
+        }
+
+        public Integer minDuration() {
+            return getInteger("mindur");
+        }
+
+        public Integer maxDuration() {
+            return getInteger("maxdur");
+        }
+
+        public List<Integer> api() {
+            return getListOfIntegers("api");
+        }
+
+        public List<Integer> bAttr() {
+            return getListOfIntegers("battr");
+        }
+
+        public List<Integer> delivery() {
+            return getListOfIntegers("delivery");
+        }
+
+        public Integer linearity() {
+            return getInteger("linearity");
+        }
+
+        public Integer minBitrate() {
+            return getInteger("minbr");
+        }
+
+        public Integer maxBitrate() {
+            return getInteger("maxbr");
+        }
+
+        public Integer maxExtended() {
+            return getInteger("maxex");
+        }
+
+        public Integer maxSeq() {
+            return getInteger("maxseq");
+        }
+
+        public BigDecimal minCpmPerSec() {
+            try {
+                final String value = getString("mincpms");
+                return StringUtils.isNotBlank(value) ? new BigDecimal(value) : null;
+            } catch (NumberFormatException e) {
+                throw new InvalidRequestException("Invalid number: " + e.getMessage());
+            }
+        }
+
+        public Integer podDur() {
+            return getInteger("poddur");
+        }
+
+        public Integer podId() {
+            return getInteger("podid");
+        }
+
+        public Integer podSeq() {
+            return getInteger("podseq");
+        }
+
+        public List<Integer> protocols() {
+            return getListOfIntegers("proto");
+        }
+
+        public List<Integer> rqdDurs() {
+            return getListOfIntegers("rqddurs");
+        }
+
+        public Integer sequence() {
+            return getInteger("seq");
+        }
+
+        public Integer slotInPod() {
+            return getInteger("slotinpod");
+        }
+
+        public Integer startDelay() {
+            return getInteger("startdelay");
+        }
+
+        public Integer skip() {
+            return getInteger("skip");
+        }
+
+        public Integer skipAfter() {
+            return getInteger("skipafter");
+        }
+
+        public Integer skipMin() {
+            return getInteger("skipmin");
+        }
+
+        public Integer pos() {
+            return getInteger("pos");
+        }
+
+        public Integer stitched() {
+            return getInteger("stitched");
+        }
+
+        public Integer feed() {
+            return getInteger("feed");
+        }
+
+        public Integer nvol() {
+            return getInteger("nvol");
+        }
+
+        public Integer placement() {
+            return getInteger("placement");
+        }
+
+        public Integer plcmt() {
+            return getInteger("plcmt");
+        }
+
+        public Integer playbackEnd() {
+            return getInteger("playbackend");
+        }
+
+        public List<Integer> playbackMethod() {
+            return getListOfIntegers("playbackmethod");
+        }
+
+        public Integer boxingAllowed() {
+            return getInteger("boxingallowed");
+        }
+
+        public List<Integer> bType() {
+            return getListOfIntegers("btype");
+        }
+
+        public List<Integer> expDir() {
+            return getListOfIntegers("expdir");
+        }
+
+        public Integer topFrame() {
+            return getInteger("topframe");
+        }
+
+        public ObjectNode targeting() {
+            final ObjectNode targetingNode = AmpRequestFactory.readTargeting(getString("targeting"), mapper);
+            final String referer = paramsExtractor.refererFrom(httpRequestContext);
+            ortbTypesResolver.normalizeTargeting(targetingNode, errors, referer);
+
+            return targetingNode;
+        }
+
+        public Consent consent() {
+            String tcfConsent = getString("tcfc");
+            String usPrivacy = getString("usp");
+            String gpp = getString("gppc");
+
+            final String consentString = Optional.ofNullable(getString("consent_string"))
+                    .orElseGet(() -> getString("gdpr_consent"));
+            final ConsentType consentType = ConsentType.from(getString("consent_type"));
+
+            switch (consentType) {
+                case TCF_V1, TCF_V2 -> {
+                    if (tcfConsent == null) {
+                        tcfConsent = consentString;
+                    }
+                }
+                case CCPA -> {
+                    if (usPrivacy == null) {
+                        usPrivacy = consentString;
+                    }
+                }
+                case GPP -> {
+                    if (gpp == null) {
+                        gpp = consentString;
+                    }
+                }
+                case UNKNOWN -> errors.add("Invalid consent_type param passed");
+            }
+
+            if (tcfConsent != null && !TcfDefinerService.isConsentStringValid(tcfConsent)) {
+                errors.add("TCF consent string has invalid format.");
+            }
+
+            if (usPrivacy != null && !Ccpa.isValid(usPrivacy)) {
+                errors.add("UsPrivacy string has invalid format.");
+            }
+
+            return Consent.of(tcfConsent, usPrivacy, gpp);
+        }
+
+        public Integer gdpr() {
+            final Integer gdpr = getInteger("gdpr");
+            if (gdpr != null) {
+                return gdpr;
+            }
+
+            return switch (getString("gdpr_applies")) {
+                case "true" -> 1;
+                case "false" -> 0;
+                case null, default -> null;
+            };
+        }
+
+        public String consentedProviders() {
+            return getString("addtl_consent");
+        }
+
+        public List<Integer> gppSid() {
+            return Optional.ofNullable(getListOfIntegers("gpps"))
+                    .orElseGet(() -> getListOfIntegers("gpp_sid"));
+        }
+
+        public Integer coppa() {
+            return getInteger("coppa");
+        }
+
+        public String gpc() {
+            return Optional.ofNullable(getString("gpc"))
+                    .orElseGet(() -> paramsExtractor.gpcFrom(httpRequestContext));
+        }
+
+        public Integer dnt() {
+            return getInteger("dnt");
+        }
+
+        public Integer lmt() {
+            return getInteger("lmt");
+        }
+
+        public List<String> bCat() {
+            return getListOfStrings("bcat");
+        }
+
+        public List<String> bAdv() {
+            return getListOfStrings("badv");
+        }
+
+        public String page() {
+            return getString("page");
+        }
+
+        public String bundle() {
+            return getString("bundle");
+        }
+
+        public String name() {
+            return getString("name");
+        }
+
+        public String storeUrl() {
+            return getString("storeurl");
+        }
+
+        public String genre() {
+            return getString("cgenre");
+        }
+
+        public String language() {
+            return getString("clang");
+        }
+
+        public String contentRating() {
+            return getString("crating");
+        }
+
+        public List<String> cat() {
+            return getListOfStrings("ccat");
+        }
+
+        public Integer catTax() {
+            return getInteger("ccattax");
+        }
+
+        public String series() {
+            return Optional.ofNullable(getString("cseries"))
+                    .orElseGet(() -> getString("rss_feed"));
+        }
+
+        public String title() {
+            return getString("ctitle");
+        }
+
+        public String url() {
+            return getString("curl");
+        }
+
+        public Integer liveStream() {
+            return getInteger("clivestream");
+        }
+
+        public IpAddress ip() {
+            return Optional.ofNullable(getString("ip"))
+                    .map(ipAddressHelper::toIpAddress)
+                    .orElse(IpAddress.of(null, null));
+        }
+
+        public String ua() {
+            return getString("ua");
+        }
+
+        public Integer deviceType() {
+            return getInteger("dtype");
+        }
+
+        public String ifa() {
+            return getString("ifa");
+        }
+
+        public String ifaType() {
+            return getString("ifat");
+        }
+
+        private String getString(String key) {
+            return httpRequestContext.getQueryParams().get(key);
+        }
+
+        private Integer getInteger(String key) {
+            return toInt(getString(key));
+        }
+
+        private static Integer toInt(String value) {
+            try {
+                return StringUtils.isNotBlank(value) ? Integer.parseInt(value) : null;
+            } catch (NumberFormatException e) {
+                throw new InvalidRequestException("Invalid number: " + e.getMessage());
+            }
+        }
+
+        private List<String> getListOfStrings(String key) {
+            final String value = getString(key);
+            if (StringUtils.isBlank(value)) {
+                return null;
+            }
+
+            return Arrays.asList(value.split(","));
+        }
+
+        private List<Integer> getListOfIntegers(String key) {
+            final List<String> listOfStrings = getListOfStrings(key);
+            return listOfStrings != null
+                    ? listOfStrings.stream()
+                    .map(GetInterfaceParams::toInt)
+                    .toList()
+                    : null;
+        }
+    }
+
+    @Value(staticConstructor = "of")
+    private static class Consent {
+
+        String tcfConsent;
+
+        String usPrivacy;
+
+        String gpp;
+    }
+}
