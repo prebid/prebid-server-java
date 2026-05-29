@@ -149,6 +149,7 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
     private Usersyncer usersyncer(CFG configProperties, CookieFamilySource cookieFamilySource) {
         final UsersyncConfigurationProperties usersync = configProperties.getUsersync();
         final boolean usersyncPresent = usersync != null
+                && StringUtils.isNotBlank(usersync.getCookieFamilyName())
                 && ObjectUtils.anyNotNull(usersync.getRedirect(), usersync.getIframe());
         return usersyncPresent ? usersyncerCreator.apply(usersync, cookieFamilySource) : null;
     }
