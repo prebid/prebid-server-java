@@ -175,7 +175,8 @@ public class TheTradeDeskBidder implements Bidder<BidRequest> {
     private String resolveEndpoint(String sourceSupplyId) {
         return endpointUrl.replace(
                 SUPPLY_ID_MACRO,
-                HttpUtil.encodeUrl(StringUtils.defaultString(ObjectUtils.defaultIfNull(sourceSupplyId, supplyId))));
+                HttpUtil.encodeUrl(HttpUtil.validatePathSegment(
+                        StringUtils.defaultString(ObjectUtils.defaultIfNull(sourceSupplyId, supplyId)))));
     }
 
     @Override
