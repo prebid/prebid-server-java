@@ -193,7 +193,7 @@ public abstract class BaseOptableTest {
     }
 
     protected HttpClientResponse givenSuccessHttpResponse(String fileName) {
-        final MultiMap headers = HeadersMultiMap.headers().add("Content-Type", "application/json");
+        final MultiMap headers = HeadersMultiMap.httpHeaders().add("Content-Type", "application/json");
         return HttpClientResponse.of(HttpStatus.SC_OK, headers, givenBodyFromFile(fileName));
     }
 

@@ -7,6 +7,7 @@ import io.vertx.core.Vertx;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 public class ContextRunner {
 
@@ -16,6 +17,10 @@ public class ContextRunner {
     public ContextRunner(Vertx vertx, long timeoutMs) {
         this.vertx = vertx;
         this.timeoutMs = timeoutMs;
+    }
+
+    public <T> void runBlocking(Supplier<Future<T>> action) {
+        runBlocking(promise -> action.get().onComplete(promise));
     }
 
     public <T> void runBlocking(Handler<Promise<T>> action) {

@@ -22,6 +22,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
 
 import static java.util.Arrays.asList;
@@ -40,7 +41,6 @@ public class CircuitBreakerSecuredDatabaseClientTest {
 
     private Vertx vertx;
 
-    private Clock clock;
     @Mock
     private DatabaseClient wrappedDatabaseClient;
     @Mock
@@ -53,15 +53,15 @@ public class CircuitBreakerSecuredDatabaseClientTest {
     @BeforeEach
     public void setUp() {
         vertx = Vertx.vertx();
-        clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
-        timeout = new TimeoutFactory(clock).create(500L);
+        timeout = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())).create(500L);
 
-        target = new CircuitBreakerSecuredDatabaseClient(vertx, wrappedDatabaseClient, metrics, 1, 100L, 200L, clock);
+        target = new CircuitBreakerSecuredDatabaseClient(vertx, wrappedDatabaseClient, metrics, 1, 1000L, 200L);
     }
 
     @AfterEach
-    public void tearDown(VertxTestContext context) {
-        vertx.close(context.succeedingThenComplete());
+    public void tearDown(VertxTestContext context) throws InterruptedException {
+        vertx.close().onComplete(context.succeedingThenComplete());
+        context.awaitCompletion(1000, TimeUnit.MILLISECONDS);
     }
 
     @Test
@@ -184,7 +184,7 @@ public class CircuitBreakerSecuredDatabaseClientTest {
     @Test
     public void executeQueryShouldFailsWithOriginalExceptionIfOpeningIntervalExceeds(VertxTestContext context) {
         // given
-        target = new CircuitBreakerSecuredDatabaseClient(vertx, wrappedDatabaseClient, metrics, 2, 100L, 200L, clock);
+        target = new CircuitBreakerSecuredDatabaseClient(vertx, wrappedDatabaseClient, metrics, 2, 100L, 200L);
 
         givenExecuteQueryReturning(asList(
                 Future.failedFuture(new RuntimeException("exception1")),
