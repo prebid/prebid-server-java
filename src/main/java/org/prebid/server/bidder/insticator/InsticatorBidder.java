@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.insticator;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -28,19 +29,20 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.insticator.ExtImpInsticator;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidMeta;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 public class InsticatorBidder implements Bidder<BidRequest> {
 
@@ -241,20 +243,44 @@ public class InsticatorBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static List<BidderBid> extractBids(BidResponse bidResponse) {
+    private List<BidderBid> extractBids(BidResponse bidResponse) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
 
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(bid, getBidType(bid), bidResponse.getCur()))
-                .filter(Objects::nonNull)
+                .flatMap(seatBid -> bidsFromSeatBid(seatBid, bidResponse.getCur()))
                 .toList();
+    }
+
+    private Stream<BidderBid> bidsFromSeatBid(SeatBid seatBid, String currency) {
+        final List<Bid> bids = seatBid.getBid();
+        if (CollectionUtils.isEmpty(bids)) {
+            return Stream.empty();
+        }
+        final String seat = seatBid.getSeat();
+        return bids.stream()
+                .filter(Objects::nonNull)
+                .map(bid -> BidderBid.of(modifyBidExt(bid, seat), getBidType(bid), currency));
+    }
+
+    private Bid modifyBidExt(Bid bid, String seat) {
+        if (seat == null) {
+            return bid;
+        }
+
+        final ObjectNode ext = bid.getExt() != null
+                ? bid.getExt().deepCopy()
+                : mapper.mapper().createObjectNode();
+        final ObjectNode prebid = ext.has("prebid") && ext.get("prebid").isObject()
+                ? (ObjectNode) ext.get("prebid")
+                : mapper.mapper().createObjectNode();
+
+        prebid.set("meta", mapper.mapper().valueToTree(ExtBidPrebidMeta.builder().seat(seat).build()));
+        ext.set("prebid", prebid);
+
+        return bid.toBuilder().ext(ext).build();
     }
 
     private static BidType getBidType(Bid bid) {
