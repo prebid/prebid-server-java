@@ -88,8 +88,10 @@ public class OwnAdxBidder implements Bidder<BidRequest> {
     private String makeUrl(ExtImpOwnAdx extImpOwnAdx) {
         final Optional<ExtImpOwnAdx> ownAdx = Optional.ofNullable(extImpOwnAdx);
         return endpointUrl
-                .replace(SEAT_ID_MACROS_ENDPOINT, ownAdx.map(ExtImpOwnAdx::getSeatId).orElse(StringUtils.EMPTY))
-                .replace(SSP_ID_MACROS_ENDPOINT, ownAdx.map(ExtImpOwnAdx::getSspId).orElse(StringUtils.EMPTY))
+                .replace(SEAT_ID_MACROS_ENDPOINT,
+                        HttpUtil.validatePathSegment(ownAdx.map(ExtImpOwnAdx::getSeatId).orElse(StringUtils.EMPTY)))
+                .replace(SSP_ID_MACROS_ENDPOINT,
+                        HttpUtil.validatePathSegment(ownAdx.map(ExtImpOwnAdx::getSspId).orElse(StringUtils.EMPTY)))
                 .replace(TOKEN_ID_MACROS_ENDPOINT, ownAdx.map(ExtImpOwnAdx::getTokenId).orElse(StringUtils.EMPTY));
     }
 

@@ -9,6 +9,7 @@ import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.validator.routines.UrlValidator;
+import org.prebid.server.exception.PreBidException;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
@@ -26,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -85,6 +87,9 @@ public final class HttpUtil {
     public static final String MACROS_OPEN = "{{";
     public static final String MACROS_CLOSE = "}}";
 
+    private static final Pattern VALID_DOMAIN = Pattern.compile("^[a-zA-Z0-9.-]+(:[0-9]+)?$");
+    private static final String INVALID_PATH_CHARACTERS = "?#\\";
+
     private static final UrlValidator URL_VALIDAROR = UrlValidator.getInstance();
 
     private HttpUtil() {
@@ -117,6 +122,30 @@ public final class HttpUtil {
     // TODO: We need our own way to work with url macrosses
     private static boolean containsMacrosses(String url) {
         return StringUtils.contains(url, MACROS_OPEN) && StringUtils.contains(url, MACROS_CLOSE);
+    }
+
+    public static String validateDomainName(String domainName) {
+        if (!VALID_DOMAIN.matcher(domainName).matches()) {
+            throw new PreBidException("Domain name %s contains invalid characters".formatted(domainName));
+        }
+        return domainName;
+    }
+
+    public static String validatePathSegment(String pathSegment) {
+        for (char c : INVALID_PATH_CHARACTERS.toCharArray()) {
+            if (pathSegment.indexOf(c) != -1) {
+                throw new PreBidException("Path segment %s contains forbidden character %s".formatted(pathSegment, c));
+            }
+        }
+
+        if (pathSegment.contains("//")) {
+            throw new PreBidException("Path segment %s contains forbidden sequence %s".formatted(pathSegment, "//"));
+        }
+        if (Arrays.asList(pathSegment.split("/")).contains("..")) {
+            throw new PreBidException("Path segment %s contains forbidden segment %s".formatted(pathSegment, ".."));
+        }
+
+        return pathSegment;
     }
 
     /**
@@ -230,10 +259,10 @@ public final class HttpUtil {
                 .filter(entry -> !isSensitiveHeader(entry.getKey()))
                 .collect(Collectors.toMap(Map.Entry::getKey,
                         entry -> StringUtils.isNotBlank(entry.getValue())
-                                ? Arrays.stream(entry.getValue().split(","))
+                                 ? Arrays.stream(entry.getValue().split(","))
                                 .map(String::trim)
                                 .toList()
-                                : Collections.singletonList(entry.getValue())))
+                                 : Collections.singletonList(entry.getValue())))
                 : null;
     }
 
