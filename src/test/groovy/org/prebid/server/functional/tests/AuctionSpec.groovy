@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests
 
+import org.apache.http.client.methods.HttpPost
 import org.prebid.server.functional.model.UidsCookie
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.config.AccountAuctionConfig
@@ -318,7 +319,7 @@ class AuctionSpec extends BaseSpec {
         assert !bidderRequest.user
     }
 
-    def "PBS should move and not populate certain fields when debug enabled"() {
+    def "PBS should move endpoint metadata to ext.prebid.server and strip aliases in bidder request"() {
         given: "Default bid request with aliases"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.aliases = [(PBSUtils.randomString): GENERIC]
@@ -330,9 +331,10 @@ class AuctionSpec extends BaseSpec {
         then: "BidderRequest should contain endpoint in ext.prebid.server.endpoint instead of ext.prebid.pbs.endpoint"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest?.ext?.prebid?.server?.endpoint == "/openrtb2/auction"
+        assert bidderRequest?.ext?.prebid?.server?.httpMethod == HttpPost.METHOD_NAME
         assert !bidderRequest?.ext?.prebid?.pbs?.endpoint
 
-        and: "BidderRequest shouldn't populate fields"
+        and: "BidderRequest shouldn't populate aliases field"
         assert !bidderRequest.ext.prebid.aliases
     }
 
