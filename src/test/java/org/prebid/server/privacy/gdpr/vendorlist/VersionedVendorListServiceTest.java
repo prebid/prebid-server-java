@@ -2,29 +2,40 @@ package org.prebid.server.privacy.gdpr.vendorlist;
 
 import com.iabtcf.decoder.TCString;
 import com.iabtcf.encoder.TCStringEncoder;
+import io.vertx.core.Future;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.prebid.server.privacy.gdpr.vendorlist.proto.Vendor;
 
+import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
+import static java.util.Collections.emptyMap;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
+import static org.prebid.server.assertion.FutureAssertion.assertThat;
 
 @ExtendWith(MockitoExtension.class)
 public class VersionedVendorListServiceTest {
 
-    private VersionedVendorListService versionedVendorListService;
+    private VersionedVendorListService target;
 
     @Mock
     private VendorListService vendorListServiceV2;
     @Mock
     private VendorListService vendorListServiceV3;
+    @Mock
+    private LiveVendorListService liveVendorListService;
 
     @BeforeEach
     public void setUp() {
-        versionedVendorListService = new VersionedVendorListService(vendorListServiceV2, vendorListServiceV3);
+        target = new VersionedVendorListService(
+                vendorListServiceV2, vendorListServiceV3, liveVendorListService);
     }
 
     @Test
@@ -36,9 +47,10 @@ public class VersionedVendorListServiceTest {
                 .tcfPolicyVersion(tcfPolicyVersion)
                 .vendorListVersion(12)
                 .toTCString();
+        given(vendorListServiceV2.forVersion(anyInt())).willReturn(Future.succeededFuture(emptyMap()));
 
         // when
-        versionedVendorListService.forConsent(consent);
+        target.forConsent(consent);
 
         // then
         verify(vendorListServiceV2).forVersion(12);
@@ -53,11 +65,38 @@ public class VersionedVendorListServiceTest {
                 .tcfPolicyVersion(tcfPolicyVersion)
                 .vendorListVersion(12)
                 .toTCString();
+        given(vendorListServiceV3.forVersion(anyInt())).willReturn(Future.succeededFuture(emptyMap()));
 
         // when
-        versionedVendorListService.forConsent(consent);
+        target.forConsent(consent);
 
         // then
         verify(vendorListServiceV3).forVersion(12);
+    }
+
+    @Test
+    public void forConsentShouldRemoveVendorsMarkedDeletedInLiveGvl() {
+        // given
+        final Vendor deletedVendor = Vendor.empty(1);
+        final Vendor activeVendor = Vendor.empty(52);
+        final Map<Integer, Vendor> vendorList = Map.of(1, deletedVendor, 52, activeVendor);
+        final TCString consent = TCStringEncoder.newBuilder()
+                .version(2)
+                .tcfPolicyVersion(3)
+                .vendorListVersion(12)
+                .toTCString();
+
+        given(vendorListServiceV2.forVersion(anyInt())).willReturn(Future.succeededFuture(vendorList));
+        given(liveVendorListService.isDeleted(1)).willReturn(true);
+        given(liveVendorListService.isDeleted(52)).willReturn(false);
+
+        // when and then
+        assertThat(target.forConsent(consent))
+                .isSucceeded()
+                .unwrap()
+                .satisfies(result -> {
+                    assertThat(result).containsOnlyKeys(52);
+                    assertThat(result.get(52)).isSameAs(activeVendor);
+                });
     }
 }
