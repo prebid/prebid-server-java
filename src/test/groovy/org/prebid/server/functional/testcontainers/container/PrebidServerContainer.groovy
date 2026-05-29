@@ -7,6 +7,7 @@ import org.testcontainers.containers.GenericContainer
 import org.testcontainers.containers.wait.strategy.Wait
 import org.testcontainers.images.builder.Transferable
 
+import static org.prebid.server.functional.model.config.Endpoint.STATUS
 import static org.prebid.server.functional.testcontainers.PbsConfig.DEFAULT_ENV
 
 class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
@@ -29,7 +30,7 @@ class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
         withExposedPorts(PORT, DEBUG_PORT, ADMIN_PORT, PROMETHEUS_PORT)
         withFixedPorts()
         withStartupAttempts(3)
-        waitingFor(Wait.forHttp("/status")
+        waitingFor(Wait.forHttp(STATUS.value)
                        .forPort(PORT)
                        .forStatusCode(200))
         withDebug()

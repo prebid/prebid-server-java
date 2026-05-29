@@ -19,7 +19,7 @@ import org.prebid.server.functional.util.PBSUtils
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE
 import static org.prebid.server.functional.model.ModuleName.PB_RICHMEDIA_FILTER
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
-import static org.prebid.server.functional.model.config.Endpoint.OPENRTB2_AUCTION
+import static org.prebid.server.functional.model.config.Endpoint.AUCTION
 import static org.prebid.server.functional.model.config.Stage.ALL_PROCESSED_BID_RESPONSES
 import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
 
@@ -30,7 +30,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
     private static final Map<String, String> DISABLED_FILTER_SPECIFIC_PATTERN_NAME_CONFIG = getRichMediaFilterSettings(PATTERN_NAME, false)
     private static final Map<String, String> SPECIFIC_PATTERN_NAME_CONFIG = getRichMediaFilterSettings(PATTERN_NAME)
     private static final Map<String, String> SNAKE_SPECIFIC_PATTERN_NAME_CONFIG = (getRichMediaFilterSettings(PATTERN_NAME) +
-            ["hooks.host-execution-plan": encode(ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, PB_RICHMEDIA_FILTER, [ALL_PROCESSED_BID_RESPONSES]).tap {
+            ["hooks.host-execution-plan": encode(ExecutionPlan.getSingleEndpointExecutionPlan(AUCTION, PB_RICHMEDIA_FILTER, [ALL_PROCESSED_BID_RESPONSES]).tap {
                 endpoints.values().first().stages.values().first().groups.first.hookSequenceSnakeCase = [new HookId(moduleCodeSnakeCase: PB_RICHMEDIA_FILTER.code, hookImplCodeSnakeCase: "${PB_RICHMEDIA_FILTER.code}-${ALL_PROCESSED_BID_RESPONSES.value}-hook")]
             })]).collectEntries { key, value -> [(key.toString()): value.toString()] }
 

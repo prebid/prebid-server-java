@@ -16,7 +16,7 @@ import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
 
 import static org.prebid.server.functional.model.ModuleName.PB_RESPONSE_CORRECTION
-import static org.prebid.server.functional.model.config.Endpoint.OPENRTB2_AUCTION
+import static org.prebid.server.functional.model.config.HookHttpEndpoint.AUCTION
 import static org.prebid.server.functional.model.config.ModuleHookImplementation.ORTB2_BLOCKING_BIDDER_REQUEST
 import static org.prebid.server.functional.model.config.ModuleHookImplementation.ORTB2_BLOCKING_RAW_BIDDER_RESPONSE
 import static org.prebid.server.functional.model.config.ModuleHookImplementation.RESPONSE_CORRECTION_ALL_PROCESSED_RESPONSES
@@ -67,7 +67,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         def abTest = AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
             enabled = false
         }
-        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB_STAGES).tap {
+        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(AUCTION, ORTB_STAGES).tap {
             it.abTests = [abTest]
         }
         def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(executionPlan: executionPlan))
@@ -110,7 +110,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         flushMetrics(prebidServerService)
 
         and: "Save account with ab test config"
-        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB_STAGES).tap {
+        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(AUCTION, ORTB_STAGES).tap {
             abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code)]
         }
         def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(executionPlan: executionPlan))
@@ -153,7 +153,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         flushMetrics(ortbModulePbsService)
 
         and: "Save account with ab test config"
-        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB_STAGES).tap {
+        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(AUCTION, ORTB_STAGES).tap {
             abTests = [AbTest.getDefault(moduleName)]
         }
         def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(executionPlan: executionPlan))
@@ -201,7 +201,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         def richMediaAbTestConfig = AbTest.getDefault(PB_RESPONSE_CORRECTION.code).tap {
             it.percentActive = MAX_PERCENT_AB
         }
-        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, MODULES_STAGES).tap {
+        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(AUCTION, MODULES_STAGES).tap {
             abTests = [ortb2AbTestConfig, richMediaAbTestConfig]
         }
         def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(executionPlan: executionPlan))
@@ -262,7 +262,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         def richMediaAbTestConfig = AbTest.getDefault(PB_RESPONSE_CORRECTION.code).tap {
             it.percentActive = MIN_PERCENT_AB
         }
-        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, MODULES_STAGES).tap {
+        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(AUCTION, MODULES_STAGES).tap {
             abTests = [ortb2AbTestConfig, richMediaAbTestConfig]
         }
         def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(executionPlan: executionPlan))
@@ -323,7 +323,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         def richMediaAbTestConfig = AbTest.getDefault(PB_RESPONSE_CORRECTION.code).tap {
             it.percentActive = MAX_PERCENT_AB
         }
-        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, MODULES_STAGES).tap {
+        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(AUCTION, MODULES_STAGES).tap {
             abTests = [ortb2AbTestConfig, richMediaAbTestConfig]
         }
         def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(executionPlan: executionPlan))
@@ -376,7 +376,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         flushMetrics(ortbModulePbsService)
 
         and: "Save account with ab test config"
-        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB_STAGES).tap {
+        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(AUCTION, ORTB_STAGES).tap {
             abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code, [PBSUtils.randomNumber]).tap {
                 percentActive = MIN_PERCENT_AB
             }]
@@ -413,7 +413,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         flushMetrics(ortbModulePbsService)
 
         and: "Save account with ab test config"
-        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB_STAGES).tap {
+        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(AUCTION, ORTB_STAGES).tap {
             abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
                 it.percentActive = percentActive
                 it.percentActiveSnakeCase = percentActiveSnakeCase
@@ -462,7 +462,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         flushMetrics(ortbModulePbsService)
 
         and: "Save account with ab test config"
-        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB_STAGES).tap {
+        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(AUCTION, ORTB_STAGES).tap {
             abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
                 it.percentActive = percentActive
                 it.percentActiveSnakeCase = percentActiveSnakeCase
@@ -505,7 +505,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         flushMetrics(ortbModulePbsService)
 
         and: "Save account with ab test config"
-        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB_STAGES).tap {
+        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(AUCTION, ORTB_STAGES).tap {
             abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
                 it.percentActive = percentActive
                 it.percentActiveSnakeCase = percentActiveSnakeCase
@@ -552,7 +552,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         flushMetrics(ortbModulePbsService)
 
         and: "Save account with ab test config"
-        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB_STAGES).tap {
+        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(AUCTION, ORTB_STAGES).tap {
             abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
                 it.percentActive = percentActive
                 it.percentActiveSnakeCase = percentActiveSnakeCase
@@ -605,7 +605,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         flushMetrics(ortbModulePbsService)
 
         and: "Save account with ab test config"
-        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB_STAGES).tap {
+        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(AUCTION, ORTB_STAGES).tap {
             abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
                 percentActive = MIN_PERCENT_AB
                 it.logAnalyticsTag = logAnalyticsTag
@@ -650,7 +650,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         flushMetrics(ortbModulePbsService)
 
         and: "Save account with ab test config"
-        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB_STAGES).tap {
+        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(AUCTION, ORTB_STAGES).tap {
             abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
                 percentActive = MIN_PERCENT_AB
                 it.logAnalyticsTag = logAnalyticsTag
@@ -693,7 +693,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         flushMetrics(ortbModulePbsService)
 
         and: "Save account with ab test config"
-        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB_STAGES).tap {
+        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(AUCTION, ORTB_STAGES).tap {
             abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
                 percentActive = MAX_PERCENT_AB
                 it.logAnalyticsTag = logAnalyticsTag
@@ -741,7 +741,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         flushMetrics(ortbModulePbsService)
 
         and: "Save account with ab test config"
-        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB_STAGES).tap {
+        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(AUCTION, ORTB_STAGES).tap {
             abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
                 percentActive = PBSUtils.getRandomNumber(MIN_PERCENT_AB, MAX_PERCENT_AB)
             }]
@@ -771,7 +771,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
     def "PBS should apply a/b test config from host config when accounts is not specified when account config and default account doesn't include a/b test config"() {
         given: "PBS service with specific ab test config"
-        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, MODULES_STAGES).tap {
+        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(AUCTION, MODULES_STAGES).tap {
             abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code, accouns).tap {
                 percentActive = MIN_PERCENT_AB
             }]
@@ -831,7 +831,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
     def "PBS should apply a/b test config from host config for specific accounts and only specified module when account config and default account doesn't include a/b test config"() {
         given: "PBS service with specific ab test config"
         def accountId = PBSUtils.randomNumber
-        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, MODULES_STAGES).tap {
+        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(AUCTION, MODULES_STAGES).tap {
             abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code, [PBSUtils.randomNumber, accountId]).tap {
                 percentActive = MIN_PERCENT_AB
             }]
@@ -897,7 +897,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         def richMediaAbTestConfig = AbTest.getDefault(PB_RESPONSE_CORRECTION.code, [accountId]).tap {
             it.percentActive = MIN_PERCENT_AB
         }
-        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, MODULES_STAGES).tap {
+        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(AUCTION, MODULES_STAGES).tap {
             abTests = [ortb2AbTestConfig, richMediaAbTestConfig]
         }
         def pbsConfig = MULTI_MODULE_CONFIG + ['hooks.host-execution-plan': encode(executionPlan)]
@@ -957,7 +957,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
     def "PBS shouldn't apply a/b test config from host config for non specified accounts when account config and default account doesn't include a/b test config"() {
         given: "PBS service with specific ab test config"
-        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, MODULES_STAGES).tap {
+        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(AUCTION, MODULES_STAGES).tap {
             abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code, [PBSUtils.randomNumber]).tap {
                 percentActive = MIN_PERCENT_AB
             }]
@@ -1019,7 +1019,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
     def "PBS should prioritise a/b test config from default account and only specified module when host and default account contains a/b test configs"() {
         given: "PBS service with specific ab test config"
-        def accountExecutionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, MODULES_STAGES).tap {
+        def accountExecutionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(AUCTION, MODULES_STAGES).tap {
             abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
                 percentActive = MIN_PERCENT_AB
             }]
@@ -1028,7 +1028,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             hooks = new AccountHooksConfiguration(executionPlan: accountExecutionPlan)
         }
 
-        def hostExecutionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, MODULES_STAGES).tap {
+        def hostExecutionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(AUCTION, MODULES_STAGES).tap {
             abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code)]
         }
         def pbsConfig = MULTI_MODULE_CONFIG + ['hooks.host-execution-plan': encode(hostExecutionPlan)] + ["settings.default-account-config": encode(defaultAccountConfigSettings)]
@@ -1099,7 +1099,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         flushMetrics(pbsServiceWithMultipleModules)
 
         and: "Save account with ab test config"
-        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, MODULES_STAGES).tap {
+        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(AUCTION, MODULES_STAGES).tap {
             abTests = [AbTest.getDefault(ModuleName.ORTB2_BLOCKING.code).tap {
                 percentActive = MIN_PERCENT_AB
             }]
