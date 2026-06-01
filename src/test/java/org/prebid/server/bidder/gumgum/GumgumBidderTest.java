@@ -123,7 +123,7 @@ public class GumgumBidderTest extends VertxTest {
         final Imp modifiedImp = modifiedRequest.getImp().get(0);
 
         assertNull(modifiedImp.getTagid());
-        assertEquals("test-site", modifiedRequest.getSite().getId(), "zone123");
+        assertEquals("zone123", modifiedRequest.getSite().getId());
     }
 
     @Test
