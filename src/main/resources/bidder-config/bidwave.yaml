@@ -1,0 +1,14 @@
+adapters:
+  bidwave:
+    endpoint: https://rtb.bidwave.net/rtb/v1/bid
+    ortb-version: "2.6"
+    meta-info:
+      maintainer-email: prebid@bidwave.net
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 0
