@@ -585,6 +585,34 @@ public class YahooAdsBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldKeepExtGppWhenTopLevelGppAlreadySetEvenIfSiblingIsPromoted() {
+        // gpp is present at BOTH top-level and in ext; a sibling (coppa) is promoted from ext.
+        // gpp is not promoted (top-level wins), so its ext copy must be left untouched -
+        // the strip decision does not depend on the sibling rebuild.
+        final BidRequest bidRequest = givenBidRequest(identity(),
+                requestBuilder -> requestBuilder.regs(Regs.builder()
+                        .gpp("top-level-gpp")
+                        .ext(ExtRegs.of(null, null, null, null))
+                        .build()).device(Device.builder().ua("UA").build()));
+        bidRequest.getRegs().getExt().addProperty("gpp", TextNode.valueOf("ext-gpp"));
+        bidRequest.getRegs().getExt().addProperty("coppa", IntNode.valueOf(1));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        final Regs regs = result.getValue().getFirst().getPayload().getRegs();
+        // coppa promoted and removed from ext
+        assertThat(regs.getCoppa()).isEqualTo(1);
+        // gpp top-level untouched; ext gpp left in place (not promoted, not stripped)
+        assertThat(regs.getGpp()).isEqualTo("top-level-gpp");
+        assertThat(regs.getExt()).isNotNull();
+        assertThat(regs.getExt().getProperty("coppa")).isNull();
+        assertThat(regs.getExt().getProperty("gpp").asText()).isEqualTo("ext-gpp");
+    }
+
+    @Test
     public void makeHttpRequestsShouldShortCircuitWhenRegsHasNoExt() {
         final BidRequest bidRequest = givenBidRequest(identity(),
                 requestBuilder -> requestBuilder.regs(Regs.builder()

@@ -117,7 +117,7 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
         }
 
         if (regs != null) {
-            requestBuilder.regs(modifyRegs(regs));
+            requestBuilder.regs(promoteRegsExtToTopLevel(regs));
         }
 
         return requestBuilder
@@ -163,88 +163,89 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
     }
 
     // Promote legacy 2.5 regs.ext gpp/gpp_sid/coppa to their 2.6 top-level slots.
-    private static Regs modifyRegs(Regs regs) {
-        final ExtRegs originalExt = regs.getExt();
-        if (originalExt == null
-                || originalExt.getProperties() == null
-                || originalExt.getProperties().isEmpty()) {
+    // A field is promoted only when it is absent at top-level and present and well-formed
+    // in ext; each promoted key is then removed from ext. Anything not promoted (already
+    // top-level, missing, or malformed) is left untouched, in ext.
+    private static Regs promoteRegsExtToTopLevel(Regs regs) {
+        final ExtRegs ext = regs.getExt();
+        if (ext == null || ext.getProperties().isEmpty()) {
             return regs;
         }
 
-        final String resolvedGpp = resolveGpp(regs, originalExt);
-        final List<Integer> resolvedGppSid = resolveGppSid(regs, originalExt);
-        final Integer resolvedCoppa = resolveCoppa(regs, originalExt);
+        final String promotedGpp = gppToPromote(regs, ext);
+        final List<Integer> promotedGppSid = gppSidToPromote(regs, ext);
+        final Integer promotedCoppa = coppaToPromote(regs, ext);
 
-        final boolean changed = !Objects.equals(resolvedGpp, regs.getGpp())
-                || !Objects.equals(resolvedGppSid, regs.getGppSid())
-                || !Objects.equals(resolvedCoppa, regs.getCoppa());
-
-        if (!changed) {
+        if (promotedGpp == null && promotedGppSid == null && promotedCoppa == null) {
             return regs;
         }
 
-        return regs.toBuilder()
-                .gpp(resolvedGpp)
-                .gppSid(resolvedGppSid)
-                .coppa(resolvedCoppa)
-                .ext(stripPromotedFromExt(originalExt, resolvedGpp, resolvedGppSid, resolvedCoppa))
+        final Regs.RegsBuilder builder = regs.toBuilder();
+        if (promotedGpp != null) {
+            builder.gpp(promotedGpp);
+        }
+        if (promotedGppSid != null) {
+            builder.gppSid(promotedGppSid);
+        }
+        if (promotedCoppa != null) {
+            builder.coppa(promotedCoppa);
+        }
+        return builder
+                .ext(removePromotedKeys(ext, promotedGpp != null, promotedGppSid != null, promotedCoppa != null))
                 .build();
     }
 
-    private static String resolveGpp(Regs regs, ExtRegs ext) {
+    // Value to lift from ext, or null when top-level already has it or ext lacks a valid value.
+    private static String gppToPromote(Regs regs, ExtRegs ext) {
         if (regs.getGpp() != null) {
-            return regs.getGpp();
+            return null;
         }
         final JsonNode node = ext.getProperties().get(GPP_PROPERTY);
         return node != null && node.isTextual() ? node.asText() : null;
     }
 
-    private static List<Integer> resolveGppSid(Regs regs, ExtRegs ext) {
+    private static List<Integer> gppSidToPromote(Regs regs, ExtRegs ext) {
         if (!CollectionUtils.isEmpty(regs.getGppSid())) {
-            return regs.getGppSid();
+            return null;
         }
         final JsonNode node = ext.getProperties().get(GPP_SID_PROPERTY);
-        if (node == null || !node.isArray()) {
-            return regs.getGppSid();
+        if (node == null || !node.isArray() || node.isEmpty()) {
+            return null;
         }
         final List<Integer> sids = new ArrayList<>(node.size());
         for (final JsonNode elem : node) {
             if (!elem.isIntegralNumber()) {
-                return regs.getGppSid();
+                return null;
             }
             sids.add(elem.asInt());
         }
-        return sids.isEmpty() ? regs.getGppSid() : sids;
+        return sids;
     }
 
-    private static Integer resolveCoppa(Regs regs, ExtRegs ext) {
+    private static Integer coppaToPromote(Regs regs, ExtRegs ext) {
         if (regs.getCoppa() != null) {
-            return regs.getCoppa();
+            return null;
         }
         final JsonNode node = ext.getProperties().get(COPPA_PROPERTY);
         return node != null && node.isIntegralNumber() ? node.asInt() : null;
     }
 
-    // Drop a key from ext only if it was promoted; keep gpc/dsa, unknown, and non-promoted values.
-    private static ExtRegs stripPromotedFromExt(ExtRegs original,
-                                                String resolvedGpp,
-                                                List<Integer> resolvedGppSid,
-                                                Integer resolvedCoppa) {
-        final ExtRegs stripped = ExtRegs.of(
-                original.getGdpr(),
-                original.getUsPrivacy(),
-                original.getGpc(),
-                original.getDsa());
-        original.getProperties().forEach((key, value) -> {
-            final boolean promoted =
-                    (GPP_PROPERTY.equals(key) && resolvedGpp != null)
-                            || (GPP_SID_PROPERTY.equals(key) && !CollectionUtils.isEmpty(resolvedGppSid))
-                            || (COPPA_PROPERTY.equals(key) && resolvedCoppa != null);
-            if (!promoted) {
-                stripped.addProperty(key, value);
+    // Rebuild regs.ext keeping the typed fields and every property except the promoted ones.
+    private static ExtRegs removePromotedKeys(ExtRegs ext,
+                                              boolean gppPromoted,
+                                              boolean gppSidPromoted,
+                                              boolean coppaPromoted) {
+        final ExtRegs result = ExtRegs.of(
+                ext.getGdpr(), ext.getUsPrivacy(), ext.getGpc(), ext.getDsa());
+        ext.getProperties().forEach((key, value) -> {
+            final boolean isPromotedKey = (gppPromoted && GPP_PROPERTY.equals(key))
+                    || (gppSidPromoted && GPP_SID_PROPERTY.equals(key))
+                    || (coppaPromoted && COPPA_PROPERTY.equals(key));
+            if (!isPromotedKey) {
+                result.addProperty(key, value);
             }
         });
-        return isExtEmpty(stripped) ? null : stripped;
+        return isExtEmpty(result) ? null : result;
     }
 
     private static boolean isExtEmpty(ExtRegs ext) {
@@ -252,7 +253,7 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
                 && ext.getUsPrivacy() == null
                 && ext.getGpc() == null
                 && ext.getDsa() == null
-                && (ext.getProperties() == null || ext.getProperties().isEmpty());
+                && ext.getProperties().isEmpty();
     }
 
     private HttpRequest<BidRequest> makeHttpRequest(BidRequest outgoingRequest) {
