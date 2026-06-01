@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.yahooads;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.TextNode;
@@ -552,6 +553,35 @@ public class YahooAdsBidderTest extends VertxTest {
         assertThat(regs.getExt()).isNotNull();
         assertThat(regs.getExt().getProperty("coppa")).isNull();
         assertThat(regs.getExt().getProperty("gpp").asInt()).isEqualTo(99);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotPromoteGppSidWhenArrayHasNonIntegerElement() {
+        final BidRequest bidRequest = givenBidRequest(identity(),
+                requestBuilder -> requestBuilder.regs(Regs.builder()
+                        .ext(ExtRegs.of(null, null, null, null))
+                        .build()).device(Device.builder().ua("UA").build()));
+        final ArrayNode mixed = mapper.createArrayNode();
+        mixed.add(7);
+        mixed.add("foo");
+        mixed.add(8);
+        bidRequest.getRegs().getExt().addProperty("gpp_sid", mixed);
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        final Regs regs = result.getValue().getFirst().getPayload().getRegs();
+        // whole array treated as malformed: not promoted, left in ext untouched (nothing dropped)
+        assertThat(regs.getGppSid()).isNull();
+        assertThat(regs.getExt()).isNotNull();
+        final JsonNode keptSid = regs.getExt().getProperty("gpp_sid");
+        assertThat(keptSid.isArray()).isTrue();
+        assertThat(keptSid).hasSize(3);
+        assertThat(keptSid.get(0).asInt()).isEqualTo(7);
+        assertThat(keptSid.get(1).asText()).isEqualTo("foo");
+        assertThat(keptSid.get(2).asInt()).isEqualTo(8);
     }
 
     @Test

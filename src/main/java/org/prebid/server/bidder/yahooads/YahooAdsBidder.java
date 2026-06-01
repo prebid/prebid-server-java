@@ -208,11 +208,12 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
             return regs.getGppSid();
         }
         final List<Integer> sids = new ArrayList<>(node.size());
-        node.forEach(elem -> {
-            if (elem.isIntegralNumber()) {
-                sids.add(elem.asInt());
+        for (final JsonNode elem : node) {
+            if (!elem.isIntegralNumber()) {
+                return regs.getGppSid();
             }
-        });
+            sids.add(elem.asInt());
+        }
         return sids.isEmpty() ? regs.getGppSid() : sids;
     }
 
