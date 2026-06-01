@@ -392,6 +392,9 @@
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>${maven-surefire-plugin.version}</version>
                     <configuration>
+                        <excludeJUnit5Engines>
+                            <engine>spock</engine>
+                        </excludeJUnit5Engines>
                         <systemPropertyVariables>
                             <launchContainers>false</launchContainers>
                         </systemPropertyVariables>

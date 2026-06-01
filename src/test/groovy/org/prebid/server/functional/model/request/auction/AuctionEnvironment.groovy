@@ -10,7 +10,7 @@ enum AuctionEnvironment {
     UNKNOWN(Integer.MAX_VALUE),
 
     @JsonValue
-    private int value
+    int value
 
     AuctionEnvironment(Integer value) {
         this.value = value
