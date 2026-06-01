@@ -26,6 +26,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -106,14 +107,19 @@ public class PubstackAnalyticsReporterTest extends VertxTest {
     @Test
     public void initializeShouldFailUpdateSendBuffersAndSetTimerWhenEndpointFromRemoteConfigIsNotValid()
             throws JsonProcessingException {
+
         // given
+        final Promise<Void> promise = Promise.promise();
         final PubstackConfig pubstackConfig = PubstackConfig.of("newScopeId", "invalid",
                 Collections.singletonMap(EventType.auction, true));
         given(httpClient.get(anyString(), anyLong())).willReturn(
                 Future.succeededFuture(HttpClientResponse.of(200, null, mapper.writeValueAsString(pubstackConfig))));
 
-        // when and then
-        assertThatThrownBy(() -> pubstackAnalyticsReporter.initialize(Promise.promise()))
+        // when
+        pubstackAnalyticsReporter.initialize(promise);
+
+        // then
+        assertThatThrownBy(() -> promise.future().await(5, TimeUnit.SECONDS))
                 .hasMessage("[pubstack] Failed to create event report url for endpoint: invalid")
                 .isInstanceOf(PreBidException.class);
         verify(auctionHandler).reportEvents();

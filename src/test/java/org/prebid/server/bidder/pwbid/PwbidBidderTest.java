@@ -12,7 +12,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.http.impl.headers.HeadersMultiMap;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -75,7 +74,7 @@ public class PwbidBidderTest extends VertxTest {
 
         assertThat(result.getValue())
                 .usingRecursiveComparison()
-                .withComparatorForType((a, b) -> a.entries().equals(b.entries()) ? 0 : 1, HeadersMultiMap.class)
+                .withComparatorForType((a, b) -> a.entries().equals(b.entries()) ? 0 : 1, MultiMap.class)
                 .isEqualTo(expectedResults.getValue());
         assertThat(result.getErrors()).isEmpty();
     }

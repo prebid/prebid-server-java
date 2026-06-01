@@ -3,7 +3,7 @@ package org.prebid.server.hooks.modules.optable.targeting.v1.net;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
-import io.vertx.core.http.impl.headers.HeadersMultiMap;
+import io.vertx.core.http.HttpHeaders;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.execution.timeout.Timeout;
@@ -69,7 +69,7 @@ public class APIClientImpl implements APIClient {
     }
 
     private static MultiMap headers(OptableTargetingProperties properties, List<String> ips, String userAgent) {
-        final MultiMap headers = HeadersMultiMap.httpHeaders()
+        final MultiMap headers = HttpHeaders.headers()
                 .add(HttpUtil.ACCEPT_HEADER, "application/json");
 
         if (userAgent != null) {
