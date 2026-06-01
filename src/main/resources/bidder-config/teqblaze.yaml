@@ -131,6 +131,11 @@ adapters:
             url: https://usersync.mycodemedia.com/pbserver?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redir={{redirect_url}}
             support-cors: false
             uid-macro: '[UID]'
+      adsmovil:
+        enabled: false
+        endpoint: https://tag-ssp.adsmovil.com/pserver
+        meta-info:
+          maintainer-email: prebid@adsmovil.com
     meta-info:
       maintainer-email: github@teqblaze.com
       app-media-types:

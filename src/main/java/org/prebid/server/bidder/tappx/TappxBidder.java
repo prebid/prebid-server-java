@@ -23,6 +23,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.tappx.ExtImpTappx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
+import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
 import java.net.URISyntaxException;
@@ -101,7 +102,8 @@ public class TappxBidder implements Bidder<BidRequest> {
 
         if (!isNewEndpoint) {
             final List<String> pathSegments = uriBuilder.getPathSegments();
-            uriBuilder.setPathSegments(ListUtils.union(pathSegments, Collections.singletonList(subdomain)));
+            uriBuilder.setPathSegments(ListUtils.union(pathSegments,
+                    Collections.singletonList(HttpUtil.validatePathSegment(subdomain))));
         }
 
         uriBuilder.addParameter("tappxkey", extImpTappx.getTappxkey());
