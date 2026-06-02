@@ -3,7 +3,7 @@
   "imp": [
     {
       "id": "imp_id",
-      "secure": 1,
+      "secure": 0,
       "banner": {
         "w": 300,
         "h": 250
@@ -11,14 +11,15 @@
       "tagid": "15",
       "bidfloor": 14.7,
       "bidfloorcur": "USD",
-      "secure": 0,
       "ext": {
         "tid": "${json-unit.any-string}",
         "bidder": {
           "networkId": "12",
           "siteId": "15",
           "bidfloor": 14.7
-        }
+        },
+        "networkId": 12,
+        "siteId": 15
       }
     }
   ],
