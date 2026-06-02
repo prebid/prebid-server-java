@@ -40,7 +40,7 @@
         <commons.collections.version>4.4</commons.collections.version>
         <commons.compress.version>1.27.1</commons.compress.version>
         <commons-math3.version>3.6.1</commons-math3.version>
-        <commons-validator.version>1.10.0</commons-validator.version>
+        <commons-validator.version>1.10.1</commons-validator.version>
         <scram.version>2.1</scram.version>
         <httpclient.version>4.5.14</httpclient.version>
         <ipaddress.version>5.5.1</ipaddress.version>
@@ -62,6 +62,7 @@
 
         <!-- Project test dependency versions -->
         <wiremock.version>3.13.2</wiremock.version>
+        <wiremock-spring-boot.version>4.2.1</wiremock-spring-boot.version>
         <spock.version>2.4-groovy-5.0</spock.version>
         <!--TODO: replace with WireMock -->
         <mockserver.version>5.15.0</mockserver.version>
@@ -131,10 +132,14 @@
                 <scope>import</scope>
             </dependency>
             <dependency>
+                <groupId>org.wiremock.integrations</groupId>
+                <artifactId>wiremock-spring-boot</artifactId>
+                <version>${wiremock-spring-boot.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.wiremock</groupId>
                 <artifactId>wiremock-jetty12</artifactId>
                 <version>${wiremock.version}</version>
-                <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>javax.validation</groupId>
