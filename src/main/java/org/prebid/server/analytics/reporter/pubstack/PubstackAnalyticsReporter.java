@@ -118,9 +118,7 @@ public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializab
     @Override
     public void initialize(Promise<Void> initializePromise) {
         vertx.setPeriodic(configurationRefreshDelay, id -> fetchRemoteConfig());
-        fetchRemoteConfig()
-                .onSuccess(initializePromise::succeed)
-                .onFailure(initializePromise::fail);
+        fetchRemoteConfig().onComplete(initializePromise);
     }
 
     void shutdown() {
