@@ -1,7 +1,6 @@
 package org.prebid.server.vertx;
 
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 
@@ -20,10 +19,6 @@ public class ContextRunner {
     }
 
     public <T> void runBlocking(Supplier<Future<T>> action) {
-        runBlocking(promise -> action.get().onComplete(promise));
-    }
-
-    public <T> void runBlocking(Handler<Promise<T>> action) {
         final CountDownLatch completionLatch = new CountDownLatch(1);
         final Promise<T> promise = Promise.promise();
         final Future<T> future = promise.future();
@@ -31,7 +26,7 @@ public class ContextRunner {
         future.onComplete(ignored -> completionLatch.countDown());
         vertx.runOnContext(v -> {
             try {
-                action.handle(promise);
+                action.get().onComplete(promise);
             } catch (RuntimeException e) {
                 promise.fail(e);
             }
