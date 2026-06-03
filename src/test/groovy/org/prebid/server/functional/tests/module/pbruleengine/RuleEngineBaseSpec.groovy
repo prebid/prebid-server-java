@@ -41,7 +41,6 @@ import static org.prebid.server.functional.model.request.auction.TraceLevel.VERB
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 
-@Retry //TODO remove in 3.34+
 abstract class RuleEngineBaseSpec extends ModuleBaseSpec {
 
     protected static final List<BidderName> MULTI_BID_ADAPTERS = [GENERIC, OPENX, AMX].sort()
@@ -97,7 +96,6 @@ abstract class RuleEngineBaseSpec extends ModuleBaseSpec {
 
     protected static BidRequest getDefaultBidRequestWithMultiplyBidders(DistributionChannel distributionChannel = SITE) {
         BidRequest.getDefaultBidRequest(distributionChannel).tap {
-            it.tmax = 5_000 // prevents timeout issues on slow pipelines
             it.imp[0].ext.prebid.bidder.amx = new Amx()
             it.imp[0].ext.prebid.bidder.openx = Openx.defaultOpenx
             it.imp[0].ext.prebid.bidder.generic = new Generic()
