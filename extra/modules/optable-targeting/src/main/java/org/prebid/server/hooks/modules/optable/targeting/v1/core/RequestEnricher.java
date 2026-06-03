@@ -5,12 +5,12 @@ import com.iab.openrtb.request.Data;
 import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Segment;
 import com.iab.openrtb.request.Uid;
+import com.iab.openrtb.request.User;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Ortb2;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
-import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.User;
 
 import java.util.HashMap;
 import java.util.List;
@@ -38,7 +38,7 @@ public abstract class RequestEnricher {
             return bidRequest;
         }
 
-        final User optableUser = Optional.of(targetingResult)
+        final var optableUser = Optional.of(targetingResult)
                 .map(TargetingResult::getOrtb2)
                 .map(Ortb2::getUser)
                 .orElse(null);
@@ -47,15 +47,18 @@ public abstract class RequestEnricher {
             return bidRequest;
         }
 
-        final com.iab.openrtb.request.User bidRequestUser = Optional.ofNullable(bidRequest.getUser())
-                .orElseGet(() -> com.iab.openrtb.request.User.builder().build());
+        final User bidRequestUser = Optional.ofNullable(bidRequest.getUser())
+                .orElseGet(() -> User.builder().build());
 
         return bidRequest.toBuilder()
                 .user(mergeUserData(bidRequestUser, optableUser))
                 .build();
     }
 
-    private com.iab.openrtb.request.User mergeUserData(com.iab.openrtb.request.User user, User optableUser) {
+    private User mergeUserData(
+            User user,
+            org.prebid.server.hooks.modules.optable.targeting.model.openrtb.User optableUser) {
+
         return user.toBuilder()
                 .eids(filterOptableEids(mergeEids(user.getEids(), optableUser.getEids())))
                 .data(mergeData(user.getData(), optableUser.getData()))
