@@ -799,6 +799,7 @@ class RuleEnginePrivacySpec extends RuleEngineBaseSpec {
             user = new User(ext: new UserExt(consent: new TcfConsent.Builder()
                     .setPurposesLITransparency(BASIC_ADS)
                     .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                    .setDisclosedVendors([GENERIC_VENDOR_ID, OPENX_VENDOR_ID, AMX_VENDOR_ID])
                     .build()))
         }
 
@@ -870,6 +871,7 @@ class RuleEnginePrivacySpec extends RuleEngineBaseSpec {
             user = new User(ext: new UserExt(consent: new TcfConsent.Builder()
                     .setPurposesLITransparency(BASIC_ADS)
                     .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                    .setDisclosedVendors([GENERIC_VENDOR_ID, OPENX_VENDOR_ID, AMX_VENDOR_ID])
                     .build()))
         }
 

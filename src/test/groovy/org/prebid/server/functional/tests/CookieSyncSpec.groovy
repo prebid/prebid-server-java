@@ -349,6 +349,7 @@ class CookieSyncSpec extends BaseSpec {
         def validConsentString = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
                 .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .setDisclosedVendors([GENERIC_VENDOR_ID])
                 .build()
 
         and: "Cookie sync request with gdpr and gdprConsent"
@@ -1432,6 +1433,7 @@ class CookieSyncSpec extends BaseSpec {
         def validConsentString = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
                 .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .setDisclosedVendors([GENERIC_VENDOR_ID])
                 .build()
 
         and: "Cookie sync request with gdpr and gdprConsent"
