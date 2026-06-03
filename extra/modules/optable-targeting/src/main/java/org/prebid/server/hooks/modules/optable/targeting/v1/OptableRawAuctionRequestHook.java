@@ -11,7 +11,7 @@ import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidRequestClean
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidderEnrichmentSampler;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.CompositeHookExecutionPlan;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.NetworkCall;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.TargetingRequestExecutor;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.PropertiesValidator;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
@@ -35,19 +35,19 @@ public class OptableRawAuctionRequestHook implements RawAuctionRequestHook {
     public static final String CODE = "optable-targeting-raw-auction-request-hook";
 
     private final ConfigResolver configResolver;
-    private final NetworkCall networkCall;
+    private final TargetingRequestExecutor targetingRequestExecutor;
     private final BidderEnrichmentSampler bidderEnrichmentSampler;
     private final CompositeHookExecutionPlan hooksExecutionPlan;
     private final double logSamplingRate;
 
     public OptableRawAuctionRequestHook(ConfigResolver configResolver,
-                                        NetworkCall networkCall,
+                                        TargetingRequestExecutor targetingRequestExecutor,
                                         BidderEnrichmentSampler bidderEnrichmentSampler,
                                         CompositeHookExecutionPlan hooksExecutionPlan,
                                         double logSamplingRate) {
 
         this.configResolver = Objects.requireNonNull(configResolver);
-        this.networkCall = Objects.requireNonNull(networkCall);
+        this.targetingRequestExecutor = Objects.requireNonNull(targetingRequestExecutor);
         this.bidderEnrichmentSampler = Objects.requireNonNull(bidderEnrichmentSampler);
         this.hooksExecutionPlan = hooksExecutionPlan;
         this.logSamplingRate = logSamplingRate;
@@ -89,7 +89,7 @@ public class OptableRawAuctionRequestHook implements RawAuctionRequestHook {
         final long crossHookFutureTimeout =
                 hooksExecutionPlan.getOptableTargetingBidderRequestTimeout(account);
 
-        final Future<TargetingResult> optableTargetingCall = networkCall.makeRequest(
+        final Future<TargetingResult> optableTargetingCall = targetingRequestExecutor.makeRequest(
                 payload,
                 invocationContext,
                 properties,

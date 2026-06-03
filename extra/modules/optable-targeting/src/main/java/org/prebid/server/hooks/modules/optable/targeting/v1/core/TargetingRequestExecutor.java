@@ -24,13 +24,13 @@ import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 
 import java.util.Objects;
 
-public class NetworkCall {
+public class TargetingRequestExecutor {
 
     private final OptableTargeting optableTargeting;
     private final UserFpdActivityMask userFpdActivityMask;
     private final TimeoutFactory timeoutFactory;
 
-    public NetworkCall(OptableTargeting optableTargeting,
+    public TargetingRequestExecutor(OptableTargeting optableTargeting,
                        UserFpdActivityMask userFpdActivityMask,
                        TimeoutFactory timeoutFactory) {
 

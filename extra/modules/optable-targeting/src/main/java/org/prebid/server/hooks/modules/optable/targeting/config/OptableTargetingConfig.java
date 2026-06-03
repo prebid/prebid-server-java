@@ -19,7 +19,7 @@ import org.prebid.server.hooks.modules.optable.targeting.v1.core.Cache;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.CompositeHookExecutionPlan;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.IdsMapper;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.NetworkCall;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.TargetingRequestExecutor;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargeting;
 import org.prebid.server.hooks.modules.optable.targeting.v1.net.APIClientImpl;
 import org.prebid.server.hooks.modules.optable.targeting.v1.net.CachedAPIClient;
@@ -97,16 +97,16 @@ public class OptableTargetingConfig {
     }
 
     @Bean
-    NetworkCall networkCall(OptableTargeting optableTargeting,
+    TargetingRequestExecutor targetingRequestExecutor(OptableTargeting optableTargeting,
                             UserFpdActivityMask userFpdActivityMask,
                             TimeoutFactory timeoutFactory) {
 
-        return new NetworkCall(optableTargeting, userFpdActivityMask, timeoutFactory);
+        return new TargetingRequestExecutor(optableTargeting, userFpdActivityMask, timeoutFactory);
     }
 
     @Bean
     OptableTargetingModule optableTargetingModule(ConfigResolver configResolver,
-                                                  NetworkCall networkCall,
+                                                  TargetingRequestExecutor targetingRequestExecutor,
                                                   JsonMerger jsonMerger,
                                                   BidderCatalog bidderCatalog,
                                                   JacksonMapper mapper,
@@ -122,13 +122,13 @@ public class OptableTargetingConfig {
         return new OptableTargetingModule(List.of(
                 new OptableRawAuctionRequestHook(
                         configResolver,
-                        networkCall,
+                        targetingRequestExecutor,
                         BidderEnrichmentSampler.of(AliasesResolver.of(bidderCatalog)),
                         hooksExecutionPlan,
                         logSamplingRate),
                 new OptableTargetingProcessedAuctionRequestHook(
                         configResolver,
-                        networkCall,
+                        targetingRequestExecutor,
                         hooksExecutionPlan,
                         logSamplingRate),
                 new OptableBidderRequestHook(),

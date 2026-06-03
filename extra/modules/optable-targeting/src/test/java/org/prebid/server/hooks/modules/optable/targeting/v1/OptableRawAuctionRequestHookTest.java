@@ -20,7 +20,7 @@ import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidderEnrichmentSampler;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.CompositeHookExecutionPlan;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.NetworkCall;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.TargetingRequestExecutor;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.OptableTargeting;
 import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
@@ -55,7 +55,7 @@ public class OptableRawAuctionRequestHookTest extends BaseOptableTest {
     private BidderEnrichmentSampler bidderEnrichmentSampler;
 
     private ConfigResolver configResolver;
-    private NetworkCall networkCall;
+    private TargetingRequestExecutor targetingRequestExecutor;
     private OptableRawAuctionRequestHook target;
 
     @BeforeEach
@@ -63,9 +63,9 @@ public class OptableRawAuctionRequestHookTest extends BaseOptableTest {
         when(userFpdActivityMask.maskDevice(any(), anyBoolean(), anyBoolean()))
                 .thenAnswer(answer -> answer.getArgument(0));
         configResolver = new ConfigResolver(mapper, jsonMerger, givenOptableTargetingProperties(false));
-        networkCall = new NetworkCall(optableTargeting, userFpdActivityMask, timeoutFactory);
+        targetingRequestExecutor = new TargetingRequestExecutor(optableTargeting, userFpdActivityMask, timeoutFactory);
         target = new OptableRawAuctionRequestHook(
-                configResolver, networkCall, bidderEnrichmentSampler,
+                configResolver, targetingRequestExecutor, bidderEnrichmentSampler,
                 CompositeHookExecutionPlan.of(ExecutionPlan.empty()), 0.01);
         when(invocationContext.auctionContext()).thenReturn(givenAuctionContext(activityInfrastructure, timeout));
         when(invocationContext.timeout()).thenReturn(timeout);
@@ -121,7 +121,7 @@ public class OptableRawAuctionRequestHookTest extends BaseOptableTest {
         configResolver = new ConfigResolver(
                 mapper, jsonMerger, givenOptableTargetingProperties("key", "tenant", null, true));
         target = new OptableRawAuctionRequestHook(
-                configResolver, networkCall, bidderEnrichmentSampler,
+                configResolver, targetingRequestExecutor, bidderEnrichmentSampler,
                 CompositeHookExecutionPlan.of(ExecutionPlan.empty()), 0.01);
 
         // when
@@ -158,7 +158,7 @@ public class OptableRawAuctionRequestHookTest extends BaseOptableTest {
 
         configResolver = new ConfigResolver(mapper, jsonMerger, givenOptableTargetingProperties(false));
         target = new OptableRawAuctionRequestHook(
-                configResolver, networkCall, bidderEnrichmentSampler,
+                configResolver, targetingRequestExecutor, bidderEnrichmentSampler,
                 CompositeHookExecutionPlan.of(ExecutionPlan.empty()), 0.01);
 
         // when

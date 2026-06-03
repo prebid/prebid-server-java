@@ -11,7 +11,7 @@ import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidRequestClean
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidRequestEnricher;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.CompositeHookExecutionPlan;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.NetworkCall;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.TargetingRequestExecutor;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.PropertiesValidator;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
@@ -37,18 +37,18 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
             "Account not properly configured: tenant and/or origin is missing.";
 
     private final ConfigResolver configResolver;
-    private final NetworkCall networkCall;
+    private final TargetingRequestExecutor targetingRequestExecutor;
     private final double logSamplingRate;
 
     private final CompositeHookExecutionPlan hooksExecutionPlan;
 
     public OptableTargetingProcessedAuctionRequestHook(ConfigResolver configResolver,
-                                                       NetworkCall networkCall,
+                                                       TargetingRequestExecutor targetingRequestExecutor,
                                                        CompositeHookExecutionPlan hooksExecutionPlan,
                                                        double logSamplingRate) {
 
         this.configResolver = Objects.requireNonNull(configResolver);
-        this.networkCall = Objects.requireNonNull(networkCall);
+        this.targetingRequestExecutor = Objects.requireNonNull(targetingRequestExecutor);
         this.hooksExecutionPlan = hooksExecutionPlan;
         this.logSamplingRate = logSamplingRate;
     }
@@ -142,7 +142,7 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
             return Future.failedFuture(AUCTION_NOT_PROPERLY_CONFIGURED);
         }
 
-        return networkCall.makeRequest(
+        return targetingRequestExecutor.makeRequest(
                 payload,
                 invocationContext,
                 properties,
