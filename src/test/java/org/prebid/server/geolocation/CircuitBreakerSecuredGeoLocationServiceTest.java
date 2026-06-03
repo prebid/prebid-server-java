@@ -16,7 +16,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.metric.Metrics;
 
-import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -46,9 +45,8 @@ public class CircuitBreakerSecuredGeoLocationServiceTest {
     }
 
     @AfterEach
-    public void tearDown(VertxTestContext context) throws InterruptedException {
+    public void tearDown(VertxTestContext context) {
         vertx.close().onComplete(context.succeedingThenComplete());
-        context.awaitCompletion(1000, TimeUnit.MILLISECONDS);
     }
 
     @Test

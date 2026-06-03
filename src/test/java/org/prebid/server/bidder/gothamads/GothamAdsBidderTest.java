@@ -105,7 +105,7 @@ public class GothamAdsBidderTest extends VertxTest {
 
         assertThat(result.getValue())
                 .usingRecursiveComparison()
-                .withComparatorForType((a, b) -> a.entries().equals(b.entries()) ? 0 : 1, MultiMap.class)
+                .withEqualsForType((a, b) -> a.entries().equals(b.entries()), MultiMap.class)
                 .isEqualTo(expectedResult.getValue());
         assertThat(result.getErrors()).isEmpty();
     }

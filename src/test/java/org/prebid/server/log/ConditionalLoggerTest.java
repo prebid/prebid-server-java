@@ -36,9 +36,8 @@ public class ConditionalLoggerTest {
     }
 
     @AfterEach
-    public void tearDown(VertxTestContext context) throws InterruptedException {
+    public void tearDown(VertxTestContext context) {
         vertx.close().onComplete(context.succeedingThenComplete());
-        context.awaitCompletion(1000, TimeUnit.MILLISECONDS);
     }
 
     @Test

@@ -26,7 +26,6 @@ import software.amazon.awssdk.services.s3.model.S3Object;
 
 import java.time.Clock;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
@@ -96,9 +95,8 @@ public class S3PeriodicRefreshServiceTest extends VertxTest {
     }
 
     @AfterEach
-    public void tearDown(VertxTestContext context) throws InterruptedException {
+    public void tearDown(VertxTestContext context) {
         vertx.close().onComplete(context.succeedingThenComplete());
-        context.awaitCompletion(1000, TimeUnit.MILLISECONDS);
     }
 
     @Test
