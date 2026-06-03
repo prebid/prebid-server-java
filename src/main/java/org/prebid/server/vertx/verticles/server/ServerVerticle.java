@@ -55,7 +55,8 @@ public class ServerVerticle extends AbstractVerticle {
         }
 
         server.listen(address)
-                .onComplete(result -> startPromise.complete(null, result.cause()))
+                .<Void>mapEmpty()
+                .onComplete(startPromise)
                 .onSuccess(ignored -> logger.info(
                         "Successfully started {} instance on address: {}, thread: {}",
                         name,
