@@ -11,10 +11,8 @@ import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.vertx.CloseableAdapter;
 import org.prebid.server.vertx.Initializable;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 public class DaemonVerticle extends AbstractVerticle {
@@ -33,31 +31,26 @@ public class DaemonVerticle extends AbstractVerticle {
 
     @Override
     public void start(Promise<Void> startPromise) {
-        all(initializables, initializable -> initializable::initialize).onComplete(startPromise);
+        all(initializables, Initializable::initialize, true).onComplete(startPromise);
     }
 
     @Override
     public void stop(Promise<Void> stopPromise) {
-        all(closeables, closeable -> closeable::close).onComplete(stopPromise);
+        all(closeables, closeable -> Future.future(closeable::close), false).onComplete(stopPromise);
     }
 
-    private static <E> Future<Void> all(Collection<E> entries,
-                                        Function<E, Consumer<Promise<Void>>> entryToPromiseConsumerMapper) {
-
-        final List<Future<Void>> entriesFutures = new ArrayList<>();
-
-        for (E entry : entries) {
-            final Promise<Void> entryPromise = Promise.promise();
-            entriesFutures.add(entryPromise.future());
-
-            entryToPromiseConsumerMapper.apply(entry).accept(entryPromise);
-        }
-
-        return Future.all(entriesFutures)
+    private static <E> Future<Void> all(
+            Collection<E> entries,
+            Function<E, Future<Void>> entryToFutureMapper,
+            boolean start
+    ) {
+        return Future.all(entries.stream().map(entryToFutureMapper).toList())
                 .onSuccess(r -> logger.info(
-                        "Successfully started {} instance on thread: {}",
+                        "Successfully {} {} instance on thread: {}",
+                        start ? "started" : "stopped",
                         DaemonVerticle.class.getSimpleName(),
                         Thread.currentThread().getName()))
                 .mapEmpty();
     }
+
 }
