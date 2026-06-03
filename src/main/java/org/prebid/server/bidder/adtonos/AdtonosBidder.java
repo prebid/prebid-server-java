@@ -63,7 +63,7 @@ public class AdtonosBidder implements Bidder<BidRequest> {
     }
 
     private String makeUrl(ExtImpAdtonos extImp) {
-        return endpointUrl.replace(PUBLISHER_ID_MACRO, extImp.getSupplierId());
+        return endpointUrl.replace(PUBLISHER_ID_MACRO, HttpUtil.validatePathSegment(extImp.getSupplierId()));
     }
 
     @Override

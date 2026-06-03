@@ -179,7 +179,8 @@ public class OperaadsBidder implements Bidder<BidRequest> {
 
     private String resolveUrl(ExtImpOperaads extImpOperaads) {
         return endpointUrl
-                .replace(PUBLISHER_ID_MACRO, HttpUtil.encodeUrl(extImpOperaads.getPublisherId()))
+                .replace(PUBLISHER_ID_MACRO,
+                        HttpUtil.encodeUrl(HttpUtil.validatePathSegment(extImpOperaads.getPublisherId())))
                 .replace(ACCOUNT_ID_MACRO, HttpUtil.encodeUrl(extImpOperaads.getEndpointId()));
     }
 

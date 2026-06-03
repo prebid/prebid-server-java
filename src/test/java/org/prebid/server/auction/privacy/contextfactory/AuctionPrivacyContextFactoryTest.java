@@ -1,5 +1,6 @@
 package org.prebid.server.auction.privacy.contextfactory;
 
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Site;
@@ -183,7 +184,9 @@ public class AuctionPrivacyContextFactoryTest extends VertxTest {
         given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfContext.empty()));
 
-        final BidRequest bidRequest = givenBidRequest(request -> request.site(Site.builder().ref("refUrl").build()));
+        final BidRequest bidRequest = givenBidRequest(request -> request
+                .site(Site.builder().ref("refUrl").build())
+                .app(App.builder().bundle("bundle").build()));
         final AuctionContext auctionContext = givenAuctionContext(context -> context
                 .requestTypeMetric(MetricName.openrtb2web)
                 .httpRequest(givenHttpRequestContext("invalid"))
@@ -194,6 +197,37 @@ public class AuctionPrivacyContextFactoryTest extends VertxTest {
 
         // then
         final RequestLogInfo expectedRequestLogInfo = RequestLogInfo.of(MetricName.openrtb2web, "refUrl", null);
+        verify(tcfDefinerService)
+                .resolveTcfContext(any(), any(), any(), any(), any(), eq(expectedRequestLogInfo), any(), any());
+    }
+
+    @Test
+    public void contextFromShouldAddBundleWhenPresentAndRequestTypeIsApp() {
+        // given
+        final Privacy privacy = Privacy.builder()
+                .gdpr("1")
+                .consentString("consent_string")
+                .ccpa(Ccpa.EMPTY)
+                .coppa(0)
+                .build();
+        given(privacyExtractor.validPrivacyFrom(any(), any())).willReturn(privacy);
+
+        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(TcfContext.empty()));
+
+        final BidRequest bidRequest = givenBidRequest(request -> request
+                .site(Site.builder().ref("refUrl").build())
+                .app(App.builder().bundle("bundle").build()));
+        final AuctionContext auctionContext = givenAuctionContext(context -> context
+                .requestTypeMetric(MetricName.openrtb2app)
+                .httpRequest(givenHttpRequestContext("invalid"))
+                .bidRequest(bidRequest));
+
+        // when
+        target.contextFrom(auctionContext);
+
+        // then
+        final RequestLogInfo expectedRequestLogInfo = RequestLogInfo.of(MetricName.openrtb2app, "bundle", null);
         verify(tcfDefinerService)
                 .resolveTcfContext(any(), any(), any(), any(), any(), eq(expectedRequestLogInfo), any(), any());
     }
