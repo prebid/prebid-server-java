@@ -85,6 +85,10 @@ mappers:
     labels:
       tcf: ${0}
       status: ${1}
+  - match: privacy.tcf.vendorlist.latest.*
+    name: privacy.tcf.vendorlist.latest
+    labels:
+      status: ${0}
   - match: privacy.tcf.*.*
     name: privacy.tcf.${1}
     labels:

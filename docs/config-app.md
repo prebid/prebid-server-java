@@ -457,6 +457,8 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 - `gdpr.special-features.sfN.vendor-exceptions[]` - bidder names that will be treated opposite to `sfN.enforce` value.
 - `gdpr.purpose-one-treatment-interpretation` - option that allows to skip the Purpose one enforcement workflow.
 - `gdpr.vendorlist.default-timeout-ms` - default operation timeout for obtaining new vendor list.
+- `gdpr.vendorlist.live-gvl-url` - URL of the latest TCF GVL used to detect vendors with a past `deletedDate`. Default `https://vendor-list.consensu.org/v3/vendor-list.json`.
+- `gdpr.vendorlist.live-gvl-refresh-period-ms` - how often to refresh the live GVL deleted-vendor set, in milliseconds. Default `86400000` (24 hours).
 - `gdpr.vendorlist.v2.http-endpoint-template` - template string for vendor list url version 2.
 - `gdpr.vendorlist.v2.refresh-missing-list-period-ms` - time to wait between attempts to fetch vendor list version that previously was reported to be missing by origin. Default `3600000` (one hour).
 - `gdpr.vendorlist.v2.fallback-vendor-list-path` - location on the file system of the fallback vendor list that will be used in place of missing vendor list versions. Optional.

@@ -1005,6 +1005,24 @@ public class MetricsTest {
     }
 
     @Test
+    public void updatePrivacyTcfVendorListLatestOkMetricShouldIncrementMetric() {
+        // when
+        metrics.updatePrivacyTcfVendorListLatestOkMetric();
+
+        // then
+        assertThat(metricRegistry.counter("privacy.tcf.vendorlist.latest.ok").getCount()).isOne();
+    }
+
+    @Test
+    public void updatePrivacyTcfVendorListLatestErrorMetricShouldIncrementMetric() {
+        // when
+        metrics.updatePrivacyTcfVendorListLatestErrorMetric();
+
+        // then
+        assertThat(metricRegistry.counter("privacy.tcf.vendorlist.latest.err").getCount()).isOne();
+    }
+
+    @Test
     public void shouldNotUpdateAccountMetricsIfVerbosityIsNone() {
         // given
         given(accountMetricsVerbosityResolver.forAccount(any())).willReturn(AccountMetricsVerbosityLevel.none);
