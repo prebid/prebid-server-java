@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests.privacy.gpp
 
+import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.config.AccountGppConfig
 import org.prebid.server.functional.model.config.ActivityConfig
 import org.prebid.server.functional.model.config.EqualityValueRule
@@ -20,8 +21,8 @@ import org.prebid.server.functional.model.request.auction.Condition
 import org.prebid.server.functional.model.request.auction.Geo
 import org.prebid.server.functional.model.request.auction.RegsExt
 import org.prebid.server.functional.service.PrebidServerException
-import org.prebid.server.functional.util.Metrics
 import org.prebid.server.functional.tests.privacy.PrivacyBaseSpec
+import org.prebid.server.functional.util.Metrics
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.gpp.v1.UsCaV1Consent
 import org.prebid.server.functional.util.privacy.gpp.v1.UsCoV1Consent
@@ -1982,7 +1983,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
         assert metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_PRECISE_GEO)] == 1
-        assert metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_PRECISE_GEO)] == 1
+        assert metrics[Metrics.Privacy.adapterDisallowedActivityCount(BidderName.GENERIC, TRANSMIT_PRECISE_GEO)] == 1
     }
 
     def "PBS amp call when default activity setting set to false should round lat/lon data to 2 digits"() {
@@ -2336,7 +2337,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
         assert metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_PRECISE_GEO)] == 1
-        assert metrics[Metrics.Privacy.adapterDisallowedActivityCount(GENERIC, TRANSMIT_PRECISE_GEO)] == 1
+        assert metrics[Metrics.Privacy.adapterDisallowedActivityCount(BidderName.GENERIC, TRANSMIT_PRECISE_GEO)] == 1
     }
 
     def "PBS amp call when privacy regulation match and rejecting should round lat/lon data to 2 digits"() {

@@ -16,7 +16,6 @@ import org.prebid.server.functional.tests.privacy.PrivacyBaseSpec
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.TcfConsent
 
-
 import static org.prebid.server.functional.model.request.auction.DsaPubRender.PUB_CANT_RENDER
 import static org.prebid.server.functional.model.request.auction.DsaPubRender.PUB_WILL_RENDER
 import static org.prebid.server.functional.model.request.auction.DsaRequired.NOT_REQUIRED

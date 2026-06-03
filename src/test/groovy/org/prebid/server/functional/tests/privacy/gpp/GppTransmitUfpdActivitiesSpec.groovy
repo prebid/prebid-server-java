@@ -16,6 +16,7 @@ import org.prebid.server.functional.model.privacy.gpp.MspaMode
 import org.prebid.server.functional.model.privacy.gpp.Notice
 import org.prebid.server.functional.model.privacy.gpp.OptOut
 import org.prebid.server.functional.model.privacy.gpp.UsNationalV1ChildSensitiveData
+import org.prebid.server.functional.model.privacy.gpp.UsNationalV1SensitiveData
 import org.prebid.server.functional.model.privacy.gpp.UsNationalV2ChildSensitiveData
 import org.prebid.server.functional.model.privacy.gpp.UsNationalV2SensitiveData
 import org.prebid.server.functional.model.request.amp.AmpRequest
@@ -27,8 +28,8 @@ import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.Geo
 import org.prebid.server.functional.model.request.auction.RegsExt
 import org.prebid.server.functional.service.PrebidServerException
-import org.prebid.server.functional.util.Metrics
 import org.prebid.server.functional.tests.privacy.PrivacyBaseSpec
+import org.prebid.server.functional.util.Metrics
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.gpp.v1.UsCaV1Consent
 import org.prebid.server.functional.util.privacy.gpp.v1.UsCoV1Consent
@@ -36,7 +37,6 @@ import org.prebid.server.functional.util.privacy.gpp.v1.UsCtV1Consent
 import org.prebid.server.functional.util.privacy.gpp.v1.UsNatV1Consent
 import org.prebid.server.functional.util.privacy.gpp.v1.UsUtV1Consent
 import org.prebid.server.functional.util.privacy.gpp.v1.UsVaV1Consent
-import org.prebid.server.functional.model.privacy.gpp.UsNationalV1SensitiveData
 import org.prebid.server.functional.util.privacy.gpp.v2.UsNatV2Consent
 
 import java.time.Instant

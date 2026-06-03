@@ -12,8 +12,8 @@ import org.prebid.server.functional.model.request.auction.DistributionChannel
 import org.prebid.server.functional.model.request.auction.Regs
 import org.prebid.server.functional.model.request.auction.RegsExt
 import org.prebid.server.functional.model.response.auction.ErrorType
-import org.prebid.server.functional.util.Metrics
 import org.prebid.server.functional.tests.privacy.PrivacyBaseSpec
+import org.prebid.server.functional.util.Metrics
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.BogusConsent
 import org.prebid.server.functional.util.privacy.TcfConsent
@@ -25,7 +25,6 @@ import java.time.Instant
 import static org.prebid.server.functional.model.ChannelType.PBJS
 import static org.prebid.server.functional.model.ChannelType.WEB
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
-
 import static org.prebid.server.functional.model.config.AccountMetricsVerbosityLevel.DETAILED
 import static org.prebid.server.functional.model.config.Purpose.P1
 import static org.prebid.server.functional.model.config.Purpose.P2

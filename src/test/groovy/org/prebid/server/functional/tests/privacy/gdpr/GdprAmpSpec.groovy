@@ -13,8 +13,8 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.DistributionChannel
 import org.prebid.server.functional.model.request.auction.Regs
 import org.prebid.server.functional.model.request.auction.RegsExt
-import org.prebid.server.functional.util.Metrics
 import org.prebid.server.functional.tests.privacy.PrivacyBaseSpec
+import org.prebid.server.functional.util.Metrics
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.BogusConsent
 import org.prebid.server.functional.util.privacy.CcpaConsent

@@ -11,7 +11,6 @@ import org.prebid.server.functional.model.config.AccountPrivacyConfig
 import org.prebid.server.functional.model.config.Purpose
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.mock.services.vendorlist.VendorListResponse
-import org.prebid.server.functional.model.privacy.EnforcementRequirement
 import org.prebid.server.functional.model.privacy.gpp.GppDataActivity
 import org.prebid.server.functional.model.privacy.gpp.UsCaliforniaV1ChildSensitiveData
 import org.prebid.server.functional.model.privacy.gpp.UsCaliforniaV1SensitiveData
@@ -56,12 +55,9 @@ import org.prebid.server.functional.util.privacy.gpp.v1.UsVaV1Consent
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
-import static org.prebid.server.functional.model.config.PurposeEnforcement.BASIC
-import static org.prebid.server.functional.model.config.PurposeEnforcement.FULL
-import static org.prebid.server.functional.model.config.PurposeEnforcement.NO
 import static org.prebid.server.functional.model.mock.services.vendorlist.VendorListResponse.getDefaultVendorListResponse
-import static org.prebid.server.functional.model.pricefloors.Country.USA
 import static org.prebid.server.functional.model.pricefloors.Country.BULGARIA
+import static org.prebid.server.functional.model.pricefloors.Country.USA
 import static org.prebid.server.functional.model.request.GppSectionId.US_CA_V1
 import static org.prebid.server.functional.model.request.GppSectionId.US_CO_V1
 import static org.prebid.server.functional.model.request.GppSectionId.US_CT_V1
@@ -76,9 +72,6 @@ import static org.prebid.server.functional.model.response.cookiesync.UserSyncInf
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
-import static org.prebid.server.functional.util.privacy.TcfConsent.RestrictionType.REQUIRE_CONSENT
-import static org.prebid.server.functional.util.privacy.TcfConsent.RestrictionType.REQUIRE_LEGITIMATE_INTEREST
-import static org.prebid.server.functional.util.privacy.TcfConsent.RestrictionType.UNDEFINED
 import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V2
 import static org.prebid.server.functional.util.privacy.model.State.ALABAMA
 
@@ -388,10 +381,5 @@ abstract class PrivacyBaseSpec extends BaseSpec {
             invalidGPPValue = PBSUtils.getRandomString(stringLength)
         } while (gppV1Prefix.contains(invalidGPPValue[0].toUpperCase()))
         return invalidGPPValue
-    }
-
-    private static Purpose getRandomPurposeWithExclusion(Purpose excludeFromRandom) {
-        def availablePurposes = Purpose.values().toList() - excludeFromRandom
-        availablePurposes.shuffled().first()
     }
 }

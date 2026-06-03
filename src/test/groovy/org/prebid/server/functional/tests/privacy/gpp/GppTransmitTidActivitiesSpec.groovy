@@ -9,8 +9,8 @@ import org.prebid.server.functional.model.request.auction.AllowActivities
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Condition
 import org.prebid.server.functional.model.request.auction.Source
-import org.prebid.server.functional.util.Metrics
 import org.prebid.server.functional.tests.privacy.PrivacyBaseSpec
+import org.prebid.server.functional.util.Metrics
 import org.prebid.server.functional.util.PBSUtils
 
 import java.time.Instant

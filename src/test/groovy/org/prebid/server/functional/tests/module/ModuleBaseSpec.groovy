@@ -11,6 +11,7 @@ import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.response.auction.AnalyticResult
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.testcontainers.Dependencies
 import org.prebid.server.functional.tests.BaseSpec
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Shared
@@ -35,6 +36,8 @@ class ModuleBaseSpec extends BaseSpec {
 
     protected static final String WILDCARD = '*'
     protected static final String RANDOM_DATACENTER_REGION = PBSUtils.randomString
+    protected static final Integer OPENX_VENDOR_ID = PBSUtils.getRandomNumber(0, 65534)
+    protected static final Integer AMX_VENDOR_ID = PBSUtils.getRandomNumber(0, 65534)
 
     protected static final Map<String, String> GENERIC_CONFIG = [
             "adapters.${GENERIC.value}.usersync.redirect.url"       : "$networkServiceContainer.rootUri/generic-usersync".toString(),
@@ -43,13 +46,14 @@ class ModuleBaseSpec extends BaseSpec {
 
     protected static final Map<String, String> IX_CONFIG = ["adapters.${IX}.enabled" : "true",
                                                             "adapters.${IX}.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
-    protected static final Map<String, String> AMX_CONFIG = ["adapters.${AMX}.enabled" : "true",
-                                                             "adapters.${AMX}.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
-    protected static final Map<String, String> OPENX_CONFIG = ["adapters.${OPENX}.enabled" : "true",
-                                                               "adapters.${OPENX}.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
-
+    protected static final Map<String, String> OPENX_CONFIG = ["adapters.${OPENX}.enabled"            : "true",
+                                                               "adapters.${OPENX}.endpoint"           : "$Dependencies.networkServiceContainer.rootUri/auction".toString(),
+                                                               "adapters.${OPENX}.meta-info.vendor-id": OPENX_VENDOR_ID as String]
+    protected static final Map<String, String> AMX_CONFIG = ["adapters.${AMX}.enabled"            : "true",
+                                                             "adapters.${AMX}.endpoint"           : "$Dependencies.networkServiceContainer.rootUri/auction".toString(),
+                                                             "adapters.${AMX}.meta-info.vendor-id": AMX_VENDOR_ID as String]
     protected static final Map<String, String> OPENX_ALIAS_CONFIG = ["adapters.${OPENX}.aliases.${OPENX_ALIAS}.enabled" : "true",
-                                                                     "adapters.${OPENX}.aliases.${OPENX_ALIAS}.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
+                                                                     "adapters.${OPENX}.aliases.${OPENX_ALIAS}.endpoint": "$Dependencies.networkServiceContainer.rootUri/auction".toString()]
 
     private static final Map<String, String> ENABLED_DEBUG_LOG_MODE = ["logging.level.root": "debug"]
 

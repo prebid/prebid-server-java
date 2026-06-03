@@ -23,8 +23,8 @@ import org.prebid.server.functional.model.request.auction.Condition
 import org.prebid.server.functional.model.request.cookiesync.CookieSyncRequest
 import org.prebid.server.functional.model.request.setuid.SetuidRequest
 import org.prebid.server.functional.service.PrebidServerException
-import org.prebid.server.functional.util.Metrics
 import org.prebid.server.functional.tests.privacy.PrivacyBaseSpec
+import org.prebid.server.functional.util.Metrics
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.gpp.v1.UsCaV1Consent
 import org.prebid.server.functional.util.privacy.gpp.v1.UsCoV1Consent
