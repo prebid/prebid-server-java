@@ -128,7 +128,8 @@ public class QueryBuilderTest {
 
         // then
         assertThat(query).contains("&gpp=DBABzw~1YNY~BVQqAAAAAgA");
-        assertThat(query).containsPattern("&gpp_sid=\\d+,\\d+");
+        final String gppSidValue = query.split("gpp_sid=")[1].split("&")[0];
+        assertThat(gppSidValue.split(",")).containsExactlyInAnyOrder("7", "22");
         assertThat(query).doesNotContain("Optional");
     }
 
