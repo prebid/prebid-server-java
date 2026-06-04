@@ -42,8 +42,8 @@ public class DaemonVerticle extends AbstractVerticle {
     private static <E> Future<Void> all(
             Collection<E> entries,
             Function<E, Future<Void>> entryToFutureMapper,
-            boolean start
-    ) {
+            boolean start) {
+
         return Future.all(entries.stream().map(entryToFutureMapper).toList())
                 .onSuccess(r -> logger.info(
                         "Successfully {} {} instance on thread: {}",
