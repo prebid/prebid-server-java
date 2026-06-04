@@ -25,7 +25,7 @@
         <download-plugin.version>2.0.0</download-plugin.version>
         <git-commit-id-plugin.version>9.0.1</git-commit-id-plugin.version>
 
-        <gmavenplus-plugin.version>4.2.1</gmavenplus-plugin.version>
+        <gmavenplus-plugin.version>4.3.1</gmavenplus-plugin.version>
         <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
         <build-helper-maven-plugin.version>3.6.0</build-helper-maven-plugin.version>
         <protobuf-maven-plugin.version>0.6.1</protobuf-maven-plugin.version>
@@ -35,16 +35,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.springframework.boot</groupId>
-                    <artifactId>spring-boot-starter-logging</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-log4j2</artifactId>
         </dependency>
         <dependency>
             <groupId>jakarta.annotation</groupId>
@@ -294,11 +284,11 @@
             <artifactId>xml-path</artifactId>
             <scope>test</scope>
         </dependency>
-<!--        <dependency>-->
-<!--            <groupId>org.spockframework</groupId>-->
-<!--            <artifactId>spock-core</artifactId>-->
-<!--            <scope>test</scope>-->
-<!--        </dependency>-->
+        <dependency>
+            <groupId>org.spockframework</groupId>
+            <artifactId>spock-core</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.apache.groovy</groupId>
             <artifactId>groovy</artifactId>
@@ -580,7 +570,6 @@
                 <version>${spring.boot.version}</version>
                 <configuration>
                     <attach>false</attach>
-                    <executable>true</executable>
                 </configuration>
                 <executions>
                     <execution>
@@ -614,28 +603,28 @@
                     </execution>
                 </executions>
             </plugin>
-<!--            <plugin>-->
-<!--                <groupId>org.codehaus.gmavenplus</groupId>-->
-<!--                <artifactId>gmavenplus-plugin</artifactId>-->
-<!--                <configuration>-->
-<!--                    <parallelParsing>true</parallelParsing>-->
-<!--                    <testSources>-->
-<!--                        <testSource>-->
-<!--                            <directory>${project.basedir}/src/test/groovy</directory>-->
-<!--                            <includes>-->
-<!--                                <include>**/*.groovy</include>-->
-<!--                            </includes>-->
-<!--                        </testSource>-->
-<!--                    </testSources>-->
-<!--                </configuration>-->
-<!--                <executions>-->
-<!--                    <execution>-->
-<!--                        <goals>-->
-<!--                            <goal>compileTests</goal>-->
-<!--                        </goals>-->
-<!--                    </execution>-->
-<!--                </executions>-->
-<!--            </plugin>-->
+            <plugin>
+                <groupId>org.codehaus.gmavenplus</groupId>
+                <artifactId>gmavenplus-plugin</artifactId>
+                <configuration>
+                    <parallelParsing>true</parallelParsing>
+                    <testSources>
+                        <testSource>
+                            <directory>${project.basedir}/src/test/groovy</directory>
+                            <includes>
+                                <include>**/*.groovy</include>
+                            </includes>
+                        </testSource>
+                    </testSources>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>compileTests</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
