@@ -7,8 +7,8 @@ adapters:
     #   Asia     → https://prebid-adapter-asia.media.net/rtb/pb/prebids2s
     #   Europe   → https://prebid-adapter-eu.media.net/rtb/pb/prebids2s
     #
-    # Replace REGION in the endpoint URL with: useast | uswest | asia | eu
-    endpoint: https://prebid-adapter-REGION.media.net/rtb/pb/prebids2s?src={{PREBID_SERVER_ENDPOINT}}
+    # Replace [REGION] in the endpoint URL with: useast | uswest | asia | eu
+    endpoint: https://prebid-adapter-[REGION].media.net/rtb/pb/prebids2s?src={{PREBID_SERVER_ENDPOINT}}
     ortb-version: "2.6"
     endpoint-compression: gzip
     meta-info:
