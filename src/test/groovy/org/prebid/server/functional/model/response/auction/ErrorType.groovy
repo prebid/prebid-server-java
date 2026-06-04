@@ -16,10 +16,10 @@ enum ErrorType {
     IX("ix"),
     OPENX("openx"),
     AMX("amx"),
-    AMX_UPPER_CASE("AMX"),
+    AMX_UPPER_CASE("AMX")
 
     @JsonValue
-    private final String value
+    final String value
 
     ErrorType(String value) {
         this.value = value

@@ -7,10 +7,10 @@ enum AuctionEnvironment {
     NOT_SUPPORTED(0),
     DEVICE_ORCHESTRATED(1),
     SERVER_ORCHESTRATED(3),
-    UNKNOWN(Integer.MAX_VALUE),
+    UNKNOWN(Integer.MAX_VALUE)
 
     @JsonValue
-    int value
+    final int value
 
     AuctionEnvironment(Integer value) {
         this.value = value

@@ -143,7 +143,7 @@ class TcfConsent implements ConsentString {
 
         TCF_POLICY_V2(2),
         TCF_POLICY_V4(4),
-        TCF_POLICY_V5(5),
+        TCF_POLICY_V5(5)
 
         final int value
 

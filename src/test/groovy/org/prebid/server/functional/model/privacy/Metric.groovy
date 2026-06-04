@@ -11,7 +11,7 @@ enum Metric {
     ACCOUNT_PROCESSED_RULES_COUNT("requests.activity.processedrules.count"),
     TEMPLATE_ADAPTER_DISALLOWED_COUNT("adapter.{bidderName}.activity.{activityType}.disallowed.count"),
     TEMPLATE_ACCOUNT_DISALLOWED_COUNT("account.{accountId}.activity.{activityType}.disallowed.count"),
-    TEMPLATE_REQUEST_DISALLOWED_COUNT("requests.activity.{activityType}.disallowed.count"),
+    TEMPLATE_REQUEST_DISALLOWED_COUNT("requests.activity.{activityType}.disallowed.count")
 
     final String value
 
