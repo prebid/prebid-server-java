@@ -89,7 +89,7 @@ public class MadvertiseBidder implements Bidder<BidRequest> {
     }
 
     private HttpRequest<BidRequest> createRequest(BidRequest request, String zoneID) {
-        final String url = endpointUrl.replace(ZONE_ID_MACRO, HttpUtil.encodeUrl(zoneID));
+        final String url = endpointUrl.replace(ZONE_ID_MACRO, HttpUtil.encodeUrl(HttpUtil.validatePathSegment(zoneID)));
 
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)

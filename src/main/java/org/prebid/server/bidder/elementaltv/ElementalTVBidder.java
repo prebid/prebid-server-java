@@ -86,7 +86,7 @@ public class ElementalTVBidder implements Bidder<BidRequest> {
     private String resolveUrl(ExtImpElementalTV extImp) {
         try {
             return endpointTemplate
-                    .replace("{{AdUnit}}", HttpUtil.encodeUrl(extImp.getAdunit()));
+                    .replace("{{AdUnit}}", HttpUtil.encodeUrl(HttpUtil.validatePathSegment(extImp.getAdunit())));
         } catch (Exception e) {
             throw new PreBidException(e.getMessage());
         }
