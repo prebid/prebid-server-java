@@ -2,7 +2,6 @@ package org.prebid.server.analytics.reporter.pubstack;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -93,7 +92,7 @@ public class PubstackAnalyticsReporterTest extends VertxTest {
                 Future.succeededFuture(HttpClientResponse.of(200, null, mapper.writeValueAsString(pubstackConfig))));
 
         // when
-        pubstackAnalyticsReporter.initialize(Promise.promise());
+        pubstackAnalyticsReporter.initialize();
 
         // then
         verify(vertx).setPeriodic(anyLong(), any());
@@ -109,17 +108,16 @@ public class PubstackAnalyticsReporterTest extends VertxTest {
             throws JsonProcessingException {
 
         // given
-        final Promise<Void> promise = Promise.promise();
         final PubstackConfig pubstackConfig = PubstackConfig.of("newScopeId", "invalid",
                 Collections.singletonMap(EventType.auction, true));
         given(httpClient.get(anyString(), anyLong())).willReturn(
                 Future.succeededFuture(HttpClientResponse.of(200, null, mapper.writeValueAsString(pubstackConfig))));
 
         // when
-        pubstackAnalyticsReporter.initialize(promise);
+        final Future<Void> result = pubstackAnalyticsReporter.initialize();
 
         // then
-        assertThatThrownBy(() -> promise.future().await(5, TimeUnit.SECONDS))
+        assertThatThrownBy(() -> result.await(5, TimeUnit.SECONDS))
                 .hasMessage("[pubstack] Failed to create event report url for endpoint: invalid")
                 .isInstanceOf(PreBidException.class);
         verify(auctionHandler).reportEvents();
@@ -138,8 +136,8 @@ public class PubstackAnalyticsReporterTest extends VertxTest {
                 Future.succeededFuture(HttpClientResponse.of(200, null, mapper.writeValueAsString(pubstackConfig))));
 
         // when
-        pubstackAnalyticsReporter.initialize(Promise.promise());
-        pubstackAnalyticsReporter.initialize(Promise.promise());
+        pubstackAnalyticsReporter.initialize();
+        pubstackAnalyticsReporter.initialize();
 
         // then
         verify(httpClient, times(2)).get(anyString(), anyLong());
@@ -157,7 +155,7 @@ public class PubstackAnalyticsReporterTest extends VertxTest {
                 Future.succeededFuture(HttpClientResponse.of(400, null, null)));
 
         // when
-        pubstackAnalyticsReporter.initialize(Promise.promise());
+        pubstackAnalyticsReporter.initialize();
 
         // then
         verify(vertx).setPeriodic(anyLong(), any());
@@ -173,7 +171,7 @@ public class PubstackAnalyticsReporterTest extends VertxTest {
                 Future.succeededFuture(HttpClientResponse.of(200, null, "{\"endpoint\" : {}}")));
 
         // when
-        pubstackAnalyticsReporter.initialize(Promise.promise());
+        pubstackAnalyticsReporter.initialize();
 
         // then
         verify(vertx).setPeriodic(anyLong(), any());

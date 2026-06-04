@@ -1,7 +1,6 @@
 package org.prebid.server.analytics.reporter.pubstack;
 
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
@@ -116,9 +115,9 @@ public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializab
     }
 
     @Override
-    public void initialize(Promise<Void> initializePromise) {
+    public Future<Void> initialize() {
         vertx.setPeriodic(configurationRefreshDelay, id -> fetchRemoteConfig());
-        fetchRemoteConfig().onComplete(initializePromise);
+        return fetchRemoteConfig();
     }
 
     void shutdown() {
