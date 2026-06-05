@@ -100,7 +100,7 @@ public class OptableRawAuctionRequestHook implements RawAuctionRequestHook {
         return update(BidRequestCleaner.instance(), moduleContext);
     }
 
-    public static <AuctionRequestPayload> Future<InvocationResult<AuctionRequestPayload>> update(
+    public static Future<InvocationResult<AuctionRequestPayload>> update(
             PayloadUpdate<AuctionRequestPayload> payloadUpdate,
             ModuleContext moduleContext) {
 

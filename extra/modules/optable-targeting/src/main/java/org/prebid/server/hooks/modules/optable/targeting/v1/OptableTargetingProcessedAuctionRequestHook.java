@@ -26,6 +26,11 @@ import org.prebid.server.settings.model.Account;
 
 import java.util.Objects;
 
+/**
+ * @deprecated This hook is deprecated and will be removed in a future release.
+ * Use {@link OptableRawAuctionRequestHook} and {@link OptableBidderRequestHook} instead.
+ */
+@Deprecated
 public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuctionRequestHook {
 
     private static final ConditionalLogger conditionalLogger = new ConditionalLogger(

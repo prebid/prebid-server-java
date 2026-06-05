@@ -14,6 +14,7 @@ import org.prebid.server.settings.model.Account;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 
 public class CompositeHookExecutionPlan {
 
@@ -53,45 +54,34 @@ public class CompositeHookExecutionPlan {
                                 STAGE_BIDDER_REQUEST, HOOK_CODE_OPTABLE_BIDDER_REQUEST));
     }
 
-    public boolean hasRawAuctionRequestHook(Account account) {
+    private <T> T computeFromAccount(Account account,
+                                            ConcurrentHashMap<String, T> cache,
+                                            T defaultValue,
+                                            Function<ExecutionPlan, T> compute) {
         final String accountId = account != null ? account.getId() : null;
-
         return StringUtils.isNotEmpty(accountId)
-                ? rawAuctionRequestHookCache.computeIfAbsent(accountId, id -> {
-                    final ExecutionPlan accountSpecificHooksExecutionPlan = resolveExecutionPlan(account);
-                    return hasHook(
-                            accountSpecificHooksExecutionPlan, STAGE_RAW_AUCTION_REQUEST, HOOK_CODE_OPTABLE_RAW_AUCTION)
-                            || hasGlobalRawAuctionRequestHook;
-                })
-                : false;
+                ? cache.computeIfAbsent(accountId, id -> compute.apply(resolveExecutionPlan(account)))
+                : defaultValue;
+    }
+
+    public boolean hasRawAuctionRequestHook(Account account) {
+        return computeFromAccount(account, rawAuctionRequestHookCache, false,
+                plan -> hasHook(plan, STAGE_RAW_AUCTION_REQUEST, HOOK_CODE_OPTABLE_RAW_AUCTION)
+                        || hasGlobalRawAuctionRequestHook);
     }
 
     public boolean hasBidderRequestHook(Account account) {
-        final String accountId = account != null ? account.getId() : null;
-
-        return StringUtils.isNotEmpty(accountId)
-                ? bidderRequestHookCache.computeIfAbsent(accountId, id -> {
-                    final ExecutionPlan accountSpecificHoksExecutionPlan = resolveExecutionPlan(account);
-                    return hasHook(
-                            accountSpecificHoksExecutionPlan, STAGE_BIDDER_REQUEST, HOOK_CODE_OPTABLE_BIDDER_REQUEST)
-                            || hasGlobalBidderRequestHook;
-                })
-                : false;
+        return computeFromAccount(account, bidderRequestHookCache, false,
+                plan -> hasHook(plan, STAGE_BIDDER_REQUEST, HOOK_CODE_OPTABLE_BIDDER_REQUEST)
+                        || hasGlobalBidderRequestHook);
     }
 
     public long getOptableTargetingBidderRequestTimeout(Account account) {
-        final String accountId = account != null ? account.getId() : null;
-
-        return StringUtils.isNotEmpty(accountId)
-                ? bidderRequestHookTimeoutCache.computeIfAbsent(accountId, id -> {
-                    final ExecutionPlan accountSpecificHoksExecutionPlan = resolveExecutionPlan(account);
-                    final long hookTimeOut = getHookTimeout(
-                            accountSpecificHoksExecutionPlan,
-                            STAGE_BIDDER_REQUEST,
-                            HOOK_CODE_OPTABLE_BIDDER_REQUEST);
-                    return hookTimeOut != 0 ? hookTimeOut : globalBidderRequestHookTimeout;
-                })
-                : globalBidderRequestHookTimeout;
+        return computeFromAccount(account, bidderRequestHookTimeoutCache, globalBidderRequestHookTimeout,
+                plan -> {
+                    final long timeout = getHookTimeout(plan, STAGE_BIDDER_REQUEST, HOOK_CODE_OPTABLE_BIDDER_REQUEST);
+                    return timeout != 0 ? timeout : globalBidderRequestHookTimeout;
+                });
     }
 
     private ExecutionPlan resolveExecutionPlan(Account account) {
