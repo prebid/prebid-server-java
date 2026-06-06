@@ -90,7 +90,7 @@ public class FloxisBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://rtb-eu.floxis.tech/pbs?seat=a+b%26c");
+                .containsExactly("https://eu.floxis.tech/pbs?seat=a+b%26c");
     }
 
     @Test
@@ -105,7 +105,7 @@ public class FloxisBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://rtb-apac.floxis.tech/pbs?seat=seat-apac");
+                .containsExactly("https://apac.floxis.tech/pbs?seat=seat-apac");
     }
 
     @Test
@@ -120,7 +120,7 @@ public class FloxisBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://rtb-us-e.floxis.tech/pbs?seat=abc");
+                .containsExactly("https://us-e.floxis.tech/pbs?seat=abc");
     }
 
     @Test
@@ -135,11 +135,11 @@ public class FloxisBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://rtb-us-e.floxis.tech/pbs?seat=abc");
+                .containsExactly("https://us-e.floxis.tech/pbs?seat=abc");
     }
 
     @Test
-    public void makeHttpRequestsShouldDefaultToUseHostWhenRegionUnknown() {
+    public void makeHttpRequestsShouldUseArbitraryValidRegionLabelAsSubdomain() {
         // given
         final BidRequest bidRequest = givenBidRequest(imp -> imp.ext(givenImpExt("abc", "mars")));
 
@@ -150,7 +150,50 @@ public class FloxisBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://rtb-us-e.floxis.tech/pbs?seat=abc");
+                .containsExactly("https://mars.floxis.tech/pbs?seat=abc");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnBadInputWhenRegionIsNotAValidHostLabel() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.ext(givenImpExt("abc", "evil.com/x?")));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUsePartnerPrefixedHostWhenPartnerProvided() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.ext(givenImpExt("abc", "us-e", "acme")));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://acme-us-e.floxis.tech/pbs?seat=abc");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnBadInputWhenPartnerIsNotAValidHostLabel() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.ext(givenImpExt("abc", "us-e", "evil.com/x?")));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input));
     }
 
     @Test
@@ -171,7 +214,7 @@ public class FloxisBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://rtb-eu.floxis.tech/pbs?seat=seat-eu");
+                .containsExactly("https://eu.floxis.tech/pbs?seat=seat-eu");
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
@@ -197,7 +240,7 @@ public class FloxisBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly(BidderError.badInput(
-                        "all impressions must target the same Floxis seat and region; "
+                        "all impressions must target the same Floxis seat, region and partner; "
                                 + "imp imp-2 differs from imp imp-1"));
     }
 
@@ -219,7 +262,29 @@ public class FloxisBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly(BidderError.badInput(
-                        "all impressions must target the same Floxis seat and region; "
+                        "all impressions must target the same Floxis seat, region and partner; "
+                                + "imp imp-2 differs from imp imp-1"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorWhenImpsTargetDifferentPartner() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .id("req-1")
+                .imp(asList(
+                        givenImp(imp -> imp.id("imp-1").ext(givenImpExt("seat-eu", "eu", "acme"))),
+                        givenImp(imp -> imp.id("imp-2").ext(givenImpExt("seat-eu", "eu", "other")))))
+                .site(Site.builder().id("271").build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly(BidderError.badInput(
+                        "all impressions must target the same Floxis seat, region and partner; "
                                 + "imp imp-2 differs from imp imp-1"));
     }
 
@@ -448,7 +513,12 @@ public class FloxisBidderTest extends VertxTest {
     }
 
     private static com.fasterxml.jackson.databind.node.ObjectNode givenImpExt(String seat, String region) {
-        return mapper.valueToTree(ExtPrebid.of(null, ExtImpFloxis.of(seat, region)));
+        return givenImpExt(seat, region, null);
+    }
+
+    private static com.fasterxml.jackson.databind.node.ObjectNode givenImpExt(String seat, String region,
+                                                                             String partner) {
+        return mapper.valueToTree(ExtPrebid.of(null, ExtImpFloxis.of(seat, region, partner)));
     }
 
     private static BidResponse givenBidResponse(Bid bid) {

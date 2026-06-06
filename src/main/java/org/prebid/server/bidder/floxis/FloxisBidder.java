@@ -25,8 +25,8 @@ import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
+import java.util.regex.Pattern;
 
 public class FloxisBidder implements Bidder<BidRequest> {
 
@@ -37,15 +37,12 @@ public class FloxisBidder implements Bidder<BidRequest> {
     private static final String HOST_MACRO = "{{Host}}";
     private static final String SEAT_MACRO = "{{SeatId}}";
 
-    // Fixed allowlist mapping the bidder's region param to a Floxis RTB host. Routing is
-    // never derived from request-supplied hostnames; an unknown or empty region falls back
-    // to us-e.
-    private static final Map<String, String> REGION_HOSTS = Map.of(
-            "us-e", "rtb-us-e.floxis.tech",
-            "eu", "rtb-eu.floxis.tech",
-            "apac", "rtb-apac.floxis.tech");
-
     private static final String DEFAULT_REGION = "us-e";
+    private static final String DEFAULT_PARTNER = "floxis";
+
+    // region/partner are interpolated into the request host, so each must be a valid DNS label —
+    // otherwise a value carrying URL delimiters could rewrite the request origin.
+    private static final Pattern HOST_LABEL = Pattern.compile("^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$");
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -61,9 +58,9 @@ public class FloxisBidder implements Bidder<BidRequest> {
             return Result.withError(BidderError.badInput("no impressions in the bid request"));
         }
 
-        final ExtImpFloxis extImp;
+        final String uri;
         try {
-            extImp = resolveCommonImpExt(request.getImp());
+            uri = resolveUrl(endpointUrl, resolveCommonImpExt(request.getImp()));
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
@@ -71,7 +68,7 @@ public class FloxisBidder implements Bidder<BidRequest> {
         // The request body is forwarded unchanged; no caller-owned struct is mutated.
         return Result.withValue(HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
-                .uri(resolveUrl(endpointUrl, extImp))
+                .uri(uri)
                 .headers(HttpUtil.headers())
                 .impIds(BidderUtil.impIds(request))
                 .payload(request)
@@ -79,17 +76,19 @@ public class FloxisBidder implements Bidder<BidRequest> {
                 .build());
     }
 
-    // A single request routes to one Floxis host/seat (the seat is the URL query key). All imps
-    // must therefore share the same seat and region; a mismatch is a misconfigured request rather
-    // than something to silently route on imp[0]'s key.
+    // A single request routes to one Floxis host/seat (the seat is the URL query key, partner+region
+    // the host). All imps must therefore share the same seat, region and partner; a mismatch is a
+    // misconfigured request rather than something to silently route on imp[0]'s key.
     private ExtImpFloxis resolveCommonImpExt(List<Imp> imps) {
         final ExtImpFloxis first = parseImpExt(imps.getFirst());
         for (Imp imp : imps.subList(1, imps.size())) {
             final ExtImpFloxis current = parseImpExt(imp);
             if (!Objects.equals(current.getSeat(), first.getSeat())
-                    || !Objects.equals(current.getRegion(), first.getRegion())) {
+                    || !Objects.equals(current.getRegion(), first.getRegion())
+                    || !Objects.equals(current.getPartner(), first.getPartner())) {
                 throw new PreBidException(
-                        "all impressions must target the same Floxis seat and region; imp %s differs from imp %s"
+                        "all impressions must target the same Floxis seat, region and partner; "
+                                + "imp %s differs from imp %s"
                                 .formatted(imp.getId(), imps.getFirst().getId()));
             }
         }
@@ -104,14 +103,27 @@ public class FloxisBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static String resolveHost(String region) {
-        final String host = region == null ? null : REGION_HOSTS.get(region);
-        return host != null ? host : REGION_HOSTS.get(DEFAULT_REGION);
+    // Bidding host: the supply partner's regional subdomain (floxis itself has no partner prefix).
+    private static String resolveBidHost(String region, String partner) {
+        final String resolvedRegion = isBlank(region) ? DEFAULT_REGION : region;
+        final String resolvedPartner = isBlank(partner) ? DEFAULT_PARTNER : partner;
+        if (!HOST_LABEL.matcher(resolvedRegion).matches() || !HOST_LABEL.matcher(resolvedPartner).matches()) {
+            throw new PreBidException(
+                    "invalid Floxis region or partner; both must be DNS labels: region=%s partner=%s"
+                            .formatted(resolvedRegion, resolvedPartner));
+        }
+        return resolvedPartner.equals(DEFAULT_PARTNER)
+                ? resolvedRegion + ".floxis.tech"
+                : resolvedPartner + "-" + resolvedRegion + ".floxis.tech";
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.isEmpty();
     }
 
     private static String resolveUrl(String endpoint, ExtImpFloxis extImp) {
         return endpoint
-                .replace(HOST_MACRO, resolveHost(extImp.getRegion()))
+                .replace(HOST_MACRO, resolveBidHost(extImp.getRegion(), extImp.getPartner()))
                 .replace(SEAT_MACRO, HttpUtil.encodeUrl(extImp.getSeat()));
     }
 

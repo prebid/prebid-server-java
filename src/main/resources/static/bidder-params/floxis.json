@@ -12,8 +12,13 @@
     },
     "region": {
       "type": "string",
-      "enum": ["us-e", "eu", "apac"],
-      "description": "The Floxis RTB region; defaults to us-e when omitted"
+      "pattern": "^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$",
+      "description": "The Floxis region (DNS label, interpolated into the bidding host); defaults to us-e when omitted"
+    },
+    "partner": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$",
+      "description": "The white-label partner (DNS label, interpolated into the bidding host); defaults to floxis when omitted"
     }
   },
   "required": ["seat"]

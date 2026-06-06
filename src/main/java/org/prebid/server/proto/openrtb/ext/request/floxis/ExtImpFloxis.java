@@ -10,4 +10,7 @@ public class ExtImpFloxis {
 
     @JsonProperty("region")
     String region;
+
+    @JsonProperty("partner")
+    String partner;
 }
