@@ -14,6 +14,19 @@
       }
     }
   ],
+  "source": {
+    "schain": {
+      "complete": 1,
+      "ver": "1.0",
+      "nodes": [
+        {
+          "asi": "floxis.tech",
+          "sid": "pub-seat-1",
+          "hp": 1
+        }
+      ]
+    }
+  },
   "regs": {
     "ext": {
       "gdpr": 0

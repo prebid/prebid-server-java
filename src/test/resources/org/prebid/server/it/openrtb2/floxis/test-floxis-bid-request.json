@@ -17,7 +17,18 @@
     }
   ],
   "source": {
-    "tid": "${json-unit.any-string}"
+    "tid": "${json-unit.any-string}",
+    "schain": {
+      "complete": 1,
+      "ver": "1.0",
+      "nodes": [
+        {
+          "asi": "floxis.tech",
+          "sid": "pub-seat-1",
+          "hp": 1
+        }
+      ]
+    }
   },
   "site": {
     "domain": "www.example.com",
@@ -39,9 +50,7 @@
     "USD"
   ],
   "regs": {
-    "ext": {
-      "gdpr": 0
-    }
+    "gdpr": 0
   },
   "ext": {
     "prebid": {

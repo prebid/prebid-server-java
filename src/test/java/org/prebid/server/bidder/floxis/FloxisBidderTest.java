@@ -154,13 +154,13 @@ public class FloxisBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldRouteFromFirstImpAndForwardAllImps() {
+    public void makeHttpRequestsShouldRouteOnceAndForwardAllImpsWhenSeatAndRegionMatch() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .id("req-1")
                 .imp(asList(
                         givenImp(imp -> imp.id("imp-1").ext(givenImpExt("seat-eu", "eu"))),
-                        givenImp(imp -> imp.id("imp-2").ext(givenImpExt("seat-other", "apac")))))
+                        givenImp(imp -> imp.id("imp-2").ext(givenImpExt("seat-eu", "eu")))))
                 .site(Site.builder().id("271").build())
                 .build();
 
@@ -177,6 +177,50 @@ public class FloxisBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getId)
                 .containsExactly("imp-1", "imp-2");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorWhenImpsTargetDifferentSeat() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .id("req-1")
+                .imp(asList(
+                        givenImp(imp -> imp.id("imp-1").ext(givenImpExt("seat-eu", "eu"))),
+                        givenImp(imp -> imp.id("imp-2").ext(givenImpExt("seat-other", "eu")))))
+                .site(Site.builder().id("271").build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly(BidderError.badInput(
+                        "all impressions must target the same Floxis seat and region; "
+                                + "imp imp-2 differs from imp imp-1"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorWhenImpsTargetDifferentRegion() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .id("req-1")
+                .imp(asList(
+                        givenImp(imp -> imp.id("imp-1").ext(givenImpExt("seat-eu", "eu"))),
+                        givenImp(imp -> imp.id("imp-2").ext(givenImpExt("seat-eu", "apac")))))
+                .site(Site.builder().id("271").build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly(BidderError.badInput(
+                        "all impressions must target the same Floxis seat and region; "
+                                + "imp imp-2 differs from imp imp-1"));
     }
 
     @Test

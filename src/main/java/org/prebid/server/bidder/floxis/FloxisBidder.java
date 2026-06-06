@@ -63,7 +63,7 @@ public class FloxisBidder implements Bidder<BidRequest> {
 
         final ExtImpFloxis extImp;
         try {
-            extImp = parseImpExt(request.getImp().getFirst());
+            extImp = resolveCommonImpExt(request.getImp());
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
@@ -77,6 +77,23 @@ public class FloxisBidder implements Bidder<BidRequest> {
                 .payload(request)
                 .body(mapper.encodeToBytes(request))
                 .build());
+    }
+
+    // A single request routes to one Floxis host/seat (the seat is the URL query key). All imps
+    // must therefore share the same seat and region; a mismatch is a misconfigured request rather
+    // than something to silently route on imp[0]'s key.
+    private ExtImpFloxis resolveCommonImpExt(List<Imp> imps) {
+        final ExtImpFloxis first = parseImpExt(imps.getFirst());
+        for (Imp imp : imps.subList(1, imps.size())) {
+            final ExtImpFloxis current = parseImpExt(imp);
+            if (!Objects.equals(current.getSeat(), first.getSeat())
+                    || !Objects.equals(current.getRegion(), first.getRegion())) {
+                throw new PreBidException(
+                        "all impressions must target the same Floxis seat and region; imp %s differs from imp %s"
+                                .formatted(imp.getId(), imps.getFirst().getId()));
+            }
+        }
+        return first;
     }
 
     private ExtImpFloxis parseImpExt(Imp imp) {

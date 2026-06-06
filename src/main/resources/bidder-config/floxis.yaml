@@ -1,6 +1,7 @@
 adapters:
   floxis:
     endpoint: https://{{Host}}/pbs?seat={{SeatId}}
+    ortb-version: "2.6"
     modifying-vast-xml-allowed: false
     meta-info:
       maintainer-email: prebid@floxis.tech
