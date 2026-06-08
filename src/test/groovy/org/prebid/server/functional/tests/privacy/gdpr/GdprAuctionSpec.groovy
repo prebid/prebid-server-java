@@ -14,8 +14,10 @@ import org.prebid.server.functional.model.request.auction.DistributionChannel
 import org.prebid.server.functional.model.request.auction.Regs
 import org.prebid.server.functional.model.request.auction.RegsExt
 import org.prebid.server.functional.model.response.auction.ErrorType
-import org.prebid.server.functional.tests.privacy.PrivacyBaseSpec
 import org.prebid.server.functional.model.response.auction.NoBidResponse
+import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.testcontainers.scaffolding.VendorList
+import org.prebid.server.functional.tests.privacy.PrivacyBaseSpec
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.BogusConsent
 import org.prebid.server.functional.util.privacy.TcfConsent
@@ -51,6 +53,7 @@ import static org.prebid.server.functional.model.request.auction.PublicCountryIp
 import static org.prebid.server.functional.model.request.auction.TraceLevel.BASIC
 import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.REQUEST_BLOCKED_PRIVACY
+import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.DEVICE_ACCESS
@@ -61,6 +64,21 @@ import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVers
 import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V5
 
 class GdprAuctionSpec extends PrivacyBaseSpec {
+
+    private static final String LIVE_GVL_FILE_NAME = "live-gvl-vendor-list.json"
+    private static final VENDOR_LIST_VERSION = PBSUtils.getRandomNumber(2, 4094)
+    private static final Map<String, String> REFRESH_LIVE_VENDOR_LIST_CONFIG = GENERAL_PRIVACY_CONFIG +
+            ["gdpr.vendorlist.live-gvl-url": "$networkServiceContainer.rootUri/v3/$LIVE_GVL_FILE_NAME".toString()]
+    private static final VendorList liveVendorListResponse = new VendorList(networkServiceContainer, LIVE_GVL_FILE_NAME)
+
+    def setup() {
+        vendorListResponse.setResponse()
+        liveVendorListResponse.reset()
+    }
+
+    def cleanup() {
+        vendorListResponse.reset()
+    }
 
     @PendingFeature
     def "PBS should add debug log for auction request when valid gdpr was passed"() {
@@ -1124,68 +1142,26 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         assert metrics["account.${account.uuid}.adapter.${GENERIC.value}.requests.buyeruid_scrubbed"] == 1
     }
 
-    def "PBS should treated GVL record as invalid when it's marked as deleted for GVL file"() {
-        given: "Valid tcf full enforcement requirments"
-        def vendorListVersion = PBSUtils.getRandomNumber(1, 4095)
-        def requirement = new EnforcementRequirement(purpose: P2,
-                restrictionType: [REQUIRE_CONSENT, UNDEFINED],
-                vendorIdGvl: GENERIC_VENDOR_ID,
-                enforcePurpose: FULL,
-                vendorConsentBitField: GENERIC_VENDOR_ID,
-                enforceVendor: true,
-                vendorListVersion: vendorListVersion)
-
-        and: "Tcf consent setup"
-        def tcfConsent = TcfUtils.getConsentString(requirement)
-
-        and: "Bid request with tcf consent string"
-        def bidRequest = getGdprBidRequest(tcfConsent)
-
-        and: "Account with tcf config"
-        def accountGdprConfig = new AccountGdprConfig(purposes: TcfUtils.getPurposeConfigsForPersonalizedAds(requirement))
-        def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig)
-        accountDao.save(account)
-
-        and: "Set vendor list response with passed delete date for bidder"
-        def vendorList = VendorListResponse.Vendor.getDefaultVendor(GENERIC_VENDOR_ID).tap {
-            deletedDate = ZonedDateTime.now().minusSeconds(1)
-        }
-        downloadAndWarmupGvtList(vendorListVersion, [(GENERIC_VENDOR_ID): vendorList])
-
-        and: "Flush metric"
-        flushMetrics(privacyPbsService)
-
-        when: "PBS processes auction request"
-        def response = privacyPbsService.sendAuctionRequest(bidRequest)
-
-        then: "Response shouldn't contain any seatBids, errors and warnings"
-        assert verifyAll(response) {
-            !it.seatbid.size()
-            !it.ext.warnings
-            !it.ext.errors
-        }
-
-        and: "Response should include nbr"
-        assert response.noBidResponse == NoBidResponse.UNKNOWN_ERROR
-
-        and: "PBS should cansel request"
-        assert !bidder.getBidderRequests(bidRequest.id)
-
-        and: "Disallowed metrics should be updated"
-        def metrics = privacyPbsService.sendCollectedMetricsRequest()
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
-    }
-
     def "PBS should treated GVL record as valid when it's don't marked as deleted for GVL file"() {
-        given: "Valid tcf full enforcement requirments"
-        def vendorListVersion = PBSUtils.getRandomNumber(1, 4095)
+        given: "Vendor list response with not passed delete date for bidder"
+        def vendorList = VendorListResponse.Vendor.getDefaultVendor(GENERIC_VENDOR_ID).tap {
+            deletedDate = gvlDeletedDate
+        }
+        downloadGvtList(VENDOR_LIST_VERSION, [(GENERIC_VENDOR_ID): vendorList])
+
+        and: "PBS with proper warmed GVL config"
+        def pbsWithLiveGvlSetup = pbsServiceFactory.getService(REFRESH_LIVE_VENDOR_LIST_CONFIG)
+        warmupGvtList(pbsWithLiveGvlSetup, VENDOR_LIST_VERSION)
+
+        and: "Valid tcf full enforcement requirments"
         def requirement = new EnforcementRequirement(purpose: P2,
                 restrictionType: [REQUIRE_CONSENT, UNDEFINED],
                 vendorIdGvl: GENERIC_VENDOR_ID,
                 enforcePurpose: FULL,
                 vendorConsentBitField: GENERIC_VENDOR_ID,
                 enforceVendor: true,
-                vendorListVersion: vendorListVersion)
+                disclosedVendorsId: [GENERIC_VENDOR_ID],
+                vendorListVersion: VENDOR_LIST_VERSION)
 
         and: "Tcf consent setup"
         def tcfConsent = TcfUtils.getConsentString(requirement)
@@ -1198,17 +1174,11 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig)
         accountDao.save(account)
 
-        and: "Set vendor list response with passed delete date for bidder"
-        def vendorList = VendorListResponse.Vendor.getDefaultVendor(GENERIC_VENDOR_ID).tap {
-            deletedDate = ZonedDateTime.now().minusSeconds(1)
-        }
-        downloadAndWarmupGvtList(vendorListVersion, [(GENERIC_VENDOR_ID): vendorList])
-
         and: "Flush metric"
-        flushMetrics(privacyPbsService)
+        flushMetrics(pbsWithLiveGvlSetup)
 
         when: "PBS processes auction request"
-        def response = privacyPbsService.sendAuctionRequest(bidRequest)
+        def response = pbsWithLiveGvlSetup.sendAuctionRequest(bidRequest)
 
         then: "Response should contain seatBid"
         assert response.seatbid.bid.flatten().size() == 1
@@ -1224,23 +1194,26 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         assert bidder.getBidderRequests(bidRequest.id)
 
         and: "Disallowed metrics shouldn't be updated"
-        def metrics = privacyPbsService.sendCollectedMetricsRequest()
+        def metrics = pbsWithLiveGvlSetup.sendCollectedMetricsRequest()
         assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 0
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(REFRESH_LIVE_VENDOR_LIST_CONFIG)
 
         where:
         gvlDeletedDate << [null, ZonedDateTime.now().plusYears(1)]
     }
 
-    def "PBS should treated GVL record as invalid when it's marked as deleted for newer GVL file"() {
-        given: "Default PBS service with privacy"
-        def privacyPbsService = pbsServiceFactory.getService(GENERAL_PRIVACY_CONFIG)
-
-        and: "Set latest vendor list response with passed delete date for bidder"
-        def vendorListVersion = PBSUtils.getRandomNumber(2, 4095)
-        def latestListWithExpiredVendor = VendorListResponse.Vendor.getDefaultVendor(GENERIC_VENDOR_ID).tap {
+    def "PBS should treated GVL record as invalid when it's marked as deleted for GVL file"() {
+        given: "Vendor list response with passed delete date for bidder"
+        def vendorList = VendorListResponse.Vendor.getDefaultVendor(GENERIC_VENDOR_ID).tap {
             deletedDate = ZonedDateTime.now().minusSeconds(1)
         }
-        downloadAndWarmupGvtList(vendorListVersion, [(GENERIC_VENDOR_ID): latestListWithExpiredVendor])
+        downloadGvtList(VENDOR_LIST_VERSION, [(GENERIC_VENDOR_ID): vendorList])
+
+        and: "PBS with proper warmed GVL config"
+        def pbsWithLiveGvlSetup = pbsServiceFactory.getService(REFRESH_LIVE_VENDOR_LIST_CONFIG)
+        warmupGvtList(pbsWithLiveGvlSetup, VENDOR_LIST_VERSION)
 
         and: "Valid tcf full enforcement requirments"
         def requirement = new EnforcementRequirement(purpose: P2,
@@ -1249,7 +1222,8 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
                 enforcePurpose: FULL,
                 vendorConsentBitField: GENERIC_VENDOR_ID,
                 enforceVendor: true,
-                vendorListVersion: vendorListVersion - 1)
+                disclosedVendorsId: [GENERIC_VENDOR_ID],
+                vendorListVersion: VENDOR_LIST_VERSION)
 
         and: "Tcf consent setup"
         def tcfConsent = TcfUtils.getConsentString(requirement)
@@ -1262,15 +1236,11 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig)
         accountDao.save(account)
 
-        and: "Set older vendor list response with unexpired bidder"
-        def vendorList = VendorListResponse.Vendor.getDefaultVendor(GENERIC_VENDOR_ID)
-        downloadAndWarmupGvtList(vendorListVersion - 1, [(GENERIC_VENDOR_ID): vendorList])
-
         and: "Flush metric"
-        flushMetrics(privacyPbsService)
+        flushMetrics(pbsWithLiveGvlSetup)
 
         when: "PBS processes auction request"
-        def response = privacyPbsService.sendAuctionRequest(bidRequest)
+        def response = pbsWithLiveGvlSetup.sendAuctionRequest(bidRequest)
 
         then: "Response shouldn't contain any seatBids, errors and warnings"
         assert verifyAll(response) {
@@ -1286,10 +1256,156 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         assert !bidder.getBidderRequests(bidRequest.id)
 
         and: "Disallowed metrics should be updated"
-        def metrics = privacyPbsService.sendCollectedMetricsRequest()
+        def metrics = pbsWithLiveGvlSetup.sendCollectedMetricsRequest()
         assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
 
         cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(GENERAL_PRIVACY_CONFIG)
+        pbsServiceFactory.removeContainer(REFRESH_LIVE_VENDOR_LIST_CONFIG)
+    }
+
+    def "PBS should treated GVL record as invalid when it's marked as deleted for newer GVL file"() {
+        given: "Newer Vendor list response with passed delete date for bidder"
+        def vendorList = VendorListResponse.Vendor.getDefaultVendor(GENERIC_VENDOR_ID).tap {
+            deletedDate = ZonedDateTime.now().minusSeconds(1)
+        }
+        downloadGvtList(VENDOR_LIST_VERSION, [(GENERIC_VENDOR_ID): vendorList])
+
+        and: "PBS with proper warmed older GVL config"
+        def pbsWithLiveGvlSetup = pbsServiceFactory.getService(REFRESH_LIVE_VENDOR_LIST_CONFIG)
+        warmupGvtList(pbsWithLiveGvlSetup, VENDOR_LIST_VERSION - 1)
+
+        and: "Valid tcf full enforcement requirments for older gvl list"
+        def requirement = new EnforcementRequirement(purpose: P2,
+                restrictionType: [REQUIRE_CONSENT, UNDEFINED],
+                vendorIdGvl: GENERIC_VENDOR_ID,
+                enforcePurpose: FULL,
+                vendorConsentBitField: GENERIC_VENDOR_ID,
+                enforceVendor: true,
+                disclosedVendorsId: [GENERIC_VENDOR_ID],
+                vendorListVersion: VENDOR_LIST_VERSION - 1)
+
+        and: "Tcf consent setup"
+        def tcfConsent = TcfUtils.getConsentString(requirement)
+
+        and: "Bid request with tcf consent string"
+        def bidRequest = getGdprBidRequest(tcfConsent)
+
+        and: "Account with tcf config"
+        def accountGdprConfig = new AccountGdprConfig(purposes: TcfUtils.getPurposeConfigsForPersonalizedAds(requirement))
+        def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig)
+        accountDao.save(account)
+
+        and: "Flush metric"
+        flushMetrics(pbsWithLiveGvlSetup)
+
+        when: "PBS processes auction request"
+        def response = pbsWithLiveGvlSetup.sendAuctionRequest(bidRequest)
+
+        then: "Response shouldn't contain any seatBids, errors and warnings"
+        assert verifyAll(response) {
+            !it.seatbid.size()
+            !it.ext.warnings
+            !it.ext.errors
+        }
+
+        and: "Response should include nbr"
+        assert response.noBidResponse == NoBidResponse.UNKNOWN_ERROR
+
+        and: "PBS should cansel request"
+        assert !bidder.getBidderRequests(bidRequest.id)
+
+        and: "Disallowed metrics should be updated"
+        def metrics = pbsWithLiveGvlSetup.sendCollectedMetricsRequest()
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(REFRESH_LIVE_VENDOR_LIST_CONFIG)
+    }
+
+    def "PBS should treated GVL record as invalid when it's marked as deleted for older GVL file"() {
+        given: "Old vendor list response with passed delete date for bidder"
+        def olderVendorList = VendorListResponse.Vendor.getDefaultVendor(GENERIC_VENDOR_ID).tap {
+            deletedDate = ZonedDateTime.now().minusSeconds(1)
+        }
+        downloadGvtList(VENDOR_LIST_VERSION - 1, [(GENERIC_VENDOR_ID): olderVendorList])
+
+        and: "PBS with a high-frequency live GVL refresh config"
+        def config = REFRESH_LIVE_VENDOR_LIST_CONFIG + ['gdpr.vendorlist.live-gvl-refresh-period-ms': '1000']
+        def pbsWithLiveGvlSetup = pbsServiceFactory.getService(config)
+
+        and: "Newer vendor list where the bidder is not deleted yet"
+        def newerVendorList = VendorListResponse.Vendor.getDefaultVendor(GENERIC_VENDOR_ID).tap {
+            deletedDate = ZonedDateTime.now().plusYears(1)
+        }
+        downloadGvtList(VENDOR_LIST_VERSION, [(GENERIC_VENDOR_ID): newerVendorList])
+
+        and: "GVL list is warmed up for PBS"
+        warmupGvtList(pbsWithLiveGvlSetup, VENDOR_LIST_VERSION)
+
+        and: "Valid tcf full enforcement requirments for older GVL list"
+        def requirement = new EnforcementRequirement(purpose: P2,
+                restrictionType: [REQUIRE_CONSENT, UNDEFINED],
+                vendorIdGvl: GENERIC_VENDOR_ID,
+                enforcePurpose: FULL,
+                vendorConsentBitField: GENERIC_VENDOR_ID,
+                enforceVendor: true,
+                disclosedVendorsId: [GENERIC_VENDOR_ID],
+                vendorListVersion: VENDOR_LIST_VERSION)
+
+        and: "Tcf consent setup"
+        def tcfConsent = TcfUtils.getConsentString(requirement)
+
+        and: "Bid request with tcf consent string"
+        def bidRequest = getGdprBidRequest(tcfConsent)
+
+        and: "Account with tcf config"
+        def accountGdprConfig = new AccountGdprConfig(purposes: TcfUtils.getPurposeConfigsForPersonalizedAds(requirement))
+        def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig)
+        accountDao.save(account)
+
+        and: "Flush metric"
+        flushMetrics(pbsWithLiveGvlSetup)
+
+        when: "PBS processes auction request"
+        def response = pbsWithLiveGvlSetup.sendAuctionRequest(bidRequest)
+
+        then: "Response shouldn't contain any seatBids, errors and warnings"
+        assert verifyAll(response) {
+            !it.seatbid.size()
+            !it.ext.warnings
+            !it.ext.errors
+        }
+
+        and: "Response should include nbr"
+        assert response.noBidResponse == NoBidResponse.UNKNOWN_ERROR
+
+        and: "PBS should cansel request"
+        assert !bidder.getBidderRequests(bidRequest.id)
+
+        and: "Disallowed metrics should be updated"
+        def metrics = pbsWithLiveGvlSetup.sendCollectedMetricsRequest()
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+
+        cleanup: "Stop and remove pbs container"
+        pbsServiceFactory.removeContainer(config)
+    }
+
+    private static void downloadGvtList(
+            Integer vendorListVersion = VENDOR_LIST_VERSION,
+            Map<Integer, VendorListResponse.Vendor> vendors = [(GENERIC_VENDOR_ID): VendorListResponse.Vendor.getDefaultVendor(GENERIC_VENDOR_ID)],
+            TcfConsent.TcfPolicyVersion tcfPolicyVersion = TCF_POLICY_V5) {
+
+        liveVendorListResponse.reset()
+        liveVendorListResponse.setResponse(tcfPolicyVersion, null, vendors, vendorListVersion)
+    }
+
+    private static void warmupGvtList(PrebidServerService pbsService, Integer vendorListVersion = VENDOR_LIST_VERSION) {
+        def simpleTcfString = new TcfConsent.Builder()
+                .setDisclosedVendors([GENERIC_VENDOR_ID])
+                .setVendorListVersion(vendorListVersion)
+                .build()
+        def bidRequest = getGdprBidRequest(simpleTcfString)
+        pbsService.sendAuctionRequest(bidRequest)
+
     }
 }
