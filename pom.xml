@@ -402,6 +402,7 @@
                     <version>${maven-failsafe-plugin.version}</version>
                     <configuration>
                         <systemPropertyVariables>
+                            <jakarta.persistence.validation.mode>none</jakarta.persistence.validation.mode>
                             <launchContainers>true</launchContainers>
                         </systemPropertyVariables>
                     </configuration>
