@@ -9,6 +9,8 @@ adapters:
     aliases:
       tealplus:
         enabled: false
+        meta-info:
+          vendor-id: 1378
     ortb:
       multiformat-supported: true
     meta-info:

@@ -3,9 +3,15 @@ adapters:
     endpoint: http://fast.nexx360.io/prebid-server
     endpoint-compression: gzip
     aliases:
-      1accord: ~
-      easybid: ~
-      prismassp: ~
+      1accord:
+        meta-info:
+          vendor-id: 965
+      easybid:
+        meta-info:
+          vendor-id: 965
+      prismassp:
+        meta-info:
+          vendor-id: 965
       ybidder:
         enabled: false
         meta-info:

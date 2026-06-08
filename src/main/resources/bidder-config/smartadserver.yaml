@@ -6,6 +6,8 @@ adapters:
     aliases:
       equativ:
         enabled: false
+        meta-info:
+          vendor-id: 45
     meta-info:
       maintainer-email: supply-partner-integration@equativ.com
       app-media-types:

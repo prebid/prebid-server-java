@@ -2,7 +2,9 @@ adapters:
   thetradedesk:
     endpoint: https://direct.adsrvr.org/bid/bidder/{{SupplyId}}
     aliases:
-      ttd: ~
+      ttd:
+        meta-info:
+          vendor-id: 21
     meta-info:
       maintainer-email: Prebid-Maintainers@thetradedesk.com
       app-media-types:

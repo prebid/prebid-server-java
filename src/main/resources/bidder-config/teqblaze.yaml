@@ -7,6 +7,7 @@ adapters:
         endpoint: https://ssp.360playvid.com/pserver
         meta-info:
           maintainer-email: prebid@360playvid.com
+          vendor-id: 0
         usersync:
           enabled: true
           cookie-family-name: 360playvid
@@ -23,11 +24,13 @@ adapters:
         endpoint: https://us-east-ep.pinklion.io/pserver
         meta-info:
           maintainer-email: prebid@pinklion.io
+          vendor-id: 0
       rocketlab:
         enabled: false
         endpoint: https://traffic1.rocketlab.ai/pserver
         meta-info:
           maintainer-email: support@rocketlab.ai
+          vendor-id: 0
         usersync:
           enabled: true
           cookie-family-name: rocketlab
@@ -42,6 +45,7 @@ adapters:
         endpoint: https://#{REGION}#.al-ad.com/pserver
         meta-info:
           maintainer-email: sdksupport@app-stock.com
+          vendor-id: 0
         usersync:
           enabled: true
           cookie-family-name: appStockSSP
@@ -56,7 +60,7 @@ adapters:
       gravite:
         enabled: false
         endpoint: https://node1-rtb.gravite.net/pserver
-        mata-info:
+        meta-info:
           maintainer-email: support@gravite.net
           vendor-id: 377
       bidfuse:
@@ -64,6 +68,7 @@ adapters:
         endpoint: https://bn.bidfuse.com/pserver
         meta-info:
           maintainer-email: support@bidfuse.com
+          vendor-id: 0
         usersync:
           enabled: true
           cookie-family-name: bidfuse
@@ -120,6 +125,7 @@ adapters:
         endpoint: https://east-backend.mycodemedia.com/pserver
         meta-info:
           maintainer-email: support-platform@mycodemedia.com
+          vendor-id: 0
         usersync:
           enabled: true
           cookie-family-name: mycodemedia
@@ -136,6 +142,7 @@ adapters:
         endpoint: https://tag-ssp.adsmovil.com/pserver
         meta-info:
           maintainer-email: prebid@adsmovil.com
+          vendor-id: 0
     meta-info:
       maintainer-email: github@teqblaze.com
       app-media-types:

@@ -5,30 +5,48 @@ adapters:
       markapp:
         enabled: false
         endpoint: https://markapp-prebid.attekmi.com/pbserver/?seat={{AccountID}}&token={{SourceId}}
+        meta-info:
+          vendor-id: 0
       jdpmedia:
         enabled: false
         endpoint: https://jdpmedia-prebid.attekmi.com/pbserver/?seat={{AccountID}}&token={{SourceId}}
+        meta-info:
+          vendor-id: 0
       tredio:
         enabled: false
         endpoint: https://tredio-prebid.attekmi.com/pbserver/?seat={{AccountID}}&token={{SourceId}}
+        meta-info:
+          vendor-id: 0
       felixads:
         enabled: false
         endpoint: https://felixads-prebid.attekmi.com/pbserver/?seat={{AccountID}}&token={{SourceId}}
+        meta-info:
+          vendor-id: 0
       jambojar:
         enabled: false
         endpoint: https://jambojar-prebid.attekmi.com/pbserver/?seat={{AccountID}}&token={{SourceId}}
+        meta-info:
+          vendor-id: 0
       adinify:
         enabled: false
         endpoint: https://adinify-prebid.attekmi.com/pbserver/?seat={{AccountID}}&token={{SourceId}}
+        meta-info:
+          vendor-id: 0
       artechnology:
         enabled: false
         endpoint: https://artechnology-prebid.attekmi.com/pbserver/?seat={{AccountID}}&token={{SourceId}}
+        meta-info:
+          vendor-id: 0
       addigi:
         enabled: false
         endpoint: https://addigi-prebid.attekmi.com/pbserver/?seat={{AccountID}}&token={{SourceId}}
+        meta-info:
+          vendor-id: 0
       radianfusion:
         enabled: false
         endpoint: https://radiantfusion-prebid.attekmi.co/pbserver/?seat={{AccountID}}&token={{SourceId}}
+        meta-info:
+          vendor-id: 0
     meta-info:
       maintainer-email: prebid@attekmi.com
       app-media-types:

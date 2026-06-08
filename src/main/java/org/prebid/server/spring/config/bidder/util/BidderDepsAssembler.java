@@ -22,6 +22,7 @@ import org.prebid.server.spring.config.bidder.model.MetaInfo;
 import org.prebid.server.spring.config.bidder.model.usersync.CookieFamilySource;
 import org.prebid.server.spring.config.bidder.model.usersync.UsersyncConfigurationProperties;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
+import org.prebid.server.util.ObjectUtil;
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.context.properties.source.MapConfigurationPropertySource;
 import org.springframework.core.io.InputStreamResource;
@@ -228,11 +229,17 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private CFG mergeConfigurations(CFG aliasConfiguration, CFG coreConfiguration) {
         try {
+            final Integer aliasVendorId = ObjectUtil.getIfNotNull(
+                    aliasConfiguration.getMetaInfo(), MetaInfo::getVendorId);
             final JsonNode mergedNode = JsonMergePatch
                     .fromJson(MAPPER.valueToTree(aliasConfiguration))
                     .apply(MAPPER.valueToTree(coreConfiguration));
 
-            return (CFG) MAPPER.treeToValue(mergedNode, (Class) coreConfiguration.getSelfClass());
+            final CFG mergedConfiguration = (CFG) MAPPER.treeToValue(
+                    mergedNode, (Class) coreConfiguration.getSelfClass());
+            mergedConfiguration.getMetaInfo().setVendorId(aliasVendorId);
+
+            return mergedConfiguration;
         } catch (JsonPatchException | JsonProcessingException e) {
             throw new IllegalArgumentException("Exception occurred while merging alias configuration", e);
         }

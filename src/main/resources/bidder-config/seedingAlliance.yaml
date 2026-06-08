@@ -17,6 +17,8 @@ adapters:
       finative:
         enabled: false
         endpoint: https://b.finative.cloud/cds/rtb/bid?ssp={{AccountId}}
+        meta-info:
+          vendor-id: 371
     meta-info:
       maintainer-email: tech@seeding-alliance.de
       app-media-types:
