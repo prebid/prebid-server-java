@@ -3,6 +3,7 @@ package org.prebid.server.bidder.rtbhouse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Deal;
@@ -189,10 +190,10 @@ public class RtbhouseBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldCreateSiteAndPublisherWhenBidRequestHasNoSite() {
+    public void makeHttpRequestsShouldNotCreateSiteWhenBidRequestHasAppOnly() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                bidReq -> bidReq.site(null),
+                bidReq -> bidReq.site(null).app(App.builder().id("app_id").build()),
                 identity(),
                 identity());
 
@@ -204,12 +205,31 @@ public class RtbhouseBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getSite)
-                .allSatisfy(site -> {
-                    assertThat(site).isNotNull();
-                    assertThat(site.getPublisher()).isNotNull();
-                    assertThat(site.getPublisher().getExt()).isNotNull();
+                .containsOnlyNulls();
+    }
 
-                    final JsonNode prebidNode = site.getPublisher().getExt().getProperty("prebid");
+    @Test
+    public void makeHttpRequestsShouldAddPublisherToAppWhenBidRequestHasAppOnly() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                bidReq -> bidReq.site(null).app(App.builder().id("app_id").build()),
+                identity(),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getApp)
+                .allSatisfy(app -> {
+                    assertThat(app.getId()).isEqualTo("app_id");
+                    assertThat(app.getPublisher()).isNotNull();
+                    assertThat(app.getPublisher().getExt()).isNotNull();
+
+                    final JsonNode prebidNode = app.getPublisher().getExt().getProperty("prebid");
                     assertThat(prebidNode).isNotNull();
                     assertThat(prebidNode.get("publisherId").asText()).isEqualTo("publisherId");
                 });
