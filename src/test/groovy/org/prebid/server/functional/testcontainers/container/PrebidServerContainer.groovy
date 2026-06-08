@@ -14,8 +14,8 @@ class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
     public static final String ADMIN_ENDPOINT_USERNAME = "admin"
     public static final String ADMIN_ENDPOINT_PASSWORD = "admin"
     public static final String APP_WORKDIR = "/app/prebid-server/"
+    public static final int PROMETHEUS_PORT = 8070
 
-    private static final int PROMETHEUS_PORT = 8070
     private static final int DEFAULT_PORT = 8080
     private static final int DEFAULT_ADMIN_PORT = 8060
     private static final int DEFAULT_DEBUG_PORT = 8000
