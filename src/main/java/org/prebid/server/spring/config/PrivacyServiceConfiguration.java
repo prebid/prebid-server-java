@@ -171,10 +171,11 @@ public class PrivacyServiceConfiguration {
     @Bean
     VersionedVendorListService versionedVendorListService(VendorListService vendorListServiceV2,
                                                           VendorListService vendorListServiceV3,
-                                                          LiveVendorListService liveVendorListService) {
+                                                          LiveVendorListService liveVendorListService,
+                                                          Clock clock) {
 
         return new VersionedVendorListService(
-                vendorListServiceV2, vendorListServiceV3, liveVendorListService);
+                vendorListServiceV2, vendorListServiceV3, liveVendorListService, clock);
     }
 
     @Bean

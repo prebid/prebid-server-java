@@ -10,6 +10,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.Vendor;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -23,6 +26,8 @@ import static org.prebid.server.assertion.FutureAssertion.assertThat;
 @ExtendWith(MockitoExtension.class)
 public class VersionedVendorListServiceTest {
 
+    private static final Instant NOW = Instant.parse("2024-06-01T12:00:00Z");
+
     private VersionedVendorListService target;
 
     @Mock
@@ -35,7 +40,7 @@ public class VersionedVendorListServiceTest {
     @BeforeEach
     public void setUp() {
         target = new VersionedVendorListService(
-                vendorListServiceV2, vendorListServiceV3, liveVendorListService);
+                vendorListServiceV2, vendorListServiceV3, liveVendorListService, Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     @Test
@@ -72,6 +77,33 @@ public class VersionedVendorListServiceTest {
 
         // then
         verify(vendorListServiceV3).forVersion(12);
+    }
+
+    @Test
+    public void forConsentShouldRemoveVendorsMarkedDeletedInRequestedGvl() {
+        // given
+        final Vendor deletedVendor = Vendor.empty(1).toBuilder()
+                .deletedDate(Instant.parse("2024-01-01T00:00:00Z"))
+                .build();
+        final Vendor activeVendor = Vendor.empty(52);
+        final Map<Integer, Vendor> vendorList = Map.of(1, deletedVendor, 52, activeVendor);
+        final TCString consent = TCStringEncoder.newBuilder()
+                .version(2)
+                .tcfPolicyVersion(3)
+                .vendorListVersion(12)
+                .toTCString();
+
+        given(vendorListServiceV2.forVersion(anyInt())).willReturn(Future.succeededFuture(vendorList));
+        given(liveVendorListService.isDeleted(anyInt())).willReturn(false);
+
+        // when and then
+        assertThat(target.forConsent(consent))
+                .isSucceeded()
+                .unwrap()
+                .satisfies(result -> {
+                    assertThat(result).containsOnlyKeys(52);
+                    assertThat(result.get(52)).isSameAs(activeVendor);
+                });
     }
 
     @Test

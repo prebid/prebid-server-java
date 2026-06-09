@@ -9,6 +9,7 @@ import org.prebid.server.privacy.gdpr.vendorlist.proto.Vendor;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorList;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.Collection;
 
 public class VendorListUtil {
@@ -46,5 +47,10 @@ public class VendorListUtil {
                         && vendor.getSpecialPurposes() != null
                         && vendor.getFeatures() != null
                         && vendor.getSpecialFeatures() != null);
+    }
+
+    public static boolean vendorIsDeletedAt(Vendor vendor, Instant now) {
+        final Instant deletedDate = vendor.getDeletedDate();
+        return deletedDate != null && deletedDate.isBefore(now);
     }
 }

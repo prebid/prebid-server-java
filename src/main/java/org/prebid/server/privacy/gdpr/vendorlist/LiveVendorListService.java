@@ -93,15 +93,10 @@ public class LiveVendorListService implements Initializable {
     Set<Integer> extractDeletedVendorIds(VendorList vendorList) {
         final Instant now = clock.instant();
         return vendorList.getVendors().values().stream()
-                .filter(vendor -> isDeletedAt(vendor, now))
+                .filter(vendor -> VendorListUtil.vendorIsDeletedAt(vendor, now))
                 .map(Vendor::getId)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toUnmodifiableSet());
-    }
-
-    private static boolean isDeletedAt(Vendor vendor, Instant now) {
-        final Instant deletedDate = vendor.getDeletedDate();
-        return deletedDate != null && deletedDate.isBefore(now);
     }
 
     private Void updateDeletedVendorIds(Set<Integer> ids) {
