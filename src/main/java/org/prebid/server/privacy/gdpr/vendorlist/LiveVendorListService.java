@@ -2,7 +2,6 @@ package org.prebid.server.privacy.gdpr.vendorlist;
 
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.Logger;
@@ -15,7 +14,6 @@ import org.prebid.server.vertx.Initializable;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
-import java.io.IOException;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Objects;
@@ -83,11 +81,13 @@ public class LiveVendorListService implements Initializable {
         }
 
         final String body = response.getBody();
-        try {
-            return mapper.mapper().readValue(body, VendorList.class);
-        } catch (IOException e) {
-            throw new PreBidException("Cannot parse live vendor list: " + body, e);
+        final VendorList vendorList = VendorListUtil.parseVendorList(body, mapper);
+
+        if (!VendorListUtil.vendorListIsValid(vendorList)) {
+            throw new PreBidException("Fetched vendor list parsed but has invalid data: " + body);
         }
+
+        return vendorList;
     }
 
     Set<Integer> extractDeletedVendorIds(VendorList vendorList) {
@@ -105,10 +105,6 @@ public class LiveVendorListService implements Initializable {
     }
 
     private Void updateDeletedVendorIds(Set<Integer> ids) {
-        if (CollectionUtils.isEmpty(ids)) {
-            throw new PreBidException("Live GVL response has no deleted vendors");
-        }
-
         deletedVendorIds = ids;
         metrics.updatePrivacyTcfVendorListLatestOkMetric();
         return null;
