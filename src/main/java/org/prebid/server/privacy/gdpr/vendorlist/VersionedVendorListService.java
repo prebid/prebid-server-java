@@ -40,7 +40,7 @@ public class VersionedVendorListService {
     }
 
     private Map<Integer, Vendor> filterDeletedVendors(Map<Integer, Vendor> vendors) {
-        Instant now = clock.instant();
+        final Instant now = clock.instant();
         return vendors.entrySet().stream()
                 .filter(entry -> !VendorListUtil.vendorIsDeletedAt(entry.getValue(), now))
                 .filter(entry -> !liveVendorListService.isDeleted(entry.getKey()))

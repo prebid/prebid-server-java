@@ -20,8 +20,10 @@ import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorList;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Comparator;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class VendorListFileStore {
@@ -46,16 +48,16 @@ public class VendorListFileStore {
 
     Map<Integer, Map<Integer, Vendor>> createCacheFromDisk(String cacheDir) {
         createAndCheckWritePermissionsForCacheDir(cacheDir);
-        final Map<String, String> versionToFileContent = readFileSystemCache(cacheDir);
+        final Map<Integer, String> versionToFileContent = readFileSystemCache(cacheDir);
 
         final Map<Integer, Map<Integer, Vendor>> cache = Caffeine.newBuilder()
                 .<Integer, Map<Integer, Vendor>>build()
                 .asMap();
 
-        for (Map.Entry<String, String> versionAndFileContent : versionToFileContent.entrySet()) {
+        for (Map.Entry<Integer, String> versionAndFileContent : versionToFileContent.entrySet()) {
             final VendorList vendorList = VendorListUtil.parseVendorList(versionAndFileContent.getValue(), mapper);
 
-            cache.put(Integer.valueOf(versionAndFileContent.getKey()), vendorList.getVendors());
+            cache.put(versionAndFileContent.getKey(), vendorList.getVendors());
         }
         return cache;
     }
@@ -73,11 +75,27 @@ public class VendorListFileStore {
         }
     }
 
-    private Map<String, String> readFileSystemCache(String cacheDir) {
+    private Map<Integer, String> readFileSystemCache(String cacheDir) {
         return fileSystem.readDirBlocking(cacheDir).stream()
                 .filter(filepath -> filepath.endsWith(JSON_SUFFIX))
-                .collect(Collectors.toMap(filepath -> StringUtils.removeEnd(new File(filepath).getName(), JSON_SUFFIX),
+                .collect(Collectors.toMap(VendorListFileStore::parseCachedFileVersion,
                         filename -> fileSystem.readFileBlocking(filename).toString()));
+    }
+
+    Optional<VendorList> getLatestVendorListFromCache(String cacheDir) {
+        createAndCheckWritePermissionsForCacheDir(cacheDir);
+        return fileSystem.readDirBlocking(cacheDir).stream()
+                .filter(filepath -> filepath.endsWith(JSON_SUFFIX))
+                .max(Comparator.comparing(VendorListFileStore::parseCachedFileVersion))
+                .map(fileSystem::readFileBlocking)
+                .map(Buffer::toString)
+                .map(content -> VendorListUtil.parseVendorList(content, mapper));
+    }
+
+    private static Integer parseCachedFileVersion(String filepath) {
+        final String filename = new File(filepath).getName();
+        final String filenameWithoutExtension = StringUtils.removeEnd(filename, JSON_SUFFIX);
+        return Integer.valueOf(filenameWithoutExtension);
     }
 
     Future<VendorListResult> saveToFile(VendorListResult vendorListResult, String cacheDir, String generationVersion) {

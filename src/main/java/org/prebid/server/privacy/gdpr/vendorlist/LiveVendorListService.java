@@ -24,33 +24,39 @@ public class LiveVendorListService implements Initializable {
 
     private static final Logger logger = LoggerFactory.getLogger(LiveVendorListService.class);
 
+    private final String cacheDir;
     private final String liveGvlUrl;
     private final long refreshPeriodMs;
     private final int defaultTimeoutMs;
     private final Vertx vertx;
     private final HttpClient httpClient;
-    private final JacksonMapper mapper;
+    private final VendorListFileStore vendorListFileStore;
     private final Metrics metrics;
+    private final JacksonMapper mapper;
     private final Clock clock;
 
     private volatile Set<Integer> deletedVendorIds = Set.of();
 
-    public LiveVendorListService(String liveGvlUrl,
+    public LiveVendorListService(String cacheDir,
+                                 String liveGvlUrl,
                                  long refreshPeriodMs,
                                  int defaultTimeoutMs,
                                  Vertx vertx,
                                  HttpClient httpClient,
-                                 JacksonMapper mapper,
+                                 VendorListFileStore vendorListFileStore,
                                  Metrics metrics,
+                                 JacksonMapper mapper,
                                  Clock clock) {
 
+        this.cacheDir = Objects.requireNonNull(cacheDir);
         this.liveGvlUrl = HttpUtil.validateUrl(Objects.requireNonNull(liveGvlUrl));
         this.refreshPeriodMs = refreshPeriodMs;
         this.defaultTimeoutMs = defaultTimeoutMs;
         this.vertx = Objects.requireNonNull(vertx);
         this.httpClient = Objects.requireNonNull(httpClient);
-        this.mapper = Objects.requireNonNull(mapper);
+        this.vendorListFileStore = Objects.requireNonNull(vendorListFileStore);
         this.metrics = Objects.requireNonNull(metrics);
+        this.mapper = Objects.requireNonNull(mapper);
         this.clock = Objects.requireNonNull(clock);
     }
 
@@ -61,17 +67,29 @@ public class LiveVendorListService implements Initializable {
 
     @Override
     public void initialize(Promise<Void> initializePromise) {
+        initializeWithLatestCachedVersion();
         vertx.setPeriodic(0, refreshPeriodMs, ignored -> refresh());
 
         initializePromise.tryComplete();
     }
 
+    private void initializeWithLatestCachedVersion() {
+        vendorListFileStore.getLatestVendorListFromCache(cacheDir).ifPresent(vendorList -> {
+            saveDeletedVendorsFromVendorList(vendorList);
+            logger.info("Initialized live GVL from cache with version %d".formatted(vendorList.getVendorListVersion()));
+        });
+    }
+
     void refresh() {
         httpClient.get(liveGvlUrl, defaultTimeoutMs)
                 .map(this::processResponse)
-                .map(this::extractDeletedVendorIds)
-                .map(this::updateDeletedVendorIds)
+                .map(this::saveDeletedVendorsFromVendorList)
                 .otherwise(this::handleError);
+    }
+
+    private Void saveDeletedVendorsFromVendorList(VendorList vendorList) {
+        updateDeletedVendorIds(extractDeletedVendorIds(vendorList));
+        return null;
     }
 
     private VendorList processResponse(HttpClientResponse response) {

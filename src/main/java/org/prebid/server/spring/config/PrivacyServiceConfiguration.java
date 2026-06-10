@@ -148,23 +148,27 @@ public class PrivacyServiceConfiguration {
 
     @Bean
     LiveVendorListService liveVendorListService(
+            VendorListServiceConfigurationProperties vendorListServiceV3Properties,
             @Value("${gdpr.vendorlist.live-gvl-url}") String liveGvlUrl,
             @Value("${gdpr.vendorlist.live-gvl-refresh-period-ms}") long refreshPeriodMs,
             @Value("${gdpr.vendorlist.default-timeout-ms}") int defaultTimeoutMs,
             Vertx vertx,
             HttpClient httpClient,
-            JacksonMapper mapper,
+            VendorListFileStore vendorListFileStore,
             Metrics metrics,
+            JacksonMapper mapper,
             Clock clock) {
 
         return new LiveVendorListService(
+                vendorListServiceV3Properties.getCacheDir(),
                 liveGvlUrl,
                 refreshPeriodMs,
                 defaultTimeoutMs,
                 vertx,
                 httpClient,
-                mapper,
+                vendorListFileStore,
                 metrics,
+                mapper,
                 clock);
     }
 

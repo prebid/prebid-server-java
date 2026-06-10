@@ -30,6 +30,7 @@ import java.util.Date;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
@@ -40,6 +41,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode.ONE;
 import static org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode.TWO;
@@ -287,6 +289,76 @@ public class VendorListFileStoreTest extends VertxTest {
     }
 
     @Test
+    public void getLatestVendorListFromCacheShouldReturnEmptyWhenCacheDirHasNoJsonFiles() {
+        // given
+        given(fileSystem.existsBlocking(eq(CACHE_DIR))).willReturn(false);
+        given(fileSystem.readDirBlocking(eq(CACHE_DIR))).willReturn(List.of());
+
+        // when
+        final Optional<VendorList> result = target.getLatestVendorListFromCache(CACHE_DIR);
+
+        // then
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    public void getLatestVendorListFromCacheShouldReturnVendorListWithHighestVersion() throws JsonProcessingException {
+        // given
+        final VendorList vendorList = givenVendorList(10);
+        given(fileSystem.existsBlocking(eq(CACHE_DIR))).willReturn(false);
+        given(fileSystem.readDirBlocking(eq(CACHE_DIR))).willReturn(List.of(
+                "/cache/dir/2.json",
+                "/cache/dir/10.json"));
+        given(fileSystem.readFileBlocking(eq("/cache/dir/10.json")))
+                .willReturn(Buffer.buffer(mapper.writeValueAsString(vendorList)));
+
+        // when
+        final Optional<VendorList> result = target.getLatestVendorListFromCache(CACHE_DIR);
+
+        // then
+        assertThat(result).hasValue(vendorList);
+        verify(fileSystem, never()).readFileBlocking(eq("/cache/dir/2.json"));
+    }
+
+    @Test
+    public void getLatestVendorListFromCacheShouldCreateCacheDirWhenItDoesNotExist() {
+        // given
+        given(fileSystem.existsBlocking(eq(CACHE_DIR))).willReturn(false);
+        given(fileSystem.readDirBlocking(eq(CACHE_DIR))).willReturn(List.of());
+
+        // when
+        target.getLatestVendorListFromCache(CACHE_DIR);
+
+        // then
+        verify(fileSystem).mkdirsBlocking(eq(CACHE_DIR));
+    }
+
+    @Test
+    public void getLatestVendorListFromCacheShouldFailIfCannotReadCacheDir() {
+        // given
+        given(fileSystem.existsBlocking(eq(CACHE_DIR))).willReturn(false);
+        given(fileSystem.readDirBlocking(eq(CACHE_DIR))).willThrow(new RuntimeException("read error"));
+
+        // when and then
+        assertThatThrownBy(() -> target.getLatestVendorListFromCache(CACHE_DIR))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessage("read error");
+    }
+
+    @Test
+    public void getLatestVendorListFromCacheShouldFailIfLatestVendorListFileCannotBeParsed() {
+        // given
+        given(fileSystem.existsBlocking(eq(CACHE_DIR))).willReturn(false);
+        given(fileSystem.readDirBlocking(eq(CACHE_DIR))).willReturn(List.of("/cache/dir/1.json"));
+        given(fileSystem.readFileBlocking(eq("/cache/dir/1.json"))).willReturn(Buffer.buffer("invalid"));
+
+        // when and then
+        assertThatThrownBy(() -> target.getLatestVendorListFromCache(CACHE_DIR))
+                .isInstanceOf(PreBidException.class)
+                .hasMessage("Cannot parse vendor list from: invalid");
+    }
+
+    @Test
     public void readFallbackVendorListShouldFailIfFallbackHasInvalidData() throws JsonProcessingException {
         // given
         final VendorList invalidVendorList = VendorList.of(1, new Date(), emptyMap());
@@ -316,7 +388,11 @@ public class VendorListFileStoreTest extends VertxTest {
     }
 
     private static VendorList givenVendorList() {
-        return VendorList.of(1, new Date(), givenVendorMap());
+        return givenVendorList(1);
+    }
+
+    private static VendorList givenVendorList(int version) {
+        return VendorList.of(version, new Date(), givenVendorMap());
     }
 
     private static Map<Integer, Vendor> givenVendorMap() {

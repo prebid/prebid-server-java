@@ -2,6 +2,7 @@ package org.prebid.server.privacy.gdpr.vendorlist;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,12 +26,15 @@ import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.EnumSet;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -41,12 +45,16 @@ import static org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode.TWO;
 public class LiveVendorListServiceTest extends VertxTest {
 
     private static final Instant NOW = Instant.parse("2024-06-01T12:00:00Z");
+    private static final String CACHE_DIR = "/cache/dir";
     private static final String LIVE_GVL_URL = "https://example.com";
+    private static final long REFRESH_PERIOD_MS = 1000;
 
     @Mock
     private Vertx vertx;
     @Mock
     private HttpClient httpClient;
+    @Mock
+    private VendorListFileStore vendorListFileStore;
     @Mock
     private Metrics metrics;
 
@@ -55,13 +63,15 @@ public class LiveVendorListServiceTest extends VertxTest {
     @BeforeEach
     public void setUp() {
         target = new LiveVendorListService(
+                CACHE_DIR,
                 LIVE_GVL_URL,
-                0,
+                REFRESH_PERIOD_MS,
                 1000,
                 vertx,
                 httpClient,
-                jacksonMapper,
+                vendorListFileStore,
                 metrics,
+                jacksonMapper,
                 Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
@@ -196,6 +206,45 @@ public class LiveVendorListServiceTest extends VertxTest {
         // then
         assertThat(target.isDeleted(1)).isFalse();
         verify(metrics).updatePrivacyTcfVendorListLatestErrorMetric();
+    }
+
+    @Test
+    public void initializeShouldLoadDeletedVendorsFromCachedVendorList() {
+        // given
+        final VendorList vendorList = givenVendorList(givenVendor(42, "2024-01-01T00:00:00Z"));
+        given(vendorListFileStore.getLatestVendorListFromCache(eq(CACHE_DIR))).willReturn(Optional.of(vendorList));
+
+        // when
+        target.initialize(Promise.promise());
+
+        // then
+        assertThat(target.isDeleted(42)).isTrue();
+        assertThat(target.isDeleted(99)).isFalse();
+    }
+
+    @Test
+    public void initializeShouldSchedulePeriodicRefresh() {
+        // given
+        given(vendorListFileStore.getLatestVendorListFromCache(eq(CACHE_DIR))).willReturn(Optional.empty());
+
+        // when
+        target.initialize(Promise.promise());
+
+        // then
+        verify(vertx).setPeriodic(eq(0L), eq(REFRESH_PERIOD_MS), any());
+    }
+
+    @Test
+    public void initializeShouldCompleteInitializePromise() {
+        // given
+        given(vendorListFileStore.getLatestVendorListFromCache(eq(CACHE_DIR))).willReturn(Optional.empty());
+        final Promise<Void> promise = Promise.promise();
+
+        // when
+        target.initialize(promise);
+
+        // then
+        assertThat(promise.future().succeeded()).isTrue();
     }
 
     @Test
