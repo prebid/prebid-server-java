@@ -127,12 +127,13 @@ public class ImplicitParametersExtractorTest {
                 .add("True-Client-IP", "192.168.144.1 ")
                 .add("X-Forwarded-For", "192.168.144.2 , 192.168.144.3 ")
                 .add("X-Real-IP", "192.168.144.4 ")
+                .add("X-Device-IP", "192.168.144.5")
                 .build();
-        final String remoteHost = "192.168.144.5";
+        final String remoteHost = "192.168.144.6";
 
         // when and then
         assertThat(extractor.ipFrom(headers, remoteHost)).containsExactly(
-                "192.168.144.1", "192.168.144.2", "192.168.144.3", "192.168.144.4", remoteHost);
+                "192.168.144.1", "192.168.144.2", "192.168.144.3", "192.168.144.4", "192.168.144.5", remoteHost);
     }
 
     @Test
@@ -153,11 +154,25 @@ public class ImplicitParametersExtractorTest {
         final HttpRequestContext httpRequest = HttpRequestContext.builder()
                 .headers(CaseInsensitiveMultiMap.builder()
                         .add(HttpUtil.USER_AGENT_HEADER, " user agent ")
+                        .add(HttpUtil.X_DEVICE_USER_AGENT_HEADER, " device user agent ")
                         .build())
                 .build();
 
         // when and then
         assertThat(extractor.uaFrom(httpRequest)).isEqualTo("user agent");
+    }
+
+    @Test
+    public void uaFromShouldReturnUaFromXDeviceUserAgentHeader() {
+        // given
+        final HttpRequestContext httpRequest = HttpRequestContext.builder()
+                .headers(CaseInsensitiveMultiMap.builder()
+                        .add(HttpUtil.X_DEVICE_USER_AGENT_HEADER, " device user agent ")
+                        .build())
+                .build();
+
+        // when and then
+        assertThat(extractor.uaFrom(httpRequest)).isEqualTo("device user agent");
     }
 
     @Test

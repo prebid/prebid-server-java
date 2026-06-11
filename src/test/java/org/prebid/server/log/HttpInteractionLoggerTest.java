@@ -281,6 +281,100 @@ public class HttpInteractionLoggerTest extends VertxTest {
     }
 
     @Test
+    public void maybeLogOpenrtb2GetInterfaceShouldLogWithExpectedParams() {
+        // given
+        final AuctionContext givenAuctionContext =
+                givenAuctionContext(accountBuilder -> accountBuilder.id("123"));
+        final HttpLogSpec givenSpec = HttpLogSpec.of(null, null, "123", null, 1);
+
+        // when
+        target.setSpec(givenSpec);
+        target.maybeLogOpenrtb2GetInterface(givenAuctionContext, routingContext, 200, "responseBody");
+
+        // then
+        verify(logger)
+                .info("Requested URL: \"{}\", response status: \"{}\", response body: \"{}\"",
+                        "example.com",
+                        200,
+                        "responseBody");
+    }
+
+    @Test
+    public void maybeLogOpenrtb2GetInterfaceShouldLimitLogBySpecLimit() {
+        // given
+        final AuctionContext givenAuctionContext =
+                givenAuctionContext(accountBuilder -> accountBuilder.id("123"));
+        final HttpLogSpec givenSpec = HttpLogSpec.of(null, null, "123", null, 1);
+
+        // when
+        target.setSpec(givenSpec);
+        target.maybeLogOpenrtb2GetInterface(givenAuctionContext, routingContext, 200, null);
+        target.maybeLogOpenrtb2GetInterface(givenAuctionContext, routingContext, 200, null);
+
+        // then
+        verify(logger).info(anyString(), anyString(), any(), any());
+    }
+
+    @Test
+    public void maybeLogOpenrtb2GetInterfaceShouldNotLogIfAccountIdNotEqualsToGivenInSpec() {
+        // given
+        final AuctionContext givenAuctionContext =
+                givenAuctionContext(accountBuilder -> accountBuilder.id("456"));
+        final HttpLogSpec givenSpec = HttpLogSpec.of(null, null, "123", null, 1);
+
+        // when
+        target.setSpec(givenSpec);
+        target.maybeLogOpenrtb2GetInterface(givenAuctionContext, routingContext, 200, null);
+
+        // then
+        verifyNoInteractions(logger);
+    }
+
+    @Test
+    public void maybeLogOpenrtb2GetInterfaceShouldLogIfStatusEqualsToGivenInSpec() {
+        // given
+        final AuctionContext givenAuctionContext = givenAuctionContext(identity());
+        final HttpLogSpec givenSpec = HttpLogSpec.of(null, 501, null, null, 1);
+
+        // when
+        target.setSpec(givenSpec);
+        target.maybeLogOpenrtb2GetInterface(givenAuctionContext, routingContext, 200, null);
+        target.maybeLogOpenrtb2GetInterface(givenAuctionContext, routingContext, 501, null);
+
+        // then
+        verify(logger).info(anyString(), anyString(), eq(501), any());
+        verify(logger, never()).info(anyString(), anyString(), eq(200), any());
+    }
+
+    @Test
+    public void maybeLogOpenrtb2GetInterfaceShouldLogIfSpecEndpointIsGetInterface() {
+        // given
+        final AuctionContext givenAuctionContext = givenAuctionContext(identity());
+        final HttpLogSpec givenSpec = HttpLogSpec.of(HttpLogSpec.Endpoint.get_interface, null, null, null, 1);
+
+        // when
+        target.setSpec(givenSpec);
+        target.maybeLogOpenrtb2GetInterface(givenAuctionContext, routingContext, 200, null);
+
+        // then
+        verify(logger).info(anyString(), anyString(), any(), any());
+    }
+
+    @Test
+    public void maybeLogOpenrtb2GetInterfaceShouldNotLogIfSpecEndpointIsNotGetInterface() {
+        // given
+        final AuctionContext givenAuctionContext = givenAuctionContext(identity());
+        final HttpLogSpec givenSpec = HttpLogSpec.of(HttpLogSpec.Endpoint.auction, null, null, null, 1);
+
+        // when
+        target.setSpec(givenSpec);
+        target.maybeLogOpenrtb2GetInterface(givenAuctionContext, routingContext, 200, null);
+
+        // then
+        verifyNoInteractions(logger);
+    }
+
+    @Test
     public void maybeLogBidderRequestShouldLogWithExpectedParams() {
         // given
         final AuctionContext givenAuctionContext =

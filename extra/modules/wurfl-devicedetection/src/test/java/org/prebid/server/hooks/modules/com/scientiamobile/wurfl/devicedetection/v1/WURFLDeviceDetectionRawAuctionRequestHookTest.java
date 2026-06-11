@@ -96,7 +96,7 @@ public class WURFLDeviceDetectionRawAuctionRequestHookTest {
         // given
         final String ua = "Mozilla/5.0 (testPhone; CPU testPhone OS 1_0_2) Version/17.4.1 Mobile/12E GrandTest/604.1";
         final ExtDevicePrebid extDevicePrebid = ExtDevicePrebid.of(ExtDeviceInt.of(80, 80));
-        final ExtDevice extDevice = ExtDevice.of(0, extDevicePrebid);
+        final ExtDevice extDevice = ExtDevice.of(0, null, extDevicePrebid);
         final ObjectNode wurfl = mapper.mapper().createObjectNode();
         wurfl.put("wurfl_id", "test_phone_ver1");
         extDevice.addProperty("wurfl", wurfl);
