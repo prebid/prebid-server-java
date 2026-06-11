@@ -129,7 +129,7 @@ public class ContxtfulBidder implements Bidder<ContxtfulCompositeRequest> {
     }
 
     private String makeUrl(String customerId) {
-        return endpointUrl.replace(ACCOUNT_ID_MACRO, HttpUtil.encodeUrl(customerId));
+        return endpointUrl.replace(ACCOUNT_ID_MACRO, HttpUtil.encodeUrl(HttpUtil.validatePathSegment(customerId)));
     }
 
     @Override

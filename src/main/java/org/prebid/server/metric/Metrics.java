@@ -519,6 +519,10 @@ public class Metrics extends UpdatableMetrics {
         privacy().tcf().incCounter(MetricName.invalid);
     }
 
+    public void updatePrivacyTcfNoDisclosedVendorsMetric() {
+        privacy().tcf().incCounter(MetricName.no_disclosed_vendors);
+    }
+
     public void updatePrivacyTcfRequestsMetric(int version) {
         final UpdatableMetrics versionMetrics = privacy().tcf().fromVersion(version);
         versionMetrics.incCounter(MetricName.requests);

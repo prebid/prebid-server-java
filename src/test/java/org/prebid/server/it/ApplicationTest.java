@@ -293,6 +293,7 @@ public class ApplicationTest extends IntegrationTest {
                 .tcfPolicyVersion(2)
                 .addPurposesConsent(BitSetIntIterable.from(1))
                 .addVendorConsent(BitSetIntIterable.from(1, 32, 52))
+                .addDisclosedVendors(BitSetIntIterable.from(1, 32, 52))
                 .encode();
 
         // when

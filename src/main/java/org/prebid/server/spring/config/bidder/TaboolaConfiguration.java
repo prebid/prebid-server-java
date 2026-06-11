@@ -3,10 +3,10 @@ package org.prebid.server.spring.config.bidder;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.taboola.TaboolaBidder;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.settings.model.GdprConfig;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -26,12 +26,12 @@ public class TaboolaConfiguration {
 
     @Bean
     BidderDeps taboolaBidderDeps(BidderConfigurationProperties taboolaConfigurationProperties,
-                                 @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
+                                 GdprConfig gdprConfig,
                                  JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(taboolaConfigurationProperties)
-                .bidderCreator(config -> new TaboolaBidder(config.getEndpoint(), hostVendorId, mapper))
+                .bidderCreator(config -> new TaboolaBidder(config.getEndpoint(), gdprConfig.getHostVendorId(), mapper))
                 .assemble();
     }
 }
