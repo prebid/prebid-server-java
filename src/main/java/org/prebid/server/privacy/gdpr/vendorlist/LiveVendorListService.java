@@ -2,7 +2,6 @@ package org.prebid.server.privacy.gdpr.vendorlist;
 
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.Logger;
@@ -15,7 +14,6 @@ import org.prebid.server.vertx.Initializable;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
-import java.io.IOException;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Objects;
@@ -26,33 +24,39 @@ public class LiveVendorListService implements Initializable {
 
     private static final Logger logger = LoggerFactory.getLogger(LiveVendorListService.class);
 
+    private final String cacheDir;
     private final String liveGvlUrl;
     private final long refreshPeriodMs;
     private final int defaultTimeoutMs;
     private final Vertx vertx;
     private final HttpClient httpClient;
-    private final JacksonMapper mapper;
+    private final VendorListFileStore vendorListFileStore;
     private final Metrics metrics;
+    private final JacksonMapper mapper;
     private final Clock clock;
 
     private volatile Set<Integer> deletedVendorIds = Set.of();
 
-    public LiveVendorListService(String liveGvlUrl,
+    public LiveVendorListService(String cacheDir,
+                                 String liveGvlUrl,
                                  long refreshPeriodMs,
                                  int defaultTimeoutMs,
                                  Vertx vertx,
                                  HttpClient httpClient,
-                                 JacksonMapper mapper,
+                                 VendorListFileStore vendorListFileStore,
                                  Metrics metrics,
+                                 JacksonMapper mapper,
                                  Clock clock) {
 
+        this.cacheDir = Objects.requireNonNull(cacheDir);
         this.liveGvlUrl = HttpUtil.validateUrl(Objects.requireNonNull(liveGvlUrl));
         this.refreshPeriodMs = refreshPeriodMs;
         this.defaultTimeoutMs = defaultTimeoutMs;
         this.vertx = Objects.requireNonNull(vertx);
         this.httpClient = Objects.requireNonNull(httpClient);
-        this.mapper = Objects.requireNonNull(mapper);
+        this.vendorListFileStore = Objects.requireNonNull(vendorListFileStore);
         this.metrics = Objects.requireNonNull(metrics);
+        this.mapper = Objects.requireNonNull(mapper);
         this.clock = Objects.requireNonNull(clock);
     }
 
@@ -63,17 +67,29 @@ public class LiveVendorListService implements Initializable {
 
     @Override
     public void initialize(Promise<Void> initializePromise) {
+        initializeWithLatestCachedVersion();
         vertx.setPeriodic(0, refreshPeriodMs, ignored -> refresh());
 
         initializePromise.tryComplete();
     }
 
+    private void initializeWithLatestCachedVersion() {
+        vendorListFileStore.getLatestVendorListFromCache(cacheDir).ifPresent(vendorList -> {
+            saveDeletedVendorsFromVendorList(vendorList);
+            logger.info("Initialized live GVL from cache with version %d".formatted(vendorList.getVendorListVersion()));
+        });
+    }
+
     void refresh() {
         httpClient.get(liveGvlUrl, defaultTimeoutMs)
                 .map(this::processResponse)
-                .map(this::extractDeletedVendorIds)
-                .map(this::updateDeletedVendorIds)
+                .map(this::saveDeletedVendorsFromVendorList)
                 .otherwise(this::handleError);
+    }
+
+    private Void saveDeletedVendorsFromVendorList(VendorList vendorList) {
+        updateDeletedVendorIds(extractDeletedVendorIds(vendorList));
+        return null;
     }
 
     private VendorList processResponse(HttpClientResponse response) {
@@ -83,32 +99,25 @@ public class LiveVendorListService implements Initializable {
         }
 
         final String body = response.getBody();
-        try {
-            return mapper.mapper().readValue(body, VendorList.class);
-        } catch (IOException e) {
-            throw new PreBidException("Cannot parse live vendor list: " + body, e);
+        final VendorList vendorList = VendorListUtil.parseVendorList(body, mapper);
+
+        if (!VendorListUtil.vendorListIsValid(vendorList)) {
+            throw new PreBidException("Fetched vendor list parsed but has invalid data: " + body);
         }
+
+        return vendorList;
     }
 
     Set<Integer> extractDeletedVendorIds(VendorList vendorList) {
         final Instant now = clock.instant();
         return vendorList.getVendors().values().stream()
-                .filter(vendor -> isDeletedAt(vendor, now))
+                .filter(vendor -> VendorListUtil.vendorIsDeletedAt(vendor, now))
                 .map(Vendor::getId)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toUnmodifiableSet());
     }
 
-    private static boolean isDeletedAt(Vendor vendor, Instant now) {
-        final Instant deletedDate = vendor.getDeletedDate();
-        return deletedDate != null && deletedDate.isBefore(now);
-    }
-
     private Void updateDeletedVendorIds(Set<Integer> ids) {
-        if (CollectionUtils.isEmpty(ids)) {
-            throw new PreBidException("Live GVL response has no deleted vendors");
-        }
-
         deletedVendorIds = ids;
         metrics.updatePrivacyTcfVendorListLatestOkMetric();
         return null;

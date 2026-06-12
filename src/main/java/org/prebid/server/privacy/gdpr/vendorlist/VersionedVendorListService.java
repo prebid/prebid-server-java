@@ -4,6 +4,8 @@ import com.iabtcf.decoder.TCString;
 import io.vertx.core.Future;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.Vendor;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -13,14 +15,17 @@ public class VersionedVendorListService {
     private final VendorListService vendorListServiceV2;
     private final VendorListService vendorListServiceV3;
     private final LiveVendorListService liveVendorListService;
+    private final Clock clock;
 
     public VersionedVendorListService(VendorListService vendorListServiceV2,
                                       VendorListService vendorListServiceV3,
-                                      LiveVendorListService liveVendorListService) {
+                                      LiveVendorListService liveVendorListService,
+                                      Clock clock) {
 
         this.vendorListServiceV2 = Objects.requireNonNull(vendorListServiceV2);
         this.vendorListServiceV3 = Objects.requireNonNull(vendorListServiceV3);
         this.liveVendorListService = Objects.requireNonNull(liveVendorListService);
+        this.clock = Objects.requireNonNull(clock);
     }
 
     public Future<Map<Integer, Vendor>> forConsent(TCString consent) {
@@ -35,7 +40,9 @@ public class VersionedVendorListService {
     }
 
     private Map<Integer, Vendor> filterDeletedVendors(Map<Integer, Vendor> vendors) {
+        final Instant now = clock.instant();
         return vendors.entrySet().stream()
+                .filter(entry -> !VendorListUtil.vendorIsDeletedAt(entry.getValue(), now))
                 .filter(entry -> !liveVendorListService.isDeleted(entry.getKey()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
