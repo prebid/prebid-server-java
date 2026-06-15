@@ -43,7 +43,7 @@ public class BidwaveBidder implements Bidder<BidRequest> {
     private static final String BIDWAVE_EXT = "bidwave";
     private static final String PUBLISHER_ID_EXT = "pid";
     private static final String BIDDER_CURRENCY = "USD";
-    private static final List<String> DEFAULT_CURRENCY = List.of(BIDDER_CURRENCY);
+    private static final List<String> DEFAULT_CURRENCY = Collections.singletonList(BIDDER_CURRENCY);
     private static final Pattern UUID_PATTERN = Pattern.compile(
             "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
             Pattern.CASE_INSENSITIVE);
@@ -96,7 +96,7 @@ public class BidwaveBidder implements Bidder<BidRequest> {
                     .formatted(imp.getId(), e.getMessage()));
         }
 
-        final String publisherId = extImpBidwave != null ? extImpBidwave.getPublisherId() : null;
+        final String publisherId = extImpBidwave.getPublisherId();
         if (publisherId == null || !UUID_PATTERN.matcher(publisherId).matches()) {
             throw new PreBidException("Invalid publisherId for impression %s".formatted(imp.getId()));
         }
@@ -138,7 +138,7 @@ public class BidwaveBidder implements Bidder<BidRequest> {
     private ExtRequest createRequestExt(ExtRequest requestExt, String publisherId) {
         final ExtRequest updatedExt = ExtRequest.of(requestExt != null ? requestExt.getPrebid() : null);
         if (requestExt != null) {
-            updatedExt.addProperties(requestExt.getProperties());
+            mapper.fillExtension(updatedExt, requestExt);
         }
 
         final ObjectNode bidwaveExt = mapper.mapper().createObjectNode().put(PUBLISHER_ID_EXT, publisherId);
@@ -160,8 +160,10 @@ public class BidwaveBidder implements Bidder<BidRequest> {
         return Result.of(bids, errors);
     }
 
-    private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse,
+    private static List<BidderBid> extractBids(BidRequest bidRequest,
+                                               BidResponse bidResponse,
                                                List<BidderError> errors) {
+
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
@@ -181,8 +183,11 @@ public class BidwaveBidder implements Bidder<BidRequest> {
                 .toList();
     }
 
-    private static BidderBid makeBidderBid(Bid bid, Map<String, Imp> impsById, String currency,
+    private static BidderBid makeBidderBid(Bid bid,
+                                           Map<String, Imp> impsById,
+                                           String currency,
                                            List<BidderError> errors) {
+
         final BidType bidType;
         try {
             bidType = resolveBidType(bid, impsById);

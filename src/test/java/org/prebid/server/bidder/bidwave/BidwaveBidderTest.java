@@ -67,11 +67,10 @@ public class BidwaveBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSetBidwaveExtDefaultCurrencyAndPreserveDeviceGeo()
-            throws IOException {
+    public void makeHttpRequestsShouldCreateHttpRequest() throws IOException {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                givenImp(imp -> imp.id("imp-1").banner(givenBanner()).ext(givenImpExt(PUBLISHER_ID))));
+                givenImp(imp -> imp.id("imp-1").ext(givenImpExt(PUBLISHER_ID))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -86,18 +85,92 @@ public class BidwaveBidderTest extends VertxTest {
         assertThat(httpRequest.getUri()).isEqualTo(ENDPOINT_URL);
         assertThat(httpRequest.getImpIds()).containsOnly("imp-1");
         assertThat(mapper.readValue(httpRequest.getBody(), BidRequest.class)).isEqualTo(payload);
-        assertThat(payload.getCur()).containsExactly("USD");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetBidwaveExt() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                givenImp(imp -> imp.id("imp-1").ext(givenImpExt(PUBLISHER_ID))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+        final BidRequest payload = result.getValue().getFirst().getPayload();
+
         assertThat(payload.getExt().getProperty("bidwave").get("pid").asText()).isEqualTo(PUBLISHER_ID);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetDefaultCurrency() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                givenImp(imp -> imp.id("imp-1").ext(givenImpExt(PUBLISHER_ID))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+        final BidRequest payload = result.getValue().getFirst().getPayload();
+
+        assertThat(payload.getCur()).containsExactly("USD");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldPreserveDeviceGeo() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                givenImp(imp -> imp.id("imp-1").ext(givenImpExt(PUBLISHER_ID))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+        final BidRequest payload = result.getValue().getFirst().getPayload();
+
         assertThat(payload.getDevice()).isEqualTo(bidRequest.getDevice());
     }
 
     @Test
-    public void makeHttpRequestsShouldGroupImpsByPublisherIdAndNormalizeCurrency() {
+    public void makeHttpRequestsShouldGroupImpsByPublisherId() {
         // given
-        final Imp firstImp = givenImp(imp -> imp.id("imp-1").banner(givenBanner()).ext(givenImpExt(PUBLISHER_ID)));
-        final Imp secondImp = givenImp(imp -> imp.id("imp-2").video(givenVideo()).ext(givenImpExt(OTHER_PUBLISHER_ID)));
-        final Imp thirdImp = givenImp(imp -> imp.id("imp-3").banner(givenBanner()).ext(givenImpExt(PUBLISHER_ID)));
-        final BidRequest bidRequest = givenBidRequest(firstImp, secondImp, thirdImp)
+        final Imp firstImp = givenImp(imp -> imp.id("imp-1").ext(givenImpExt(PUBLISHER_ID)));
+        final Imp secondImp = givenImp(imp -> imp.id("imp-2").ext(givenImpExt(OTHER_PUBLISHER_ID)));
+        final Imp thirdImp = givenImp(imp -> imp.id("imp-3").ext(givenImpExt(PUBLISHER_ID)));
+        final BidRequest bidRequest = givenBidRequest(firstImp, secondImp, thirdImp);
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(2);
+        assertThat(result.getValue().get(0).getPayload())
+                .satisfies(payload -> {
+                    assertThat(payload.getImp()).containsExactly(firstImp, thirdImp);
+                    assertThat(payload.getExt().getProperty("bidwave").get("pid").asText())
+                            .isEqualTo(PUBLISHER_ID);
+                });
+        assertThat(result.getValue().get(1).getPayload())
+                .satisfies(payload -> {
+                    assertThat(payload.getImp()).containsExactly(secondImp);
+                    assertThat(payload.getExt().getProperty("bidwave").get("pid").asText())
+                            .isEqualTo(OTHER_PUBLISHER_ID);
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNormalizeCurrency() {
+        // given
+        final Imp imp = givenImp(impBuilder -> impBuilder.id("imp-1").ext(givenImpExt(PUBLISHER_ID)));
+        final BidRequest bidRequest = givenBidRequest(imp)
                 .toBuilder()
                 .cur(List.of("EUR"))
                 .build();
@@ -107,15 +180,8 @@ public class BidwaveBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(2);
-        assertThat(result.getValue().get(0).getPayload().getImp()).containsExactly(firstImp, thirdImp);
-        assertThat(result.getValue().get(0).getPayload().getExt().getProperty("bidwave").get("pid").asText())
-                .isEqualTo(PUBLISHER_ID);
-        assertThat(result.getValue().get(0).getPayload().getCur()).containsExactly("USD");
-        assertThat(result.getValue().get(1).getPayload().getImp()).containsExactly(secondImp);
-        assertThat(result.getValue().get(1).getPayload().getExt().getProperty("bidwave").get("pid").asText())
-                .isEqualTo(OTHER_PUBLISHER_ID);
-        assertThat(result.getValue().get(1).getPayload().getCur()).containsExactly("USD");
+        assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getValue().getFirst().getPayload().getCur()).containsExactly("USD");
     }
 
     @Test
@@ -127,7 +193,6 @@ public class BidwaveBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 givenImp(imp -> imp
                         .id("imp-1")
-                        .banner(givenBanner())
                         .bidfloor(BigDecimal.ONE)
                         .bidfloorcur("EUR")
                         .ext(givenImpExt(PUBLISHER_ID))));
@@ -153,7 +218,6 @@ public class BidwaveBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 givenImp(imp -> imp
                         .id("imp-1")
-                        .banner(givenBanner())
                         .bidfloor(BigDecimal.ONE)
                         .bidfloorcur("EUR")
                         .ext(givenImpExt(PUBLISHER_ID))));
@@ -171,7 +235,7 @@ public class BidwaveBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorForInvalidPublisherId() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                givenImp(imp -> imp.id("imp-1").banner(givenBanner()).ext(givenImpExt("publisher-1"))));
+                givenImp(imp -> imp.id("imp-1").ext(givenImpExt("publisher-1"))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
