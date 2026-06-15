@@ -6,6 +6,7 @@ import lombok.Value;
 @Value(staticConstructor = "of")
 public class ExtImpFloxis {
 
+    @JsonProperty("seat")
     String seat;
 
     @JsonProperty("region")
