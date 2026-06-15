@@ -142,9 +142,9 @@ public class BidmachineBidder implements Bidder<BidRequest> {
     }
 
     private String buildEndpointUrl(ExtImpBidmachine extImpBidmachine) {
-        return endpointUrl.replace("{{HOST}}", extImpBidmachine.getHost())
-                .replace("{{PATH}}", extImpBidmachine.getPath())
-                .replace("{{SELLER_ID}}", extImpBidmachine.getSellerId());
+        return endpointUrl.replace("{{HOST}}", HttpUtil.validateDomainName(extImpBidmachine.getHost()))
+                .replace("{{PATH}}", HttpUtil.validatePathSegment(extImpBidmachine.getPath()))
+                .replace("{{SELLER_ID}}", HttpUtil.validatePathSegment(extImpBidmachine.getSellerId()));
     }
 
     private ExtPrebid<ExtImpPrebid, ExtImpBidmachine> parseImpExt(Imp imp) {

@@ -1,5 +1,6 @@
 package org.prebid.server.auction.privacy.contextfactory;
 
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Geo;
@@ -101,13 +102,17 @@ public class AuctionPrivacyContextFactory {
     }
 
     private static RequestLogInfo requestLogInfo(MetricName requestType, BidRequest bidRequest, String accountId) {
-        final String referrerUrl = MetricName.openrtb2web == requestType
-                ? Optional.ofNullable(bidRequest.getSite())
-                .map(Site::getRef)
-                .orElse(null)
-                : null;
+        final String source = switch (requestType) {
+            case MetricName.openrtb2web -> Optional.ofNullable(bidRequest.getSite())
+                    .map(Site::getRef)
+                    .orElse(null);
+            case MetricName.openrtb2app -> Optional.ofNullable(bidRequest.getApp())
+                    .map(App::getBundle)
+                    .orElse(null);
+            case null, default -> null;
+        };
 
-        return RequestLogInfo.of(requestType, referrerUrl, accountId);
+        return RequestLogInfo.of(requestType, source, accountId);
     }
 
     private static TcfContext logWarnings(List<String> debugWarnings, TcfContext tcfContext) {

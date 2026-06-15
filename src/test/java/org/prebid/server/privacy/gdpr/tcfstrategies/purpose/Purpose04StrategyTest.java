@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.prebid.server.privacy.gdpr.DisclosedVendorsStrictness;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.privacy.gdpr.model.VendorPermissionWithGvl;
@@ -26,7 +27,9 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -34,6 +37,9 @@ import static org.mockito.Mockito.verify;
 public class Purpose04StrategyTest {
 
     private static final PurposeCode PURPOSE_CODE = PurposeCode.FOUR;
+
+    @Mock(strictness = LENIENT)
+    private DisclosedVendorsStrictness disclosedVendorsStrictness;
 
     @Mock
     private FullEnforcePurposeStrategy fullEnforcePurposeStrategy;
@@ -51,7 +57,10 @@ public class Purpose04StrategyTest {
 
     @BeforeEach
     public void setUp() {
+        given(disclosedVendorsStrictness.isVendorDisclosed(any(), any())).willReturn(true);
+
         target = new Purpose04Strategy(
+                disclosedVendorsStrictness,
                 fullEnforcePurposeStrategy,
                 basicEnforcePurposeStrategy,
                 noEnforcePurposeStrategy);
@@ -155,6 +164,45 @@ public class Purpose04StrategyTest {
                         PURPOSE_CODE,
                         tcString,
                         asList(vendorPermissionWitGvl1, vendorPermissionWitGvl3),
+                        singletonList(vendorPermissionWitGvl2),
+                        false);
+    }
+
+    @Test
+    public void processTypePurposeStrategyShouldPassDisclosedListWithEnforcementsAndExcludeBiddersToBaseType() {
+        // given
+        given(disclosedVendorsStrictness.isVendorDisclosed(any(), any())).willReturn(false);
+        given(disclosedVendorsStrictness.isVendorDisclosed(any(), eq(1))).willReturn(true);
+
+        final List<String> vendorExceptions = asList("b1", "b3");
+        final Purpose purpose = Purpose.of(EnforcePurpose.basic, false, vendorExceptions, null);
+        final VendorPermission vendorPermission1 = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
+        final VendorPermission vendorPermission2 = VendorPermission.of(2, "b1", PrivacyEnforcementAction.restrictAll());
+        final VendorPermission vendorPermission3 = VendorPermission.of(3, null, PrivacyEnforcementAction.restrictAll());
+        final VendorPermissionWithGvl vendorPermissionWitGvl1 = withGvl(vendorPermission1, Vendor.empty(1));
+        final VendorPermissionWithGvl vendorPermissionWitGvl2 = withGvl(vendorPermission2, Vendor.empty(2));
+        final VendorPermissionWithGvl vendorPermissionWitGvl3 = withGvl(vendorPermission3, Vendor.empty(3));
+        final List<VendorPermissionWithGvl> vendorPermissionsWithGvl = asList(
+                vendorPermissionWitGvl1,
+                vendorPermissionWitGvl2,
+                vendorPermissionWitGvl3);
+
+        given(basicEnforcePurposeStrategy.allowedByTypeStrategy(any(), any(), any(), any(), anyBoolean()))
+                .willReturn(Stream.of(vendorPermission1, vendorPermission2));
+
+        // when
+        target.processTypePurposeStrategy(tcString, purpose, vendorPermissionsWithGvl, false);
+
+        // then
+        assertThat(vendorPermission1).isEqualTo(vendorPermissionResult(1, null));
+        assertThat(vendorPermission2).isEqualTo(vendorPermissionResult(2, "b1"));
+        assertThat(vendorPermission3).isEqualTo(VendorPermission.of(3, null, PrivacyEnforcementAction.restrictAll()));
+
+        verify(basicEnforcePurposeStrategy)
+                .allowedByTypeStrategy(
+                        PURPOSE_CODE,
+                        tcString,
+                        singletonList(vendorPermissionWitGvl1),
                         singletonList(vendorPermissionWitGvl2),
                         false);
     }
