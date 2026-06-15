@@ -56,7 +56,8 @@ public class SmileWantedBidder implements Bidder<BidRequest> {
         }
 
         final BidRequest outgoingRequest = request.toBuilder().at(DEFAULT_AT).build();
-        final String url = endpointUrl.replace(ZONE_ID_MACRO, HttpUtil.encodeUrl(extImpSmilewanted.getZoneId()));
+        final String url = endpointUrl.replace(
+                ZONE_ID_MACRO, HttpUtil.encodeUrl(HttpUtil.validatePathSegment(extImpSmilewanted.getZoneId())));
 
         return Result.withValue(BidderUtil.defaultRequest(
                 outgoingRequest,

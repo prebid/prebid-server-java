@@ -153,7 +153,8 @@ public class YieldlabBidder implements Bidder<Void> {
     }
 
     private String makeUrl(ExtImpYieldlab extImpYieldlab, BidRequest request, Map<String, ExtImpYieldlab> extImps) {
-        final String updatedPath = "%s/%s".formatted(endpointUrl, extImpYieldlab.getAdslotId());
+        final String updatedPath = "%s/%s".formatted(
+                endpointUrl, HttpUtil.validatePathSegment(extImpYieldlab.getAdslotId()));
 
         final URIBuilder uriBuilder;
         try {
@@ -546,9 +547,9 @@ public class YieldlabBidder implements Bidder<Void> {
         }
 
         return AD_SOURCE_URL.formatted(
-                extImp.getAdslotId(),
-                extImp.getSupplyId(),
-                yieldlabBid.getAdSize(),
+                HttpUtil.validatePathSegment(extImp.getAdslotId()),
+                HttpUtil.validatePathSegment(extImp.getSupplyId()),
+                HttpUtil.validatePathSegment(yieldlabBid.getAdSize()),
                 uriBuilder.toString().replace("?", ""));
     }
 
