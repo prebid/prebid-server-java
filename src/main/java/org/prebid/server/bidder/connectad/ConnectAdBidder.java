@@ -59,6 +59,8 @@ public class ConnectAdBidder implements Bidder<BidRequest> {
 
         for (Imp imp : request.getImp()) {
             try {
+                // Validate that at least one media type (banner, video, native, or audio) is present.
+                // This extends the previous banner-only validation to support the new media types.
                 if (imp.getBanner() == null && imp.getVideo() == null && imp.getXNative() == null && imp.getAudio() == null) {
                     throw new PreBidException("We need a Banner, Video, Native or Audio Object in the request");
                 }
@@ -116,6 +118,19 @@ public class ConnectAdBidder implements Bidder<BidRequest> {
                 .build();
     }
 
+    /**
+     * Modifies the impression extension to propagate networkId and siteId to the root level.
+     *
+     * The ConnectAd server endpoint requires these values to be present at the root level
+     * of the imp.ext object for proper request routing and processing. This method extracts
+     * networkId and siteId from the adapter parameters and adds them to the root level of
+     * the extension object. Values are parsed as integers when possible, falling back to
+     * string representation if parsing fails (e.g., for non-numeric IDs).
+     *
+     * @param impExt the original impression extension object
+     * @param extImpConnectAd the parsed adapter parameters containing networkId and siteId
+     * @return the modified impression extension object with networkId and siteId at root level
+     */
     private ObjectNode modifyImpExt(ObjectNode impExt, ExtImpConnectAd extImpConnectAd) {
         final ObjectNode modifiedExt = impExt != null ? impExt.deepCopy() : mapper.mapper().createObjectNode();
         final String networkId = extImpConnectAd.getNetworkId();
@@ -205,6 +220,18 @@ public class ConnectAdBidder implements Bidder<BidRequest> {
                 .toList();
     }
 
+    /**
+     * Determines the bid type based on the bid's mtype field or falls back to the impression type.
+     *
+     * The method first checks if the bid contains an explicit mtype value and converts it to the
+     * corresponding BidType (1=banner, 2=video, 3=audio, 4=native). If mtype is not present,
+     * it looks up the impression by ID in the bidRequest and infers the type from the impression's
+     * media type fields (banner, video, native, audio).
+     *
+     * @param bid the bid response object
+     * @param bidRequest the original bid request (guaranteed to be non-null when called from makeBids)
+     * @return the determined BidType, defaulting to banner if no type can be determined
+     */
     private static BidType getBidType(Bid bid, BidRequest bidRequest) {
         final Integer mType = bid.getMtype();
         if (mType != null) {
@@ -217,18 +244,17 @@ public class ConnectAdBidder implements Bidder<BidRequest> {
             };
         }
 
-        if (bidRequest != null && CollectionUtils.isNotEmpty(bidRequest.getImp())) {
-            for (Imp imp : bidRequest.getImp()) {
-                if (imp.getId().equals(bid.getImpid())) {
-                    if (imp.getBanner() != null) {
-                        return BidType.banner;
-                    } else if (imp.getVideo() != null) {
-                        return BidType.video;
-                    } else if (imp.getXNative() != null) {
-                        return BidType.xNative;
-                    } else if (imp.getAudio() != null) {
-                        return BidType.audio;
-                    }
+        // bidRequest is guaranteed to be non-null at this point (passed from makeBids method)
+        for (Imp imp : bidRequest.getImp()) {
+            if (imp.getId().equals(bid.getImpid())) {
+                if (imp.getBanner() != null) {
+                    return BidType.banner;
+                } else if (imp.getVideo() != null) {
+                    return BidType.video;
+                } else if (imp.getXNative() != null) {
+                    return BidType.xNative;
+                } else if (imp.getAudio() != null) {
+                    return BidType.audio;
                 }
             }
         }
