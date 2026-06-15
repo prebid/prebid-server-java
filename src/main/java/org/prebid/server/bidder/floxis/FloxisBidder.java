@@ -103,7 +103,8 @@ public class FloxisBidder implements Bidder<BidRequest> {
         }
     }
 
-    // Bidding host: the supply partner's regional subdomain (floxis itself has no partner prefix).
+    // {{Host}} subdomain label for the endpoint template (which pins the fixed .floxis.tech
+    // domain): the region, or partner-region for a named supply partner (floxis has no prefix).
     private static String resolveBidHost(String region, String partner) {
         final String resolvedRegion = isBlank(region) ? DEFAULT_REGION : region;
         final String resolvedPartner = isBlank(partner) ? DEFAULT_PARTNER : partner;
@@ -113,8 +114,8 @@ public class FloxisBidder implements Bidder<BidRequest> {
                             .formatted(resolvedRegion, resolvedPartner));
         }
         return resolvedPartner.equals(DEFAULT_PARTNER)
-                ? resolvedRegion + ".floxis.tech"
-                : resolvedPartner + "-" + resolvedRegion + ".floxis.tech";
+                ? resolvedRegion
+                : resolvedPartner + "-" + resolvedRegion;
     }
 
     private static boolean isBlank(String value) {

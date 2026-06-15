@@ -1,6 +1,6 @@
 adapters:
   floxis:
-    endpoint: https://{{Host}}/pbs?seat={{SeatId}}
+    endpoint: https://{{Host}}.floxis.tech/pbs?seat={{SeatId}}
     ortb-version: "2.6"
     modifying-vast-xml-allowed: false
     meta-info:

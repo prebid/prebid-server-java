@@ -35,7 +35,7 @@ import static org.assertj.core.api.Assertions.tuple;
 
 public class FloxisBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://{{Host}}/pbs?seat={{SeatId}}";
+    private static final String ENDPOINT_URL = "https://{{Host}}.floxis.tech/pbs?seat={{SeatId}}";
 
     private final FloxisBidder target = new FloxisBidder(ENDPOINT_URL, jacksonMapper);
 
