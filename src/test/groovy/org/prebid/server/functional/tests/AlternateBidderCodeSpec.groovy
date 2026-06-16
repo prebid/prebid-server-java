@@ -100,7 +100,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "PBS shouldn't emit validation metrics"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
-        assert !metrics[Metrics.Adapter.seat(ALIAS)]
+        assert !metrics[Metrics.Adapter.validationSeat(ALIAS)]
     }
 
     def "PBS should populate meta demand source when bid response with demand source"() {
@@ -149,7 +149,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "PBS shouldn't emit validation metrics"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
-        assert !metrics[Metrics.Adapter.seat(AMX)]
+        assert !metrics[Metrics.Adapter.validationSeat(AMX)]
     }
 
     def "PBS shouldn't populate meta demand source when bid response without demand source"() {
@@ -197,7 +197,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "PBS shouldn't emit validation metrics"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
-        assert !metrics[Metrics.Adapter.seat(AMX)]
+        assert !metrics[Metrics.Adapter.validationSeat(AMX)]
     }
 
     def "PBS shouldn't discard bid for amx bidder same seat in response as seat in bid.ext.bidderCode"() {
@@ -245,7 +245,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "PBS shouldn't emit validation metrics"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
-        assert !metrics[Metrics.Adapter.seat(AMX)]
+        assert !metrics[Metrics.Adapter.validationSeat(AMX)]
 
         where:
         bidderCode << [AMX, AMX_CAMEL_CASE]
@@ -296,7 +296,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "PBS should emit metrics"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
-        assert metrics[Metrics.Adapter.seat(AMX)]
+        assert metrics[Metrics.Adapter.validationSeat(AMX)]
 
         where:
         bidderName << [BOGUS, UNKNOWN, WILDCARD]
@@ -351,7 +351,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "PBS should emit validation metrics"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
-        assert metrics[Metrics.Adapter.seat(ALIAS)]
+        assert metrics[Metrics.Adapter.validationSeat(ALIAS)]
 
         where:
         bidderName << [BOGUS, UNKNOWN, WILDCARD]
@@ -413,7 +413,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "PBS shouldn't emit validation metrics"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
-        assert !metrics[Metrics.Adapter.seat(ALIAS)]
+        assert !metrics[Metrics.Adapter.validationSeat(ALIAS)]
 
         where:
         requestAlternateBidderCode                                                                                                  | accountAlternateBidderCodes
@@ -470,7 +470,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "PBS shouldn't emit validation metrics"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
-        assert !metrics[Metrics.Adapter.seat(bidderCode)]
+        assert !metrics[Metrics.Adapter.validationSeat(bidderCode)]
 
         where:
         bidderCode << [ALIAS, ALIAS_CAMEL_CASE]
@@ -527,7 +527,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "Metric shouldn't be updated"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
-        assert !metrics[Metrics.Adapter.seat(AMX)]
+        assert !metrics[Metrics.Adapter.validationSeat(AMX)]
 
         where:
         accountAlternateBidderCodes << [null,
@@ -595,7 +595,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "Metric shouldn't be updated"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
-        assert !metrics[Metrics.Adapter.seat(AMX)]
+        assert !metrics[Metrics.Adapter.validationSeat(AMX)]
 
         where:
         requestedAlternateBidderCodes << [null,
@@ -695,7 +695,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "Metric shouldn't be updated"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
-        assert !metrics[Metrics.Adapter.seat(GENERIC)]
+        assert !metrics[Metrics.Adapter.validationSeat(GENERIC)]
     }
 
     def "PBS shouldn't discard bid when alternate bidder code allows bidder codes fully configured with different case"() {
@@ -749,7 +749,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "Metric shouldn't be updated"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
-        assert !metrics[Metrics.Adapter.seat(AMX)]
+        assert !metrics[Metrics.Adapter.validationSeat(AMX)]
 
         where:
         configAccountAlternateBidderCodes << [
@@ -803,7 +803,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "PBS should emit metrics"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
-        assert metrics[Metrics.Adapter.seat(AMX)]
+        assert metrics[Metrics.Adapter.validationSeat(AMX)]
 
         and: "Response should contain repose millis with corresponding bidder"
         assert response.ext.responsetimemillis.containsKey(AMX.value)
@@ -859,7 +859,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "PBS should emit metrics"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
-        assert metrics[Metrics.Adapter.seat(AMX)]
+        assert metrics[Metrics.Adapter.validationSeat(AMX)]
 
         and: "Response should contain repose millis with corresponding bidder"
         assert response.ext.responsetimemillis.containsKey(AMX.value)
@@ -926,7 +926,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "PBs metric shouldn't be updated"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
-        assert !metrics[Metrics.Adapter.seat(AMX)]
+        assert !metrics[Metrics.Adapter.validationSeat(AMX)]
 
         where:
         accountAllowedBidderCodes << [[WILDCARD], [WILDCARD, EMPTY], [EMPTY, WILDCARD], null]
@@ -979,7 +979,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "PBs metric shouldn't be updated"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
-        assert !metrics[Metrics.Adapter.seat(AMX)]
+        assert !metrics[Metrics.Adapter.validationSeat(AMX)]
 
         where:
         requestedAllowedBidderCodes << [[WILDCARD], [WILDCARD, EMPTY], [EMPTY, WILDCARD], null]
@@ -1032,7 +1032,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "PBs metric shouldn't be updated"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
-        assert !metrics[Metrics.Adapter.seat(AMX)]
+        assert !metrics[Metrics.Adapter.validationSeat(AMX)]
 
         where:
         requestAlternateBidders << [[(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])],
@@ -1092,7 +1092,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "PBs metric shouldn't be updated"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
-        assert !metrics[Metrics.Adapter.seat(AMX)]
+        assert !metrics[Metrics.Adapter.validationSeat(AMX)]
 
         where:
         accountAlternateBidders << [[(AMX): new BidderConfig(enabled: true, allowedBidderCodes: [GENERIC])],
@@ -1158,7 +1158,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "Alert.general metric shouldn't be updated"
         def metrics = pbsService.sendCollectedMetricsRequest()
-        assert !metrics[Metrics.Adapter.seat(AMX)]
+        assert !metrics[Metrics.Adapter.validationSeat(AMX)]
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(config)
@@ -1203,7 +1203,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "PBS should emit metrics"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
-        assert metrics[Metrics.Adapter.seat(AMX)]
+        assert metrics[Metrics.Adapter.validationSeat(AMX)]
 
         and: "Response should contain repose millis with corresponding bidder"
         assert response.ext.responsetimemillis.containsKey(AMX.value)
@@ -1258,7 +1258,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "PBS should emit metrics"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
-        assert metrics[Metrics.Adapter.seat(AMX)]
+        assert metrics[Metrics.Adapter.validationSeat(AMX)]
 
         and: "Response should contain repose millis with corresponding bidder"
         assert response.ext.responsetimemillis.containsKey(AMX.value)
@@ -1322,7 +1322,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "PBS should emit metrics"
         def metrics = pbsService.sendCollectedMetricsRequest()
-        assert metrics[Metrics.Adapter.seat(AMX)]
+        assert metrics[Metrics.Adapter.validationSeat(AMX)]
 
         and: "Response should contain repose millis with corresponding bidder"
         assert response.ext.responsetimemillis.containsKey(AMX.value)
@@ -1385,7 +1385,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "PBS shouldn't emit validation metrics"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        assert !metrics[Metrics.Adapter.seat(GENERIC)]
+        assert !metrics[Metrics.Adapter.validationSeat(GENERIC)]
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsConfig)
@@ -1447,9 +1447,9 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "PBS shouldn't emit validation metrics"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
-        assert !metrics[Metrics.Adapter.seat(ALIAS)]
-        assert !metrics[Metrics.Adapter.seat(GENERIC)]
-        assert !metrics[Metrics.Adapter.seat(AMX)]
+        assert !metrics[Metrics.Adapter.validationSeat(ALIAS)]
+        assert !metrics[Metrics.Adapter.validationSeat(GENERIC)]
+        assert !metrics[Metrics.Adapter.validationSeat(AMX)]
 
         where:
         requestAlternateBidderCode                                                                                                  | accountAlternateBidderCodes
@@ -1513,9 +1513,9 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "PBS shouldn't emit validation metrics"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
-        assert !metrics[Metrics.Adapter.seat(ALIAS)]
-        assert !metrics[Metrics.Adapter.seat(GENERIC)]
-        assert !metrics[Metrics.Adapter.seat(AMX)]
+        assert !metrics[Metrics.Adapter.validationSeat(ALIAS)]
+        assert !metrics[Metrics.Adapter.validationSeat(GENERIC)]
+        assert !metrics[Metrics.Adapter.validationSeat(AMX)]
 
         where:
         requestAlternateBidderCode                                                                                                | accountAlternateBidderCodes
@@ -1571,7 +1571,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "PBS shouldn't emit validation metrics"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        assert !metrics[Metrics.Adapter.seat(GENERIC)]
+        assert !metrics[Metrics.Adapter.validationSeat(GENERIC)]
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsConfig)
@@ -1627,8 +1627,8 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "PBS shouldn't emit validation metrics"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
-        assert !metrics[Metrics.Adapter.seat(AMX)]
-        assert !metrics[Metrics.Adapter.seat(GENERIC)]
+        assert !metrics[Metrics.Adapter.validationSeat(AMX)]
+        assert !metrics[Metrics.Adapter.validationSeat(GENERIC)]
     }
 
     def "PBS should return two seat when same bidder response with different bidder code"() {
@@ -1687,8 +1687,8 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "PBS shouldn't emit validation metrics"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
-        assert !metrics[Metrics.Adapter.seat(AMX)]
-        assert !metrics[Metrics.Adapter.seat(GENERIC)]
+        assert !metrics[Metrics.Adapter.validationSeat(AMX)]
+        assert !metrics[Metrics.Adapter.validationSeat(GENERIC)]
     }
 
     def "PBS should populate seat bid from stored bid response when stored bid response and alternate bidder code specified"() {
@@ -1744,7 +1744,7 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "PBS shouldn't emit validation metrics"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
-        assert !metrics[Metrics.Adapter.seat(AMX)]
+        assert !metrics[Metrics.Adapter.validationSeat(AMX)]
     }
 
     def "PBS auction allow bidder code when imp stored request and allowed bidder code present"() {
@@ -1795,8 +1795,8 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
         and: "PBS shouldn't emit validation metrics"
         def metrics = pbsServiceWithAmxBidder.sendCollectedMetricsRequest()
-        assert !metrics[Metrics.Adapter.seat(GENERIC)]
-        assert !metrics[Metrics.Adapter.seat(AMX)]
+        assert !metrics[Metrics.Adapter.validationSeat(GENERIC)]
+        assert !metrics[Metrics.Adapter.validationSeat(AMX)]
     }
 
     private static Account getAccountWithAlternateBidderCode(BidRequest bidRequest) {

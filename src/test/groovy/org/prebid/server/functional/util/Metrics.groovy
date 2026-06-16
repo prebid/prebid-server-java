@@ -284,6 +284,10 @@ class Metrics {
             response(bidder, 'seat')
         }
 
+        static String validationSeat(BidderName bidder) {
+            response(bidder, 'validation.seat')
+        }
+
         static String requestType(BidderName bidder, ChannelType channel) {
             request(bidder, "type.openrtb2-${channel.value}")
         }
