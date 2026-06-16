@@ -34,9 +34,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Function;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 public class BidwaveBidder implements Bidder<BidRequest> {
 
@@ -44,9 +41,6 @@ public class BidwaveBidder implements Bidder<BidRequest> {
     private static final String PUBLISHER_ID_EXT = "pid";
     private static final String BIDDER_CURRENCY = "USD";
     private static final List<String> DEFAULT_CURRENCY = Collections.singletonList(BIDDER_CURRENCY);
-    private static final Pattern UUID_PATTERN = Pattern.compile(
-            "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
-            Pattern.CASE_INSENSITIVE);
     private static final TypeReference<ExtPrebid<?, ExtImpBidwave>> BIDWAVE_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
@@ -96,12 +90,7 @@ public class BidwaveBidder implements Bidder<BidRequest> {
                     .formatted(imp.getId(), e.getMessage()));
         }
 
-        final String publisherId = extImpBidwave.getPublisherId();
-        if (publisherId == null || !UUID_PATTERN.matcher(publisherId).matches()) {
-            throw new PreBidException("Invalid publisherId for impression %s".formatted(imp.getId()));
-        }
-
-        return publisherId;
+        return extImpBidwave.getPublisherId();
     }
 
     private Imp modifyImpCurrency(Imp imp, BidRequest bidRequest) {
@@ -156,20 +145,17 @@ public class BidwaveBidder implements Bidder<BidRequest> {
         }
 
         final List<BidderError> errors = new ArrayList<>();
-        final List<BidderBid> bids = extractBids(httpCall.getRequest().getPayload(), bidResponse, errors);
+        final List<BidderBid> bids = extractBids(bidResponse, errors);
         return Result.of(bids, errors);
     }
 
-    private static List<BidderBid> extractBids(BidRequest bidRequest,
-                                               BidResponse bidResponse,
+    private static List<BidderBid> extractBids(BidResponse bidResponse,
                                                List<BidderError> errors) {
 
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
 
-        final Map<String, Imp> impsById = bidRequest.getImp().stream()
-                .collect(Collectors.toMap(Imp::getId, Function.identity(), (first, second) -> first));
         final String currency = bidResponse.getCur();
 
         return bidResponse.getSeatbid().stream()
@@ -178,19 +164,18 @@ public class BidwaveBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
-                .map(bid -> makeBidderBid(bid, impsById, currency, errors))
+                .map(bid -> makeBidderBid(bid, currency, errors))
                 .filter(Objects::nonNull)
                 .toList();
     }
 
     private static BidderBid makeBidderBid(Bid bid,
-                                           Map<String, Imp> impsById,
                                            String currency,
                                            List<BidderError> errors) {
 
         final BidType bidType;
         try {
-            bidType = resolveBidType(bid, impsById);
+            bidType = resolveBidType(bid);
         } catch (PreBidException e) {
             errors.add(BidderError.badServerResponse(e.getMessage()));
             return null;
@@ -199,44 +184,18 @@ public class BidwaveBidder implements Bidder<BidRequest> {
         return BidderBid.of(bid, bidType, currency);
     }
 
-    private static BidType resolveBidType(Bid bid, Map<String, Imp> impsById) {
+    private static BidType resolveBidType(Bid bid) {
         final Integer markupType = bid.getMtype();
         if (markupType == null) {
-            return resolveBidTypeFromImp(bid.getImpid(), impsById);
+            throw new PreBidException("Bid must have non-zero MType for impression with ID: \"%s\""
+                    .formatted(bid.getImpid()));
         }
 
         return switch (markupType) {
             case 1 -> BidType.banner;
             case 2 -> BidType.video;
-            default -> throw new PreBidException("Unsupported mtype %d for imp %s"
+            default -> throw new PreBidException("Unsupported MType %d for impression with ID: \"%s\""
                     .formatted(markupType, bid.getImpid()));
         };
-    }
-
-    private static BidType resolveBidTypeFromImp(String impId, Map<String, Imp> impsById) {
-        final Imp imp = impsById.get(impId);
-        if (imp == null) {
-            throw new PreBidException("Failed to find impression for ID: \"%s\"".formatted(impId));
-        }
-        if (isMultiFormat(imp)) {
-            throw new PreBidException(
-                    "Bid must have non-null mtype for multi format impression with ID: \"%s\"".formatted(impId));
-        }
-        if (imp.getBanner() != null) {
-            return BidType.banner;
-        }
-        if (imp.getVideo() != null) {
-            return BidType.video;
-        }
-        throw new PreBidException("Could not determine bid type for impression with ID: \"%s\"".formatted(impId));
-    }
-
-    private static boolean isMultiFormat(Imp imp) {
-        int formatCount = 0;
-        formatCount += imp.getBanner() == null ? 0 : 1;
-        formatCount += imp.getVideo() == null ? 0 : 1;
-        formatCount += imp.getAudio() == null ? 0 : 1;
-        formatCount += imp.getXNative() == null ? 0 : 1;
-        return formatCount > 1;
     }
 }

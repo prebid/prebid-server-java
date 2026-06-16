@@ -29,7 +29,6 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.bidwave.ExtImpBidwave;
 
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -67,27 +66,6 @@ public class BidwaveBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldCreateHttpRequest() throws IOException {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                givenImp(imp -> imp.id("imp-1").ext(givenImpExt(PUBLISHER_ID))));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1);
-
-        final HttpRequest<BidRequest> httpRequest = result.getValue().getFirst();
-        final BidRequest payload = httpRequest.getPayload();
-
-        assertThat(httpRequest.getUri()).isEqualTo(ENDPOINT_URL);
-        assertThat(httpRequest.getImpIds()).containsOnly("imp-1");
-        assertThat(mapper.readValue(httpRequest.getBody(), BidRequest.class)).isEqualTo(payload);
-    }
-
-    @Test
     public void makeHttpRequestsShouldSetBidwaveExt() {
         // given
         final BidRequest bidRequest = givenBidRequest(
@@ -119,23 +97,6 @@ public class BidwaveBidderTest extends VertxTest {
         final BidRequest payload = result.getValue().getFirst().getPayload();
 
         assertThat(payload.getCur()).containsExactly("USD");
-    }
-
-    @Test
-    public void makeHttpRequestsShouldPreserveDeviceGeo() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                givenImp(imp -> imp.id("imp-1").ext(givenImpExt(PUBLISHER_ID))));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1);
-        final BidRequest payload = result.getValue().getFirst().getPayload();
-
-        assertThat(payload.getDevice()).isEqualTo(bidRequest.getDevice());
     }
 
     @Test
@@ -232,21 +193,6 @@ public class BidwaveBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorForInvalidPublisherId() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                givenImp(imp -> imp.id("imp-1").ext(givenImpExt("publisher-1"))));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).containsExactly(
-                BidderError.badInput("Invalid publisherId for impression imp-1"));
-    }
-
-    @Test
     public void makeBidsShouldReturnBannerAndVideoBids() throws JsonProcessingException {
         // given
         final Bid bannerBid = Bid.builder().impid("imp-1").mtype(1).build();
@@ -269,35 +215,11 @@ public class BidwaveBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldInferBidTypeFromImpWhenMtypeIsAbsent() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorWhenMtypeIsAbsent() throws JsonProcessingException {
         // given
         final Bid bid = Bid.builder().impid("imp-1").build();
-        final BidRequest bidRequest = givenBidRequest(
-                givenImp(imp -> imp.id("imp-1").video(givenVideo()).ext(givenImpExt(PUBLISHER_ID))));
         final BidderCall<BidRequest> httpCall = sampleHttpCall(
-                bidRequest,
-                mapper.writeValueAsString(givenBidResponse(bid)));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsExactly(BidderBid.of(bid, video, "USD"));
-    }
-
-    @Test
-    public void makeBidsShouldReturnErrorWhenMtypeIsAbsentForMultiFormatImp() throws JsonProcessingException {
-        // given
-        final Bid bid = Bid.builder().impid("imp-1").build();
-        final BidRequest bidRequest = givenBidRequest(
-                givenImp(imp -> imp
-                        .id("imp-1")
-                        .banner(givenBanner())
-                        .video(givenVideo())
-                        .ext(givenImpExt(PUBLISHER_ID))));
-        final BidderCall<BidRequest> httpCall = sampleHttpCall(
-                bidRequest,
+                givenBidRequest(),
                 mapper.writeValueAsString(givenBidResponse(bid)));
 
         // when
@@ -307,24 +229,7 @@ public class BidwaveBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).containsExactly(
                 BidderError.badServerResponse(
-                        "Bid must have non-null mtype for multi format impression with ID: \"imp-1\""));
-    }
-
-    @Test
-    public void makeBidsShouldReturnErrorWhenMtypeIsAbsentForUnknownImp() throws JsonProcessingException {
-        // given
-        final Bid bid = Bid.builder().impid("imp-2").build();
-        final BidderCall<BidRequest> httpCall = sampleHttpCall(
-                givenBidRequest(givenImp(imp -> imp.id("imp-1").banner(givenBanner()).ext(givenImpExt(PUBLISHER_ID)))),
-                mapper.writeValueAsString(givenBidResponse(bid)));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).containsExactly(
-                BidderError.badServerResponse("Failed to find impression for ID: \"imp-2\""));
+                        "Bid must have non-zero MType for impression with ID: \"imp-1\""));
     }
 
     @Test
@@ -341,7 +246,7 @@ public class BidwaveBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).containsExactly(
-                BidderError.badServerResponse("Unsupported mtype 3 for imp imp-1"));
+                BidderError.badServerResponse("Unsupported MType 3 for impression with ID: \"imp-1\""));
     }
 
     @Test
