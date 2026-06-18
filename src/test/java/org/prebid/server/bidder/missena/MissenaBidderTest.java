@@ -168,6 +168,121 @@ class MissenaBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldPassOriginalBidRequestAsOrtb2() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.ext(givenImpExt("apiKey")));
+
+        // when
+        final Result<List<HttpRequest<MissenaAdRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).first()
+                .extracting(HttpRequest::getPayload)
+                .extracting(MissenaAdRequest::getBidRequest)
+                .isEqualTo(bidRequest);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldPassUserEidsWhenPresent() {
+        // given
+        final List<Eid> userEids = List.of(Eid.builder()
+                .source("id-source")
+                .uids(List.of(Uid.builder().id("uid").atype(1).build()))
+                .build());
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.ext(givenImpExt("apiKey")))
+                .toBuilder()
+                .user(User.builder().ext(ExtUser.builder().eids(userEids).build()).build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<MissenaAdRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).first()
+                .extracting(HttpRequest::getPayload)
+                .extracting(MissenaAdRequest::getUserEids)
+                .isEqualTo(userEids);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotPassUserEidsWhenUserIsNull() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.ext(givenImpExt("apiKey")))
+                .toBuilder()
+                .user(null)
+                .build();
+
+        // when
+        final Result<List<HttpRequest<MissenaAdRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).first()
+                .extracting(HttpRequest::getPayload)
+                .extracting(MissenaAdRequest::getUserEids)
+                .isNull();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotPassUserEidsWhenEidsAreEmpty() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.ext(givenImpExt("apiKey")))
+                .toBuilder()
+                .user(User.builder().ext(ExtUser.builder().eids(Collections.emptyList()).build()).build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<MissenaAdRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).first()
+                .extracting(HttpRequest::getPayload)
+                .extracting(MissenaAdRequest::getUserEids)
+                .isNull();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetDebugWhenTestIsOne() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.ext(givenImpExt("apiKey")))
+                .toBuilder()
+                .test(1)
+                .build();
+
+        // when
+        final Result<List<HttpRequest<MissenaAdRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).first()
+                .extracting(HttpRequest::getPayload)
+                .extracting(MissenaAdRequest::getDebug)
+                .isEqualTo(true);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotSetDebugWhenTestIsNotOne() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.ext(givenImpExt("apiKey")))
+                .toBuilder()
+                .test(0)
+                .build();
+
+        // when
+        final Result<List<HttpRequest<MissenaAdRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).first()
+                .extracting(HttpRequest::getPayload)
+                .extracting(MissenaAdRequest::getDebug)
+                .isNull();
+    }
+
+    @Test
     public void makeHttpRequestsShouldReturnErrorIfAllImpsAreInvalid() {
         // given
         final BidRequest bidRequest = givenBidRequest(
