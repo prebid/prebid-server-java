@@ -623,7 +623,7 @@ public class CookieSyncServiceTest extends VertxTest {
     }
 
     @Test
-    public void processContextShouldRejectBiddersOverLimit() {
+    public void processContextShouldRejectBiddersOverLimitAndFavorRequestBidders() {
         // given
         givenCoopSyncBidders("coop-sync-bidder");
 
@@ -644,38 +644,13 @@ public class CookieSyncServiceTest extends VertxTest {
         final Future<CookieSyncContext> result = target.processContext(cookieSyncContext);
 
         // then
-        assertThat(result).isSucceeded()
-                .unwrap()
+        assertThat(result).isSucceeded();
+        assertThat(result.result())
                 .extracting(CookieSyncContext::getBiddersContext)
                 .extracting(BiddersContext::allowedBidders)
                 .asInstanceOf(InstanceOfAssertFactories.COLLECTION)
-                .hasSize(1);
-    }
-
-    @Test
-    public void processContextShouldFavorRequestBidders() {
-        // given
-        givenCoopSyncBidders("coop-sync-bidder");
-
-        givenValidActiveBidders("requested-bidder", "coop-sync-bidder");
-        givenUsersyncersForBidders("requested-bidder", "coop-sync-bidder");
-
-        givenAllAllowedTcfResultForBidders("requested-bidder", "coop-sync-bidder");
-
-        final CookieSyncRequest cookieSyncRequest = CookieSyncRequest.builder()
-                .limit(1)
-                .bidders(Set.of("requested-bidder"))
-                .build();
-
-        final CookieSyncContext cookieSyncContext = givenCookieSyncContext(cookieSyncContextBuilder ->
-                cookieSyncContextBuilder.cookieSyncRequest(cookieSyncRequest));
-
-        // when
-        final Future<CookieSyncContext> result = target.processContext(cookieSyncContext);
-
-        // then
-        assertThat(result).isSucceeded()
-                .unwrap()
+                .containsExactly("requested-bidder");
+        assertThat(result.result())
                 .extracting(CookieSyncContext::getBiddersContext)
                 .extracting(BiddersContext::rejectedBidders)
                 .isEqualTo(Map.of("coop-sync-bidder", RejectionReason.OVER_LIMIT));
@@ -698,12 +673,16 @@ public class CookieSyncServiceTest extends VertxTest {
         final Future<CookieSyncContext> result = target.processContext(cookieSyncContext);
 
         // then
-        assertThat(result).isSucceeded()
-                .unwrap()
+        assertThat(result).isSucceeded();
+        assertThat(result.result())
                 .extracting(CookieSyncContext::getBiddersContext)
                 .extracting(BiddersContext::allowedBidders)
-                .asInstanceOf(InstanceOfAssertFactories.set(String.class))
+                .asInstanceOf(InstanceOfAssertFactories.COLLECTION)
                 .containsExactly("coop-sync-bidder");
+        assertThat(result.result())
+                .extracting(CookieSyncContext::getBiddersContext)
+                .extracting(BiddersContext::rejectedBidders)
+                .isEqualTo(Map.of("requested-bidder", RejectionReason.REJECTED_BY_TCF));
     }
 
     @Test
@@ -724,11 +703,16 @@ public class CookieSyncServiceTest extends VertxTest {
         final Future<CookieSyncContext> result = target.processContext(cookieSyncContext);
 
         // then
-        assertThat(result).isSucceeded()
-                .unwrap()
+        assertThat(result).isSucceeded();
+        assertThat(result.result())
                 .extracting(CookieSyncContext::getBiddersContext)
                 .extracting(BiddersContext::rejectedBidders)
                 .isEqualTo(Map.of("coop-sync-bidder", RejectionReason.DUPLICATE_COOKIE_FAMILY_NAME));
+        assertThat(result.result())
+                .extracting(CookieSyncContext::getBiddersContext)
+                .extracting(BiddersContext::allowedBidders)
+                .asInstanceOf(InstanceOfAssertFactories.COLLECTION)
+                .containsExactly("requested-bidder");
     }
 
     @Test
@@ -754,11 +738,16 @@ public class CookieSyncServiceTest extends VertxTest {
         final Future<CookieSyncContext> result = target.processContext(cookieSyncContext);
 
         // then
-        assertThat(result).isSucceeded()
-                .unwrap()
+        assertThat(result).isSucceeded();
+        assertThat(result.result())
                 .extracting(CookieSyncContext::getBiddersContext)
                 .extracting(BiddersContext::rejectedBidders)
                 .isEqualTo(Map.of("requested-bidder", RejectionReason.DISALLOWED_ACTIVITY));
+        assertThat(result.result())
+                .extracting(CookieSyncContext::getBiddersContext)
+                .extracting(BiddersContext::allowedBidders)
+                .asInstanceOf(InstanceOfAssertFactories.COLLECTION)
+                .containsExactly("coop-sync-bidder");
     }
 
     @Test

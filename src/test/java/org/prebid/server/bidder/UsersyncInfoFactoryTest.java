@@ -398,9 +398,10 @@ public class UsersyncInfoFactoryTest {
 
     private static UsersyncMethod givenUsersyncMethod(UnaryOperator<UsersyncMethod.UsersyncMethodBuilder> customize) {
         return customize.apply(UsersyncMethod.builder()
-                .type(UsersyncMethodType.REDIRECT)
-                .usersyncUrl("http://usersync-url")
-                .uidMacro("$UID")).build();
+                        .type(UsersyncMethodType.REDIRECT)
+                        .usersyncUrl("http://usersync-url")
+                        .uidMacro("$UID"))
+                .build();
     }
 
     private static Privacy givenEmptyPrivacy() {

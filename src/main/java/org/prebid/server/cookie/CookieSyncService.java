@@ -3,7 +3,6 @@ package org.prebid.server.cookie;
 import io.vertx.core.Future;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.collections4.SetUtils;
 import org.apache.commons.lang3.ObjectUtils;
@@ -41,6 +40,7 @@ import org.prebid.server.settings.model.AccountCookieSyncConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.util.ObjectUtil;
+import org.prebid.server.util.StreamUtil;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -295,7 +295,7 @@ public class CookieSyncService {
                 biddersWithDuplicateCookieFamilyName.add(bidder);
             }
         }
-        final Set<String> biddersOverLimit = new HashSet<>(IteratorUtils.toList(biddersIterator));
+        final Set<String> biddersOverLimit = StreamUtil.asStream(biddersIterator).collect(Collectors.toSet());
 
         final BiddersContext updatedBiddersContext = cookieSyncContext.getBiddersContext()
                 .withRejectedBidders(biddersOverLimit, RejectionReason.OVER_LIMIT)

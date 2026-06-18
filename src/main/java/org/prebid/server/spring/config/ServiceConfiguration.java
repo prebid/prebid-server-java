@@ -758,7 +758,7 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    UsersyncInfoFactory usersyncInfoBuilder(@Value("${external-url}") String externalUrl) {
+    UsersyncInfoFactory usersyncInfoFactory(@Value("${external-url}") String externalUrl) {
         return new UsersyncInfoFactory(externalUrl);
     }
 

@@ -117,8 +117,8 @@ public class SetuidHandler implements ApplicationResource {
     private static Map<String, Usersyncer> collectUsersyncers(BidderCatalog bidderCatalog) {
         validateUsersyncersDuplicates(bidderCatalog);
         return bidderCatalog.usersyncReadyBidders().stream()
-                .collect(Collectors.toMap(Function.identity(),
-                        bidder -> bidderCatalog.usersyncerByName(bidder).orElseThrow()));
+                .collect(Collectors.toMap(
+                        Function.identity(), bidder -> bidderCatalog.usersyncerByName(bidder).orElseThrow()));
     }
 
     private static void validateUsersyncersDuplicates(BidderCatalog bidderCatalog) {
