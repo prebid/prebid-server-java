@@ -16,8 +16,7 @@ import org.springframework.context.annotation.PropertySource;
 import jakarta.validation.constraints.NotBlank;
 
 @Configuration
-@PropertySource(value = "classpath:/bidder-config/floxis.yaml",
-        factory = YamlPropertySourceFactory.class)
+@PropertySource(value = "classpath:/bidder-config/floxis.yaml", factory = YamlPropertySourceFactory.class)
 public class FloxisConfiguration {
 
     private static final String BIDDER_NAME = "floxis";

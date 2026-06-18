@@ -46,20 +46,6 @@ public class FloxisBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorWhenNoImpressions() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder().id("req-1").imp(null).build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("no impressions in the bid request"));
-    }
-
-    @Test
     public void makeHttpRequestsShouldReturnErrorWhenImpExtCouldNotBeParsed() {
         // given
         final BidRequest bidRequest = givenBidRequest(imp -> imp
@@ -154,17 +140,18 @@ public class FloxisBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnBadInputWhenRegionIsNotAValidHostLabel() {
+    public void makeHttpRequestsShouldUrlEncodeHostParts() {
         // given
-        final BidRequest bidRequest = givenBidRequest(imp -> imp.ext(givenImpExt("abc", "evil.com/x?")));
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.ext(givenImpExt("abc", "a b", "x y")));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1)
-                .allSatisfy(error -> assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input));
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://x+y-a+b.floxis.tech/pbs?seat=abc");
     }
 
     @Test
@@ -180,20 +167,6 @@ public class FloxisBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
                 .containsExactly("https://acme-us-e.floxis.tech/pbs?seat=abc");
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnBadInputWhenPartnerIsNotAValidHostLabel() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(imp -> imp.ext(givenImpExt("abc", "us-e", "evil.com/x?")));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1)
-                .allSatisfy(error -> assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input));
     }
 
     @Test
@@ -455,7 +428,7 @@ public class FloxisBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly(BidderError.badServerResponse(
-                        "bid for multi-format imp imp-1 requires bid.mtype to disambiguate"));
+                        "unable to resolve a single media type for impression imp-1; set bid.mtype"));
     }
 
     @Test
@@ -474,7 +447,7 @@ public class FloxisBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly(BidderError.badServerResponse(
-                        "unable to resolve media type for impression imp-1"));
+                        "unable to resolve a single media type for impression imp-1; set bid.mtype"));
     }
 
     @Test

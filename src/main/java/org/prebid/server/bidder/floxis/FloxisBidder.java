@@ -8,6 +8,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -26,7 +27,6 @@ import org.prebid.server.util.HttpUtil;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.regex.Pattern;
 
 public class FloxisBidder implements Bidder<BidRequest> {
 
@@ -40,10 +40,6 @@ public class FloxisBidder implements Bidder<BidRequest> {
     private static final String DEFAULT_REGION = "us-e";
     private static final String DEFAULT_PARTNER = "floxis";
 
-    // region/partner are interpolated into the request host, so each must be a valid DNS label —
-    // otherwise a value carrying URL delimiters could rewrite the request origin.
-    private static final Pattern HOST_LABEL = Pattern.compile("^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$");
-
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
@@ -54,45 +50,33 @@ public class FloxisBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        if (CollectionUtils.isEmpty(request.getImp())) {
-            return Result.withError(BidderError.badInput("no impressions in the bid request"));
-        }
+        final List<Imp> imps = request.getImp();
+        final Imp firstImp = imps.getFirst();
 
-        final String uri;
+        final ExtImpFloxis firstImpExt;
         try {
-            uri = resolveUrl(endpointUrl, resolveCommonImpExt(request.getImp()));
+            firstImpExt = parseImpExt(firstImp);
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
-        // The request body is forwarded unchanged; no caller-owned struct is mutated.
+        try {
+            for (int i = 1; i < imps.size(); i++) {
+                final Imp imp = imps.get(i);
+                validateImpExt(parseImpExt(imp), firstImpExt, imp.getId(), firstImp.getId());
+            }
+        } catch (PreBidException e) {
+            return Result.withError(BidderError.badInput(e.getMessage()));
+        }
+
         return Result.withValue(HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
-                .uri(uri)
+                .uri(resolveUrl(endpointUrl, firstImpExt))
                 .headers(HttpUtil.headers())
                 .impIds(BidderUtil.impIds(request))
                 .payload(request)
                 .body(mapper.encodeToBytes(request))
                 .build());
-    }
-
-    // A single request routes to one Floxis host/seat (the seat is the URL query key, partner+region
-    // the host). All imps must therefore share the same seat, region and partner; a mismatch is a
-    // misconfigured request rather than something to silently route on imp[0]'s key.
-    private ExtImpFloxis resolveCommonImpExt(List<Imp> imps) {
-        final ExtImpFloxis first = parseImpExt(imps.getFirst());
-        for (Imp imp : imps.subList(1, imps.size())) {
-            final ExtImpFloxis current = parseImpExt(imp);
-            if (!Objects.equals(current.getSeat(), first.getSeat())
-                    || !Objects.equals(current.getRegion(), first.getRegion())
-                    || !Objects.equals(current.getPartner(), first.getPartner())) {
-                throw new PreBidException(
-                        "all impressions must target the same Floxis seat, region and partner; "
-                                + "imp %s differs from imp %s"
-                                .formatted(imp.getId(), imps.getFirst().getId()));
-            }
-        }
-        return first;
     }
 
     private ExtImpFloxis parseImpExt(Imp imp) {
@@ -103,29 +87,32 @@ public class FloxisBidder implements Bidder<BidRequest> {
         }
     }
 
-    // {{Host}} subdomain label for the endpoint template (which pins the fixed .floxis.tech
-    // domain): the region, or partner-region for a named supply partner (floxis has no prefix).
-    private static String resolveBidHost(String region, String partner) {
-        final String resolvedRegion = isBlank(region) ? DEFAULT_REGION : region;
-        final String resolvedPartner = isBlank(partner) ? DEFAULT_PARTNER : partner;
-        if (!HOST_LABEL.matcher(resolvedRegion).matches() || !HOST_LABEL.matcher(resolvedPartner).matches()) {
-            throw new PreBidException(
-                    "invalid Floxis region or partner; both must be DNS labels: region=%s partner=%s"
-                            .formatted(resolvedRegion, resolvedPartner));
-        }
-        return resolvedPartner.equals(DEFAULT_PARTNER)
-                ? resolvedRegion
-                : resolvedPartner + "-" + resolvedRegion;
-    }
+    private static void validateImpExt(ExtImpFloxis impExt,
+                                       ExtImpFloxis firstImpExt,
+                                       String impId,
+                                       String firstImpId) {
 
-    private static boolean isBlank(String value) {
-        return value == null || value.isEmpty();
+        if (!Objects.equals(impExt.getSeat(), firstImpExt.getSeat())
+                || !Objects.equals(impExt.getRegion(), firstImpExt.getRegion())
+                || !Objects.equals(impExt.getPartner(), firstImpExt.getPartner())) {
+            throw new PreBidException(
+                    "all impressions must target the same Floxis seat, region and partner; "
+                            + "imp %s differs from imp %s".formatted(impId, firstImpId));
+        }
     }
 
     private static String resolveUrl(String endpoint, ExtImpFloxis extImp) {
         return endpoint
                 .replace(HOST_MACRO, resolveBidHost(extImp.getRegion(), extImp.getPartner()))
                 .replace(SEAT_MACRO, HttpUtil.encodeUrl(extImp.getSeat()));
+    }
+
+    private static String resolveBidHost(String region, String partner) {
+        final String resolvedRegion = StringUtils.isBlank(region) ? DEFAULT_REGION : region;
+        final String resolvedPartner = StringUtils.isBlank(partner) ? DEFAULT_PARTNER : partner;
+        return resolvedPartner.equals(DEFAULT_PARTNER)
+                ? HttpUtil.encodeUrl(resolvedRegion)
+                : HttpUtil.encodeUrl(resolvedPartner) + "-" + HttpUtil.encodeUrl(resolvedRegion);
     }
 
     @Override
@@ -136,7 +123,10 @@ public class FloxisBidder implements Bidder<BidRequest> {
         } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
+        return extractBids(bidResponse, bidRequest);
+    }
 
+    private static Result<List<BidderBid>> extractBids(BidResponse bidResponse, BidRequest bidRequest) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Result.empty();
         }
@@ -159,9 +149,6 @@ public class FloxisBidder implements Bidder<BidRequest> {
         return Result.of(bids, errors);
     }
 
-    // Resolves the bid's media type. When bid.mtype (OpenRTB 2.6) is set it is treated as
-    // authoritative. When unset, a single-format imp's media type is used; multi-format imps
-    // without mtype cannot be disambiguated and surface an error.
     private static BidType getMediaTypeForBid(List<Imp> imps, Bid bid) {
         final Integer mtype = bid.getMtype();
         if (mtype != null && mtype != 0) {
@@ -175,39 +162,43 @@ public class FloxisBidder implements Bidder<BidRequest> {
             };
         }
 
-        for (Imp imp : imps) {
-            if (!Objects.equals(imp.getId(), bid.getImpid())) {
-                continue;
-            }
-            int formats = 0;
-            BidType resolved = null;
-            if (imp.getBanner() != null) {
-                formats++;
-                resolved = BidType.banner;
-            }
-            if (imp.getVideo() != null) {
-                formats++;
-                resolved = BidType.video;
-            }
-            if (imp.getAudio() != null) {
-                formats++;
-                resolved = BidType.audio;
-            }
-            if (imp.getXNative() != null) {
-                formats++;
-                resolved = BidType.xNative;
-            }
-            if (formats == 1) {
-                return resolved;
-            } else if (formats > 1) {
-                throw new PreBidException(
-                        "bid for multi-format imp %s requires bid.mtype to disambiguate".formatted(bid.getImpid()));
-            } else {
-                throw new PreBidException(
-                        "unable to resolve media type for impression %s".formatted(bid.getImpid()));
-            }
+        final Imp imp = imps.stream()
+                .filter(currentImp -> Objects.equals(currentImp.getId(), bid.getImpid()))
+                .findFirst()
+                .orElseThrow(() -> new PreBidException(
+                        "unable to find impression %s for bid".formatted(bid.getImpid())));
+
+        if (countFormats(imp) != 1) {
+            throw new PreBidException(
+                    "unable to resolve a single media type for impression %s; set bid.mtype"
+                            .formatted(bid.getImpid()));
         }
 
-        throw new PreBidException("unable to find impression %s for bid".formatted(bid.getImpid()));
+        if (imp.getBanner() != null) {
+            return BidType.banner;
+        } else if (imp.getVideo() != null) {
+            return BidType.video;
+        } else if (imp.getAudio() != null) {
+            return BidType.audio;
+        } else {
+            return BidType.xNative;
+        }
+    }
+
+    private static int countFormats(Imp imp) {
+        int formats = 0;
+        if (imp.getBanner() != null) {
+            formats++;
+        }
+        if (imp.getVideo() != null) {
+            formats++;
+        }
+        if (imp.getAudio() != null) {
+            formats++;
+        }
+        if (imp.getXNative() != null) {
+            formats++;
+        }
+        return formats;
     }
 }
