@@ -7,9 +7,6 @@
           "id": "bid001",
           "impid": "impId001",
           "price": 3.33,
-          "adm": "adm001",
-          "adid": "adid001",
-          "cid": "cid001",
           "crid": "crid001",
           "w": 300,
           "h": 250,
@@ -18,14 +15,6 @@
           "ext": {
             "prebid": {
               "type": "banner",
-              "targeting": {
-                "hb_pb": "3.30",
-                "hb_size_synapsehx": "300x250",
-                "hb_bidder_synapsehx": "synapsehx",
-                "hb_size": "300x250",
-                "hb_bidder": "synapsehx",
-                "hb_pb_synapsehx": "3.30"
-              },
               "meta" : {
                 "adaptercode" : "synapsehx"
               }
@@ -41,7 +30,7 @@
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "synapsehx": " synapsehx.response_time_ms }}"
+      "synapsehx": "{{ synapsehx.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 1000
