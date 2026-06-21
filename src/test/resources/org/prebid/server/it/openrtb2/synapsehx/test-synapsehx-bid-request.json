@@ -4,19 +4,14 @@
     {
       "id": "impId001",
       "banner": {
-        "format": [
-          {
-            "w": 300,
-            "h": 250
-          }
-        ]
+        "w": 300,
+        "h": 250
       },
       "secure": 1,
       "ext": {
         "tid": "${json-unit.any-string}",
         "bidder": {
-          "tenantId": "tenant-id-0",
-          "adUnitId": "ad-unit-id-0"
+          "tenantId": "tenant-id-0"
         }
       }
     }
@@ -25,7 +20,6 @@
     "domain": "www.example.com",
     "page": "http://www.example.com",
     "publisher": {
-      "id": "publisherId",
       "domain": "example.com"
     },
     "ext": {
@@ -33,12 +27,8 @@
     }
   },
   "device": {
-    "dnt": 2,
     "ua": "userAgent",
-    "ip": "193.168.244.1",
-    "pxratio": 4.2,
-    "language": "en",
-    "ifa": "ifaId"
+    "ip": "193.168.244.1"
   },
   "at": 1,
   "tmax": "${json-unit.any-number}",
@@ -46,8 +36,7 @@
     "USD"
   ],
   "source": {
-    "fd": 1,
-    "tid": "tid"
+    "tid": "${json-unit.any-string}"
   },
   "regs": {
     "ext": {
@@ -56,23 +45,6 @@
   },
   "ext": {
     "prebid": {
-      "targeting": {
-        "pricegranularity": {
-          "precision": 2,
-          "ranges": [
-            {
-              "max": 20,
-              "increment": 0.1
-            }
-          ]
-        },
-        "includewinners": true,
-        "includebidderkeys": true
-      },
-      "auctiontimestamp": 1000,
-      "channel": {
-        "name": "web"
-      },
       "server": {
         "externalurl": "http://localhost:8080",
         "gvlid": 1,

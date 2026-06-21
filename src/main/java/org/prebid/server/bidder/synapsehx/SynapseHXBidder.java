@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.synapsehx;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
@@ -15,6 +16,7 @@ import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
@@ -35,10 +37,12 @@ import java.util.Optional;
 public class SynapseHXBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpSynapseHX>> SYNAPSE_HX_EXT_TYPE_REFERENCE =
-            new TypeReference<>() { };
+            new TypeReference<>() {
+            };
 
     private static final TypeReference<ExtPrebid<ExtBidPrebid, ?>> EXT_PREBID_TYPE_REFERENCE =
-            new TypeReference<>() { };
+            new TypeReference<>() {
+            };
 
     private static final String OPENRTB_VERSION = "2.6";
 
@@ -52,57 +56,44 @@ public class SynapseHXBidder implements Bidder<BidRequest> {
 
     @Override
     public final Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
-        final List<BidderError> errors = new ArrayList<>();
-
-        final BidRequest filteredBidRequest = bidRequest.toBuilder()
-                .imp(bidRequest.getImp()
-                        .stream()
-                        .map(imp -> validateImp(imp, errors))
-                        .filter(Objects::nonNull)
-                        .toList())
-                .build();
-
-        if (filteredBidRequest.getImp().isEmpty()) {
-            return Result.withErrors(errors);
+        if (bidRequest.getImp().isEmpty()) {
+            return Result.withError(BidderError.badInput("Request has no imps"));
         }
 
-        final Imp firstImp = filteredBidRequest.getImp().getFirst();
-        final String tenantId;
+        final Imp firstImp = bidRequest.getImp().getFirst();
+        final String uri;
 
         try {
-            tenantId = mapper.mapper()
-                    .convertValue(firstImp.getExt(), SYNAPSE_HX_EXT_TYPE_REFERENCE)
-                    .getBidder()
-                    .getTenantId();
-        } catch (IllegalArgumentException e) {
-            return Result.withError(BidderError.badInput("Failed to parse bidder parameters"));
+            final String tenantId = getTenantId(firstImp);
+            uri = makeUri(tenantId);
+        } catch (PreBidException e) {
+            return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
         final MultiMap headers = HttpUtil.headers();
 
         headers.add(HttpUtil.X_OPENRTB_VERSION_HEADER, OPENRTB_VERSION);
 
-        final URIBuilder uriBuilder;
-        try {
-            uriBuilder = new URIBuilder(endpoint);
-        } catch (URISyntaxException e) {
-            return Result.withError(BidderError.badInput("Invalid endpoint URI"));
-        }
-
-        return Result.of(List.of(BidderUtil.defaultRequest(filteredBidRequest,
-                headers, uriBuilder.addParameter("pid", tenantId).toString(), mapper)), errors);
+        return Result.withValue(BidderUtil.defaultRequest(bidRequest, headers, uri, mapper));
     }
 
-    private static Imp validateImp(Imp imp, List<BidderError> errors) {
-        if (imp.getBanner() == null && imp.getVideo() == null) {
-            errors.add(BidderError.badInput(
-                    "imp[%s]: Unsupported media type, bidder supports only banner and video".formatted(imp.getId())));
-            return null;
+    private String getTenantId(Imp firstImp) {
+        try {
+            return mapper.mapper()
+                    .convertValue(firstImp.getExt(), SYNAPSE_HX_EXT_TYPE_REFERENCE)
+                    .getBidder()
+                    .getTenantId();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException("Failed to parse bidder parameters: %s".formatted(e.getMessage()));
         }
-        if (imp.getXNative() != null || imp.getAudio() != null) {
-            return imp.toBuilder().xNative(null).audio(null).build();
+    }
+
+    private String makeUri(String tenantId) {
+        try {
+            return new URIBuilder(endpoint).addParameter("pid", tenantId).toString();
+        } catch (URISyntaxException e) {
+            throw new PreBidException("Invalid endpoint URI: %s".formatted(e.getMessage()));
         }
-        return imp;
     }
 
     @Override
@@ -136,27 +127,31 @@ public class SynapseHXBidder implements Bidder<BidRequest> {
 
     private BidderBid makeBidderBid(Bid bid, BidResponse bidResponse, List<BidderError> bidderErrors) {
         final BidType bidType = getBidType(bid, bidderErrors);
-        if (bidType == null) {
-            return null;
-        }
-
-        return BidderBid.of(bid, bidType, bidResponse.getCur());
+        return bidType == null
+                ? null
+                : BidderBid.of(bid, bidType, bidResponse.getCur());
     }
 
     private BidType getBidType(Bid bid, List<BidderError> errors) {
         final Integer mType = bid.getMtype();
-        if (mType != null) {
-            return switch (mType) {
-                case 1 -> BidType.banner;
-                case 2 -> BidType.video;
-                default -> {
-                    errors.add(BidderError.badServerResponse("Unsupported media type: %d".formatted(mType)));
-                    yield null;
-                }
-            };
-        }
+        return mType != null
+                ? getBidTypeFromMType(mType, errors)
+                : getBidTypeFromExt(bid.getExt(), errors);
+    }
 
-        final BidType bidType = Optional.ofNullable(bid.getExt())
+    private static BidType getBidTypeFromMType(Integer mType, List<BidderError> errors) {
+        return switch (mType) {
+            case 1 -> BidType.banner;
+            case 2 -> BidType.video;
+            default -> {
+                errors.add(BidderError.badServerResponse("Unsupported media type: %d".formatted(mType)));
+                yield null;
+            }
+        };
+    }
+
+    private BidType getBidTypeFromExt(ObjectNode bidExt, List<BidderError> errors) {
+        final BidType bidType = Optional.ofNullable(bidExt)
                 .map(ext -> mapper.mapper().convertValue(ext, EXT_PREBID_TYPE_REFERENCE))
                 .map(ExtPrebid::getPrebid)
                 .map(ExtBidPrebid::getType)

@@ -2,11 +2,9 @@ package org.prebid.server.bidder.synapsehx;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Native;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -26,6 +24,7 @@ import org.prebid.server.proto.openrtb.ext.request.synapsehx.ExtImpSynapseHX;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.UnaryOperator;
@@ -84,50 +83,24 @@ public class SynapseHXBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1).contains(
-                BidderError.badInput("Failed to parse bidder parameters"));
+        assertThat(result.getErrors()).satisfiesExactly(
+                error -> assertThat(error.getMessage()).startsWith("Failed to parse bidder parameters"));
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorWhenImpressionContainsOnlyAudioAndNative() {
+    public void makeHttpRequestsShouldReturnErrorWhenRequestHasNoImps() {
         // given
-        final Audio audio = Audio.builder().mimes(List.of("audio/mp3")).build();
-        final Native xNative = Native.builder().build();
-
-        final BidRequest bidRequest = givenBidRequest(identity(),
-                impBuilder -> impBuilder.id("Imp01").banner(null).video(null).xNative(xNative).audio(audio));
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.imp(new ArrayList<>()),
+                identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1).contains(
-                BidderError.badInput("imp[Imp01]: Unsupported media type, bidder supports only banner and video"));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldRemoveAudioAndNativeFromImpressionIfItContainsSupportedMediaTypes() {
-        // given
-        final Audio audio = Audio.builder().mimes(List.of("audio/mp3")).build();
-        final Native xNative = Native.builder().build();
-        final Banner banner = Banner.builder().build();
-        final BidRequest bidRequest = givenBidRequest(identity(),
-                impBuilder -> impBuilder.id("Imp01").audio(audio).banner(banner).xNative(xNative));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(HttpRequest::getPayload)
-                .flatExtracting(BidRequest::getImp)
-                .allSatisfy(impression -> {
-                    assertThat(impression.getAudio()).isEqualTo(null);
-                    assertThat(impression.getXNative()).isEqualTo(null);
-                    assertThat(impression.getBanner()).isEqualTo(banner);
-                });
+        assertThat(result.getErrors()).satisfiesExactly(
+                error -> assertThat(error.getMessage()).isEqualTo("Request has no imps"));
     }
 
     @Test
@@ -175,18 +148,32 @@ public class SynapseHXBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReportErrorAndSkipBidIfCannotParseBidType() throws JsonProcessingException {
+    public void makeBidsShouldSkipBidWithUnsupportedBidTypeAndKeepValidBid() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 givenBidResponse(
-                        givenBid("Imp1", BidType.banner),
-                        givenBidWithMType("Imp2", BidType.banner),
-                        givenBid("Imp3", BidType.video),
-                        givenBidWithMType("Imp4", BidType.video),
-                        givenBid("Imp5", BidType.xNative),
-                        givenBidWithMType("Imp6", BidType.xNative),
-                        givenBid("Imp7", BidType.audio),
-                        givenBidWithMType("Imp8", BidType.audio),
+                        givenBidWithMType("Imp1", BidType.banner),
+                        givenBidWithMType("Imp2", BidType.audio)));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).satisfiesExactly(
+                error -> assertThat(error.getMessage()).startsWith("Unsupported media type"));
+        assertThat(result.getValue()).satisfiesExactly(
+                bid -> assertThat(bid.getBid().getImpid()).isEqualTo("Imp1"));
+    }
+
+    @Test
+    public void makeBidsShouldReportErrorsSkipForBidsWithUnsupportedOrMissingBidType() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
+                givenBidResponse(
+                        givenBidWithMType("Imp1", BidType.xNative),
+                        givenBidWithMType("Imp2", BidType.audio),
+                        givenBid("Imp3", BidType.xNative),
+                        givenBid("Imp4", BidType.audio),
                         givenBid("Imp9", BidType.banner).toBuilder().ext(null).build()));
 
         // when
@@ -194,10 +181,43 @@ public class SynapseHXBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(5).allSatisfy(
-                error -> assertThat(
-                        error.getMessage()).startsWith("Unsupported media type"));
-        assertThat(result.getValue()).hasSize(4).allSatisfy(
-                bid -> assertThat(bid.getBid().getImpid()).isIn(List.of("Imp1", "Imp2", "Imp3", "Imp4")));
+                error -> assertThat(error.getMessage()).startsWith("Unsupported media type"));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsCorrectlyRecogniseBidTypeWithFallback() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
+                givenBidResponse(
+                        givenBidWithMType("Imp1", BidType.banner),
+                        givenBidWithMType("Imp2", BidType.video),
+                        givenBid("Imp3", BidType.banner),
+                        givenBid("Imp4", BidType.video)));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).satisfiesExactlyInAnyOrder(
+                bid -> {
+                    assertThat(bid.getBid().getImpid()).isEqualTo("Imp1");
+                    assertThat(bid.getType()).isEqualTo(BidType.banner);
+                },
+                bid -> {
+                    assertThat(bid.getBid().getImpid()).isEqualTo("Imp2");
+                    assertThat(bid.getType()).isEqualTo(BidType.video);
+                },
+                bid -> {
+                    assertThat(bid.getBid().getImpid()).isEqualTo("Imp3");
+                    assertThat(bid.getType()).isEqualTo(BidType.banner);
+                },
+                bid -> {
+                    assertThat(bid.getBid().getImpid()).isEqualTo("Imp4");
+                    assertThat(bid.getType()).isEqualTo(BidType.video);
+                }
+        );
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
