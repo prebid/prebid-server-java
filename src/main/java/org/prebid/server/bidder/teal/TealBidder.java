@@ -8,6 +8,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
@@ -177,13 +178,25 @@ public class TealBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, getBidType(bid, bidRequest.getImp()), bidResponse.getCur()))
                 .toList();
     }
 
-    private static BidType getBidType(String impId, List<Imp> imps) {
+    private static BidType getBidType(Bid bid, List<Imp> imps) {
+        final BidType mediaType = Optional.ofNullable(bid.getExt())
+                .map(ext -> ext.get("prebid"))
+                .map(extPrebid -> extPrebid.get("type"))
+                .filter(JsonNode::isTextual)
+                .map(JsonNode::textValue)
+                .map(BidType::fromString)
+                .orElse(null);
+
+        if (mediaType != null) {
+            return mediaType;
+        }
+
         for (Imp imp : imps) {
-            if (imp.getId().equals(impId)) {
+            if (imp.getId().equals(bid.getImpid())) {
                 if (imp.getBanner() != null) {
                     return BidType.banner;
                 } else if (imp.getVideo() != null) {
