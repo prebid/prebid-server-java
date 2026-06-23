@@ -183,7 +183,7 @@ public class TealBidder implements Bidder<BidRequest> {
     }
 
     private static BidType getBidType(Bid bid, List<Imp> imps) {
-        final BidType mediaType = Optional.ofNullable(bid.getExt())
+        final BidType bidType = Optional.ofNullable(bid.getExt())
                 .map(ext -> ext.get("prebid"))
                 .map(extPrebid -> extPrebid.get("type"))
                 .filter(JsonNode::isTextual)
@@ -191,8 +191,8 @@ public class TealBidder implements Bidder<BidRequest> {
                 .map(BidType::fromString)
                 .orElse(null);
 
-        if (mediaType != null) {
-            return mediaType;
+        if (bidType != null) {
+            return bidType;
         }
 
         for (Imp imp : imps) {
