@@ -44,8 +44,8 @@ public class SevioBidder implements Bidder<BidRequest> {
     @Override
     public final Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            final var bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            final var errors = new ArrayList<BidderError>();
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            final List<BidderError> errors = new ArrayList<>();
             return Result.of(extractBids(bidResponse, errors), errors);
         } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
@@ -65,6 +65,7 @@ public class SevioBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
                 .map(bid -> makeBid(bid, bidResponse.getCur(), errors))
                 .filter(Objects::nonNull)
                 .toList();
@@ -80,7 +81,7 @@ public class SevioBidder implements Bidder<BidRequest> {
     }
 
     private static BidType getBidType(Bid bid) {
-        final var mtype = bid.getMtype();
+        final Integer mtype = bid.getMtype();
         if (mtype == null) {
             throw new PreBidException("Missing MType for bid: " + bid.getId());
         }
@@ -88,7 +89,6 @@ public class SevioBidder implements Bidder<BidRequest> {
         return switch (mtype) {
             case 1 -> BidType.banner;
             case 4 -> BidType.xNative;
-            case 2 -> BidType.video;
             default -> throw new PreBidException(
                     "failed to parse bid mtype (%d) for impression id \"%s\"".formatted(mtype, bid.getImpid()));
         };
