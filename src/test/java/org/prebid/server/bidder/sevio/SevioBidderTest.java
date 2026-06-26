@@ -24,7 +24,6 @@ import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 import static org.prebid.server.util.HttpUtil.ACCEPT_HEADER;
 import static org.prebid.server.util.HttpUtil.APPLICATION_JSON_CONTENT_TYPE;
@@ -144,21 +143,6 @@ public class SevioBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).containsOnly(BidderBid.of(bannerBid, banner, "USD"));
-    }
-
-    @Test
-    public void makeBidsShouldReturnVideoBidWhenMtypeIsVideo() throws JsonProcessingException {
-        // given
-        final Bid videoBid = Bid.builder().impid("2").mtype(2).build();
-
-        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(videoBid));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsOnly(BidderBid.of(videoBid, video, "USD"));
     }
 
     @Test

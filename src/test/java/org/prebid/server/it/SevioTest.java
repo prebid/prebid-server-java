@@ -6,12 +6,12 @@ import org.junit.jupiter.api.Test;
 import org.prebid.server.model.Endpoint;
 
 import java.io.IOException;
-import java.util.List;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static java.util.Collections.singletonList;
 
 public class SevioTest extends IntegrationTest {
 
@@ -25,14 +25,13 @@ public class SevioTest extends IntegrationTest {
         // when
         final Response response = responseFor(
                 "openrtb2/sevio/test-auction-sevio-request.json",
-                Endpoint.openrtb2_auction
-        );
+                Endpoint.openrtb2_auction);
 
         // then
         assertJsonEquals(
                 "openrtb2/sevio/test-auction-sevio-response.json",
                 response,
-                List.of("sevio"));
+                singletonList("sevio"));
     }
 
 }

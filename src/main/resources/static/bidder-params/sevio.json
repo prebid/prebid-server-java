@@ -7,7 +7,7 @@
     "placementId": {
       "type": "string",
       "minLength": 1,
-      "description": "Ad placement identifier"
+      "description": "Placement Id or Zone Id"
     }
   },
   "required": [
