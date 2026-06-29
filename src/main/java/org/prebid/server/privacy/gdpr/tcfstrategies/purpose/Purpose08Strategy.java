@@ -1,5 +1,6 @@
 package org.prebid.server.privacy.gdpr.tcfstrategies.purpose;
 
+import org.prebid.server.privacy.gdpr.DisclosedVendorsStrictness;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.typestrategies.BasicEnforcePurposeStrategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.typestrategies.FullEnforcePurposeStrategy;
@@ -8,11 +9,16 @@ import org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode;
 
 public class Purpose08Strategy extends PurposeStrategy {
 
-    public Purpose08Strategy(FullEnforcePurposeStrategy fullEnforcePurposeStrategy,
+    public Purpose08Strategy(DisclosedVendorsStrictness disclosedVendorsStrictness,
+                             FullEnforcePurposeStrategy fullEnforcePurposeStrategy,
                              BasicEnforcePurposeStrategy basicEnforcePurposeStrategy,
                              NoEnforcePurposeStrategy noEnforcePurposeStrategy) {
 
-        super(fullEnforcePurposeStrategy, basicEnforcePurposeStrategy, noEnforcePurposeStrategy);
+        super(
+                disclosedVendorsStrictness,
+                fullEnforcePurposeStrategy,
+                basicEnforcePurposeStrategy,
+                noEnforcePurposeStrategy);
     }
 
     @Override
