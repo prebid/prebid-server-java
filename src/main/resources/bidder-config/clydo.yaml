@@ -1,6 +1,6 @@
 adapters:
   clydo:
-    endpoint: http://region={{Region}}.clydo.io/partnerId={{PartnerId}}
+    endpoint: http://{{Region}}.clydo.io/{{PartnerId}}
     modifying-vast-xml-allowed: true
     endpoint-compression: gzip
     geoscope:
