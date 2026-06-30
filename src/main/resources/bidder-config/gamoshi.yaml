@@ -1,6 +1,6 @@
 adapters:
   gamoshi:
-    endpoint: https://rtb.gamoshi.io
+    endpoint: https://rtb.gamoshi.io/r/{SupplyPartnerId}/bidr?bidder=prebid-server
     meta-info:
       maintainer-email: dev@gamoshi.com
       app-media-types:

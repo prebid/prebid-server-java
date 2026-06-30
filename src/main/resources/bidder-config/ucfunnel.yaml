@@ -1,6 +1,6 @@
 adapters:
   ucfunnel:
-    endpoint: https://pbs.aralego.com/prebid
+    endpoint: https://pbs.aralego.com/prebid/{PartnerId}/request
     meta-info:
       maintainer-email: support@ucfunnel.com
       app-media-types:

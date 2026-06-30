@@ -1,6 +1,6 @@
 adapters:
   kueezrtb:
-    endpoint: https://prebidsrvr.kueezrtb.com/openrtb/
+    endpoint: https://prebidsrvr.kueezrtb.com/openrtb/{ConnectionId}
     endpoint-compression: gzip
     meta-info:
       maintainer-email: rtb@kueez.com

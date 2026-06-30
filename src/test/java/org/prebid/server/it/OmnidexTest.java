@@ -18,7 +18,7 @@ public class OmnidexTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromOmnidex() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/omnidex-exchange/connectionId"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/omnidex-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/omnidex/test-omnidex-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/omnidex/test-omnidex-bid-response.json"))));
 

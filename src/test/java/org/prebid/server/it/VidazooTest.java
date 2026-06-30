@@ -18,7 +18,7 @@ public class VidazooTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromVidazoo() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/vidazoo-exchange/connectionId"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/vidazoo-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/vidazoo/test-vidazoo-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/vidazoo/test-vidazoo-bid-response.json"))));
 
