@@ -76,12 +76,10 @@ public class ConditionalLogger {
     private void log(String message, long duration, TimeUnit unit, Consumer<String> logger) {
         final String key = ObjectUtils.defaultIfNull(this.key, message);
         final Instant currentTime = Instant.now();
-        final Instant endTime = messageToWait.computeIfAbsent(
-                key, ignored -> calculateEndTime(currentTime, duration, unit));
+        final Instant endTime = messageToWait.get(key);
 
-        // we skip 1st ever log event for the key
-        if (currentTime.isAfter(endTime) || currentTime.equals(endTime)) {
-            messageToWait.replace(key, endTime, calculateEndTime(currentTime, duration, unit));
+        if (endTime == null || endTime.isBefore(currentTime)) {
+            messageToWait.put(key, calculateEndTime(currentTime, duration, unit));
             logger.accept(message);
         }
     }

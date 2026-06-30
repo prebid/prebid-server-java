@@ -59,7 +59,7 @@ public class ConditionalLoggerTest {
         }
 
         // then
-        verify(logger, times(2)).info("Log Message");
+        verify(logger, times(3)).info("Log Message");
     }
 
     @Test
@@ -74,7 +74,7 @@ public class ConditionalLoggerTest {
         }
 
         // then
-        verify(logger, times(2)).info(argThat(o -> o.toString().startsWith("Log Message")));
+        verify(logger, times(3)).info(argThat(o -> o.toString().startsWith("Log Message")));
     }
 
     private void doWait(long timeout) {
