@@ -46,6 +46,7 @@ public class UndertoneBidder implements Bidder<BidRequest> {
     private static final int ADAPTER_ID = 3;
     private static final String VERSION = "1.0.0";
     private static final String GPID_FIELD = "gpid";
+
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
