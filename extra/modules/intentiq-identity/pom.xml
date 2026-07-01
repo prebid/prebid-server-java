@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.prebid.server.hooks.modules</groupId>
+        <artifactId>all-modules</artifactId>
+        <version>3.44.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>intentiq-identity</artifactId>
+
+    <name>intentiq-identity</name>
+    <description>IntentIQ server-side identity resolution module</description>
+
+    <properties>
+        <uap-java.version>1.6.1</uap-java.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-redis-client</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.github.ua-parser</groupId>
+            <artifactId>uap-java</artifactId>
+            <version>${uap-java.version}</version>
+        </dependency>
+    </dependencies>
+</project>

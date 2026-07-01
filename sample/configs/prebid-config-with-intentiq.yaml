@@ -1,0 +1,106 @@
+status-response: "ok"
+adapters:
+  generic:
+    enabled: true
+    endpoint: http://localhost:9099/bidder
+  appnexus:
+    enabled: true
+  ix:
+    enabled: true
+  openx:
+    enabled: true
+  pubmatic:
+    enabled: true
+  rubicon:
+    enabled: true
+metrics:
+  prefix: prebid
+  # JVM/system health (free memory, GC) is collected at the deployment level (JMX/process exporter),
+  # not by this module — keeps the shippable module free of server-level concerns.
+  prometheus:
+    enabled: true
+    port: 9090
+    namespace: prebid
+    custom-labels-enabled: false
+cache:
+  scheme: http
+  host: localhost
+  path: /cache
+  query: uuid=
+settings:
+  enforce-valid-account: false
+  generate-storedrequest-bidrequest-id: true
+  filesystem:
+    settings-filename: sample/configs/sample-app-settings.yaml
+    stored-requests-dir: sample
+    stored-imps-dir: sample
+    stored-responses-dir: sample/stored
+    categories-dir:
+gdpr:
+  default-value: 1
+  vendorlist:
+    v2:
+      cache-dir: /var/tmp/vendor2
+    v3:
+      cache-dir: /var/tmp/vendor3
+admin-endpoints:
+  logging-changelevel:
+    enabled: true
+    path: /logging/changelevel
+    on-application-port: true
+    protected: false
+hooks:
+  intentiq-identity:
+    enabled: true
+  host-execution-plan: >
+    {
+      "endpoints": {
+        "/openrtb2/auction": {
+          "stages": {
+            "processed-auction-request": {
+              "groups": [
+                {
+                  "timeout": 6000,
+                  "hook-sequence": [
+                    {
+                      "module-code": "intentiq-identity",
+                      "hook-impl-code": "intentiq-identity-processed-auction-request-hook"
+                    }
+                  ]
+                }
+              ]
+            },
+            "auction-response": {
+              "groups": [
+                {
+                  "timeout": 6000,
+                  "hook-sequence": [
+                    {
+                      "module-code": "intentiq-identity",
+                      "hook-impl-code": "intentiq-identity-auction-response-hook"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  modules:
+    intentiq-identity:
+      api-endpoint: http://127.0.0.1:9098/profiles_engine/ProfilesEngineServlet
+      reports-endpoint: http://127.0.0.1:9098/profiles_engine/ProfilesEngineServlet
+      partner-id: "383342646"
+      timeout: 6000
+      cache-max-size: 100000
+      cache:
+        enabled: true
+        ttlseconds: 43200
+        # dev: keep the in-progress marker short so a timed-out VR retries soon instead of
+        # poisoning the device key for 30 min (default 1800s) when the VPN is slow/flapping.
+        in-progress-ttl-seconds: 30
+      redis:
+        host: 127.0.0.1
+        port: 6379
+        password:
