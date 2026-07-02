@@ -9,8 +9,8 @@ import org.prebid.server.functional.tests.privacy.PrivacyBaseSpec
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.CcpaConsent
 import org.prebid.server.functional.util.privacy.TcfConsent
-import org.prebid.server.functional.util.privacy.gpp.v2.TcfEuV2Consent
 import org.prebid.server.functional.util.privacy.gpp.v1.UspV1Consent
+import org.prebid.server.functional.util.privacy.gpp.v2.TcfEuV2Consent
 
 import static org.prebid.server.functional.model.request.GppSectionId.TCF_EU_V2
 import static org.prebid.server.functional.model.request.GppSectionId.USP_V1
@@ -109,7 +109,7 @@ class GppAuctionSpec extends PrivacyBaseSpec {
 
     def "PBS should emit warning when GPP string is invalid"() {
         given: "Default bid request with invalid gpp"
-        def invalidGpp = "Invalid_GPP_Consent_String"
+        def invalidGpp = invalidGppString
         def bidRequest = BidRequest.defaultBidRequest.tap {
             regs = new Regs(gpp: invalidGpp)
         }

@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests.privacy.gpp
 
+import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.Activity
@@ -9,15 +10,11 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Condition
 import org.prebid.server.functional.model.request.auction.Source
 import org.prebid.server.functional.tests.privacy.PrivacyBaseSpec
+import org.prebid.server.functional.util.Metrics
 import org.prebid.server.functional.util.PBSUtils
 
 import java.time.Instant
 
-import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ACCOUNT_DISALLOWED_COUNT
-import static org.prebid.server.functional.model.privacy.Metric.ACCOUNT_PROCESSED_RULES_COUNT
-import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ADAPTER_DISALLOWED_COUNT
-import static org.prebid.server.functional.model.privacy.Metric.PROCESSED_ACTIVITY_RULES_COUNT
-import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_REQUEST_DISALLOWED_COUNT
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_TID
 import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
 
@@ -56,8 +53,8 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(bidRequest, TRANSMIT_TID)] == 1
-        assert metrics[ACCOUNT_PROCESSED_RULES_COUNT.getValue(bidRequest, TRANSMIT_TID)] == 1
+        assert metrics[Metrics.Privacy.requestProcessedActivityCount()] == 1
+        assert metrics[Metrics.Privacy.accountProcessedRulesCount(accountId)] == 1
 
         where: "Activities fields name in different case"
         activities << [AllowActivities.getDefaultAllowActivities(TRANSMIT_TID, Activity.defaultActivity),
@@ -225,9 +222,9 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_TID)] == 1
-        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_TID)] == 1
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_TID)] == 1
+        assert metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_TID)] == 1
+        assert metrics[Metrics.Privacy.accountDisallowedActivityCount(accountId, TRANSMIT_TID)] == 1
+        assert metrics[Metrics.Privacy.adapterDisallowedActivityCount(BidderName.GENERIC, TRANSMIT_TID)] == 1
     }
 
     def "PBS auction should remove bidRequest.(source/imp[0].ext).tid and don't change schain in request when ext.prebid.createTids=#createTid and defaultAction=false and schain specified in request"() {
@@ -427,7 +424,7 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(ampStoredRequest, TRANSMIT_TID)] == 1
+        assert metrics[Metrics.Privacy.requestProcessedActivityCount()] == 1
     }
 
     def "PBS amp should generate id for bidRequest.(source/imp[0].ext).tid when ext.prebid.createTids=true and transmit activity allowed"() {

@@ -1,7 +1,6 @@
 package org.prebid.server.functional.model.config
 
 import com.fasterxml.jackson.annotation.JsonValue
-import org.prebid.server.functional.model.ModuleName
 
 //TODO remove if module hooks implementation codes will become consistent
 enum ModuleHookImplementation {

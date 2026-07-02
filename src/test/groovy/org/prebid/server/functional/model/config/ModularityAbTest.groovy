@@ -7,7 +7,7 @@ import groovy.transform.ToString
 
 @ToString(includeNames = true, ignoreNulls = true)
 @JsonNaming(PropertyNamingStrategies.KebabCaseStrategy)
-class AbTest {
+class ModularityAbTest {
 
     Boolean enabled
     String moduleCode
@@ -21,8 +21,8 @@ class AbTest {
     @JsonProperty("log_analytics_tag")
     Boolean logAnalyticsTagSnakeCase
 
-    static AbTest getDefault(String moduleCode, List<Integer> accounts = null) {
-        new AbTest(enabled: true,
+    static ModularityAbTest getDefault(String moduleCode, List<Integer> accounts = null) {
+        new ModularityAbTest(enabled: true,
                 moduleCode: moduleCode,
                 accounts: accounts,
                 percentActive: 0,

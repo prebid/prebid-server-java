@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests.privacy.gpp
 
+import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.config.AccountGdprConfig
 import org.prebid.server.functional.model.config.AccountGppConfig
 import org.prebid.server.functional.model.config.ActivityConfig
@@ -15,6 +16,7 @@ import org.prebid.server.functional.model.privacy.gpp.MspaMode
 import org.prebid.server.functional.model.privacy.gpp.Notice
 import org.prebid.server.functional.model.privacy.gpp.OptOut
 import org.prebid.server.functional.model.privacy.gpp.UsNationalV1ChildSensitiveData
+import org.prebid.server.functional.model.privacy.gpp.UsNationalV1SensitiveData
 import org.prebid.server.functional.model.privacy.gpp.UsNationalV2ChildSensitiveData
 import org.prebid.server.functional.model.privacy.gpp.UsNationalV2SensitiveData
 import org.prebid.server.functional.model.request.amp.AmpRequest
@@ -27,6 +29,7 @@ import org.prebid.server.functional.model.request.auction.Geo
 import org.prebid.server.functional.model.request.auction.RegsExt
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.tests.privacy.PrivacyBaseSpec
+import org.prebid.server.functional.util.Metrics
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.gpp.v1.UsCaV1Consent
 import org.prebid.server.functional.util.privacy.gpp.v1.UsCoV1Consent
@@ -34,7 +37,6 @@ import org.prebid.server.functional.util.privacy.gpp.v1.UsCtV1Consent
 import org.prebid.server.functional.util.privacy.gpp.v1.UsNatV1Consent
 import org.prebid.server.functional.util.privacy.gpp.v1.UsUtV1Consent
 import org.prebid.server.functional.util.privacy.gpp.v1.UsVaV1Consent
-import org.prebid.server.functional.model.privacy.gpp.UsNationalV1SensitiveData
 import org.prebid.server.functional.util.privacy.gpp.v2.UsNatV2Consent
 
 import java.time.Instant
@@ -60,11 +62,6 @@ import static org.prebid.server.functional.model.config.UsNationalPrivacySection
 import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SHARING_NOTICE
 import static org.prebid.server.functional.model.pricefloors.Country.CAN
 import static org.prebid.server.functional.model.pricefloors.Country.USA
-import static org.prebid.server.functional.model.privacy.Metric.ACCOUNT_PROCESSED_RULES_COUNT
-import static org.prebid.server.functional.model.privacy.Metric.PROCESSED_ACTIVITY_RULES_COUNT
-import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ACCOUNT_DISALLOWED_COUNT
-import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ADAPTER_DISALLOWED_COUNT
-import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_REQUEST_DISALLOWED_COUNT
 import static org.prebid.server.functional.model.privacy.gpp.GppDataActivity.CONSENT
 import static org.prebid.server.functional.model.privacy.gpp.GppDataActivity.NOT_APPLICABLE
 import static org.prebid.server.functional.model.privacy.gpp.GppDataActivity.NO_CONSENT
@@ -116,12 +113,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == bidRequest.device.macmd5
             bidderRequest.device.dpidmd5 == bidRequest.device.dpidmd5
             bidderRequest.user.id == bidRequest.user.id
-            bidderRequest.user.buyeruid == bidRequest.user.buyeruid
+            bidderRequest.user.buyerUid == bidRequest.user.buyerUid
             bidderRequest.user.yob == bidRequest.user.yob
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
             bidderRequest.user.geo == bidRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == bidRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -129,8 +126,8 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[ACCOUNT_PROCESSED_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.requestProcessedActivityCount()] == 1
+        assert metrics[Metrics.Privacy.accountProcessedRulesCount(bidRequest.accountId)] == 1
 
         where: "Activities fields name in different case"
         activities << [AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.defaultActivity),
@@ -166,7 +163,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
@@ -179,9 +176,9 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.accountDisallowedActivityCount(accountId, TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.adapterDisallowedActivityCount(BidderName.GENERIC, TRANSMIT_UFPD)] == 1
 
         where: "Activities fields name in different case"
         activities << [AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)])),
@@ -218,7 +215,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
@@ -294,12 +291,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == bidRequest.device.macmd5
             bidderRequest.device.dpidmd5 == bidRequest.device.dpidmd5
             bidderRequest.user.id == bidRequest.user.id
-            bidderRequest.user.buyeruid == bidRequest.user.buyeruid
+            bidderRequest.user.buyerUid == bidRequest.user.buyerUid
             bidderRequest.user.yob == bidRequest.user.yob
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
             bidderRequest.user.geo == bidRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == bidRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -337,7 +334,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
@@ -389,12 +386,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == bidRequest.device.macmd5
             bidderRequest.device.dpidmd5 == bidRequest.device.dpidmd5
             bidderRequest.user.id == bidRequest.user.id
-            bidderRequest.user.buyeruid == bidRequest.user.buyeruid
+            bidderRequest.user.buyerUid == bidRequest.user.buyerUid
             bidderRequest.user.yob == bidRequest.user.yob
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
             bidderRequest.user.geo == bidRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == bidRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -402,8 +399,8 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[ACCOUNT_PROCESSED_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.requestProcessedActivityCount()] == 1
+        assert metrics[Metrics.Privacy.accountProcessedRulesCount(bidRequest.accountId)] == 1
 
         where:
         regsGppSid        | conditionGppSid
@@ -451,7 +448,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.geo
@@ -464,9 +461,9 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.accountDisallowedActivityCount(accountId, TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.adapterDisallowedActivityCount(BidderName.GENERIC, TRANSMIT_UFPD)] == 1
     }
 
     def "PBS auction should process rule when device.geo doesn't intersection"() {
@@ -511,12 +508,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == bidRequest.device.macmd5
             bidderRequest.device.dpidmd5 == bidRequest.device.dpidmd5
             bidderRequest.user.id == bidRequest.user.id
-            bidderRequest.user.buyeruid == bidRequest.user.buyeruid
+            bidderRequest.user.buyerUid == bidRequest.user.buyerUid
             bidderRequest.user.yob == bidRequest.user.yob
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
             bidderRequest.user.geo == bidRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == bidRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -524,8 +521,8 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[ACCOUNT_PROCESSED_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.requestProcessedActivityCount()] == 1
+        assert metrics[Metrics.Privacy.accountProcessedRulesCount(bidRequest.accountId)] == 1
 
         where:
         deviceGeo                                           | conditionGeo
@@ -577,7 +574,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.geo
@@ -590,9 +587,9 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.accountDisallowedActivityCount(accountId, TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.adapterDisallowedActivityCount(BidderName.GENERIC, TRANSMIT_UFPD)] == 1
 
         where:
         deviceGeo                                           | conditionGeo
@@ -641,12 +638,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == bidRequest.device.macmd5
             bidderRequest.device.dpidmd5 == bidRequest.device.dpidmd5
             bidderRequest.user.id == bidRequest.user.id
-            bidderRequest.user.buyeruid == bidRequest.user.buyeruid
+            bidderRequest.user.buyerUid == bidRequest.user.buyerUid
             bidderRequest.user.yob == bidRequest.user.yob
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
             bidderRequest.user.geo == bidRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == bidRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -654,8 +651,8 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[ACCOUNT_PROCESSED_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.requestProcessedActivityCount()] == 1
+        assert metrics[Metrics.Privacy.accountProcessedRulesCount(bidRequest.accountId)] == 1
     }
 
     def "PBS auction should disallowed rule when regs.ext.gpc intersection with condition.gpc"() {
@@ -700,7 +697,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.geo
@@ -713,9 +710,9 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.accountDisallowedActivityCount(accountId, TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.adapterDisallowedActivityCount(BidderName.GENERIC, TRANSMIT_UFPD)] == 1
     }
 
     def "PBS auction should process rule when header gpc doesn't intersection with condition.gpc"() {
@@ -759,12 +756,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == bidRequest.device.macmd5
             bidderRequest.device.dpidmd5 == bidRequest.device.dpidmd5
             bidderRequest.user.id == bidRequest.user.id
-            bidderRequest.user.buyeruid == bidRequest.user.buyeruid
+            bidderRequest.user.buyerUid == bidRequest.user.buyerUid
             bidderRequest.user.yob == bidRequest.user.yob
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
             bidderRequest.user.geo.zip == bidRequest.user.geo.zip
-            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == bidRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -772,8 +769,8 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[ACCOUNT_PROCESSED_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.requestProcessedActivityCount()] == 1
+        assert metrics[Metrics.Privacy.accountProcessedRulesCount(bidRequest.accountId)] == 1
     }
 
     def "PBS auction should disallowed rule when header gpc intersection with condition.gpc"() {
@@ -817,7 +814,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.geo
@@ -830,9 +827,9 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.accountDisallowedActivityCount(accountId, TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.adapterDisallowedActivityCount(BidderName.GENERIC, TRANSMIT_UFPD)] == 1
     }
 
     def "PBS auction call when privacy regulation match and rejecting should remove UFPD fields in request"() {
@@ -869,7 +866,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
@@ -920,7 +917,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
@@ -1090,7 +1087,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
@@ -1157,7 +1154,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
@@ -1242,7 +1239,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
@@ -1303,12 +1300,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == bidRequest.device.macmd5
             bidderRequest.device.dpidmd5 == bidRequest.device.dpidmd5
             bidderRequest.user.id == bidRequest.user.id
-            bidderRequest.user.buyeruid == bidRequest.user.buyeruid
+            bidderRequest.user.buyerUid == bidRequest.user.buyerUid
             bidderRequest.user.yob == bidRequest.user.yob
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
             bidderRequest.user.geo.zip == bidRequest.user.geo.zip
-            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == bidRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -1322,9 +1319,9 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[ACCOUNT_PROCESSED_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[Metrics.Privacy.requestProcessedActivityCount()] == 1
+        assert metrics[Metrics.Privacy.accountProcessedRulesCount(bidRequest.accountId)] == 1
+        assert metrics[Metrics.General.alert()] == 1
 
         and: "Logs should contain error"
         def logs = activityPbsService.getLogsByTime(startTime)
@@ -1335,7 +1332,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
     def "PBS auction call when privacy module contain invalid GPP string shouldn't remove UFPD fields in request and emit warning in response"() {
         given: "Default Generic BidRequests with UFPD fields and account id"
         def accountId = PBSUtils.randomNumber as String
-        def invalidGpp = PBSUtils.randomString
+        def invalidGpp = invalidGppString
         def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             regs.gppSid = [US_NAT_V1.intValue]
             regs.gpp = invalidGpp
@@ -1373,12 +1370,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == bidRequest.device.macmd5
             bidderRequest.device.dpidmd5 == bidRequest.device.dpidmd5
             bidderRequest.user.id == bidRequest.user.id
-            bidderRequest.user.buyeruid == bidRequest.user.buyeruid
+            bidderRequest.user.buyerUid == bidRequest.user.buyerUid
             bidderRequest.user.yob == bidRequest.user.yob
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
             bidderRequest.user.geo.zip == bidRequest.user.geo.zip
-            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == bidRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -1392,8 +1389,8 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[ACCOUNT_PROCESSED_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.requestProcessedActivityCount()] == 1
+        assert metrics[Metrics.Privacy.accountProcessedRulesCount(bidRequest.accountId)] == 1
     }
 
     def "PBS auction call when request have different gpp consent but match and rejecting should remove UFPD fields in request"() {
@@ -1432,7 +1429,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
@@ -1488,12 +1485,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == bidRequest.device.macmd5
             bidderRequest.device.dpidmd5 == bidRequest.device.dpidmd5
             bidderRequest.user.id == bidRequest.user.id
-            bidderRequest.user.buyeruid == bidRequest.user.buyeruid
+            bidderRequest.user.buyerUid == bidRequest.user.buyerUid
             bidderRequest.user.yob == bidRequest.user.yob
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
             bidderRequest.user.geo == bidRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == bidRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -1547,12 +1544,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == bidRequest.device.macmd5
             bidderRequest.device.dpidmd5 == bidRequest.device.dpidmd5
             bidderRequest.user.id == bidRequest.user.id
-            bidderRequest.user.buyeruid == bidRequest.user.buyeruid
+            bidderRequest.user.buyerUid == bidRequest.user.buyerUid
             bidderRequest.user.yob == bidRequest.user.yob
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
             bidderRequest.user.geo == bidRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == bidRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -1566,11 +1563,11 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[ACCOUNT_PROCESSED_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.requestProcessedActivityCount()] == 1
+        assert metrics[Metrics.Privacy.accountProcessedRulesCount(bidRequest.accountId)] == 1
 
         and: "General alert metric shouldn't be updated"
-        !metrics[ALERT_GENERAL]
+        !metrics[Metrics.General.alert()]
 
         where:
         regsGpp << [null, "", new UsNatV1Consent.Builder().build(), new UsNatV1Consent.Builder().setGpc(false).build()]
@@ -1616,12 +1613,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == bidRequest.device.macmd5
             bidderRequest.device.dpidmd5 == bidRequest.device.dpidmd5
             bidderRequest.user.id == bidRequest.user.id
-            bidderRequest.user.buyeruid == bidRequest.user.buyeruid
+            bidderRequest.user.buyerUid == bidRequest.user.buyerUid
             bidderRequest.user.yob == bidRequest.user.yob
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
             bidderRequest.user.geo == bidRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == bidRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -1629,7 +1626,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[Metrics.General.alert()] == 1
     }
 
     def "PBS auction call when privacy module contain invalid property should respond with an error"() {
@@ -1702,12 +1699,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == bidRequest.device.macmd5
             bidderRequest.device.dpidmd5 == bidRequest.device.dpidmd5
             bidderRequest.user.id == bidRequest.user.id
-            bidderRequest.user.buyeruid == bidRequest.user.buyeruid
+            bidderRequest.user.buyerUid == bidRequest.user.buyerUid
             bidderRequest.user.yob == bidRequest.user.yob
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
             bidderRequest.user.geo == bidRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == bidRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -1761,7 +1758,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
@@ -1828,7 +1825,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[Metrics.General.alert()] == 1
 
         and: "Generic bidder request should have data in UFPD fields"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -1843,12 +1840,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == bidRequest.device.macmd5
             bidderRequest.device.dpidmd5 == bidRequest.device.dpidmd5
             bidderRequest.user.id == bidRequest.user.id
-            bidderRequest.user.buyeruid == bidRequest.user.buyeruid
+            bidderRequest.user.buyerUid == bidRequest.user.buyerUid
             bidderRequest.user.yob == bidRequest.user.yob
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
             bidderRequest.user.geo == bidRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == bidRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -1902,7 +1899,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
@@ -2073,12 +2070,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == ampStoredRequest.device.macmd5
             bidderRequest.device.dpidmd5 == ampStoredRequest.device.dpidmd5
             bidderRequest.user.id == ampStoredRequest.user.id
-            bidderRequest.user.buyeruid == ampStoredRequest.user.buyeruid
+            bidderRequest.user.buyerUid == ampStoredRequest.user.buyerUid
             bidderRequest.user.yob == ampStoredRequest.user.yob
             bidderRequest.user.gender == ampStoredRequest.user.gender
             bidderRequest.user.data == ampStoredRequest.user.data
             bidderRequest.user.geo == ampStoredRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == ampStoredRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -2086,7 +2083,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.requestProcessedActivityCount()] == 1
     }
 
     def "PBS amp call when transmit UFPD activities is rejecting request should remove UFPD fields field in active request and update disallowed metrics"() {
@@ -2128,7 +2125,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
@@ -2141,8 +2138,8 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.adapterDisallowedActivityCount(BidderName.GENERIC, TRANSMIT_UFPD)] == 1
     }
 
     def "PBS amp call when default activity setting set to false should remove UFPD fields from request"() {
@@ -2182,7 +2179,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
@@ -2276,12 +2273,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == ampStoredRequest.device.macmd5
             bidderRequest.device.dpidmd5 == ampStoredRequest.device.dpidmd5
             bidderRequest.user.id == ampStoredRequest.user.id
-            bidderRequest.user.buyeruid == ampStoredRequest.user.buyeruid
+            bidderRequest.user.buyerUid == ampStoredRequest.user.buyerUid
             bidderRequest.user.yob == ampStoredRequest.user.yob
             bidderRequest.user.gender == ampStoredRequest.user.gender
             bidderRequest.user.data == ampStoredRequest.user.data
             bidderRequest.user.geo == ampStoredRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == ampStoredRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -2328,7 +2325,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
@@ -2386,7 +2383,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
@@ -2399,8 +2396,8 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.adapterDisallowedActivityCount(BidderName.GENERIC, TRANSMIT_UFPD)] == 1
     }
 
     def "PBS amp should allowed rule when gpc header doesn't intersection with condition.gpc"() {
@@ -2448,12 +2445,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == ampStoredRequest.device.macmd5
             bidderRequest.device.dpidmd5 == ampStoredRequest.device.dpidmd5
             bidderRequest.user.id == ampStoredRequest.user.id
-            bidderRequest.user.buyeruid == ampStoredRequest.user.buyeruid
+            bidderRequest.user.buyerUid == ampStoredRequest.user.buyerUid
             bidderRequest.user.yob == ampStoredRequest.user.yob
             bidderRequest.user.gender == ampStoredRequest.user.gender
             bidderRequest.user.data == ampStoredRequest.user.data
             bidderRequest.user.geo == ampStoredRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == ampStoredRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -2461,7 +2458,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.requestProcessedActivityCount()] == 1
     }
 
     def "PBS amp call when privacy regulation match and rejecting should remove UFPD fields in request"() {
@@ -2507,7 +2504,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
@@ -2572,7 +2569,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
@@ -2664,7 +2661,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
@@ -2844,7 +2841,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
@@ -2923,12 +2920,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == ampStoredRequest.device.macmd5
             bidderRequest.device.dpidmd5 == ampStoredRequest.device.dpidmd5
             bidderRequest.user.id == ampStoredRequest.user.id
-            bidderRequest.user.buyeruid == ampStoredRequest.user.buyeruid
+            bidderRequest.user.buyerUid == ampStoredRequest.user.buyerUid
             bidderRequest.user.yob == ampStoredRequest.user.yob
             bidderRequest.user.gender == ampStoredRequest.user.gender
             bidderRequest.user.data == ampStoredRequest.user.data
             bidderRequest.user.geo == ampStoredRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == ampStoredRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -2936,8 +2933,8 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[Metrics.Privacy.requestProcessedActivityCount()] == 1
+        assert metrics[Metrics.General.alert()] == 1
 
         and: "Response should not contain any warnings"
         assert !response.ext.warnings
@@ -2957,7 +2954,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
         and: "Default amp request with link to account"
-        def invalidGpp = PBSUtils.randomString
+        def invalidGpp = invalidGppString
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
             it.gppSid = US_NAT_V1.value
@@ -3001,12 +2998,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == ampStoredRequest.device.macmd5
             bidderRequest.device.dpidmd5 == ampStoredRequest.device.dpidmd5
             bidderRequest.user.id == ampStoredRequest.user.id
-            bidderRequest.user.buyeruid == ampStoredRequest.user.buyeruid
+            bidderRequest.user.buyerUid == ampStoredRequest.user.buyerUid
             bidderRequest.user.yob == ampStoredRequest.user.yob
             bidderRequest.user.gender == ampStoredRequest.user.gender
             bidderRequest.user.data == ampStoredRequest.user.data
             bidderRequest.user.geo == ampStoredRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == ampStoredRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -3014,7 +3011,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.requestProcessedActivityCount()] == 1
 
         and: "Should add a warning when in debug mode"
         assert response.ext.warnings[PREBID]?.message.contains("GPP string invalid: Unable to decode '$invalidGpp'".toString())
@@ -3068,7 +3065,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
@@ -3132,12 +3129,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == ampStoredRequest.device.macmd5
             bidderRequest.device.dpidmd5 == ampStoredRequest.device.dpidmd5
             bidderRequest.user.id == ampStoredRequest.user.id
-            bidderRequest.user.buyeruid == ampStoredRequest.user.buyeruid
+            bidderRequest.user.buyerUid == ampStoredRequest.user.buyerUid
             bidderRequest.user.yob == ampStoredRequest.user.yob
             bidderRequest.user.gender == ampStoredRequest.user.gender
             bidderRequest.user.data == ampStoredRequest.user.data
             bidderRequest.user.geo == ampStoredRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == ampStoredRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -3199,12 +3196,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == ampStoredRequest.device.macmd5
             bidderRequest.device.dpidmd5 == ampStoredRequest.device.dpidmd5
             bidderRequest.user.id == ampStoredRequest.user.id
-            bidderRequest.user.buyeruid == ampStoredRequest.user.buyeruid
+            bidderRequest.user.buyerUid == ampStoredRequest.user.buyerUid
             bidderRequest.user.yob == ampStoredRequest.user.yob
             bidderRequest.user.gender == ampStoredRequest.user.gender
             bidderRequest.user.data == ampStoredRequest.user.data
             bidderRequest.user.geo == ampStoredRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == ampStoredRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -3218,10 +3215,10 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.requestProcessedActivityCount()] == 1
 
         and: "General alert metric shouldn't be updated"
-        !metrics[ALERT_GENERAL]
+        !metrics[Metrics.General.alert()]
 
         where:
         regsGpp << [null, ""]
@@ -3273,12 +3270,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == ampStoredRequest.device.macmd5
             bidderRequest.device.dpidmd5 == ampStoredRequest.device.dpidmd5
             bidderRequest.user.id == ampStoredRequest.user.id
-            bidderRequest.user.buyeruid == ampStoredRequest.user.buyeruid
+            bidderRequest.user.buyerUid == ampStoredRequest.user.buyerUid
             bidderRequest.user.yob == ampStoredRequest.user.yob
             bidderRequest.user.gender == ampStoredRequest.user.gender
             bidderRequest.user.data == ampStoredRequest.user.data
             bidderRequest.user.geo == ampStoredRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == ampStoredRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -3343,12 +3340,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == ampStoredRequest.device.macmd5
             bidderRequest.device.dpidmd5 == ampStoredRequest.device.dpidmd5
             bidderRequest.user.id == ampStoredRequest.user.id
-            bidderRequest.user.buyeruid == ampStoredRequest.user.buyeruid
+            bidderRequest.user.buyerUid == ampStoredRequest.user.buyerUid
             bidderRequest.user.yob == ampStoredRequest.user.yob
             bidderRequest.user.gender == ampStoredRequest.user.gender
             bidderRequest.user.data == ampStoredRequest.user.data
             bidderRequest.user.geo == ampStoredRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == ampStoredRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -3356,7 +3353,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[Metrics.General.alert()] == 1
     }
 
     def "PBS amp call when privacy module contain invalid property should respond with an error"() {
@@ -3447,12 +3444,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == ampStoredRequest.device.macmd5
             bidderRequest.device.dpidmd5 == ampStoredRequest.device.dpidmd5
             bidderRequest.user.id == ampStoredRequest.user.id
-            bidderRequest.user.buyeruid == ampStoredRequest.user.buyeruid
+            bidderRequest.user.buyerUid == ampStoredRequest.user.buyerUid
             bidderRequest.user.yob == ampStoredRequest.user.yob
             bidderRequest.user.gender == ampStoredRequest.user.gender
             bidderRequest.user.data == ampStoredRequest.user.data
             bidderRequest.user.geo == ampStoredRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == ampStoredRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -3515,7 +3512,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
@@ -3590,7 +3587,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[Metrics.General.alert()] == 1
 
         and: "Generic bidder request should have data in UFPD fields"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
@@ -3603,12 +3600,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == ampStoredRequest.device.macmd5
             bidderRequest.device.dpidmd5 == ampStoredRequest.device.dpidmd5
             bidderRequest.user.id == ampStoredRequest.user.id
-            bidderRequest.user.buyeruid == ampStoredRequest.user.buyeruid
+            bidderRequest.user.buyerUid == ampStoredRequest.user.buyerUid
             bidderRequest.user.yob == ampStoredRequest.user.yob
             bidderRequest.user.gender == ampStoredRequest.user.gender
             bidderRequest.user.data == ampStoredRequest.user.data
             bidderRequest.user.geo == ampStoredRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == ampStoredRequest.user.ext.data.buyerUid
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -3673,7 +3670,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
@@ -3838,7 +3835,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
@@ -3851,9 +3848,9 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.requestDisallowedActivityCount(TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.accountDisallowedActivityCount(accountId, TRANSMIT_UFPD)] == 1
+        assert metrics[Metrics.Privacy.adapterDisallowedActivityCount(BidderName.GENERIC, TRANSMIT_UFPD)] == 1
 
         where:
         eid << [new PurposeEid(activityTransition: false),
@@ -3893,7 +3890,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
@@ -3941,7 +3938,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
             !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
+            !bidderRequest.user.buyerUid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
@@ -4007,12 +4004,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.device.macmd5 == bidRequest.device.macmd5
             bidderRequest.device.dpidmd5 == bidRequest.device.dpidmd5
             bidderRequest.user.id == bidRequest.user.id
-            bidderRequest.user.buyeruid == bidRequest.user.buyeruid
+            bidderRequest.user.buyerUid == bidRequest.user.buyerUid
             bidderRequest.user.yob == bidRequest.user.yob
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
             bidderRequest.user.geo == bidRequest.user.geo
-            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+            bidderRequest.user.ext.data.buyerUid == bidRequest.user.ext.data.buyerUid
         }
 
         and: "Bidder request should have data in EIDS fields"

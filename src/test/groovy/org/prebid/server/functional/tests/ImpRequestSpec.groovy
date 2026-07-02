@@ -2,6 +2,7 @@ package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.bidder.Openx
+import org.prebid.server.functional.model.config.ModuleName
 import org.prebid.server.functional.model.db.StoredImp
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Imp
@@ -25,8 +26,12 @@ import static org.prebid.server.functional.testcontainers.Dependencies.getNetwor
 
 class ImpRequestSpec extends BaseSpec {
 
-    private final PrebidServerService defaultPbsServiceWithAlias = pbsServiceFactory.getService(GENERIC_ALIAS_CONFIG)
+    private static final PrebidServerService defaultPbsServiceWithAlias = pbsServiceFactory.getService(GENERIC_ALIAS_CONFIG)
     private static final String EMPTY_ID = ""
+
+    def cleanupSpec() {
+        pbsServiceFactory.removeContainer(GENERIC_ALIAS_CONFIG)
+    }
 
     def "PBS should update imp fields when imp.ext.prebid.imp contain bidder information"() {
         given: "Default basic BidRequest"

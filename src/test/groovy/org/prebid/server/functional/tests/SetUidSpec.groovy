@@ -6,6 +6,7 @@ import org.prebid.server.functional.model.response.cookiesync.UserSyncInfo
 import org.prebid.server.functional.model.response.setuid.SetuidResponse
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.util.Metrics
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.TcfConsent
 import org.prebid.server.util.ResourceUtil
@@ -96,7 +97,7 @@ class SetUidSpec extends BaseSpec {
 
         and: "usersync.FAMILY.sets metric should be updated"
         def metrics = singleCookiesPbsService.sendCollectedMetricsRequest()
-        assert metrics["usersync.${GENERIC.value}.sets"] == 1
+        assert metrics[Metrics.UserSync.sets(GENERIC)] == 1
     }
 
     def "PBS setuid should remove expired uids cookie"() {
@@ -216,7 +217,7 @@ class SetUidSpec extends BaseSpec {
 
         then: "usersync.FAMILY.sizeblocked metric should be updated"
         def metrics = prebidServerService.sendCollectedMetricsRequest()
-        assert metrics["usersync.${bidderName.value}.sizeblocked"] == 1
+        assert metrics[Metrics.UserSync.sizeBlocked(bidderName)] == 1
 
         and: "Response should contain uids cookies"
         assert response.uidsCookie.tempUIDs[APPNEXUS]
@@ -253,7 +254,7 @@ class SetUidSpec extends BaseSpec {
 
         and: "usersync.FAMILY.tcf.blocked metric should be updated"
         def metric = prebidServerService.sendCollectedMetricsRequest()
-        assert metric["usersync.${RUBICON.value}.tcf.blocked"] == 1
+        assert metric[Metrics.UserSync.tcfBlocked(RUBICON)] == 1
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsConfig)
@@ -282,7 +283,7 @@ class SetUidSpec extends BaseSpec {
 
         and: "usersync.FAMILY.sizeblocked metric should be updated"
         def metrics = prebidServerService.sendCollectedMetricsRequest()
-        assert metrics["usersync.${RUBICON.value}.sizeblocked"] == 1
+        assert metrics[Metrics.UserSync.sizeBlocked(RUBICON)] == 1
 
         then: "Response should contain uids cookies"
         assert response.uidsCookie.tempUIDs[APPNEXUS]
@@ -326,10 +327,10 @@ class SetUidSpec extends BaseSpec {
 
         and: "usersync.FAMILY.sizeblocked metric should be updated"
         def metricsRequest = prebidServerService.sendCollectedMetricsRequest()
-        assert metricsRequest["usersync.${APPNEXUS.value}.sizeblocked"] == 1
+        assert metricsRequest[Metrics.UserSync.sizeBlocked(APPNEXUS)] == 1
 
         and: "usersync.FAMILY.sets metric should be updated"
-        assert metricsRequest["usersync.${OPENX.value}.sets"] == 1
+        assert metricsRequest[Metrics.UserSync.sets(OPENX)] == 1
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsConfig)
@@ -365,7 +366,7 @@ class SetUidSpec extends BaseSpec {
 
         and: "usersync.FAMILY.sizedout metric should be updated"
         def metricsRequest = prebidServerService.sendCollectedMetricsRequest()
-        assert metricsRequest["usersync.${APPNEXUS.value}.sizedout"] == 1
+        assert metricsRequest[Metrics.UserSync.sizedOut(APPNEXUS)] == 1
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsConfig)

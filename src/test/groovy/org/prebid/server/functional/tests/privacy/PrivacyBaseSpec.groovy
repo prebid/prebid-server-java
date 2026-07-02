@@ -11,7 +11,6 @@ import org.prebid.server.functional.model.config.AccountPrivacyConfig
 import org.prebid.server.functional.model.config.Purpose
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.mock.services.vendorlist.VendorListResponse
-import org.prebid.server.functional.model.privacy.EnforcementRequirement
 import org.prebid.server.functional.model.privacy.gpp.GppDataActivity
 import org.prebid.server.functional.model.privacy.gpp.UsCaliforniaV1ChildSensitiveData
 import org.prebid.server.functional.model.privacy.gpp.UsCaliforniaV1SensitiveData
@@ -42,6 +41,7 @@ import org.prebid.server.functional.model.request.auction.UserExtData
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.scaffolding.VendorList
 import org.prebid.server.functional.tests.BaseSpec
+import org.prebid.server.functional.util.Metrics
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.ConsentString
 import org.prebid.server.functional.util.privacy.TcfConsent
@@ -55,12 +55,9 @@ import org.prebid.server.functional.util.privacy.gpp.v1.UsVaV1Consent
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
-import static org.prebid.server.functional.model.config.PurposeEnforcement.BASIC
-import static org.prebid.server.functional.model.config.PurposeEnforcement.FULL
-import static org.prebid.server.functional.model.config.PurposeEnforcement.NO
 import static org.prebid.server.functional.model.mock.services.vendorlist.VendorListResponse.getDefaultVendorListResponse
-import static org.prebid.server.functional.model.pricefloors.Country.USA
 import static org.prebid.server.functional.model.pricefloors.Country.BULGARIA
+import static org.prebid.server.functional.model.pricefloors.Country.USA
 import static org.prebid.server.functional.model.request.GppSectionId.US_CA_V1
 import static org.prebid.server.functional.model.request.GppSectionId.US_CO_V1
 import static org.prebid.server.functional.model.request.GppSectionId.US_CT_V1
@@ -75,9 +72,6 @@ import static org.prebid.server.functional.model.response.cookiesync.UserSyncInf
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
-import static org.prebid.server.functional.util.privacy.TcfConsent.RestrictionType.REQUIRE_CONSENT
-import static org.prebid.server.functional.util.privacy.TcfConsent.RestrictionType.REQUIRE_LEGITIMATE_INTEREST
-import static org.prebid.server.functional.util.privacy.TcfConsent.RestrictionType.UNDEFINED
 import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V2
 import static org.prebid.server.functional.util.privacy.model.State.ALABAMA
 
@@ -182,11 +176,11 @@ abstract class PrivacyBaseSpec extends BaseSpec {
                 customdata = PBSUtils.randomString
                 eids = [Eid.defaultEid]
                 data = [new Data(name: PBSUtils.randomString)]
-                buyeruid = PBSUtils.randomString
+                buyerUid = PBSUtils.randomString
                 yob = PBSUtils.randomNumber
                 gender = PBSUtils.randomString
                 geo = Geo.FPDGeo
-                ext = new UserExt(data: new UserExtData(buyeruid: PBSUtils.randomString))
+                ext = new UserExt(data: new UserExtData(buyerUid: PBSUtils.randomString))
             }
         }
     }
@@ -249,6 +243,21 @@ abstract class PrivacyBaseSpec extends BaseSpec {
         geo.ext = null
         geo.ipservice = null
         geo
+    }
+
+    protected static void cacheVendorList(PrebidServerService pbsService) {
+        def isVendorListCachedClosure = {
+            def validConsentString = new TcfConsent.Builder()
+                    .setPurposesLITransparency(BASIC_ADS)
+                    .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                    .build()
+            def bidRequest = getGdprBidRequest(validConsentString)
+
+            pbsService.sendAuctionRequest(bidRequest)
+
+            pbsService.sendCollectedMetricsRequest()[Metrics.Privacy.tcfVendorListMissing(2)] == 0
+        }
+        PBSUtils.waitUntil(isVendorListCachedClosure, 10000, 1000)
     }
 
     protected static Account getAccountWithGdpr(String accountId, AccountGdprConfig gdprConfig) {
@@ -362,5 +371,15 @@ abstract class PrivacyBaseSpec extends BaseSpec {
             it.tcfPolicyVersion = TCF_POLICY_V2.vendorListVersion
             it.vendors = [(GENERIC_VENDOR_ID): vendor]
         })
+    }
+
+    protected static String getInvalidGppString(int stringLength = 20) {
+        // Random string can potentially generate deprecated v1 value with specific starting values
+        def gppV1Prefix = ['A', 'B', 'C', 'D']
+        def invalidGPPValue
+        do {
+            invalidGPPValue = PBSUtils.getRandomString(stringLength)
+        } while (gppV1Prefix.contains(invalidGPPValue[0].toUpperCase()))
+        return invalidGPPValue
     }
 }

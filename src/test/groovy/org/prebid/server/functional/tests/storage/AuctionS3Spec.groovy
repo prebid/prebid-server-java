@@ -53,7 +53,7 @@ class AuctionS3Spec extends StorageBaseSpec {
         }
 
         and: "Save storedImp with different impId into S3 service"
-        def secureStoredRequest = PBSUtils.getRandomNumber(0, 1)
+        def secureStoredRequest = PBSUtils.getRandomEnum(SecurityLevel)
         def storedImp = StoredImp.getStoredImp(bidRequest).tap {
             impId = PBSUtils.randomString
             impData = Imp.defaultImpression.tap {

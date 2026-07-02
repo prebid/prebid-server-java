@@ -18,6 +18,7 @@ import org.prebid.server.functional.model.response.auction.OpenxBidResponseExt
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.tests.BaseSpec
+import org.prebid.server.functional.util.Metrics
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Shared
 
@@ -444,7 +445,7 @@ class OpenxSpec extends BaseSpec {
 
         and: "Alert.general metric should be updated"
         def metrics = pbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[Metrics.General.alert()] == 1
     }
 
     def "PBS shouldn't populate fledge or igi config when bidder respond with igb"() {

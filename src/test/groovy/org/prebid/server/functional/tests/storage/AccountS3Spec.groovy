@@ -2,6 +2,8 @@ package org.prebid.server.functional.tests.storage
 
 import org.prebid.server.functional.model.AccountStatus
 import org.prebid.server.functional.model.config.AccountConfig
+import org.prebid.server.functional.model.config.ModuleName
+import org.prebid.server.functional.model.config.Stage
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
@@ -13,9 +15,15 @@ import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED
 
 class AccountS3Spec extends StorageBaseSpec {
 
-    protected PrebidServerService s3StorageAccountPbsService = PbsServiceFactory.getService(s3StorageConfig +
-                                                                                            mySqlDisabledConfig +
-                                                                                            ['settings.enforce-valid-account': 'true'])
+    private final static Map<Stage, List<ModuleName>> S3_CONFIG = s3StorageConfig +
+            mySqlDisabledConfig +
+            ['settings.enforce-valid-account': 'true']
+
+    private static final PrebidServerService s3StorageAccountPbsService = PbsServiceFactory.getService(S3_CONFIG)
+
+    def cleanupSpec() {
+        pbsServiceFactory.removeContainer(S3_CONFIG)
+    }
 
     def "PBS should process request when active account is present in S3 storage"() {
         given: "Default BidRequest with account"

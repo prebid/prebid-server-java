@@ -11,6 +11,7 @@ import org.prebid.server.functional.model.request.vtrack.xml.Vast
 import org.prebid.server.functional.model.response.vtrack.TransferValue
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.util.Metrics
 import org.prebid.server.functional.util.PBSUtils
 
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
@@ -18,18 +19,6 @@ import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERR
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 
 class CacheVtrackSpec extends BaseSpec {
-
-    private static final String ACCOUNT_VTRACK_XML_CREATIVE_SIZE_METRIC = "account.%s.prebid_cache.vtrack.creative_size.xml"
-    private static final String ACCOUNT_VTRACK_CREATIVE_TTL_XML_METRIC = "account.%s.prebid_cache.vtrack.creative_ttl.xml"
-    private static final String ACCOUNT_VTRACK_WRITE_ERR_METRIC = "account.%s.prebid_cache.vtrack.write.err"
-    private static final String ACCOUNT_VTRACK_WRITE_OK_METRIC = "account.%s.prebid_cache.vtrack.write.ok"
-
-    private static final String VTRACK_XML_CREATIVE_SIZE_METRIC = "prebid_cache.vtrack.creative_size.xml"
-    private static final String VTRACK_XML_CREATIVE_TTL_METRIC = "prebid_cache.vtrack.creative_ttl.xml"
-    private static final String VTRACK_WRITE_OK_METRIC = "prebid_cache.vtrack.write.ok"
-    private static final String VTRACK_WRITE_ERROR_METRIC = "prebid_cache.vtrack.write.err"
-    private static final String VTRACK_READ_OK_METRIC = "prebid_cache.vtrack.read.ok"
-    private static final String VTRACK_READ_ERROR_METRIC = "prebid_cache.vtrack.read.err"
 
     private static final String CACHE_ENDPOINT = "/cache"
     private static final String CACHE_PATH = "/${PBSUtils.randomString}".toString()
@@ -58,7 +47,7 @@ class CacheVtrackSpec extends BaseSpec {
 
     def "PBS should update prebid_cache.creative_size.xml metric and adding tracking xml when xml creative contain #wrapper and impression are valid xml value"() {
         given: "Current value of metric prebid_cache.vtrack.write.ok"
-        def initialOkVTrackValue = getCurrentMetricValue(defaultPbsService, VTRACK_WRITE_OK_METRIC)
+        def initialOkVTrackValue = getCurrentMetricValue(defaultPbsService, Metrics.Cache.vtrackWriteOk())
 
         and: "Create and save enabled events config in account"
         def accountId = PBSUtils.randomNumber.toString()
@@ -94,12 +83,12 @@ class CacheVtrackSpec extends BaseSpec {
         and: "prebid_cache.creative_size.xml metric should be updated"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
         def ttlSeconds = request.puts[0].ttlseconds
-        assert metrics[VTRACK_WRITE_OK_METRIC] == initialOkVTrackValue + 1
-        assert metrics[VTRACK_XML_CREATIVE_TTL_METRIC] == ttlSeconds
+        assert metrics[Metrics.Cache.vtrackWriteOk()] == initialOkVTrackValue + 1
+        assert metrics[Metrics.Cache.vtrackCreativeTtlXml()] == ttlSeconds
 
         and: "account.<account-id>.prebid_cache.vtrack.creative_size.xml should be updated"
-        assert metrics[ACCOUNT_VTRACK_WRITE_OK_METRIC.formatted(accountId) as String] == 1
-        assert metrics[ACCOUNT_VTRACK_CREATIVE_TTL_XML_METRIC.formatted(accountId) as String] == ttlSeconds
+        assert metrics[Metrics.Account.cacheVtrackWriteOk(accountId)] == 1
+        assert metrics[Metrics.Account.cacheVtrackCreativeTtlXml(accountId)] == ttlSeconds
 
         where:
         wrapper                                     | impression
@@ -113,7 +102,7 @@ class CacheVtrackSpec extends BaseSpec {
 
     def "PBS should update prebid_cache.creative_size.xml metric when xml creative is received"() {
         given: "Current value of metric prebid_cache.requests.ok"
-        def initialValue = getCurrentMetricValue(defaultPbsService, VTRACK_WRITE_OK_METRIC)
+        def initialValue = getCurrentMetricValue(defaultPbsService, Metrics.Cache.vtrackWriteOk())
 
         and: "Cache set up response"
         prebidCache.setResponse()
@@ -132,11 +121,11 @@ class CacheVtrackSpec extends BaseSpec {
         then: "prebid_cache.vtrack.creative_size.xml metric should be updated"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
         def creativeSize = creative.bytes.length
-        assert metrics[VTRACK_WRITE_OK_METRIC] == initialValue + 1
+        assert metrics[Metrics.Cache.vtrackWriteOk()] == initialValue + 1
 
         and: "account.<account-id>.prebid_cache.creative_size.xml should be updated"
-        assert metrics[ACCOUNT_VTRACK_WRITE_OK_METRIC.formatted(accountId)] == 1
-        assert metrics[ACCOUNT_VTRACK_XML_CREATIVE_SIZE_METRIC.formatted(accountId)] == creativeSize
+        assert metrics[Metrics.Account.cacheVtrackWriteOk(accountId)] == 1
+        assert metrics[Metrics.Account.cacheVtrackCreativeSizeXml(accountId)] == creativeSize
     }
 
     def "PBS should failed VTrack request when sending request without account"() {
@@ -184,7 +173,7 @@ class CacheVtrackSpec extends BaseSpec {
 
         then: "Pbs should emit creative_ttl.xml with lowest value"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        assert metrics[ACCOUNT_VTRACK_CREATIVE_TTL_XML_METRIC.formatted(accountId)]
+        assert metrics[Metrics.Account.cacheVtrackCreativeTtlXml(accountId)]
                 == [requestedTtl, accountTtl].findAll { it -> it > 0 }.min()
         where:
         requestedTtl                                            | accountTtl
@@ -221,7 +210,7 @@ class CacheVtrackSpec extends BaseSpec {
 
         then: "Pbs should emit creative_ttl.xml with lowest value"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        assert metrics[ACCOUNT_VTRACK_CREATIVE_TTL_XML_METRIC.formatted(accountId)] == [requestedTtl, accountTtl].min()
+        assert metrics[Metrics.Account.cacheVtrackCreativeTtlXml(accountId)] == [requestedTtl, accountTtl].min()
 
         where:
         requestedTtl                                   | accountTtl
@@ -259,7 +248,7 @@ class CacheVtrackSpec extends BaseSpec {
 
         then: "Pbs shouldn't emit creative_ttl.xml"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        assert !metrics[ACCOUNT_VTRACK_CREATIVE_TTL_XML_METRIC.formatted(accountId)]
+        assert !metrics[Metrics.Account.cacheVtrackCreativeTtlXml(accountId)]
     }
 
     def "PBS should return 400 status code when get vtrack request without uuid"() {
@@ -285,7 +274,7 @@ class CacheVtrackSpec extends BaseSpec {
 
         then: "Metrics should contain ok metric"
         def metricsRequest = defaultPbsService.sendCollectedMetricsRequest()
-        assert metricsRequest[VTRACK_READ_OK_METRIC] == 1
+        assert metricsRequest[Metrics.Cache.vtrackReadOk()] == 1
     }
 
     def "PBS should return status code that came from pbc when get vtrack request and response from pbc invalid"() {
@@ -306,12 +295,12 @@ class CacheVtrackSpec extends BaseSpec {
 
         and: "Metrics should contain error metric"
         def metricsRequest = defaultPbsService.sendCollectedMetricsRequest()
-        assert metricsRequest[VTRACK_READ_ERROR_METRIC] == 1
+        assert metricsRequest[Metrics.Cache.vtrackReadErr()] == 1
     }
 
     def "PBS should return 200 status code and body when get vtrack request with uuid and ch"() {
         given: "Current value of metric prebid_cache.vtrack.read.ok"
-        def initialValue = getCurrentMetricValue(defaultPbsService, VTRACK_READ_OK_METRIC)
+        def initialValue = getCurrentMetricValue(defaultPbsService, Metrics.Cache.vtrackReadOk())
 
         and: "Random uuid and cache host"
         def uuid = UUID.randomUUID().toString()
@@ -329,12 +318,12 @@ class CacheVtrackSpec extends BaseSpec {
 
         and: "Metrics should contain ok metrics"
         def metricsRequest = defaultPbsService.sendCollectedMetricsRequest()
-        assert metricsRequest[VTRACK_READ_OK_METRIC] == initialValue + 1
+        assert metricsRequest[Metrics.Cache.vtrackReadOk()] == initialValue + 1
     }
 
     def "PBS should return 200 status code and body when internal cache configured and get vtrack request with uuid and ch"() {
         given: "Current value of metric prebid_cache.vtrack.read.ok"
-        def initialValue = getCurrentMetricValue(pbsServiceWithInternalCache, VTRACK_READ_OK_METRIC)
+        def initialValue = getCurrentMetricValue(pbsServiceWithInternalCache, Metrics.Cache.vtrackReadOk())
 
         and: "Flush metric"
         flushMetrics(pbsServiceWithInternalCache)
@@ -355,7 +344,7 @@ class CacheVtrackSpec extends BaseSpec {
 
         and: "Metrics should contain ok metrics"
         def metricsRequest = pbsServiceWithInternalCache.sendCollectedMetricsRequest()
-        assert metricsRequest[VTRACK_READ_OK_METRIC] == initialValue + 1
+        assert metricsRequest[Metrics.Cache.vtrackReadOk()] == initialValue + 1
 
         and: "Verify parameters that came to external cache services"
         def requestParams = prebidCache.getVTracGetRequestParams()
@@ -364,7 +353,7 @@ class CacheVtrackSpec extends BaseSpec {
 
     def "PBS should return 200 status code when internal cache and get vtrack request contain uuid"() {
         given: "Current value of metric prebid_cache.vtrack.read.ok"
-        def initialValue = getCurrentMetricValue(pbsServiceWithInternalCache, VTRACK_READ_OK_METRIC)
+        def initialValue = getCurrentMetricValue(pbsServiceWithInternalCache, Metrics.Cache.vtrackReadOk())
 
         and: "Random uuid"
         def uuid = UUID.randomUUID().toString()
@@ -384,7 +373,7 @@ class CacheVtrackSpec extends BaseSpec {
 
         and: "Metrics should contain ok metrics"
         def metricsRequest = pbsServiceWithInternalCache.sendCollectedMetricsRequest()
-        assert metricsRequest[VTRACK_READ_OK_METRIC] == initialValue + 1
+        assert metricsRequest[Metrics.Cache.vtrackReadOk()] == initialValue + 1
 
         and: "Verify parameters that came to external cache services"
         def requestParams = prebidCache.getVTracGetRequestParams()
@@ -412,7 +401,7 @@ class CacheVtrackSpec extends BaseSpec {
 
         and: "Metrics should contain error metric"
         def metricsRequest = pbsServiceWithInternalCache.sendCollectedMetricsRequest()
-        assert metricsRequest[VTRACK_READ_ERROR_METRIC] == 1
+        assert metricsRequest[Metrics.Cache.vtrackReadErr()] == 1
 
         and: "Verify parameters that came to external cache services"
         def requestParams = prebidCache.getVTracGetRequestParams()
@@ -431,7 +420,7 @@ class CacheVtrackSpec extends BaseSpec {
 
     def "PBS should update prebid_cache.creative_size.xml metric when account cache config #enabledCacheConcfig"() {
         given: "Current value of metric prebid_cache.requests.ok"
-        def okInitialValue = getCurrentMetricValue(defaultPbsService, VTRACK_WRITE_OK_METRIC)
+        def okInitialValue = getCurrentMetricValue(defaultPbsService, Metrics.Cache.vtrackWriteOk())
 
         and: "Default VtrackRequest"
         def accountId = PBSUtils.randomNumber.toString()
@@ -459,11 +448,11 @@ class CacheVtrackSpec extends BaseSpec {
         then: "prebid_cache.creative_size.xml metric should be updated"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
         def creativeSize = creative.bytes.length
-        assert metrics[VTRACK_WRITE_OK_METRIC] == okInitialValue + 1
+        assert metrics[Metrics.Cache.vtrackWriteOk()] == okInitialValue + 1
 
         and: "account.<account-id>.prebid_cache.creative_size.xml should be updated"
-        assert metrics[ACCOUNT_VTRACK_WRITE_OK_METRIC.formatted(accountId)] == 1
-        assert metrics[ACCOUNT_VTRACK_XML_CREATIVE_SIZE_METRIC.formatted(accountId)] == creativeSize
+        assert metrics[Metrics.Account.cacheVtrackWriteOk(accountId)] == 1
+        assert metrics[Metrics.Account.cacheVtrackCreativeSizeXml(accountId)] == creativeSize
 
         where:
         enabledCacheConcfig << [null, false, true]
@@ -471,7 +460,7 @@ class CacheVtrackSpec extends BaseSpec {
 
     def "PBS should failed cache and update prebid_cache.vtrack.write.err metric when cache service respond with invalid status code"() {
         given: "Current value of metric prebid_cache.requests.ok"
-        def okInitialValue = getCurrentMetricValue(defaultPbsService, VTRACK_WRITE_ERROR_METRIC)
+        def okInitialValue = getCurrentMetricValue(defaultPbsService, Metrics.Cache.vtrackWriteErr())
 
         and: "Default VtrackRequest"
         def accountId = PBSUtils.randomNumber.toString()
@@ -503,9 +492,9 @@ class CacheVtrackSpec extends BaseSpec {
 
         then: "prebid_cache.vtrack.write.err metric should be updated"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        assert metrics[VTRACK_WRITE_ERROR_METRIC] == okInitialValue + 1
+        assert metrics[Metrics.Cache.vtrackWriteErr()] == okInitialValue + 1
 
         and: "account.<account-id>.prebid_cache.vtrack.write.err should be updated"
-        assert metrics[ACCOUNT_VTRACK_WRITE_ERR_METRIC.formatted(accountId)] == 1
+        assert metrics[Metrics.Account.cacheVtrackWriteErr(accountId)] == 1
     }
 }
