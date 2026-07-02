@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests.privacy.gdpr
 
+import org.mockserver.matchers.Times
 import org.mockserver.model.Delay
 import org.prebid.server.functional.model.ChannelType
 import org.prebid.server.functional.model.config.AccountGdprConfig
@@ -23,7 +24,6 @@ import org.prebid.server.functional.util.privacy.BogusConsent
 import org.prebid.server.functional.util.privacy.TcfConsent
 import org.prebid.server.functional.util.privacy.TcfUtils
 import org.prebid.server.functional.util.privacy.VendorListConsent
-import spock.lang.IgnoreRest
 import spock.lang.PendingFeature
 
 import java.time.Instant
@@ -36,7 +36,6 @@ import static org.prebid.server.functional.model.config.AccountMetricsVerbosityL
 import static org.prebid.server.functional.model.config.Purpose.P1
 import static org.prebid.server.functional.model.config.Purpose.P2
 import static org.prebid.server.functional.model.config.Purpose.P4
-import static org.prebid.server.functional.model.config.PurposeEnforcement.FULL
 import static org.prebid.server.functional.model.config.PurposeEnforcement.NO
 import static org.prebid.server.functional.model.mock.services.vendorlist.GvlSpecificationVersion.V3
 import static org.prebid.server.functional.model.pricefloors.Country.BULGARIA
@@ -58,8 +57,6 @@ import static org.prebid.server.functional.testcontainers.Dependencies.getNetwor
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.DEVICE_ACCESS
-import static org.prebid.server.functional.util.privacy.TcfConsent.RestrictionType.REQUIRE_CONSENT
-import static org.prebid.server.functional.util.privacy.TcfConsent.RestrictionType.UNDEFINED
 import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V2
 import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V4
 import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V5
@@ -1148,21 +1145,14 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         def vendorList = VendorListResponse.Vendor.getDefaultVendor(GENERIC_VENDOR_ID).tap {
             deletedDate = gvlDeletedDate
         }
-        downloadGvtList(VENDOR_LIST_VERSION, vendorList)
+        downloadLiveGvtList(VENDOR_LIST_VERSION, vendorList)
 
         and: "PBS with proper warmed GVL config"
         def pbsWithLiveGvlSetup = pbsServiceFactory.getService(REFRESH_LIVE_VENDOR_LIST_CONFIG)
         warmupGvtList(pbsWithLiveGvlSetup, VENDOR_LIST_VERSION)
 
         and: "Valid tcf full enforcement requirments"
-        def requirement = new EnforcementRequirement(purpose: P2,
-                restrictionType: [REQUIRE_CONSENT, UNDEFINED],
-                vendorIdGvl: GENERIC_VENDOR_ID,
-                enforcePurpose: FULL,
-                vendorConsentBitField: GENERIC_VENDOR_ID,
-                enforceVendor: true,
-                disclosedVendorsId: [GENERIC_VENDOR_ID],
-                vendorListVersion: VENDOR_LIST_VERSION)
+        def requirement = EnforcementRequirement.getDefaultFull(GENERIC_VENDOR_ID, VENDOR_LIST_VERSION, P2)
 
         and: "Tcf consent setup"
         def tcfConsent = TcfUtils.getConsentString(requirement)
@@ -1196,7 +1186,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
 
         and: "Disallowed metrics shouldn't be updated"
         def metrics = pbsWithLiveGvlSetup.sendCollectedMetricsRequest()
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 0
+        assert !metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)]
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(REFRESH_LIVE_VENDOR_LIST_CONFIG)
@@ -1210,7 +1200,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         def vendor = VendorListResponse.Vendor.getDefaultVendor(GENERIC_VENDOR_ID).tap {
             deletedDate = liveGvlDeletedDate
         }
-        downloadGvtList(VENDOR_LIST_VERSION, vendor)
+        downloadLiveGvtList(VENDOR_LIST_VERSION, vendor)
 
         and: "PBS with proper warmed GVL config"
         def pbsWithLiveGvlSetup = pbsServiceFactory.getService(REFRESH_LIVE_VENDOR_LIST_CONFIG)
@@ -1220,14 +1210,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         warmupGvtList(pbsWithLiveGvlSetup, VENDOR_LIST_VERSION, requestVendor)
 
         and: "Valid tcf full enforcement requirments"
-        def requirement = new EnforcementRequirement(purpose: P2,
-                restrictionType: [REQUIRE_CONSENT, UNDEFINED],
-                vendorIdGvl: GENERIC_VENDOR_ID,
-                enforcePurpose: FULL,
-                vendorConsentBitField: GENERIC_VENDOR_ID,
-                enforceVendor: true,
-                disclosedVendorsId: [GENERIC_VENDOR_ID],
-                vendorListVersion: VENDOR_LIST_VERSION)
+        def requirement = EnforcementRequirement.getDefaultFull(GENERIC_VENDOR_ID, VENDOR_LIST_VERSION, P2)
 
         and: "Tcf consent setup"
         def tcfConsent = TcfUtils.getConsentString(requirement)
@@ -1277,21 +1260,14 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         def vendorList = VendorListResponse.Vendor.getDefaultVendor(GENERIC_VENDOR_ID).tap {
             deletedDate = ZonedDateTime.now().minusSeconds(1)
         }
-        downloadGvtList(VENDOR_LIST_VERSION, vendorList)
+        downloadLiveGvtList(VENDOR_LIST_VERSION, vendorList)
 
         and: "PBS with proper warmed older GVL config"
         def pbsWithLiveGvlSetup = pbsServiceFactory.getService(REFRESH_LIVE_VENDOR_LIST_CONFIG)
         warmupGvtList(pbsWithLiveGvlSetup, VENDOR_LIST_VERSION - 1)
 
         and: "Valid tcf full enforcement requirments for older gvl list"
-        def requirement = new EnforcementRequirement(purpose: P2,
-                restrictionType: [REQUIRE_CONSENT, UNDEFINED],
-                vendorIdGvl: GENERIC_VENDOR_ID,
-                enforcePurpose: FULL,
-                vendorConsentBitField: GENERIC_VENDOR_ID,
-                enforceVendor: true,
-                disclosedVendorsId: [GENERIC_VENDOR_ID],
-                vendorListVersion: VENDOR_LIST_VERSION - 1)
+        def requirement = EnforcementRequirement.getDefaultFull(GENERIC_VENDOR_ID, VENDOR_LIST_VERSION - 1, P2)
 
         and: "Tcf consent setup"
         def tcfConsent = TcfUtils.getConsentString(requirement)
@@ -1336,30 +1312,27 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         def olderVendorList = VendorListResponse.Vendor.getDefaultVendor(GENERIC_VENDOR_ID).tap {
             deletedDate = ZonedDateTime.now().minusSeconds(1)
         }
-        downloadGvtList(VENDOR_LIST_VERSION, olderVendorList)
+        downloadLiveGvtList(VENDOR_LIST_VERSION, olderVendorList, Times.once())
 
         and: "PBS with a high-frequency live GVL refresh config"
         def config = REFRESH_LIVE_VENDOR_LIST_CONFIG + ['gdpr.vendorlist.live-gvl-refresh-period-ms': '1000']
         def pbsWithLiveGvlSetup = pbsServiceFactory.getService(config)
 
-        and: "Newer vendor list where the bidder is not deleted yet"
+        and: "Flash metrics"
+        flushMetrics(pbsWithLiveGvlSetup)
+
+        and: "Newer vendor list where bidder is not deleted yet"
         def newerVendorList = VendorListResponse.Vendor.getDefaultVendor(GENERIC_VENDOR_ID).tap {
             deletedDate = ZonedDateTime.now().plusYears(1)
         }
-        downloadGvtList(VENDOR_LIST_VERSION + 1, newerVendorList)
+        downloadLiveGvtList(VENDOR_LIST_VERSION + 1, newerVendorList, Times.once())
+        pbsWithLiveGvlSetup.isContainMetricByValue('privacy.tcf.vendorlist.latest.ok')
 
         and: "GVL list is warmed up for PBS"
         warmupGvtList(pbsWithLiveGvlSetup, VENDOR_LIST_VERSION - 1)
 
         and: "Valid tcf full enforcement requirments for older GVL list"
-        def requirement = new EnforcementRequirement(purpose: P2,
-                restrictionType: [REQUIRE_CONSENT, UNDEFINED],
-                vendorIdGvl: GENERIC_VENDOR_ID,
-                enforcePurpose: FULL,
-                vendorConsentBitField: GENERIC_VENDOR_ID,
-                enforceVendor: true,
-                disclosedVendorsId: [GENERIC_VENDOR_ID],
-                vendorListVersion: VENDOR_LIST_VERSION - 1)
+        def requirement = EnforcementRequirement.getDefaultFull(GENERIC_VENDOR_ID, VENDOR_LIST_VERSION - 1, P2)
 
         and: "Tcf consent setup"
         def tcfConsent = TcfUtils.getConsentString(requirement)
@@ -1399,30 +1372,28 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         pbsServiceFactory.removeContainer(config)
     }
 
-    private static void downloadGvtList(
+    private static void downloadLiveGvtList(
             Integer vendorListVersion = VENDOR_LIST_VERSION,
             VendorListResponse.Vendor vendor = VendorListResponse.Vendor.getDefaultVendor(GENERIC_VENDOR_ID),
-            TcfConsent.TcfPolicyVersion tcfPolicyVersion = TCF_POLICY_V5) {
+            Times times = Times.unlimited()) {
 
         liveVendorListResponse.reset()
-        liveVendorListResponse.setResponse(tcfPolicyVersion, null, [(vendor.id): vendor], vendorListVersion)
+        liveVendorListResponse.setResponse(TCF_POLICY_V5, null, [(vendor.id): vendor], vendorListVersion, times)
     }
 
     private static void warmupGvtList(PrebidServerService pbsService,
                                       Integer vendorListVersion = VENDOR_LIST_VERSION,
-                                      VendorListResponse.Vendor vendor = VendorListResponse.Vendor.getDefaultVendor(GENERIC_VENDOR_ID),
-                                      TcfConsent.TcfPolicyVersion tcfPolicyVersion = TCF_POLICY_V2
-    ) {
+                                      VendorListResponse.Vendor vendor = VendorListResponse.Vendor.getDefaultVendor(GENERIC_VENDOR_ID)) {
+
         def simpleTcfString = new TcfConsent.Builder()
                 .setDisclosedVendors([GENERIC_VENDOR_ID])
                 .setVendorListVersion(vendorListVersion)
                 .build()
 
         vendorList.reset()
-        vendorList.setResponse(tcfPolicyVersion, null, [(vendor.id): vendor])
+        vendorList.setResponse(TCF_POLICY_V2, null, [(vendor.id): vendor])
 
         def bidRequest = getGdprBidRequest(simpleTcfString)
         pbsService.sendAuctionRequest(bidRequest)
-
     }
 }

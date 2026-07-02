@@ -49,7 +49,8 @@ class VendorList extends NetworkScaffolding {
     void setResponse(TcfPolicyVersion tcfPolicyVersion = TCF_POLICY_V2,
                      Delay delay = null,
                      Map<Integer, Vendor> vendors = [(GENERIC_VENDOR_ID): Vendor.getDefaultVendor(GENERIC_VENDOR_ID)],
-                     vendorListVersion = TcfConsent.VENDOR_LIST_VERSION) {
+                     Integer vendorListVersion = TcfConsent.VENDOR_LIST_VERSION,
+                     Times times = Times.unlimited()) {
 
         def prepareEndpoint = endpoint.replace("{TCF_POLICY}", tcfPolicyVersion.vendorListVersion.toString())
         def prepareEncodeResponseBody = encode(defaultVendorListResponse.tap {
@@ -63,12 +64,12 @@ class VendorList extends NetworkScaffolding {
                 .withStatusCode(OK_200.code())
                 .withBody(prepareEncodeResponseBody)
 
-        if (delay != null) {
-            mockResponse.withDelay(delay)
+        delay?.with {
+            mockResponse.withDelay(it)
         }
 
         mockServerClient
-                .when(request().withPath(prepareEndpoint), Times.unlimited(), TimeToLive.unlimited(), -10)
+                .when(request().withPath(prepareEndpoint), times, TimeToLive.unlimited(), -10)
                 .respond(mockResponse)
     }
 }
