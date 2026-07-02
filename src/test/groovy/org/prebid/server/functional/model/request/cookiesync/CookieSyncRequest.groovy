@@ -26,9 +26,9 @@ class CookieSyncRequest {
     @JsonProperty("filterSettings")
     FilterSettings filterSettings
 
-    static CookieSyncRequest getDefaultCookieSyncRequest() {
+    static CookieSyncRequest getDefaultCookieSyncRequest(List<BidderName> bidderNames = [GENERIC]) {
         new CookieSyncRequest().tap {
-            bidders = [GENERIC]
+            bidders = bidderNames
             gdpr = 0
             coopSync = false
             debug = true
