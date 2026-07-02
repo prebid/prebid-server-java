@@ -55,7 +55,7 @@ abstract class BaseSpec extends Specification implements ObjectMapperWrapper {
                                                                        "cache.default-ttl-seconds.native": "",
                                                                        "cache.default-ttl-seconds.audio" : ""]
 
-    protected static final PrebidServerService defaultPbsService = pbsServiceFactory.getService([:])
+    protected static final PrebidServerService defaultPbsService = pbsServiceFactory.getService([:], [:], PbsServiceFactory.ContainerPolicy.GLOBAL)
 
     def setupSpec() {
         prebidCache.setResponse()

@@ -1159,9 +1159,6 @@ class AlternateBidderCodeSpec extends BaseSpec {
         and: "Alert.general metric shouldn't be updated"
         def metrics = pbsService.sendCollectedMetricsRequest()
         assert !metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(AMX)]
-
-        cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(config)
     }
 
     def "PBS should discard the bid and emit a response warning when request alternate bidder codes are enabled and the allowed bidder codes doesn't match the bidder's request"() {
@@ -1330,9 +1327,6 @@ class AlternateBidderCodeSpec extends BaseSpec {
         and: "Bidder request should be valid"
         assert bidder.getBidderRequests(bidRequest.id)
 
-        cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(pbsConfig)
-
         where:
         allowedBidderCodes << [BOGUS, UNKNOWN]
     }
@@ -1387,9 +1381,6 @@ class AlternateBidderCodeSpec extends BaseSpec {
         and: "PBS shouldn't emit validation metrics"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
         assert !metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(GENERIC)]
-
-        cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS shouldn't discard bid when alternate bidder code allow and soft alias with case"() {
@@ -1574,9 +1565,6 @@ class AlternateBidderCodeSpec extends BaseSpec {
         and: "PBS shouldn't emit validation metrics"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
         assert !metrics[ADAPTER_RESPONSE_VALIDATION_METRICS.formatted(GENERIC)]
-
-        cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS should populate two seat bid when different bidder response with same seat"() {
