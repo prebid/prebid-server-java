@@ -187,6 +187,6 @@ public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializab
     }
 
     private static void logError(Throwable throwable) {
-        logger.error("[pubstask] Fail to fetch remote configuration: {}", throwable.getCause().getMessage());
+        logger.error("[pubstask] Fail to fetch remote configuration: {}", throwable.getMessage());
     }
 }
