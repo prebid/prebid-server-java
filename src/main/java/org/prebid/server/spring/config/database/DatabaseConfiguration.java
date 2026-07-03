@@ -51,6 +51,7 @@ public class DatabaseConfiguration {
                 databaseConfigurationProperties.getMaxPreparedStatementCacheSize(),
                 databaseConfigurationProperties.getUser(),
                 databaseConfigurationProperties.getPassword(),
+                databaseConfigurationProperties.getSslMode(),
                 databaseConfigurationProperties.getType());
     }
 
@@ -85,6 +86,7 @@ public class DatabaseConfiguration {
                 .setDatabase(databaseAddress.getDatabaseName())
                 .setUser(connectionPoolSettings.getUser())
                 .setPassword(connectionPoolSettings.getPassword())
+                .setSslMode(connectionPoolSettings.getSslMode().mysqlMode)
                 .setCachePreparedStatements(connectionPoolSettings.getEnablePreparedStatementCaching())
                 .setPreparedStatementCacheMaxSize(connectionPoolSettings.getMaxPreparedStatementCacheSize());
 
@@ -116,6 +118,7 @@ public class DatabaseConfiguration {
                 .setDatabase(databaseAddress.getDatabaseName())
                 .setUser(connectionPoolSettings.getUser())
                 .setPassword(connectionPoolSettings.getPassword())
+                .setSslMode(connectionPoolSettings.getSslMode().pgMode)
                 .setCachePreparedStatements(connectionPoolSettings.getEnablePreparedStatementCaching())
                 .setPreparedStatementCacheMaxSize(connectionPoolSettings.getMaxPreparedStatementCacheSize());
 

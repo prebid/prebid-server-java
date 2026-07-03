@@ -323,6 +323,7 @@ For filesystem data source available next options:
 
 For database data source available next options:
 - `settings.database.type` - type of database to be used: `mysql` or `postgres`.
+- `settings.database.ssl-mode` - type of ssl mode to be used: `disabled`, `preferred` or `required`
 - `settings.database.host` - database destination host.
 - `settings.database.port` - database destination port.
 - `settings.database.dbname` - database name.
