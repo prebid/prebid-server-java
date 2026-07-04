@@ -45,7 +45,7 @@ public class InterstitialProcessorTest extends VertxTest {
         assertThat(result.getImp())
                 .extracting(Imp::getBanner)
                 .flatExtracting(Banner::getFormat)
-                .containsOnly(Format.builder().w(320).h(480).build(),
+                .containsExactly(Format.builder().w(320).h(480).build(),
                         Format.builder().w(336).h(544).build(),
                         Format.builder().w(320).h(568).build(),
                         Format.builder().w(320).h(500).build(),
@@ -69,7 +69,7 @@ public class InterstitialProcessorTest extends VertxTest {
         assertThat(result.getImp())
                 .extracting(Imp::getBanner)
                 .flatExtracting(Banner::getFormat)
-                .containsOnly(Format.builder().w(320).h(480).build(),
+                .containsExactly(Format.builder().w(320).h(480).build(),
                         Format.builder().w(336).h(544).build(),
                         Format.builder().w(320).h(568).build(),
                         Format.builder().w(320).h(500).build(),
@@ -81,7 +81,10 @@ public class InterstitialProcessorTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().banner(Banner.builder().build()).instl(1).build()))
-                .device(Device.builder().w(1080).h(1920).pxratio(BigDecimal.valueOf(3))
+                .device(Device.builder()
+                        .w(1080)
+                        .h(1920)
+                        .pxratio(BigDecimal.valueOf(3))
                         .ext(ExtDevice.of(null, ExtDevicePrebid.of(ExtDeviceInt.of(60, 60))))
                         .build())
                 .ext(usePxRatioExt())
@@ -94,8 +97,16 @@ public class InterstitialProcessorTest extends VertxTest {
         assertThat(result.getImp())
                 .extracting(Imp::getBanner)
                 .flatExtracting(Banner::getFormat)
-                .contains(Format.builder().w(320).h(480).build())
-                .doesNotContain(Format.builder().w(768).h(1024).build());
+                .containsExactly(Format.builder().w(300).h(600).build(),
+                        Format.builder().w(320).h(480).build(),
+                        Format.builder().w(250).h(600).build(),
+                        Format.builder().w(360).h(640).build(),
+                        Format.builder().w(320).h(640).build(),
+                        Format.builder().w(300).h(480).build(),
+                        Format.builder().w(336).h(544).build(),
+                        Format.builder().w(303).h(603).build(),
+                        Format.builder().w(320).h(568).build(),
+                        Format.builder().w(301).h(601).build());
     }
 
     @Test
@@ -116,7 +127,7 @@ public class InterstitialProcessorTest extends VertxTest {
         assertThat(result.getImp())
                 .extracting(Imp::getBanner)
                 .flatExtracting(Banner::getFormat)
-                .containsOnly(Format.builder().w(320).h(480).build(),
+                .containsExactly(Format.builder().w(320).h(480).build(),
                         Format.builder().w(336).h(544).build(),
                         Format.builder().w(320).h(568).build(),
                         Format.builder().w(320).h(500).build(),
@@ -129,7 +140,10 @@ public class InterstitialProcessorTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().banner(Banner.builder().format(singletonList(
                         Format.builder().w(1).h(1).build())).build()).instl(1).build()))
-                .device(Device.builder().w(1080).h(1920).pxratio(BigDecimal.valueOf(3))
+                .device(Device.builder()
+                        .w(1080)
+                        .h(1920)
+                        .pxratio(BigDecimal.valueOf(3))
                         .ext(ExtDevice.of(null, ExtDevicePrebid.of(ExtDeviceInt.of(60, 60))))
                         .build())
                 .ext(usePxRatioExt())
@@ -142,8 +156,16 @@ public class InterstitialProcessorTest extends VertxTest {
         assertThat(result.getImp())
                 .extracting(Imp::getBanner)
                 .flatExtracting(Banner::getFormat)
-                .contains(Format.builder().w(320).h(480).build())
-                .doesNotContain(Format.builder().w(768).h(1024).build());
+                .containsExactly(Format.builder().w(300).h(600).build(),
+                        Format.builder().w(320).h(480).build(),
+                        Format.builder().w(250).h(600).build(),
+                        Format.builder().w(360).h(640).build(),
+                        Format.builder().w(320).h(640).build(),
+                        Format.builder().w(300).h(480).build(),
+                        Format.builder().w(336).h(544).build(),
+                        Format.builder().w(303).h(603).build(),
+                        Format.builder().w(320).h(568).build(),
+                        Format.builder().w(301).h(601).build());
     }
 
     @Test
@@ -153,7 +175,10 @@ public class InterstitialProcessorTest extends VertxTest {
                 .imp(singletonList(Imp.builder().banner(Banner.builder()
                                 .format(singletonList(Format.builder().w(400).h(600).build())).build()).instl(1)
                         .build()))
-                .device(Device.builder().w(1080).h(1920).pxratio(BigDecimal.valueOf(3))
+                .device(Device.builder()
+                        .w(1080)
+                        .h(1920)
+                        .pxratio(BigDecimal.valueOf(3))
                         .ext(ExtDevice.of(null, ExtDevicePrebid.of(ExtDeviceInt.of(80, 80))))
                         .build())
                 .ext(usePxRatioExt())
@@ -166,7 +191,7 @@ public class InterstitialProcessorTest extends VertxTest {
         assertThat(result.getImp())
                 .extracting(Imp::getBanner)
                 .flatExtracting(Banner::getFormat)
-                .containsOnly(Format.builder().w(320).h(480).build(),
+                .containsExactly(Format.builder().w(320).h(480).build(),
                         Format.builder().w(336).h(544).build(),
                         Format.builder().w(320).h(568).build(),
                         Format.builder().w(320).h(500).build(),
@@ -178,7 +203,9 @@ public class InterstitialProcessorTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().banner(Banner.builder().build()).instl(1).build()))
-                .device(Device.builder().w(1080).h(1920)
+                .device(Device.builder()
+                        .w(1080)
+                        .h(1920)
                         .ext(ExtDevice.of(null, ExtDevicePrebid.of(ExtDeviceInt.of(1, 1))))
                         .build())
                 .ext(usePxRatioExt())
@@ -191,7 +218,16 @@ public class InterstitialProcessorTest extends VertxTest {
         assertThat(result.getImp())
                 .extracting(Imp::getBanner)
                 .flatExtracting(Banner::getFormat)
-                .contains(Format.builder().w(768).h(1024).build());
+                .containsExactly(Format.builder().w(300).h(250).build(),
+                        Format.builder().w(728).h(90).build(),
+                        Format.builder().w(160).h(600).build(),
+                        Format.builder().w(320).h(50).build(),
+                        Format.builder().w(300).h(600).build(),
+                        Format.builder().w(970).h(250).build(),
+                        Format.builder().w(970).h(1000).build(),
+                        Format.builder().w(320).h(320).build(),
+                        Format.builder().w(768).h(1024).build(),
+                        Format.builder().w(1024).h(768).build());
     }
 
     @Test
@@ -199,7 +235,10 @@ public class InterstitialProcessorTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().banner(Banner.builder().build()).instl(1).build()))
-                .device(Device.builder().w(1080).h(1920).pxratio(BigDecimal.valueOf(3))
+                .device(Device.builder()
+                        .w(1080)
+                        .h(1920)
+                        .pxratio(BigDecimal.valueOf(3))
                         .ext(ExtDevice.of(null, ExtDevicePrebid.of(ExtDeviceInt.of(1, 1))))
                         .build())
                 .build();
@@ -211,7 +250,41 @@ public class InterstitialProcessorTest extends VertxTest {
         assertThat(result.getImp())
                 .extracting(Imp::getBanner)
                 .flatExtracting(Banner::getFormat)
-                .contains(Format.builder().w(768).h(1024).build());
+                .containsExactly(Format.builder().w(300).h(250).build(),
+                        Format.builder().w(728).h(90).build(),
+                        Format.builder().w(160).h(600).build(),
+                        Format.builder().w(320).h(50).build(),
+                        Format.builder().w(300).h(600).build(),
+                        Format.builder().w(970).h(250).build(),
+                        Format.builder().w(970).h(1000).build(),
+                        Format.builder().w(320).h(320).build(),
+                        Format.builder().w(768).h(1024).build(),
+                        Format.builder().w(1024).h(768).build());
+    }
+
+    @Test
+    public void processShouldNotTruncateMinimumInterstitialSizeThreshold() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder().banner(Banner.builder()
+                                .format(singletonList(Format.builder().w(301).h(500).build())).build()).instl(1)
+                        .build()))
+                .device(Device.builder()
+                        .ext(ExtDevice.of(null, ExtDevicePrebid.of(ExtDeviceInt.of(80, 80))))
+                        .build())
+                .build();
+
+        // when
+        final BidRequest result = interstitialProcessor.process(bidRequest);
+
+        // then
+        assertThat(result.getImp())
+                .extracting(Imp::getBanner)
+                .flatExtracting(Banner::getFormat)
+                .containsExactly(Format.builder().w(300).h(480).build(),
+                        Format.builder().w(300).h(500).build(),
+                        Format.builder().w(300).h(431).build(),
+                        Format.builder().w(300).h(430).build());
     }
 
     @Test
@@ -233,7 +306,7 @@ public class InterstitialProcessorTest extends VertxTest {
         assertThat(result.getImp())
                 .extracting(Imp::getBanner)
                 .flatExtracting(Banner::getFormat)
-                .containsOnly(Format.builder().w(300).h(250).build(),
+                .containsExactly(Format.builder().w(300).h(250).build(),
                         Format.builder().w(160).h(600).build(),
                         Format.builder().w(320).h(50).build(),
                         Format.builder().w(300).h(600).build(),
