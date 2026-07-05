@@ -18,13 +18,13 @@ public class ConditionalLogger {
     private final String key;
     private final Logger logger;
 
-    private final ConcurrentMap<String, Instant> messageToWait;
+    private final ConcurrentMap<String, Instant> messageToWaitEndTime;
 
     public ConditionalLogger(String key, Logger logger) {
         this.key = key; // can be null
         this.logger = Objects.requireNonNull(logger);
 
-        messageToWait = Caffeine.newBuilder()
+        messageToWaitEndTime = Caffeine.newBuilder()
                 .maximumSize(CACHE_MAXIMUM_SIZE)
                 .expireAfterWrite(EXPIRE_CACHE_DURATION, TimeUnit.HOURS)
                 .<String, Instant>build()
@@ -76,15 +76,15 @@ public class ConditionalLogger {
     private void log(String message, long duration, TimeUnit unit, Consumer<String> logger) {
         final String key = ObjectUtils.defaultIfNull(this.key, message);
         final Instant currentTime = Instant.now();
-        final Instant endTime = messageToWait.get(key);
+        final Instant endTime = messageToWaitEndTime.get(key);
 
         if (endTime == null || endTime.isBefore(currentTime)) {
-            messageToWait.put(key, calculateEndTime(currentTime, duration, unit));
+            messageToWaitEndTime.put(key, calculateEndTime(currentTime, duration, unit));
             logger.accept(message);
         }
     }
 
     private static Instant calculateEndTime(Instant currentTime, long duration, TimeUnit unit) {
-        return currentTime.plusMillis(unit.toMillis(duration));
+        return currentTime.plus(duration, unit.toChronoUnit());
     }
 }
