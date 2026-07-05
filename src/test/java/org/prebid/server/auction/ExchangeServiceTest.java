@@ -4877,8 +4877,8 @@ public class ExchangeServiceTest extends VertxTest {
 
     private static Answer<Future<BidderSeatBid>> givenHttpBidderRequesterAnswerWithRejection(
             BidRejectionReason bidRejectionReason,
-            Future<BidderSeatBid> answer
-    ) {
+            Future<BidderSeatBid> answer) {
+
         return invocation -> {
             final BidRejectionTracker bidRejectionTracker = invocation.getArgument(2, BidRejectionTracker.class);
             bidRejectionTracker.rejectAll(bidRejectionReason);

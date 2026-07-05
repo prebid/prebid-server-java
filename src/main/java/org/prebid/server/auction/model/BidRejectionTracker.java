@@ -50,8 +50,8 @@ public class BidRejectionTracker {
             Set<String> involvedImpIds,
             Map<String, Set<String>> succeededBidsIds,
             Map<String, List<Rejection>> rejections,
-            double logSamplingRate
-    ) {
+            double logSamplingRate) {
+
         this.bidder = bidder;
         this.involvedImpIds = new HashSet<>(involvedImpIds);
         this.logSamplingRate = logSamplingRate;
@@ -66,14 +66,13 @@ public class BidRejectionTracker {
                 anotherTracker.involvedImpIds,
                 anotherTracker.succeededBidsIds,
                 anotherTracker.rejections,
-                anotherTracker.logSamplingRate
-        );
+                anotherTracker.logSamplingRate);
     }
 
     public static BidRejectionTracker withAdditionalImpIds(
             BidRejectionTracker anotherTracker,
-            Set<String> additionalImpIds
-    ) {
+            Set<String> additionalImpIds) {
+
         final BidRejectionTracker newTracker = copyOf(anotherTracker);
         newTracker.involvedImpIds.addAll(additionalImpIds);
         return newTracker;

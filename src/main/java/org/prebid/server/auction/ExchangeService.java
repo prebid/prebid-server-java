@@ -1150,76 +1150,13 @@ public class ExchangeService {
             mergeBidRejectionTrackers(auctionContext, copiedBidRejectionTrackers, bidderToFutureResponse);
 
             return Future.succeededFuture(bidderToFutureResponse.entrySet().stream()
-                    .map(MapUtil.mapEntryValueMapper((bidder, futureResponse) ->
-                            futureResponse.isComplete() ? futureResponse : recoverUncompletedSecondaryBidder(bidder)))
-                    .map(MapUtil.mapEntryMapper((bidder, futureResponse) -> futureResponse.map(bidderResponse ->
-                            bidderToAuctionParticipation.get(bidder).with(bidderResponse))))
-                    .map(Future::result)
-                    .filter(Objects::nonNull)
+                    .filter(entry -> !entry.getValue().failed())
+                    .map(MapUtil.mapEntryValueMapper((bidder, futureResponse) -> ObjectUtils.defaultIfNull(
+                            futureResponse.result(), responseForUncompletedSecondaryBidder(bidder))))
+                    .map(MapUtil.mapEntryMapper((bidder, bidderResponse) ->
+                            bidderToAuctionParticipation.get(bidder).with(bidderResponse)))
                     .toList());
         });
-    }
-
-    private Future<BidderResponse> recoverUncompletedSecondaryBidder(String bidderName) {
-        final BidderSeatBid bidderSeatBid = BidderSeatBid.builder()
-                .warnings(Collections.singletonList(
-                        BidderError.of("secondary bidder timed out, auction proceeded", BidderError.Type.timeout)))
-                .build();
-
-        return Future.succeededFuture(BidderResponse.of(bidderName, bidderSeatBid, 0));
-    }
-
-    private CompositeFuture buildPrimaryBiddersCompositeFuture(
-            AuctionContext auctionContext,
-            Map<String, Future<BidderResponse>> bidderToFutureResponse) {
-
-        final Set<String> secondaryBidders = resolveSecondaryBidders(auctionContext);
-
-        final List<Future<BidderResponse>> primaryBiddersFutureResponses = bidderToFutureResponse.keySet().stream()
-                .filter(Predicate.not(secondaryBidders::contains))
-                .map(bidderToFutureResponse::get)
-                .toList();
-
-        return Future.join(CollectionUtils.isNotEmpty(primaryBiddersFutureResponses)
-                ? primaryBiddersFutureResponses
-                : bidderToFutureResponse.values().stream().toList());
-    }
-
-    private static Set<String> resolveSecondaryBidders(AuctionContext auctionContext) {
-        final Set<String> accountSecondaryBidders = Optional.of(auctionContext)
-                .map(AuctionContext::getAccount)
-                .map(Account::getAuction)
-                .map(AccountAuctionConfig::getSecondaryBidders)
-                .orElse(Collections.emptySet());
-
-        return Optional.ofNullable(auctionContext.getBidRequest())
-                .map(BidRequest::getExt)
-                .map(ExtRequest::getPrebid)
-                .map(ExtRequestPrebid::getSecondaryBidders)
-                .orElse(accountSecondaryBidders);
-    }
-
-    private void mergeBidRejectionTrackers(AuctionContext auctionContext,
-                                           Map<String, BidRejectionTracker> newBidRejectionTrackers,
-                                           Map<String, Future<BidderResponse>> bidderToFutureResponse) {
-
-        final Map<String, BidRejectionTracker> mergedBidRejectionTrackers = newBidRejectionTrackers.keySet().stream()
-                .collect(Collectors.toMap(Function.identity(), bidder -> mergeBidRejectionTrackersForSingleBidder(
-                        bidderToFutureResponse.get(bidder),
-                        auctionContext.getBidRejectionTrackers().get(bidder),
-                        newBidRejectionTrackers.get(bidder))));
-
-        auctionContext.getBidRejectionTrackers().clear();
-        auctionContext.getBidRejectionTrackers().putAll(mergedBidRejectionTrackers);
-    }
-
-    private BidRejectionTracker mergeBidRejectionTrackersForSingleBidder(Future<BidderResponse> futureResponse,
-                                                                         BidRejectionTracker oldBidRejectionTracker,
-                                                                         BidRejectionTracker newBidRejectionTracker) {
-
-        return futureResponse == null ? oldBidRejectionTracker : futureResponse.isComplete()
-                ? newBidRejectionTracker
-                : oldBidRejectionTracker.rejectAll(BidRejectionReason.ERROR_TIMED_OUT);
     }
 
     private Future<BidderResponse> processAndRequestBidsForSingleBidder(AuctionContext auctionContext,
@@ -1232,32 +1169,6 @@ public class ExchangeService {
                         .map(response -> response.with(addWarnings(response.getSeatBid(), result.getErrors()))))
                 .recover(throwable -> recoverBidderRequestRejection(
                         auctionContext, bidderRequest.getBidder(), throwable));
-    }
-
-    private static BidderSeatBid addWarnings(BidderSeatBid seatBid, List<BidderError> warnings) {
-        return CollectionUtils.isNotEmpty(warnings)
-                ? seatBid.toBuilder()
-                .warnings(ListUtil.union(warnings, seatBid.getWarnings()))
-                .build()
-                : seatBid;
-    }
-
-    private static Future<BidderResponse> recoverBidderRequestRejection(AuctionContext auctionContext,
-                                                                        String bidderName,
-                                                                        Throwable throwable) {
-
-        if (throwable instanceof BidderRequestRejectedException rejection) {
-            auctionContext.getBidRejectionTrackers()
-                    .get(bidderName)
-                    .rejectAll(rejection.getRejectionReason());
-            final BidderSeatBid bidderSeatBid = BidderSeatBid.builder()
-                    .warnings(rejection.getErrors())
-                    .build();
-
-            return Future.succeededFuture(BidderResponse.of(bidderName, bidderSeatBid, 0));
-        }
-
-        return Future.failedFuture(throwable);
     }
 
     private Future<BidderResponse> invokeHooksAndRequestBids(AuctionContext auctionContext,
@@ -1334,6 +1245,27 @@ public class ExchangeService {
                 .map(seatBid -> BidderResponse.of(bidderName, seatBid, responseTime(bidderRequestStartTime)));
     }
 
+    private BidRequest adjustTmax(BidRequest bidRequest,
+                                  long startTime,
+                                  int adjustmentFactor,
+                                  long currentTime,
+                                  long bidderTmaxDeductionMs) {
+
+        final long tmax = timeoutResolver.limitToMax(bidRequest.getTmax());
+        final long adjustedTmax = timeoutResolver.adjustForBidder(
+                tmax, adjustmentFactor, currentTime - startTime, bidderTmaxDeductionMs);
+
+        return tmax != adjustedTmax
+                ? bidRequest.toBuilder().tmax(adjustedTmax).build()
+                : bidRequest;
+    }
+
+    private Timeout adjustTimeout(Timeout timeout, long startTime, long currentTime) {
+        final long adjustedTmax = timeoutResolver.adjustForRequest(
+                timeout.getDeadline() - startTime, currentTime - startTime);
+        return timeoutFactory.create(currentTime, adjustedTmax);
+    }
+
     private BidderSeatBid populateBidderCode(BidderSeatBid seatBid, String bidderName, String resolvedBidderName) {
         return seatBid.with(seatBid.getBids().stream()
                 .map(bidderBid -> bidderBid.toBuilder()
@@ -1367,27 +1299,6 @@ public class ExchangeService {
                 : (ObjectNode) childNode;
     }
 
-    private BidRequest adjustTmax(BidRequest bidRequest,
-                                  long startTime,
-                                  int adjustmentFactor,
-                                  long currentTime,
-                                  long bidderTmaxDeductionMs) {
-
-        final long tmax = timeoutResolver.limitToMax(bidRequest.getTmax());
-        final long adjustedTmax = timeoutResolver.adjustForBidder(
-                tmax, adjustmentFactor, currentTime - startTime, bidderTmaxDeductionMs);
-
-        return tmax != adjustedTmax
-                ? bidRequest.toBuilder().tmax(adjustedTmax).build()
-                : bidRequest;
-    }
-
-    private Timeout adjustTimeout(Timeout timeout, long startTime, long currentTime) {
-        final long adjustedTmax = timeoutResolver.adjustForRequest(
-                timeout.getDeadline() - startTime, currentTime - startTime);
-        return timeoutFactory.create(currentTime, adjustedTmax);
-    }
-
     private BidderResponse rejectBidderResponseOrProceed(HookStageExecutionResult<BidderResponsePayload> stageResult,
                                                          BidderResponse bidderResponse) {
 
@@ -1396,6 +1307,101 @@ public class ExchangeService {
                 : stageResult.getPayload().bids();
 
         return bidderResponse.with(bidderResponse.getSeatBid().with(bids));
+    }
+
+    private static BidderSeatBid addWarnings(BidderSeatBid seatBid, List<BidderError> warnings) {
+        return CollectionUtils.isNotEmpty(warnings)
+                ? seatBid.toBuilder()
+                .warnings(ListUtil.union(warnings, seatBid.getWarnings()))
+                .build()
+                : seatBid;
+    }
+
+    private static Future<BidderResponse> recoverBidderRequestRejection(AuctionContext auctionContext,
+                                                                        String bidderName,
+                                                                        Throwable throwable) {
+
+        if (throwable instanceof BidderRequestRejectedException rejection) {
+            auctionContext.getBidRejectionTrackers()
+                    .get(bidderName)
+                    .rejectAll(rejection.getRejectionReason());
+            final BidderSeatBid bidderSeatBid = BidderSeatBid.builder()
+                    .warnings(rejection.getErrors())
+                    .build();
+
+            return Future.succeededFuture(BidderResponse.of(bidderName, bidderSeatBid, 0));
+        }
+
+        return Future.failedFuture(throwable);
+    }
+
+    private CompositeFuture buildPrimaryBiddersCompositeFuture(
+            AuctionContext auctionContext,
+            Map<String, Future<BidderResponse>> bidderToFutureResponse) {
+
+        final Set<String> secondaryBidders = resolveSecondaryBidders(auctionContext);
+
+        final List<Future<BidderResponse>> primaryBiddersFutureResponses = bidderToFutureResponse.keySet().stream()
+                .filter(Predicate.not(secondaryBidders::contains))
+                .map(bidderToFutureResponse::get)
+                .toList();
+
+        return Future.join(CollectionUtils.isNotEmpty(primaryBiddersFutureResponses)
+                ? primaryBiddersFutureResponses
+                : bidderToFutureResponse.values().stream().toList());
+    }
+
+    private static Set<String> resolveSecondaryBidders(AuctionContext auctionContext) {
+
+        return Optional.ofNullable(auctionContext.getBidRequest())
+                .map(BidRequest::getExt)
+                .map(ExtRequest::getPrebid)
+                .map(ExtRequestPrebid::getSecondaryBidders)
+                .orElseGet(() -> getAccountSecondaryBidders(auctionContext));
+    }
+
+    private static Set<String> getAccountSecondaryBidders(AuctionContext auctionContext) {
+        return Optional.of(auctionContext)
+                .map(AuctionContext::getAccount)
+                .map(Account::getAuction)
+                .map(AccountAuctionConfig::getSecondaryBidders)
+                .orElse(Collections.emptySet());
+    }
+
+    private void mergeBidRejectionTrackers(AuctionContext auctionContext,
+                                           Map<String, BidRejectionTracker> newBidRejectionTrackers,
+                                           Map<String, Future<BidderResponse>> bidderToFutureResponse) {
+
+        final Map<String, BidRejectionTracker> mergedBidRejectionTrackers = newBidRejectionTrackers.keySet().stream()
+                .collect(Collectors.toMap(Function.identity(), bidder -> mergeBidRejectionTrackersForSingleBidder(
+                        bidderToFutureResponse.get(bidder),
+                        auctionContext.getBidRejectionTrackers().get(bidder),
+                        newBidRejectionTrackers.get(bidder))));
+
+        auctionContext.getBidRejectionTrackers().clear();
+        auctionContext.getBidRejectionTrackers().putAll(mergedBidRejectionTrackers);
+    }
+
+    private BidRejectionTracker mergeBidRejectionTrackersForSingleBidder(Future<BidderResponse> futureResponse,
+                                                                         BidRejectionTracker oldBidRejectionTracker,
+                                                                         BidRejectionTracker newBidRejectionTracker) {
+
+        if (futureResponse == null) {
+            return oldBidRejectionTracker;
+        }
+
+        return futureResponse.isComplete()
+                ? newBidRejectionTracker
+                : oldBidRejectionTracker.rejectAll(BidRejectionReason.ERROR_TIMED_OUT);
+    }
+
+    private BidderResponse responseForUncompletedSecondaryBidder(String bidderName) {
+        final BidderSeatBid bidderSeatBid = BidderSeatBid.builder()
+                .warnings(Collections.singletonList(
+                        BidderError.of("secondary bidder timed out, auction proceeded", BidderError.Type.timeout)))
+                .build();
+
+        return BidderResponse.of(bidderName, bidderSeatBid, 0);
     }
 
     private List<AuctionParticipation> dropZeroNonDealBids(List<AuctionParticipation> auctionParticipations,
