@@ -84,8 +84,7 @@ public class UsersyncInfoFactory {
                 GPP_PLACEHOLDER, StringUtils.defaultString(privacy.getGpp()),
                 GPP_SID_PLACEHOLDER, CollectionUtils.emptyIfNull(privacy.getGppSid()).stream()
                         .map(String::valueOf)
-                        .collect(Collectors.joining(","))
-        );
+                        .collect(Collectors.joining(",")));
     }
 
     private static Map<String, String> encodeParams(Map<String, String> params) {
