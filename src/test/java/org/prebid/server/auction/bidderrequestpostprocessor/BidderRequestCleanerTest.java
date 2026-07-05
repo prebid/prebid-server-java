@@ -11,6 +11,7 @@ import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidAdjustmentFactors;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAdservertargetingRule;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAlternateBidderCodes;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAlternateBidderCodesBidder;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
@@ -21,9 +22,8 @@ import java.util.EnumMap;
 import java.util.Map;
 import java.util.function.UnaryOperator;
 
-import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singleton;
+import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -63,6 +63,7 @@ public class BidderRequestCleanerTest extends VertxTest {
         final ExtRequestBidAdjustmentFactors factors = ExtRequestBidAdjustmentFactors.builder()
                 .mediatypes(mediaTypes)
                 .build();
+        factors.addFactor("other", BigDecimal.ONE);
         factors.addFactor("bIdder", BigDecimal.ONE);
 
         final BidderRequest bidderRequest = givenBidderRequest(extPrebid -> extPrebid.bidadjustmentfactors(factors));
@@ -198,7 +199,7 @@ public class BidderRequestCleanerTest extends VertxTest {
     @Test
     public void processShouldRemoveAliasGvlIds() {
         // given
-        final BidderRequest bidderRequest = givenBidderRequest(extPrebid -> extPrebid.aliasgvlids(emptyMap()));
+        final BidderRequest bidderRequest = givenBidderRequest(extPrebid -> extPrebid.aliasgvlids(Map.of("a", 1)));
 
         // when
         final BidderRequestPostProcessingResult result = target.process(bidderRequest, null, null).result();
@@ -216,7 +217,8 @@ public class BidderRequestCleanerTest extends VertxTest {
     @Test
     public void processShouldRemoveAdServerTargeting() {
         // given
-        final BidderRequest bidderRequest = givenBidderRequest(extPrebid -> extPrebid.adservertargeting(emptyList()));
+        final BidderRequest bidderRequest = givenBidderRequest(extPrebid -> extPrebid.adservertargeting(
+                singletonList(ExtRequestPrebidAdservertargetingRule.of(null, null, null))));
 
         // when
         final BidderRequestPostProcessingResult result = target.process(bidderRequest, null, null).result();
@@ -272,7 +274,7 @@ public class BidderRequestCleanerTest extends VertxTest {
     @Test
     public void processShouldRemoveNoSale() {
         // given
-        final BidderRequest bidderRequest = givenBidderRequest(extPrebid -> extPrebid.nosale(emptyList()));
+        final BidderRequest bidderRequest = givenBidderRequest(extPrebid -> extPrebid.nosale(singletonList("s")));
 
         // when
         final BidderRequestPostProcessingResult result = target.process(bidderRequest, null, null).result();
