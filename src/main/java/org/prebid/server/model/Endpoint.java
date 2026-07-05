@@ -2,7 +2,6 @@ package org.prebid.server.model;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
-import org.apache.commons.lang3.StringUtils;
 
 import java.util.Arrays;
 
@@ -41,7 +40,7 @@ public enum Endpoint {
     @JsonCreator
     public static Endpoint fromString(String value) {
         return Arrays.stream(values())
-                .filter(endpoint -> StringUtils.endsWith(value, endpoint.value))
+                .filter(endpoint -> endpoint.value().equals(value))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Unknown endpoint"));
     }

@@ -103,8 +103,11 @@ public class ExecutionPlanEndpointsConfigDeserializer
             final HttpMethod httpMethod = delimiterIndex != -1
                     ? HttpMethod.valueOf(value.substring(0, delimiterIndex))
                     : null;
+            final String endpoint = delimiterIndex != -1
+                    ? value.substring(delimiterIndex + 1)
+                    : value;
 
-            return new ConfigKey(httpMethod, Endpoint.fromString(value));
+            return new ConfigKey(httpMethod, Endpoint.fromString(endpoint));
         }
 
         @Override

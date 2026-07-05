@@ -83,13 +83,13 @@ public class ExecutionPlanEndpointsConfigDeserializerTest extends VertxTest {
     @Test
     public void deserializeShouldFailOnInvalidEndpoint() throws JsonProcessingException {
         // given
-        final String executionPlan = givenExecutionPlan("invalid");
+        final String executionPlan = givenExecutionPlan("/invalid" + Endpoint.openrtb2_auction.value());
 
         // when and then
         assertThatExceptionOfType(InvalidFormatException.class)
                 .isThrownBy(() -> mapper.readValue(executionPlan, ExecutionPlan.class))
                 .withMessageContaining("Cannot deserialize Map key of type")
-                .withMessageContaining("from String \"invalid\": not a valid representation");
+                .withMessageContaining("from String \"/invalid/openrtb2/auction\": not a valid representation");
     }
 
     @Test
@@ -166,9 +166,6 @@ public class ExecutionPlanEndpointsConfigDeserializerTest extends VertxTest {
                         Function.identity(),
                         ExecutionPlanEndpointsConfigDeserializerTest::givenEndpointExecutionPlan));
 
-        return """
-                {
-                  "endpoints": %s
-                }""".formatted(mapper.writeValueAsString(endpoints));
+        return mapper.writeValueAsString(Map.of("endpoints", endpoints));
     }
 }
