@@ -5,10 +5,10 @@ adapters:
     aliases:
       rxnetwork:
         meta-info:
-          vendor-id: 14
+          vendor-id: 0
       152media:
         meta-info:
-          vendor-id: 14
+          vendor-id: 1111
       xapads:
         enabled: false
         meta-info:

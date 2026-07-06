@@ -12,4 +12,4 @@ adapters:
         - video
         - native
       supported-vendors:
-      vendor-id: 0
+      vendor-id: 1473

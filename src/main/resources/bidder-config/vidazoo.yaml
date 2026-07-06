@@ -17,7 +17,7 @@ adapters:
         endpoint: https://exchange.tagoras.io/openrtb/
         meta-info:
           maintainer-email: prebid@tagoras.io
-          vendor-id: 744
+          vendor-id: 1450
         usersync:
           enabled: true
           cookie-family-name: tagoras
