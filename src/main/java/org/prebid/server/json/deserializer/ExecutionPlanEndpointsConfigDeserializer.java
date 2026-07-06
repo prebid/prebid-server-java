@@ -9,6 +9,8 @@ import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import io.vertx.core.http.HttpMethod;
 import org.prebid.server.hooks.execution.model.EndpointExecutionPlan;
 import org.prebid.server.hooks.execution.model.HookHttpEndpoint;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.model.Endpoint;
 
 import java.io.IOException;
@@ -21,6 +23,7 @@ import java.util.Map;
 public class ExecutionPlanEndpointsConfigDeserializer
         extends StdDeserializer<Map<HookHttpEndpoint, EndpointExecutionPlan>> {
 
+    private static final Logger logger = LoggerFactory.getLogger(ExecutionPlanEndpointsConfigDeserializer.class);
     private static final TypeReference<Map<ConfigKey, EndpointExecutionPlan>> TEMP_MAP_REFERENCE =
             new TypeReference<>() {
             };
@@ -58,10 +61,22 @@ public class ExecutionPlanEndpointsConfigDeserializer
             Arrays.stream(HookHttpEndpoint.values())
                     .filter(httpEndpoint -> httpEndpoint.endpoint() == endpoint)
                     .map(HookHttpEndpoint::httpMethod)
-                    .forEach(newHttpMethod -> unpacked.putIfAbsent(new ConfigKey(newHttpMethod, endpoint), value));
+                    .forEach(newHttpMethod -> putOrLogWarn(unpacked, new ConfigKey(newHttpMethod, endpoint), value));
         }
 
         return unpacked;
+    }
+
+    private static void putOrLogWarn(Map<ConfigKey, EndpointExecutionPlan> map,
+                                     ConfigKey key,
+                                     EndpointExecutionPlan value) {
+
+        final Object old = map.putIfAbsent(key, value);
+        if (old != null) {
+            logger.warn("""
+                    Combination of old and new config for EndpointExecutionPlan found.
+                    Replace old config with new one for endpoint: {}""", key.endpoint());
+        }
     }
 
     private static Map<HookHttpEndpoint, EndpointExecutionPlan> convertKeys(Map<ConfigKey, EndpointExecutionPlan> map,
