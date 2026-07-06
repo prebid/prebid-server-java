@@ -1,0 +1,19 @@
+adapters:
+  rtbstack:
+    endpoint: https://{{Region}}-adx-admixer.rtb-stack.com/pbs?ssp={{SspID}}&endpoint={{ZoneID}}&client={{PartnerId}}
+    ortb-version: "2.6"
+    modifying-vast-xml-allowed: false
+    meta-info:
+      maintainer-email: prebid@admixer.net
+      app-media-types:
+        - banner
+        - video
+        - native
+        - audio
+      site-media-types:
+        - banner
+        - video
+        - native
+        - audio
+      supported-vendors:
+      vendor-id: 511
