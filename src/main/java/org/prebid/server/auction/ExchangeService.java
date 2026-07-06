@@ -115,6 +115,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -1131,7 +1132,10 @@ public class ExchangeService {
         // To prevent any issues, we provide them with a copy of BidRejectionTracker
         // and only merge this copy back if secondary bidder has completed in time
         final Map<String, BidRejectionTracker> copiedBidRejectionTrackers =
-                MapUtil.mapValues(auctionContext.getBidRejectionTrackers(), BidRejectionTracker::copyOf);
+                new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        for (Map.Entry<String, BidRejectionTracker> entry: auctionContext.getBidRejectionTrackers().entrySet()) {
+            copiedBidRejectionTrackers.put(entry.getKey(), BidRejectionTracker.copyOf(entry.getValue()));
+        }
 
         final Map<String, AuctionParticipation> bidderToAuctionParticipation = auctionContext
                 .getAuctionParticipations().stream().collect(Collectors.toMap(
@@ -1332,6 +1336,7 @@ public class ExchangeService {
             return Future.succeededFuture(BidderResponse.of(bidderName, bidderSeatBid, 0));
         }
 
+        logger.error("Encountered unexpected error while processing bids for bidder {}", throwable, bidderName);
         return Future.failedFuture(throwable);
     }
 
@@ -1352,7 +1357,6 @@ public class ExchangeService {
     }
 
     private static Set<String> resolveSecondaryBidders(AuctionContext auctionContext) {
-
         return Optional.ofNullable(auctionContext.getBidRequest())
                 .map(BidRequest::getExt)
                 .map(ExtRequest::getPrebid)
