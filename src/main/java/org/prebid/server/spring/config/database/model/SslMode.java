@@ -1,5 +1,8 @@
 package org.prebid.server.spring.config.database.model;
 
+import lombok.Getter;
+
+@Getter
 public enum SslMode {
 
     disabled(io.vertx.pgclient.SslMode.DISABLE, io.vertx.mysqlclient.SslMode.DISABLED),
