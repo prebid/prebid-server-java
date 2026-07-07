@@ -1,7 +1,6 @@
 package org.prebid.server.settings.service;
 
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
@@ -96,7 +95,7 @@ public class S3PeriodicRefreshServiceTest extends VertxTest {
 
     @AfterEach
     public void tearDown(VertxTestContext context) {
-        vertx.close(context.succeedingThenComplete());
+        vertx.close().onComplete(context.succeedingThenComplete());
     }
 
     @Test
@@ -167,8 +166,6 @@ public class S3PeriodicRefreshServiceTest extends VertxTest {
                 metrics,
                 vertx);
 
-        final Promise<Void> init = Promise.promise();
-        s3PeriodicRefreshService.initialize(init);
-        return init.future();
+        return s3PeriodicRefreshService.initialize();
     }
 }
