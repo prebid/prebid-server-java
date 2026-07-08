@@ -64,14 +64,12 @@ public class SynapseHXBidder implements Bidder<BidRequest> {
         final String uri;
 
         try {
-            final String tenantId = getTenantId(firstImp);
-            uri = makeUri(tenantId);
+            uri = makeUri(getTenantId(firstImp));
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
         final MultiMap headers = HttpUtil.headers();
-
         headers.add(HttpUtil.X_OPENRTB_VERSION_HEADER, OPENRTB_VERSION);
 
         return Result.withValue(BidderUtil.defaultRequest(bidRequest, headers, uri, mapper));
