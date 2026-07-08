@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.buffer.ByteBufInputStream;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.internal.buffer.BufferInternal;
 import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
 
 import java.io.IOException;
@@ -66,7 +67,7 @@ public class JacksonMapper {
 
     public <T> T decodeValue(Buffer buf, Class<T> clazz) throws DecodeException {
         try {
-            return mapper.readValue((InputStream) new ByteBufInputStream(buf.getByteBuf()), clazz);
+            return mapper.readValue((InputStream) new ByteBufInputStream(((BufferInternal) buf).getByteBuf()), clazz);
         } catch (IOException e) {
             throw new DecodeException(FAILED_TO_DECODE.formatted(e.getMessage()), e);
         }
@@ -74,7 +75,7 @@ public class JacksonMapper {
 
     public <T> T decodeValue(Buffer buf, TypeReference<T> type) throws DecodeException {
         try {
-            return mapper.readValue(new ByteBufInputStream(buf.getByteBuf()), type);
+            return mapper.readValue(new ByteBufInputStream(((BufferInternal) buf).getByteBuf()), type);
         } catch (IOException e) {
             throw new DecodeException(FAILED_TO_DECODE.formatted(e.getMessage()), e);
         }
