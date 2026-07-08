@@ -90,7 +90,7 @@ public class ZeroclickfraudBidder implements Bidder<BidRequest> {
     private HttpRequest<BidRequest> makeHttpRequest(ExtImpZeroclickfraud extImpZeroclickfraud, List<Imp> imps,
                                                     BidRequest bidRequest) {
         final String uri = endpointTemplate
-                .replace(HOST, extImpZeroclickfraud.getHost())
+                .replace(HOST, HttpUtil.validateDomainName(extImpZeroclickfraud.getHost()))
                 .replace(SOURCE_ID, extImpZeroclickfraud.getSourceId().toString());
 
         final BidRequest outgoingRequest = bidRequest.toBuilder().imp(imps).build();

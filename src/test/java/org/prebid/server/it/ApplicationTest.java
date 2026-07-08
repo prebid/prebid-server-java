@@ -85,7 +85,7 @@ public class ApplicationTest extends IntegrationTest {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/generic-exchange"))
                 .withHeader("Accept", equalTo("application/json"))
-                .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))
+                .withHeader("Content-Type", equalTo("application/json;charset=utf-8"))
                 .withRequestBody(equalToJson(
                         jsonFrom("openrtb2/generic_core_functionality/test-generic-bid-request.json")))
                 .willReturn(aResponse().withBody(
@@ -293,6 +293,7 @@ public class ApplicationTest extends IntegrationTest {
                 .tcfPolicyVersion(2)
                 .addPurposesConsent(BitSetIntIterable.from(1))
                 .addVendorConsent(BitSetIntIterable.from(1, 32, 52))
+                .addDisclosedVendors(BitSetIntIterable.from(1, 32, 52))
                 .encode();
 
         // when

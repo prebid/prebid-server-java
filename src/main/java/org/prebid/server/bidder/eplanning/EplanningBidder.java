@@ -232,7 +232,12 @@ public class EplanningBidder implements Bidder<Void> {
                 ? app.getBundle()
                 : pageDomain;
 
-        final String uri = "%s/%s/%s/%s/%s".formatted(endpointUrl, clientId, DFP_CLIENT_ID, requestTarget, SEC);
+        final String uri = "%s/%s/%s/%s/%s".formatted(
+                endpointUrl,
+                HttpUtil.validatePathSegment(clientId),
+                DFP_CLIENT_ID,
+                HttpUtil.validatePathSegment(requestTarget),
+                SEC);
 
         final URIBuilder uriBuilder;
         try {
