@@ -4,6 +4,7 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
+import org.apache.commons.lang3.NotImplementedException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,7 +17,6 @@ import org.prebid.server.execution.file.FileProcessor;
 import org.prebid.server.execution.retry.FixedIntervalRetryPolicy;
 import org.prebid.server.execution.retry.NonRetryable;
 import org.prebid.server.execution.retry.RetryPolicy;
-import org.testcontainers.shaded.org.apache.commons.lang3.NotImplementedException;
 
 import java.util.concurrent.Callable;
 
