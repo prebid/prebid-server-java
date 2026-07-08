@@ -95,7 +95,8 @@ public class ImdsBidder implements Bidder<BidRequest> {
     }
 
     private String generateEndpointUrl(ExtImpImds firstExtImp) {
-        final String accountId = URLEncoder.encode(firstExtImp.getSeatId(), StandardCharsets.UTF_8);
+        final String accountId = URLEncoder.encode(
+                HttpUtil.validatePathSegment(firstExtImp.getSeatId()), StandardCharsets.UTF_8);
         final String sourceId = URLEncoder.encode(prebidVersion, StandardCharsets.UTF_8);
         return endpointUrl
                 .replaceAll("\\{\\{AccountID}}", accountId)
