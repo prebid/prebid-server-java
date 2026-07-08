@@ -170,4 +170,16 @@ class BidRequest {
             ext.prebid.events = new Events()
         }
     }
+
+    void enabledReturnAllBidStatus() {
+        if (!ext) {
+            ext = new BidRequestExt()
+        }
+        if (!ext.prebid) {
+            ext.prebid = new Prebid()
+        }
+        if (!ext.prebid.returnAllBidStatus) {
+            ext.prebid.returnAllBidStatus = true
+        }
+    }
 }
