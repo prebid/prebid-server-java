@@ -2,18 +2,18 @@ package org.prebid.server.log;
 
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.BidResponse;
-import io.vertx.core.impl.ConcurrentHashSet;
 import org.prebid.server.json.EncodeException;
 import org.prebid.server.json.JacksonMapper;
 
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class CriteriaLogManager {
 
     private static final Logger logger = LoggerFactory.getLogger(CriteriaLogManager.class);
 
-    private final Set<Criteria> criterias = new ConcurrentHashSet<>();
+    private final Set<Criteria> criterias = ConcurrentHashMap.newKeySet();
 
     private final JacksonMapper mapper;
 

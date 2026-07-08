@@ -49,7 +49,7 @@ This parameter exists to allow to change the location of the directory Vert.x wi
 - `http-client.connect-timeout-ms` - set the connect timeout.
 - `http-client.circuit-breaker.enabled` - if equals to `true` circuit breaker will be used to make http client more robust.
 - `http-client.circuit-breaker.opening-threshold` - the number of failures before opening the circuit.
-- `http-client.circuit-breaker.opening-interval-ms` - time interval for opening the circuit breaker if failures count reached.
+- `http-client.circuit-breaker.opening-interval-ms` - time interval for opening the circuit breaker if failures count reached. (Must be a multiple of 1000)
 - `http-client.circuit-breaker.closing-interval-ms` - time spent in open state before attempting to re-try.
 - `http-client.circuit-breaker.idle-expire-hours` - idle time to clean the circuit breaker up.
 - `http-client.use-compression` - if equals to `true` httpclient compression is enabled for requests (see [also](https://vertx.io/docs/apidocs/io/vertx/core/http/HttpClientOptions.html#setTryUseCompression-boolean-))
@@ -322,6 +322,7 @@ For filesystem data source available next options:
 
 For database data source available next options:
 - `settings.database.type` - type of database to be used: `mysql` or `postgres`.
+- `settings.database.ssl-mode` - type of ssl mode to be used: `disabled`, `preferred` or `required`
 - `settings.database.host` - database destination host.
 - `settings.database.port` - database destination port.
 - `settings.database.dbname` - database name.
@@ -337,7 +338,7 @@ For database data source available next options:
 - `settings.database.stored-responses-query` - the SQL query to fetch stored responses.
 - `settings.database.circuit-breaker.enabled` - if equals to `true` circuit breaker will be used to make database client more robust.
 - `settings.database.circuit-breaker.opening-threshold` - the number of failures before opening the circuit.
-- `settings.database.circuit-breaker.opening-interval-ms` - time interval for opening the circuit breaker if failures count reached.
+- `settings.database.circuit-breaker.opening-interval-ms` - time interval for opening the circuit breaker if failures count reached. (Must be a multiple of 1000)
 - `settings.database.circuit-breaker.closing-interval-ms` - time spent in open state before attempting to re-try.
 
 For HTTP data source available next options:
@@ -472,7 +473,7 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 - `geolocation.enabled` - if equals to `true` the geo location service will be used to determine the country for client request.
 - `geolocation.circuit-breaker.enabled` - if equals to `true` circuit breaker will be used to make geo location client more robust.
 - `geolocation.circuit-breaker.opening-threshold` - the number of failures before opening the circuit.
-- `geolocation.circuit-breaker.opening-interval-ms` - time interval for opening the circuit breaker if failures count reached.
+- `geolocation.circuit-breaker.opening-interval-ms` - time interval for opening the circuit breaker if failures count reached. (Must be a multiple of 1000)
 - `geolocation.circuit-breaker.closing-interval-ms` - time spent in open state before attempting to re-try.
 - `geolocation.type` - set the geo location service provider, can be `maxmind` or custom provided by hosting company.
 - `geolocation.maxmind` - section for [MaxMind](https://www.maxmind.com) configuration as geo location service provider.
