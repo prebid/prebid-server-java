@@ -3,7 +3,6 @@ package org.prebid.server.functional.tests.pricefloors
 import org.prebid.server.functional.model.ChannelType
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.bidder.Openx
-import org.prebid.server.functional.model.bidderspecific.BidderRequest
 import org.prebid.server.functional.model.config.AlternateBidderCodes
 import org.prebid.server.functional.model.config.CodesBidderConfig
 import org.prebid.server.functional.model.db.StoredImp
@@ -1220,7 +1219,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         assert seatNonBid.nonBid.size() == bidResponse.seatbid[0].bid.size()
     }
 
-    private static Map<String, Imp> impIdToBidderCallImp(List<BidderRequest> bidderRequests) {
+    private static Map<String, Imp> impIdToBidderCallImp(List<BidRequest> bidderRequests) {
         bidderRequests.imp.flatten().collectEntries { [it.id, it] } as Map<String, Imp>
     }
 }

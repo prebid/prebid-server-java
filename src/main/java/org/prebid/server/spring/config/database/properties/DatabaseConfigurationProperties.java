@@ -3,6 +3,7 @@ package org.prebid.server.spring.config.database.properties;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.prebid.server.spring.config.database.model.DatabaseType;
+import org.prebid.server.spring.config.database.model.SslMode;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -15,6 +16,8 @@ public class DatabaseConfigurationProperties {
 
     @NotNull
     private DatabaseType type;
+    @NotNull
+    private SslMode sslMode;
     @NotNull
     @Min(1)
     private Integer poolSize;

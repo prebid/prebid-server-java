@@ -4,7 +4,6 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
-import io.vertx.core.http.Cookie;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
@@ -333,7 +332,7 @@ public class SetuidHandler implements ApplicationResource {
                 setuidContext.getUidsCookie(), bidder, uid);
 
         uidsCookieService.splitUidsIntoCookies(uidsCookieUpdateResult.getValue())
-                .forEach(cookie -> addCookie(routingContext, cookie));
+                .forEach(routingContext.response()::addCookie);
 
         if (uidsCookieUpdateResult.isUpdated()) {
             metrics.updateUserSyncSetsMetric(bidder);
@@ -411,9 +410,5 @@ public class SetuidHandler implements ApplicationResource {
         } else {
             analyticsDelegator.processEvent(setuidEvent, tcfContext);
         }
-    }
-
-    private void addCookie(RoutingContext routingContext, Cookie cookie) {
-        routingContext.response().headers().add(HttpUtil.SET_COOKIE_HEADER, cookie.encode());
     }
 }

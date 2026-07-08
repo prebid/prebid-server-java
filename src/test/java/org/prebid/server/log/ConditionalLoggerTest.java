@@ -37,7 +37,7 @@ public class ConditionalLoggerTest {
 
     @AfterEach
     public void tearDown(VertxTestContext context) {
-        vertx.close(context.succeedingThenComplete());
+        vertx.close().onComplete(context.succeedingThenComplete());
     }
 
     @Test

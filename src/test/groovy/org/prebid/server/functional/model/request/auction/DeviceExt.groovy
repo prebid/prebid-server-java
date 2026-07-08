@@ -17,10 +17,10 @@ class DeviceExt {
         UNKNOWN(0),
         RESTRICTED(1),
         DENIED(2),
-        AUTHORIZED(3),
+        AUTHORIZED(3)
 
         @JsonValue
-        int value
+        final int value
 
         Atts(int value) {
             this.value = value
