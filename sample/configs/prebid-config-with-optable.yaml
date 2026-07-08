@@ -8,7 +8,7 @@ adapters:
     enabled: true
   pubmatic:
     enabled: true
-  rubicon:
+  magnite:
     enabled: true
   improvedigital:
     enabled: true

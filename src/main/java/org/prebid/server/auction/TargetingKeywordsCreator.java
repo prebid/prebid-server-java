@@ -35,7 +35,7 @@ public class TargetingKeywordsCreator {
      */
     private static final String ENV_KEY = "_env";
     /**
-     * Name of the Bidder. For example, "appnexus" or "rubicon".
+     * Name of the Bidder. For example, "appnexus" or "magnite".
      */
     private static final String BIDDER_KEY = "_bidder";
     /**

@@ -520,7 +520,7 @@ public class ApplicationTest extends IntegrationTest {
     public void infoBidderDetailsShouldReturnMetadataForBidder() throws IOException {
         given(SPEC)
                 .when()
-                .get("/info/bidders/rubicon")
+                .get("/info/bidders/magnite")
                 .then()
                 .assertThat()
                 .body(Matchers.equalTo(jsonFrom("info-bidders/test-info-bidder-details-response.json")));
