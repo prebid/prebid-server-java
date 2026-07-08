@@ -515,7 +515,7 @@ class SetUidSpec extends BaseSpec {
     }
 
     List<String> getSetUidsHeaders(SetuidResponse response, boolean includeEmpty = false) {
-        response.headers.get("Set-Cookie").findAll { cookie ->
+        response.headers.get("set-cookie").findAll { cookie ->
             includeEmpty || !(cookie =~ /\buids\d*=\s*;/)
         }
     }
