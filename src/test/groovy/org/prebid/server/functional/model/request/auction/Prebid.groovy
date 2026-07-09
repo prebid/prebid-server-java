@@ -51,6 +51,7 @@ class Prebid {
     List<String> profileNames
     @JsonProperty("kvps")
     Map<String, String> keyValuePairs
+    List<BidderName> secondaryBidders
     Boolean supportDeals
     String integration
     Map<String, String> bidders
