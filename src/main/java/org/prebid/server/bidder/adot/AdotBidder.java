@@ -60,20 +60,20 @@ public class AdotBidder implements Bidder<BidRequest> {
         final String publisherPath = StringUtils.defaultString(
                 ObjectUtil.getIfNotNull(parseImpExt(firstImp), ExtImpAdot::getPublisherPath));
 
-        return Result.of(Collections.singletonList(
-                BidderUtil.defaultRequest(bidRequest, resolveEndpointUrl(publisherPath), mapper)),
+        return Result.of(
+                Collections.singletonList(BidderUtil.defaultRequest(
+                        bidRequest, resolveEndpointUrl(publisherPath), mapper)),
                 errors);
     }
 
     private String resolveEndpointUrl(String publisherPath) {
-        return endpointUrl.replaceMacro(PUBLISHER_MACRO, publisherPath).expand();
+        final String[] pathSegments = StringUtils.split(publisherPath, "/");
+        return endpointUrl.replaceMacro(PUBLISHER_MACRO, List.of(pathSegments)).expand();
     }
 
     private ExtImpAdot parseImpExt(Imp firstImp) {
         try {
-            final ExtPrebid<?, ExtImpAdot> extImpAdot =
-                    mapper.mapper().convertValue(firstImp.getExt(), ADOT_EXT_TYPE_REFERENCE);
-            return extImpAdot != null ? extImpAdot.getBidder() : null;
+            return mapper.mapper().convertValue(firstImp.getExt(), ADOT_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             return null;
         }

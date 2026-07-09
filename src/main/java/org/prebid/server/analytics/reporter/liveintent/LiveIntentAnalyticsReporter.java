@@ -42,7 +42,8 @@ public class LiveIntentAnalyticsReporter implements AnalyticsReporter {
 
     private final HttpClient httpClient;
     private final LiveIntentAnalyticsProperties properties;
-    private final Uri analyticsEndpoint;
+    private final String auctionEventEndpoint;
+    private final Uri notificationEventEndpoint;
     private final JacksonMapper jacksonMapper;
 
     public LiveIntentAnalyticsReporter(
@@ -52,7 +53,11 @@ public class LiveIntentAnalyticsReporter implements AnalyticsReporter {
 
         this.httpClient = Objects.requireNonNull(httpClient);
         this.properties = Objects.requireNonNull(properties);
-        this.analyticsEndpoint = Uri.of(properties.getAnalyticsEndpoint());
+
+        final String endpointBase = properties.getAnalyticsEndpoint();
+        this.auctionEventEndpoint = Uri.of(endpointBase + "/analytic-events/pbsj-bids").toString();
+        this.notificationEventEndpoint = Uri.of(endpointBase + "/analytic-events/pbsj-winning-bid");
+
         this.jacksonMapper = Objects.requireNonNull(jacksonMapper);
     }
 
@@ -97,7 +102,7 @@ public class LiveIntentAnalyticsReporter implements AnalyticsReporter {
 
         try {
             return httpClient.post(
-                            analyticsEndpoint.replaceMacro("path", "/analytic-events/pbsj-bids").expand(),
+                            auctionEventEndpoint,
                             jacksonMapper.encodeToString(pbsjBids),
                             properties.getTimeoutMs())
                     .mapEmpty();
@@ -167,8 +172,7 @@ public class LiveIntentAnalyticsReporter implements AnalyticsReporter {
     }
 
     private Future<Void> processNotificationEvent(NotificationEvent notificationEvent) {
-        final String url = analyticsEndpoint
-                .replaceMacro("path", "/analytic-events/pbsj-winning-bid")
+        final String url = notificationEventEndpoint
                 .addQueryParam("b", notificationEvent.getBidder())
                 .addQueryParam("bidId", notificationEvent.getBidId())
                 .expand();

@@ -69,7 +69,7 @@ public class LiveintentAnalyticsReporterTest extends VertxTest {
     @BeforeEach
     public void setUp() {
         properties = LiveIntentAnalyticsProperties.builder()
-                .analyticsEndpoint("https://localhost:8080/{+path}")
+                .analyticsEndpoint("https://localhost:8080")
                 .partnerId("pbsj")
                 .timeoutMs(1000L)
                 .build();
@@ -89,7 +89,7 @@ public class LiveintentAnalyticsReporterTest extends VertxTest {
         // then
         // Verify that the HTTP client was called with the expected parameters
         verify(httpClient).get(
-                eq("https://localhost:8080//analytic-events/pbsj-winning-bid?b=foo&bidId=123"),
+                eq("https://localhost:8080/analytic-events/pbsj-winning-bid?b=foo&bidId=123"),
                 eq(properties.getTimeoutMs()));
     }
 
@@ -104,7 +104,7 @@ public class LiveintentAnalyticsReporterTest extends VertxTest {
 
         // then
         verify(httpClient).post(
-                eq("https://localhost:8080//analytic-events/pbsj-bids"),
+                eq("https://localhost:8080/analytic-events/pbsj-bids"),
                 jsonCaptor.capture(),
                 eq(properties.getTimeoutMs()));
 
@@ -126,7 +126,7 @@ public class LiveintentAnalyticsReporterTest extends VertxTest {
 
         // then
         verify(httpClient).post(
-                eq("https://localhost:8080//analytic-events/pbsj-bids"),
+                eq("https://localhost:8080/analytic-events/pbsj-bids"),
                 jsonCaptor.capture(),
                 eq(properties.getTimeoutMs()));
 
@@ -148,7 +148,7 @@ public class LiveintentAnalyticsReporterTest extends VertxTest {
 
         // then
         verify(httpClient).post(
-                eq("https://localhost:8080//analytic-events/pbsj-bids"),
+                eq("https://localhost:8080/analytic-events/pbsj-bids"),
                 jsonCaptor.capture(),
                 eq(properties.getTimeoutMs()));
 
