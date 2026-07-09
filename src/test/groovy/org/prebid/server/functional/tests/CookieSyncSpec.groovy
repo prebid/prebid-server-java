@@ -135,6 +135,38 @@ class CookieSyncSpec extends BaseSpec {
         assert response.getBidderUserSync(APPNEXUS)
     }
 
+    def "PBS cookie sync should use requested bidder name in sync url instead of cookie family name"() {
+        given: "PBS config with alias bidder using source bidder cookie family name"
+        def bidderAlias = ALIAS
+        def prebidServerService = pbsServiceFactory.getService(GENERIC_CONFIG +
+                ["adapters.${GENERIC.value}.usersync.redirect.url"                                   : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
+                 "adapters.${GENERIC.value}.aliases.${bidderAlias.value}.enabled"                    : "true",
+                 "adapters.${GENERIC.value}.aliases.${bidderAlias.value}.usersync.cookie-family-name": GENERIC.value])
+
+        and: "Cookie sync request for alias bidder"
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            bidders = [bidderAlias]
+            limit = 1
+            coopSync = true
+            debug = false
+        }
+
+        when: "PBS processes cookie sync request"
+        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
+
+        then: "Response shouldn't contain source bidder"
+        assert !response.getBidderUserSync(GENERIC)
+
+        and: "Response should contain alias bidder sync"
+        def bidderStatus = response.getBidderUserSync(bidderAlias)
+
+        and: "Sync url should contain requested bidder name"
+        assert bidderStatus.userSync.url.contains("setuid%3Fbidder%3D${bidderAlias}")
+
+        and: "Sync url shouldn't contain cookie family name"
+        assert !bidderStatus.userSync.url.contains("setuid%3Fbidder%3D${GENERIC}")
+    }
+
     def "PBS cookie sync request should replace bidder without config and fill up response with enabled bidders to the limit in request"() {
         given: "PBS bidder config"
         def prebidServerService = pbsServiceFactory.getService(RUBICON_CONFIG + GENERIC_CONFIG
