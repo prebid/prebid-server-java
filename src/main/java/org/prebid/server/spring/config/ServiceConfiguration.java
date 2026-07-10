@@ -78,6 +78,7 @@ import org.prebid.server.bidder.BidderErrorNotifier;
 import org.prebid.server.bidder.BidderRequestCompletionTrackerFactory;
 import org.prebid.server.bidder.HttpBidderRequestEnricher;
 import org.prebid.server.bidder.HttpBidderRequester;
+import org.prebid.server.bidder.UsersyncInfoFactory;
 import org.prebid.server.cache.BasicPbcStorageService;
 import org.prebid.server.cache.CoreCacheService;
 import org.prebid.server.cache.PbcStorageService;
@@ -758,24 +759,29 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    UsersyncInfoFactory usersyncInfoFactory(@Value("${external-url}") String externalUrl) {
+        return new UsersyncInfoFactory(externalUrl);
+    }
+
+    @Bean
     CookieSyncService cookieSyncService(
-            @Value("${external-url}") String externalUrl,
             @Value("${cookie-sync.default-limit:#{2}}") Integer defaultLimit,
             @Value("${cookie-sync.max-limit:#{null}}") Integer maxLimit,
             BidderCatalog bidderCatalog,
             HostVendorTcfDefinerService hostVendorTcfDefinerService,
             CcpaEnforcement ccpaEnforcement,
+            UsersyncInfoFactory usersyncInfoFactory,
             UidsCookieService uidsCookieService,
             CoopSyncProvider coopSyncProvider,
             Metrics metrics) {
 
         return new CookieSyncService(
-                externalUrl,
                 defaultLimit,
                 ObjectUtils.defaultIfNull(maxLimit, Integer.MAX_VALUE),
                 bidderCatalog,
                 hostVendorTcfDefinerService,
                 ccpaEnforcement,
+                usersyncInfoFactory,
                 uidsCookieService,
                 coopSyncProvider,
                 metrics);
