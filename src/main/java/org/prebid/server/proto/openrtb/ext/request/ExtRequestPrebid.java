@@ -11,6 +11,7 @@ import org.prebid.server.json.deserializer.IntegerFlagDeserializer;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Defines the contract for bidrequest.ext.prebid
@@ -193,4 +194,7 @@ public class ExtRequestPrebid {
     ExtRequestPrebidAlternateBidderCodes alternateBidderCodes;
 
     ObjectNode kvps;
+
+    @JsonProperty("secondarybidders")
+    Set<String> secondaryBidders;
 }
