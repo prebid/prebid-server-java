@@ -312,7 +312,7 @@ class GppCookieSyncSpec extends BaseSpec {
         def response = prebidServerServiceWithSkipConfig.sendCookieSyncRequest(cookieSyncRequest)
 
         then: "Response userSync url shouldn't contain cookies and userSync"
-        def bidderStatus = response.getBidderUserSync(GENERIC)
+        def bidderStatus = response.getBidderUserSync(ALIAS)
         assert !bidderStatus.userSync
         assert !bidderStatus.noCookie
 
@@ -363,7 +363,7 @@ class GppCookieSyncSpec extends BaseSpec {
         def response = prebidServerServiceWithSkipConfig.sendCookieSyncRequest(cookieSyncRequest)
 
         then: "Response userSync url shouldn't contain cookies and userSync"
-        def bidderStatus = response.getBidderUserSync(GENERIC)
+        def bidderStatus = response.getBidderUserSync(ALIAS)
         assert !bidderStatus.userSync
         assert !bidderStatus.noCookie
 

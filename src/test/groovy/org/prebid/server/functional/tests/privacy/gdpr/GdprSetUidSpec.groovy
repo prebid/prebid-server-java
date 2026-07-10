@@ -90,7 +90,7 @@ class GdprSetUidSpec extends PrivacyBaseSpec {
         def setuidRequest = SetuidRequest.defaultSetuidRequest.tap {
             it.account = PBSUtils.randomNumber.toString()
             it.uid = UUID.randomUUID().toString()
-            it.bidder = GENER_X
+            it.bidder = GENERIC
             it.gdpr = "1"
             it.gdprConsent = new TcfConsent.Builder()
                     .setPurposesLITransparency(DEVICE_ACCESS)
@@ -99,9 +99,9 @@ class GdprSetUidSpec extends PrivacyBaseSpec {
                     .build()
         }
 
-        and: "Default uids cookie with gener_x bidder"
+        and: "Default uids cookie with generic bidder"
         def uidsCookie = UidsCookie.defaultUidsCookie.tap {
-            it.tempUIDs = [(GENER_X): defaultUidWithExpiry]
+            it.tempUIDs = [(GENERIC): defaultUidWithExpiry]
         }
 
         and: "Save account config with purpose into DB"
