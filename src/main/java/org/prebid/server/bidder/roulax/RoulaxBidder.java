@@ -66,8 +66,7 @@ public class RoulaxBidder implements Bidder<BidRequest> {
 
     private String resolveEndpoint(ExtImpRoulax extImpRoulax) {
         return endpointUrl
-                .replace(PUBLISHER_PATH_MACRO,
-                        HttpUtil.validatePathSegment(StringUtils.defaultString(extImpRoulax.getPublisherPath()).trim()))
+                .replace(PUBLISHER_PATH_MACRO, StringUtils.defaultString(extImpRoulax.getPublisherPath()).trim())
                 .replace(ACCOUNT_ID_MACRO, StringUtils.defaultString(extImpRoulax.getPid()).trim());
     }
 

@@ -97,7 +97,7 @@ public class SmartyAdsBidder implements Bidder<BidRequest> {
 
     private String resolveUrl(ExtImpSmartyAds extImp) {
         return endpointUrl
-                .replace(URL_HOST_MACRO, HttpUtil.validateDomainName(extImp.getHost()))
+                .replace(URL_HOST_MACRO, extImp.getHost())
                 .replace(URL_SOURCE_ID_MACRO, HttpUtil.encodeUrl(extImp.getSourceId()))
                 .replace(URL_ACCOUNT_ID_MACRO, HttpUtil.encodeUrl(extImp.getAccountId()));
     }

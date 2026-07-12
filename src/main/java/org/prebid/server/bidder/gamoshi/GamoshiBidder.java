@@ -57,7 +57,7 @@ public class GamoshiBidder implements Bidder<BidRequest> {
 
         if (validImps.isEmpty()) {
             errors.add(BidderError.badInput("No valid impressions in the bid request"));
-            return Result.of(Collections.<HttpRequest<BidRequest>>emptyList(), errors);
+            return Result.of(Collections.emptyList(), errors);
         }
 
         final ExtImpGamoshi firstImpExt;
@@ -69,9 +69,7 @@ public class GamoshiBidder implements Bidder<BidRequest> {
 
         final BidRequest outgoingRequest = request.toBuilder().imp(validImps).build();
 
-        final String requestUrl = endpointUrl + "/r/"
-                + HttpUtil.validatePathSegment(firstImpExt.getSupplyPartnerId())
-                + "/bidr?bidder=prebid-server";
+        final String requestUrl = endpointUrl + "/r/" + firstImpExt.getSupplyPartnerId() + "/bidr?bidder=prebid-server";
         final MultiMap headers = resolveHeaders(request.getDevice());
 
         return Result.of(Collections.singletonList(

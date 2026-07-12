@@ -104,8 +104,8 @@ public class SilvermobBidder implements Bidder<BidRequest> {
 
     private String resolveEndpoint(ExtImpSilvermob extImp) {
         return endpointUrl
-                .replace(URL_HOST_MACRO, HttpUtil.validateDomainName(extImp.getHost()))
-                .replace(URL_ZONE_ID_MACRO, HttpUtil.encodeUrl(HttpUtil.validatePathSegment(extImp.getZoneId())));
+                .replace(URL_HOST_MACRO, extImp.getHost())
+                .replace(URL_ZONE_ID_MACRO, HttpUtil.encodeUrl(extImp.getZoneId()));
     }
 
     private static MultiMap resolveHeaders(Device device) {

@@ -78,7 +78,7 @@ public class AdheseBidder implements Bidder<BidRequest> {
     }
 
     private String getUrl(ExtImpAdhese extImpAdhese) {
-        return endpointUrl.replace("{{AccountId}}", HttpUtil.validateDomainName(extImpAdhese.getAccount()));
+        return endpointUrl.replace("{{AccountId}}", extImpAdhese.getAccount());
     }
 
     private BidRequest modifyBidRequest(BidRequest bidRequest, ExtImpAdhese extImpAdhese) {

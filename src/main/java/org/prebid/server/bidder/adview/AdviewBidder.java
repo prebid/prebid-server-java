@@ -131,7 +131,7 @@ public class AdviewBidder implements Bidder<BidRequest> {
     }
 
     private String resolveEndpoint(String accountId) {
-        return endpointUrl.replace(ACCOUNT_ID_MACRO, HttpUtil.encodeUrl(HttpUtil.validatePathSegment(accountId)));
+        return endpointUrl.replace(ACCOUNT_ID_MACRO, HttpUtil.encodeUrl(accountId));
     }
 
     @Override

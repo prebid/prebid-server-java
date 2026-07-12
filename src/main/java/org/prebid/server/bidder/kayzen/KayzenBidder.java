@@ -71,8 +71,7 @@ public class KayzenBidder implements Bidder<BidRequest> {
     }
 
     private HttpRequest<BidRequest> createRequest(ExtImpKayzen extImpKayzen, BidRequest request, List<Imp> imps) {
-        final String url = endpointUrl
-                .replace(URL_ZONE_ID_MACRO, HttpUtil.validateDomainName(extImpKayzen.getZone()))
+        final String url = endpointUrl.replace(URL_ZONE_ID_MACRO, extImpKayzen.getZone())
                 .replace(URL_ACCOUNT_ID_MACRO, extImpKayzen.getExchange());
         final BidRequest outgoingRequest = request.toBuilder().imp(imps).build();
 

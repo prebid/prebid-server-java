@@ -174,7 +174,7 @@ public class RelevantDigitalBidder implements Bidder<BidRequest> {
                 .replace("http://", "")
                 .replace("https://", "")
                 .replace(".relevant-digital.com", "");
-        return endpointUrl.replace(HOST_MACRO, HttpUtil.validateDomainName(modifiedHost));
+        return endpointUrl.replace(HOST_MACRO, modifiedHost);
     }
 
     private static MultiMap makeHeaders(BidRequest bidRequest) {

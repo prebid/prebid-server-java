@@ -72,7 +72,7 @@ public class BlisBidder implements Bidder<BidRequest> {
     }
 
     private String makeUrl(String supplyId) {
-        return endpointUrl.replace(SUPPLY_ID_MACRO, HttpUtil.encodeUrl(HttpUtil.validatePathSegment(supplyId)));
+        return endpointUrl.replace(SUPPLY_ID_MACRO, HttpUtil.encodeUrl(supplyId));
     }
 
     @Override

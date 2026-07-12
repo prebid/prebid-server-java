@@ -111,7 +111,7 @@ public class ClydoBidder implements Bidder<BidRequest> {
     private static String resolveUrl(String endpoint, ExtImpClydo extImp) {
         return endpoint
                 .replace(REGION_MACRO, getRegionInfo(extImp))
-                .replace(PARTNER_ID_MACRO, HttpUtil.encodeUrl(HttpUtil.validatePathSegment(extImp.getPartnerId())));
+                .replace(PARTNER_ID_MACRO, HttpUtil.encodeUrl(extImp.getPartnerId()));
     }
 
     private static String getRegionInfo(ExtImpClydo extImp) {

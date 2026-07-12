@@ -79,9 +79,8 @@ public class TradPlusBidder implements Bidder<BidRequest> {
     private HttpRequest<BidRequest> makeHttpRequest(ExtImpTradPlus extImpTradPlus, List<Imp> imps,
                                                     BidRequest bidRequest) {
         final String uri;
-        uri = endpointUrl
-                .replace(ZONE_ID, HttpUtil.validateDomainName(extImpTradPlus.getZoneId()))
-                .replace(ACCOUNT_ID, HttpUtil.validatePathSegment(extImpTradPlus.getAccountId()));
+        uri = endpointUrl.replace(ZONE_ID, extImpTradPlus.getZoneId()).replace(ACCOUNT_ID,
+                extImpTradPlus.getAccountId());
 
         final BidRequest outgoingRequest = bidRequest.toBuilder().imp(removeImpsExt(imps)).build();
 

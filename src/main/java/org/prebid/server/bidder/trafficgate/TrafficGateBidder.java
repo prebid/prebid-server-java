@@ -65,7 +65,7 @@ public class TrafficGateBidder implements Bidder<BidRequest> {
     }
 
     private String resolveHost(ExtImpTrafficGate extImpTrafficGate) {
-        return endpointUrl.replace(SUBDOMAIN_MACRO, HttpUtil.validateDomainName(extImpTrafficGate.getHost()));
+        return endpointUrl.replace(SUBDOMAIN_MACRO, extImpTrafficGate.getHost());
     }
 
     private ExtImpTrafficGate parseImpExt(Imp imp) {

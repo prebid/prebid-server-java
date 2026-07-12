@@ -69,10 +69,7 @@ public class MgidBidder implements Bidder<BidRequest> {
                 .imp(imps)
                 .build();
 
-        return Result.withValue(BidderUtil.defaultRequest(
-                outgoingRequest,
-                endpointUrl + HttpUtil.validatePathSegment(accountId),
-                mapper));
+        return Result.withValue(BidderUtil.defaultRequest(outgoingRequest, endpointUrl + accountId, mapper));
     }
 
     private ExtImpMgid parseImpExt(Imp imp) {

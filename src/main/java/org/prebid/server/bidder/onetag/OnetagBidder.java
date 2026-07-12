@@ -54,8 +54,7 @@ public class OnetagBidder implements Bidder<BidRequest> {
             }
         }
 
-        final String url = endpointUrl.replace(
-                URL_PUBLISHER_ID_MACRO, HttpUtil.validatePathSegment(StringUtils.defaultString(requestPubId)));
+        final String url = endpointUrl.replace(URL_PUBLISHER_ID_MACRO, StringUtils.defaultString(requestPubId));
         return Result.withValue(BidderUtil.defaultRequest(request, url, mapper));
     }
 
