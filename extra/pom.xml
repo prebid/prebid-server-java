@@ -4,7 +4,7 @@
 
     <groupId>org.prebid</groupId>
     <artifactId>prebid-server-aggregator</artifactId>
-    <version>3.43.0-SNAPSHOT</version>
+    <version>3.44.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <scm>
@@ -16,16 +16,16 @@
 
     <properties>
         <!-- Global project properties -->
-        <java.version>21</java.version>
+        <java.version>25</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.build.outputEncoding>UTF-8</project.build.outputEncoding>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
 
         <!-- Maven plugin versions -->
-        <maven-release-plugin.version>3.1.1</maven-release-plugin.version>
-        <maven-compiler-plugin.version>3.14.1</maven-compiler-plugin.version>
-        <maven-surefire-plugin.version>3.5.3</maven-surefire-plugin.version>
+        <maven-release-plugin.version>3.3.1</maven-release-plugin.version>
+        <maven-compiler-plugin.version>3.15.0</maven-compiler-plugin.version>
+        <maven-surefire-plugin.version>3.5.6</maven-surefire-plugin.version>
         <maven-failsafe-plugin.version>${maven-surefire-plugin.version}</maven-failsafe-plugin.version>
         <jacoco-maven-plugin.version>0.8.13</jacoco-maven-plugin.version>
         <docker-maven-plugin.version>0.46.0</docker-maven-plugin.version>
@@ -33,8 +33,8 @@
         <checkstyle.version>10.17.0</checkstyle.version>
 
         <!-- Project production dependency versions -->
-        <spring.boot.version>3.5.10</spring.boot.version>
-        <vertx.version>4.5.20</vertx.version>
+        <spring.boot.version>4.0.6</spring.boot.version>
+        <vertx.version>5.0.12</vertx.version>
         <validation-api.version>2.0.1.Final</validation-api.version>
         <commons.collections.version>4.4</commons.collections.version>
         <commons.compress.version>1.27.1</commons.compress.version>
@@ -58,10 +58,12 @@
         <dropwizard-metrics.version>4.2.30</dropwizard-metrics.version>
 
         <!-- Project test dependency versions -->
-        <wiremock.version>3.12.1</wiremock.version>
-        <spock.version>2.4-M6-groovy-4.0</spock.version>
+        <wiremock.version>3.13.2</wiremock.version>
+        <wiremock-spring-boot.version>4.2.1</wiremock-spring-boot.version>
+        <spock.version>2.4-groovy-5.0</spock.version>
         <!--TODO: replace with WireMock -->
         <mockserver.version>5.15.0</mockserver.version>
+        <rest-assured-bom.version>6.0.0</rest-assured-bom.version>
 
         <!-- Test properties -->
         <skipUnitTests>false</skipUnitTests>
@@ -77,6 +79,20 @@
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-bom</artifactId>
+                <version>2.25.4</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-bom</artifactId>
+                <version>2.0.17</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
             <dependency>
                 <groupId>io.vertx</groupId>
                 <artifactId>vertx-dependencies</artifactId>
@@ -104,6 +120,18 @@
                 <version>${spock.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.rest-assured</groupId>
+                <artifactId>rest-assured-bom</artifactId>
+                <version>${rest-assured-bom.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.wiremock.integrations</groupId>
+                <artifactId>wiremock-spring-boot</artifactId>
+                <version>${wiremock-spring-boot.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.wiremock</groupId>
@@ -330,6 +358,21 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${maven-compiler-plugin.version}</version>
+                <configuration>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
             </plugin>
         </plugins>
     </build>

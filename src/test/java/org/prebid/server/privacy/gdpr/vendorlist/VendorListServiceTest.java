@@ -2,7 +2,6 @@ package org.prebid.server.privacy.gdpr.vendorlist;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.FileSystem;
@@ -12,7 +11,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.exception.PreBidException;
@@ -293,7 +291,7 @@ public class VendorListServiceTest extends VertxTest {
 
         // then
         verify(httpClient, never()).get(anyString(), anyLong());
-        verify(fileSystem, never()).writeFile(any(), any(), any());
+        verify(fileSystem, never()).writeFile(any(), any());
     }
 
     @Test
@@ -306,7 +304,7 @@ public class VendorListServiceTest extends VertxTest {
 
         // then
         verify(httpClient).get(anyString(), anyLong());
-        verify(fileSystem, never()).writeFile(any(), any(), any());
+        verify(fileSystem, never()).writeFile(any(), any());
     }
 
     @Test
@@ -319,7 +317,7 @@ public class VendorListServiceTest extends VertxTest {
 
         // then
         verify(httpClient).get(anyString(), anyLong());
-        verify(fileSystem, never()).writeFile(any(), any(), any());
+        verify(fileSystem, never()).writeFile(any(), any());
     }
 
     @Test
@@ -332,7 +330,7 @@ public class VendorListServiceTest extends VertxTest {
 
         // then
         verify(httpClient).get(anyString(), anyLong());
-        verify(fileSystem, never()).writeFile(any(), any(), any());
+        verify(fileSystem, never()).writeFile(any(), any());
     }
 
     @Test
@@ -346,7 +344,7 @@ public class VendorListServiceTest extends VertxTest {
 
         // then
         verify(httpClient).get(anyString(), anyLong());
-        verify(fileSystem, never()).writeFile(any(), any(), any());
+        verify(fileSystem, never()).writeFile(any(), any());
     }
 
     @Test
@@ -360,7 +358,7 @@ public class VendorListServiceTest extends VertxTest {
 
         // then
         verify(httpClient).get(anyString(), anyLong());
-        verify(fileSystem, never()).writeFile(any(), any(), any());
+        verify(fileSystem, never()).writeFile(any(), any());
     }
 
     @Test
@@ -374,7 +372,7 @@ public class VendorListServiceTest extends VertxTest {
 
         // then
         verify(httpClient).get(anyString(), anyLong());
-        verify(fileSystem, never()).writeFile(any(), any(), any());
+        verify(fileSystem, never()).writeFile(any(), any());
     }
 
     @Test
@@ -388,7 +386,7 @@ public class VendorListServiceTest extends VertxTest {
 
         // then
         verify(httpClient).get(anyString(), anyLong());
-        verify(fileSystem, never()).writeFile(any(), any(), any());
+        verify(fileSystem, never()).writeFile(any(), any());
     }
 
     @Test
@@ -402,7 +400,7 @@ public class VendorListServiceTest extends VertxTest {
 
         // then
         verify(httpClient).get(anyString(), anyLong());
-        verify(fileSystem, never()).writeFile(any(), any(), any());
+        verify(fileSystem, never()).writeFile(any(), any());
     }
 
     // File system related tests
@@ -419,7 +417,7 @@ public class VendorListServiceTest extends VertxTest {
         target.forVersion(1);
 
         // then
-        verify(fileSystem).writeFile(eq(filePath), eq(Buffer.buffer(vendorListAsString)), any());
+        verify(fileSystem).writeFile(eq(filePath), eq(Buffer.buffer(vendorListAsString)));
     }
 
     // In-memory cache related tests
@@ -456,8 +454,7 @@ public class VendorListServiceTest extends VertxTest {
         // given
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(givenVendorList()));
 
-        given(fileSystem.writeFile(anyString(), any(), any()))
-                .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture()));
+        given(fileSystem.writeFile(anyString(), any())).willReturn(Future.succeededFuture());
 
         // when
         target.forVersion(1); // populate cache
@@ -504,8 +501,8 @@ public class VendorListServiceTest extends VertxTest {
         final VendorList vendorList = VendorList.of(1, new Date(), idToVendor);
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(vendorList));
 
-        given(fileSystem.writeFile(anyString(), any(), any()))
-                .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture()));
+        given(fileSystem.writeFile(anyString(), any()))
+                .willReturn(Future.succeededFuture());
 
         // when
         target.forVersion(1); // populate cache
@@ -572,8 +569,7 @@ public class VendorListServiceTest extends VertxTest {
         // given
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(givenVendorList()));
 
-        given(fileSystem.writeFile(anyString(), any(), any()))
-                .willAnswer(withSelfAndPassObjectToHandler(Future.failedFuture("error")));
+        given(fileSystem.writeFile(anyString(), any())).willReturn(Future.failedFuture("error"));
 
         // when
         target.forVersion(1);
@@ -587,8 +583,7 @@ public class VendorListServiceTest extends VertxTest {
         // given
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(givenVendorList()));
 
-        given(fileSystem.writeFile(anyString(), any(), any()))
-                .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture()));
+        given(fileSystem.writeFile(anyString(), any())).willReturn(Future.succeededFuture());
 
         // when
         target.forVersion(1);
@@ -634,14 +629,5 @@ public class VendorListServiceTest extends VertxTest {
     private void givenHttpClientProducesException(Throwable throwable) {
         given(httpClient.get(anyString(), anyLong()))
                 .willReturn(Future.failedFuture(throwable));
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T> Answer<Object> withSelfAndPassObjectToHandler(T obj) {
-        return inv -> {
-            // invoking handler right away passing mock to it
-            ((Handler<T>) inv.getArgument(2)).handle(obj);
-            return inv.getMock();
-        };
     }
 }

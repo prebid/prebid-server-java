@@ -1,6 +1,9 @@
 package org.prebid.server.vertx.httpclient;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
+import io.vertx.circuitbreaker.CircuitBreaker;
+import io.vertx.circuitbreaker.CircuitBreakerOptions;
+import io.vertx.circuitbreaker.CircuitBreakerState;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
@@ -11,11 +14,9 @@ import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.util.HttpUtil;
-import org.prebid.server.vertx.CircuitBreaker;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.net.URL;
-import java.time.Clock;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -41,13 +42,12 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
                                            int openingThreshold,
                                            long openingIntervalMs,
                                            long closingIntervalMs,
-                                           int idleExpireHours,
-                                           Clock clock) {
+                                           int idleExpireHours) {
 
         this.httpClient = Objects.requireNonNull(httpClient);
 
         circuitBreakerCreator = name -> createCircuitBreaker(
-                name, vertx, openingThreshold, openingIntervalMs, closingIntervalMs, clock, metrics);
+                name, vertx, openingThreshold, openingIntervalMs, closingIntervalMs, metrics);
 
         circuitBreakerByName = Caffeine.newBuilder()
                 .expireAfterAccess(idleExpireHours, TimeUnit.HOURS)
@@ -69,9 +69,7 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
                                               long maxResponseSize) {
 
         return circuitBreakerByName.computeIfAbsent(nameFrom(url), circuitBreakerCreator)
-                .execute(promise ->
-                        httpClient.request(method, url, headers, body, timeoutMs, maxResponseSize)
-                                .onComplete(promise));
+                .execute(() -> httpClient.request(method, url, headers, body, timeoutMs, maxResponseSize));
     }
 
     @Override
@@ -82,9 +80,7 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
                                               long timeoutMs,
                                               long maxResponseSize) {
         return circuitBreakerByName.computeIfAbsent(nameFrom(url), circuitBreakerCreator)
-                .execute(promise ->
-                        httpClient.request(method, url, headers, body, timeoutMs, maxResponseSize)
-                                .onComplete(promise));
+                .execute(() -> httpClient.request(method, url, headers, body, timeoutMs, maxResponseSize));
     }
 
     private CircuitBreaker createCircuitBreaker(String name,
@@ -92,16 +88,16 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
                                                 int openingThreshold,
                                                 long openingIntervalMs,
                                                 long closingIntervalMs,
-                                                Clock clock,
                                                 Metrics metrics) {
 
-        final CircuitBreaker circuitBreaker = new CircuitBreaker(
-                "http_cb_" + name,
-                Objects.requireNonNull(vertx),
-                openingThreshold,
-                openingIntervalMs,
-                closingIntervalMs,
-                Objects.requireNonNull(clock))
+        final CircuitBreakerOptions options = new CircuitBreakerOptions()
+                .setNotificationPeriod(0)
+                .setMaxFailures(openingThreshold)
+                .setFailuresRollingWindow(openingIntervalMs)
+                .setResetTimeout(closingIntervalMs);
+
+        final CircuitBreaker circuitBreaker = CircuitBreaker.create(
+                        "http_cb_" + name, Objects.requireNonNull(vertx), options)
                 .openHandler(ignored -> circuitOpened(name))
                 .halfOpenHandler(ignored -> circuitHalfOpened(name))
                 .closeHandler(ignored -> circuitClosed(name));
@@ -112,7 +108,8 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
     }
 
     private void createCircuitBreakerGauge(String name, CircuitBreaker circuitBreaker, Metrics metrics) {
-        metrics.createHttpClientCircuitBreakerGauge(idFrom(name), circuitBreaker::isOpen);
+        metrics.createHttpClientCircuitBreakerGauge(
+                idFrom(name), () -> circuitBreaker.state() != CircuitBreakerState.CLOSED);
     }
 
     private void removeCircuitBreakerGauge(String name, Metrics metrics) {
