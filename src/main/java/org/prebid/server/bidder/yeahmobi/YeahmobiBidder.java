@@ -120,7 +120,7 @@ public class YeahmobiBidder implements Bidder<BidRequest> {
     private HttpRequest<BidRequest> makeHttpRequest(BidRequest request, String zoneId) {
         return BidderUtil.defaultRequest(
                 request,
-                endpointUrl.replace(HOST_MACRO, HOST_PATTERN.formatted(zoneId)),
+                endpointUrl.replace(HOST_MACRO, HttpUtil.validateDomainName(HOST_PATTERN.formatted(zoneId))),
                 mapper);
     }
 

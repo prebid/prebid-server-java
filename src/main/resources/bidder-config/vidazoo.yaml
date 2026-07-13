@@ -2,19 +2,6 @@ adapters:
   vidazoo:
     endpoint: https://prebidsrvr.cootlogix.com/openrtb/
     aliases:
-      progx:
-        enabled: false
-        endpoint: https://exchange.programmaticx.ai/openrtb/
-        meta-info:
-          maintainer-email: pxteam@programmaticx.ai
-          vendor-id: 1344
-        usersync:
-          enabled: true
-          cookie-family-name: progx
-          iframe:
-            url: https://sync.programmaticx.ai/api/user/html/685297194d85991a5e6e36dd?pbs=true&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}
-            support-cors: false
-            uid-macro: '${userId}'
       omnidex:
         endpoint: https://exchange.omni-dex.io/openrtb/
         usersync:

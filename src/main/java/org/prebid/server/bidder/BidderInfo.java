@@ -7,7 +7,9 @@ import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.prebid.server.spring.config.bidder.model.CompressionType;
 import org.prebid.server.spring.config.bidder.model.MediaType;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Value(staticConstructor = "of")
 public class BidderInfo {
@@ -28,7 +30,7 @@ public class BidderInfo {
 
     List<String> vendors;
 
-    List<String> currencyAccepted;
+    Set<String> currencyAccepted;
 
     GdprInfo gdpr;
 
@@ -72,7 +74,7 @@ public class BidderInfo {
                         platformInfo(siteMediaTypes),
                         platformInfo(doohMediaTypes)),
                 supportedVendors,
-                currencyAccepted,
+                currencyAccepted != null ? new HashSet<>(currencyAccepted) : null,
                 new GdprInfo(vendorId),
                 ccpaEnforced,
                 modifyingVastXmlAllowed,

@@ -168,6 +168,7 @@ settings:
   fail-on-disabled-bidders: true
   database:
     pool-size: 20
+    ssl-mode: disabled
     idle-connection-timeout: 300
     enable-prepared-statement-caching: false
     max-prepared-statement-cache-size: 256

@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.nexx360;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
@@ -81,7 +82,9 @@ public class Nexx360Bidder implements Bidder<BidRequest> {
 
     private Imp modifyImp(Imp imp) {
         return imp.toBuilder()
-                .ext(mapper.mapper().createObjectNode().set(BIDDER_NAME, imp.getExt().get("bidder")))
+                .ext(imp.getExt().deepCopy()
+                        .<ObjectNode>without("bidder")
+                        .set(BIDDER_NAME, imp.getExt().get("bidder")))
                 .build();
     }
 
