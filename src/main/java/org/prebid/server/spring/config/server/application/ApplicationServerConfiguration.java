@@ -303,7 +303,7 @@ public class ApplicationServerConfiguration {
 
     @Bean
     @ConditionalOnProperty(value = "video.enable-deprecated-endpoint", havingValue = "false", matchIfMissing = true)
-    ApplicationResource deprecatedAuctionResource() {
+    ApplicationResource deprecatedOpenrtbVideoHandler() {
         return new DeprecatedResource(
                 "The video endpoint is deprecated and will be removed in 5.0." +
                         " You may re-enable it via [video.enable-deprecated-endpoint]",
