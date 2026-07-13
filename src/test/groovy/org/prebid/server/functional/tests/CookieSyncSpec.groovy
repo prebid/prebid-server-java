@@ -329,7 +329,7 @@ class CookieSyncSpec extends BaseSpec {
         assert !response.getBidderUserSync(GENERIC)
     }
 
-    def "PBS cookie sync request shouldn't reflect error when coop-sync enabled and coop sync bidder synced as family"() {
+    def "PBS cookie sync request shouldn't reflect error when coop-sync enabled and coop sync bidder synced"() {
         given: "PBS config with alias bidder without cookie family name"
         def bidderAlias = ALIAS
         def prebidServerService = pbsServiceFactory.getService(GENERIC_CONFIG
@@ -338,7 +338,7 @@ class CookieSyncSpec extends BaseSpec {
 
         and: "Cookie sync request with 2 bidders"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
-            bidders = null
+            bidders = [bidderAlias]
             coopSync = true
         }
 
