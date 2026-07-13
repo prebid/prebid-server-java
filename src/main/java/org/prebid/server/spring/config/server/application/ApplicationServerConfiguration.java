@@ -305,8 +305,8 @@ public class ApplicationServerConfiguration {
     @ConditionalOnProperty(value = "video.enable-deprecated-endpoint", havingValue = "false", matchIfMissing = true)
     ApplicationResource deprecatedOpenrtbVideoHandler() {
         return new DeprecatedResource(
-                "The video endpoint is deprecated and will be removed in 5.0." +
-                        " You may re-enable it via [video.enable-deprecated-endpoint]",
+                "The video endpoint is deprecated and will be removed in 5.0."
+                        + " You may re-enable it via [video.enable-deprecated-endpoint]",
                 HttpEndpoint.of(HttpMethod.POST, Endpoint.openrtb2_video.value()));
     }
 
