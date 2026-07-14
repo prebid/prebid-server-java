@@ -197,7 +197,7 @@ public class ApplicationServerConfiguration {
     @Bean
     CorsHandler corsHandler() {
         return CorsHandler.create()
-                .addRelativeOrigin(".*")
+                .addOriginWithRegex(".*")
                 .allowCredentials(true)
                 .allowedHeaders(new HashSet<>(Arrays.asList(
                         HttpUtil.ORIGIN_HEADER.toString(),

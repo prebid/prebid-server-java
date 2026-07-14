@@ -125,7 +125,8 @@ public class RediadsBidder implements Bidder<BidRequest> {
     }
 
     private String resolveEndpointUrl(String subdomain) {
-        return endpointUrl.replace(SUBDOMAIN_MACRO, StringUtils.defaultIfBlank(subdomain, defaultSubdomain));
+        return endpointUrl.replace(
+                SUBDOMAIN_MACRO, HttpUtil.validateDomainName(StringUtils.defaultIfBlank(subdomain, defaultSubdomain)));
     }
 
     @Override

@@ -5,6 +5,7 @@ import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
 import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClientOptions;
+import io.vertx.core.http.PoolOptions;
 import io.vertx.core.net.JksOptions;
 import lombok.Data;
 import org.apache.commons.lang3.ObjectUtils;
@@ -113,6 +114,7 @@ import org.prebid.server.privacy.PrivacyExtractor;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.BidValidationEnforcement;
+import org.prebid.server.settings.model.GdprConfig;
 import org.prebid.server.spring.config.model.CacheDefaultTtlProperties;
 import org.prebid.server.spring.config.model.ExternalConversionProperties;
 import org.prebid.server.spring.config.model.HttpClientCircuitBreakerProperties;
@@ -162,17 +164,16 @@ public class ServiceConfiguration {
     private double logSamplingRate;
 
     @Bean
-    CoreCacheService cacheService(
-            CacheConfigurationProperties cacheConfigurationProperties,
-            @Value("${auction.cache.expected-request-time-ms}") long expectedCacheTimeMs,
-            @Value("${pbc.api.key:#{null}}") String apiKey,
-            @Value("${datacenter-region:#{null}}") String datacenterRegion,
-            VastModifier vastModifier,
-            EventsService eventsService,
-            HttpClient httpClient,
-            Metrics metrics,
-            Clock clock,
-            JacksonMapper mapper) {
+    CoreCacheService cacheService(CacheConfigurationProperties cacheConfigurationProperties,
+                                  @Value("${auction.cache.expected-request-time-ms}") long expectedCacheTimeMs,
+                                  @Value("${pbc.api.key:#{null}}") String apiKey,
+                                  @Value("${datacenter-region:#{null}}") String datacenterRegion,
+                                  VastModifier vastModifier,
+                                  EventsService eventsService,
+                                  HttpClient httpClient,
+                                  Metrics metrics,
+                                  Clock clock,
+                                  JacksonMapper mapper) {
 
         final String scheme = cacheConfigurationProperties.getScheme();
         final String host = cacheConfigurationProperties.getHost();
@@ -355,8 +356,8 @@ public class ServiceConfiguration {
             @Value("${auction.ad-server-currency}") String adServerCurrency,
             @Value("${auction.blocklisted-apps}") String blocklistedAppsString,
             @Value("${external-url}") String externalUrl,
-            @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
             @Value("${datacenter-region}") String datacenterRegion,
+            GdprConfig gdprConfig,
             BidderCatalog bidderCatalog,
             ImplicitParametersExtractor implicitParametersExtractor,
             TimeoutResolver timeoutResolver,
@@ -372,7 +373,7 @@ public class ServiceConfiguration {
                 adServerCurrency,
                 splitToList(blocklistedAppsString),
                 externalUrl,
-                hostVendorId,
+                gdprConfig.getHostVendorId(),
                 datacenterRegion,
                 bidderCatalog,
                 implicitParametersExtractor,
@@ -535,7 +536,8 @@ public class ServiceConfiguration {
                                         AmpPrivacyContextFactory ampPrivacyContextFactory,
                                         DebugResolver debugResolver,
                                         JacksonMapper mapper,
-                                        GeoLocationServiceWrapper geoLocationServiceWrapper) {
+                                        GeoLocationServiceWrapper geoLocationServiceWrapper,
+                                        TcfDefinerService tcfDefinerService) {
 
         return new AmpRequestFactory(
                 ortb2RequestFactory,
@@ -550,7 +552,8 @@ public class ServiceConfiguration {
                 ampPrivacyContextFactory,
                 debugResolver,
                 mapper,
-                geoLocationServiceWrapper);
+                geoLocationServiceWrapper,
+                tcfDefinerService);
     }
 
     @Bean
@@ -660,8 +663,7 @@ public class ServiceConfiguration {
             Metrics metrics,
             HttpClientProperties httpClientProperties,
             @Qualifier("httpClientCircuitBreakerProperties")
-            HttpClientCircuitBreakerProperties circuitBreakerProperties,
-            Clock clock) {
+            HttpClientCircuitBreakerProperties circuitBreakerProperties) {
 
         final HttpClient httpClient = createBasicHttpClient(vertx, httpClientProperties);
 
@@ -672,16 +674,17 @@ public class ServiceConfiguration {
                 circuitBreakerProperties.getOpeningThreshold(),
                 circuitBreakerProperties.getOpeningIntervalMs(),
                 circuitBreakerProperties.getClosingIntervalMs(),
-                circuitBreakerProperties.getIdleExpireHours(),
-                clock);
+                circuitBreakerProperties.getIdleExpireHours());
     }
 
     private static BasicHttpClient createBasicHttpClient(Vertx vertx, HttpClientProperties httpClientProperties) {
+        final PoolOptions poolOptions = new PoolOptions()
+                .setHttp1MaxSize(httpClientProperties.getMaxPoolSize())
+                .setCleanerPeriod(httpClientProperties.getPoolCleanerPeriodMs());
+
         final HttpClientOptions options = new HttpClientOptions()
-                .setMaxPoolSize(httpClientProperties.getMaxPoolSize())
                 .setIdleTimeoutUnit(TimeUnit.MILLISECONDS)
                 .setIdleTimeout(httpClientProperties.getIdleTimeoutMs())
-                .setPoolCleanerPeriod(httpClientProperties.getPoolCleanerPeriodMs())
                 .setDecompressionSupported(httpClientProperties.getUseCompression())
                 .setConnectTimeout(httpClientProperties.getConnectTimeoutMs())
                 // Vert.x's HttpClientRequest needs this value to be 2 for redirections to be followed once,
@@ -698,7 +701,7 @@ public class ServiceConfiguration {
                     .setKeyCertOptions(jksOptions);
         }
 
-        return new BasicHttpClient(vertx, vertx.createHttpClient(options));
+        return new BasicHttpClient(vertx, vertx.createHttpClient(options, poolOptions));
     }
 
     @Bean
@@ -756,7 +759,7 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    UsersyncInfoFactory usersyncInfoBuilder(@Value("${external-url}") String externalUrl) {
+    UsersyncInfoFactory usersyncInfoFactory(@Value("${external-url}") String externalUrl) {
         return new UsersyncInfoFactory(externalUrl);
     }
 
@@ -1338,9 +1341,9 @@ public class ServiceConfiguration {
 
         return listAsString != null
                 ? Stream.of(listAsString.split(","))
-                .map(String::trim)
-                .filter(StringUtils::isNotBlank)
-                .collect(Collectors.toCollection(collectionFactory))
+                  .map(String::trim)
+                  .filter(StringUtils::isNotBlank)
+                  .collect(Collectors.toCollection(collectionFactory))
                 : collectionFactory.get();
     }
 }

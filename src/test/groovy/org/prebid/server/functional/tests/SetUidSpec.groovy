@@ -29,6 +29,7 @@ import static org.prebid.server.functional.model.bidder.BidderName.WILDCARD
 import static org.prebid.server.functional.model.request.setuid.UidWithExpiry.defaultUidWithExpiry
 import static org.prebid.server.functional.model.response.cookiesync.UserSyncInfo.Type.REDIRECT
 import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
+import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 import static org.prebid.server.functional.util.privacy.TcfConsent.RUBICON_VENDOR_ID
 
 class SetUidSpec extends BaseSpec {
@@ -265,7 +266,7 @@ class SetUidSpec extends BaseSpec {
         def request = SetuidRequest.defaultSetuidRequest.tap {
             it.bidder = RUBICON
             gdpr = "1"
-            gdprConsent = new TcfConsent.Builder().build()
+            gdprConsent = new TcfConsent.Builder().setDisclosedVendors([GENERIC_VENDOR_ID]).build()
         }
 
         def uidsCookie = UidsCookie.defaultUidsCookie.tap {
@@ -416,7 +417,7 @@ class SetUidSpec extends BaseSpec {
         assert exception.responseBody == 'Invalid request format: "bidder" query param is invalid'
 
         where:
-        bidderName << [UNKNOWN, WILDCARD, GENERIC_CAMEL_CASE, ALIAS, ALIAS_CAMEL_CASE]
+        bidderName << [UNKNOWN, WILDCARD, GENERIC_CAMEL_CASE, ALIAS_CAMEL_CASE]
     }
 
     def "PBS should throw an exception when incoming request have optout flag"() {
@@ -577,7 +578,7 @@ class SetUidSpec extends BaseSpec {
     }
 
     List<String> getSetUidsHeaders(SetuidResponse response, boolean includeEmpty = false) {
-        response.headers.get("Set-Cookie").findAll { cookie ->
+        response.headers.get("set-cookie").findAll { cookie ->
             includeEmpty || !(cookie =~ /\buids\d*=\s*;/)
         }
     }

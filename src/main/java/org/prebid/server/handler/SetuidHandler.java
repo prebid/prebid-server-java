@@ -4,7 +4,6 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
-import io.vertx.core.http.Cookie;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
@@ -116,8 +115,8 @@ public class SetuidHandler implements ApplicationResource {
     private static Map<String, Usersyncer> collectUsersyncers(BidderCatalog bidderCatalog) {
         validateUsersyncersDuplicates(bidderCatalog);
         return bidderCatalog.usersyncReadyBidders().stream()
-                .collect(Collectors.toMap(Function.identity(),
-                        bidder -> bidderCatalog.usersyncerByName(bidder).orElseThrow()));
+                .collect(Collectors.toMap(
+                        Function.identity(), bidder -> bidderCatalog.usersyncerByName(bidder).orElseThrow()));
     }
 
     private static void validateUsersyncersDuplicates(BidderCatalog bidderCatalog) {
@@ -318,7 +317,7 @@ public class SetuidHandler implements ApplicationResource {
                 setuidContext.getUidsCookie(), cookieFamilyName, uid);
 
         uidsCookieService.splitUidsIntoCookies(uidsCookieUpdateResult.getValue())
-                .forEach(cookie -> addCookie(routingContext, cookie));
+                .forEach(routingContext.response()::addCookie);
 
         if (uidsCookieUpdateResult.isUpdated()) {
             metrics.updateUserSyncSetsMetric(cookieFamilyName);
@@ -400,9 +399,5 @@ public class SetuidHandler implements ApplicationResource {
         } else {
             analyticsDelegator.processEvent(setuidEvent, tcfContext);
         }
-    }
-
-    private void addCookie(RoutingContext routingContext, Cookie cookie) {
-        routingContext.response().headers().add(HttpUtil.SET_COOKIE_HEADER, cookie.encode());
     }
 }

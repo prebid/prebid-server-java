@@ -68,7 +68,8 @@ public class VidazooBidder implements Bidder<BidRequest> {
 
     private HttpRequest<BidRequest> makeHttpRequest(BidRequest bidRequest, Imp imp, VidazooImpExt impExt) {
         final BidRequest modifiedBidRequest = bidRequest.toBuilder().imp(Collections.singletonList(imp)).build();
-        final String uri = endpointUrl + HttpUtil.encodeUrl(StringUtils.defaultString(impExt.getConnectionId()).trim());
+        final String uri = endpointUrl + HttpUtil.encodeUrl(
+                HttpUtil.validatePathSegment(StringUtils.defaultString(impExt.getConnectionId()).trim()));
 
         return BidderUtil.defaultRequest(modifiedBidRequest, uri, mapper);
     }
