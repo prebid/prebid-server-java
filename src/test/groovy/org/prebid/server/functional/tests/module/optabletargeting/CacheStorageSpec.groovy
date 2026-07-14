@@ -36,7 +36,7 @@ class CacheStorageSpec extends ModuleBaseSpec {
 
     private static final StoredCache storedCache = new StoredCache(networkServiceContainer)
 
-    private static final Map<String, String> CACHE_STORAGE_CONFIG = ['storage.pbc.path'           : "$networkServiceContainer.rootUri/stored-cache".toString(),
+    private static final Map<String, String> CACHE_STORAGE_CONFIG = ['storage.pbc.path'           : 'stored-cache',
                                                                      'storage.pbc.call-timeout-ms': '1000',
                                                                      'storage.pbc.enabled'        : 'true',
                                                                      'cache.module.enabled'       : 'true',
