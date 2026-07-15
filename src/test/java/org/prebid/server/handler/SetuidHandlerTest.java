@@ -8,11 +8,9 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.api.function.Executable;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -52,6 +50,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -62,6 +61,8 @@ import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -833,24 +834,52 @@ public class SetuidHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldThrowExceptionInCaseOfBaseBidderCookieFamilyNameDuplicates() {
+    public void shouldDetectIfBidderDoesntProvideCookieFamilyNameInUsersyncConfig() {
         // given
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
-        final String firstDuplicateName = "firstBidderWithDuplicate";
-        final String secondDuplicateName = "secondBidderWithDuplicate";
-        final String thirdDuplicateName = "thirdDuplicateName";
+        final String bidderName = "bidderName";
+
+        given(bidderCatalog.usersyncReadyBidders()).willReturn(Collections.singleton(bidderName));
+        given(bidderCatalog.usersyncerByName(eq(bidderName))).willReturn(
+                Optional.of(Usersyncer.of(null, iframeMethod(), redirectMethod(), false, null)));
+        given(bidderCatalog.cookieFamilyName(eq(bidderName))).willReturn(Optional.empty());
+
+        // when and then
+        assertThatExceptionOfType(IllegalArgumentException.class)
+                .isThrownBy(() -> new SetuidHandler(
+                        2000,
+                        uidsCookieService,
+                        applicationSettings,
+                        bidderCatalog,
+                        setuidPrivacyContextFactory,
+                        gppService,
+                        activityInfrastructureCreator,
+                        tcfDefinerService,
+                        analyticsReporterDelegator,
+                        metrics,
+                        new TimeoutFactory(clock)))
+                .withMessage("Bidder bidderName is missing cookie family name in usersync config, please provide it");
+    }
+
+    @Test
+    public void shouldAcceptCookieFamilyNameDuplicatesIfTheyHaveTheSameUsersyncer() {
+        // given
+        final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
+        final String firstDuplicateBidderName = "firstBidderWithDuplicate";
+        final String secondDuplicateBidderName = "secondBidderWithDuplicate";
+        final String cookieFamilyName = "cookieFamilyName";
 
         given(bidderCatalog.usersyncReadyBidders())
-                .willReturn(Set.of(RUBICON, FACEBOOK, firstDuplicateName, secondDuplicateName, thirdDuplicateName));
-        given(bidderCatalog.isAlias(thirdDuplicateName)).willReturn(true);
-        given(bidderCatalog.usersyncerByName(eq(firstDuplicateName))).willReturn(
-                Optional.of(Usersyncer.of(RUBICON, iframeMethod(), redirectMethod(), false, null)));
-        given(bidderCatalog.usersyncerByName(eq(secondDuplicateName))).willReturn(
-                Optional.of(Usersyncer.of(FACEBOOK, iframeMethod(), redirectMethod(), false, null)));
-        given(bidderCatalog.usersyncerByName(eq(thirdDuplicateName))).willReturn(
-                Optional.of(Usersyncer.of(FACEBOOK, iframeMethod(), redirectMethod(), false, null)));
+                .willReturn(Set.of(firstDuplicateBidderName, secondDuplicateBidderName));
+        given(bidderCatalog.usersyncerByName(eq(firstDuplicateBidderName))).willReturn(
+                Optional.of(Usersyncer.of(cookieFamilyName, iframeMethod(), redirectMethod(), false, null)));
+        given(bidderCatalog.usersyncerByName(eq(secondDuplicateBidderName))).willReturn(
+                Optional.of(Usersyncer.of(cookieFamilyName, iframeMethod(), redirectMethod(), false, null)));
+        given(bidderCatalog.cookieFamilyName(eq(firstDuplicateBidderName))).willReturn(Optional.of(cookieFamilyName));
+        given(bidderCatalog.cookieFamilyName(eq(secondDuplicateBidderName))).willReturn(Optional.of(cookieFamilyName));
 
-        final Executable exceptionSource = () -> new SetuidHandler(
+        // when and then
+        assertThatNoException().isThrownBy(() -> new SetuidHandler(
                 2000,
                 uidsCookieService,
                 applicationSettings,
@@ -861,20 +890,72 @@ public class SetuidHandlerTest extends VertxTest {
                 tcfDefinerService,
                 analyticsReporterDelegator,
                 metrics,
-                new TimeoutFactory(clock));
+                new TimeoutFactory(clock)));
+    }
 
-        //when
-        final IllegalArgumentException exception =
-                Assertions.assertThrows(IllegalArgumentException.class, exceptionSource);
+    @Test
+    public void shouldRejectCookieFamilyNameDuplicatesIfTheyHaveDifferentUsersyncers() {
+        // given
+        final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
+        final String firstDuplicateBidderName = "firstBidderWithDuplicate";
+        final String secondDuplicateBidderName = "secondBidderWithDuplicate";
+        final String cookieFamilyName = "cookieFamilyName";
 
-        //then
-        final String expectedPrefix = "Duplicated \"cookie-family-name\" found, values: ";
-        final String actualMessage = exception.getMessage();
+        given(bidderCatalog.usersyncReadyBidders())
+                .willReturn(Set.of(firstDuplicateBidderName, secondDuplicateBidderName));
+        given(bidderCatalog.usersyncerByName(eq(firstDuplicateBidderName))).willReturn(
+                Optional.of(Usersyncer.of(cookieFamilyName, iframeMethod(), redirectMethod(), true, null)));
+        given(bidderCatalog.usersyncerByName(eq(secondDuplicateBidderName))).willReturn(
+                Optional.of(Usersyncer.of(cookieFamilyName, iframeMethod(), redirectMethod(), false, null)));
+        given(bidderCatalog.cookieFamilyName(eq(firstDuplicateBidderName))).willReturn(Optional.of(cookieFamilyName));
+        given(bidderCatalog.cookieFamilyName(eq(secondDuplicateBidderName))).willReturn(Optional.of(cookieFamilyName));
 
-        assertThat(actualMessage).startsWith(expectedPrefix);
+        // when and then
+        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> new SetuidHandler(
+                        2000,
+                        uidsCookieService,
+                        applicationSettings,
+                        bidderCatalog,
+                        setuidPrivacyContextFactory,
+                        gppService,
+                        activityInfrastructureCreator,
+                        tcfDefinerService,
+                        analyticsReporterDelegator,
+                        metrics,
+                        new TimeoutFactory(clock)))
+                .withMessageContaining("Found bidders with the same cookie family name but different usersync configs");
+    }
 
-        final String[] values = actualMessage.substring(expectedPrefix.length()).split(", ");
-        assertThat(values).containsExactlyInAnyOrder("audienceNetwork", "rubicon");
+    @Test
+    public void shouldAllowCookieFamilyNameDuplicatesIfTheyHaveIdenticalUsersyncersExceptTheEnabledFlag() {
+        // given
+        final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
+        final String firstDuplicateBidderName = "firstBidderWithDuplicate";
+        final String secondDuplicateBidderName = "secondBidderWithDuplicate";
+        final String cookieFamilyName = "cookieFamilyName";
+
+        given(bidderCatalog.usersyncReadyBidders())
+                .willReturn(Set.of(firstDuplicateBidderName, secondDuplicateBidderName));
+        given(bidderCatalog.usersyncerByName(eq(firstDuplicateBidderName))).willReturn(
+                Optional.of(Usersyncer.of(true, cookieFamilyName, iframeMethod(), redirectMethod(), true, null)));
+        given(bidderCatalog.usersyncerByName(eq(secondDuplicateBidderName))).willReturn(
+                Optional.of(Usersyncer.of(false, cookieFamilyName, iframeMethod(), redirectMethod(), true, null)));
+        given(bidderCatalog.cookieFamilyName(eq(firstDuplicateBidderName))).willReturn(Optional.of(cookieFamilyName));
+        given(bidderCatalog.cookieFamilyName(eq(secondDuplicateBidderName))).willReturn(Optional.of(cookieFamilyName));
+
+        // when and then
+        assertThatNoException().isThrownBy(() -> new SetuidHandler(
+                2000,
+                uidsCookieService,
+                applicationSettings,
+                bidderCatalog,
+                setuidPrivacyContextFactory,
+                gppService,
+                activityInfrastructureCreator,
+                tcfDefinerService,
+                analyticsReporterDelegator,
+                metrics,
+                new TimeoutFactory(clock)));
     }
 
     private static Cookie equalToUidsCookie(UidsCookie uidsCookie) throws JsonProcessingException {
