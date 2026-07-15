@@ -224,8 +224,8 @@ public class StoredResponseProcessor {
                                           Map<String, String> idToStoredResponses,
                                           String impId) {
 
-        if (storedResponse instanceof StoredResponse.StoredResponseObject storedResponseObject) {
-            return Collections.singletonList(storedResponseObject.seatBid());
+        if (storedResponse instanceof StoredResponse.StoredResponseObject(SeatBid seatBid)) {
+            return Collections.singletonList(seatBid);
         }
 
         final String storedResponseId = ((StoredResponse.StoredResponseId) storedResponse).id();
@@ -313,7 +313,7 @@ public class StoredResponseProcessor {
         final BidRequest bidRequest = bidderRequest.getBidRequest();
 
         final List<Imp> imps = bidRequest.getImp();
-        // Аor now, Stored Bid Response works only for bid requests with single imp
+        // For now, Stored Bid Response works only for bid requests with single imp
         if (imps.size() > 1 || StringUtils.isEmpty(bidderRequest.getStoredResponse())) {
             return auctionParticipation;
         }

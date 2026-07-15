@@ -48,7 +48,7 @@ LIMIT 1
          "analytics.pubstack.scopeid"                       : scopeId,
          "analytics.pubstack.configuration-refresh-delay-ms": "1000",
          "analytics.pubstack.buffers.size-bytes"            : "1",
-         "analytics.pubstack.timeout-ms"                    : "100"].asImmutable()
+         "analytics.pubstack.timeout-ms"                    : "1000"].asImmutable()
     }
 
     static Map<String, String> getHttpSettingsConfig(String rootUri = networkServiceContainer.rootUri) {
