@@ -326,8 +326,7 @@ public class MsftBidderTest extends VertxTest {
     public void makeHttpRequestsShouldSetDisplayManagerVersionIfItIsAbsent() {
         // given
         final BidRequest bidRequest = givenBidRequest(request -> request.app(
-                App.builder().ext(ExtApp.of(ExtAppPrebid.of("testSource", "testVersion"), null)).build()
-        ), givenImp());
+                App.builder().ext(ExtApp.of(ExtAppPrebid.of("testSource", "testVersion"), null)).build()), givenImp());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -345,8 +344,8 @@ public class MsftBidderTest extends VertxTest {
     public void makeHttpRequestsShouldNotReplaceDisplayManagerVersionIfItIsPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(request -> request.app(
-                App.builder().ext(ExtApp.of(ExtAppPrebid.of("testSource", "testVersion"), null)).build()
-        ), givenImp(imp -> imp.displaymanagerver("testDisplayManagerVersion").ext(givenImpExt())));
+                App.builder().ext(ExtApp.of(ExtAppPrebid.of("testSource", "testVersion"), null)).build()),
+                givenImp(imp -> imp.displaymanagerver("testDisplayManagerVersion").ext(givenImpExt())));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -393,8 +392,7 @@ public class MsftBidderTest extends VertxTest {
                                         "traffic_source_code", "testTrafficSourceCode",
                                         "pub_click", "testPubClick",
                                         "ext_inv_code", "testExtInvCode",
-                                        "ext_imp_id", "testExtImpId")))
-                );
+                                        "ext_imp_id", "testExtImpId"))));
     }
 
     @Test
@@ -732,8 +730,7 @@ public class MsftBidderTest extends VertxTest {
                 .containsExactly(
                         tuple("imp0", banner),
                         tuple("imp1", video),
-                        tuple("imp3", xNative)
-                );
+                        tuple("imp3", xNative));
         assertThat(result.getErrors()).hasSize(1)
                 .containsExactly(BidderError.badInput("Unsupported bid ad type: -1"));
     }
