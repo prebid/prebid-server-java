@@ -83,8 +83,9 @@ abstract class RuleEngineBaseSpec extends ModuleBaseSpec {
     protected static final Map<String, String> AMX_CONFIG = ["adapters.${AMX}.enabled"            : "true",
                                                              "adapters.${AMX}.endpoint"           : "$networkServiceContainer.rootUri/auction".toString(),
                                                              "adapters.${AMX}.meta-info.vendor-id": AMX_VENDOR_ID as String]
-    protected static final Map<String, String> OPENX_ALIAS_CONFIG = ["adapters.${OPENX}.aliases.${OPENX_ALIAS}.enabled" : "true",
-                                                                     "adapters.${OPENX}.aliases.${OPENX_ALIAS}.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
+    protected static final Map<String, String> OPENX_ALIAS_CONFIG = ["adapters.${OPENX}.aliases.${OPENX_ALIAS}.enabled"            : "true",
+                                                                     "adapters.${OPENX}.aliases.${OPENX_ALIAS}.meta-info.vendor-id": "0",
+                                                                     "adapters.${OPENX}.aliases.${OPENX_ALIAS}.endpoint"           : "$networkServiceContainer.rootUri/auction".toString()]
     protected static final String CONFIG_DATA_CENTER = PBSUtils.randomString
     private static final String USER_SYNC_URL = "$networkServiceContainer.rootUri/generic-usersync"
     private static final Map<String, String> GENERIC_CONFIG = [

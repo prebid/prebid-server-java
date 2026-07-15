@@ -1339,8 +1339,9 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
     def "PBS shouldn't discard bid when hard alias and alternate bidder allow bidder code"() {
         given: "PBS config with bidder"
-        def pbsConfig = AMX_CONFIG + ["adapters.amx.aliases.alias.enabled" : "true",
-                                      "adapters.amx.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
+        def pbsConfig = AMX_CONFIG + ["adapters.amx.aliases.alias.enabled"            : "true",
+                                      "adapters.amx.aliases.alias.meta-info.vendor-id": "0",
+                                      "adapters.amx.aliases.alias.endpoint"           : "$networkServiceContainer.rootUri/auction".toString()]
         def defaultPbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request with alias"
@@ -1525,8 +1526,9 @@ class AlternateBidderCodeSpec extends BaseSpec {
 
     def "PBS should populate adapter code with requested bidder when conflict soft and hard alias and alternate bidder code"() {
         given: "PBS config with bidder"
-        def pbsConfig = AMX_CONFIG + ["adapters.amx.aliases.alias.enabled" : "true",
-                                      "adapters.amx.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
+        def pbsConfig = AMX_CONFIG + ["adapters.amx.aliases.alias.enabled"            : "true",
+                                      "adapters.amx.aliases.alias.meta-info.vendor-id": "0",
+                                      "adapters.amx.aliases.alias.endpoint"           : "$networkServiceContainer.rootUri/auction".toString()]
         def defaultPbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Bid request with amx bidder and targeting"
