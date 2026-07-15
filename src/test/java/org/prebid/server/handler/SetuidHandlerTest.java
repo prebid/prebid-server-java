@@ -885,54 +885,6 @@ public class SetuidHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldRejectCookieFamilyNameDuplicatesIfTheyHaveDifferentVendorIds() {
-        // given
-        final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
-        final String firstDuplicateBidderName = "firstBidderWithDuplicate";
-        final String secondDuplicateBidderName = "secondBidderWithDuplicate";
-        final String cookieFamilyName = "cookieFamilyName";
-
-        given(bidderCatalog.usersyncReadyBidders())
-                .willReturn(Set.of(firstDuplicateBidderName, secondDuplicateBidderName));
-        given(bidderCatalog.usersyncerByName(eq(firstDuplicateBidderName))).willReturn(
-                Optional.of(Usersyncer.of(cookieFamilyName, iframeMethod(), redirectMethod(), false, null)));
-        given(bidderCatalog.usersyncerByName(eq(secondDuplicateBidderName))).willReturn(
-                Optional.of(Usersyncer.of(cookieFamilyName, iframeMethod(), redirectMethod(), false, null)));
-        given(bidderCatalog.cookieFamilyName(eq(firstDuplicateBidderName))).willReturn(Optional.of(cookieFamilyName));
-        given(bidderCatalog.cookieFamilyName(eq(secondDuplicateBidderName))).willReturn(Optional.of(cookieFamilyName));
-        given(bidderCatalog.vendorIdByName(eq(firstDuplicateBidderName))).willReturn(1);
-        given(bidderCatalog.vendorIdByName(eq(secondDuplicateBidderName))).willReturn(2);
-
-        // when
-        final Executable setuidHandlerBuilder = () -> new SetuidHandler(
-                2000,
-                uidsCookieService,
-                applicationSettings,
-                bidderCatalog,
-                setuidPrivacyContextFactory,
-                gppService,
-                activityInfrastructureCreator,
-                tcfDefinerService,
-                analyticsReporterDelegator,
-                metrics,
-                new TimeoutFactory(clock));
-
-        // then
-        final IllegalArgumentException exception =
-                Assertions.assertThrows(IllegalArgumentException.class, setuidHandlerBuilder);
-
-        final Matcher matcher = Pattern.compile(
-                "Found bidders with the same cookie family name but different vendor ids. "
-                        + "Bidders: \\[(.*)]. Vendor ids: \\[(.*)]").matcher(exception.getMessage());
-
-        assertThat(matcher.matches()).isTrue();
-        assertThat(matcher.group(1).split(", "))
-                .containsExactlyInAnyOrder(firstDuplicateBidderName, secondDuplicateBidderName);
-        assertThat(matcher.group(2).split(", "))
-                .containsExactlyInAnyOrder("1", "2");
-    }
-
-    @Test
     public void shouldRejectCookieFamilyNameDuplicatesIfTheyHaveDifferentUsersyncers() {
         // given
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());

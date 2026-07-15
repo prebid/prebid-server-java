@@ -123,29 +123,9 @@ public class SetuidHandler implements ApplicationResource {
         bidderCatalog.usersyncReadyBidders().stream()
                 .collect(Collectors.groupingBy(bidder -> bidderCatalog.cookieFamilyName(bidder).orElseThrow(() ->
                         new IllegalArgumentException(("Bidder %s is missing cookie family name in usersync config, "
-                                + "please provide it").formatted(bidder))
-                )))
+                                + "please provide it").formatted(bidder)))))
                 .values()
-                .forEach(bidders -> validateUsersyncersDuplicatesForSingleCookieFamilyName(bidders, bidderCatalog));
-    }
-
-    private static void validateUsersyncersDuplicatesForSingleCookieFamilyName(List<String> bidders,
-                                                                               BidderCatalog bidderCatalog) {
-
-        validateBiddersHaveTheSameVendorId(bidders, bidderCatalog);
-        validateBiddersHaveTheSameUsersyncConfig(bidders, bidderCatalog);
-    }
-
-    private static void validateBiddersHaveTheSameVendorId(List<String> bidders, BidderCatalog bidderCatalog) {
-        final Set<Integer> vendorIds = bidders.stream()
-                .map(bidderCatalog::vendorIdByName)
-                .collect(Collectors.toSet());
-
-        if (vendorIds.size() > 1) {
-            throw new IllegalArgumentException(
-                    "Found bidders with the same cookie family name but different vendor ids. "
-                            + "Bidders: %s. Vendor ids: %s".formatted(bidders, vendorIds));
-        }
+                .forEach(bidders -> validateBiddersHaveTheSameUsersyncConfig(bidders, bidderCatalog));
     }
 
     private static void validateBiddersHaveTheSameUsersyncConfig(List<String> bidders, BidderCatalog bidderCatalog) {
