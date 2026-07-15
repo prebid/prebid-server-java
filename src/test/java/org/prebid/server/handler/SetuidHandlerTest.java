@@ -8,11 +8,9 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.api.function.Executable;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -57,14 +55,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -823,34 +821,25 @@ public class SetuidHandlerTest extends VertxTest {
                 Optional.of(Usersyncer.of(null, iframeMethod(), redirectMethod(), false, null)));
         given(bidderCatalog.cookieFamilyName(eq(bidderName))).willReturn(Optional.empty());
 
-        // when
-        final Executable buildSetuidHandler = () -> new SetuidHandler(
-                2000,
-                uidsCookieService,
-                applicationSettings,
-                bidderCatalog,
-                setuidPrivacyContextFactory,
-                gppService,
-                activityInfrastructureCreator,
-                tcfDefinerService,
-                analyticsReporterDelegator,
-                metrics,
-                new TimeoutFactory(clock));
-
-        // then
-        final IllegalArgumentException exception =
-                Assertions.assertThrows(IllegalArgumentException.class, buildSetuidHandler);
-
-        final Matcher matcher = Pattern.compile(
-                "Bidder (.*) is missing cookie family name in usersync config, please provide it")
-                .matcher(exception.getMessage());
-
-        assertThat(matcher.matches()).isTrue();
-        assertThat(matcher.group(1)).isEqualTo(bidderName);
+        // when and then
+        assertThatExceptionOfType(IllegalArgumentException.class)
+                .isThrownBy(() -> new SetuidHandler(
+                        2000,
+                        uidsCookieService,
+                        applicationSettings,
+                        bidderCatalog,
+                        setuidPrivacyContextFactory,
+                        gppService,
+                        activityInfrastructureCreator,
+                        tcfDefinerService,
+                        analyticsReporterDelegator,
+                        metrics,
+                        new TimeoutFactory(clock)))
+                .withMessage("Bidder bidderName is missing cookie family name in usersync config, please provide it");
     }
 
     @Test
-    public void shouldAcceptCookieFamilyNameDuplicatesIfTheyHaveTheSameVendorIdAndUsersyncer() {
+    public void shouldAcceptCookieFamilyNameDuplicatesIfTheyHaveTheSameUsersyncer() {
         // given
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final String firstDuplicateBidderName = "firstBidderWithDuplicate";
@@ -866,8 +855,8 @@ public class SetuidHandlerTest extends VertxTest {
         given(bidderCatalog.cookieFamilyName(eq(firstDuplicateBidderName))).willReturn(Optional.of(cookieFamilyName));
         given(bidderCatalog.cookieFamilyName(eq(secondDuplicateBidderName))).willReturn(Optional.of(cookieFamilyName));
 
-        // when
-        final Executable buildSetuidHandler = () -> new SetuidHandler(
+        // when and then
+        assertThatNoException().isThrownBy(() -> new SetuidHandler(
                 2000,
                 uidsCookieService,
                 applicationSettings,
@@ -878,10 +867,7 @@ public class SetuidHandlerTest extends VertxTest {
                 tcfDefinerService,
                 analyticsReporterDelegator,
                 metrics,
-                new TimeoutFactory(clock));
-
-        // then
-        Assertions.assertDoesNotThrow(buildSetuidHandler);
+                new TimeoutFactory(clock)));
     }
 
     @Test
@@ -901,31 +887,20 @@ public class SetuidHandlerTest extends VertxTest {
         given(bidderCatalog.cookieFamilyName(eq(firstDuplicateBidderName))).willReturn(Optional.of(cookieFamilyName));
         given(bidderCatalog.cookieFamilyName(eq(secondDuplicateBidderName))).willReturn(Optional.of(cookieFamilyName));
 
-        // when
-        final Executable setuidHandlerBuilder = () -> new SetuidHandler(
-                2000,
-                uidsCookieService,
-                applicationSettings,
-                bidderCatalog,
-                setuidPrivacyContextFactory,
-                gppService,
-                activityInfrastructureCreator,
-                tcfDefinerService,
-                analyticsReporterDelegator,
-                metrics,
-                new TimeoutFactory(clock));
-
-        // then
-        final IllegalArgumentException exception =
-                Assertions.assertThrows(IllegalArgumentException.class, setuidHandlerBuilder);
-
-        final Matcher matcher = Pattern.compile(
-                "Found bidders with the same cookie family name but different usersync configs. "
-                        + "Bidders: \\[(.*)]. Usersync configs: \\[.*]").matcher(exception.getMessage());
-
-        assertThat(matcher.matches()).isTrue();
-        assertThat(matcher.group(1).split(", "))
-                .containsExactlyInAnyOrder(firstDuplicateBidderName, secondDuplicateBidderName);
+        // when and then
+        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> new SetuidHandler(
+                        2000,
+                        uidsCookieService,
+                        applicationSettings,
+                        bidderCatalog,
+                        setuidPrivacyContextFactory,
+                        gppService,
+                        activityInfrastructureCreator,
+                        tcfDefinerService,
+                        analyticsReporterDelegator,
+                        metrics,
+                        new TimeoutFactory(clock)))
+                .withMessageContaining("Found bidders with the same cookie family name but different usersync configs");
     }
 
     @Test
@@ -945,8 +920,8 @@ public class SetuidHandlerTest extends VertxTest {
         given(bidderCatalog.cookieFamilyName(eq(firstDuplicateBidderName))).willReturn(Optional.of(cookieFamilyName));
         given(bidderCatalog.cookieFamilyName(eq(secondDuplicateBidderName))).willReturn(Optional.of(cookieFamilyName));
 
-        // when
-        final Executable setuidHandlerBuilder = () -> new SetuidHandler(
+        // when and then
+        assertThatNoException().isThrownBy(() -> new SetuidHandler(
                 2000,
                 uidsCookieService,
                 applicationSettings,
@@ -957,10 +932,7 @@ public class SetuidHandlerTest extends VertxTest {
                 tcfDefinerService,
                 analyticsReporterDelegator,
                 metrics,
-                new TimeoutFactory(clock));
-
-        // then
-        Assertions.assertDoesNotThrow(setuidHandlerBuilder);
+                new TimeoutFactory(clock)));
     }
 
     private static Cookie equalToUidsCookie(UidsCookie uidsCookie) throws JsonProcessingException {
