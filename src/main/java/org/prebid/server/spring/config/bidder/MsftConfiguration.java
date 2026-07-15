@@ -31,8 +31,7 @@ public class MsftConfiguration {
     }
 
     @Bean
-    BidderDeps msftBidderDeps(MsftConfigurationProperties msftConfigurationProperties,
-                              JacksonMapper mapper) {
+    BidderDeps msftBidderDeps(MsftConfigurationProperties msftConfigurationProperties, JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(msftConfigurationProperties)

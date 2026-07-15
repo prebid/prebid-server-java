@@ -1,6 +1,7 @@
 adapters:
   msft:
     endpoint: http://ib.adnxs.com/openrtb2
+    ortb-version: "2.6"
     meta-info:
       maintainer-email: prebid@microsoft.com
       app-media-types:

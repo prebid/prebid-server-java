@@ -393,8 +393,7 @@ public class MsftBidderTest extends VertxTest {
                                         "traffic_source_code", "testTrafficSourceCode",
                                         "pub_click", "testPubClick",
                                         "ext_inv_code", "testExtInvCode",
-                                        "ext_imp_id", "testExtImpId")
-                        ))
+                                        "ext_imp_id", "testExtImpId")))
                 );
     }
 
@@ -445,7 +444,7 @@ public class MsftBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(0);
+        assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).containsExactly(BidderError.badInput("malformed request ext.appnexus"));
     }
 
@@ -474,8 +473,7 @@ public class MsftBidderTest extends VertxTest {
         final ExtRequest extRequest = ExtRequest.empty();
         extRequest.addProperty("appnexus", mapper.valueToTree(Map.of(
                 "include_brand_category", false,
-                "brand_category_uniqueness", false
-        )));
+                "brand_category_uniqueness", false)));
         final BidRequest bidRequest = givenBidRequest(request -> request.ext(extRequest), givenImp());
 
         // when
@@ -493,8 +491,7 @@ public class MsftBidderTest extends VertxTest {
     public void makeHttpRequestsShouldSetIsAmpToOneIfRequestComesFromAmpEndpoint() {
         // given
         final ExtRequest extRequest = ExtRequest.of(ExtRequestPrebid.builder().server(ExtRequestPrebidServer.of(
-                "testExternalUrl", 1, "testDatacenter", Endpoint.openrtb2_amp.value()
-        )).build());
+                "testExternalUrl", 1, "testDatacenter", Endpoint.openrtb2_amp.value())).build());
         final BidRequest bidRequest = givenBidRequest(request -> request.ext(extRequest), givenImp());
 
         // when
@@ -512,8 +509,7 @@ public class MsftBidderTest extends VertxTest {
     public void makeHttpRequestsShouldSetIsAmpToZeroIfRequestDoesNotComeFromAmpEndpoint() {
         // given
         final ExtRequest extRequest = ExtRequest.of(ExtRequestPrebid.builder().server(ExtRequestPrebidServer.of(
-                "testExternalUrl", 1, "testDatacenter", Endpoint.openrtb2_video.value()
-        )).build());
+                "testExternalUrl", 1, "testDatacenter", Endpoint.openrtb2_video.value())).build());
         final BidRequest bidRequest = givenBidRequest(request -> request.ext(extRequest), givenImp());
 
         // when
@@ -531,8 +527,7 @@ public class MsftBidderTest extends VertxTest {
     public void makeHttpRequestsShouldSetHbSourceToHbSourceVideoValueIfRequestComesFromVideoEndpoint() {
         // given
         final ExtRequest extRequest = ExtRequest.of(ExtRequestPrebid.builder().server(ExtRequestPrebidServer.of(
-                "testExternalUrl", 1, "testDatacenter", Endpoint.openrtb2_video.value()
-        )).build());
+                "testExternalUrl", 1, "testDatacenter", Endpoint.openrtb2_video.value())).build());
         final BidRequest bidRequest = givenBidRequest(request -> request.ext(extRequest), givenImp());
 
         // when
@@ -550,8 +545,7 @@ public class MsftBidderTest extends VertxTest {
     public void makeHttpRequestsShouldSetHbSourceToDefaultValueIfRequestDoesNotComeFromVideoEndpoint() {
         // given
         final ExtRequest extRequest = ExtRequest.of(ExtRequestPrebid.builder().server(ExtRequestPrebidServer.of(
-                "testExternalUrl", 1, "testDatacenter", Endpoint.openrtb2_amp.value()
-        )).build());
+                "testExternalUrl", 1, "testDatacenter", Endpoint.openrtb2_amp.value())).build());
         final BidRequest bidRequest = givenBidRequest(request -> request.ext(extRequest), givenImp());
 
         // when
