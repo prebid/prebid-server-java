@@ -85,7 +85,7 @@ public class ApplicationTest extends IntegrationTest {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/generic-exchange"))
                 .withHeader("Accept", equalTo("application/json"))
-                .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))
+                .withHeader("Content-Type", equalTo("application/json;charset=utf-8"))
                 .withRequestBody(equalToJson(
                         jsonFrom("openrtb2/generic_core_functionality/test-generic-bid-request.json")))
                 .willReturn(aResponse().withBody(
@@ -293,6 +293,7 @@ public class ApplicationTest extends IntegrationTest {
                 .tcfPolicyVersion(2)
                 .addPurposesConsent(BitSetIntIterable.from(1))
                 .addVendorConsent(BitSetIntIterable.from(1, 32, 52))
+                .addDisclosedVendors(BitSetIntIterable.from(1, 32, 52))
                 .encode();
 
         // when
@@ -329,11 +330,11 @@ public class ApplicationTest extends IntegrationTest {
                                 UsersyncMethodType.REDIRECT, false))
                         .build(),
                 BidderUsersyncStatus.builder()
-                        .bidder(APPNEXUS_COOKIE_FAMILY)
+                        .bidder(APPNEXUS)
                         .noCookie(true)
                         .usersync(UsersyncInfo.of(
                                 "//usersync-url/getuid?http%3A%2F%2Flocalhost%3A8080%2Fsetuid%3Fbidder"
-                                        + "%3Dadnxs%26gdpr%3D1%26gdpr_consent%3D" + gdprConsent
+                                        + "%3Dappnexus%26gdpr%3D1%26gdpr_consent%3D" + gdprConsent
                                         + "%26us_privacy%3D1YNN"
                                         + "%26gpp%3D"
                                         + "%26gpp_sid%3D"

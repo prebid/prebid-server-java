@@ -17,8 +17,8 @@ import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.http.impl.headers.HeadersMultiMap;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
@@ -605,7 +605,7 @@ public class MsftBidderTest extends VertxTest {
         // given
         final BidderCall<BidRequest> httpCall = BidderCall.succeededHttp(
                 null,
-                HttpResponse.of(HttpResponseStatus.CREATED.code(), HeadersMultiMap.headers(), "\"Invalid body\""),
+                HttpResponse.of(HttpResponseStatus.CREATED.code(), HttpHeaders.headers(), "\"Invalid body\""),
                 null);
 
         // when

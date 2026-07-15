@@ -12,6 +12,7 @@ adapters:
         endpoint: http://rtb.adipolo.live?pid={{SourceId}}&host={{Host}}&pbs=1
         meta-info:
           maintainer-email: smart@adipolo.com
+          vendor-id: 1456
         usersync:
           enabled: true
           cookie-family-name: adipolo

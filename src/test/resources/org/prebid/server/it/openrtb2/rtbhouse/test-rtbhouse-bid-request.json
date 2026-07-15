@@ -13,7 +13,8 @@
         "bidder": {
           "publisherId": "publisherId"
         }
-      }
+      },
+      "tagid": "imp_id"
     }
   ],
   "source": {

@@ -579,10 +579,7 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
     }
 
     def "PBS should modify response when requested video impression respond with invalid adm VAST keyword and disabled cache config"() {
-        given: "Start up time"
-        def start = Instant.now()
-
-        and: "Default bid request with APP and Video imp"
+        given: "Default bid request with APP and Video imp"
         def bidRequest = getDefaultVideoRequest(APP)
 
         and: "Set bidder response"
@@ -601,13 +598,8 @@ class ResponseCorrectionSpec extends ModuleBaseSpec {
         def response = pbsServiceWithResponseCorrectionModule.sendAuctionRequest(bidRequest)
 
         then: "PBS should emit log"
-        def logsByTime = pbsServiceWithResponseCorrectionModule.getLogsByTime(start)
-        def bidId = bidResponse.seatbid[0].bid[0].id
-        def responseCorrection = getLogsByText(logsByTime, bidId)
-        assert responseCorrection.size() == 1
-        assert responseCorrection.any {
-            it.contains("Bid $bidId of bidder generic: changing media type to banner" as String)
-        }
+        def responseCorrectionLog = "Bid ${bidResponse.seatbid[0].bid[0].id} of bidder generic: changing media type to banner"
+        assert pbsServiceWithResponseCorrectionModule.isContainLogsByValue(responseCorrectionLog)
 
         and: "Response should contain seatBid"
         assert response.seatbid.size() == 1

@@ -28,6 +28,7 @@ import org.prebid.server.version.PrebidVersionProvider;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.function.UnaryOperator;
 
 import static java.util.Collections.singletonList;
@@ -131,6 +132,30 @@ public class Nexx360BidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
                 .containsExactly(expectedExt1, expectedExt2);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldPreserveCustomFieldsInImpExt() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                imp -> imp.id("imp1").ext(mapper.valueToTree(Map.of(
+                        "bidder", ExtImpNexx360.of("tag1", "p1"),
+                        "customField", "customValue"))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        final ObjectNode expectedExt = mapper.valueToTree(Map.of(
+                "nexx360", ExtImpNexx360.of("tag1", "p1"),
+                "customField", "customValue"));
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .containsExactly(expectedExt);
     }
 
     @Test

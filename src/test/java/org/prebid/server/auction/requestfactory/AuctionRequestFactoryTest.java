@@ -487,7 +487,11 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
         final ObjectNode requestNode = mapper.convertValue(bidRequest, ObjectNode.class);
         final JsonNode eidPermissionNode = mapper.convertValue(
-                ExtRequestPrebidDataEidPermissions.of("source", emptyList()), JsonNode.class);
+                ExtRequestPrebidDataEidPermissions.builder()
+                        .source("source")
+                        .bidders(emptyList())
+                        .build(),
+                JsonNode.class);
 
         requestNode
                 .putObject("ext")
@@ -520,7 +524,11 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final ObjectNode requestNode = mapper.convertValue(bidRequest, ObjectNode.class);
 
         final ObjectNode eidPermissionNode = mapper.convertValue(
-                ExtRequestPrebidDataEidPermissions.of("source", emptyList()), ObjectNode.class);
+                ExtRequestPrebidDataEidPermissions.builder()
+                        .source("source")
+                        .bidders(emptyList())
+                        .build(),
+                ObjectNode.class);
 
         eidPermissionNode.put("bidders", "notArrayValue");
 

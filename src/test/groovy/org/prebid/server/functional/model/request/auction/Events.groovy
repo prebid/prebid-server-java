@@ -5,4 +5,5 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize
 @JsonSerialize
 class Events {
 
+    Boolean enabled
 }
