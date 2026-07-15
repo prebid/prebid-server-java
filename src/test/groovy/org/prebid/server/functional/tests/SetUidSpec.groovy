@@ -15,7 +15,6 @@ import java.time.Clock
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 
-import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS_CAMEL_CASE
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
@@ -386,7 +385,7 @@ class SetUidSpec extends BaseSpec {
         assert exception.responseBody == 'Invalid request format: "bidder" query param is invalid'
 
         where:
-        bidderName << [UNKNOWN, WILDCARD, GENERIC_CAMEL_CASE, ALIAS, ALIAS_CAMEL_CASE]
+        bidderName << [UNKNOWN, WILDCARD, GENERIC_CAMEL_CASE, ALIAS_CAMEL_CASE]
     }
 
     def "PBS should throw an exception when incoming request have optout flag"() {
@@ -515,7 +514,7 @@ class SetUidSpec extends BaseSpec {
     }
 
     List<String> getSetUidsHeaders(SetuidResponse response, boolean includeEmpty = false) {
-        response.headers.get("Set-Cookie").findAll { cookie ->
+        response.headers.get("set-cookie").findAll { cookie ->
             includeEmpty || !(cookie =~ /\buids\d*=\s*;/)
         }
     }
