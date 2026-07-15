@@ -9,6 +9,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -117,7 +118,10 @@ public class SetuidHandler implements ApplicationResource {
         validateUsersyncersDuplicates(bidderCatalog);
         return bidderCatalog.usersyncReadyBidders().stream()
                 .collect(Collectors.toMap(
-                        Function.identity(), bidder -> bidderCatalog.usersyncerByName(bidder).orElseThrow()));
+                        Function.identity(),
+                        bidder -> bidderCatalog.usersyncerByName(bidder).orElseThrow(),
+                        (_, b) -> b,
+                        CaseInsensitiveMap::new));
     }
 
     private static void validateUsersyncersDuplicates(BidderCatalog bidderCatalog) {

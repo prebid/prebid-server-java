@@ -495,6 +495,29 @@ public class SetuidHandlerTest extends VertxTest {
     }
 
     @Test
+    public void shouldRespondWithCookieFromRequestParamWhenBidderCaseInRequestIsDifferent()
+            throws IOException {
+
+        // given
+        final UidsCookie uidsCookie = emptyUidsCookie();
+        final UidsCookie updatedUidsCookie = uidsCookie.updateUid(ADNXS, "J5VLCWQP-26-CWFT");
+
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
+                .willReturn(uidsCookie);
+        given(uidsCookieService.updateUidsCookie(uidsCookie, ADNXS, "J5VLCWQP-26-CWFT"))
+                .willReturn(updated(updatedUidsCookie));
+
+        given(httpRequest.getParam("bidder")).willReturn("ApPnExUs");
+        given(httpRequest.getParam("uid")).willReturn("J5VLCWQP-26-CWFT");
+
+        // when
+        setuidHandler.handle(routingContext);
+
+        // then
+        verify(httpResponse).addCookie(equalToUidsCookie(updatedUidsCookie));
+    }
+
+    @Test
     public void shouldSendPixelWhenFParamIsEqualToIWhenTypeIsIframe() throws JsonProcessingException {
         // given
         final UidsCookie uidsCookie = emptyUidsCookie();
