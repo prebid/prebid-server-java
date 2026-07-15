@@ -928,6 +928,41 @@ public class SetuidHandlerTest extends VertxTest {
                 .containsExactlyInAnyOrder(firstDuplicateBidderName, secondDuplicateBidderName);
     }
 
+    @Test
+    public void shouldAllowCookieFamilyNameDuplicatesIfTheyHaveIdenticalUsersyncersExceptTheEnabledFlag() {
+        // given
+        final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
+        final String firstDuplicateBidderName = "firstBidderWithDuplicate";
+        final String secondDuplicateBidderName = "secondBidderWithDuplicate";
+        final String cookieFamilyName = "cookieFamilyName";
+
+        given(bidderCatalog.usersyncReadyBidders())
+                .willReturn(Set.of(firstDuplicateBidderName, secondDuplicateBidderName));
+        given(bidderCatalog.usersyncerByName(eq(firstDuplicateBidderName))).willReturn(
+                Optional.of(Usersyncer.of(true, cookieFamilyName, iframeMethod(), redirectMethod(), true, null)));
+        given(bidderCatalog.usersyncerByName(eq(secondDuplicateBidderName))).willReturn(
+                Optional.of(Usersyncer.of(false, cookieFamilyName, iframeMethod(), redirectMethod(), true, null)));
+        given(bidderCatalog.cookieFamilyName(eq(firstDuplicateBidderName))).willReturn(Optional.of(cookieFamilyName));
+        given(bidderCatalog.cookieFamilyName(eq(secondDuplicateBidderName))).willReturn(Optional.of(cookieFamilyName));
+
+        // when
+        final Executable setuidHandlerBuilder = () -> new SetuidHandler(
+                2000,
+                uidsCookieService,
+                applicationSettings,
+                bidderCatalog,
+                setuidPrivacyContextFactory,
+                gppService,
+                activityInfrastructureCreator,
+                tcfDefinerService,
+                analyticsReporterDelegator,
+                metrics,
+                new TimeoutFactory(clock));
+
+        // then
+        Assertions.assertDoesNotThrow(setuidHandlerBuilder);
+    }
+
     private static Cookie equalToUidsCookie(UidsCookie uidsCookie) throws JsonProcessingException {
         final String value = Base64.getUrlEncoder()
                 .encodeToString(mapper.writeValueAsBytes(uidsCookie.getCookieUids()));
