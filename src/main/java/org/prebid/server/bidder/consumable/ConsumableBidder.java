@@ -51,7 +51,7 @@ public class ConsumableBidder implements Bidder<BidRequest> {
     private final JacksonMapper mapper;
 
     public ConsumableBidder(String endpointUrl, JacksonMapper mapper) {
-        this.siteEndpointUrl = Uri.of(endpointUrl + SITE_URI_PATH).toString();
+        this.siteEndpointUrl = Uri.of(endpointUrl + SITE_URI_PATH).expand();
         this.appEndpointUrl = Uri.of(endpointUrl + APP_URI_PATH);
         this.mapper = Objects.requireNonNull(mapper);
     }

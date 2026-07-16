@@ -67,9 +67,13 @@ public class Uri {
         return parameterized().addQueryParam(key, value);
     }
 
+    public String expand() {
+        return parameterized().expand();
+    }
+
     @Override
     public String toString() throws NoSuchElementException {
-        return parameterized().expand();
+        return expand();
     }
 
     public static class ParameterizedUri {

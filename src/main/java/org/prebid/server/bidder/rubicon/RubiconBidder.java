@@ -451,9 +451,14 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private String makeUri(BidRequest bidRequest) {
         final String tkXint = tkXintValue(bidRequest);
-        return endpoint
-                .addQueryParam(TK_XINT_QUERY_PARAMETER, StringUtils.isNotBlank(tkXint) ? tkXint : defaultTkXInt)
-                .expand();
+        final Uri.ParameterizedUri parameterizedUri = endpoint.parameterized();
+        if (StringUtils.isNotBlank(tkXint) || StringUtils.isNotBlank(defaultTkXInt)) {
+            parameterizedUri.addQueryParam(
+                    TK_XINT_QUERY_PARAMETER,
+                    StringUtils.isNotBlank(tkXint) ? tkXint : defaultTkXInt);
+        }
+
+        return parameterizedUri.expand();
     }
 
     private String tkXintValue(BidRequest bidRequest) {

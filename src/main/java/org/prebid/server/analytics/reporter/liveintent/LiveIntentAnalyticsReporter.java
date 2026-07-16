@@ -55,7 +55,7 @@ public class LiveIntentAnalyticsReporter implements AnalyticsReporter {
         this.properties = Objects.requireNonNull(properties);
 
         final String endpointBase = properties.getAnalyticsEndpoint();
-        this.auctionEventEndpoint = Uri.of(endpointBase + "/analytic-events/pbsj-bids").toString();
+        this.auctionEventEndpoint = Uri.of(endpointBase + "/analytic-events/pbsj-bids").expand();
         this.notificationEventEndpoint = Uri.of(endpointBase + "/analytic-events/pbsj-winning-bid");
 
         this.jacksonMapper = Objects.requireNonNull(jacksonMapper);
