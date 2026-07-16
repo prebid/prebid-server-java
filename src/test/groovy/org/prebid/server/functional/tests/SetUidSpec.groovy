@@ -420,7 +420,23 @@ class SetUidSpec extends BaseSpec {
         assert exception.responseBody == 'Invalid request format: "bidder" query param is invalid'
 
         where:
-        bidderName << [UNKNOWN, WILDCARD, GENERIC_CAMEL_CASE, ALIAS_CAMEL_CASE]
+        bidderName << [UNKNOWN, WILDCARD]
+    }
+
+    def "PBS setuid should treat bidder name as case insensitive"() {
+        given: "Default SetuidRequest"
+        def request = SetuidRequest.getDefaultSetuidRequest().tap {
+            it.bidder = bidderName
+        }
+
+        when: "PBS processes setuid request"
+        def response = singleCookiesPbsService.sendSetUidRequest(request, UidsCookie.defaultUidsCookie)
+
+        then: "Response should contain requested tempUIDs"
+        assert response.uidsCookie.tempUIDs[GENERIC]
+
+        where:
+        bidderName << [GENERIC, ALIAS, GENERIC_CAMEL_CASE, ALIAS_CAMEL_CASE]
     }
 
     def "PBS should throw an exception when incoming request have optout flag"() {
