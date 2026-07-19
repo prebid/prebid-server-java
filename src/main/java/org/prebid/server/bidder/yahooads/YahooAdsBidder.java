@@ -220,7 +220,7 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
         }
         final List<Integer> sids = new ArrayList<>(node.size());
         for (final JsonNode elem : node) {
-            if (!elem.isIntegralNumber()) {
+            if (!elem.canConvertToInt()) {
                 return null;
             }
             sids.add(elem.asInt());
@@ -233,7 +233,7 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
             return null;
         }
         final JsonNode node = ext.getProperties().get(COPPA_PROPERTY);
-        return node != null && node.isIntegralNumber() ? node.asInt() : null;
+        return node != null && node.canConvertToInt() ? node.asInt() : null;
     }
 
     // Rebuild regs.ext keeping the typed fields and every property except the superseded keys.

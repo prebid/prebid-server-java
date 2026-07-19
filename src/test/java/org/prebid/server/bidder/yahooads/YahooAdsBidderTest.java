@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.IntNode;
+import com.fasterxml.jackson.databind.node.LongNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
@@ -582,6 +583,33 @@ public class YahooAdsBidderTest extends VertxTest {
         assertThat(keptSid.get(0).asInt()).isEqualTo(7);
         assertThat(keptSid.get(1).asText()).isEqualTo("foo");
         assertThat(keptSid.get(2).asInt()).isEqualTo(8);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotPromoteExtValuesThatDoNotFitInInt() {
+        // Values outside int range would silently overflow in asInt, so they are treated
+        // as malformed and left in ext untouched instead of being promoted corrupted.
+        final BidRequest bidRequest = givenBidRequest(identity(),
+                requestBuilder -> requestBuilder.regs(Regs.builder()
+                        .ext(ExtRegs.of(null, null, null, null))
+                        .build()).device(Device.builder().ua("UA").build()));
+        final ArrayNode oversized = mapper.createArrayNode();
+        oversized.add(7);
+        oversized.add(3_000_000_000L);
+        bidRequest.getRegs().getExt().addProperty("gpp_sid", oversized);
+        bidRequest.getRegs().getExt().addProperty("coppa", LongNode.valueOf(2_147_483_648L));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        final Regs regs = result.getValue().getFirst().getPayload().getRegs();
+        assertThat(regs.getGppSid()).isNull();
+        assertThat(regs.getCoppa()).isNull();
+        assertThat(regs.getExt()).isNotNull();
+        assertThat(regs.getExt().getProperty("gpp_sid").get(1).asLong()).isEqualTo(3_000_000_000L);
+        assertThat(regs.getExt().getProperty("coppa").asLong()).isEqualTo(2_147_483_648L);
     }
 
     @Test
