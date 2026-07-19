@@ -65,6 +65,7 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
         final List<BidderError> errors = new ArrayList<>();
 
         final Regs regs = bidRequest.getRegs();
+        final Regs promotedRegs = regs != null ? promoteRegsExtToTopLevel(regs) : null;
 
         final List<Imp> impList = bidRequest.getImp();
         for (int i = 0; i < impList.size(); i++) {
@@ -72,7 +73,7 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
                 final Imp imp = impList.get(i);
                 final ExtImpYahooAds extImpYahooAds = parseAndValidateImpExt(imp.getExt(), i);
                 final BidRequest modifiedRequest = modifyRequest(bidRequest, imp, extImpYahooAds,
-                        regs);
+                        promotedRegs);
                 bidRequests.add(makeHttpRequest(modifiedRequest));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
@@ -105,7 +106,7 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
     }
 
     private BidRequest modifyRequest(BidRequest request, Imp imp, ExtImpYahooAds extImpYahooAds,
-                                     Regs regs) {
+                                     Regs promotedRegs) {
         final BidRequest.BidRequestBuilder requestBuilder = request.toBuilder();
 
         final Site site = request.getSite();
@@ -117,8 +118,8 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
             requestBuilder.app(app.toBuilder().id(extImpYahooAds.getDcn()).build());
         }
 
-        if (regs != null) {
-            requestBuilder.regs(promoteRegsExtToTopLevel(regs));
+        if (promotedRegs != null) {
+            requestBuilder.regs(promotedRegs);
         }
 
         return requestBuilder
