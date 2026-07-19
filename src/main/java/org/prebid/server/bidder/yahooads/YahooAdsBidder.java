@@ -45,6 +45,7 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
+    private static final String OPENRTB_VERSION = "2.6";
     private static final String GPP_PROPERTY = "gpp";
     private static final String GPP_SID_PROPERTY = "gpp_sid";
     private static final String COPPA_PROPERTY = "coppa";
@@ -274,7 +275,7 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
 
     private static MultiMap makeHeaders(Device device) {
         final MultiMap headers = HttpUtil.headers()
-                .add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.6");
+                .add(HttpUtil.X_OPENRTB_VERSION_HEADER, OPENRTB_VERSION);
 
         final String deviceUa = device != null ? device.getUa() : null;
         HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, deviceUa);
