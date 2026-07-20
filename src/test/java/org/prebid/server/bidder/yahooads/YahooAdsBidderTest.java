@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.IntNode;
-import com.fasterxml.jackson.databind.node.LongNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
@@ -423,7 +422,7 @@ public class YahooAdsBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldPromoteLegacyExtGppGppSidAndCoppaToTopLevel() {
+    public void makeHttpRequestsShouldPromoteLegacyExtGppAndGppSidToTopLevel() {
         final BidRequest bidRequest = givenBidRequest(identity(),
                 requestBuilder -> requestBuilder.regs(Regs.builder()
                         .ext(ExtRegs.of(null, null, null, null))
@@ -433,7 +432,6 @@ public class YahooAdsBidderTest extends VertxTest {
         sidArray.add(6);
         sidArray.add(8);
         bidRequest.getRegs().getExt().addProperty("gpp_sid", sidArray);
-        bidRequest.getRegs().getExt().addProperty("coppa", IntNode.valueOf(1));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -443,8 +441,31 @@ public class YahooAdsBidderTest extends VertxTest {
         final Regs regs = result.getValue().getFirst().getPayload().getRegs();
         assertThat(regs.getGpp()).isEqualTo("legacy_gpp_value");
         assertThat(regs.getGppSid()).containsExactly(6, 8);
-        assertThat(regs.getCoppa()).isEqualTo(1);
         assertThat(regs.getExt()).isNull();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotPromoteExtCoppa() {
+        // coppa has been a top-level field since OpenRTB 2.2 and never had an ext slot,
+        // so an ext coppa is an unknown property: not promoted, passed through in ext.
+        final BidRequest bidRequest = givenBidRequest(identity(),
+                requestBuilder -> requestBuilder.regs(Regs.builder()
+                        .ext(ExtRegs.of(null, null, null, null))
+                        .build()).device(Device.builder().ua("UA").build()));
+        bidRequest.getRegs().getExt().addProperty("coppa", IntNode.valueOf(1));
+        bidRequest.getRegs().getExt().addProperty("gpp", TextNode.valueOf("with_coppa"));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        final Regs regs = result.getValue().getFirst().getPayload().getRegs();
+        assertThat(regs.getCoppa()).isNull();
+        assertThat(regs.getGpp()).isEqualTo("with_coppa");
+        assertThat(regs.getExt()).isNotNull();
+        assertThat(regs.getExt().getProperty("coppa").asInt()).isEqualTo(1);
+        assertThat(regs.getExt().getProperty("gpp")).isNull();
     }
 
     @Test
@@ -540,7 +561,9 @@ public class YahooAdsBidderTest extends VertxTest {
                 requestBuilder -> requestBuilder.regs(Regs.builder()
                         .ext(ExtRegs.of(null, null, null, null))
                         .build()).device(Device.builder().ua("UA").build()));
-        bidRequest.getRegs().getExt().addProperty("coppa", IntNode.valueOf(1));
+        final ArrayNode sidArray = mapper.createArrayNode();
+        sidArray.add(6);
+        bidRequest.getRegs().getExt().addProperty("gpp_sid", sidArray);
         bidRequest.getRegs().getExt().addProperty("gpp", IntNode.valueOf(99));
 
         // when
@@ -549,10 +572,10 @@ public class YahooAdsBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         final Regs regs = result.getValue().getFirst().getPayload().getRegs();
-        assertThat(regs.getCoppa()).isEqualTo(1);
+        assertThat(regs.getGppSid()).containsExactly(6);
         assertThat(regs.getGpp()).isNull();
         assertThat(regs.getExt()).isNotNull();
-        assertThat(regs.getExt().getProperty("coppa")).isNull();
+        assertThat(regs.getExt().getProperty("gpp_sid")).isNull();
         assertThat(regs.getExt().getProperty("gpp").asInt()).isEqualTo(99);
     }
 
@@ -597,7 +620,6 @@ public class YahooAdsBidderTest extends VertxTest {
         oversized.add(7);
         oversized.add(3_000_000_000L);
         bidRequest.getRegs().getExt().addProperty("gpp_sid", oversized);
-        bidRequest.getRegs().getExt().addProperty("coppa", LongNode.valueOf(2_147_483_648L));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -606,23 +628,20 @@ public class YahooAdsBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         final Regs regs = result.getValue().getFirst().getPayload().getRegs();
         assertThat(regs.getGppSid()).isNull();
-        assertThat(regs.getCoppa()).isNull();
         assertThat(regs.getExt()).isNotNull();
         assertThat(regs.getExt().getProperty("gpp_sid").get(1).asLong()).isEqualTo(3_000_000_000L);
-        assertThat(regs.getExt().getProperty("coppa").asLong()).isEqualTo(2_147_483_648L);
     }
 
     @Test
     public void makeHttpRequestsShouldDropExtGppWhenTopLevelGppAlreadySet() {
-        // gpp sits at both top-level and ext with different values: top-level wins and the
-        // superseded ext copy is stripped, while the sibling coppa is promoted as usual.
+        // gpp sits at both top-level and ext with different values: top-level wins and
+        // the superseded ext copy is stripped.
         final BidRequest bidRequest = givenBidRequest(identity(),
                 requestBuilder -> requestBuilder.regs(Regs.builder()
                         .gpp("top-level-gpp")
                         .ext(ExtRegs.of(null, null, null, null))
                         .build()).device(Device.builder().ua("UA").build()));
         bidRequest.getRegs().getExt().addProperty("gpp", TextNode.valueOf("ext-gpp"));
-        bidRequest.getRegs().getExt().addProperty("coppa", IntNode.valueOf(1));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -630,34 +649,8 @@ public class YahooAdsBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         final Regs regs = result.getValue().getFirst().getPayload().getRegs();
-        // coppa promoted and removed from ext
-        assertThat(regs.getCoppa()).isEqualTo(1);
-        // gpp top-level untouched; superseded ext copy stripped
         assertThat(regs.getGpp()).isEqualTo("top-level-gpp");
         assertThat(regs.getExt()).isNull();
-    }
-
-    @Test
-    public void makeHttpRequestsShouldKeepExplicitZeroCoppaAndDropExtCopy() {
-        // An explicit top-level coppa 0 is a value, not "unset": it survives and the
-        // stale ext copy saying 1 is stripped rather than promoted over it.
-        final BidRequest bidRequest = givenBidRequest(identity(),
-                requestBuilder -> requestBuilder.regs(Regs.builder()
-                        .coppa(0)
-                        .ext(ExtRegs.of(null, null, "1", null))
-                        .build()).device(Device.builder().ua("UA").build()));
-        bidRequest.getRegs().getExt().addProperty("coppa", IntNode.valueOf(1));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        final Regs regs = result.getValue().getFirst().getPayload().getRegs();
-        assertThat(regs.getCoppa()).isEqualTo(0);
-        assertThat(regs.getExt()).isNotNull();
-        assertThat(regs.getExt().getProperty("coppa")).isNull();
-        assertThat(regs.getExt().getGpc()).isEqualTo("1");
     }
 
     @Test

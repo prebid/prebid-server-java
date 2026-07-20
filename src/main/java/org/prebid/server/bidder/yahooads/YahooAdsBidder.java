@@ -48,7 +48,6 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
     private static final String OPENRTB_VERSION = "2.6";
     private static final String GPP_PROPERTY = "gpp";
     private static final String GPP_SID_PROPERTY = "gpp_sid";
-    private static final String COPPA_PROPERTY = "coppa";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -164,7 +163,8 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    // Promote legacy 2.5 regs.ext gpp/gpp_sid/coppa to their 2.6 top-level slots.
+    // Promote legacy 2.5 regs.ext gpp/gpp_sid to their 2.6 top-level slots. coppa is not
+    // handled: it has been a top-level field since OpenRTB 2.2 and never had an ext slot.
     // An ext key is removed whenever the outbound request has a top-level value for that
     // field, so one signal never goes out with two values; everything else stays in ext.
     private static Regs promoteRegsExtToTopLevel(Regs regs) {
@@ -175,16 +175,13 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
 
         final String promotedGpp = gppToPromote(regs, ext);
         final List<Integer> promotedGppSid = gppSidToPromote(regs, ext);
-        final Integer promotedCoppa = coppaToPromote(regs, ext);
 
         final boolean gppSuperseded = ext.containsProperty(GPP_PROPERTY)
                 && (promotedGpp != null || regs.getGpp() != null);
         final boolean gppSidSuperseded = ext.containsProperty(GPP_SID_PROPERTY)
                 && (promotedGppSid != null || !CollectionUtils.isEmpty(regs.getGppSid()));
-        final boolean coppaSuperseded = ext.containsProperty(COPPA_PROPERTY)
-                && (promotedCoppa != null || regs.getCoppa() != null);
 
-        if (!gppSuperseded && !gppSidSuperseded && !coppaSuperseded) {
+        if (!gppSuperseded && !gppSidSuperseded) {
             return regs;
         }
 
@@ -195,11 +192,8 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
         if (promotedGppSid != null) {
             builder.gppSid(promotedGppSid);
         }
-        if (promotedCoppa != null) {
-            builder.coppa(promotedCoppa);
-        }
         return builder
-                .ext(removeSupersededKeys(ext, gppSuperseded, gppSidSuperseded, coppaSuperseded))
+                .ext(removeSupersededKeys(ext, gppSuperseded, gppSidSuperseded))
                 .build();
     }
 
@@ -230,25 +224,15 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
         return sids;
     }
 
-    private static Integer coppaToPromote(Regs regs, ExtRegs ext) {
-        if (regs.getCoppa() != null) {
-            return null;
-        }
-        final JsonNode node = ext.getProperties().get(COPPA_PROPERTY);
-        return node != null && node.canConvertToInt() ? node.asInt() : null;
-    }
-
     // Rebuild regs.ext keeping the typed fields and every property except the superseded keys.
     private static ExtRegs removeSupersededKeys(ExtRegs ext,
                                                 boolean gppSuperseded,
-                                                boolean gppSidSuperseded,
-                                                boolean coppaSuperseded) {
+                                                boolean gppSidSuperseded) {
         final ExtRegs result = ExtRegs.of(
                 ext.getGdpr(), ext.getUsPrivacy(), ext.getGpc(), ext.getDsa());
         ext.getProperties().forEach((key, value) -> {
             final boolean isSupersededKey = (gppSuperseded && GPP_PROPERTY.equals(key))
-                    || (gppSidSuperseded && GPP_SID_PROPERTY.equals(key))
-                    || (coppaSuperseded && COPPA_PROPERTY.equals(key));
+                    || (gppSidSuperseded && GPP_SID_PROPERTY.equals(key));
             if (!isSupersededKey) {
                 result.addProperty(key, value);
             }
