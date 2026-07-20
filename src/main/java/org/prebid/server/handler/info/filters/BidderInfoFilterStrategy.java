@@ -21,5 +21,4 @@ public interface BidderInfoFilterStrategy {
 
         return Boolean.parseBoolean(queryParamValue);
     }
-
 }

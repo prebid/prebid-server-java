@@ -8,8 +8,8 @@ adapters:
     aliases:
       synacormedia:
         deprecated-names: null # Must re-declare as empty or the deprecation error in the response is incorrect
-        endpoint: "https://pbs.technoratimedia.com/openrtb/bids/{{AccountID}}?src={{SourceId}}&adapter=synacormedia"
-    endpoint: "https://pbs.technoratimedia.com/openrtb/bids/{{AccountID}}?src={{SourceId}}&adapter=imds"
+        endpoint: "https://pbs.technoratimedia.com/openrtb/bids/{AccountID}?src={SourceId}&adapter=synacormedia"
+    endpoint: "https://pbs.technoratimedia.com/openrtb/bids/{AccountID}?src={SourceId}&adapter=imds"
     meta-info:
       maintainer-email: eng-demand@imds.tv
       app-media-types:

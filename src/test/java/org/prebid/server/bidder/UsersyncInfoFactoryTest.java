@@ -205,7 +205,7 @@ public class UsersyncInfoFactoryTest {
                 ?gdpr=1\
                 &gdpr_consent=consent%241\
                 &us_privacy=1YNN\
-                &gpp=g+pp\
+                &gpp=g%20pp\
                 &gpp_sid=1%2C2""");
     }
 
@@ -303,7 +303,7 @@ public class UsersyncInfoFactoryTest {
         final UsersyncInfo result = target.build("bidder name", null, method, givenEmptyPrivacy());
 
         // then
-        assertThat(result.getUrl()).contains("bidder%3Dbidder%2Bname");
+        assertThat(result.getUrl()).contains("bidder%3Dbidder%2520name");
     }
 
     @Test
@@ -341,18 +341,18 @@ public class UsersyncInfoFactoryTest {
                 http://usersync-url\
                 ?redir=\
                 http%3A%2F%2Flocalhost%3A8080%2Fsetuid%3F\
-                bidder%3Dsync-bidder%2Btest\
+                bidder%3Dsync-bidder%2520test\
                 %26gdpr%3D1\
                 %26gdpr_consent%3Dc%241\
                 %26us_privacy%3D1YNN\
-                %26gpp%3Dg+pp\
+                %26gpp%3Dg%20pp\
                 %26gpp_sid%3D1%2C2\
                 %26f%3Di\
                 %26uid%3D%24UID-MACRO\
                 &gdpr=1\
                 &gdpr_consent=c%241\
                 &us_privacy=1YNN\
-                &gpp=g+pp\
+                &gpp=g%20pp\
                 &gpp_sid=1%2C2""");
     }
 
@@ -382,11 +382,11 @@ public class UsersyncInfoFactoryTest {
         assertThat(result.getType()).isEqualTo(UsersyncMethodType.IFRAME);
         assertThat(result.getUrl()).isEqualTo("""
                 http://localhost:8080/setuid?\
-                bidder=sync-bidder+test\
+                bidder=sync-bidder%20test\
                 &gdpr=1\
                 &gdpr_consent=c%241\
                 &us_privacy=1YNN\
-                &gpp=g+pp\
+                &gpp=g%20pp\
                 &gpp_sid=1%2C2\
                 &f=i\
                 &uid=host-uid value""");

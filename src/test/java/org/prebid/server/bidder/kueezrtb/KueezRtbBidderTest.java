@@ -32,7 +32,7 @@ import static org.prebid.server.util.HttpUtil.CONTENT_TYPE_HEADER;
 
 class KueezRtbBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.host.com/prebid/bid/";
+    private static final String ENDPOINT_URL = "https://test.host.com/prebid/bid/{ConnectionId}";
 
     private final KueezRtbBidder target = new KueezRtbBidder(ENDPOINT_URL, jacksonMapper);
 

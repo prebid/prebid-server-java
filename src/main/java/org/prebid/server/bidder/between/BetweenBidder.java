@@ -27,6 +27,7 @@ import org.prebid.server.proto.openrtb.ext.request.between.ExtImpBetween;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -39,16 +40,16 @@ public class BetweenBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpBetween>> BETWEEN_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
-    private static final String URL_HOST_MACRO = "{{Host}}";
-    private static final String PUBLISHER_ID_MACRO = "{{PublisherId}}";
+    private static final String URL_HOST_MACRO = "Host";
+    private static final String PUBLISHER_ID_MACRO = "PublisherId";
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
     private final boolean endpointContainsHostMacro;
 
     public BetweenBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
-        this.endpointContainsHostMacro = endpointUrl.contains(URL_HOST_MACRO);
+        this.endpointUrl = Uri.of(endpointUrl);
+        this.endpointContainsHostMacro = endpointUrl.contains("{" + URL_HOST_MACRO + "}");
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -132,8 +133,9 @@ public class BetweenBidder implements Bidder<BidRequest> {
 
     private HttpRequest<BidRequest> createRequest(ExtImpBetween extImpBetween, BidRequest request, List<Imp> imps) {
         final String url = endpointUrl
-                .replace(URL_HOST_MACRO, StringUtils.defaultString(extImpBetween.getHost()))
-                .replace(PUBLISHER_ID_MACRO, HttpUtil.encodeUrl(extImpBetween.getPublisherId()));
+                .replaceMacro(URL_HOST_MACRO, StringUtils.defaultString(extImpBetween.getHost()))
+                .replaceMacro(PUBLISHER_ID_MACRO, extImpBetween.getPublisherId())
+                .expand();
         final BidRequest outgoingRequest = request.toBuilder().imp(imps).build();
 
         return

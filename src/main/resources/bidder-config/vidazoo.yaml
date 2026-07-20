@@ -1,9 +1,9 @@
 adapters:
   vidazoo:
-    endpoint: https://prebidsrvr.cootlogix.com/openrtb/
+    endpoint: https://prebidsrvr.cootlogix.com/openrtb/{ConnectionId}
     aliases:
       omnidex:
-        endpoint: https://exchange.omni-dex.io/openrtb/
+        endpoint: https://exchange.omni-dex.io/openrtb/{ConnectionId}
         usersync:
           enabled: true
           cookie-family-name: omnidex
@@ -13,7 +13,7 @@ adapters:
             support-cors: false
             uid-macro: '${userId}'
       tagoras:
-        endpoint: https://exchange.tagoras.io/openrtb/
+        endpoint: https://exchange.tagoras.io/openrtb/{ConnectionId}
         meta-info:
           maintainer-email: prebid@tagoras.io
         usersync:

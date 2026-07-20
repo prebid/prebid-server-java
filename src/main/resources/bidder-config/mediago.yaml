@@ -1,6 +1,6 @@
 adapters:
   mediago:
-    endpoint: https://REGION.mediago.io/api/bid?tn={{AccountID}}
+    endpoint: https://REGION.mediago.io/api/bid?tn={AccountID}
     endpoint-compression: gzip
     geoscope:
       - USA

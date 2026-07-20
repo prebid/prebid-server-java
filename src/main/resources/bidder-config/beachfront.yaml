@@ -17,4 +17,4 @@ adapters:
         url: https://sync.bfmio.com/sync_s2s?gdpr={{gdpr}}&url={{redirect_url}}
         support-cors: false
         uid-macro: '[io_cid]'
-    video-endpoint: https://reachms.bfmio.com/bid.json?exchange_id=
+    video-endpoint: https://reachms.bfmio.com/bid.json

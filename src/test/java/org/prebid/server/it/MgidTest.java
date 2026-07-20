@@ -18,7 +18,7 @@ public class MgidTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromTheMgid() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/mgid-exchange/123"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/mgid-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/mgid/test-mgid-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/mgid/test-mgid-bid-response.json"))));
 

@@ -1,6 +1,6 @@
 adapters:
   advangelists:
-    endpoint: http://nep.advangelists.com/xp/get?pubid={{PublisherID}}
+    endpoint: http://nep.advangelists.com/xp/get?pubid={PublisherID}
     meta-info:
       maintainer-email: prebid@advangelists.com
       app-media-types:

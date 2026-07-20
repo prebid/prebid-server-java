@@ -1,6 +1,6 @@
 adapters:
   aidem:
-    endpoint: https://zero.aidemsrv.com/ortb/v2.6/bid/request?billing_id={{PublisherId}}
+    endpoint: https://zero.aidemsrv.com/ortb/v2.6/bid/request?billing_id={PublisherId}
     modifying-vast-xml-allowed: true
     meta-info:
       maintainer-email: prebid@aidem.com

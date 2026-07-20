@@ -1,6 +1,6 @@
 adapters:
   zeroclickfraud:
-    endpoint: http://{{Host}}/openrtb2?sid={{SourceId}}
+    endpoint: http://{Host}/openrtb2?sid={SourceId}
     meta-info:
       maintainer-email: support@datablocks.net
       app-media-types:

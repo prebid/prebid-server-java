@@ -1,15 +1,15 @@
 adapters:
   xeworks:
-    endpoint: http://prebid-srv.xe.works/?pid={{SourceId}}&host={{Host}}
+    endpoint: http://prebid-srv.xe.works/?pid={SourceId}&host={Host}
     aliases:
       connektai:
         enabled: false
-        endpoint: http://rtb.connektai.live/?pid={{SourceId}}&host={{Host}}&s=pbs
+        endpoint: http://rtb.connektai.live/?pid={SourceId}&host={Host}&s=pbs
         meta-info:
           maintainer-email: adops@connekt.ai
       adipolo:
         enabled: false
-        endpoint: http://rtb.adipolo.live?pid={{SourceId}}&host={{Host}}&pbs=1
+        endpoint: http://rtb.adipolo.live?pid={SourceId}&host={Host}&pbs=1
         meta-info:
           maintainer-email: smart@adipolo.com
           vendor-id: 1456

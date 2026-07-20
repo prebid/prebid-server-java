@@ -1,6 +1,6 @@
 adapters:
   krushmedia:
-    endpoint: http://ads4.krushmedia.com/?c=rtb&m=req&key={{AccountID}}
+    endpoint: http://ads4.krushmedia.com/?c=rtb&m=req&key={AccountID}
     meta-info:
       maintainer-email: adapter@krushmedia.com
       app-media-types:

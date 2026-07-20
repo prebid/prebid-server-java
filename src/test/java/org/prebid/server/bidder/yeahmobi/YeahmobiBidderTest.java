@@ -37,7 +37,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class YeahmobiBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://{{Host}}/prebid/bid";
+    private static final String ENDPOINT_URL = "https://{ZoneId}.localhost/prebid/bid";
 
     private final YeahmobiBidder target = new YeahmobiBidder(ENDPOINT_URL, jacksonMapper);
 
@@ -99,7 +99,7 @@ public class YeahmobiBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://gw-zoneId-bid.yeahtargeter.com/prebid/bid");
+                .containsExactly("https://zoneId.localhost/prebid/bid");
     }
 
     @Test

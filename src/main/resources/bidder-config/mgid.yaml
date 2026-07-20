@@ -1,6 +1,6 @@
 adapters:
   mgid:
-    endpoint: https://prebid.mgid.com/prebid/
+    endpoint: https://prebid.mgid.com/prebid/{AccountId}
     meta-info:
       maintainer-email: prebid@mgid.com
       app-media-types:

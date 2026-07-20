@@ -1,6 +1,6 @@
 adapters:
   contxtful:
-    endpoint: https://prebid.receptivity.io/v1/pbs/{{AccountId}}/bid
+    endpoint: https://prebid.receptivity.io/v1/pbs/{AccountId}/bid
     meta-info:
       maintainer-email: contact@contxtful.com
       app-media-types:

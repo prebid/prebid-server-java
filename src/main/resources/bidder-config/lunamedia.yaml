@@ -1,6 +1,6 @@
 adapters:
   lunamedia:
-    endpoint: http://rtb.lunamedia.live/?pid=
+    endpoint: http://rtb.lunamedia.live/?pid={Pid}
     # This bidder does not operate globally. Please consider setting "disabled: true" outside of the following regions:
     geoscope:
       - USA

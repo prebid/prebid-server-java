@@ -18,7 +18,7 @@ public class KueezRtbTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromKueez() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/kueezrtb-exchange/test_cid_123"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/kueezrtb-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/kueezrtb/test-kueezrtb-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/kueezrtb/test-kueezrtb-bid-response.json"))));
 
