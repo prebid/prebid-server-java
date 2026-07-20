@@ -33,6 +33,8 @@ import java.util.Objects;
 
 public class MotorikBidder implements Bidder<BidRequest> {
 
+    private static final String ACCOUNT_ID_MACRO = "AccountID";
+    private static final String SOURCE_ID_MACRO = "SourceId";
     private static final String X_OPENRTB_VERSION = "2.5";
 
     private static final TypeReference<ExtPrebid<?, ExtImpMotorik>> MOTORIK_TYPE_REFERENCE = new TypeReference<>() {
@@ -91,8 +93,8 @@ public class MotorikBidder implements Bidder<BidRequest> {
 
     private String makeUrl(ExtImpMotorik extImpMotorik) {
         return endpointUrl
-                .replaceMacro("AccountID", extImpMotorik.getAccountId())
-                .replaceMacro("SourceId", extImpMotorik.getPlacementId())
+                .replaceMacro(ACCOUNT_ID_MACRO, extImpMotorik.getAccountId())
+                .replaceMacro(SOURCE_ID_MACRO, extImpMotorik.getPlacementId())
                 .expand();
     }
 

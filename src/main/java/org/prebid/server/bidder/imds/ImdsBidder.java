@@ -34,6 +34,8 @@ import java.util.Objects;
 
 public class ImdsBidder implements Bidder<BidRequest> {
 
+    private static final String ACCOUNT_ID_MACRO = "AccountID";
+    private static final String SOURCE_ID_MACRO = "SourceId";
     private static final TypeReference<ExtPrebid<?, ExtImpImds>> IMDS_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
@@ -92,8 +94,8 @@ public class ImdsBidder implements Bidder<BidRequest> {
 
     private String generateEndpointUrl(ExtImpImds firstExtImp) {
         return endpointUrl
-                .replaceMacro("AccountID", firstExtImp.getSeatId())
-                .replaceMacro("SourceId", prebidVersion)
+                .replaceMacro(ACCOUNT_ID_MACRO, firstExtImp.getSeatId())
+                .replaceMacro(SOURCE_ID_MACRO, prebidVersion)
                 .expand();
     }
 

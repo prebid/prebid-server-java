@@ -39,6 +39,7 @@ import java.util.Objects;
 
 public class LunamediaBidder implements Bidder<BidRequest> {
 
+    private static final String PID_MACRO = "Pid";
     private static final TypeReference<ExtPrebid<?, ExtImpLunamedia>> IMP_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
@@ -72,7 +73,7 @@ public class LunamediaBidder implements Bidder<BidRequest> {
                 final ExtImpLunamedia extImpLunamedia = parseAndValidateImpExt(imp);
                 final Imp updatedImp = updateImp(imp);
 
-                extToListOfUpdatedImp.computeIfAbsent(extImpLunamedia, ext -> new ArrayList<>()).add(updatedImp);
+                extToListOfUpdatedImp.computeIfAbsent(extImpLunamedia, _ -> new ArrayList<>()).add(updatedImp);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -152,7 +153,7 @@ public class LunamediaBidder implements Bidder<BidRequest> {
 
             final HttpRequest<BidRequest> createdBidRequest = HttpRequest.<BidRequest>builder()
                     .method(HttpMethod.POST)
-                    .uri(endpointUrl.replaceMacro("Pid", extImpLunamedia.getPubid()).expand())
+                    .uri(endpointUrl.replaceMacro(PID_MACRO, extImpLunamedia.getPubid()).expand())
                     .body(mapper.encodeToBytes(updatedBidRequest))
                     .headers(headers())
                     .payload(updatedBidRequest)

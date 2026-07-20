@@ -8,6 +8,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.adot.model.AdotBidExt;
 import org.prebid.server.bidder.adot.model.AdotExtAdot;
@@ -67,7 +68,7 @@ public class AdotBidder implements Bidder<BidRequest> {
     }
 
     private String resolveEndpointUrl(String publisherPath) {
-        final String[] pathSegments = StringUtils.split(publisherPath, "/");
+        final String[] pathSegments = StringUtils.split(Strings.CS.removeStart(publisherPath, "/"), "/");
         return endpointUrl.replaceMacro(PUBLISHER_MACRO, List.of(pathSegments)).expand();
     }
 

@@ -21,7 +21,7 @@ public class Uri {
 
     private final UriTemplate template;
 
-    Uri(String uri) {
+    private Uri(String uri) {
         this.template = UriTemplate.of(uri + chooseMacro(uri));
     }
 
@@ -32,8 +32,7 @@ public class Uri {
 
     private static void validateTemplate(String template) {
         if (template.contains("{?")) {
-            throw new IllegalArgumentException(
-                    Uri.class.getName() + " does not support optional query variables.");
+            throw new IllegalArgumentException("Uri does not support optional query variables.");
         }
 
         HttpUtil.validateUrl(template
@@ -67,7 +66,7 @@ public class Uri {
         return parameterized().addQueryParam(key, value);
     }
 
-    public String expand() {
+    public String expand() throws NoSuchElementException {
         return parameterized().expand();
     }
 
@@ -122,7 +121,7 @@ public class Uri {
         }
 
         @Override
-        public String toString() {
+        public String toString() throws NoSuchElementException {
             return expand();
         }
     }

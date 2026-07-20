@@ -32,6 +32,7 @@ import java.util.Objects;
 
 public class DatablocksBidder implements Bidder<BidRequest> {
 
+    private static final String SOURCE_ID_MACRO = "SourceId";
     private static final TypeReference<ExtPrebid<?, ExtImpDatablocks>> DATABLOCKS_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
@@ -50,7 +51,7 @@ public class DatablocksBidder implements Bidder<BidRequest> {
         for (Imp imp : bidRequest.getImp()) {
             try {
                 final ExtImpDatablocks extImpDatablocks = parseAndValidateImpExt(imp.getExt());
-                extToImps.computeIfAbsent(extImpDatablocks, ext -> new ArrayList<>()).add(imp);
+                extToImps.computeIfAbsent(extImpDatablocks, _ -> new ArrayList<>()).add(imp);
             } catch (PreBidException e) {
                 return Result.withError(BidderError.badInput(e.getMessage()));
             }
@@ -84,7 +85,7 @@ public class DatablocksBidder implements Bidder<BidRequest> {
 
         final ExtImpDatablocks extImpDatablocks = extToImps.getKey();
         final String uri = endpoint
-                .replaceMacro("SourceId", extImpDatablocks.getSourceId().toString())
+                .replaceMacro(SOURCE_ID_MACRO, extImpDatablocks.getSourceId().toString())
                 .expand();
 
         final BidRequest outgoingRequest = bidRequest.toBuilder().imp(extToImps.getValue()).build();

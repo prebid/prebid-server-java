@@ -22,8 +22,6 @@ import org.prebid.server.hooks.execution.model.StageExecutionOutcome;
 import org.prebid.server.hooks.v1.analytics.Activity;
 import org.prebid.server.hooks.v1.analytics.Tags;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.log.Logger;
-import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.util.Uri;
@@ -35,8 +33,6 @@ import java.util.Objects;
 import java.util.Optional;
 
 public class LiveIntentAnalyticsReporter implements AnalyticsReporter {
-
-    private static final Logger logger = LoggerFactory.getLogger(LiveIntentAnalyticsReporter.class);
 
     private static final String LIVEINTENT_HOOK_ID = "liveintent-omni-channel-identity-enrichment-hook";
 
@@ -100,16 +96,11 @@ public class LiveIntentAnalyticsReporter implements AnalyticsReporter {
                 .map(Optional::get)
                 .toList();
 
-        try {
-            return httpClient.post(
-                            auctionEventEndpoint,
-                            jacksonMapper.encodeToString(pbsjBids),
-                            properties.getTimeoutMs())
-                    .mapEmpty();
-        } catch (Exception e) {
-            logger.error("Error processing event: {}", e.getMessage());
-            return Future.failedFuture(e);
-        }
+        return httpClient.post(
+                        auctionEventEndpoint,
+                        jacksonMapper.encodeToString(pbsjBids),
+                        properties.getTimeoutMs())
+                .mapEmpty();
     }
 
     private List<Activity> getActivities(AuctionContext auctionContext) {

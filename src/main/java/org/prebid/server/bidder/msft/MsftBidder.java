@@ -198,9 +198,7 @@ public class MsftBidder implements Bidder<BidRequest> {
     }
 
     private String makeRequestUrl(Integer member) {
-        return member != null
-                ? endpointUrl.addQueryParam("member_id", member.toString()).expand()
-                : endpointUrl.expand();
+        return endpointUrl.addQueryParam("member_id", Objects.toString(member, null)).expand();
     }
 
     private BidRequest updateBidRequest(BidRequest bidRequest) {
@@ -253,7 +251,7 @@ public class MsftBidder implements Bidder<BidRequest> {
                 .map(ExtRequest::getPrebid)
                 .map(ExtRequestPrebid::getTargeting)
                 .map(ExtRequestTargeting::getIncludebrandcategory)
-                .ifPresent(v -> {
+                .ifPresent(_ -> {
                     updatedRequestExtMsftBuilder.brandCategoryUniqueness(true);
                     updatedRequestExtMsftBuilder.includeBrandCategory(true);
                 });

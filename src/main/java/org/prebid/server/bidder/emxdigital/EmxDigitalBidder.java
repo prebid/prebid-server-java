@@ -234,7 +234,7 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
 
         return endpointUrl
                 .addQueryParam("t", Objects.toString(urlTimeout))
-                .addQueryParam("ts", Objects.toString(Instant.now().getEpochSecond()))
+                .addQueryParam("ts", Objects.toString((int) Instant.now().getEpochSecond()))
                 .addQueryParam("src", "pbserver")
                 .expand();
     }

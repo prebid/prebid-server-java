@@ -40,6 +40,8 @@ import java.util.stream.Collectors;
 
 public class YandexBidder implements Bidder<BidRequest> {
 
+    private static final String PAGE_ID_MACRO = "PageId";
+    private static final String IMP_ID_MACRO = "ImpId";
     private static final TypeReference<ExtPrebid<?, ExtImpYandex>> YANDEX_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
@@ -169,8 +171,8 @@ public class YandexBidder implements Bidder<BidRequest> {
 
     private String modifyUrl(ExtImpYandex extImpYandex, String referer, String currency) {
         return endpoint
-                .replaceMacro("PageId", extImpYandex.getPageId().toString())
-                .replaceMacro("ImpId", extImpYandex.getImpId().toString())
+                .replaceMacro(PAGE_ID_MACRO, extImpYandex.getPageId().toString())
+                .replaceMacro(IMP_ID_MACRO, extImpYandex.getImpId().toString())
                 .addQueryParam("target-ref", StringUtils.isNotBlank(referer) ? referer : null)
                 .addQueryParam("ssp-cur", StringUtils.isNotBlank(currency) ? currency : null)
                 .expand();

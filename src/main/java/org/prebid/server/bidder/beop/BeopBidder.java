@@ -71,24 +71,11 @@ public class BeopBidder implements Bidder<BidRequest> {
     }
 
     private String buildEndpointUrl(ExtImpBeop ext) {
-        final Uri.ParameterizedUri uriBuilder = endpointUrl.parameterized();
-
-        final String pid = StringUtils.trimToNull(ext.getPid());
-        if (StringUtils.isNotEmpty(pid)) {
-            uriBuilder.addQueryParam("pid", pid);
-        }
-
-        final String nid = StringUtils.trimToNull(ext.getNid());
-        if (StringUtils.isNotEmpty(nid)) {
-            uriBuilder.addQueryParam("nid", nid);
-        }
-
-        final String nptnid = StringUtils.trimToNull(ext.getNtpnid());
-        if (StringUtils.isNotEmpty(nptnid)) {
-            uriBuilder.addQueryParam("nptnid", nptnid);
-        }
-
-        return uriBuilder.expand();
+        return endpointUrl
+                .addQueryParam("pid", StringUtils.trimToNull(ext.getPid()))
+                .addQueryParam("nid", StringUtils.trimToNull(ext.getNid()))
+                .addQueryParam("nptnid", StringUtils.trimToNull(ext.getNtpnid()))
+                .expand();
     }
 
     @Override

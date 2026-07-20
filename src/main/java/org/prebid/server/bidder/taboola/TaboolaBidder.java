@@ -43,6 +43,9 @@ import java.util.Optional;
 
 public class TaboolaBidder implements Bidder<BidRequest> {
 
+    private static final String GVL_ID_MACRO = "GvlID";
+    private static final String MEDIA_TYPE_MACRO = "MediaType";
+    private static final String PUBLISHER_ID_MACRO = "PublisherID";
     private static final String DISPLAY_ENDPOINT_PREFIX = "display";
     private static final String NATIVE_ENDPOINT_PREFIX = "native";
     private static final String PRICE_MACRO = "${AUCTION_PRICE}";
@@ -82,7 +85,7 @@ public class TaboolaBidder implements Bidder<BidRequest> {
 
             final Imp modifiedImp = modifyImp(imp, extImpTaboola);
             mediaTypeToImps
-                    .computeIfAbsent(impMediaType, key -> new ArrayList<>())
+                    .computeIfAbsent(impMediaType, _ -> new ArrayList<>())
                     .add(modifiedImp);
         }
 
@@ -138,10 +141,10 @@ public class TaboolaBidder implements Bidder<BidRequest> {
         return resolvedTagId.isUpdated() || resolvedBidFloor.isUpdated() || resolvedBanner.isUpdated()
 
                 ? imp.toBuilder()
-                .tagid(resolvedTagId.getValue())
-                .bidfloor(resolvedBidFloor.getValue())
-                .banner(resolvedBanner.getValue())
-                .build()
+                  .tagid(resolvedTagId.getValue())
+                  .bidfloor(resolvedBidFloor.getValue())
+                  .banner(resolvedBanner.getValue())
+                  .build()
 
                 : imp;
     }
@@ -158,19 +161,19 @@ public class TaboolaBidder implements Bidder<BidRequest> {
         final Site modifiedSite = site == null
                 ? null
                 : site.toBuilder()
-                .id(impExtPublisherId)
-                .name(impExtPublisherId)
-                .domain(resolveDomain(impExt.getPublisherDomain(), request))
-                .publisher(publisher)
-                .build();
+                  .id(impExtPublisherId)
+                  .name(impExtPublisherId)
+                  .domain(resolveDomain(impExt.getPublisherDomain(), request))
+                  .publisher(publisher)
+                  .build();
 
         final App app = request.getApp();
         final App modifiedApp = app == null
                 ? null
                 : app.toBuilder()
-                .id(impExtPublisherId)
-                .publisher(publisher)
-                .build();
+                  .id(impExtPublisherId)
+                  .publisher(publisher)
+                  .build();
 
         final ExtRequest extRequest = StringUtils.isNotEmpty(impExtPageType)
                 ? createExtRequest(impExtPageType)
@@ -190,8 +193,8 @@ public class TaboolaBidder implements Bidder<BidRequest> {
         return StringUtils.isNotEmpty(impExtPublisherDomain)
                 ? impExtPublisherDomain
                 : Optional.ofNullable(request.getSite())
-                .map(Site::getDomain)
-                .orElse(StringUtils.EMPTY);
+                  .map(Site::getDomain)
+                  .orElse(StringUtils.EMPTY);
     }
 
     private ExtRequest createExtRequest(String pageType) {
@@ -220,9 +223,9 @@ public class TaboolaBidder implements Bidder<BidRequest> {
                 .orElse(StringUtils.EMPTY);
 
         return endpoint
-                .replaceMacro("GvlID", gvlId)
-                .replaceMacro("MediaType", type)
-                .replaceMacro("PublisherID", publisherId)
+                .replaceMacro(GVL_ID_MACRO, gvlId)
+                .replaceMacro(MEDIA_TYPE_MACRO, type)
+                .replaceMacro(PUBLISHER_ID_MACRO, publisherId)
                 .expand();
     }
 

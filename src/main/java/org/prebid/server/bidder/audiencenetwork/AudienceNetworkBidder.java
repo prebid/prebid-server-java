@@ -48,6 +48,9 @@ import java.util.Objects;
 
 public class AudienceNetworkBidder implements Bidder<BidRequest> {
 
+    private static final String PARTNER_MACRO = "partner";
+    private static final String APP_MACRO = "app";
+    private static final String AUCTION_MACRO = "auction";
     private static final TypeReference<ExtPrebid<?, ExtImpAudienceNetwork>> AUDIENCE_NETWORK_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
@@ -344,9 +347,9 @@ public class AudienceNetworkBidder implements Bidder<BidRequest> {
         return HttpRequest.<Void>builder()
                 .method(HttpMethod.GET)
                 .uri(timeoutNotificationUrlTemplate
-                        .replaceMacro("partner", platformId)
-                        .replaceMacro("app", publisherId)
-                        .replaceMacro("auction", requestId)
+                        .replaceMacro(PARTNER_MACRO, platformId)
+                        .replaceMacro(APP_MACRO, publisherId)
+                        .replaceMacro(AUCTION_MACRO, requestId)
                         .expand())
                 .build();
     }

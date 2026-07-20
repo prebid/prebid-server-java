@@ -33,6 +33,8 @@ import java.util.Objects;
 
 public class EscalaxBidder implements Bidder<BidRequest> {
 
+    private static final String ACCOUNT_ID_MACRO = "AccountID";
+    private static final String SOURCE_ID_MACRO = "SourceId";
     private static final TypeReference<ExtPrebid<?, ExtImpEscalax>> TYPE_REFERENCE =
             new TypeReference<>() {
             };
@@ -78,8 +80,8 @@ public class EscalaxBidder implements Bidder<BidRequest> {
 
     private String makeUrl(ExtImpEscalax extImp) {
         return endpointUrl
-                .replaceMacro("AccountID", extImp.getAccountId())
-                .replaceMacro("SourceId", extImp.getSourceId())
+                .replaceMacro(ACCOUNT_ID_MACRO, extImp.getAccountId())
+                .replaceMacro(SOURCE_ID_MACRO, extImp.getSourceId())
                 .expand();
     }
 

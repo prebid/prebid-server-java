@@ -33,6 +33,9 @@ import java.util.Objects;
 
 public class SmarthubBidder implements Bidder<BidRequest> {
 
+    private static final String HOST_MACRO = "Host";
+    private static final String ACCOUNT_ID_MACRO = "AccountID";
+    private static final String SOURCE_ID_MACRO = "SourceId";
     private static final TypeReference<ExtPrebid<?, ExtImpSmarthub>> SMARTHUB_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
@@ -70,9 +73,9 @@ public class SmarthubBidder implements Bidder<BidRequest> {
 
     private String buildEndpointUrl(ExtImpSmarthub extImpSmarthub) {
         return endpoint
-                .replaceMacro("Host", StringUtils.defaultString(extImpSmarthub.getPartnerName()))
-                .replaceMacro("AccountID", extImpSmarthub.getSeat())
-                .replaceMacro("SourceId", extImpSmarthub.getToken())
+                .replaceMacro(HOST_MACRO, StringUtils.defaultString(extImpSmarthub.getPartnerName()))
+                .replaceMacro(ACCOUNT_ID_MACRO, extImpSmarthub.getSeat())
+                .replaceMacro(SOURCE_ID_MACRO, extImpSmarthub.getToken())
                 .expand();
     }
 

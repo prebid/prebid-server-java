@@ -44,7 +44,6 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidDsa;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
-import org.prebid.server.util.QueryString;
 import org.prebid.server.util.Uri;
 
 import java.math.BigDecimal;
@@ -63,6 +62,7 @@ import java.util.stream.Collectors;
 
 public class YieldlabBidder implements Bidder<Void> {
 
+    private static final String AD_SLOT_ID_MACRO = "AdSlotId";
     private static final TypeReference<ExtPrebid<?, ExtImpYieldlab>> YIELDLAB_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
@@ -90,8 +90,7 @@ public class YieldlabBidder implements Bidder<Void> {
     private static final String AD_SLOT_MACRO = "AdSlot";
     private static final String SUPPLY_ID_MACRO = "SupplyId";
     private static final String AD_SIZE_MACRO = "AdSize";
-    private static final Uri AD_SOURCE_URL =
-            Uri.of("https://ad.yieldlab.net/d/{%s}/{%s}/{%s}".formatted(AD_SLOT_MACRO, SUPPLY_ID_MACRO, AD_SIZE_MACRO));
+    private static final Uri AD_SOURCE_URL = Uri.of("https://ad.yieldlab.net/d/{AdSlot}/{SupplyId}/{AdSize}");
 
     private final Uri endpoint;
     private final Clock clock;
@@ -173,7 +172,7 @@ public class YieldlabBidder implements Bidder<Void> {
         final String consent = getConsentParameter(request.getUser());
 
         final Uri.ParameterizedUri parameterizedUri = endpoint
-                .replaceMacro("AdSlotId", extImpYieldlab.getAdslotId())
+                .replaceMacro(AD_SLOT_ID_MACRO, extImpYieldlab.getAdslotId())
                 .addQueryParam("content", "json")
                 .addQueryParam("pvid", "true")
                 .addQueryParam("ts", resolveNumberParameter(clock.instant().getEpochSecond()))
@@ -226,13 +225,10 @@ public class YieldlabBidder implements Bidder<Void> {
     }
 
     private String getTargetingValues(ExtImpYieldlab extImpYieldlab) {
-        final QueryString queryString = QueryString.create();
-
-        for (Map.Entry<String, String> targeting : extImpYieldlab.getTargeting().entrySet()) {
-            queryString.add(targeting.getKey(), targeting.getValue());
-        }
-
-        return queryString.expand().replace("?", "");
+        return extImpYieldlab.getTargeting().entrySet().stream()
+                .filter(entry -> entry.getValue() != null)
+                .map(entry -> entry.getKey() + "=" + HttpUtil.encodeUrl(entry.getValue()))
+                .collect(Collectors.joining("&"));
     }
 
     private static String getGdprParameter(Regs regs) {

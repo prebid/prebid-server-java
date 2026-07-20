@@ -26,6 +26,8 @@ import java.util.Objects;
 
 public class InteractiveOffersBidder implements Bidder<BidRequest> {
 
+    private static final String PARTNER_ID_MACRO = "PartnerId";
+
     private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
@@ -38,7 +40,7 @@ public class InteractiveOffersBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final ObjectNode impExt = request.getImp().getFirst().getExt();
         final String resolvedPartnerId = StringUtils.defaultString(resolvePartnerId(impExt));
-        final String resolvedEndpointUrl = endpointUrl.replaceMacro("PartnerId", resolvedPartnerId).expand();
+        final String resolvedEndpointUrl = endpointUrl.replaceMacro(PARTNER_ID_MACRO, resolvedPartnerId).expand();
 
         return Result.withValue(BidderUtil.defaultRequest(request, resolvedEndpointUrl, mapper));
     }
