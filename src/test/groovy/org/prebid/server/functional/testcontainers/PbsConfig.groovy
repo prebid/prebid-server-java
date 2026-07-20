@@ -1,5 +1,6 @@
 package org.prebid.server.functional.testcontainers
 
+
 import org.testcontainers.containers.MySQLContainer
 import org.testcontainers.containers.PostgreSQLContainer
 
@@ -47,7 +48,7 @@ LIMIT 1
          "analytics.pubstack.scopeid"                       : scopeId,
          "analytics.pubstack.configuration-refresh-delay-ms": "1000",
          "analytics.pubstack.buffers.size-bytes"            : "1",
-         "analytics.pubstack.timeout-ms"                    : "100"].asImmutable()
+         "analytics.pubstack.timeout-ms"                    : "1000"].asImmutable()
     }
 
     static Map<String, String> getHttpSettingsConfig(String rootUri = networkServiceContainer.rootUri) {
@@ -100,7 +101,6 @@ LIMIT 1
          "settings.database.idle-connection-timeout": "300"
         ].asImmutable()
     }
-
     static Map<String, String> getPostgreSqlConfig(PostgreSQLContainer postgres = Dependencies.postgresqlContainer) {
         ["settings.database.type"                   : "postgres",
          "settings.database.host"                   : postgres.getNetworkAliases().get(0),
@@ -123,10 +123,6 @@ LIMIT 1
          "adapters.generic.aliases.cwire.meta-info.app-media-types"           : "",
          "adapters.generic.aliases.blue.meta-info.app-media-types"            : "",
          "adapters.generic.aliases.blue.meta-info.site-media-types"           : "",
-         "adapters.generic.aliases.adsinteractive.meta-info.app-media-types"  : "",
-         "adapters.generic.aliases.adsinteractive.meta-info.site-media-types" : "",
-         "adapters.generic.aliases.nativo.meta-info.app-media-types"          : "",
-         "adapters.generic.aliases.nativo.meta-info.site-media-types"         : "",
          "adapters.generic.aliases.infytv.meta-info.app-media-types"          : "",
          "adapters.generic.aliases.infytv.meta-info.site-media-types"         : "",
          "adapters.generic.aliases.zeta-global-ssp.meta-info.app-media-types" : "",
@@ -145,7 +141,7 @@ LIMIT 1
          "currency-converter.external-rates.refresh-period-ms" : "900000"]
     }
 
-    static Map<String,String> getTargetingConfig() {
+    static Map<String, String> getTargetingConfig() {
         ["settings.targeting.truncate-attr-chars": '255']
     }
 

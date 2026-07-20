@@ -19,5 +19,5 @@ adapters:
       cookie-family-name: tpmn
       iframe:
         url: https://gat.tpmn.io/sync/redirect?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir={{redirect_url}}
-        userMacro: $UID
+        uid-macro: $UID
         support-cors: false

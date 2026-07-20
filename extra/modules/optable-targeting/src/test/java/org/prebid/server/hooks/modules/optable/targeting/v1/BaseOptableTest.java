@@ -16,7 +16,7 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
-import io.vertx.core.http.impl.headers.HeadersMultiMap;
+import io.vertx.core.http.HttpHeaders;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpStatus;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
@@ -193,7 +193,7 @@ public abstract class BaseOptableTest {
     }
 
     protected HttpClientResponse givenSuccessHttpResponse(String fileName) {
-        final MultiMap headers = HeadersMultiMap.headers().add("Content-Type", "application/json");
+        final MultiMap headers = HttpHeaders.headers().add("Content-Type", "application/json");
         return HttpClientResponse.of(HttpStatus.SC_OK, headers, givenBodyFromFile(fileName));
     }
 

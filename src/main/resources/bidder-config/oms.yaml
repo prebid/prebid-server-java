@@ -1,6 +1,6 @@
 adapters:
   oms:
-    endpoint: http://rt.marphezis.com/pbs
+    endpoint: http://rt.marphezis.com/pbs?publisherId={{PublisherId}}
     meta-info:
       maintainer-email: prebid@onlinemediasolutions.com
       app-media-types:

@@ -25,6 +25,7 @@ import org.prebid.server.functional.model.response.cookiesync.CookieSyncResponse
 import org.prebid.server.functional.model.response.cookiesync.RawCookieSyncResponse
 import org.prebid.server.functional.model.response.currencyrates.CurrencyRatesResponse
 import org.prebid.server.functional.model.response.getuids.GetuidResponse
+import org.prebid.server.functional.model.response.influx.InfluxResponse
 import org.prebid.server.functional.model.response.infobidders.BidderInfoResponse
 import org.prebid.server.functional.model.response.setuid.SetuidResponse
 import org.prebid.server.functional.model.response.status.StatusResponse
@@ -42,6 +43,8 @@ import java.time.format.DateTimeFormatter
 
 import static io.restassured.RestAssured.given
 import static java.time.ZoneOffset.UTC
+import static org.prebid.server.functional.testcontainers.Dependencies.influxdbContainer
+
 
 class PrebidServerService implements ObjectMapperWrapper {
 
@@ -59,10 +62,12 @@ class PrebidServerService implements ObjectMapperWrapper {
     static final String HTTP_INTERACTION_ENDPOINT = "/logging/httpinteraction"
     static final String COLLECTED_METRICS_ENDPOINT = "/collected-metrics"
     static final String PROMETHEUS_METRICS_ENDPOINT = "/metrics"
+    static final String INFLUX_DB_ENDPOINT = "/query"
     static final String UIDS_COOKIE_NAME = "uids"
 
     private final PrebidServerContainer pbsContainer
     private final RequestSpecification requestSpecification
+    private final RequestSpecification influxRequestSpecification
     private final RequestSpecification adminRequestSpecification
     private final RequestSpecification prometheusRequestSpecification
 
@@ -74,6 +79,8 @@ class PrebidServerService implements ObjectMapperWrapper {
         authenticationScheme.password = pbsContainer.ADMIN_ENDPOINT_PASSWORD
         this.pbsContainer = pbsContainer
         requestSpecification = new RequestSpecBuilder().setBaseUri(pbsContainer.rootUri)
+                .build()
+        influxRequestSpecification = new RequestSpecBuilder().setBaseUri(pbsContainer.influxUri)
                 .build()
         adminRequestSpecification = buildAndGetRequestSpecification(pbsContainer.adminRootUri, authenticationScheme)
         prometheusRequestSpecification = buildAndGetRequestSpecification(pbsContainer.prometheusRootUri, authenticationScheme)
@@ -290,6 +297,16 @@ class PrebidServerService implements ObjectMapperWrapper {
         decode(response.asString(), new TypeReference<Map<String, Number>>() {})
     }
 
+    Map<String, Number> sendInfluxMetricsRequest() {
+        def response = given(influxRequestSpecification)
+                .queryParams(["db": influxdbContainer.getDatabase(),
+                              "q" : "SELECT COUNT(count) FROM /.*/  WHERE count >= 1 GROUP BY \"measurement\""])
+                .get(INFLUX_DB_ENDPOINT)
+
+        checkResponseStatusCode(response)
+        collectInToMap(decode(response.getBody().asString(), InfluxResponse))
+    }
+
     String sendPrometheusMetricsRequest() {
         def response = given(prometheusRequestSpecification).get(PROMETHEUS_METRICS_ENDPOINT)
 
@@ -431,6 +448,15 @@ class PrebidServerService implements ObjectMapperWrapper {
         }
     }
 
+    Boolean isContainMetricByValue(String value) {
+        try {
+            PBSUtils.waitUntil({ sendInfluxMetricsRequest()[value] != null })
+            true
+        } catch (IllegalStateException ignored) {
+            false
+        }
+    }
+
     private String getPbsLogsByValue(String value) {
         pbsContainer.logs.split("\n").find { it.contains(value) }
     }
@@ -453,5 +479,11 @@ class PrebidServerService implements ObjectMapperWrapper {
         new RequestSpecBuilder().setBaseUri(uri)
                 .setAuth(authScheme)
                 .build()
+    }
+
+    private static Map<String, Number> collectInToMap(InfluxResponse responseBody) {
+        responseBody?.results?.first()?.series?.collectEntries {
+            [(it.name): it.values?.first()?.getAt(1) as Integer]
+        } ?: [:]
     }
 }
