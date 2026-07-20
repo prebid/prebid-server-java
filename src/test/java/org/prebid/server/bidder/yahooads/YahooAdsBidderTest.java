@@ -633,6 +633,96 @@ public class YahooAdsBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldNotPromoteGppSidWhenArrayHasFractionalElement() {
+        // canConvertToInt alone range-checks a double, so 6.5 would truncate to 6 in asInt;
+        // the integral-number guard treats it as malformed and leaves the array in ext.
+        final BidRequest bidRequest = givenBidRequest(identity(),
+                requestBuilder -> requestBuilder.regs(Regs.builder()
+                        .ext(ExtRegs.of(null, null, null, null))
+                        .build()).device(Device.builder().ua("UA").build()));
+        final ArrayNode fractional = mapper.createArrayNode();
+        fractional.add(6.5);
+        bidRequest.getRegs().getExt().addProperty("gpp_sid", fractional);
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        final Regs regs = result.getValue().getFirst().getPayload().getRegs();
+        assertThat(regs.getGppSid()).isNull();
+        assertThat(regs.getExt()).isNotNull();
+        assertThat(regs.getExt().getProperty("gpp_sid").get(0).asDouble()).isEqualTo(6.5);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldPromoteExtGppSidOverEmptyTopLevelArray() {
+        // An empty top-level gpp_sid carries no signal, so it counts as unset for promotion.
+        final BidRequest bidRequest = givenBidRequest(identity(),
+                requestBuilder -> requestBuilder.regs(Regs.builder()
+                        .gppSid(emptyList())
+                        .ext(ExtRegs.of(null, null, null, null))
+                        .build()).device(Device.builder().ua("UA").build()));
+        final ArrayNode sidArray = mapper.createArrayNode();
+        sidArray.add(6);
+        bidRequest.getRegs().getExt().addProperty("gpp_sid", sidArray);
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        final Regs regs = result.getValue().getFirst().getPayload().getRegs();
+        assertThat(regs.getGppSid()).containsExactly(6);
+        assertThat(regs.getExt()).isNull();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldPromoteGppSidWhileTopLevelGppSupersedesItsExtCopy() {
+        // Per-field independence: gpp keeps its top-level value and loses its ext copy
+        // while gpp_sid is promoted from ext in the same pass.
+        final BidRequest bidRequest = givenBidRequest(identity(),
+                requestBuilder -> requestBuilder.regs(Regs.builder()
+                        .gpp("top-level-gpp")
+                        .ext(ExtRegs.of(null, null, null, null))
+                        .build()).device(Device.builder().ua("UA").build()));
+        bidRequest.getRegs().getExt().addProperty("gpp", TextNode.valueOf("stale-ext-gpp"));
+        final ArrayNode sidArray = mapper.createArrayNode();
+        sidArray.add(6);
+        bidRequest.getRegs().getExt().addProperty("gpp_sid", sidArray);
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        final Regs regs = result.getValue().getFirst().getPayload().getRegs();
+        assertThat(regs.getGpp()).isEqualTo("top-level-gpp");
+        assertThat(regs.getGppSid()).containsExactly(6);
+        assertThat(regs.getExt()).isNull();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnRegsUnchangedWhenExtHasOnlyUnrelatedProperties() {
+        final BidRequest bidRequest = givenBidRequest(identity(),
+                requestBuilder -> requestBuilder.regs(Regs.builder()
+                        .ext(ExtRegs.of(null, null, null, null))
+                        .build()).device(Device.builder().ua("UA").build()));
+        bidRequest.getRegs().getExt().addProperty("customKey", TextNode.valueOf("keep_me"));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        final Regs regs = result.getValue().getFirst().getPayload().getRegs();
+        assertThat(regs.getGpp()).isNull();
+        assertThat(regs.getGppSid()).isNull();
+        assertThat(regs.getExt()).isNotNull();
+        assertThat(regs.getExt().getProperty("customKey").asText()).isEqualTo("keep_me");
+    }
+
+    @Test
     public void makeHttpRequestsShouldDropExtGppWhenTopLevelGppAlreadySet() {
         // gpp sits at both top-level and ext with different values: top-level wins and
         // the superseded ext copy is stripped.

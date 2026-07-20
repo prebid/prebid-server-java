@@ -216,7 +216,7 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
         }
         final List<Integer> sids = new ArrayList<>(node.size());
         for (final JsonNode elem : node) {
-            if (!elem.canConvertToInt()) {
+            if (!elem.isIntegralNumber() || !elem.canConvertToInt()) {
                 return null;
             }
             sids.add(elem.asInt());
