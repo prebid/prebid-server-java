@@ -60,6 +60,7 @@ public class TcfDefinerService {
     private final boolean gdprEnabled;
     private final String gdprDefaultValue;
     private final boolean consentStringMeansInScope;
+    private final DisclosedVendorsStrictness disclosedVendorsStrictness;
     private final Tcf2Service tcf2Service;
     private final Set<String> eeaCountries;
     private final GeoLocationServiceWrapper geoLocationServiceWrapper;
@@ -70,6 +71,7 @@ public class TcfDefinerService {
 
     public TcfDefinerService(GdprConfig gdprConfig,
                              Set<String> eeaCountries,
+                             DisclosedVendorsStrictness disclosedVendorsStrictness,
                              Tcf2Service tcf2Service,
                              GeoLocationServiceWrapper geoLocationServiceWrapper,
                              BidderCatalog bidderCatalog,
@@ -81,6 +83,7 @@ public class TcfDefinerService {
         this.gdprDefaultValue = gdprConfig != null ? gdprConfig.getDefaultValue() : null;
         this.consentStringMeansInScope = gdprConfig != null
                 && BooleanUtils.isTrue(gdprConfig.getConsentStringMeansInScope());
+        this.disclosedVendorsStrictness = Objects.requireNonNull(disclosedVendorsStrictness);
         this.tcf2Service = Objects.requireNonNull(tcf2Service);
         this.eeaCountries = Objects.requireNonNull(eeaCountries);
         this.geoLocationServiceWrapper = Objects.requireNonNull(geoLocationServiceWrapper);
@@ -345,6 +348,15 @@ public class TcfDefinerService {
             return TCStringParsingResult.of(TCStringEmpty.create(), warnings);
         }
 
+        if (!disclosedVendorsStrictness.isValid(tcString)) {
+            final String message = "Invalid TCF string: `disclosedVendors` list is empty.";
+            warnings.add(message);
+            logWarn(consentString, message, requestLogInfo);
+            metrics.updatePrivacyTcfNoDisclosedVendorsMetric();
+
+            return TCStringParsingResult.of(TCStringEmpty.create(), warnings);
+        }
+
         return toValidResult(consentString, TCStringParsingResult.of(tcString, warnings));
     }
 
@@ -409,18 +421,20 @@ public class TcfDefinerService {
     }
 
     private static String logMessage(String consent, String type, RequestLogInfo requestLogInfo, String message) {
-        return "Parsing consent string: \"%s\" failed for: %s type for account id: %s with ref: %s with exception: %s"
-                .formatted(consent, type, requestLogInfo.getAccountId(), requestLogInfo.getRefUrl(), message);
+        return """
+                Parsing consent string: "%s" failed for: \
+                %s type for account id: %s from source: \
+                %s with exception: %s"""
+                .formatted(consent, type, requestLogInfo.getAccountId(), requestLogInfo.getSource(), message);
     }
 
     private static boolean isConsentValid(TCString consent) {
         return consent != null && !(consent instanceof TCStringEmpty);
     }
 
-    public static boolean isConsentStringValid(String consentString) {
+    public boolean isConsentStringValid(String consentString) {
         try {
-            TCString.decode(consentString);
-            return true;
+            return disclosedVendorsStrictness.isValid(TCString.decode(consentString));
         } catch (RuntimeException e) {
             return false;
         }

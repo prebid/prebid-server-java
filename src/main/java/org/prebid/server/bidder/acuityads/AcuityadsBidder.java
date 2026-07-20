@@ -95,7 +95,7 @@ public class AcuityadsBidder implements Bidder<BidRequest> {
 
     private String resolveEndpoint(String host, String accountId) {
         return endpointUrl
-                .replace(URL_HOST_MACRO, StringUtils.stripToEmpty(host))
+                .replace(URL_HOST_MACRO, HttpUtil.validateDomainName(StringUtils.stripToEmpty(host)))
                 .replace(URL_ACCOUNT_ID_MACRO, StringUtils.stripToEmpty(accountId));
     }
 

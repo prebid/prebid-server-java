@@ -67,7 +67,7 @@ public class AxonixBidder implements Bidder<BidRequest> {
     }
 
     private String resolveEndpoint(String supplyId) {
-        return endpointUrl.replace(URL_SUPPLY_ID_MACRO, HttpUtil.encodeUrl(supplyId));
+        return endpointUrl.replace(URL_SUPPLY_ID_MACRO, HttpUtil.encodeUrl(HttpUtil.validatePathSegment(supplyId)));
     }
 
     @Override

@@ -146,12 +146,13 @@ public class IxBidder implements Bidder<BidRequest> {
         final List<Format> formats = banner.getFormat();
         final Integer w = banner.getW();
         final Integer h = banner.getH();
+        final boolean hasNoFormats = CollectionUtils.isEmpty(formats);
 
-        if (CollectionUtils.isEmpty(formats) && h != null && w != null) {
+        if (hasNoFormats && h != null && w != null) {
             final List<Format> newFormats = Collections.singletonList(Format.builder().w(w).h(h).build());
             final Banner modifiedBanner = banner.toBuilder().format(newFormats).build();
             return UpdateResult.updated(modifiedBanner);
-        } else if (formats.size() == 1) {
+        } else if (!hasNoFormats && formats.size() == 1) {
             final Format format = formats.getFirst();
             final Banner modifiedBanner = banner.toBuilder().w(format.getW()).h(format.getH()).build();
             return UpdateResult.updated(modifiedBanner);
