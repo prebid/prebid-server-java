@@ -40,7 +40,7 @@ To run functional tests without modules (extra/modules), use:
 
 To run module-only functional tests, use:
 
-`mvn verify -Drun-module-functional-tests=true -DdockerfileName=Dockerfile-modules`
+`mvn -B verify -Drun-module-functional-tests=true -DdockerfileName=Dockerfile-modules`
 
 ## Developing
 

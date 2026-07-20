@@ -413,6 +413,24 @@
                     <groupId>org.codehaus.gmavenplus</groupId>
                     <artifactId>gmavenplus-plugin</artifactId>
                     <version>${gmavenplus-plugin.version}</version>
+                    <configuration>
+                        <parallelParsing>true</parallelParsing>
+                        <testSources>
+                            <testSource>
+                                <directory>${project.basedir}/src/test/groovy</directory>
+                                <includes>
+                                    <include>**/*.groovy</include>
+                                </includes>
+                            </testSource>
+                        </testSources>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>compileTests</goal>
+                            </goals>
+                        </execution>
+                    </executions>
                 </plugin>
             </plugins>
         </pluginManagement>
@@ -623,37 +641,18 @@
                     </execution>
                 </executions>
             </plugin>
-            <plugin>
-                <groupId>org.codehaus.gmavenplus</groupId>
-                <artifactId>gmavenplus-plugin</artifactId>
-                <version>${gmavenplus-plugin.version}</version>
-                <configuration>
-                    <parallelParsing>true</parallelParsing>
-                    <testSources>
-                        <testSource>
-                            <directory>${project.basedir}/src/test/groovy</directory>
-                            <includes>
-                                <include>**/*.groovy</include>
-                            </includes>
-                        </testSource>
-                    </testSources>
-                </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>compileTests</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
         </plugins>
     </build>
 
     <profiles>
         <profile>
-            <id>Enabling function tests</id>
+            <id>enabling-function-tests</id>
             <build>
                 <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.gmavenplus</groupId>
+                        <artifactId>gmavenplus-plugin</artifactId>
+                    </plugin>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-surefire-plugin</artifactId>
@@ -667,10 +666,13 @@
             </build>
         </profile>
         <profile>
-            <!-- Run only one application container instance on fixed ports for debugging purposes -->
-            <id>Container debugging</id>
+            <id>container-debugging</id>
             <build>
                 <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.gmavenplus</groupId>
+                        <artifactId>gmavenplus-plugin</artifactId>
+                    </plugin>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-failsafe-plugin</artifactId>
@@ -684,7 +686,7 @@
             </build>
         </profile>
         <profile>
-            <id>Run general functional tests without modules</id>
+            <id>run-general-functional-tests</id>
             <activation>
                 <property>
                     <name>run-functional-tests</name>
@@ -713,7 +715,7 @@
             </build>
         </profile>
         <profile>
-            <id>Run only module functional tests</id>
+            <id>run-module-functional-tests</id>
             <activation>
                 <property>
                     <name>run-module-functional-tests</name>
