@@ -603,6 +603,28 @@ public class YahooAdsBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldNotPromoteEmptyExtGppSidArray() {
+        // An empty ext gpp_sid array carries no value to promote: nothing changes and
+        // the empty array stays in ext untouched.
+        final BidRequest bidRequest = givenBidRequest(identity(),
+                requestBuilder -> requestBuilder.regs(Regs.builder()
+                        .ext(ExtRegs.of(null, null, null, null))
+                        .build()).device(Device.builder().ua("UA").build()));
+        bidRequest.getRegs().getExt().addProperty("gpp_sid", mapper.createArrayNode());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        final Regs regs = result.getValue().getFirst().getPayload().getRegs();
+        assertThat(regs.getGppSid()).isNull();
+        assertThat(regs.getExt()).isNotNull();
+        assertThat(regs.getExt().getProperty("gpp_sid").isArray()).isTrue();
+        assertThat(regs.getExt().getProperty("gpp_sid")).isEmpty();
+    }
+
+    @Test
     public void makeHttpRequestsShouldNotPromoteGppSidWhenArrayHasFractionalElement() {
         // canConvertToInt alone range-checks a double, so 6.5 would truncate to 6 in asInt;
         // the integral-number guard treats it as malformed and leaves the array in ext.
