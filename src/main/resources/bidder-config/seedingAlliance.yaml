@@ -11,7 +11,7 @@ adapters:
         usersync:
           cookie-family-name: suntContent
           redirect:
-            url: https://dmp.suntcontent.se/set-uuid?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&redirect_url={{redirect_url}}
+            url: https://dmp.suntcontent.se/set-uuid?gdpr={gdpr}&gdpr_consent={gdpr_consent}&redirect_url={redirect_url}
             support-cors: false
             uid-macro: '$UID'
       finative:
@@ -28,6 +28,6 @@ adapters:
     usersync:
       cookie-family-name: seedingAlliance
       redirect:
-        url: https://dmp.nativendo.de/set-uuid?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&redirect_url={{redirect_url}}
+        url: https://dmp.nativendo.de/set-uuid?gdpr={gdpr}&gdpr_consent={gdpr_consent}&redirect_url={redirect_url}
         support-cors: false
         uid-macro: '$UID'
