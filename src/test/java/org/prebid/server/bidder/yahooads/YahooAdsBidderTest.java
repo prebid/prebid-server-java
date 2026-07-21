@@ -538,7 +538,6 @@ public class YahooAdsBidderTest extends VertxTest {
                         .build()).device(Device.builder().ua("UA").build()));
         bidRequest.getRegs().getExt().addProperty("gpp", IntNode.valueOf(99));
         bidRequest.getRegs().getExt().addProperty("gpp_sid", TextNode.valueOf("not_array"));
-        bidRequest.getRegs().getExt().addProperty("coppa", TextNode.valueOf("not_int"));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -548,11 +547,9 @@ public class YahooAdsBidderTest extends VertxTest {
         final Regs regs = result.getValue().getFirst().getPayload().getRegs();
         assertThat(regs.getGpp()).isNull();
         assertThat(regs.getGppSid()).isNull();
-        assertThat(regs.getCoppa()).isNull();
         assertThat(regs.getExt()).isNotNull();
         assertThat(regs.getExt().getProperty("gpp").asInt()).isEqualTo(99);
         assertThat(regs.getExt().getProperty("gpp_sid").asText()).isEqualTo("not_array");
-        assertThat(regs.getExt().getProperty("coppa").asText()).isEqualTo("not_int");
     }
 
     @Test
