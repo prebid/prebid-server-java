@@ -6,8 +6,7 @@ import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.spring.config.bidder.model.usersync.UsersyncBidderRegulationScopeProperties;
 import org.prebid.server.spring.config.bidder.model.usersync.UsersyncConfigurationProperties;
 import org.prebid.server.spring.config.bidder.model.usersync.UsersyncMethodConfigurationProperties;
-
-import java.util.Objects;
+import org.prebid.server.util.Uri;
 
 public class UsersyncerUtil {
 
@@ -37,7 +36,7 @@ public class UsersyncerUtil {
 
         return UsersyncMethod.builder()
                 .type(type)
-                .usersyncUrl(Objects.requireNonNull(properties.getUrl()))
+                .usersyncUrl(Uri.of(properties.getUrl()))
                 .uidMacro(properties.getUidMacro())
                 .supportCORS(properties.getSupportCors())
                 .formatOverride(properties.getFormatOverride())

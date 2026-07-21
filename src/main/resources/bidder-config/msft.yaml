@@ -17,7 +17,7 @@ adapters:
     usersync:
       cookie-family-name: adnxs
       redirect:
-        url: https://ib.adnxs.com/getuid?{{redirect_url}}
+        url: https://ib.adnxs.com/getuid?{redirect_url}
         support-cors: false
         uid-macro: '$UID'
     platform-id: 5
