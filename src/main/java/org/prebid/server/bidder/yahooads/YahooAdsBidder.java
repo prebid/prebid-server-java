@@ -163,8 +163,7 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    // Promote legacy 2.5 regs.ext gpp/gpp_sid to their 2.6 top-level slots. coppa is not
-    // handled: it has been a top-level field since OpenRTB 2.2 and never had an ext slot.
+    // Promote legacy 2.5 regs.ext gpp/gpp_sid to their 2.6 top-level slots.
     // An ext key is removed whenever the outbound request has a top-level value for that
     // field, so one signal never goes out with two values; everything else stays in ext.
     private static Regs promoteRegsExtToTopLevel(Regs regs) {
