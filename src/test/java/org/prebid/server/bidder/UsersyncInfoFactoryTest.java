@@ -116,6 +116,20 @@ public class UsersyncInfoFactoryTest {
     }
 
     @Test
+    public void buildShouldUseEmptyStringWhenUidMacroIsMissing() {
+        // given
+        final UsersyncMethod method = givenUsersyncMethod(builder -> builder
+                .usersyncUrl(Uri.of("https://usersync-url?redir={redirect_url}"))
+                .uidMacro(null));
+
+        // when
+        final UsersyncInfo result = target.build(BIDDER, null, method, givenEmptyPrivacy());
+
+        // then
+        assertThat(result.getUrl()).endsWith("uid%3D");
+    }
+
+    @Test
     public void buildShouldUseFormatParameterWithFormatFromUsersyncMethodInRedirectUrlIfHostCookieUidIsNull() {
         // given
         final UsersyncMethod method = givenUsersyncMethod(builder -> builder

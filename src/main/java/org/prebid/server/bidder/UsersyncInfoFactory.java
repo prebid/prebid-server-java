@@ -66,7 +66,7 @@ public class UsersyncInfoFactory {
                 .replaceMacros(prepareRedirectParams(bidder, uid, usersyncMethod))
                 .replaceMacros(preparePrivacyParams(privacy))
                 .expand()
-                + "&uid=" + uid; // uid macro should not be url-encoded
+                + "&uid=" + StringUtils.defaultString(uid); // uid macro should not be url-encoded
     }
 
     private Map<String, String> prepareRedirectParams(String bidder, String uid, UsersyncMethod method) {
