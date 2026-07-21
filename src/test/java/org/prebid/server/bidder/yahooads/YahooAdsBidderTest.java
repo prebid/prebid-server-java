@@ -714,6 +714,27 @@ public class YahooAdsBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldTreatEmptyTopLevelGppAsSet() {
+        // An empty top-level gpp is a non-null value, so it counts as set: no promotion
+        // and the superseded ext copy is stripped, matching core's rule for us_privacy.
+        final BidRequest bidRequest = givenBidRequest(identity(),
+                requestBuilder -> requestBuilder.regs(Regs.builder()
+                        .gpp("")
+                        .ext(ExtRegs.of(null, null, null, null))
+                        .build()).device(Device.builder().ua("UA").build()));
+        bidRequest.getRegs().getExt().addProperty("gpp", TextNode.valueOf("ext-gpp"));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        final Regs regs = result.getValue().getFirst().getPayload().getRegs();
+        assertThat(regs.getGpp()).isEmpty();
+        assertThat(regs.getExt()).isNull();
+    }
+
+    @Test
     public void makeHttpRequestsShouldDropExtGppSidWhenTopLevelGppSidAlreadySet() {
         // gpp_sid sits at both top-level and ext with different values: top-level wins and
         // the superseded ext copy is stripped, mirroring the gpp scalar-field behavior.
