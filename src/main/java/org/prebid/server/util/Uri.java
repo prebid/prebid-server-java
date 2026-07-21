@@ -3,14 +3,17 @@ package org.prebid.server.util;
 import io.vertx.uritemplate.ExpandOptions;
 import io.vertx.uritemplate.UriTemplate;
 import io.vertx.uritemplate.Variables;
+import lombok.EqualsAndHashCode;
 
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+@EqualsAndHashCode
 public class Uri {
 
     private static final ExpandOptions REQUIRE_ALL_PARAMS = new ExpandOptions().setAllowVariableMiss(false);
@@ -19,9 +22,12 @@ public class Uri {
     private static final String DYNAMIC_QUERY_START_MACRO = "{?" + DYNAMIC_QUERY_PARAM + "*}";
     private static final String DYNAMIC_QUERY_CONTINUATION_MACRO = "{&" + DYNAMIC_QUERY_PARAM + "*}";
 
+    private final String baseUri;
+    @EqualsAndHashCode.Exclude
     private final UriTemplate template;
 
     private Uri(String uri) {
+        this.baseUri = uri;
         this.template = UriTemplate.of(uri + chooseMacro(uri));
     }
 
@@ -56,6 +62,10 @@ public class Uri {
 
     public ParameterizedUri replaceMacro(String key, List<String> value) {
         return parameterized().replaceMacro(key, value);
+    }
+
+    public ParameterizedUri replaceMacros(Map<String, String> values) {
+        return parameterized().replaceMacros(values);
     }
 
     public ParameterizedUri addQueryParam(String key, String value) {
@@ -93,6 +103,11 @@ public class Uri {
 
         public ParameterizedUri replaceMacro(String key, List<String> value) {
             variables.set(key, value);
+            return this;
+        }
+
+        public ParameterizedUri replaceMacros(Map<String, String> values) {
+            values.forEach(this::replaceMacro);
             return this;
         }
 

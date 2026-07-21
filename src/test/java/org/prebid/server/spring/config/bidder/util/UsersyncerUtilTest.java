@@ -8,6 +8,7 @@ import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.spring.config.bidder.model.usersync.UsersyncBidderRegulationScopeProperties;
 import org.prebid.server.spring.config.bidder.model.usersync.UsersyncConfigurationProperties;
 import org.prebid.server.spring.config.bidder.model.usersync.UsersyncMethodConfigurationProperties;
+import org.prebid.server.util.Uri;
 
 import java.util.List;
 
@@ -69,7 +70,7 @@ public class UsersyncerUtilTest {
         // then
         assertThat(usersyncer.getIframe()).isEqualTo(UsersyncMethod.builder()
                 .type(UsersyncMethodType.IFRAME)
-                .usersyncUrl("iframe-url")
+                .usersyncUrl(Uri.of("iframe-url"))
                 .uidMacro("iframe-uid-macro")
                 .supportCORS(true)
                 .formatOverride(UsersyncFormat.BLANK)
