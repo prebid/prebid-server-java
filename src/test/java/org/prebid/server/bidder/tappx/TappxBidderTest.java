@@ -190,7 +190,7 @@ public class TappxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         final String expectedUri =
-                "https://zz855226test.pub.domain/rtb?tappxkey=tappxkey&v=1.6&type_cnn=prebid";
+                "https://zz855226test.pub.domain/rtb/?tappxkey=tappxkey&v=1.6&type_cnn=prebid";
         assertThat(result.getValue()).hasSize(1)
                 .allSatisfy(httpRequest -> {
                     assertThat(httpRequest.getUri()).isEqualTo(expectedUri);

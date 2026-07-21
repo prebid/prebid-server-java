@@ -6,6 +6,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -94,7 +95,11 @@ public class TappxBidder implements Bidder<BidRequest> {
 
         return endpoint
                 .replaceMacro(SUBDOMAIN_MACRO, subdomain)
-                .replaceMacro(PATH_MACRO, isNewEndpoint ? List.of("rtb") : List.of("rtb", "v2", subdomainPart))
+                .replaceMacro(
+                        PATH_MACRO,
+                        isNewEndpoint
+                                ? List.of("rtb", StringUtils.EMPTY)
+                                : List.of("rtb", "v2", subdomainPart))
                 .addQueryParam("tappxkey", extImpTappx.getTappxkey())
                 .addQueryParam("v", VERSION)
                 .addQueryParam("type_cnn", TYPE_CNN)
