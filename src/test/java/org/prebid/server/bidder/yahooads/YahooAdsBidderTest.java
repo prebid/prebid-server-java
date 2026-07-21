@@ -780,6 +780,36 @@ public class YahooAdsBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldApplyTheSamePromotedRegsToEveryImp() {
+        // Promotion runs once per request and the promoted regs is shared by every
+        // per-imp outbound request, so all of them carry the same correct values.
+        final BidRequest bidRequest = BidRequest.builder()
+                .site(Site.builder().id("123").build())
+                .imp(asList(
+                        givenImp(impBuilder -> impBuilder.id("imp1")),
+                        givenImp(impBuilder -> impBuilder.id("imp2"))))
+                .regs(Regs.builder()
+                        .ext(ExtRegs.of(null, null, null, null))
+                        .build())
+                .device(Device.builder().ua("UA").build())
+                .build();
+        bidRequest.getRegs().getExt().addProperty("gpp", TextNode.valueOf("shared-gpp"));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(2)
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getRegs)
+                .allSatisfy(regs -> {
+                    assertThat(regs.getGpp()).isEqualTo("shared-gpp");
+                    assertThat(regs.getExt()).isNull();
+                });
+    }
+
+    @Test
     public void makeHttpRequestsShouldShortCircuitWhenRegsHasNoExt() {
         final BidRequest bidRequest = givenBidRequest(identity(),
                 requestBuilder -> requestBuilder.regs(Regs.builder()
