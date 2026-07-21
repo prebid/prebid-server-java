@@ -372,7 +372,7 @@ public class UsersyncMethodChooserTest extends VertxTest {
     private UsersyncMethod redirectMethod(String url) {
         return UsersyncMethod.builder()
                 .type(UsersyncMethodType.REDIRECT)
-                .usersyncUrl(url != null ? Uri.of(url) : null)
+                .usersyncUrl(Uri.of(url))
                 .supportCORS(false)
                 .build();
     }

@@ -5,6 +5,7 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.proto.response.UsersyncInfo;
+import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.Uri;
 
 import java.util.Map;
@@ -21,8 +22,7 @@ public class UsersyncInfoFactory {
             &us_privacy={us_privacy}\
             &gpp={gpp}\
             &gpp_sid={gpp_sid}\
-            &f={format}\
-            &uid={uid}""";
+            &f={format}""";
 
     private static final String BIDDER_PLACEHOLDER = "bidder";
     private static final String GDPR_PLACEHOLDER = "gdpr";
@@ -32,7 +32,6 @@ public class UsersyncInfoFactory {
     private static final String GPP_SID_PLACEHOLDER = "gpp_sid";
     private static final String REDIRECT_URL_PLACEHOLDER = "redirect_url";
     private static final String FORMAT_PLACEHOLDER = "format";
-    private static final String UID_PLACEHOLDER = "uid";
 
     private final Uri callbackUrlTemplate;
 
@@ -46,23 +45,11 @@ public class UsersyncInfoFactory {
                               Privacy privacy) {
 
         return UsersyncInfo.of(
-                hostCookieUid != null
-                        ? buildSetUidUrl(bidder, hostCookieUid, usersyncMethod, privacy)
-                        : buildSyncUrl(bidder, usersyncMethod, privacy),
+                hostCookieUid == null
+                        ? buildSyncUrl(bidder, usersyncMethod, privacy)
+                        : buildSetUidUrl(bidder, HttpUtil.encodeUrl(hostCookieUid), usersyncMethod, privacy),
                 usersyncMethod.getType(),
                 usersyncMethod.isSupportCORS());
-    }
-
-    private String buildSetUidUrl(String bidder,
-                                  String hostCookieUid,
-                                  UsersyncMethod usersyncMethod,
-                                  Privacy privacy) {
-
-        return callbackUrlTemplate
-                .replaceMacros(prepareRedirectParams(bidder, hostCookieUid, usersyncMethod))
-                .replaceMacros(preparePrivacyParams(privacy))
-                .replaceMacro(REDIRECT_URL_PLACEHOLDER, StringUtils.EMPTY)
-                .expand();
     }
 
     private String buildSyncUrl(String bidder, UsersyncMethod usersyncMethod, Privacy privacy) {
@@ -74,10 +61,17 @@ public class UsersyncInfoFactory {
                 .expand();
     }
 
+    private String buildSetUidUrl(String bidder, String uid, UsersyncMethod usersyncMethod, Privacy privacy) {
+        return callbackUrlTemplate
+                .replaceMacros(prepareRedirectParams(bidder, uid, usersyncMethod))
+                .replaceMacros(preparePrivacyParams(privacy))
+                .expand()
+                + "&uid=" + uid; // uid macro should not be url-encoded
+    }
+
     private Map<String, String> prepareRedirectParams(String bidder, String uid, UsersyncMethod method) {
         return Map.of(
                 BIDDER_PLACEHOLDER, bidder,
-                UID_PLACEHOLDER, StringUtils.defaultString(uid),
                 FORMAT_PLACEHOLDER, resolveFormat(method).name);
     }
 

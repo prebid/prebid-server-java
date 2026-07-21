@@ -16,4 +16,4 @@ adapters:
       iframe:
         url: https://ssp.api.tappx.com/cs/usersync.php?gdpr_optin={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&type=iframe&ruid={redirect_url}
         support-cors: false
-        uid-macro: '{TPPXUID}'
+        uid-macro: '{{TPPXUID}}'

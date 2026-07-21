@@ -336,7 +336,7 @@ public class ApplicationTest extends IntegrationTest {
                                         + "%26gpp%3D"
                                         + "%26gpp_sid%3D"
                                         + "%26f%3Di"
-                                        + "%26uid%3D%2524UID",
+                                        + "%26uid%3D%24UID",
                                 UsersyncMethodType.REDIRECT, false))
                         .build());
     }

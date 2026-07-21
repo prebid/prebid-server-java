@@ -17,4 +17,4 @@ adapters:
       redirect:
         url: https://lockerdome.com/usync/prebidserver?redirect={redirect_url}
         support-cors: false
-        uid-macro: '{uid}'
+        uid-macro: '{{uid}}'

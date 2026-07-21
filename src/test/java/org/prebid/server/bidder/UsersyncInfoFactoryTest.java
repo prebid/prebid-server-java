@@ -102,6 +102,20 @@ public class UsersyncInfoFactoryTest {
     }
 
     @Test
+    public void buildShouldNotDoubleUrlEncodeUidMacro() {
+        // given
+        final UsersyncMethod method = givenUsersyncMethod(builder -> builder
+                .usersyncUrl(Uri.of("https://usersync-url?redir={redirect_url}"))
+                .uidMacro("{UID-MACRO}"));
+
+        // when
+        final UsersyncInfo result = target.build(BIDDER, null, method, givenEmptyPrivacy());
+
+        // then
+        assertThat(result.getUrl()).contains("uid%3D%7BUID-MACRO%7D");
+    }
+
+    @Test
     public void buildShouldUseFormatParameterWithFormatFromUsersyncMethodInRedirectUrlIfHostCookieUidIsNull() {
         // given
         final UsersyncMethod method = givenUsersyncMethod(builder -> builder
@@ -242,7 +256,7 @@ public class UsersyncInfoFactoryTest {
                 %26gpp%3Dgpp\
                 %26gpp_sid%3D1%252C2\
                 %26f%3Di\
-                %26uid%3D%2524UID""");
+                %26uid%3D%24UID""");
     }
 
     @Test
@@ -338,7 +352,7 @@ public class UsersyncInfoFactoryTest {
                 %26gpp%3Dg%2520pp\
                 %26gpp_sid%3D1%252C2\
                 %26f%3Di\
-                %26uid%3D%2524UID-MACRO\
+                %26uid%3D%24UID-MACRO\
                 &gdpr=1\
                 &gdpr_consent=c%241\
                 &us_privacy=1YNN\

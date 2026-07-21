@@ -16,8 +16,8 @@ adapters:
       supported-vendors:
       vendor-id: 109
     usersync:
-      url: https://csync.loopme.me/?pubid=11393&gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&redirect={redirect_url}
-      redirect-url: /setuid?bidder=loopme&gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&uid={udid}
       cookie-family-name: loopme
-      type: redirect
-      support-cors: false
+      redirect:
+        url: https://csync.loopme.me/?pubid=11393&gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&redirect={redirect_url}
+        support-cors: false
+        uid-macro: '{udid}'
