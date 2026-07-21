@@ -714,6 +714,29 @@ public class YahooAdsBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldDropExtGppSidWhenTopLevelGppSidAlreadySet() {
+        // gpp_sid sits at both top-level and ext with different values: top-level wins and
+        // the superseded ext copy is stripped, mirroring the gpp scalar-field behavior.
+        final BidRequest bidRequest = givenBidRequest(identity(),
+                requestBuilder -> requestBuilder.regs(Regs.builder()
+                        .gppSid(List.of(99))
+                        .ext(ExtRegs.of(null, null, null, null))
+                        .build()).device(Device.builder().ua("UA").build()));
+        final ArrayNode sidArray = mapper.createArrayNode();
+        sidArray.add(6);
+        bidRequest.getRegs().getExt().addProperty("gpp_sid", sidArray);
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        final Regs regs = result.getValue().getFirst().getPayload().getRegs();
+        assertThat(regs.getGppSid()).containsExactly(99);
+        assertThat(regs.getExt()).isNull();
+    }
+
+    @Test
     public void makeHttpRequestsShouldShortCircuitWhenRegsHasNoExt() {
         final BidRequest bidRequest = givenBidRequest(identity(),
                 requestBuilder -> requestBuilder.regs(Regs.builder()
