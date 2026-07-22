@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.proto.request.CookieSyncRequest;
+import org.prebid.server.util.Uri;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -16,10 +17,10 @@ public class UsersyncMethodChooserTest extends VertxTest {
     public void shouldReturnPreferredMethodWhenFilterIsNull() {
         // given and when
         final UsersyncMethod chosenMethod = UsersyncMethodChooser.from(null)
-                .choose(iframeUsersyncer("url"), BIDDER);
+                .choose(iframeUsersyncer("https://url"), BIDDER);
 
         // then
-        assertThat(chosenMethod).isEqualTo(iframeMethod("url"));
+        assertThat(chosenMethod).isEqualTo(iframeMethod("https://url"));
     }
 
     @Test
@@ -29,10 +30,10 @@ public class UsersyncMethodChooserTest extends VertxTest {
 
         // when
         final UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter)
-                .choose(iframeUsersyncer("url"), BIDDER);
+                .choose(iframeUsersyncer("https://url"), BIDDER);
 
         // then
-        assertThat(chosenMethod).isEqualTo(iframeMethod("url"));
+        assertThat(chosenMethod).isEqualTo(iframeMethod("https://url"));
     }
 
     @Test
@@ -44,10 +45,10 @@ public class UsersyncMethodChooserTest extends VertxTest {
 
         // when
         final UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter)
-                .choose(iframeUsersyncer("url"), BIDDER);
+                .choose(iframeUsersyncer("https://url"), BIDDER);
 
         // then
-        assertThat(chosenMethod).isEqualTo(iframeMethod("url"));
+        assertThat(chosenMethod).isEqualTo(iframeMethod("https://url"));
     }
 
     @Test
@@ -60,8 +61,8 @@ public class UsersyncMethodChooserTest extends VertxTest {
                 null);
         final Usersyncer usersyncer = Usersyncer.of(
                 null,
-                iframeMethod("url"),
-                redirectMethod("url"),
+                iframeMethod("https://url"),
+                redirectMethod("https://url"),
                 false,
                 null);
 
@@ -70,7 +71,7 @@ public class UsersyncMethodChooserTest extends VertxTest {
                 .choose(usersyncer, BIDDER);
 
         // then
-        assertThat(chosenMethod).isEqualTo(redirectMethod("url"));
+        assertThat(chosenMethod).isEqualTo(redirectMethod("https://url"));
     }
 
     @Test
@@ -84,10 +85,10 @@ public class UsersyncMethodChooserTest extends VertxTest {
 
         // when
         final UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter)
-                .choose(iframeUsersyncer("url"), BIDDER);
+                .choose(iframeUsersyncer("https://url"), BIDDER);
 
         // then
-        assertThat(chosenMethod).isEqualTo(iframeMethod("url"));
+        assertThat(chosenMethod).isEqualTo(iframeMethod("https://url"));
     }
 
     @Test
@@ -100,8 +101,8 @@ public class UsersyncMethodChooserTest extends VertxTest {
                 null);
         final Usersyncer usersyncer = Usersyncer.of(
                 null,
-                iframeMethod("url"),
-                redirectMethod("url"),
+                iframeMethod("https://url"),
+                redirectMethod("https://url"),
                 false,
                 null);
 
@@ -110,7 +111,7 @@ public class UsersyncMethodChooserTest extends VertxTest {
                 .choose(usersyncer, BIDDER);
 
         // then
-        assertThat(chosenMethod).isEqualTo(redirectMethod("url"));
+        assertThat(chosenMethod).isEqualTo(redirectMethod("https://url"));
     }
 
     @Test
@@ -123,8 +124,8 @@ public class UsersyncMethodChooserTest extends VertxTest {
                 null);
         final Usersyncer usersyncer = Usersyncer.of(
                 null,
-                iframeMethod("url"),
-                redirectMethod("url"),
+                iframeMethod("https://url"),
+                redirectMethod("https://url"),
                 false,
                 null);
 
@@ -133,7 +134,7 @@ public class UsersyncMethodChooserTest extends VertxTest {
                 .choose(usersyncer, BIDDER);
 
         // then
-        assertThat(chosenMethod).isEqualTo(redirectMethod("url"));
+        assertThat(chosenMethod).isEqualTo(redirectMethod("https://url"));
     }
 
     @Test
@@ -147,10 +148,10 @@ public class UsersyncMethodChooserTest extends VertxTest {
 
         // when
         final UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter)
-                .choose(iframeUsersyncer("url"), BIDDER);
+                .choose(iframeUsersyncer("https://url"), BIDDER);
 
         // then
-        assertThat(chosenMethod).isEqualTo(iframeMethod("url"));
+        assertThat(chosenMethod).isEqualTo(iframeMethod("https://url"));
     }
 
     @Test
@@ -164,10 +165,10 @@ public class UsersyncMethodChooserTest extends VertxTest {
 
         // when
         final UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter)
-                .choose(iframeUsersyncer("url"), BIDDER);
+                .choose(iframeUsersyncer("https://url"), BIDDER);
 
         // then
-        assertThat(chosenMethod).isEqualTo(iframeMethod("url"));
+        assertThat(chosenMethod).isEqualTo(iframeMethod("https://url"));
     }
 
     @Test
@@ -181,10 +182,10 @@ public class UsersyncMethodChooserTest extends VertxTest {
 
         // when
         final UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter)
-                .choose(iframeUsersyncer("url"), BIDDER);
+                .choose(iframeUsersyncer("https://url"), BIDDER);
 
         // then
-        assertThat(chosenMethod).isEqualTo(iframeMethod("url"));
+        assertThat(chosenMethod).isEqualTo(iframeMethod("https://url"));
     }
 
     @Test
@@ -197,8 +198,8 @@ public class UsersyncMethodChooserTest extends VertxTest {
                 null);
         final Usersyncer usersyncer = Usersyncer.of(
                 null,
-                iframeMethod("url"),
-                redirectMethod("url"),
+                iframeMethod("https://url"),
+                redirectMethod("https://url"),
                 false,
                 null);
 
@@ -207,7 +208,7 @@ public class UsersyncMethodChooserTest extends VertxTest {
                 .choose(usersyncer, BIDDER);
 
         // then
-        assertThat(chosenMethod).isEqualTo(redirectMethod("url"));
+        assertThat(chosenMethod).isEqualTo(redirectMethod("https://url"));
     }
 
     @Test
@@ -221,10 +222,10 @@ public class UsersyncMethodChooserTest extends VertxTest {
 
         // when
         final UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter)
-                .choose(iframeUsersyncer("url"), BIDDER);
+                .choose(iframeUsersyncer("https://url"), BIDDER);
 
         // then
-        assertThat(chosenMethod).isEqualTo(iframeMethod("url"));
+        assertThat(chosenMethod).isEqualTo(iframeMethod("https://url"));
     }
 
     @Test
@@ -237,10 +238,11 @@ public class UsersyncMethodChooserTest extends VertxTest {
                 null);
 
         // when
-        final UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter).choose(iframeUsersyncer("url"), BIDDER);
+        final UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter)
+                .choose(iframeUsersyncer("https://url"), BIDDER);
 
         // then
-        assertThat(chosenMethod).isEqualTo(iframeMethod("url"));
+        assertThat(chosenMethod).isEqualTo(iframeMethod("https://url"));
     }
 
     @Test
@@ -253,8 +255,8 @@ public class UsersyncMethodChooserTest extends VertxTest {
                 null);
         final Usersyncer usersyncer = Usersyncer.of(
                 null,
-                iframeMethod("url"),
-                redirectMethod("url"),
+                iframeMethod("https://url"),
+                redirectMethod("https://url"),
                 false,
                 null);
 
@@ -262,7 +264,7 @@ public class UsersyncMethodChooserTest extends VertxTest {
         final UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter).choose(usersyncer, BIDDER);
 
         // then
-        assertThat(chosenMethod).isEqualTo(redirectMethod("url"));
+        assertThat(chosenMethod).isEqualTo(redirectMethod("https://url"));
     }
 
     @Test
@@ -275,8 +277,8 @@ public class UsersyncMethodChooserTest extends VertxTest {
                 null);
         final Usersyncer usersyncer = Usersyncer.of(
                 null,
-                iframeMethod("url"),
-                redirectMethod("url"),
+                iframeMethod("https://url"),
+                redirectMethod("https://url"),
                 false,
                 null);
 
@@ -285,7 +287,7 @@ public class UsersyncMethodChooserTest extends VertxTest {
                 .choose(usersyncer, BIDDER);
 
         // then
-        assertThat(chosenMethod).isEqualTo(redirectMethod("url"));
+        assertThat(chosenMethod).isEqualTo(redirectMethod("https://url"));
     }
 
     @Test
@@ -300,8 +302,8 @@ public class UsersyncMethodChooserTest extends VertxTest {
                         CookieSyncRequest.FilterType.include));
         final Usersyncer usersyncer = Usersyncer.of(
                 null,
-                iframeMethod("url"),
-                redirectMethod("url"),
+                iframeMethod("https://url"),
+                redirectMethod("https://url"),
                 false,
                 null);
 
@@ -310,7 +312,7 @@ public class UsersyncMethodChooserTest extends VertxTest {
                 .choose(usersyncer, BIDDER);
 
         // then
-        assertThat(chosenMethod).isEqualTo(redirectMethod("url"));
+        assertThat(chosenMethod).isEqualTo(redirectMethod("https://url"));
     }
 
     @Test
@@ -325,27 +327,14 @@ public class UsersyncMethodChooserTest extends VertxTest {
                         CookieSyncRequest.FilterType.exclude));
         final Usersyncer usersyncer = Usersyncer.of(
                 null,
-                iframeMethod("url"),
-                redirectMethod("url"),
+                iframeMethod("https://url"),
+                redirectMethod("https://url"),
                 false,
                 null);
 
         // when
         final UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter)
                 .choose(usersyncer, BIDDER);
-
-        // then
-        assertThat(chosenMethod).isNull();
-    }
-
-    @Test
-    public void shouldReturnNullWhenPrimaryHasNoUrl() {
-        // given
-        final CookieSyncRequest.FilterSettings filter = CookieSyncRequest.FilterSettings.of(null, null);
-
-        // when
-        final UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter)
-                .choose(iframeUsersyncer(null), BIDDER);
 
         // then
         assertThat(chosenMethod).isNull();
@@ -362,7 +351,7 @@ public class UsersyncMethodChooserTest extends VertxTest {
 
         // when
         final UsersyncMethod chosenMethod = UsersyncMethodChooser.from(filter)
-                .choose(iframeUsersyncer("url"), BIDDER);
+                .choose(iframeUsersyncer("https://url"), BIDDER);
 
         // then
         assertThat(chosenMethod).isNull();
@@ -375,14 +364,14 @@ public class UsersyncMethodChooserTest extends VertxTest {
     private UsersyncMethod iframeMethod(String url) {
         return UsersyncMethod.builder()
                 .type(UsersyncMethodType.IFRAME)
-                .usersyncUrl(url)
+                .usersyncUrl(Uri.of(url))
                 .build();
     }
 
     private UsersyncMethod redirectMethod(String url) {
         return UsersyncMethod.builder()
                 .type(UsersyncMethodType.REDIRECT)
-                .usersyncUrl(url)
+                .usersyncUrl(Uri.of(url))
                 .build();
     }
 }

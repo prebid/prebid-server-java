@@ -14,5 +14,5 @@ adapters:
     usersync:
       cookie-family-name: frvradn
       iframe:
-        url: https://fran.frvr.com/api/v1/sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect_uri={{redirect_url}}
+        url: https://fran.frvr.com/api/v1/sync?gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&redirect_uri={redirect_url}
         uid-macro: '{{UID}}'

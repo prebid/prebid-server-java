@@ -31,7 +31,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class BwxBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.endpoint.com/any?hs={{Host}}&src={{SourceId}}";
+    private static final String ENDPOINT_URL = "https://test.endpoint.com/any?hs={Host}&src={SourceId}";
 
     private final BwxBidder target = new BwxBidder(ENDPOINT_URL, jacksonMapper);
 

@@ -14,8 +14,8 @@ adapters:
     usersync:
       cookie-family-name: nobid
       redirect:
-        url: https://ads.servenobid.com/getsync?tek=pbs&ver=1&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+        url: https://ads.servenobid.com/getsync?tek=pbs&ver=1&gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&redirect={redirect_url}
         uid-macro: '$UID'
       iframe:
-        url: https://public.servenobid.com/sync.html?tek=pbs&ver=1&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+        url: https://public.servenobid.com/sync.html?tek=pbs&ver=1&gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&redirect={redirect_url}
         uid-macro: '$UID'

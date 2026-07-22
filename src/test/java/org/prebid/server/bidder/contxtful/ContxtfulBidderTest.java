@@ -47,7 +47,7 @@ import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
 
 public class ContxtfulBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.endpoint.com/?customer={{AccountId}}";
+    private static final String ENDPOINT_URL = "https://test.endpoint.com/?customer={AccountId}";
     private static final String BIDDER_NAME = "contxtful";
 
     private final ContxtfulBidder target = new ContxtfulBidder(ENDPOINT_URL, jacksonMapper);
@@ -150,15 +150,6 @@ public class ContxtfulBidderTest extends VertxTest {
         final Result<List<HttpRequest<ContxtfulCompositeRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        final ContxtfulCompositeRequest expectedPayload = ContxtfulCompositeRequest.builder()
-                .ortb2Request(bidRequest)
-                .bidRequests(List.of(
-                        ContxtfulBidRequest.of(BIDDER_NAME, ContxtfulBidRequestParams.of("placement1"), "imp1"),
-                        ContxtfulBidRequest.of(BIDDER_NAME, ContxtfulBidRequestParams.of("placement2"), "imp2")))
-                .bidderRequest(ContxtfulBidderRequest.of(BIDDER_NAME))
-                .config(ContxtfulConfig.of(ContxtfulConfigDetails.of("v1", "customer1")))
-                .build();
-
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1).first()
                 .extracting(HttpRequest::getImpIds)

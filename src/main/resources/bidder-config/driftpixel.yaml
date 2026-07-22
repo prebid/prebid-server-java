@@ -1,6 +1,6 @@
 adapters:
   driftpixel:
-    endpoint: http://rtb.driftpixel.live?pid={{SourceId}}&host={{Host}}&pbs=1
+    endpoint: http://rtb.driftpixel.live?pid={SourceId}&host={Host}&pbs=1
     meta-info:
       maintainer-email: developer@driftpixel.ai
       app-media-types:
@@ -16,5 +16,5 @@ adapters:
     usersync:
       cookie-family-name: driftpixel
       redirect:
-        url: "https://sync.driftpixel.live/psync?t=s&e=0&gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&cb={{redirect_url}}"
+        url: "https://sync.driftpixel.live/psync?t=s&e=0&gdpr={gdpr}&consent={gdpr_consent}&us_privacy={us_privacy}&cb={redirect_url}"
         uid-macro: "%USER_ID%"

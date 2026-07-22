@@ -16,8 +16,8 @@ adapters:
     usersync:
       cookie-family-name: inmobi
       iframe:
-        url: https://sync.inmobi.com/prebid?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redirect={{redirect_url}}
+        url: https://sync.inmobi.com/prebid?gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&gpp={gpp}&gpp_sid={gpp_sid}&redirect={redirect_url}
         uid-macro: '{ID5UID}'
       redirect:
-        url: https://sync.inmobi.com/prebid?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redirect={{redirect_url}}
+        url: https://sync.inmobi.com/prebid?gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&gpp={gpp}&gpp_sid={gpp_sid}&redirect={redirect_url}
         uid-macro: '{ID5UID}'

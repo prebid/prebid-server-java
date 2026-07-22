@@ -1,6 +1,6 @@
 adapters:
   mediago:
-    endpoint: https://REGION.mediago.io/api/bid?tn={{AccountID}}
+    endpoint: https://REGION.mediago.io/api/bid?tn={AccountID}
     endpoint-compression: gzip
     geoscope:
       - USA
@@ -24,5 +24,5 @@ adapters:
     usersync:
       cookie-family-name: mediago
       redirect:
-        url: https://trace.mediago.io/ju/cs/prebid?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+        url: https://trace.mediago.io/ju/cs/prebid?gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&redirect={redirect_url}
         uid-macro: '$UID'

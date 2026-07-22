@@ -66,7 +66,6 @@ import static org.assertj.core.api.Assertions.within;
 public class ApplicationTest extends IntegrationTest {
 
     private static final String APPNEXUS = "appnexus";
-    private static final String APPNEXUS_COOKIE_FAMILY = "adnxs";
     private static final String RUBICON = "rubicon";
     private static final String GENERIC = "generic";
     private static final String GENERIC_ALIAS = "genericAlias";
@@ -77,7 +76,7 @@ public class ApplicationTest extends IntegrationTest {
             .setBaseUri("http://localhost")
             .setPort(ADMIN_PORT)
             .setConfig(RestAssuredConfig.config()
-                    .objectMapperConfig(new ObjectMapperConfig(new Jackson2Mapper((aClass, s) -> mapper))))
+                    .objectMapperConfig(new ObjectMapperConfig(new Jackson2Mapper((_, _) -> mapper))))
             .build();
 
     @Test
@@ -130,9 +129,7 @@ public class ApplicationTest extends IntegrationTest {
 
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/genericAlias-exchange"))
                 .withRequestBody(equalToJson(
-                        jsonFrom(
-                                "openrtb2/multi_bid/test-genericAlias-bid-request-1.json"
-                        )))
+                        jsonFrom("openrtb2/multi_bid/test-genericAlias-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom(
                         "openrtb2/multi_bid/test-genericAlias-bid-response-1.json"))));
 
@@ -333,14 +330,14 @@ public class ApplicationTest extends IntegrationTest {
                         .bidder(APPNEXUS)
                         .noCookie(true)
                         .usersync(UsersyncInfo.of(
-                                "//usersync-url/getuid?http%3A%2F%2Flocalhost%3A8080%2Fsetuid%3Fbidder"
+                                "http://usersync-url/getuid?http%3A%2F%2Flocalhost%3A8080%2Fsetuid%3Fbidder"
                                         + "%3Dappnexus%26gdpr%3D1%26gdpr_consent%3D" + gdprConsent
                                         + "%26us_privacy%3D1YNN"
                                         + "%26gpp%3D"
                                         + "%26gpp_sid%3D"
-                                        + "%26f%3Db"
+                                        + "%26f%3Di"
                                         + "%26uid%3D%24UID",
-                                UsersyncMethodType.IFRAME))
+                                UsersyncMethodType.REDIRECT))
                         .build());
     }
 

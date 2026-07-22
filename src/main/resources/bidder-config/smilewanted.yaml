@@ -1,6 +1,6 @@
 adapters:
   smilewanted:
-    endpoint: https://prebid-server.smilewanted.com/java/{{ZoneId}}
+    endpoint: https://prebid-server.smilewanted.com/java/{ZoneId}
     meta-info:
       maintainer-email: tech@smilewanted.com
       app-media-types:
@@ -14,5 +14,5 @@ adapters:
     usersync:
       cookie-family-name: smilewanted
       redirect:
-        url: https://csync.smilewanted.com/getuid?source=prebid-server&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+        url: https://csync.smilewanted.com/getuid?source=prebid-server&gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&redirect={redirect_url}
         uid-macro: '$UID'

@@ -8,6 +8,7 @@ import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.spring.config.bidder.model.usersync.UsersyncBidderRegulationScopeProperties;
 import org.prebid.server.spring.config.bidder.model.usersync.UsersyncConfigurationProperties;
 import org.prebid.server.spring.config.bidder.model.usersync.UsersyncMethodConfigurationProperties;
+import org.prebid.server.util.Uri;
 
 import java.util.List;
 
@@ -55,7 +56,7 @@ public class UsersyncerUtilTest {
     public void createShouldReturnUsersyncerWithCorrectUsersyncMethodParams() {
         // given
         final UsersyncMethodConfigurationProperties iframe = new UsersyncMethodConfigurationProperties();
-        iframe.setUrl("iframe-url");
+        iframe.setUrl("https://iframe-url");
         iframe.setUidMacro("iframe-uid-macro");
         iframe.setFormatOverride(UsersyncFormat.BLANK);
 
@@ -68,7 +69,7 @@ public class UsersyncerUtilTest {
         // then
         assertThat(usersyncer.getIframe()).isEqualTo(UsersyncMethod.builder()
                 .type(UsersyncMethodType.IFRAME)
-                .usersyncUrl("iframe-url")
+                .usersyncUrl(Uri.of("https://iframe-url"))
                 .uidMacro("iframe-uid-macro")
                 .formatOverride(UsersyncFormat.BLANK)
                 .build());
@@ -93,10 +94,10 @@ public class UsersyncerUtilTest {
     public void createShouldUseCorrespondingParamsForIframeAndRedirectIfBothAreProvided() {
         // given
         final UsersyncMethodConfigurationProperties iframe = givenUsersyncMethodConfigurationProperties();
-        iframe.setUrl("iframe-url");
+        iframe.setUrl("https://iframe-url");
 
         final UsersyncMethodConfigurationProperties redirect = givenUsersyncMethodConfigurationProperties();
-        redirect.setUrl("redirect-url");
+        redirect.setUrl("https://redirect-url");
 
         final UsersyncConfigurationProperties properties = givenUsersyncConfigurationProperties();
         properties.setIframe(iframe);
@@ -108,11 +109,11 @@ public class UsersyncerUtilTest {
         // then
         assertThat(useresyncer.getIframe()).satisfies(method -> {
             assertThat(method.getType()).isEqualTo(UsersyncMethodType.IFRAME);
-            assertThat(method.getUsersyncUrl()).isEqualTo("iframe-url");
+            assertThat(method.getUsersyncUrl()).isEqualTo(Uri.of("https://iframe-url"));
         });
         assertThat(useresyncer.getRedirect()).satisfies(method -> {
             assertThat(method.getType()).isEqualTo(UsersyncMethodType.REDIRECT);
-            assertThat(method.getUsersyncUrl()).isEqualTo("redirect-url");
+            assertThat(method.getUsersyncUrl()).isEqualTo(Uri.of("https://redirect-url"));
         });
     }
 
@@ -127,7 +128,7 @@ public class UsersyncerUtilTest {
 
     private static UsersyncMethodConfigurationProperties givenUsersyncMethodConfigurationProperties() {
         final UsersyncMethodConfigurationProperties properties = new UsersyncMethodConfigurationProperties();
-        properties.setUrl("url");
+        properties.setUrl("https://url");
         return properties;
     }
 }

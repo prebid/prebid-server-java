@@ -17,5 +17,5 @@ adapters:
     usersync:
       cookie-family-name: theadx
       redirect:
-        url: https://ssp.theadx.com/cookie?redirect_url={{redirect_url}}&?pbs=1
+        url: https://ssp.theadx.com/cookie?redirect_url={redirect_url}&?pbs=1
         uid-macro: '$UID'

@@ -23,6 +23,7 @@ import org.prebid.server.proto.openrtb.ext.request.motoril.ExtImpMotorik;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -32,16 +33,18 @@ import java.util.Objects;
 
 public class MotorikBidder implements Bidder<BidRequest> {
 
+    private static final String ACCOUNT_ID_MACRO = "AccountID";
+    private static final String SOURCE_ID_MACRO = "SourceId";
     private static final String X_OPENRTB_VERSION = "2.5";
 
     private static final TypeReference<ExtPrebid<?, ExtImpMotorik>> MOTORIK_TYPE_REFERENCE = new TypeReference<>() {
     };
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public MotorikBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -89,8 +92,10 @@ public class MotorikBidder implements Bidder<BidRequest> {
     }
 
     private String makeUrl(ExtImpMotorik extImpMotorik) {
-        return endpointUrl.replace("{{AccountID}}", extImpMotorik.getAccountId())
-                .replace("{{SourceId}}", extImpMotorik.getPlacementId());
+        return endpointUrl
+                .replaceMacro(ACCOUNT_ID_MACRO, extImpMotorik.getAccountId())
+                .replaceMacro(SOURCE_ID_MACRO, extImpMotorik.getPlacementId())
+                .expand();
     }
 
     private MultiMap makeRequestHeaders(Device device) {
@@ -148,5 +153,4 @@ public class MotorikBidder implements Bidder<BidRequest> {
 
         throw new PreBidException("Failed to find impression for ID: '%s'".formatted(impId));
     }
-
 }

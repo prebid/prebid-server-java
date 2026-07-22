@@ -1,6 +1,6 @@
 adapters:
   mgid:
-    endpoint: https://prebid.mgid.com/prebid/
+    endpoint: https://prebid.mgid.com/prebid/{AccountId}
     meta-info:
       maintainer-email: prebid@mgid.com
       app-media-types:
@@ -14,5 +14,5 @@ adapters:
     usersync:
       cookie-family-name: mgid
       redirect:
-        url: https://cm.mgid.com/m?cdsp=363893&adu={{redirect_url}}
+        url: https://cm.mgid.com/m?cdsp=363893&adu={redirect_url}
         uid-macro: '{muidn}'

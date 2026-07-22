@@ -1,6 +1,6 @@
 adapters:
   roulax:
-    endpoint: http://dsp.rcoreads.com/api/{{PublisherID}}?pid={{AccountID}}
+    endpoint: http://dsp.rcoreads.com/api/{PublisherID}?pid={AccountID}
     meta-info:
       maintainer-email: bussiness@roulax.io
       app-media-types:

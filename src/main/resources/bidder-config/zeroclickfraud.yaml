@@ -1,6 +1,6 @@
 adapters:
   zeroclickfraud:
-    endpoint: http://{{Host}}/openrtb2?sid={{SourceId}}
+    endpoint: http://{Host}/openrtb2?sid={SourceId}
     meta-info:
       maintainer-email: support@datablocks.net
       app-media-types:
@@ -16,5 +16,5 @@ adapters:
     usersync:
       cookie-family-name: zeroclickfraud
       iframe:
-        url: https://s.0cf.io/sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&r={{redirect_url}}
+        url: https://s.0cf.io/sync?gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&r={redirect_url}
         uid-macro: '${uid}'

@@ -14,8 +14,8 @@ adapters:
     usersync:
       cookie-family-name: trustx
       iframe:
-        url: https://static.cdn.trustx.org/x/user_sync.html?source=pbs&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redirect={{redirect_url}}
+        url: https://static.cdn.trustx.org/x/user_sync.html?source=pbs&us_privacy={us_privacy}&gpp={gpp}&gpp_sid={gpp_sid}&redirect={redirect_url}
         uid-macro: '$UID'
       redirect:
-        url: https://sync.trustx.org/usync-pbs?us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redirect={{redirect_url}}
+        url: https://sync.trustx.org/usync-pbs?us_privacy={us_privacy}&gpp={gpp}&gpp_sid={gpp_sid}&redirect={redirect_url}
         uid-macro: '$UID'

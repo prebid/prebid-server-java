@@ -14,5 +14,5 @@ adapters:
     usersync:
       cookie-family-name: videobyte
       redirect:
-        url: https://x.videobyte.com/usync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&cb={{redirect_url}}
+        url: https://x.videobyte.com/usync?gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&cb={redirect_url}
         uid-macro: '$UID'

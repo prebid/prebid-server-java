@@ -193,7 +193,7 @@ class HttpSettingsSpec extends BaseSpec {
     def "PBS should take account information from http data source on setuid request"() {
         given: "Pbs config with adapters.generic.usersync.redirect.*"
         def pbsConfig = PbsConfig.httpSettingsConfig +
-                ["adapters.generic.usersync.redirect.url"            : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
+                ["adapters.generic.usersync.redirect.url"            : "$networkServiceContainer.rootUri/generic-usersync&redir={redirect_url}".toString(),
                  "adapters.generic.usersync.redirect.format-override": "blank"]
         def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
@@ -228,7 +228,7 @@ class HttpSettingsSpec extends BaseSpec {
         def pbsConfig = new HashMap<>(PbsConfig.httpSettingsConfig) +
                 ['settings.http.endpoint': "${networkServiceContainer.rootUri}${HttpSettings.rfcEndpoint}".toString(),
                  'settings.http.rfc3986-compatible': 'true',
-                 'adapters.generic.usersync.redirect.url'            : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
+                 'adapters.generic.usersync.redirect.url'            : "$networkServiceContainer.rootUri/generic-usersync&redir={redirect_url}".toString(),
                  'adapters.generic.usersync.redirect.format-override': 'blank']
         def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 

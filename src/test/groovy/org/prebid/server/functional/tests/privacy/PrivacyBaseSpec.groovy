@@ -362,4 +362,14 @@ abstract class PrivacyBaseSpec extends BaseSpec {
             it.vendors = [(GENERIC_VENDOR_ID): vendor]
         })
     }
+
+    protected static String getInvalidGppString(int stringLength = 20) {
+        String invalidGppValue
+        // Random string can potentially generate deprecated v1 value with specific starting values ('A'-'D')
+        do {
+            invalidGppValue = PBSUtils.getRandomString(stringLength)
+        } while (invalidGppValue[0].toUpperCase() in 'A'..'D')
+
+        invalidGppValue
+    }
 }
