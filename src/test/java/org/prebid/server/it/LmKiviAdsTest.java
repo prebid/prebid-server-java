@@ -18,7 +18,7 @@ public class LmKiviAdsTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromTheLmKiviAdsBidder() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/lm-kiviads-exchange/test2/test1"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/lm-kiviads-exchange"))
                 .withRequestBody(equalToJson(
                         jsonFrom("openrtb2/lmkiviads/test-lmkiviads-bid-request.json")))
                 .willReturn(aResponse().withBody(

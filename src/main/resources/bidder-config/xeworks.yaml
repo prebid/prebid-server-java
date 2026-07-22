@@ -1,15 +1,15 @@
 adapters:
   xeworks:
-    endpoint: http://prebid-srv.xe.works/?pid={{SourceId}}&host={{Host}}
+    endpoint: http://prebid-srv.xe.works/?pid={SourceId}&host={Host}
     aliases:
       connektai:
         enabled: false
-        endpoint: http://rtb.connektai.live/?pid={{SourceId}}&host={{Host}}&s=pbs
+        endpoint: http://rtb.connektai.live/?pid={SourceId}&host={Host}&s=pbs
         meta-info:
           maintainer-email: adops@connekt.ai
       adipolo:
         enabled: false
-        endpoint: http://rtb.adipolo.live?pid={{SourceId}}&host={{Host}}&pbs=1
+        endpoint: http://rtb.adipolo.live?pid={SourceId}&host={Host}&pbs=1
         meta-info:
           maintainer-email: smart@adipolo.com
           vendor-id: 1456
@@ -17,11 +17,11 @@ adapters:
           enabled: true
           cookie-family-name: adipolo
           redirect:
-            url: https://sync.adipolo.live/psync?t=s&e=0&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&cb={{redirect_url}}
+            url: https://sync.adipolo.live/psync?t=s&e=0&gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&gpp={gpp}&gpp_sid={gpp_sid}&cb={redirect_url}
             support-cors: false
             uid-macro: '$UID'
           iframe:
-            url: https://sync.adipolo.live/static/adisync.html?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&cb={{redirect_url}}
+            url: https://sync.adipolo.live/static/adisync.html?gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&gpp={gpp}&gpp_sid={gpp_sid}&cb={redirect_url}
             support-cors: false
             uid-macro: '$UID'
     meta-info:
@@ -39,5 +39,5 @@ adapters:
     usersync:
       cookie-family-name: xeworks
       redirect:
-        url: GET_FROM_team@xe.works
+        url: https://GET_FROM_team@xe.works
         support-cors: false

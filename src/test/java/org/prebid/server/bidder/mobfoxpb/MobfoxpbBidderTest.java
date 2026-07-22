@@ -35,7 +35,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class MobfoxpbBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.endpoint.com?c=__route__&m=__method__&key=__key__";
+    private static final String ENDPOINT_URL = "https://test.endpoint.com?c={route}&m={method}&key={key}";
 
     private final MobfoxpbBidder target = new MobfoxpbBidder(ENDPOINT_URL, jacksonMapper);
 

@@ -23,6 +23,7 @@ import org.prebid.server.proto.openrtb.ext.request.aceex.ExtImpAceex;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.List;
 import java.util.Objects;
@@ -32,14 +33,14 @@ public class AceexBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpAceex>> ACEEX_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
-    private static final String ACCOUNT_ID_MACRO = "{{AccountId}}";
+    private static final String ACCOUNT_ID_MACRO = "AccountId";
     private static final String X_OPENRTB_VERSION = "2.5";
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public AceexBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -64,7 +65,7 @@ public class AceexBidder implements Bidder<BidRequest> {
     }
 
     private String resolveEndpoint(String accountId) {
-        return endpointUrl.replace(ACCOUNT_ID_MACRO, HttpUtil.encodeUrl(accountId));
+        return endpointUrl.replaceMacro(ACCOUNT_ID_MACRO, accountId).expand();
     }
 
     private static MultiMap constructHeaders(BidRequest bidRequest) {

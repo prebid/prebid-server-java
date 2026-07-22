@@ -68,7 +68,7 @@ class GppAmpSpec extends PrivacyBaseSpec {
 
     def "PBS shouldn't populate bid request with regs when consent type is GPP and gppSid contain invalid value"() {
         given: "Default AmpRequest with consent_type = gpp"
-        def consentString = PBSUtils.randomString
+        def consentString = getInvalidGppString()
         def gppSids = "${TCF_EU_V2.value},${PBSUtils.randomString}" as String
         def ampRequest = getGppAmpRequest(consentString, gppSids)
         def ampStoredRequest = BidRequest.defaultBidRequest.tap {
@@ -94,7 +94,7 @@ class GppAmpSpec extends PrivacyBaseSpec {
 
     def "PBS should emit warning when consent_string is invalid"() {
         given: "Default amp request with invalid consent_string"
-        def invalidConsentString = "Invalid_Consent_String"
+        def invalidConsentString = getInvalidGppString()
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.consentString = invalidConsentString
             consentType = GPP

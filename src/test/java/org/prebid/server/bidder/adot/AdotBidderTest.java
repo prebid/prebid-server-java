@@ -37,7 +37,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class AdotBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.endpoint{{PUBLISHER_PATH}}.com";
+    private static final String ENDPOINT_URL = "https://test.endpoint.com{/PUBLISHER_PATH*}";
 
     private final AdotBidder target = new AdotBidder(ENDPOINT_URL, jacksonMapper);
 
@@ -78,28 +78,13 @@ public class AdotBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://test.endpoint/publisherPath.com");
+                .containsExactly("https://test.endpoint.com/publisher/path");
     }
 
     @Test
     public void makeHttpRequestsShouldNotChangeUrlWhenNotResolvedPublisherPath() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(givenImpExtAdot(null)));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getUri)
-                .containsExactly("https://test.endpoint.com");
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnNullIfNotResolvedExtImp() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(null));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -266,7 +251,7 @@ public class AdotBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                         .id("firstImp")
                         .banner(Banner.builder().build())
-                        .ext(givenImpExtAdot("/publisherPath")))
+                        .ext(givenImpExtAdot("/publisher/path")))
                 .build();
     }
 

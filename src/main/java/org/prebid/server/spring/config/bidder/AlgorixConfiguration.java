@@ -33,5 +33,4 @@ public class AlgorixConfiguration {
                 .bidderCreator(config -> new AlgorixBidder(config.getEndpoint(), mapper))
                 .assemble();
     }
-
 }

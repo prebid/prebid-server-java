@@ -22,7 +22,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.mgid.ExtImpMgid;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -33,11 +33,13 @@ import java.util.Objects;
 
 public class MgidBidder implements Bidder<BidRequest> {
 
-    private final String endpointUrl;
+    private static final String ACCOUNT_MACRO = "AccountId";
+
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public MgidBidder(String endpoint, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpoint));
+        this.endpointUrl = Uri.of(endpoint);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -71,7 +73,7 @@ public class MgidBidder implements Bidder<BidRequest> {
 
         return Result.withValue(BidderUtil.defaultRequest(
                 outgoingRequest,
-                endpointUrl + HttpUtil.validatePathSegment(accountId),
+                endpointUrl.replaceMacro(ACCOUNT_MACRO, accountId).expand(),
                 mapper));
     }
 

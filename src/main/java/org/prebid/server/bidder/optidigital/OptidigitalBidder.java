@@ -62,5 +62,4 @@ public class OptidigitalBidder implements Bidder<BidRequest> {
                 .map(bid -> BidderBid.of(bid, BidType.banner, bidResponse.getCur()))
                 .toList();
     }
-
 }

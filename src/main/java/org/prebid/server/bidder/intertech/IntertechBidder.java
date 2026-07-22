@@ -27,6 +27,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.intertech.ExtImpIntertech;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -41,14 +42,14 @@ public class IntertechBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private static final String PAGE_ID_MACRO = "{{page_id}}";
-    private static final String IMP_ID_MACRO = "{{imp_id}}";
+    private static final String PAGE_ID_MACRO = "page_id";
+    private static final String IMP_ID_MACRO = "imp_id";
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public IntertechBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -133,17 +134,12 @@ public class IntertechBidder implements Bidder<BidRequest> {
     }
 
     private String modifyUrl(ExtImpIntertech extImpIntertech, String referer, String cur) {
-        final String resolvedUrl = endpointUrl
-                .replace(PAGE_ID_MACRO, HttpUtil.encodeUrl(extImpIntertech.getPageId().toString()))
-                .replace(IMP_ID_MACRO, HttpUtil.encodeUrl(extImpIntertech.getImpId().toString()));
-        final StringBuilder uri = new StringBuilder(resolvedUrl);
-        if (StringUtils.isNotBlank(referer)) {
-            uri.append("&target-ref=").append(HttpUtil.encodeUrl(referer));
-        }
-        if (StringUtils.isNotBlank(cur)) {
-            uri.append("&ssp-cur=").append(cur);
-        }
-        return uri.toString();
+        return endpointUrl
+                .replaceMacro(PAGE_ID_MACRO, extImpIntertech.getPageId().toString())
+                .replaceMacro(IMP_ID_MACRO, extImpIntertech.getImpId().toString())
+                .addQueryParam("target-ref", StringUtils.isNotBlank(referer) ? referer : null)
+                .addQueryParam("ssp-cur", StringUtils.isNotBlank(cur) ? cur : null)
+                .expand();
     }
 
     private HttpRequest<BidRequest> buildHttpRequest(BidRequest outgoingRequest, String url) {

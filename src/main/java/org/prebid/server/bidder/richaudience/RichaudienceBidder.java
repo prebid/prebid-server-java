@@ -30,7 +30,6 @@ import org.prebid.server.proto.openrtb.ext.request.richaudience.ExtImpRichaudien
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -163,13 +162,17 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
     }
 
     private static Optional<URL> extractUrl(Site site) {
-        return Optional.ofNullable(site).map(Site::getPage).map(page -> {
-            try {
-                return new URL(page);
-            } catch (MalformedURLException e) {
-                return null;
-            }
-        });
+        return Optional.ofNullable(site)
+                .map(Site::getPage)
+                .map(RichaudienceBidder::parseUrl);
+    }
+
+    private static URL parseUrl(String page) {
+        try {
+            return HttpUtil.parseUrl(page);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
     private static Imp modifyImp(Imp imp, ExtImpRichaudience extImp, boolean isSecure) {

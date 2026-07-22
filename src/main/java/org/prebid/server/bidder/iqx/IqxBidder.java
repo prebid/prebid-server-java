@@ -22,7 +22,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.iqx.ExtImpIqx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -32,17 +32,17 @@ import java.util.Objects;
 
 public class IqxBidder implements Bidder<BidRequest> {
 
-    private static final String SOURCE_ID_MACRO = "{{SourceId}}";
-    private static final String HOST_MACRO = "{{Host}}";
+    private static final String SOURCE_ID_MACRO = "SourceId";
+    private static final String HOST_MACRO = "Host";
     private static final TypeReference<ExtPrebid<?, ExtImpIqx>> IQX_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public IqxBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -85,8 +85,9 @@ public class IqxBidder implements Bidder<BidRequest> {
 
     private String resolveEndpoint(ExtImpIqx extImpIqx) {
         return endpointUrl
-                .replace(SOURCE_ID_MACRO, StringUtils.defaultString(extImpIqx.getPid()))
-                .replace(HOST_MACRO, StringUtils.defaultString(extImpIqx.getEnv()));
+                .replaceMacro(SOURCE_ID_MACRO, StringUtils.defaultString(extImpIqx.getPid()))
+                .replaceMacro(HOST_MACRO, StringUtils.defaultString(extImpIqx.getEnv()))
+                .expand();
     }
 
     @Override
