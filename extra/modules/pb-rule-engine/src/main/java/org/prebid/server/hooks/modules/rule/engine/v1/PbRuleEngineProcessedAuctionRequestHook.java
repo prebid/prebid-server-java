@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 
 public class PbRuleEngineProcessedAuctionRequestHook implements ProcessedAuctionRequestHook {
 
-    private static final String CODE = "pb-rule-engine-processed-auction-request";
+    private static final String CODE = "pb-rule-engine-processed-auction-request-hook";
 
     private final RuleParser ruleParser;
     private final String datacenter;

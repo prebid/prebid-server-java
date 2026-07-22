@@ -8,5 +8,5 @@ import groovy.transform.ToString
 @JsonNaming(PropertyNamingStrategies.KebabCaseStrategy)
 class ModuleError {
 
-    Map<String, List<String>> ortb2Blocking
+    Map<String, List<String>> pbOrtb2Blocking
 }
