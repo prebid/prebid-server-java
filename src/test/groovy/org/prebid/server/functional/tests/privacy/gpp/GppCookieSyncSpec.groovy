@@ -47,7 +47,7 @@ class GppCookieSyncSpec extends BaseSpec {
             "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.support-cors": CORS_SUPPORT.toString()]
     private static final Map<String, String> GENERIC_WITH_SKIP_CONFIG = [
             "adapters.${GENERIC.value}.meta-info.vendor-id"                          : GENERIC_VENDOR_ID as String,
-            "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url"         : "$Dependencies.networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
+            "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url"         : "$Dependencies.networkServiceContainer.rootUri/generic-usersync&redir={redirect_url}".toString(),
             "adapters.${GENERIC.value}.usersync.skipwhen.gdpr"                       : 'true',
             "adapters.${GENERIC.value}.usersync.skipwhen.gpp_sid"                    : "${FIRST_GPP_SECTION.value}, ${SECOND_GPP_SECTION.value}".toString(),
             "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.support-cors": CORS_SUPPORT.toString()]
@@ -233,7 +233,7 @@ class GppCookieSyncSpec extends BaseSpec {
 
     def "PBS should return empty gpp and gppSid in usersync url when gpp and gppSid is not present in request"() {
         given: "Pbs config with usersync.#userSyncFormat.url"
-        def pbsConfig = ["adapters.generic.usersync.${userSyncFormat.value}.url"         : "$Dependencies.networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
+        def pbsConfig = ["adapters.generic.usersync.${userSyncFormat.value}.url"         : "$Dependencies.networkServiceContainer.rootUri/generic-usersync&redir={redirect_url}".toString(),
                          "adapters.generic.usersync.${userSyncFormat.value}.support-cors": "false"]
         def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
@@ -260,7 +260,7 @@ class GppCookieSyncSpec extends BaseSpec {
 
     def "PBS should populate gpp and gppSid in usersync url when gpp and gppSid is present in request"() {
         given: "Pbs config with usersync.#userSyncFormat.url"
-        def pbsConfig = ["adapters.generic.usersync.${userSyncFormat.value}.url"         : "$Dependencies.networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
+        def pbsConfig = ["adapters.generic.usersync.${userSyncFormat.value}.url"         : "$Dependencies.networkServiceContainer.rootUri/generic-usersync&redir={redirect_url}".toString(),
                          "adapters.generic.usersync.${userSyncFormat.value}.support-cors": "false"]
         def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
@@ -320,7 +320,7 @@ class GppCookieSyncSpec extends BaseSpec {
         def response = prebidServerServiceWithSkipConfig.sendCookieSyncRequest(cookieSyncRequest)
 
         then: "Response userSync url shouldn't contain cookies and userSync"
-        def bidderStatus = response.getBidderUserSync(GENERIC)
+        def bidderStatus = response.getBidderUserSync(ALIAS)
         assert !bidderStatus.userSync
         assert !bidderStatus.noCookie
 
@@ -371,7 +371,7 @@ class GppCookieSyncSpec extends BaseSpec {
         def response = prebidServerServiceWithSkipConfig.sendCookieSyncRequest(cookieSyncRequest)
 
         then: "Response userSync url shouldn't contain cookies and userSync"
-        def bidderStatus = response.getBidderUserSync(GENERIC)
+        def bidderStatus = response.getBidderUserSync(ALIAS)
         assert !bidderStatus.userSync
         assert !bidderStatus.noCookie
 

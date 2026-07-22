@@ -1,9 +1,7 @@
 package org.prebid.server.privacy.gdpr.vendorlist;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.FileProps;
 import io.vertx.core.file.FileSystem;
@@ -211,7 +209,7 @@ public class VendorListFileStoreTest extends VertxTest {
         final VendorList vendorList = givenVendorList();
         final String vendorListAsString = mapper.writeValueAsString(vendorList);
         final VendorListResult vendorListResult = VendorListResult.of(1, vendorListAsString, vendorList);
-        givenWriteFileSucceeds();
+        given(fileSystem.writeFile(anyString(), any(Buffer.class))).willReturn(Future.succeededFuture());
 
         // when
         final Future<VendorListResult> future = target.saveToFile(vendorListResult, CACHE_DIR, GENERATION_VERSION);
@@ -226,7 +224,7 @@ public class VendorListFileStoreTest extends VertxTest {
         final VendorList vendorList = givenVendorList();
         final String vendorListAsString = mapper.writeValueAsString(vendorList);
         final VendorListResult vendorListResult = VendorListResult.of(1, vendorListAsString, vendorList);
-        givenWriteFileSucceeds();
+        given(fileSystem.writeFile(anyString(), any(Buffer.class))).willReturn(Future.succeededFuture());
 
         // when
         target.saveToFile(vendorListResult, CACHE_DIR, GENERATION_VERSION);
@@ -234,7 +232,7 @@ public class VendorListFileStoreTest extends VertxTest {
         // then
         final ArgumentCaptor<String> pathCaptor = ArgumentCaptor.forClass(String.class);
         final ArgumentCaptor<Buffer> bufferCaptor = ArgumentCaptor.forClass(Buffer.class);
-        verify(fileSystem).writeFile(pathCaptor.capture(), bufferCaptor.capture(), any());
+        verify(fileSystem).writeFile(pathCaptor.capture(), bufferCaptor.capture());
         assertThat(pathCaptor.getValue()).isEqualTo(new File(CACHE_DIR, "1.json").getPath());
         assertThat(bufferCaptor.getValue().toString()).isEqualTo(vendorListAsString);
     }
@@ -246,7 +244,7 @@ public class VendorListFileStoreTest extends VertxTest {
         final String vendorListAsString = mapper.writeValueAsString(vendorList);
         final VendorListResult vendorListResult = VendorListResult.of(1, vendorListAsString, vendorList);
         final RuntimeException exception = new RuntimeException("write error");
-        givenWriteFileFails(exception);
+        given(fileSystem.writeFile(anyString(), any(Buffer.class))).willReturn(Future.failedFuture(exception));
 
         // when
         final Future<VendorListResult> future = target.saveToFile(vendorListResult, CACHE_DIR, GENERATION_VERSION);
@@ -384,22 +382,6 @@ public class VendorListFileStoreTest extends VertxTest {
         assertThatThrownBy(() -> target.readFallbackVendorList(FALLBACK_VENDOR_LIST_PATH))
                 .isInstanceOf(PreBidException.class)
                 .hasMessageStartingWith("Fallback vendor list parsed but has invalid data:");
-    }
-
-    private void givenWriteFileSucceeds() {
-        given(fileSystem.writeFile(anyString(), any(Buffer.class), any())).willAnswer(invocation -> {
-            final Handler<AsyncResult<Void>> handler = invocation.getArgument(2);
-            handler.handle(Future.succeededFuture());
-            return null;
-        });
-    }
-
-    private void givenWriteFileFails(Throwable throwable) {
-        given(fileSystem.writeFile(anyString(), any(Buffer.class), any())).willAnswer(invocation -> {
-            final Handler<AsyncResult<Void>> handler = invocation.getArgument(2);
-            handler.handle(Future.failedFuture(throwable));
-            return null;
-        });
     }
 
     private static VendorList givenVendorList() {

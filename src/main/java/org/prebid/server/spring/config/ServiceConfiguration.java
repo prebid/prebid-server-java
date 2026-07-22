@@ -5,6 +5,7 @@ import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
 import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClientOptions;
+import io.vertx.core.http.PoolOptions;
 import io.vertx.core.net.JksOptions;
 import lombok.Data;
 import org.apache.commons.lang3.ObjectUtils;
@@ -77,6 +78,7 @@ import org.prebid.server.bidder.BidderErrorNotifier;
 import org.prebid.server.bidder.BidderRequestCompletionTrackerFactory;
 import org.prebid.server.bidder.HttpBidderRequestEnricher;
 import org.prebid.server.bidder.HttpBidderRequester;
+import org.prebid.server.bidder.UsersyncInfoFactory;
 import org.prebid.server.cache.BasicPbcStorageService;
 import org.prebid.server.cache.CoreCacheService;
 import org.prebid.server.cache.PbcStorageService;
@@ -661,8 +663,7 @@ public class ServiceConfiguration {
             Metrics metrics,
             HttpClientProperties httpClientProperties,
             @Qualifier("httpClientCircuitBreakerProperties")
-            HttpClientCircuitBreakerProperties circuitBreakerProperties,
-            Clock clock) {
+            HttpClientCircuitBreakerProperties circuitBreakerProperties) {
 
         final HttpClient httpClient = createBasicHttpClient(vertx, httpClientProperties);
 
@@ -673,16 +674,17 @@ public class ServiceConfiguration {
                 circuitBreakerProperties.getOpeningThreshold(),
                 circuitBreakerProperties.getOpeningIntervalMs(),
                 circuitBreakerProperties.getClosingIntervalMs(),
-                circuitBreakerProperties.getIdleExpireHours(),
-                clock);
+                circuitBreakerProperties.getIdleExpireHours());
     }
 
     private static BasicHttpClient createBasicHttpClient(Vertx vertx, HttpClientProperties httpClientProperties) {
+        final PoolOptions poolOptions = new PoolOptions()
+                .setHttp1MaxSize(httpClientProperties.getMaxPoolSize())
+                .setCleanerPeriod(httpClientProperties.getPoolCleanerPeriodMs());
+
         final HttpClientOptions options = new HttpClientOptions()
-                .setMaxPoolSize(httpClientProperties.getMaxPoolSize())
                 .setIdleTimeoutUnit(TimeUnit.MILLISECONDS)
                 .setIdleTimeout(httpClientProperties.getIdleTimeoutMs())
-                .setPoolCleanerPeriod(httpClientProperties.getPoolCleanerPeriodMs())
                 .setDecompressionSupported(httpClientProperties.getUseCompression())
                 .setConnectTimeout(httpClientProperties.getConnectTimeoutMs())
                 // Vert.x's HttpClientRequest needs this value to be 2 for redirections to be followed once,
@@ -699,7 +701,7 @@ public class ServiceConfiguration {
                     .setKeyCertOptions(jksOptions);
         }
 
-        return new BasicHttpClient(vertx, vertx.createHttpClient(options));
+        return new BasicHttpClient(vertx, vertx.createHttpClient(options, poolOptions));
     }
 
     @Bean
@@ -757,24 +759,29 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    UsersyncInfoFactory usersyncInfoFactory(@Value("${external-url}") String externalUrl) {
+        return new UsersyncInfoFactory(externalUrl);
+    }
+
+    @Bean
     CookieSyncService cookieSyncService(
-            @Value("${external-url}") String externalUrl,
             @Value("${cookie-sync.default-limit:#{2}}") Integer defaultLimit,
             @Value("${cookie-sync.max-limit:#{null}}") Integer maxLimit,
             BidderCatalog bidderCatalog,
             HostVendorTcfDefinerService hostVendorTcfDefinerService,
             CcpaEnforcement ccpaEnforcement,
+            UsersyncInfoFactory usersyncInfoFactory,
             UidsCookieService uidsCookieService,
             CoopSyncProvider coopSyncProvider,
             Metrics metrics) {
 
         return new CookieSyncService(
-                externalUrl,
                 defaultLimit,
                 ObjectUtils.defaultIfNull(maxLimit, Integer.MAX_VALUE),
                 bidderCatalog,
                 hostVendorTcfDefinerService,
                 ccpaEnforcement,
+                usersyncInfoFactory,
                 uidsCookieService,
                 coopSyncProvider,
                 metrics);

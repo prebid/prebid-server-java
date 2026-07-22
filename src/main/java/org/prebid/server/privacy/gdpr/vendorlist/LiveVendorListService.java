@@ -1,6 +1,6 @@
 package org.prebid.server.privacy.gdpr.vendorlist;
 
-import io.vertx.core.Promise;
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import lombok.Getter;
 import org.prebid.server.exception.PreBidException;
@@ -63,11 +63,10 @@ public class LiveVendorListService implements Initializable {
     }
 
     @Override
-    public void initialize(Promise<Void> initializePromise) {
+    public Future<Void> initialize() {
         initializeWithLatestCachedVersion();
         vertx.setPeriodic(0, refreshPeriodMs, ignored -> refresh());
-
-        initializePromise.tryComplete();
+        return Future.succeededFuture();
     }
 
     private void initializeWithLatestCachedVersion() {

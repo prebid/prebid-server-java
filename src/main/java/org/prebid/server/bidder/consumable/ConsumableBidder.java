@@ -29,6 +29,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -43,13 +44,15 @@ public class ConsumableBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpConsumable>> CONS_EXT_TYPE_REFERENCE = new TypeReference<>() {
     };
     public static final String SITE_URI_PATH = "/sb/rtb";
-    public static final String APP_URI_PATH = "/rtb/bid?s=";
+    public static final String APP_URI_PATH = "/rtb/bid";
+
+    private final String siteEndpointUrl;
+    private final Uri appEndpointUrl;
     private final JacksonMapper mapper;
 
-    private final String endpointUrl;
-
     public ConsumableBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.siteEndpointUrl = Uri.of(endpointUrl + SITE_URI_PATH).expand();
+        this.appEndpointUrl = Uri.of(endpointUrl + APP_URI_PATH);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -103,8 +106,9 @@ public class ConsumableBidder implements Bidder<BidRequest> {
     }
 
     private String constructUri(String placementId) {
-        final String uri = Strings.isNullOrEmpty(placementId) ? SITE_URI_PATH : (APP_URI_PATH + placementId);
-        return this.endpointUrl + uri;
+        return Strings.isNullOrEmpty(placementId)
+                ? siteEndpointUrl
+                : appEndpointUrl.addQueryParam("s", placementId).expand();
     }
 
     private static MultiMap resolveHeaders() {

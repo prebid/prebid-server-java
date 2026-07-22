@@ -39,7 +39,7 @@ import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
 
 public class BematterfullBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test-url.com?host={{Host}}&pid={{SourceId}}";
+    private static final String ENDPOINT_URL = "https://test-url.com?host={Host}&pid={SourceId}";
 
     private final BematterfullBidder target = new BematterfullBidder(ENDPOINT_URL, jacksonMapper);
 

@@ -2,7 +2,6 @@ package org.prebid.server.privacy.gdpr.vendorlist;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -212,7 +211,7 @@ public class LiveVendorListServiceTest extends VertxTest {
         given(vendorListFileStore.getLatestVendorListFromCache(eq(CACHE_DIR))).willReturn(Optional.of(vendorList));
 
         // when
-        target.initialize(Promise.promise());
+        target.initialize();
 
         // then
         assertThat(target.getDeletedVendorIds()).containsExactly(42);
@@ -224,23 +223,22 @@ public class LiveVendorListServiceTest extends VertxTest {
         given(vendorListFileStore.getLatestVendorListFromCache(eq(CACHE_DIR))).willReturn(Optional.empty());
 
         // when
-        target.initialize(Promise.promise());
+        target.initialize();
 
         // then
         verify(vertx).setPeriodic(eq(0L), eq(REFRESH_PERIOD_MS), any());
     }
 
     @Test
-    public void initializeShouldCompleteInitializePromise() {
+    public void initializeShouldReturnSucceededFuture() {
         // given
         given(vendorListFileStore.getLatestVendorListFromCache(eq(CACHE_DIR))).willReturn(Optional.empty());
-        final Promise<Void> promise = Promise.promise();
 
         // when
-        target.initialize(promise);
+        final Future<Void> result = target.initialize();
 
         // then
-        assertThat(promise.future().succeeded()).isTrue();
+        assertThat(result.succeeded()).isTrue();
     }
 
     @Test
