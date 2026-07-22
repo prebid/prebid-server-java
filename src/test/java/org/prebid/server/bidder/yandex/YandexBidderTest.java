@@ -41,7 +41,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class YandexBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.endpoint.com/";
+    private static final String ENDPOINT_URL = "https://test.endpoint.com/{PageId}?imp-id={ImpId}";
     private final YandexBidder target = new YandexBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
@@ -301,8 +301,8 @@ public class YandexBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).extracting(HttpRequest::getUri)
-                .containsExactly("https://test.endpoint.com/?"
-                        + "target-ref=https%3A%2F%2Fexample.com%2Fpath%3Fquery%3Dvalue&ssp-cur=EUR");
+                .containsExactly("https://test.endpoint.com/134001?imp-id=1"
+                        + "&target-ref=https%3A%2F%2Fexample.com%2Fpath%3Fquery%3Dvalue&ssp-cur=EUR");
     }
 
     @Test

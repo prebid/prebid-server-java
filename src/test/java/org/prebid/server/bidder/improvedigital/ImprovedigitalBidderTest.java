@@ -42,7 +42,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class ImprovedigitalBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.endpoint.com/{{PathPrefix}}";
+    private static final String ENDPOINT_URL = "https://test.endpoint.com/{PathPrefix}";
 
     private final ImprovedigitalBidder target = new ImprovedigitalBidder(ENDPOINT_URL, jacksonMapper);
 
@@ -108,8 +108,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
                 .extracting(HttpRequest::getUri)
                 .containsExactly(
                         "https://test.endpoint.com/",
-                        "https://test.endpoint.com/789/"
-        );
+                        "https://test.endpoint.com/789");
     }
 
     @Test

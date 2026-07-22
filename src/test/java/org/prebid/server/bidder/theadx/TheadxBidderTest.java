@@ -241,5 +241,4 @@ public class TheadxBidderTest extends VertxTest {
                 HttpResponse.of(200, null, body),
                 null);
     }
-
 }

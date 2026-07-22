@@ -18,7 +18,7 @@ public class GamoshiTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromGamoshi() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/gamoshi-exchange/r/1701/bidr"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/gamoshi-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/gamoshi/test-gamoshi-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/gamoshi/test-gamoshi-bid-response.json"))));
 

@@ -98,5 +98,4 @@ public class HuaweiAdsConfiguration {
 
         String asianEndpoint;
     }
-
 }

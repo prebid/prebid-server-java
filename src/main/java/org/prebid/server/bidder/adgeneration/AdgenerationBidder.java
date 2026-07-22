@@ -14,7 +14,6 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.adgeneration.model.AdgenerationResponse;
 import org.prebid.server.bidder.model.BidderBid;
@@ -31,8 +30,8 @@ import org.prebid.server.proto.openrtb.ext.request.adgeneration.ExtImpAdgenerati
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
+import org.prebid.server.util.Uri;
 
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -51,11 +50,11 @@ public class AdgenerationBidder implements Bidder<Void> {
             new TypeReference<>() {
             };
 
-    private final String endpointUrl;
+    private final Uri endpoint;
     private final JacksonMapper mapper;
 
     public AdgenerationBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpoint = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -96,47 +95,41 @@ public class AdgenerationBidder implements Bidder<Void> {
     }
 
     private String getUri(String adSize, String id, String currency, BidRequest bidRequest) {
-        final URIBuilder uriBuilder;
-        try {
-            uriBuilder = new URIBuilder(endpointUrl);
-        } catch (URISyntaxException e) {
-            throw new PreBidException("Invalid url: %s, error: %s".formatted(endpointUrl, e.getMessage()));
-        }
+        final Uri.ParameterizedUri parameterizedUri = endpoint
+                .addQueryParam("posall", "SSPLOC")
+                .addQueryParam("id", id)
+                .addQueryParam("hb", "true")
+                .addQueryParam("t", "json3")
+                .addQueryParam("currency", currency)
+                .addQueryParam("sdkname", "prebidserver")
+                .addQueryParam("adapterver", VERSION);
 
-        uriBuilder
-                .addParameter("posall", "SSPLOC")
-                .addParameter("id", id)
-                .addParameter("hb", "true")
-                .addParameter("t", "json3")
-                .addParameter("currency", currency)
-                .addParameter("sdkname", "prebidserver")
-                .addParameter("adapterver", VERSION);
-
-        addParameterIfNotEmpty(uriBuilder, "sizes", adSize);
-        addParameterIfNotEmpty(uriBuilder, "tp", ObjectUtil.getIfNotNull(bidRequest.getSite(), Site::getPage));
-        addParameterIfNotEmpty(uriBuilder, "appbundle", ObjectUtil.getIfNotNull(bidRequest.getApp(), App::getBundle));
-        addParameterIfNotEmpty(uriBuilder, "appname", ObjectUtil.getIfNotNull(bidRequest.getApp(), App::getName));
+        addParameterIfNotEmpty(parameterizedUri, "sizes", adSize);
+        addParameterIfNotEmpty(parameterizedUri, "tp", ObjectUtil.getIfNotNull(bidRequest.getSite(), Site::getPage));
         addParameterIfNotEmpty(
-                uriBuilder, "transactionid", ObjectUtil.getIfNotNull(bidRequest.getSource(), Source::getTid));
+                parameterizedUri, "appbundle", ObjectUtil.getIfNotNull(bidRequest.getApp(), App::getBundle));
+        addParameterIfNotEmpty(parameterizedUri, "appname", ObjectUtil.getIfNotNull(bidRequest.getApp(), App::getName));
+        addParameterIfNotEmpty(
+                parameterizedUri, "transactionid", ObjectUtil.getIfNotNull(bidRequest.getSource(), Source::getTid));
 
         final Device device = bidRequest.getDevice();
         final String deviceOs = device != null ? device.getOs() : null;
         if ("android".equals(deviceOs)) {
-            uriBuilder.addParameter("sdktype", "1");
-            addParameterIfNotEmpty(uriBuilder, "advertising_id", device.getIfa());
+            parameterizedUri.addQueryParam("sdktype", "1");
+            addParameterIfNotEmpty(parameterizedUri, "advertising_id", device.getIfa());
         } else if ("ios".equals(deviceOs)) {
-            uriBuilder.addParameter("sdktype", "2");
-            addParameterIfNotEmpty(uriBuilder, "idfa", device.getIfa());
+            parameterizedUri.addQueryParam("sdktype", "2");
+            addParameterIfNotEmpty(parameterizedUri, "idfa", device.getIfa());
         } else {
-            uriBuilder.addParameter("sdktype", "0");
+            parameterizedUri.addQueryParam("sdktype", "0");
         }
 
-        return uriBuilder.toString();
+        return parameterizedUri.expand();
     }
 
-    private static void addParameterIfNotEmpty(URIBuilder uriBuilder, String parameter, String value) {
+    private static void addParameterIfNotEmpty(Uri.ParameterizedUri parameterizedUri, String parameter, String value) {
         if (StringUtils.isNotEmpty(value)) {
-            uriBuilder.addParameter(parameter, value);
+            parameterizedUri.addQueryParam(parameter, value);
         }
     }
 

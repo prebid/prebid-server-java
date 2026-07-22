@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.util.List;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
@@ -20,7 +19,6 @@ public class NetAddictionTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromNetaddiction() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/netaddiction-exchange"))
-                .withQueryParam("host", equalTo("host"))
                 .withRequestBody(equalToJson(
                         jsonFrom("openrtb2/netaddiction/test-netaddiction-bid-request.json")))
                 .willReturn(aResponse().withBody(
@@ -37,5 +35,4 @@ public class NetAddictionTest extends IntegrationTest {
                 response,
                 List.of("netaddiction"));
     }
-
 }

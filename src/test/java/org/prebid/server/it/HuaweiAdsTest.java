@@ -483,5 +483,4 @@ public class HuaweiAdsTest extends IntegrationTest {
         // then
         assertJsonEquals("openrtb2/huaweiads/simple_video/" + AUCTION_RESPONSE, response, List.of("huaweiads"));
     }
-
 }

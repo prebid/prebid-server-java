@@ -67,7 +67,7 @@ class CookieSyncSpec extends BaseSpec {
     private static final Map<String, String> ACEEX_CONFIG = [
             "adapters.${ACEEX.value}.enabled"                       : "true",
             "adapters.${ACEEX.value}.usersync.cookie-family-name"   : ACEEX.value,
-            "adapters.${ACEEX.value}.usersync.redirect.url"         : "https://test.redirect.endpoint.com={{redirect_url}}",
+            "adapters.${ACEEX.value}.usersync.redirect.url"         : "https://test.redirect.endpoint.com={redirect_url}",
             "adapters.${ACEEX.value}.usersync.redirect.support-cors": CORS_SUPPORT as String]
     private static final Map<String, String> RUBICON_CONFIG = [
             "adapters.${RUBICON.value}.enabled"                       : "true",
@@ -75,7 +75,7 @@ class CookieSyncSpec extends BaseSpec {
             "adapters.${RUBICON.value}.usersync.cookie-family-name"   : RUBICON.value,
             "adapters.${RUBICON.value}.usersync.redirect.url"         : "https://test.redirect.endpoint.com",
             "adapters.${RUBICON.value}.usersync.redirect.support-cors": CORS_SUPPORT as String,
-            "adapters.${RUBICON.value}.usersync.iframe.url"           : "https://test.iframe.endpoint.com&redir={{redirect_url}}",
+            "adapters.${RUBICON.value}.usersync.iframe.url"           : "https://test.iframe.endpoint.com&redir={redirect_url}",
             "adapters.${RUBICON.value}.usersync.iframe.support-cors"  : CORS_SUPPORT as String]
     private static final Map<String, String> OPENX_CONFIG = [
             "adapters.${OPENX.value}.enabled"                       : "true",
@@ -88,7 +88,7 @@ class CookieSyncSpec extends BaseSpec {
             "adapters.${APPNEXUS.value}.enabled"                       : "true",
             "adapters.${APPNEXUS.value}.aliases.mediafuse.enabled"     : "false",
             "adapters.${APPNEXUS.value}.usersync.cookie-family-name"   : APPNEXUS.value,
-            "adapters.${APPNEXUS.value}.usersync.redirect.url"         : "https://test.appnexus.redirect.com/getuid?{{redirect_url}}",
+            "adapters.${APPNEXUS.value}.usersync.redirect.url"         : "https://test.appnexus.redirect.com/getuid?{redirect_url}",
             "adapters.${APPNEXUS.value}.usersync.redirect.support-cors": CORS_SUPPORT as String]
     private static final Map<String, String> AAX_CONFIG = ["adapters.${AAX.value}.enabled": "true"]
     private static final Map<String, String> ACUITYADS_CONFIG = ["adapters.${ACUITYADS.value}.enabled": "true"]
@@ -139,7 +139,7 @@ class CookieSyncSpec extends BaseSpec {
         given: "PBS config with alias bidder using source bidder cookie family name"
         def bidderAlias = ALIAS
         def prebidServerService = pbsServiceFactory.getService(GENERIC_CONFIG +
-                ["adapters.${GENERIC.value}.usersync.redirect.url"                                   : "$networkServiceContainer.rootUri/generic-usersync&redir={{redirect_url}}".toString(),
+                ["adapters.${GENERIC.value}.usersync.redirect.url"                                   : "$networkServiceContainer.rootUri/generic-usersync&redir={redirect_url}".toString(),
                  "adapters.${GENERIC.value}.aliases.${bidderAlias.value}.enabled"                    : "true",
                  "adapters.${GENERIC.value}.aliases.${bidderAlias.value}.usersync.cookie-family-name": GENERIC.value])
 
@@ -329,7 +329,7 @@ class CookieSyncSpec extends BaseSpec {
         assert !response.getBidderUserSync(GENERIC)
     }
 
-    def "PBS cookie sync request shouldn't reflect error when coop-sync enabled and coop sync bidder synced as family"() {
+    def "PBS cookie sync request shouldn't reflect error when coop-sync enabled and coop sync bidder synced"() {
         given: "PBS config with alias bidder without cookie family name"
         def bidderAlias = ALIAS
         def prebidServerService = pbsServiceFactory.getService(GENERIC_CONFIG
@@ -338,7 +338,7 @@ class CookieSyncSpec extends BaseSpec {
 
         and: "Cookie sync request with 2 bidders"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
-            bidders = null
+            bidders = [bidderAlias]
             coopSync = true
         }
 
