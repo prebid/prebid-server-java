@@ -36,6 +36,7 @@ import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -57,7 +58,7 @@ public class VendorListFileStoreTest extends VertxTest {
     private FileSystem fileSystem;
 
     @TempDir
-    Path tempDir;
+    private Path tempDir;
 
     private VendorListFileStore target;
 
@@ -109,7 +110,7 @@ public class VendorListFileStoreTest extends VertxTest {
     }
 
     @Test
-    public void createCacheFromDiskShouldFailIfNoWritePermissionsForCacheDir() {
+    public void createCacheFromDiskShouldFailIfCacheDirIsNotWritable() {
         // given
         final String cacheDir = tempDir.toString();
         tempDir.toFile().setWritable(false, false);
@@ -122,6 +123,20 @@ public class VendorListFileStoreTest extends VertxTest {
         assertThatThrownBy(() -> target.createCacheFromDisk(cacheDir))
                 .isInstanceOf(PreBidException.class)
                 .hasMessage("No write permissions for directory: " + cacheDir);
+    }
+
+    @Test
+    public void createCacheFromDiskShouldNotFailIfCacheDirIsWriable() {
+        // given
+        final String cacheDir = tempDir.toString();
+        tempDir.toFile().setWritable(true, false);
+        final FileProps fileProps = mock(FileProps.class);
+        given(fileSystem.existsBlocking(eq(cacheDir))).willReturn(true);
+        given(fileSystem.propsBlocking(eq(cacheDir))).willReturn(fileProps);
+        given(fileProps.isDirectory()).willReturn(true);
+
+        // when and then
+        assertDoesNotThrow(() -> target.createCacheFromDisk(cacheDir));
     }
 
     @Test

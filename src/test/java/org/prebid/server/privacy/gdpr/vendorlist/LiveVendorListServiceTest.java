@@ -76,14 +76,13 @@ public class LiveVendorListServiceTest extends VertxTest {
     }
 
     @Test
-    public void isDeletedShouldReturnFalseWhenFetchNeverSucceeded() {
+    public void getDeletedVendorIdsShouldReturnEmptySetWhenFetchNeverSucceeded() {
         // when and then
-        assertThat(target.isDeleted(1)).isFalse();
-        assertThat(target.isDeleted(null)).isFalse();
+        assertThat(target.getDeletedVendorIds()).isEmpty();
     }
 
     @Test
-    public void isDeletedShouldReturnTrueWhenVendorIsDeletedInLiveVendorList() throws JsonProcessingException {
+    public void getDeletedVendorIdsShouldReturnVendorThatIsDeletedInLiveVendorList() throws JsonProcessingException {
         // given
         final Vendor vendor = givenVendor(42, "2024-01-01T00:00:00Z");
         final String responseBody = mapper.writeValueAsString(givenVendorList(vendor));
@@ -94,8 +93,7 @@ public class LiveVendorListServiceTest extends VertxTest {
         target.refresh();
 
         // then
-        assertThat(target.isDeleted(42)).isTrue();
-        assertThat(target.isDeleted(99)).isFalse();
+        assertThat(target.getDeletedVendorIds()).containsExactly(42);
     }
 
     @Test
@@ -125,7 +123,7 @@ public class LiveVendorListServiceTest extends VertxTest {
         target.refresh();
 
         // then
-        assertThat(target.isDeleted(1)).isTrue();
+        assertThat(target.getDeletedVendorIds()).containsExactly(1);
         verify(metrics).updatePrivacyTcfVendorListLatestOkMetric();
         verify(metrics, never()).updatePrivacyTcfVendorListLatestErrorMetric();
     }
@@ -147,8 +145,7 @@ public class LiveVendorListServiceTest extends VertxTest {
         target.refresh();
 
         // then
-        assertThat(target.isDeleted(1)).isFalse();
-        assertThat(target.isDeleted(2)).isTrue();
+        assertThat(target.getDeletedVendorIds()).containsExactly(2);
     }
 
     @Test
@@ -161,7 +158,7 @@ public class LiveVendorListServiceTest extends VertxTest {
         target.refresh();
 
         // then
-        assertThat(target.isDeleted(1)).isFalse();
+        assertThat(target.getDeletedVendorIds()).isEmpty();
         verify(metrics).updatePrivacyTcfVendorListLatestErrorMetric();
         verify(metrics, never()).updatePrivacyTcfVendorListLatestOkMetric();
     }
@@ -175,7 +172,7 @@ public class LiveVendorListServiceTest extends VertxTest {
         target.refresh();
 
         // then
-        assertThat(target.isDeleted(1)).isFalse();
+        assertThat(target.getDeletedVendorIds()).isEmpty();
         verify(metrics).updatePrivacyTcfVendorListLatestErrorMetric();
     }
 
@@ -188,7 +185,7 @@ public class LiveVendorListServiceTest extends VertxTest {
         target.refresh();
 
         // then
-        assertThat(target.isDeleted(1)).isFalse();
+        assertThat(target.getDeletedVendorIds()).isEmpty();
         verify(metrics).updatePrivacyTcfVendorListLatestErrorMetric();
     }
 
@@ -204,7 +201,7 @@ public class LiveVendorListServiceTest extends VertxTest {
         target.refresh();
 
         // then
-        assertThat(target.isDeleted(1)).isFalse();
+        assertThat(target.getDeletedVendorIds()).isEmpty();
         verify(metrics).updatePrivacyTcfVendorListLatestErrorMetric();
     }
 
@@ -218,8 +215,7 @@ public class LiveVendorListServiceTest extends VertxTest {
         target.initialize(Promise.promise());
 
         // then
-        assertThat(target.isDeleted(42)).isTrue();
-        assertThat(target.isDeleted(99)).isFalse();
+        assertThat(target.getDeletedVendorIds()).containsExactly(42);
     }
 
     @Test
@@ -262,7 +258,7 @@ public class LiveVendorListServiceTest extends VertxTest {
         target.refresh();
 
         // then
-        assertThat(target.isDeleted(1)).isTrue();
+        assertThat(target.getDeletedVendorIds()).containsExactly(1);
         verify(metrics).updatePrivacyTcfVendorListLatestOkMetric();
         verify(metrics).updatePrivacyTcfVendorListLatestErrorMetric();
     }

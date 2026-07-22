@@ -15,6 +15,7 @@ import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.privacy.gdpr.model.VendorPermissionWithGvl;
 import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.PurposeStrategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.specialfeature.SpecialFeaturesStrategy;
+import org.prebid.server.privacy.gdpr.vendorlist.VendorListWrapper;
 import org.prebid.server.privacy.gdpr.vendorlist.VersionedVendorListService;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.Vendor;
 import org.prebid.server.settings.model.AccountGdprConfig;
@@ -34,7 +35,6 @@ import java.util.function.Consumer;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static org.apache.commons.collections4.SetUtils.hashSet;
@@ -103,7 +103,7 @@ public class Tcf2ServiceTest extends VertxTest {
 
     @BeforeEach
     public void setUp() {
-        given(vendorListService.forConsent(any())).willReturn(Future.succeededFuture(emptyMap()));
+        given(vendorListService.forConsent(any())).willReturn(Future.succeededFuture(VendorListWrapper.empty()));
 
         given(purposeStrategyOne.getPurpose()).willReturn(ONE);
         given(purposeStrategyTwo.getPurpose()).willReturn(TWO);

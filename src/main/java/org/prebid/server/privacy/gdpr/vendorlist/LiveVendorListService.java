@@ -2,6 +2,7 @@ package org.prebid.server.privacy.gdpr.vendorlist;
 
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
+import lombok.Getter;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.Logger;
@@ -35,6 +36,7 @@ public class LiveVendorListService implements Initializable {
     private final JacksonMapper mapper;
     private final Clock clock;
 
+    @Getter
     private volatile Set<Integer> deletedVendorIds = Set.of();
 
     public LiveVendorListService(String cacheDir,
@@ -58,11 +60,6 @@ public class LiveVendorListService implements Initializable {
         this.metrics = Objects.requireNonNull(metrics);
         this.mapper = Objects.requireNonNull(mapper);
         this.clock = Objects.requireNonNull(clock);
-    }
-
-    public boolean isDeleted(Integer id) {
-        final Set<Integer> ids = deletedVendorIds;
-        return !ids.isEmpty() && ids.contains(id);
     }
 
     @Override

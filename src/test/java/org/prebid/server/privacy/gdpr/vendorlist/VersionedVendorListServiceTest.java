@@ -17,6 +17,8 @@ import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static java.util.Collections.emptyMap;
+import static java.util.Collections.emptySet;
+import static java.util.Collections.singleton;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.BDDMockito.given;
@@ -82,11 +84,11 @@ public class VersionedVendorListServiceTest {
     @Test
     public void forConsentShouldRemoveVendorsMarkedDeletedInRequestedGvl() {
         // given
-        final Vendor deletedVendor = Vendor.empty(1).toBuilder()
+        final Vendor deletedVendor = Vendor.empty(2).toBuilder()
                 .deletedDate(Instant.parse("2024-01-01T00:00:00Z"))
                 .build();
         final Vendor activeVendor = Vendor.empty(52);
-        final Map<Integer, Vendor> vendorList = Map.of(1, deletedVendor, 52, activeVendor);
+        final Map<Integer, Vendor> vendorList = Map.of(2, deletedVendor, 52, activeVendor);
         final TCString consent = TCStringEncoder.newBuilder()
                 .version(2)
                 .tcfPolicyVersion(3)
@@ -94,14 +96,14 @@ public class VersionedVendorListServiceTest {
                 .toTCString();
 
         given(vendorListServiceV2.forVersion(anyInt())).willReturn(Future.succeededFuture(vendorList));
-        given(liveVendorListService.isDeleted(anyInt())).willReturn(false);
+        given(liveVendorListService.getDeletedVendorIds()).willReturn(emptySet());
 
         // when and then
         assertThat(target.forConsent(consent))
                 .isSucceeded()
                 .unwrap()
                 .satisfies(result -> {
-                    assertThat(result).containsOnlyKeys(52);
+                    assertThat(result.get(2)).isNull();
                     assertThat(result.get(52)).isSameAs(activeVendor);
                 });
     }
@@ -119,15 +121,14 @@ public class VersionedVendorListServiceTest {
                 .toTCString();
 
         given(vendorListServiceV2.forVersion(anyInt())).willReturn(Future.succeededFuture(vendorList));
-        given(liveVendorListService.isDeleted(1)).willReturn(true);
-        given(liveVendorListService.isDeleted(52)).willReturn(false);
+        given(liveVendorListService.getDeletedVendorIds()).willReturn(singleton(1));
 
         // when and then
         assertThat(target.forConsent(consent))
                 .isSucceeded()
                 .unwrap()
                 .satisfies(result -> {
-                    assertThat(result).containsOnlyKeys(52);
+                    assertThat(result.get(1)).isNull();
                     assertThat(result.get(52)).isSameAs(activeVendor);
                 });
     }
