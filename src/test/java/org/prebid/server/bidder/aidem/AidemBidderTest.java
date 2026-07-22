@@ -32,7 +32,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
 public class AidemBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://randomurl.com?param={{PublisherId}}";
+    private static final String ENDPOINT_URL = "https://randomurl.com?param={PublisherId}";
 
     private final AidemBidder target = new AidemBidder(ENDPOINT_URL, jacksonMapper);
 

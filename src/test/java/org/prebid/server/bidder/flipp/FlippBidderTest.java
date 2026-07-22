@@ -355,7 +355,7 @@ public class FlippBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 bidRequestBuilder -> bidRequestBuilder
                         .site(Site.builder()
-                                .page("http://www.example.com/test?flipp-content-code=value-test&any=any-value")
+                                .page("http://www.example.com/test?flipp-content-code=value%20test&any=any-value")
                                 .build()),
                 impBuilder -> impBuilder
                         .banner(Banner.builder().format(null).build())
@@ -375,7 +375,7 @@ public class FlippBidderTest extends VertxTest {
                 .flatExtracting(CampaignRequestBody::getPlacements)
                 .extracting(Placement::getProperties)
                 .extracting(Properties::getContentCode)
-                .containsExactly("value-test");
+                .containsExactly("value test");
     }
 
     @Test
@@ -924,10 +924,6 @@ public class FlippBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(givenImp(identity(), extImp -> extImp
                 .options(ExtImpFlippOptions.of(false, null, null))));
-
-        final ObjectNode customData = mapper.createObjectNode()
-                .put("compactHeight", 20)
-                .put("standardHeight", 30);
 
         final BidderCall<CampaignRequestBody> httpCall = givenHttpCall(CampaignRequestBody.builder().build(),
                 mapper.writeValueAsString(givenCampaignResponseBody(inlineBuilder -> inlineBuilder

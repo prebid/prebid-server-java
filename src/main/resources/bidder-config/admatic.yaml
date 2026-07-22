@@ -1,6 +1,6 @@
 adapters:
   admatic:
-    endpoint: http://pbs.admatic.com.tr?host={{Host}}
+    endpoint: http://pbs.admatic.com.tr?host={Host}
     aliases:
       adt:
         enabled: false

@@ -232,5 +232,4 @@ public class PwbidBidderTest extends VertxTest {
                         .build()))
                 .build();
     }
-
 }

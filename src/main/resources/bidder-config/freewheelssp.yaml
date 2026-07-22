@@ -14,7 +14,7 @@ adapters:
           enabled: true
           cookie-family-name: fwssp
           iframe:
-            url: https://user-sync.fwmrm.net/ad/u?mode=pbs-user-sync&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&pbs_redirect={{redirect_url}}
+            url: https://user-sync.fwmrm.net/ad/u?mode=pbs-user-sync&gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&pbs_redirect={redirect_url}
             support-cors: false
             uid-macro: '#{user.id}'
     meta-info:
@@ -28,6 +28,6 @@ adapters:
     usersync:
       cookie-family-name: freewheelssp
       iframe:
-        url: https://ads.stickyadstv.com/pbs-user-sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&r={{redirect_url}}
+        url: https://ads.stickyadstv.com/pbs-user-sync?gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&gpp={gpp}&gpp_sid={gpp_sid}&r={redirect_url}
         support-cors: false
         uid-macro: '{viewerid}'

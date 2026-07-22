@@ -34,7 +34,7 @@ import static org.assertj.core.api.Assertions.tuple;
 
 public class SeedingAllianceBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://randomurl.com/{{AccountId}}";
+    private static final String ENDPOINT_URL = "https://randomurl.com/{AccountId}";
 
     private final SeedingAllianceBidder target = new SeedingAllianceBidder(ENDPOINT_URL, jacksonMapper);
 

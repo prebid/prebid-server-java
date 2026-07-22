@@ -35,7 +35,7 @@ import static org.prebid.server.bidder.model.BidderError.badInput;
 
 public class OmsBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://randomurl.com?pid={{PublisherId}}";
+    private static final String ENDPOINT_URL = "https://randomurl.com?pid={PublisherId}";
 
     private final OmsBidder target = new OmsBidder(ENDPOINT_URL, jacksonMapper);
 

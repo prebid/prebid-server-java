@@ -37,7 +37,7 @@ adapters:
     usersync:
       cookie-family-name: rubicon
       redirect:
-        url: GET_FROM_globalsupport@magnite.com
+        url: https://GET_FROM_globalsupport@magnite.com
         support-cors: false
     apex-renderer-url: "https://video-outstream.rubiconproject.com/apex-2.2.1.js"
     XAPI:

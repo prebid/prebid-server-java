@@ -28,6 +28,7 @@ import org.prebid.server.proto.openrtb.ext.request.adtelligent.ExtImpAdtelligent
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -46,13 +47,13 @@ public class AdtelligentBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     private final MultiMap headers;
 
     public AdtelligentBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
         headers = HttpUtil.headers();
     }
@@ -115,7 +116,7 @@ public class AdtelligentBidder implements Bidder<BidRequest> {
                                                                      List<BidderError> errors, BidRequest request) {
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
         for (Map.Entry<Integer, List<Imp>> sourceIdToImps : sourceToImps.entrySet()) {
-            final String url = "%s?aid=%d".formatted(endpointUrl, sourceIdToImps.getKey());
+            final String url = endpointUrl.addQueryParam("aid", Objects.toString(sourceIdToImps.getKey())).expand();
             final BidRequest bidRequest = request.toBuilder().imp(sourceIdToImps.getValue()).build();
             final byte[] bidRequestBody;
             try {

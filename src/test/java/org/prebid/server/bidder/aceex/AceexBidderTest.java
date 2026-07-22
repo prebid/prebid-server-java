@@ -39,7 +39,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class AceexBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test-url.com/?param={{AccountId}}";
+    private static final String ENDPOINT_URL = "https://test-url.com/?param={AccountId}";
 
     private final AceexBidder target = new AceexBidder(ENDPOINT_URL, jacksonMapper);
 

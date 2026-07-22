@@ -64,5 +64,4 @@ public class BidResponsesMraidFilter {
 
         return MraidFilterResult.of(filteredResponses, analyticsResults);
     }
-
 }

@@ -30,5 +30,4 @@ public enum CreativeType {
                 .findFirst()
                 .orElse(UNKNOWN);
     }
-
 }

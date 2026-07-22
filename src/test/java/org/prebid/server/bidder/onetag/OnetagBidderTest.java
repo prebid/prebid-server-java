@@ -36,7 +36,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class OnetagBidderTest extends VertxTest {
 
-    public static final String ENDPOINT_URL = "https://test.endpoint.com/{{publisherId}}";
+    public static final String ENDPOINT_URL = "https://test.endpoint.com/{publisherId}";
 
     private final OnetagBidder target = new OnetagBidder(ENDPOINT_URL, jacksonMapper);
 

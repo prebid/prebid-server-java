@@ -16,6 +16,6 @@ adapters:
     usersync:
       cookie-family-name: vox
       iframe:
-        url: https://ssp.hybrid.ai/prebid/server/v1/userSync?consent={{gdpr_consent}}&redirect={{redirect_url}}
+        url: https://ssp.hybrid.ai/prebid/server/v1/userSync?consent={gdpr_consent}&redirect={redirect_url}
         uid-macro: $UID
         support-cors: false
