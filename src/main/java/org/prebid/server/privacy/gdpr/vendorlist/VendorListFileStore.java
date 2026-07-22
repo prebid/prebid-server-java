@@ -77,7 +77,8 @@ public class VendorListFileStore {
     private Map<Integer, String> readFileSystemCache(String cacheDir) {
         return fileSystem.readDirBlocking(cacheDir).stream()
                 .filter(filepath -> filepath.endsWith(JSON_SUFFIX))
-                .collect(Collectors.toMap(VendorListFileStore::parseCachedFileVersion,
+                .collect(Collectors.toMap(
+                        VendorListFileStore::parseCachedFileVersion,
                         filename -> fileSystem.readFileBlocking(filename).toString()));
     }
 

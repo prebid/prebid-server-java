@@ -148,9 +148,9 @@ public class PrivacyServiceConfiguration {
 
     @Bean
     LiveVendorListService liveVendorListService(
-            VendorListServiceConfigurationProperties vendorListServiceV3Properties,
-            @Value("${gdpr.vendorlist.live-gvl-url}") String liveGvlUrl,
-            @Value("${gdpr.vendorlist.live-gvl-refresh-period-ms}") long refreshPeriodMs,
+            @Value("${gdpr.vendorlist.live.startup-cache-dir}") String startupCacheDir,
+            @Value("${gdpr.vendorlist.live.url}") String liveGvlUrl,
+            @Value("${gdpr.vendorlist.live.refresh-period-ms}") long refreshPeriodMs,
             @Value("${gdpr.vendorlist.default-timeout-ms}") int defaultTimeoutMs,
             Vertx vertx,
             HttpClient httpClient,
@@ -160,7 +160,7 @@ public class PrivacyServiceConfiguration {
             Clock clock) {
 
         return new LiveVendorListService(
-                vendorListServiceV3Properties.getCacheDir(),
+                startupCacheDir,
                 liveGvlUrl,
                 refreshPeriodMs,
                 defaultTimeoutMs,
