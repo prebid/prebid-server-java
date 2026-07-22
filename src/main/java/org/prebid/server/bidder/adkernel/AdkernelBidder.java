@@ -42,6 +42,7 @@ public class AdkernelBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
+    private static final String ZONE_ID_MACRO = "ZoneId";
     private static final String MF_SUFFIX = "__mf";
     private static final String MF_SUFFIX_BANNER = "b" + MF_SUFFIX;
     private static final String MF_SUFFIX_VIDEO = "v" + MF_SUFFIX;
@@ -184,7 +185,7 @@ public class AdkernelBidder implements Bidder<BidRequest> {
                                                       App app) {
 
         final ExtImpAdkernel impExt = extAndImp.getKey();
-        final String uri = endpoint.replaceMacro("ZoneId", Objects.toString(impExt.getZoneId())).expand();
+        final String uri = endpoint.replaceMacro(ZONE_ID_MACRO, Objects.toString(impExt.getZoneId())).expand();
 
         final MultiMap headers = HttpUtil.headers()
                 .add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");

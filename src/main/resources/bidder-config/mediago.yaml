@@ -24,6 +24,6 @@ adapters:
     usersync:
       cookie-family-name: mediago
       redirect:
-        url: https://trace.mediago.io/ju/cs/prebid?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+        url: https://trace.mediago.io/ju/cs/prebid?gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&redirect={redirect_url}
         support-cors: false
         uid-macro: '$UID'
