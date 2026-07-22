@@ -61,8 +61,6 @@
         <wiremock.version>3.13.2</wiremock.version>
         <wiremock-spring-boot.version>4.2.1</wiremock-spring-boot.version>
         <spock.version>2.4-groovy-5.0</spock.version>
-        <!--TODO: replace with WireMock -->
-        <mockserver.version>5.15.0</mockserver.version>
         <rest-assured-bom.version>6.0.0</rest-assured-bom.version>
 
         <!-- Test properties -->
@@ -270,21 +268,6 @@
                 <groupId>io.github.jamsesso</groupId>
                 <artifactId>json-logic-java</artifactId>
                 <version>${json-logic.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.mock-server</groupId>
-                <artifactId>mockserver-client-java</artifactId>
-                <version>${mockserver.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>com.google.code.findbugs</groupId>
-                        <artifactId>jsr305</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>commons-logging</groupId>
-                        <artifactId>commons-logging</artifactId>
-                    </exclusion>
-                </exclusions>
             </dependency>
         </dependencies>
     </dependencyManagement>
