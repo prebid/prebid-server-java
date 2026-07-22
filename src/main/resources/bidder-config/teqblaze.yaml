@@ -11,11 +11,11 @@ adapters:
           enabled: true
           cookie-family-name: 360playvid
           redirect:
-            url: https://cookie.360playvid.com/pbserver?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&coppa={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redir={{redirect_url}}
+            url: https://cookie.360playvid.com/pbserver?gdpr={gdpr}&gdpr_consent={gdpr_consent}&coppa={us_privacy}&gpp={gpp}&gpp_sid={gpp_sid}&redir={redirect_url}
             support-cors: false
             uid-macro: '[UID]'
           iframe:
-            url: https://cookie.360playvid.com/pbserverIframe?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&pbserverUrl={{redirect_url}}
+            url: https://cookie.360playvid.com/pbserverIframe?gdpr={gdpr}&gdpr_consent={gdpr_consent}&ccpa={us_privacy}&gpp={gpp}&gpp_sid={gpp_sid}&pbserverUrl={redirect_url}
             uid-macro: '[UID]'
             support-cors: false
       pinkLion:
@@ -32,7 +32,7 @@ adapters:
           enabled: true
           cookie-family-name: rocketlab
           redirect:
-            url: https://usync.rocketlab.ai/pbserver?gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redirect={{redirect_url}}
+            url: https://usync.rocketlab.ai/pbserver?gdpr={gdpr}&consent={gdpr_consent}&us_privacy={us_privacy}&gpp={gpp}&gpp_sid={gpp_sid}&redirect={redirect_url}
             support-cors: false
             uid-macro: '[UID]'
       appStockSSP:
@@ -46,11 +46,11 @@ adapters:
           enabled: true
           cookie-family-name: appStockSSP
           redirect:
-            url: https://csync.al-ad.com/pbserver?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redir={{redirect_url}}
+            url: https://csync.al-ad.com/pbserver?gdpr={gdpr}&gdpr_consent={gdpr_consent}&ccpa={us_privacy}&gpp={gpp}&gpp_sid={gpp_sid}&redir={redirect_url}
             support-cors: false
             uid-macro: '[UID]'
           iframe:
-            url: "https://csync.al-ad.com/pbserverIframe?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&pbserverUrl={{redirect_url}}"
+            url: "https://csync.al-ad.com/pbserverIframe?gdpr={gdpr}&gdpr_consent={gdpr_consent}&ccpa={us_privacy}&gpp={gpp}&gpp_sid={gpp_sid}&pbserverUrl={redirect_url}"
             support-cors: false
             uid-macro: '[UID]'
       gravite:
@@ -68,11 +68,11 @@ adapters:
           enabled: true
           cookie-family-name: bidfuse
           redirect:
-            url: https://syncbf.bidfuse.com/pbserver?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redir={{redirect_url}}
+            url: https://syncbf.bidfuse.com/pbserver?gdpr={gdpr}&gdpr_consent={gdpr_consent}&ccpa={us_privacy}&gpp={gpp}&gpp_sid={gpp_sid}&redir={redirect_url}
             support-cors: false
             uid-macro: '[UID]'
           iframe:
-            url: https://syncbf.bidfuse.com/pbserverIframe?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&pbserverUrl={{redirect_url}}
+            url: https://syncbf.bidfuse.com/pbserverIframe?gdpr={gdpr}&gdpr_consent={gdpr_consent}&ccpa={us_privacy}&gpp={gpp}&gpp_sid={gpp_sid}&pbserverUrl={redirect_url}
             support-cors: false
             uid-macro: '[UID]'
       progx:
@@ -85,11 +85,11 @@ adapters:
           enabled: true
           cookie-family-name: progx
           iframe:
-            url: https://sync.progrtb.com/pbserverIframe?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&pbserverUrl={{.RedirectURL}}
+            url: https://sync.progrtb.com/pbserverIframe?gdpr={gdpr}&gdpr_consent={gdpr_consent}&ccpa={us_privacy}&gpp={gpp}&gpp_sid={gpp_sid}&pbserverUrl={.RedirectURL}
             support-cors: false
             uid-macro: '[UID]'
           redirect:
-            url: https://sync.progrtb.com/pbserver?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redir={{redirect_url}}
+            url: https://sync.progrtb.com/pbserver?gdpr={gdpr}&gdpr_consent={gdpr_consent}&ccpa={us_privacy}&gpp={gpp}&gpp_sid={gpp_sid}&redir={redirect_url}
             support-cors: false
             uid-macro: '[UID]'
       harion:
@@ -107,11 +107,11 @@ adapters:
           enabled: true
           cookie-family-name: mycodemedia
           iframe:
-            url: https://usersync.mycodemedia.com/pbserverIframe?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&pbserverUrl={{redirect_url}}
+            url: https://usersync.mycodemedia.com/pbserverIframe?gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&gpp={gpp}&gpp_sid={gpp_sid}&pbserverUrl={redirect_url}
             support-cors: false
             uid-macro: '[UID]'
           redirect:
-            url: https://usersync.mycodemedia.com/pbserver?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redir={{redirect_url}}
+            url: https://usersync.mycodemedia.com/pbserver?gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&gpp={gpp}&gpp_sid={gpp_sid}&redir={redirect_url}
             support-cors: false
             uid-macro: '[UID]'
       adsmovil:

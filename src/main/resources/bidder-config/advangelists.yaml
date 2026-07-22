@@ -14,6 +14,6 @@ adapters:
     usersync:
       cookie-family-name: advangelists
       iframe:
-        url: https://nep.advangelists.com/xp/user-sync?acctid={aid}&&redirect={{redirect_url}}
+        url: https://nep.advangelists.com/xp/user-sync?acctid=%7Baid%7D&&redirect={redirect_url}
         support-cors: false
         uid-macro: '$UID'
