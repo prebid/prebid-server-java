@@ -34,7 +34,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class AcuityadsBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.com/prebid/bid?host={{Host}}&key={{AccountID}}";
+    private static final String ENDPOINT_URL = "https://test.com/prebid/bid?host={Host}&key={AccountID}";
 
     private final AcuityadsBidder target = new AcuityadsBidder(ENDPOINT_URL, jacksonMapper);
 

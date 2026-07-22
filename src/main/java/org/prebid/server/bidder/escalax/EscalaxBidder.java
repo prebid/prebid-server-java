@@ -24,6 +24,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -32,17 +33,19 @@ import java.util.Objects;
 
 public class EscalaxBidder implements Bidder<BidRequest> {
 
+    private static final String ACCOUNT_ID_MACRO = "AccountID";
+    private static final String SOURCE_ID_MACRO = "SourceId";
     private static final TypeReference<ExtPrebid<?, ExtImpEscalax>> TYPE_REFERENCE =
             new TypeReference<>() {
             };
 
     private static final String X_OPENRTB_VERSION = "2.5";
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public EscalaxBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -77,8 +80,9 @@ public class EscalaxBidder implements Bidder<BidRequest> {
 
     private String makeUrl(ExtImpEscalax extImp) {
         return endpointUrl
-                .replace("{{AccountID}}", extImp.getAccountId())
-                .replace("{{SourceId}}", extImp.getSourceId());
+                .replaceMacro(ACCOUNT_ID_MACRO, extImp.getAccountId())
+                .replaceMacro(SOURCE_ID_MACRO, extImp.getSourceId())
+                .expand();
     }
 
     private MultiMap makeHeaders(Device device) {

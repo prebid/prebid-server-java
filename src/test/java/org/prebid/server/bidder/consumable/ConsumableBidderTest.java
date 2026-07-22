@@ -47,7 +47,7 @@ import static org.assertj.core.api.Assertions.tuple;
 @ExtendWith(MockitoExtension.class)
 public class ConsumableBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "http://exchange.org/";
+    private static final String ENDPOINT_URL = "http://exchange.org";
 
     @Mock
     private PrebidVersionProvider prebidVersionProvider;
@@ -107,7 +107,7 @@ public class ConsumableBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsExactly(ENDPOINT_URL + ConsumableBidder.APP_URI_PATH + "0421008445828ceb46f496700a5fa65e");
+                .containsExactly(ENDPOINT_URL + ConsumableBidder.APP_URI_PATH + "?s=0421008445828ceb46f496700a5fa65e");
     }
 
     @Test

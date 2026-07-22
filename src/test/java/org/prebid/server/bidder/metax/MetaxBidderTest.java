@@ -45,7 +45,7 @@ import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
 @ExtendWith(MockitoExtension.class)
 public class MetaxBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.endpoint.com?sid={{publisherId}}&adunit={{adUnit}}";
+    private static final String ENDPOINT_URL = "https://test.endpoint.com?sid={publisherId}&adunit={adUnit}";
 
     private MetaxBidder target;
 

@@ -39,7 +39,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class OperaadsBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://randomurl.com/{{AccountId}}/{{PublisherId}}";
+    private static final String ENDPOINT_URL = "https://randomurl.com/{AccountId}/{PublisherId}";
 
     private final OperaadsBidder target = new OperaadsBidder(ENDPOINT_URL, jacksonMapper);
 

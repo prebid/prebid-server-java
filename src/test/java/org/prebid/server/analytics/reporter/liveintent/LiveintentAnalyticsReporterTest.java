@@ -68,9 +68,11 @@ public class LiveintentAnalyticsReporterTest extends VertxTest {
 
     @BeforeEach
     public void setUp() {
-
-        properties = LiveIntentAnalyticsProperties.builder().analyticsEndpoint("https://localhost:8080")
-                .partnerId("pbsj").timeoutMs(1000L).build();
+        properties = LiveIntentAnalyticsProperties.builder()
+                .analyticsEndpoint("https://localhost:8080")
+                .partnerId("pbsj")
+                .timeoutMs(1000L)
+                .build();
 
         target = new LiveIntentAnalyticsReporter(properties, httpClient, jacksonMapper);
     }
@@ -87,7 +89,7 @@ public class LiveintentAnalyticsReporterTest extends VertxTest {
         // then
         // Verify that the HTTP client was called with the expected parameters
         verify(httpClient).get(
-                eq(properties.getAnalyticsEndpoint() + "/analytic-events/pbsj-winning-bid" + "?b=foo&bidId=123"),
+                eq("https://localhost:8080/analytic-events/pbsj-winning-bid?b=foo&bidId=123"),
                 eq(properties.getTimeoutMs()));
     }
 
@@ -101,8 +103,10 @@ public class LiveintentAnalyticsReporterTest extends VertxTest {
         target.processEvent(buildEvent(true));
 
         // then
-        verify(httpClient).post(eq(properties.getAnalyticsEndpoint() + "/analytic-events/pbsj-bids"),
-                jsonCaptor.capture(), eq(properties.getTimeoutMs()));
+        verify(httpClient).post(
+                eq("https://localhost:8080/analytic-events/pbsj-bids"),
+                jsonCaptor.capture(),
+                eq(properties.getTimeoutMs()));
 
         final String capturedJson = jsonCaptor.getValue();
         final List<PbsjBid> pbsjBids = jacksonMapper.decodeValue(capturedJson, PBJS_COLLECTION_TYPE);
@@ -121,8 +125,10 @@ public class LiveintentAnalyticsReporterTest extends VertxTest {
         target.processEvent(buildEvent(false));
 
         // then
-        verify(httpClient).post(eq(properties.getAnalyticsEndpoint() + "/analytic-events/pbsj-bids"),
-                jsonCaptor.capture(), eq(properties.getTimeoutMs()));
+        verify(httpClient).post(
+                eq("https://localhost:8080/analytic-events/pbsj-bids"),
+                jsonCaptor.capture(),
+                eq(properties.getTimeoutMs()));
 
         final String capturedJson = jsonCaptor.getValue();
         final List<PbsjBid> pbsjBids = jacksonMapper.decodeValue(capturedJson, PBJS_COLLECTION_TYPE);
@@ -141,8 +147,10 @@ public class LiveintentAnalyticsReporterTest extends VertxTest {
         target.processEvent(buildEvent(false, false));
 
         // then
-        verify(httpClient).post(eq(properties.getAnalyticsEndpoint() + "/analytic-events/pbsj-bids"),
-                jsonCaptor.capture(), eq(properties.getTimeoutMs()));
+        verify(httpClient).post(
+                eq("https://localhost:8080/analytic-events/pbsj-bids"),
+                jsonCaptor.capture(),
+                eq(properties.getTimeoutMs()));
 
         final String capturedJson = jsonCaptor.getValue();
         final List<PbsjBid> pbsjBids = jacksonMapper.decodeValue(capturedJson, PBJS_COLLECTION_TYPE);

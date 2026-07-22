@@ -10,7 +10,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -26,8 +25,8 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
+import org.prebid.server.util.Uri;
 
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -41,11 +40,11 @@ public class DxKultureBidder implements Bidder<BidRequest> {
             };
     private static final String X_OPENRTB_VERSION = "2.5";
 
-    private final String endpointUrl;
+    private final Uri endpoint;
     private final JacksonMapper mapper;
 
     public DxKultureBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpoint = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -78,18 +77,10 @@ public class DxKultureBidder implements Bidder<BidRequest> {
     }
 
     private String getUri(ExtImpDxKulture extImpDxKulture) {
-        final URIBuilder uriBuilder;
-        try {
-            uriBuilder = new URIBuilder(endpointUrl);
-        } catch (URISyntaxException e) {
-            throw new PreBidException("Invalid url: %s, error: %s".formatted(endpointUrl, e.getMessage()));
-        }
-
-        uriBuilder
-                .addParameter("publisher_id", extImpDxKulture.getPublisherId())
-                .addParameter("placement_id", extImpDxKulture.getPlacementId());
-
-        return uriBuilder.toString();
+        return endpoint
+                .addQueryParam("publisher_id", extImpDxKulture.getPublisherId())
+                .addQueryParam("placement_id", extImpDxKulture.getPlacementId())
+                .expand();
     }
 
     private static MultiMap resolveHeaders(BidRequest bidRequest) {

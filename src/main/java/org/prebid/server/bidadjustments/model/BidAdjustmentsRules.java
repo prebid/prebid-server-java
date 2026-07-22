@@ -46,5 +46,4 @@ public class BidAdjustmentsRules {
 
         return BidAdjustmentsRules.of(MapUtils.unmodifiableMap(rules));
     }
-
 }

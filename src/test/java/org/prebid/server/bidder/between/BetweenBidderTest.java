@@ -39,7 +39,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 
 public class BetweenBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.com/test?param={{PublisherId}}";
+    private static final String ENDPOINT_URL = "https://test.com/test?param={PublisherId}";
 
     private final BetweenBidder target = new BetweenBidder(ENDPOINT_URL, jacksonMapper);
 
@@ -131,7 +131,7 @@ public class BetweenBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorIfImpExtContainEmptyOrNullHostParamAndEndpointContainsHostMacro() {
         // given
-        final BetweenBidder target = new BetweenBidder("https://{{Host}}/test?param={{PublisherId}}", jacksonMapper);
+        final BetweenBidder target = new BetweenBidder("https://{Host}/test?param={PublisherId}", jacksonMapper);
         final Imp firstImp = givenImp(impBuilder -> impBuilder
                 .id("123")
                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of("", "pubId")))));
@@ -190,7 +190,7 @@ public class BetweenBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReplaceHostMacroInUrlWhenPresentInConfigAndExtImpBetween() {
         // given
-        final BetweenBidder target = new BetweenBidder("https://{{Host}}/test?param={{PublisherId}}", jacksonMapper);
+        final BetweenBidder target = new BetweenBidder("https://{Host}/test?param={PublisherId}", jacksonMapper);
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
                         .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of("host.com", "pubId")))));

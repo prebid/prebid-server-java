@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.proto.response.UsersyncInfo;
+import org.prebid.server.util.Uri;
 
 import java.util.List;
 import java.util.function.UnaryOperator;
@@ -21,7 +22,7 @@ public class UsersyncInfoFactoryTest {
 
     @BeforeEach
     public void setUp() {
-        target = new UsersyncInfoFactory("http://localhost:8080");
+        target = new UsersyncInfoFactory("https://localhost:8080");
     }
 
     @Test
@@ -39,57 +40,45 @@ public class UsersyncInfoFactoryTest {
     @Test
     public void buildShouldUseUsersyncUrlFromUsersyncMethodIfHostCookieUidIsNull() {
         // given
-        final UsersyncMethod method = givenUsersyncMethod("http://specific-usersync-url-from-method");
+        final UsersyncMethod method = givenUsersyncMethod("https://specific-usersync-url-from-method");
 
         // when
         final UsersyncInfo result = target.build(BIDDER, null, method, givenEmptyPrivacy());
 
         // then
-        assertThat(result.getUrl()).isEqualTo("http://specific-usersync-url-from-method");
-    }
-
-    @Test
-    public void buildShouldUseEmptyStringWhenUsersyncUrlIsNullAndHostCookieUidIsNull() {
-        // given
-        final UsersyncMethod method = givenUsersyncMethod(builder -> builder.usersyncUrl(null));
-
-        // when
-        final UsersyncInfo result = target.build(BIDDER, null, method, givenEmptyPrivacy());
-
-        // then
-        assertThat(result.getUrl()).isEmpty();
+        assertThat(result.getUrl()).isEqualTo("https://specific-usersync-url-from-method");
     }
 
     @Test
     public void buildShouldReplaceRedirectParameterWithRedirectUrlIfHostCookieUidIsNull() {
         // given
-        final UsersyncMethod method = givenUsersyncMethod("http://usersync-url?redir={{redirect_url}}");
+        final UsersyncMethod method = givenUsersyncMethod("https://usersync-url?redir={redirect_url}");
 
         // when
         final UsersyncInfo result = target.build(BIDDER, null, method, givenEmptyPrivacy());
 
         // then
         assertThat(result.getUrl())
-                .doesNotContain("{{redirect_url}}")
-                .startsWith("http://usersync-url?redir=http%3A%2F%2F");
+                .doesNotContain("{redirect_url}")
+                .startsWith("https://usersync-url?redir=https%3A%2F%2F");
     }
 
     @Test
     public void buildShouldUseExternalUrlAsBaseForRedirectUrlIfHostCookieUidIsNull() {
         // given
-        final UsersyncMethod method = givenUsersyncMethod("{{redirect_url}}");
+        final UsersyncMethod method = givenUsersyncMethod("https://usersync-url?redir={redirect_url}");
 
         // when
         final UsersyncInfo result = target.build(BIDDER, null, method, givenEmptyPrivacy());
 
         // then
-        assertThat(result.getUrl()).startsWith("http%3A%2F%2Flocalhost%3A8080%2Fsetuid");
+        assertThat(result.getUrl()).startsWith("https://usersync-url?redir=https%3A%2F%2Flocalhost%3A8080%2Fsetuid");
     }
 
     @Test
     public void buildShouldUseBidderParameterWithBidderNameInRedirectUrlIfHostCookieUidIsNull() {
         // given
-        final UsersyncMethod method = givenUsersyncMethod("{{redirect_url}}");
+        final UsersyncMethod method = givenUsersyncMethod("https://usersync-url?redir={redirect_url}");
 
         // when
         final UsersyncInfo result = target.build("specific-bidder", null, method, givenEmptyPrivacy());
@@ -102,7 +91,7 @@ public class UsersyncInfoFactoryTest {
     public void buildShouldUseUidParameterWithUidMacroFromUsersyncMethodInRedirectUrlIfHostCookieUidIsNull() {
         // given
         final UsersyncMethod method = givenUsersyncMethod(builder -> builder
-                .usersyncUrl("{{redirect_url}}")
+                .usersyncUrl(Uri.of("https://usersync-url?redir={redirect_url}"))
                 .uidMacro("UID-MACRO"));
 
         // when
@@ -113,10 +102,38 @@ public class UsersyncInfoFactoryTest {
     }
 
     @Test
+    public void buildShouldNotDoubleUrlEncodeUidMacro() {
+        // given
+        final UsersyncMethod method = givenUsersyncMethod(builder -> builder
+                .usersyncUrl(Uri.of("https://usersync-url?redir={redirect_url}"))
+                .uidMacro("{UID-MACRO}"));
+
+        // when
+        final UsersyncInfo result = target.build(BIDDER, null, method, givenEmptyPrivacy());
+
+        // then
+        assertThat(result.getUrl()).contains("uid%3D%7BUID-MACRO%7D");
+    }
+
+    @Test
+    public void buildShouldUseEmptyStringWhenUidMacroIsMissing() {
+        // given
+        final UsersyncMethod method = givenUsersyncMethod(builder -> builder
+                .usersyncUrl(Uri.of("https://usersync-url?redir={redirect_url}"))
+                .uidMacro(null));
+
+        // when
+        final UsersyncInfo result = target.build(BIDDER, null, method, givenEmptyPrivacy());
+
+        // then
+        assertThat(result.getUrl()).endsWith("uid%3D");
+    }
+
+    @Test
     public void buildShouldUseFormatParameterWithFormatFromUsersyncMethodInRedirectUrlIfHostCookieUidIsNull() {
         // given
         final UsersyncMethod method = givenUsersyncMethod(builder -> builder
-                .usersyncUrl("{{redirect_url}}")
+                .usersyncUrl(Uri.of("https://usersync-url?redir={redirect_url}"))
                 .type(UsersyncMethodType.IFRAME));
 
         // when
@@ -129,7 +146,7 @@ public class UsersyncInfoFactoryTest {
     @Test
     public void buildShouldUseRedirectUrlAsUsersyncUrlIfHostCookieUidIsNotNull() {
         // given
-        final UsersyncMethod method = givenUsersyncMethod("http://method-usersync-url");
+        final UsersyncMethod method = givenUsersyncMethod("https://method-usersync-url");
 
         // when
         final UsersyncInfo result = target.build(BIDDER, "host-cookie-uid", method, givenEmptyPrivacy());
@@ -137,7 +154,7 @@ public class UsersyncInfoFactoryTest {
         // then
         assertThat(result.getUrl())
                 .doesNotContain("method-usersync-url")
-                .startsWith("http://localhost:8080/setuid");
+                .startsWith("https://localhost:8080/setuid");
     }
 
     @Test
@@ -182,12 +199,12 @@ public class UsersyncInfoFactoryTest {
     public void buildShouldIncludePrivacyParametersInUsersyncUrl() {
         // given
         final UsersyncMethod method = givenUsersyncMethod("""
-                http://usersync-url?\
-                gdpr={{gdpr}}\
-                &gdpr_consent={{gdpr_consent}}\
-                &us_privacy={{us_privacy}}\
-                &gpp={{gpp}}\
-                &gpp_sid={{gpp_sid}}""");
+                https://usersync-url?\
+                gdpr={gdpr}\
+                &gdpr_consent={gdpr_consent}\
+                &us_privacy={us_privacy}\
+                &gpp={gpp}\
+                &gpp_sid={gpp_sid}""");
         final Privacy privacy = Privacy.builder()
                 .gdpr("1")
                 .consentString("consent$1")
@@ -201,11 +218,11 @@ public class UsersyncInfoFactoryTest {
 
         // then
         assertThat(result.getUrl()).isEqualTo("""
-                http://usersync-url\
+                https://usersync-url\
                 ?gdpr=1\
                 &gdpr_consent=consent%241\
                 &us_privacy=1YNN\
-                &gpp=g+pp\
+                &gpp=g%20pp\
                 &gpp_sid=1%2C2""");
     }
 
@@ -213,24 +230,24 @@ public class UsersyncInfoFactoryTest {
     public void buildShouldUseEmptyStringsIfPrivacyParametersAreNull() {
         // given
         final UsersyncMethod method = givenUsersyncMethod("""
-                http://usersync-url?\
-                gdpr={{gdpr}}\
-                &gdpr_consent={{gdpr_consent}}\
-                &us_privacy={{us_privacy}}\
-                &gpp={{gpp}}\
-                &gpp_sid={{gpp_sid}}""");
+                https://usersync-url?\
+                gdpr={gdpr}\
+                &gdpr_consent={gdpr_consent}\
+                &us_privacy={us_privacy}\
+                &gpp={gpp}\
+                &gpp_sid={gpp_sid}""");
 
         // when
         final UsersyncInfo result = target.build(BIDDER, null, method, givenEmptyPrivacy());
 
         // then
-        assertThat(result.getUrl()).isEqualTo("http://usersync-url?gdpr=&gdpr_consent=&us_privacy=&gpp=&gpp_sid=");
+        assertThat(result.getUrl()).isEqualTo("https://usersync-url?gdpr=&gdpr_consent=&us_privacy=&gpp=&gpp_sid=");
     }
 
     @Test
     public void buildShouldIncludePrivacyParametersInRedirectUrl() {
         // given
-        final UsersyncMethod method = givenUsersyncMethod("{{redirect_url}}");
+        final UsersyncMethod method = givenUsersyncMethod("https://usersync-url?redir={redirect_url}");
         final Privacy privacy = Privacy.builder()
                 .gdpr("1")
                 .consentString("consent$1")
@@ -244,13 +261,14 @@ public class UsersyncInfoFactoryTest {
 
         // then
         assertThat(result.getUrl()).isEqualTo("""
-                http%3A%2F%2Flocalhost%3A8080%2Fsetuid\
+                https://usersync-url?redir=\
+                https%3A%2F%2Flocalhost%3A8080%2Fsetuid\
                 %3Fbidder%3Dbidder\
                 %26gdpr%3D1\
-                %26gdpr_consent%3Dconsent%241\
+                %26gdpr_consent%3Dconsent%25241\
                 %26us_privacy%3D1YNN\
                 %26gpp%3Dgpp\
-                %26gpp_sid%3D1%2C2\
+                %26gpp_sid%3D1%252C2\
                 %26f%3Di\
                 %26uid%3D%24UID""");
     }
@@ -283,7 +301,7 @@ public class UsersyncInfoFactoryTest {
     public void buildShouldUseFormatOverrideOverTypeFormat() {
         // given
         final UsersyncMethod method = givenUsersyncMethod(builder -> builder
-                .usersyncUrl("{{redirect_url}}")
+                .usersyncUrl(Uri.of("https://usersync-url?redir={redirect_url}"))
                 .type(UsersyncMethodType.REDIRECT)
                 .formatOverride(UsersyncFormat.BLANK));
 
@@ -297,13 +315,13 @@ public class UsersyncInfoFactoryTest {
     @Test
     public void buildShouldEncodeBidderNameInRedirectUrl() {
         // given
-        final UsersyncMethod method = givenUsersyncMethod("{{redirect_url}}");
+        final UsersyncMethod method = givenUsersyncMethod("https://usersync-url?redir={redirect_url}");
 
         // when
         final UsersyncInfo result = target.build("bidder name", null, method, givenEmptyPrivacy());
 
         // then
-        assertThat(result.getUrl()).contains("bidder%3Dbidder%2Bname");
+        assertThat(result.getUrl()).contains("bidder%3Dbidder%2520name");
     }
 
     @Test
@@ -311,14 +329,14 @@ public class UsersyncInfoFactoryTest {
         // given
         final UsersyncMethod method = UsersyncMethod.builder()
                 .type(UsersyncMethodType.IFRAME)
-                .usersyncUrl("""
-                        http://usersync-url\
-                        ?redir={{redirect_url}}\
-                        &gdpr={{gdpr}}\
-                        &gdpr_consent={{gdpr_consent}}\
-                        &us_privacy={{us_privacy}}\
-                        &gpp={{gpp}}\
-                        &gpp_sid={{gpp_sid}}""")
+                .usersyncUrl(Uri.of("""
+                        https://usersync-url\
+                        ?redir={redirect_url}\
+                        &gdpr={gdpr}\
+                        &gdpr_consent={gdpr_consent}\
+                        &us_privacy={us_privacy}\
+                        &gpp={gpp}\
+                        &gpp_sid={gpp_sid}"""))
                 .uidMacro("$UID-MACRO")
                 .supportCORS(true)
                 .formatOverride(UsersyncFormat.PIXEL)
@@ -338,21 +356,21 @@ public class UsersyncInfoFactoryTest {
         assertThat(result.getSupportCORS()).isTrue();
         assertThat(result.getType()).isEqualTo(UsersyncMethodType.IFRAME);
         assertThat(result.getUrl()).isEqualTo("""
-                http://usersync-url\
+                https://usersync-url\
                 ?redir=\
-                http%3A%2F%2Flocalhost%3A8080%2Fsetuid%3F\
-                bidder%3Dsync-bidder%2Btest\
+                https%3A%2F%2Flocalhost%3A8080%2Fsetuid%3F\
+                bidder%3Dsync-bidder%2520test\
                 %26gdpr%3D1\
-                %26gdpr_consent%3Dc%241\
+                %26gdpr_consent%3Dc%25241\
                 %26us_privacy%3D1YNN\
-                %26gpp%3Dg+pp\
-                %26gpp_sid%3D1%2C2\
+                %26gpp%3Dg%2520pp\
+                %26gpp_sid%3D1%252C2\
                 %26f%3Di\
                 %26uid%3D%24UID-MACRO\
                 &gdpr=1\
                 &gdpr_consent=c%241\
                 &us_privacy=1YNN\
-                &gpp=g+pp\
+                &gpp=g%20pp\
                 &gpp_sid=1%2C2""");
     }
 
@@ -361,7 +379,7 @@ public class UsersyncInfoFactoryTest {
         // given
         final UsersyncMethod method = UsersyncMethod.builder()
                 .type(UsersyncMethodType.IFRAME)
-                .usersyncUrl("http://ignored.example/should-not-appear")
+                .usersyncUrl(Uri.of("https://ignored.example/should-not-appear"))
                 .uidMacro("$IGNORED")
                 .supportCORS(true)
                 .formatOverride(UsersyncFormat.PIXEL)
@@ -381,25 +399,25 @@ public class UsersyncInfoFactoryTest {
         assertThat(result.getSupportCORS()).isTrue();
         assertThat(result.getType()).isEqualTo(UsersyncMethodType.IFRAME);
         assertThat(result.getUrl()).isEqualTo("""
-                http://localhost:8080/setuid?\
-                bidder=sync-bidder+test\
+                https://localhost:8080/setuid?\
+                bidder=sync-bidder%20test\
                 &gdpr=1\
                 &gdpr_consent=c%241\
                 &us_privacy=1YNN\
-                &gpp=g+pp\
+                &gpp=g%20pp\
                 &gpp_sid=1%2C2\
                 &f=i\
-                &uid=host-uid value""");
+                &uid=host-uid%20value""");
     }
 
     private static UsersyncMethod givenUsersyncMethod(String usersyncUrl) {
-        return givenUsersyncMethod(builder -> builder.usersyncUrl(usersyncUrl));
+        return givenUsersyncMethod(builder -> builder.usersyncUrl(Uri.of(usersyncUrl)));
     }
 
     private static UsersyncMethod givenUsersyncMethod(UnaryOperator<UsersyncMethod.UsersyncMethodBuilder> customize) {
         return customize.apply(UsersyncMethod.builder()
                         .type(UsersyncMethodType.REDIRECT)
-                        .usersyncUrl("http://usersync-url")
+                        .usersyncUrl(Uri.of("https://usersync-url"))
                         .uidMacro("$UID"))
                 .build();
     }
