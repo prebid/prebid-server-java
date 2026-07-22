@@ -23,6 +23,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.blasto.ExtImpBlasto;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.Collections;
 import java.util.List;
@@ -34,15 +35,15 @@ public class BlastoBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private static final String URL_SOURCE_ID_MACRO = "{{SourceId}}";
-    private static final String URL_ACCOUNT_ID_MACRO = "{{AccountID}}";
+    private static final String URL_SOURCE_ID_MACRO = "SourceId";
+    private static final String URL_ACCOUNT_ID_MACRO = "AccountID";
     private static final String DEFAULT_CURRENCY = "USD";
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public BlastoBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -102,8 +103,9 @@ public class BlastoBidder implements Bidder<BidRequest> {
 
     private String buildEndpointUrl(ExtImpBlasto extImp) {
         return endpointUrl
-                .replace(URL_SOURCE_ID_MACRO, HttpUtil.encodeUrl(extImp.getSourceId()))
-                .replace(URL_ACCOUNT_ID_MACRO, HttpUtil.encodeUrl(extImp.getAccountId()));
+                .replaceMacro(URL_SOURCE_ID_MACRO, extImp.getSourceId())
+                .replaceMacro(URL_ACCOUNT_ID_MACRO, extImp.getAccountId())
+                .expand();
     }
 
     @Override

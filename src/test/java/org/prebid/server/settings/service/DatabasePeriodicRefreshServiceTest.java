@@ -2,7 +2,6 @@ package org.prebid.server.settings.service;
 
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -156,7 +155,7 @@ public class DatabasePeriodicRefreshServiceTest {
                 metrics,
                 clock);
 
-        databasePeriodicRefreshService.initialize(Promise.promise());
+        databasePeriodicRefreshService.initialize();
     }
 
     @SuppressWarnings("unchecked")

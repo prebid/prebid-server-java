@@ -20,7 +20,7 @@ public class YieldlabTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromYieldlab() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(WireMock.get(WireMock.urlPathEqualTo("/yieldlab-exchange/12345"))
+        WIRE_MOCK_RULE.stubFor(WireMock.get(WireMock.urlPathEqualTo("/yieldlab-exchange"))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/yieldlab/test-yieldlab-bid-response.json"))));
 
         // when

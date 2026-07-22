@@ -1,6 +1,6 @@
 adapters:
   axonix:
-    endpoint: https://openrtb-us-east-1.axonix.com/supply/prebid-server/{{SupplyId}}
+    endpoint: https://openrtb-us-east-1.axonix.com/supply/prebid-server/{SupplyId}
     meta-info:
       maintainer-email: support.axonix@emodoinc.com
       app-media-types:
@@ -17,5 +17,5 @@ adapters:
       cookie-family-name: axonix
       redirect:
         support-cors: false
-        url: https://openrtb-us-east-1.axonix.com/syn?redirect={{redirect_url}}
+        url: https://openrtb-us-east-1.axonix.com/syn?redirect={redirect_url}
         uid-macro: 'xxEMODO_IDxx'

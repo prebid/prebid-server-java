@@ -71,7 +71,10 @@ public class CriteoBidderTest extends VertxTest {
                 .body(jacksonMapper.encodeToBytes(bidRequest))
                 .payload(bidRequest)
                 .build());
-        assertThat(result.getValue()).usingRecursiveComparison().isEqualTo(expectedResult.getValue());
+
+        assertThat(result.getValue()).usingRecursiveComparison()
+                .withEqualsForType((a, b) -> a.entries().equals(b.entries()), MultiMap.class)
+                .isEqualTo(expectedResult.getValue());
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -305,5 +308,4 @@ public class CriteoBidderTest extends VertxTest {
         prebid.put("networkName", networkNameValue);
         return ext;
     }
-
 }

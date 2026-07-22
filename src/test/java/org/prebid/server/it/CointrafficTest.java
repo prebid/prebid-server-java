@@ -25,8 +25,7 @@ public class CointrafficTest extends IntegrationTest {
         // when
         final Response response = responseFor(
                 "openrtb2/cointraffic/test-auction-cointraffic-request.json",
-                Endpoint.openrtb2_auction
-        );
+                Endpoint.openrtb2_auction);
 
         // then
         assertJsonEquals(
@@ -34,5 +33,4 @@ public class CointrafficTest extends IntegrationTest {
                 response,
                 List.of("cointraffic"));
     }
-
 }

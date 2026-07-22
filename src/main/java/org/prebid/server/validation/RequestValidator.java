@@ -690,5 +690,4 @@ public class RequestValidator {
             throw new ValidationException("request.regs.ext.gdpr must be either 0 or 1");
         }
     }
-
 }

@@ -1,6 +1,6 @@
 adapters:
   tradplus:
-    endpoint: "https://{{ZoneID}}adx.tradplusad.com/{{AccountID}}/pserver"
+    endpoint: "https://{ZoneID}adx.tradplusad.com/{AccountID}/pserver"
     meta-info:
       maintainer-email: "tpxcontact@tradplus.com"
       app-media-types:

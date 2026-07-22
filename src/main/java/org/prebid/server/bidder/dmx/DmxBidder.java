@@ -34,7 +34,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.dmx.ExtImpDmx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -54,11 +54,11 @@ public class DmxBidder implements Bidder<BidRequest> {
     private static final String SEARCH = "</Impression>";
     private static final List<Integer> VIDEO_PROTOCOLS = Arrays.asList(2, 3, 5, 6, 7, 8);
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public DmxBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -107,12 +107,13 @@ public class DmxBidder implements Bidder<BidRequest> {
                 .app(modifyApp(request.getApp(), request.getDevice(), updatedPublisherId))
                 .build();
 
-        final String urlParameter = StringUtils.isNotBlank(updatedSellerId)
-                ? "?sellerid=" + HttpUtil.encodeUrl(updatedSellerId)
-                : "";
-        final String uri = endpointUrl + urlParameter;
+        final Uri.ParameterizedUri uri = endpointUrl.parameterized();
+        if (StringUtils.isNotBlank(updatedSellerId)) {
+            uri.addQueryParam("sellerid", updatedSellerId);
+        }
 
-        return Result.of(Collections.singletonList(BidderUtil.defaultRequest(outgoingRequest, uri, mapper)),
+        return Result.of(
+                Collections.singletonList(BidderUtil.defaultRequest(outgoingRequest, uri.expand(), mapper)),
                 errors);
     }
 
@@ -218,8 +219,8 @@ public class DmxBidder implements Bidder<BidRequest> {
         return video == null
                 ? null
                 : video.toBuilder()
-                .protocols(resolveVideoProtocols(video.getProtocols()))
-                .build();
+                  .protocols(resolveVideoProtocols(video.getProtocols()))
+                  .build();
     }
 
     private static List<Integer> resolveVideoProtocols(List<Integer> videoProtocols) {
@@ -232,17 +233,17 @@ public class DmxBidder implements Bidder<BidRequest> {
         return site == null
                 ? null
                 : site.toBuilder()
-                .publisher(modifyPublisher(site.getPublisher(), updatedPublisherId, false))
-                .build();
+                  .publisher(modifyPublisher(site.getPublisher(), updatedPublisherId, false))
+                  .build();
     }
 
     private App modifyApp(App app, Device device, String updatedPublisherId) {
         return app == null
                 ? null
                 : app.toBuilder()
-                .id(StringUtils.isNotBlank(app.getId()) ? app.getId() : device.getIfa())
-                .publisher(modifyPublisher(app.getPublisher(), updatedPublisherId, true))
-                .build();
+                  .id(StringUtils.isNotBlank(app.getId()) ? app.getId() : device.getIfa())
+                  .publisher(modifyPublisher(app.getPublisher(), updatedPublisherId, true))
+                  .build();
     }
 
     private Publisher modifyPublisher(Publisher publisher, String updatedPublisherId, boolean setExtOnEmptyPublisher) {

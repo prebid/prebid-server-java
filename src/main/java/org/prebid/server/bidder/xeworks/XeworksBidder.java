@@ -22,7 +22,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.xeworks.ExtImpXeworks;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -36,14 +36,14 @@ public class XeworksBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<ExtImpPrebid, ExtImpXeworks>> XEWORKS_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
-    private static final String HOST_MACRO = "{{Host}}";
-    private static final String SOURCE_ID_MACRO = "{{SourceId}}";
+    private static final String HOST_MACRO = "Host";
+    private static final String SOURCE_ID_MACRO = "SourceId";
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public XeworksBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -76,8 +76,10 @@ public class XeworksBidder implements Bidder<BidRequest> {
     }
 
     private String buildEndpointUrl(ExtImpXeworks extImpXeworks) {
-        return endpointUrl.replace(HOST_MACRO, extImpXeworks.getEnv())
-                .replace(SOURCE_ID_MACRO, extImpXeworks.getPid());
+        return endpointUrl
+                .replaceMacro(HOST_MACRO, extImpXeworks.getEnv())
+                .replaceMacro(SOURCE_ID_MACRO, extImpXeworks.getPid())
+                .expand();
     }
 
     @Override

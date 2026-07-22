@@ -1,6 +1,6 @@
 adapters:
   tappx:
-    endpoint: https://{{subdomain}}.tappx.com
+    endpoint: https://{subdomain}.tappx.com{/path*}
     meta-info:
       maintainer-email: tappx@tappx.com
       app-media-types:
@@ -14,6 +14,6 @@ adapters:
     usersync:
       cookie-family-name: tappx
       iframe:
-        url: https://ssp.api.tappx.com/cs/usersync.php?gdpr_optin={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&type=iframe&ruid={{redirect_url}}
+        url: https://ssp.api.tappx.com/cs/usersync.php?gdpr_optin={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&type=iframe&ruid={redirect_url}
         support-cors: false
         uid-macro: '{{TPPXUID}}'

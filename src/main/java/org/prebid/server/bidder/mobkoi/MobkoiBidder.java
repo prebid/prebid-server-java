@@ -75,12 +75,12 @@ public class MobkoiBidder implements Bidder<BidRequest> {
     }
 
     private Imp modifyImp(Imp firstImp, ExtImpMobkoi extImpMobkoi) {
-        if (StringUtils.isNotBlank(firstImp.getTagid())) {
-            return firstImp;
-        }
-
         if (StringUtils.isNotBlank(extImpMobkoi.getPlacementId())) {
             return firstImp.toBuilder().tagid(extImpMobkoi.getPlacementId()).build();
+        }
+
+        if (StringUtils.isNotBlank(firstImp.getTagid())) {
+            return firstImp;
         }
 
         throw new PreBidException("invalid because it comes with neither request.imp[0].tagId nor "
