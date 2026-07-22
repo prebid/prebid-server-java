@@ -19,5 +19,5 @@ adapters:
     usersync:
       cookie-family-name: yahooAds
       redirect:
-        url: https://ups.analytics.yahoo.com/ups/58401/sync?redir=true&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}
+        url: https://ups.analytics.yahoo.com/ups/58401/sync?redir=true&gdpr={gdpr}&gdpr_consent={gdpr_consent}
         support-cors: false

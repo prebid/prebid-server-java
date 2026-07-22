@@ -27,7 +27,7 @@ adapters:
           enabled: true
           cookie-family-name: ccx
           redirect:
-            url: https://sync.clickonometrics.pl/prebid/set-cookie?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&cb={{redirect_url}}
+            url: https://sync.clickonometrics.pl/prebid/set-cookie?gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&cb={redirect_url}
             support-cors: false
             uid-macro: '${USER_ID}'
       infytv:
@@ -59,7 +59,7 @@ adapters:
           enabled: true
           cookie-family-name: zeta_global_ssp
           redirect:
-            url: https://ssp.disqus.com/redirectuser?sid=GET_SID_FROM_ZETA&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&r={{redirect_url}}
+            url: https://ssp.disqus.com/redirectuser?sid=GET_SID_FROM_ZETA&gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&r={redirect_url}
             uid-macro: 'BUYERUID'
             support-cors: false
       blue:
@@ -90,11 +90,11 @@ adapters:
           enabled: true
           cookie-family-name: cwire
           redirect:
-            url: https://prebid.cwi.re/v1/usersync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&rd={{redirect_url}}
+            url: https://prebid.cwi.re/v1/usersync?gdpr={gdpr}&gdpr_consent={gdpr_consent}&rd={redirect_url}
             support-cors: false
             uid-macro: '$UID'
           iframe:
-            url:  https://prebid.cwi.re/v1/usersync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&rd={{redirect_url}}
+            url:  https://prebid.cwi.re/v1/usersync?gdpr={gdpr}&gdpr_consent={gdpr_consent}&rd={redirect_url}
             support-cors: false
             uid-macro: '$UID'
     meta-info:

@@ -112,7 +112,7 @@ public class VendorListServiceTest extends VertxTest {
                 () -> new VendorListService(
                         0,
                         CACHE_DIR,
-                        "http://vendorlist/%s",
+                        "http://vendorlist/{VERSION}",
                         0,
                         REFRESH_MISSING_LIST_PERIOD_MS,
                         false,
@@ -195,7 +195,7 @@ public class VendorListServiceTest extends VertxTest {
                 () -> new VendorListService(
                         0,
                         CACHE_DIR,
-                        "http://vendorlist/%s",
+                        "http://vendorlist/{VERSION}",
                         0,
                         REFRESH_MISSING_LIST_PERIOD_MS,
                         false,
@@ -222,7 +222,7 @@ public class VendorListServiceTest extends VertxTest {
                 () -> new VendorListService(
                         0,
                         CACHE_DIR,
-                        "http://vendorlist/%s",
+                        "http://vendorlist/{VERSION}",
                         0,
                         REFRESH_MISSING_LIST_PERIOD_MS,
                         false,
@@ -249,7 +249,7 @@ public class VendorListServiceTest extends VertxTest {
                 () -> new VendorListService(
                         0,
                         CACHE_DIR,
-                        "http://vendorlist/%s",
+                        "http://vendorlist/{VERSION}",
                         0,
                         REFRESH_MISSING_LIST_PERIOD_MS,
                         false,

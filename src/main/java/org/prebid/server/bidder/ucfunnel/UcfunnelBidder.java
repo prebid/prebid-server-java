@@ -21,7 +21,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ucfunnel.ExtImpUcfunnel;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -30,15 +30,16 @@ import java.util.Objects;
 
 public class UcfunnelBidder implements Bidder<BidRequest> {
 
+    private static final String PARTNER_MACRO = "PartnerId";
     private static final TypeReference<ExtPrebid<?, ExtImpUcfunnel>> UCFUNNEL_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public UcfunnelBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -63,9 +64,7 @@ public class UcfunnelBidder implements Bidder<BidRequest> {
             errors.add(BidderError.badInput(e.getMessage()));
         }
 
-        final String requestUrl = "%s/%s/request".formatted(endpointUrl,
-                HttpUtil.encodeUrl(HttpUtil.validatePathSegment(partnerId)));
-
+        final String requestUrl = endpointUrl.replaceMacro(PARTNER_MACRO, partnerId).expand();
         return Result.of(Collections.singletonList(BidderUtil.defaultRequest(request, requestUrl, mapper)),
                 errors);
     }
