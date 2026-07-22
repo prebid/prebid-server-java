@@ -46,7 +46,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class AdkernelBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.com?zone=%s";
+    private static final String ENDPOINT_URL = "https://test.com?zone={ZoneId}";
 
     private final AdkernelBidder target = new AdkernelBidder(ENDPOINT_URL, jacksonMapper);
 
@@ -285,7 +285,7 @@ public class AdkernelBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldResolveBidTypeToBannerWhenMTypeIsOne() throws JsonProcessingException {
+    public void makeBidsShouldResolveBidTypeToBannerWhenMTypeIsOne() {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(
@@ -305,7 +305,7 @@ public class AdkernelBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldResolveBidTypeToVideoWhenMTypeIsTwo() throws JsonProcessingException {
+    public void makeBidsShouldResolveBidTypeToVideoWhenMTypeIsTwo() {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(
@@ -325,7 +325,7 @@ public class AdkernelBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldResolveBidTypeToAudioWhenMTypeIsThree() throws JsonProcessingException {
+    public void makeBidsShouldResolveBidTypeToAudioWhenMTypeIsThree() {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(
@@ -345,7 +345,7 @@ public class AdkernelBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldResolveBidTypeToNativeWhenMTypeIsFour() throws JsonProcessingException {
+    public void makeBidsShouldResolveBidTypeToNativeWhenMTypeIsFour() {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(
@@ -365,7 +365,7 @@ public class AdkernelBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorIfMtypeIsMissing() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorIfMtypeIsMissing() {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(
@@ -384,7 +384,7 @@ public class AdkernelBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorIfMtypeIsNotValid() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorIfMtypeIsNotValid() {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(

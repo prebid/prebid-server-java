@@ -64,6 +64,15 @@ import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.ENFOR
 
 class BidderParamsSpec extends BaseSpec {
 
+    private static final Map<String, String> DISABLE_INVALID_BIDDER_CONFIGS = [
+            "adapters.audiencenetwork.enabled": "false",
+            "adapters.adxcg.enabled"          : "false",
+            "adapters.avocet.enabled"         : "false",
+            "adapters.pangle.enabled"         : "false",
+            "adapters.teqblaze.enabled"       : "false",
+            "adapters.ix.enabled"             : "false"
+    ]
+
     def "PBS should send request to bidder when adapter-defaults.enabled = #adapterDefault and adapters.BIDDER.enabled = #generic"() {
         given: "PBS with adapter configuration"
         def pbsService = pbsServiceFactory.getService(adapterConfig)
@@ -85,9 +94,8 @@ class BidderParamsSpec extends BaseSpec {
 
         where:
         adapterDefault | generic | adapterConfig
-        "true"         | "true"  | ["adapter-defaults.enabled"        : adapterDefault,
-                                    "adapters.audiencenetwork.enabled": "false",
-                                    "adapters.generic.enabled"        : generic]
+        "true"         | "true"  | ["adapter-defaults.enabled": adapterDefault,
+                                    "adapters.generic.enabled": generic] + DISABLE_INVALID_BIDDER_CONFIGS
 
         "false"        | "true"  | ["adapter-defaults.enabled": adapterDefault,
                                     "adapters.generic.enabled": generic]
@@ -113,9 +121,8 @@ class BidderParamsSpec extends BaseSpec {
         adapterDefault | generic | adapterConfig
         "false"        | "false" | ["adapter-defaults.enabled": adapterDefault,
                                     "adapters.generic.enabled": generic]
-        "true"         | "false" | ["adapter-defaults.enabled"        : adapterDefault,
-                                    "adapters.audiencenetwork.enabled": "false",
-                                    "adapters.generic.enabled"        : generic]
+        "true"         | "false" | ["adapter-defaults.enabled": adapterDefault,
+                                    "adapters.generic.enabled": generic] + DISABLE_INVALID_BIDDER_CONFIGS
     }
 
     def "PBS should modify vast xml when adapter-defaults.modifying-vast-xml-allowed = #adapterDefault and BIDDER.modifying-vast-xml-allowed = #generic"() {
@@ -312,28 +319,6 @@ class BidderParamsSpec extends BaseSpec {
 
         then: "Response shouldn't contain bidder param from another bidder"
         bidder.getBidderRequest(bidRequest.id)
-    }
-
-    // TODO: create same test for enabled circuit breaker
-    def "PBS should emit warning when bidder endpoint is invalid"() {
-        given: "Pbs config"
-        def pbsConfig = ["adapters.generic.enabled"           : "true",
-                         "adapters.generic.endpoint"          : "https://",
-                         "http-client.circuit-breaker.enabled": "false"]
-        def pbsService = pbsServiceFactory.getService(pbsConfig)
-
-        and: "Default basic generic BidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
-
-        when: "PBS processes auction request"
-        def response = pbsService.sendAuctionRequest(bidRequest)
-
-        then: "Response should contain error"
-        assert response.ext?.errors[GENERIC]*.code == [999]
-        assert response.ext?.errors[GENERIC]*.message == ["host name must not be empty"]
-
-        cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS should reject bidder when bidder params from request doesn't satisfy json-schema for auction request"() {
