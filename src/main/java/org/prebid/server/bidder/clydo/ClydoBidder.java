@@ -24,6 +24,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -39,16 +40,16 @@ public class ClydoBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private static final String REGION_MACRO = "{{Region}}";
-    private static final String PARTNER_ID_MACRO = "{{PartnerId}}";
+    private static final String REGION_MACRO = "Region";
+    private static final String PARTNER_ID_MACRO = "PartnerId";
     private static final String DEFAULT_REGION = "us";
     private static final String X_OPENRTB_VERSION = "2.5";
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public ClydoBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -108,10 +109,11 @@ public class ClydoBidder implements Bidder<BidRequest> {
         return headers;
     }
 
-    private static String resolveUrl(String endpoint, ExtImpClydo extImp) {
+    private static String resolveUrl(Uri endpoint, ExtImpClydo extImp) {
         return endpoint
-                .replace(REGION_MACRO, getRegionInfo(extImp))
-                .replace(PARTNER_ID_MACRO, HttpUtil.encodeUrl(extImp.getPartnerId()));
+                .replaceMacro(REGION_MACRO, getRegionInfo(extImp))
+                .replaceMacro(PARTNER_ID_MACRO, extImp.getPartnerId())
+                .expand();
     }
 
     private static String getRegionInfo(ExtImpClydo extImp) {

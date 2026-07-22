@@ -12,7 +12,6 @@ import io.restassured.config.RestAssuredConfig;
 import io.restassured.internal.mapping.Jackson2Mapper;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
-import lombok.Value;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONException;
 import org.junit.jupiter.api.AfterEach;
@@ -302,16 +301,5 @@ public abstract class IntegrationTest extends VertxTest {
         public boolean applyGlobally() {
             return false;
         }
-    }
-
-    @Value(staticConstructor = "of")
-    static class BidRequestExecutionParameters {
-        String dealId;
-
-        String body;
-
-        Integer status;
-
-        Long delay;
     }
 }

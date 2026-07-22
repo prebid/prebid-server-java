@@ -27,7 +27,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.thetradedesk.ExtImpTheTradeDesk;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -43,16 +43,16 @@ public class TheTradeDeskBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private static final String SUPPLY_ID_MACRO = "{{SupplyId}}";
+    private static final String SUPPLY_ID_MACRO = "SupplyId";
     private static final Pattern SUPPLY_ID_PATTERN = Pattern.compile("([a-z]+)$");
     private static final String PRICE_MACRO = "${AUCTION_PRICE}";
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final String supplyId;
     private final JacksonMapper mapper;
 
     public TheTradeDeskBidder(String endpointUrl, JacksonMapper mapper, String supplyId) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.supplyId = validateSupplyId(supplyId);
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -93,7 +93,7 @@ public class TheTradeDeskBidder implements Bidder<BidRequest> {
 
         if (StringUtils.isBlank(sourceSupplyId) && StringUtils.isBlank(supplyId)) {
             return Result.withError(
-                BidderError.badInput("Either supplySourceId or a default endpoint must be provided"));
+                    BidderError.badInput("Either supplySourceId or a default endpoint must be provided"));
         }
 
         final BidRequest outgoingRequest = modifyRequest(request, modifiedImps, publisherId);
@@ -173,9 +173,9 @@ public class TheTradeDeskBidder implements Bidder<BidRequest> {
     }
 
     private String resolveEndpoint(String sourceSupplyId) {
-        return endpointUrl.replace(
-                SUPPLY_ID_MACRO,
-                HttpUtil.encodeUrl(StringUtils.defaultString(ObjectUtils.defaultIfNull(sourceSupplyId, supplyId))));
+        return endpointUrl
+                .replaceMacro(SUPPLY_ID_MACRO, ObjectUtils.firstNonNull(sourceSupplyId, supplyId, StringUtils.EMPTY))
+                .expand();
     }
 
     @Override

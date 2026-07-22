@@ -1,6 +1,6 @@
 adapters:
   bwx:
-    endpoint: http://rtb.boldwin.live?pid={{SourceId}}&host={{Host}}&pbs=1
+    endpoint: http://rtb.boldwin.live?pid={SourceId}&host={Host}&pbs=1
     meta-info:
       maintainer-email: prebid@bold-win.com
       app-media-types:

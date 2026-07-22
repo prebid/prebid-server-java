@@ -21,7 +21,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.minutemedia.ExtImpMinuteMedia;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -34,15 +34,15 @@ public class MinuteMediaBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpMinuteMedia>> MINUTE_MEDIA_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
-    public static final String PUBLISHER_ID_MACRO = "{{PublisherId}}";
+    public static final String PUBLISHER_ID_MACRO = "PublisherId";
 
-    private final String endpointUrl;
-    private final String testEndpointUrl;
+    private final Uri endpointUrl;
+    private final Uri testEndpointUrl;
     private final JacksonMapper mapper;
 
     public MinuteMediaBidder(String endpointUrl, String testEndpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
-        this.testEndpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(testEndpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
+        this.testEndpointUrl = Uri.of(testEndpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -79,8 +79,8 @@ public class MinuteMediaBidder implements Bidder<BidRequest> {
     }
 
     private String makeUrl(String orgId, Integer test) {
-        final String url = Objects.equals(test, 1) ? testEndpointUrl : endpointUrl;
-        return url.replace(PUBLISHER_ID_MACRO, HttpUtil.encodeUrl(orgId));
+        final Uri url = Objects.equals(test, 1) ? testEndpointUrl : endpointUrl;
+        return url.replaceMacro(PUBLISHER_ID_MACRO, orgId).expand();
     }
 
     @Override

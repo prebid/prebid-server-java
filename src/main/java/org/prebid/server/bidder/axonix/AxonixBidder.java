@@ -21,7 +21,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.axonix.ExtImpAxonix;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.math.BigDecimal;
 import java.util.Collection;
@@ -34,14 +34,14 @@ public class AxonixBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpAxonix>> AXONIX_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
-    public static final String URL_SUPPLY_ID_MACRO = "{{SupplyId}}";
+    private static final String URL_SUPPLY_ID_MACRO = "SupplyId";
     private static final String PRICE_MACRO = "${AUCTION_PRICE}";
 
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
-    private final String endpointUrl;
 
     public AxonixBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -67,7 +67,7 @@ public class AxonixBidder implements Bidder<BidRequest> {
     }
 
     private String resolveEndpoint(String supplyId) {
-        return endpointUrl.replace(URL_SUPPLY_ID_MACRO, HttpUtil.encodeUrl(supplyId));
+        return endpointUrl.replaceMacro(URL_SUPPLY_ID_MACRO, supplyId).expand();
     }
 
     @Override

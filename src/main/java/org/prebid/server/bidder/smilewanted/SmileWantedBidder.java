@@ -21,6 +21,7 @@ import org.prebid.server.proto.openrtb.ext.request.smilewanted.ExtImpSmilewanted
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.Collections;
 import java.util.List;
@@ -31,17 +32,17 @@ public class SmileWantedBidder implements Bidder<BidRequest> {
     private static final String SW_INTEGRATION_TYPE = "prebid_server";
     private static final String X_OPENRTB_VERSION = "2.5";
     private static final int DEFAULT_AT = 1;
-    private static final String ZONE_ID_MACRO = "{{ZoneId}}";
+    private static final String ZONE_ID_MACRO = "ZoneId";
 
     private static final TypeReference<ExtPrebid<?, ExtImpSmilewanted>> SMILEWANTED_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public SmileWantedBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -56,7 +57,7 @@ public class SmileWantedBidder implements Bidder<BidRequest> {
         }
 
         final BidRequest outgoingRequest = request.toBuilder().at(DEFAULT_AT).build();
-        final String url = endpointUrl.replace(ZONE_ID_MACRO, HttpUtil.encodeUrl(extImpSmilewanted.getZoneId()));
+        final String url = endpointUrl.replaceMacro(ZONE_ID_MACRO, extImpSmilewanted.getZoneId()).expand();
 
         return Result.withValue(BidderUtil.defaultRequest(
                 outgoingRequest,

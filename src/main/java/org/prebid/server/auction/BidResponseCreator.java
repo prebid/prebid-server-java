@@ -1719,7 +1719,11 @@ public class BidResponseCreator {
     }
 
     private static boolean eventsEnabledForRequest(AuctionContext auctionContext) {
-        return eventsEnabledForChannel(auctionContext) || eventsAllowedByRequest(auctionContext);
+        return Optional.ofNullable(auctionContext.getBidRequest().getExt())
+                .map(ExtRequest::getPrebid)
+                .map(ExtRequestPrebid::getEvents)
+                .map(eventsNode -> eventsNode.at("/enabled").asBoolean(true))
+                .orElseGet(() -> eventsEnabledForChannel(auctionContext));
     }
 
     private static boolean eventsEnabledForChannel(AuctionContext auctionContext) {
@@ -1752,13 +1756,6 @@ public class BidResponseCreator {
         }
 
         return channelName;
-    }
-
-    private static boolean eventsAllowedByRequest(AuctionContext auctionContext) {
-        final ExtRequest ext = auctionContext.getBidRequest().getExt();
-        final ExtRequestPrebid prebid = ext != null ? ext.getPrebid() : null;
-
-        return prebid != null && prebid.getEvents() != null;
     }
 
     private long auctionTimestamp(AuctionContext auctionContext) {

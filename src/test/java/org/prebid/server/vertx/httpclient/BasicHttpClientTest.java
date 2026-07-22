@@ -21,7 +21,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.net.MalformedURLException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.CountDownLatch;
@@ -39,6 +38,8 @@ import static org.mockito.Mockito.verify;
 @ExtendWith(MockitoExtension.class)
 @ExtendWith(VertxExtension.class)
 public class BasicHttpClientTest {
+
+    private static final String CRLF = "\r\n";
 
     @Mock
     private Vertx vertx;
@@ -108,11 +109,13 @@ public class BasicHttpClientTest {
     @Test
     public void requestShouldFailIfInvalidUrlPassed() {
         // given and when
-        final Future<?> future = httpClient.request(HttpMethod.GET, null, null, (String) null, 1L);
+        final Future<?> future = httpClient.request(HttpMethod.GET, "invalid_url", null, (String) null, 1L);
 
         // then
         assertThat(future.failed()).isTrue();
-        assertThat(future.cause()).isInstanceOf(MalformedURLException.class);
+        assertThat(future.cause())
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("URL supplied is not valid: invalid_url");
     }
 
     @Test
@@ -203,12 +206,12 @@ public class BasicHttpClientTest {
                         }
 
                         out.write("HTTP/1.1 200 OK");
-                        out.newLine();
+                        out.write(CRLF);
 
                         out.write("Content-Length: 6"); // set body size greater then length of "start" word
-                        out.newLine();
+                        out.write(CRLF);
 
-                        out.newLine();
+                        out.write(CRLF);
                         out.write("start");
                         out.flush();
 

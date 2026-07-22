@@ -35,7 +35,7 @@ import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
 
 class VidazooBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.host.com/prebid/bid/";
+    private static final String ENDPOINT_URL = "https://test.host.com/prebid/bid/{ConnectionId}";
 
     private final VidazooBidder target = new VidazooBidder(ENDPOINT_URL, jacksonMapper);
 
