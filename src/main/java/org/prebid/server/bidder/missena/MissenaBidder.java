@@ -3,11 +3,14 @@ package org.prebid.server.bidder.missena;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -21,6 +24,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.missena.ExtImpMissena;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
@@ -91,15 +95,18 @@ public class MissenaBidder implements Bidder<MissenaAdRequest> {
         final Price floorInfo = resolveBidFloor(imp, request, requestCurrency);
 
         final MissenaUserParams userParams = MissenaUserParams.builder()
+                .apiKey(extImp.getApiKey())
                 .formats(extImp.getFormats())
                 .placement(extImp.getPlacement())
-                .testMode(extImp.getTestMode())
+                .sample(extImp.getSample())
                 .settings(extImp.getSettings())
                 .build();
 
         final MissenaAdRequest missenaAdRequest = MissenaAdRequest.builder()
                 .adUnit(imp.getId())
                 .currency(requestCurrency)
+                .debug(Objects.equals(request.getTest(), 1) ? Boolean.TRUE : null)
+                .userEids(resolveUserEids(request.getUser()))
                 .floor(floorInfo.getValue())
                 .floorCurrency(floorInfo.getCurrency())
                 .idempotencyKey(request.getId())
@@ -118,6 +125,12 @@ public class MissenaBidder implements Bidder<MissenaAdRequest> {
                 .body(mapper.encodeToBytes(missenaAdRequest))
                 .payload(missenaAdRequest)
                 .build();
+    }
+
+    private static List<Eid> resolveUserEids(User user) {
+        final ExtUser extUser = user != null ? user.getExt() : null;
+        final List<Eid> eids = extUser != null ? extUser.getEids() : null;
+        return CollectionUtils.isNotEmpty(eids) ? eids : null;
     }
 
     private Price resolveBidFloor(Imp imp, BidRequest bidRequest, String targetCurrency) {

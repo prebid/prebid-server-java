@@ -1,7 +1,7 @@
 package org.prebid.server.bidder.missena;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.node.ObjectNode; // Changed import
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
 import lombok.Value;
 
@@ -11,13 +11,14 @@ import java.util.List;
 @Value
 public class MissenaUserParams {
 
+    @JsonProperty("apiKey")
+    String apiKey;
+
     List<String> formats;
 
     String placement;
 
-    @JsonProperty("test")
-    String testMode;
+    String sample;
 
     ObjectNode settings;
 }
-
