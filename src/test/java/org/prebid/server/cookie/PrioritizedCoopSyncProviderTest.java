@@ -19,6 +19,7 @@ import java.util.stream.Collectors;
 
 import static java.util.Collections.singleton;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mock.Strictness.LENIENT;
 
@@ -45,6 +46,18 @@ public class PrioritizedCoopSyncProviderTest {
 
         // then
         assertThat(result).containsExactly("valid");
+    }
+
+    @Test
+    public void creationShouldAllowMultipleBiddersWithTheSameCookieFamilyName() {
+        // given
+        givenValidBidderWithCookieSync("bidder1", "cookie-family-name");
+        givenValidBidderWithCookieSync("bidder2", "cookie-family-name");
+        given(bidderCatalog.usersyncReadyBidders()).willReturn(Set.of("bidder1", "bidder2"));
+
+        // when and then
+        assertThatNoException().isThrownBy(() ->
+                new PrioritizedCoopSyncProvider(Set.of("bidder1", "bidder2"), bidderCatalog));
     }
 
     @Test
@@ -99,9 +112,14 @@ public class PrioritizedCoopSyncProviderTest {
     }
 
     private void givenValidBidderWithCookieSync(String bidder) {
+        givenValidBidderWithCookieSync(bidder, null);
+    }
+
+    private void givenValidBidderWithCookieSync(String bidder, String cookieFamilyName) {
         given(bidderCatalog.isValidName(bidder)).willReturn(true);
         given(bidderCatalog.isActive(bidder)).willReturn(true);
-        given(bidderCatalog.cookieFamilyName(bidder)).willReturn(Optional.of(bidder + "-cookie-family"));
+        given(bidderCatalog.cookieFamilyName(bidder))
+                .willReturn(Optional.ofNullable(cookieFamilyName).or(() -> Optional.of(bidder + "-cookie-family")));
         given(bidderCatalog.usersyncerByName(bidder)).willReturn(
                 Optional.of(Usersyncer.of(
                         "cookie-family-name",

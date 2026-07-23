@@ -558,7 +558,7 @@ public class Ortb2RequestFactory {
         if (exception instanceof UnauthorizedAccountException) {
             return Future.failedFuture(exception);
         } else if (exception instanceof PreBidException) {
-            unknownAccountLogger.warn(accountErrorMessage(exception.getMessage(), httpRequest), 100);
+            unknownAccountLogger.warn(accountErrorMessage(exception.getMessage(), httpRequest), logSamplingRate);
         } else {
             metrics.updateAccountRequestRejectedByFailedFetch(accountId);
             logger.warn("Error occurred while fetching account: {}", exception.getMessage());
