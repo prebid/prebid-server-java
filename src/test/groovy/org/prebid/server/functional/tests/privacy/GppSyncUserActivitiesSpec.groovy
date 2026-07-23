@@ -2017,7 +2017,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
         when: "PBS processes cookie sync request with header"
         def response = prebidServerService
-                .sendCookieSyncRequest(cookieSyncRequest, ["X-Forwarded-For": "209.232.44.21"])
+                .sendCookieSyncRequest(cookieSyncRequest, ["X-Forwarded-For": USA_IP.v4])
 
         then: "Response should contain bidders userSync.urls"
         assert response.getBidderUserSync(GENERIC).userSync.url
@@ -2076,7 +2076,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
         when: "PBS processes set uid request with header"
         def response = prebidServerService
-                .sendSetUidRequest(setuidRequest, uidsCookie, ["X-Forwarded-For": "209.232.44.21"])
+                .sendSetUidRequest(setuidRequest, uidsCookie, ["X-Forwarded-For": USA_IP.v4])
 
         then: "Response should contain uids cookie"
         assert response.uidsCookie
@@ -2133,7 +2133,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
         when: "PBS processes cookie sync request with header"
         def response = prebidServerService
-                .sendCookieSyncRequest(cookieSyncRequest, ["X-Forwarded-For": "209.232.44.21"])
+                .sendCookieSyncRequest(cookieSyncRequest, ["X-Forwarded-For": USA_IP.v4])
 
         then: "Response should not contain any URLs for bidders"
         assert !response.bidderStatus.userSync.url
@@ -2190,7 +2190,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes set uid request"
-        prebidServerService.sendSetUidRequest(setuidRequest, uidsCookie, ["X-Forwarded-For": "209.232.44.21"])
+        prebidServerService.sendSetUidRequest(setuidRequest, uidsCookie, ["X-Forwarded-For": USA_IP.v4])
 
         then: "Request should fail with error"
         def exception = thrown(PrebidServerException)
