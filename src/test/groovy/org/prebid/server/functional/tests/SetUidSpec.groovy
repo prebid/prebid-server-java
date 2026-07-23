@@ -38,7 +38,6 @@ class SetUidSpec extends BaseSpec {
     private static final Integer MAX_NUMBER_OF_UID_COOKIES = 30
     private static final Integer UPDATED_EXPIRE_DAYS = 14
     private static final UserSyncInfo.Type USER_SYNC_TYPE = REDIRECT
-    private static final boolean CORS_SUPPORT = false
     private static final Integer RANDOM_EXPIRE_DAY = PBSUtils.getRandomNumber(1, 10)
     private static final String USER_SYNC_URL = "$networkServiceContainer.rootUri/generic-usersync"
     private static final String GENERIC_COOKIE_FAMILY_NAME = GENERIC.value
@@ -63,14 +62,12 @@ class SetUidSpec extends BaseSpec {
              "adapters.${GENERIC.value}.meta-info.vendor-id"                                           : VENDOR_ID,
              "adapters.${GENERIC.value}.usersync.cookie-family-name"                                   : GENERIC_COOKIE_FAMILY_NAME,
              "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url"                          : USER_SYNC_URL,
-             "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.support-cors"                 : CORS_SUPPORT.toString(),
              "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.uid-macro"                    : "",
 
              "adapters.${GRID.value}.enabled"                                                          : "true",
              "adapters.${GRID.value}.meta-info.vendor-id"                                              : VENDOR_ID,
              "adapters.${GRID.value}.usersync.cookie-family-name"                                      : GENERIC_COOKIE_FAMILY_NAME,
              "adapters.${GRID.value}.usersync.${USER_SYNC_TYPE.value}.url"                             : USER_SYNC_URL,
-             "adapters.${GRID.value}.usersync.${USER_SYNC_TYPE.value}.support-cors"                    : CORS_SUPPORT.toString(),
              "adapters.${GRID.value}.usersync.${USER_SYNC_TYPE.value}.uid-macro"                       : "",
 
              "adapters.${GENERIC}.aliases.${ALIAS}.enabled"                                            : "true",
@@ -78,7 +75,6 @@ class SetUidSpec extends BaseSpec {
              "adapters.${GENERIC}.aliases.${ALIAS}.meta-info.vendor-id"                                : VENDOR_ID,
              "adapters.${GENERIC}.aliases.${ALIAS}.usersync.cookie-family-name"                        : GENERIC_COOKIE_FAMILY_NAME,
              "adapters.${GENERIC}.aliases.${ALIAS}.usersync.${USER_SYNC_TYPE.value}.url"               : USER_SYNC_URL,
-             "adapters.${GENERIC}.aliases.${ALIAS}.usersync.${USER_SYNC_TYPE.value}.support-cors"      : CORS_SUPPORT.toString(),
              "adapters.${GENERIC}.aliases.${ALIAS}.usersync.${USER_SYNC_TYPE.value}.uid-macro"         : "",
 
              "adapters.${GENERIC}.aliases.${OPENX_ALIAS}.enabled"                                      : "true",
@@ -86,7 +82,6 @@ class SetUidSpec extends BaseSpec {
              "adapters.${GENERIC}.aliases.${OPENX_ALIAS}.meta-info.vendor-id"                          : VENDOR_ID,
              "adapters.${GENERIC}.aliases.${OPENX_ALIAS}.usersync.cookie-family-name"                  : GENERIC_COOKIE_FAMILY_NAME,
              "adapters.${GENERIC}.aliases.${OPENX_ALIAS}.usersync.${USER_SYNC_TYPE.value}.url"         : USER_SYNC_URL,
-             "adapters.${GENERIC}.aliases.${OPENX_ALIAS}.usersync.${USER_SYNC_TYPE.value}.support-cors": CORS_SUPPORT.toString(),
              "adapters.${GENERIC}.aliases.${OPENX_ALIAS}.usersync.${USER_SYNC_TYPE.value}.uid-macro"   : ""]
 
     @Shared

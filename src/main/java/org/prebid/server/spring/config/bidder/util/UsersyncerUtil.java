@@ -38,7 +38,6 @@ public class UsersyncerUtil {
                 .type(type)
                 .usersyncUrl(Uri.of(properties.getUrl()))
                 .uidMacro(properties.getUidMacro())
-                .supportCORS(properties.getSupportCors())
                 .formatOverride(properties.getFormatOverride())
                 .build();
     }

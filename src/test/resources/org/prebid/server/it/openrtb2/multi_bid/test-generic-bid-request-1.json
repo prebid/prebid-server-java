@@ -22,13 +22,6 @@
   "ext": {
     "prebid": {
       "auctiontimestamp": 1000,
-      "cache": {
-        "bids": {
-        },
-        "vastxml": {
-          "ttlseconds": 120
-        }
-      },
       "channel": {
         "name": "web"
       },
@@ -44,8 +37,6 @@
         "usepbsrates": false
       },
       "debug": 0,
-      "events": {
-      },
       "multibid": [
         {
           "bidder": "generic",
