@@ -37,7 +37,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 
 public class BidmachineBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://{{HOST}}/{{PATH}}/{{SELLER_ID}}";
+    private static final String ENDPOINT_URL = "https://{HOST}/{PATH}/{SELLER_ID}";
 
     private final BidmachineBidder target = new BidmachineBidder(ENDPOINT_URL, jacksonMapper);
 
@@ -143,7 +143,7 @@ public class BidmachineBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getImp)
-                .extracting(imps -> imps.getFirst())
+                .extracting(List::getFirst)
                 .flatExtracting(currImp -> currImp.getBanner().getBattr())
                 .containsExactly(1, 16);
     }
@@ -169,7 +169,7 @@ public class BidmachineBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getImp)
-                .extracting(imps -> imps.getFirst())
+                .extracting(List::getFirst)
                 .flatExtracting(currImp -> currImp.getVideo().getBattr())
                 .containsExactly(1, 16);
     }

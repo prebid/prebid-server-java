@@ -20,8 +20,7 @@ adapters:
     usersync:
       cookie-family-name: adnxs
       redirect:
-        url: https://ib.adnxs.com/getuid?{{redirect_url}}
-        support-cors: false
+        url: https://ib.adnxs.com/getuid?{redirect_url}
         uid-macro: '$UID'
     platform-id: 5
     iab-categories:

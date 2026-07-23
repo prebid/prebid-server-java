@@ -21,6 +21,7 @@ import org.prebid.server.proto.openrtb.ext.request.lemmadigital.ExtImpLemmaDigit
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -32,14 +33,14 @@ public class LemmaDigitalBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpLemmaDigital>> LEMMA_DIGITAL_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
-    private static final String AD_UNIT_MACRO = "{{AdUnit}}";
-    private static final String PUBLISHER_ID_MACRO = "{{PublisherID}}";
+    private static final String AD_UNIT_MACRO = "AdUnit";
+    private static final String PUBLISHER_ID_MACRO = "PublisherID";
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public LemmaDigitalBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -83,8 +84,9 @@ public class LemmaDigitalBidder implements Bidder<BidRequest> {
 
     private String resolveUrl(ExtImpLemmaDigital extImpLemmaDigital) {
         return endpointUrl
-                .replace(AD_UNIT_MACRO, String.valueOf(extImpLemmaDigital.getAid()))
-                .replace(PUBLISHER_ID_MACRO, String.valueOf(extImpLemmaDigital.getPid()));
+                .replaceMacro(AD_UNIT_MACRO, String.valueOf(extImpLemmaDigital.getAid()))
+                .replaceMacro(PUBLISHER_ID_MACRO, String.valueOf(extImpLemmaDigital.getPid()))
+                .expand();
     }
 
     @Override

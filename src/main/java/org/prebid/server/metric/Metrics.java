@@ -400,12 +400,12 @@ public class Metrics extends UpdatableMetrics {
         userSync().incCounter(MetricName.bad_requests);
     }
 
-    public void updateUserSyncSetsMetric(String bidder) {
-        userSync().forBidder(bidder).incCounter(MetricName.sets);
+    public void updateUserSyncSetsMetric(String cookieFamilyName) {
+        userSync().forBidder(cookieFamilyName).incCounter(MetricName.sets);
     }
 
-    public void updateUserSyncTcfBlockedMetric(String bidder) {
-        userSync().forBidder(bidder).tcf().incCounter(MetricName.blocked);
+    public void updateUserSyncTcfBlockedMetric(String cookieFamilyName) {
+        userSync().forBidder(cookieFamilyName).tcf().incCounter(MetricName.blocked);
     }
 
     public void updateUserSyncSizeBlockedMetric(String cookieFamilyName) {
@@ -416,8 +416,8 @@ public class Metrics extends UpdatableMetrics {
         userSync().forBidder(cookieFamilyName).incCounter(MetricName.sizedout);
     }
 
-    public void updateUserSyncTcfInvalidMetric(String bidder) {
-        userSync().forBidder(bidder).tcf().incCounter(MetricName.invalid);
+    public void updateUserSyncTcfInvalidMetric(String cookieFamilyName) {
+        userSync().forBidder(cookieFamilyName).tcf().incCounter(MetricName.invalid);
     }
 
     public void updateUserSyncTcfInvalidMetric() {
@@ -519,6 +519,10 @@ public class Metrics extends UpdatableMetrics {
         privacy().tcf().incCounter(MetricName.invalid);
     }
 
+    public void updatePrivacyTcfNoDisclosedVendorsMetric() {
+        privacy().tcf().incCounter(MetricName.no_disclosed_vendors);
+    }
+
     public void updatePrivacyTcfRequestsMetric(int version) {
         final UpdatableMetrics versionMetrics = privacy().tcf().fromVersion(version);
         versionMetrics.incCounter(MetricName.requests);
@@ -548,6 +552,14 @@ public class Metrics extends UpdatableMetrics {
 
     public void updatePrivacyTcfVendorListFallbackMetric(int version) {
         updatePrivacyTcfVendorListMetric(version, MetricName.fallback);
+    }
+
+    public void updatePrivacyTcfLiveVendorListOkMetric() {
+        privacy().tcf().liveVendorList().incCounter(MetricName.ok);
+    }
+
+    public void updatePrivacyTcfLiveVendorListErrorMetric() {
+        privacy().tcf().liveVendorList().incCounter(MetricName.err);
     }
 
     private void updatePrivacyTcfVendorListMetric(int version, MetricName metricName) {

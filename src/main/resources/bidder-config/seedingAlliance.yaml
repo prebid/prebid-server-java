@@ -1,22 +1,21 @@
 adapters:
   seedingAlliance:
-    endpoint: https://b.nativendo.de/cds/rtb/bid?ssp={{AccountId}}
+    endpoint: https://b.nativendo.de/cds/rtb/bid?ssp={AccountId}
     aliases:
       suntContent:
         enabled: false
-        endpoint: https://b.suntcontent.se/cds/rtb/bid?ssp={{AccountId}}
+        endpoint: https://b.suntcontent.se/cds/rtb/bid?ssp={AccountId}
         meta-info:
           maintainer-email: tech@seeding-alliance.de
           vendor-id: 1097
         usersync:
           cookie-family-name: suntContent
           redirect:
-            url: https://dmp.suntcontent.se/set-uuid?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&redirect_url={{redirect_url}}
-            support-cors: false
+            url: https://dmp.suntcontent.se/set-uuid?gdpr={gdpr}&gdpr_consent={gdpr_consent}&redirect_url={redirect_url}
             uid-macro: '$UID'
       finative:
         enabled: false
-        endpoint: https://b.finative.cloud/cds/rtb/bid?ssp={{AccountId}}
+        endpoint: https://b.finative.cloud/cds/rtb/bid?ssp={AccountId}
     meta-info:
       maintainer-email: tech@seeding-alliance.de
       app-media-types:
@@ -28,6 +27,5 @@ adapters:
     usersync:
       cookie-family-name: seedingAlliance
       redirect:
-        url: https://dmp.nativendo.de/set-uuid?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&redirect_url={{redirect_url}}
-        support-cors: false
+        url: https://dmp.nativendo.de/set-uuid?gdpr={gdpr}&gdpr_consent={gdpr_consent}&redirect_url={redirect_url}
         uid-macro: '$UID'

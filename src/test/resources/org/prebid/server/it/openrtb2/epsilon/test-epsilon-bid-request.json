@@ -9,8 +9,8 @@
         "h": 600
       },
       "bidfloorcur": "USD",
-      "displaymanager": "prebid-s2s",
-      "displaymanagerver": "2.0.0",
+      "displaymanager": "prebid-s2s-java",
+      "displaymanagerver": "${json-unit.ignore}",
       "ext": {
         "tid": "${json-unit.any-string}",
         "bidder": {

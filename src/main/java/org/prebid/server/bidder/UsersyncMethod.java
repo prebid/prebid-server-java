@@ -2,6 +2,7 @@ package org.prebid.server.bidder;
 
 import lombok.Builder;
 import lombok.Value;
+import org.prebid.server.util.Uri;
 
 @Value
 @Builder
@@ -9,11 +10,9 @@ public class UsersyncMethod {
 
     UsersyncMethodType type;
 
-    String usersyncUrl;
+    Uri usersyncUrl;
 
-    String redirectUrl;
-
-    boolean supportCORS;
+    String uidMacro;
 
     UsersyncFormat formatOverride;
 }

@@ -21,6 +21,5 @@ adapters:
     usersync:
       cookie-family-name: emx_digital
       iframe:
-        url: https://cs.emxdgt.com/um?ssp=pbs&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
-        support-cors: false
+        url: https://cs.emxdgt.com/um?ssp=pbs&gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&redirect={redirect_url}
         uid-macro: '$UID'

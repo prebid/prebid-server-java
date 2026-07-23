@@ -4,3 +4,5 @@ gdpr:
       cache-dir: /app/prebid-server/data/vendorlist-v2
     v3:
       cache-dir: /app/prebid-server/data/vendorlist-v3
+    live:
+      startup-cache-dir: /app/prebid-server/data/vendorlist-v3

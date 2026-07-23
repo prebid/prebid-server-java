@@ -23,7 +23,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.adverxo.ExtImpAdverxo;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -39,11 +39,11 @@ public class AdverxoBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
     private static final String DEFAULT_BID_CURRENCY = "USD";
-    private static final String ADUNIT_MACROS_ENDPOINT = "{{adUnitId}}";
-    private static final String AUTH_MACROS_ENDPOINT = "{{auth}}";
+    private static final String ADUNIT_MACROS_ENDPOINT = "adUnitId";
+    private static final String AUTH_MACROS_ENDPOINT = "auth";
     private static final String PRICE_MACRO = "${AUCTION_PRICE}";
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
     private final CurrencyConversionService currencyConversionService;
 
@@ -51,7 +51,7 @@ public class AdverxoBidder implements Bidder<BidRequest> {
                          JacksonMapper mapper,
                          CurrencyConversionService currencyConversionService) {
 
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = mapper;
         this.currencyConversionService = currencyConversionService;
     }
@@ -87,8 +87,9 @@ public class AdverxoBidder implements Bidder<BidRequest> {
 
     private String resolveEndpoint(ExtImpAdverxo extImp) {
         return endpointUrl
-                .replace(ADUNIT_MACROS_ENDPOINT, Objects.toString(extImp.getAdUnitId(), "0"))
-                .replace(AUTH_MACROS_ENDPOINT, HttpUtil.encodeUrl(StringUtils.defaultString(extImp.getAuth())));
+                .replaceMacro(ADUNIT_MACROS_ENDPOINT, Objects.toString(extImp.getAdUnitId(), "0"))
+                .replaceMacro(AUTH_MACROS_ENDPOINT, StringUtils.defaultString(extImp.getAuth()))
+                .expand();
     }
 
     private Imp modifyImp(BidRequest bidRequest, Imp imp) {

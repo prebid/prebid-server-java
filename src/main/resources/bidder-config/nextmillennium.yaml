@@ -15,10 +15,8 @@ adapters:
     usersync:
       cookie-family-name: nextmillennium
       iframe:
-        url: https://cookies.nextmillmedia.com/sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
-        support-cors: false
+        url: https://cookies.nextmillmedia.com/sync?gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&redirect={redirect_url}
         uid-macro: '[NMUID]'
       redirect:
-        url: https://cookies.nextmillmedia.com/sync?type=image&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
-        support-cors: false
+        url: https://cookies.nextmillmedia.com/sync?type=image&gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&redirect={redirect_url}
         uid-macro: '[NMUID]'

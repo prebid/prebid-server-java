@@ -304,9 +304,6 @@
           "translatecategories": false
         }
       },
-      "cache": {
-        "vastxml": {}
-      },
       "channel": {
         "name": "web"
       }

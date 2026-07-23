@@ -370,14 +370,14 @@ public class AmpHandler implements ApplicationResource {
                 conditionalLogger.info(
                         "%s, Referer: %s"
                                 .formatted(message, routingContext.request().headers().get(HttpUtil.REFERER_HEADER)),
-                        100);
+                        logSamplingRate);
 
                 status = HttpResponseStatus.BAD_REQUEST;
                 body = message;
             } else if (exception instanceof UnauthorizedAccountException) {
                 metricRequestStatus = MetricName.badinput;
                 final String message = exception.getMessage();
-                conditionalLogger.info(message, 100);
+                conditionalLogger.info(message, logSamplingRate);
 
                 errorMessages = Collections.singletonList(message);
 
