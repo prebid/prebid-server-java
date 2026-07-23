@@ -17,7 +17,6 @@ import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.CompositeBidderResponse;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -116,23 +115,13 @@ public class ConsumableBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    @Deprecated(since = "Not used, since Bidder.makeBidderResponse(...) was overridden.")
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
-        return Result.withError(BidderError.generic("Invalid method call"));
-    }
-
-    @Override
-    public CompositeBidderResponse makeBidderResponse(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             final List<BidderError> errors = new ArrayList<>();
-
-            return CompositeBidderResponse.builder()
-                    .bids(extractConsumableBids(bidRequest, bidResponse, errors))
-                    .errors(errors)
-                    .build();
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            return Result.of(extractConsumableBids(bidRequest, bidResponse, errors), errors);
         } catch (DecodeException e) {
-            return CompositeBidderResponse.withError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
