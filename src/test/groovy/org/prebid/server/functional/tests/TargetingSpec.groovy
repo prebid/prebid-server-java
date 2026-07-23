@@ -12,6 +12,7 @@ import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.db.StoredResponse
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.AdServerTargeting
+import org.prebid.server.functional.model.request.auction.App
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.MultiBid
@@ -20,6 +21,7 @@ import org.prebid.server.functional.model.request.auction.PrebidCache
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
 import org.prebid.server.functional.model.request.auction.PriceGranularity
 import org.prebid.server.functional.model.request.auction.Range
+import org.prebid.server.functional.model.request.auction.Site
 import org.prebid.server.functional.model.request.auction.StoredAuctionResponse
 import org.prebid.server.functional.model.request.auction.StoredBidResponse
 import org.prebid.server.functional.model.request.auction.Targeting
@@ -37,6 +39,7 @@ import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.PbsConfig
 import org.prebid.server.functional.testcontainers.scaffolding.Bidder
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.IgnoreRest
 
 import java.math.RoundingMode
 import java.nio.charset.StandardCharsets
@@ -1904,6 +1907,76 @@ class TargetingSpec extends BaseSpec {
                 new AccountAuctionConfig(ranking: new AccountRankingConfig(enabled: false)),
                 new AccountAuctionConfig(ranking: new AccountRankingConfig(enabled: true))
         ]
+    }
+
+    @IgnoreRest
+    def "PBS amp should emit error for targeting when site is invalid array"() {
+        given: "Create targeting with array of site"
+        def anyRandomValue = PBSUtils.randomString
+        def targeting = ["site": siteValue, "any": anyRandomValue]
+
+        and: "Encode targeting to string"
+        def encodeTargeting = URLEncoder.encode(encode(targeting), StandardCharsets.UTF_8)
+
+        and: "Amp request with targeting"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.targeting = encodeTargeting
+        }
+
+        and: "Default bid request"
+        def ampStoredRequest = BidRequest.defaultBidRequest
+
+        and: "Create and save stored request into DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        def ampResponse = pbsWithDefaultTargetingLength.sendAmpRequest(ampRequest)
+
+        then: "Amp response should contain value from targeting in imp.ext.data"
+        def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
+        assert bidderRequest.imp[0].ext.data.any == anyRandomValue
+
+        and: "Amp response shouldn't contain any errors"
+        assert ampResponse.ext.errors == ['WARNING: targeting.site field invalid']
+
+        where:
+        siteValue << [[PBSUtils.randomString], [Site.configFPDSite, PBSUtils.randomString],
+                      [PBSUtils.randomString, Site.configFPDSite], [App.defaultApp, Site.configFPDSite]]
+    }
+
+    def "PBS amp should pass successfully when targeting site is valid"() {
+        given: "Create targeting with array of site"
+        def anyRandomValue = PBSUtils.randomString
+        def targeting = ["site": siteValue, "any": anyRandomValue]
+
+        and: "Encode targeting to string"
+        def encodeTargeting = URLEncoder.encode(encode(targeting), StandardCharsets.UTF_8)
+
+        and: "Amp request with targeting"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.targeting = encodeTargeting
+        }
+
+        and: "Default bid request"
+        def ampStoredRequest = BidRequest.defaultBidRequest
+
+        and: "Create and save stored request into DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        def ampResponse = pbsWithDefaultTargetingLength.sendAmpRequest(ampRequest)
+
+        then: "Amp response should contain value from targeting in imp.ext.data"
+        def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
+        assert bidderRequest.imp[0].ext.data.any == anyRandomValue
+
+        and: "Amp response shouldn't contain any errors"
+        assert !ampResponse.ext.errors
+
+        where:
+        siteValue << [null, [], Site.configFPDSite, [Site.configFPDSite], [Site.configFPDSite, Site.configFPDSite]]
     }
 
     private static Account createAccountWithPriceGranularity(String accountId, PriceGranularityType priceGranularity) {
