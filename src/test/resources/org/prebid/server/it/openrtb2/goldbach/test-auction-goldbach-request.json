@@ -1,0 +1,23 @@
+{
+  "id": "723f8906-7f59-4f50-bba9-ed9115ab1663",
+  "imp": [
+    {
+      "id": "test-imp-123",
+      "banner": {
+        "h": 250,
+        "w": 300,
+        "pos": 0
+      },
+      "ext": {
+        "goldbach": {
+          "slotId": "12345678/de-example.ch/slot-id/some-page",
+          "publisherId": "de-example.ch"
+        }
+      }
+    }
+  ],
+  "tmax": 5000,
+  "regs": {
+    "gdpr": 0
+  }
+}
