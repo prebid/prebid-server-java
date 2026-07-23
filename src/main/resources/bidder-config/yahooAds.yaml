@@ -3,9 +3,15 @@ adapters:
     endpoint: https://s2shb.ssp.yahoo.com/admax/bid/partners/PBS
     ortb-version: "2.6"
     aliases:
-      yssp: ~
-      yahoossp: ~
-      yahooAdvertising: ~
+      yssp:
+        meta-info:
+          vendor-id: 25
+      yahoossp:
+        meta-info:
+          vendor-id: 25
+      yahooAdvertising:
+        meta-info:
+          vendor-id: 25
     meta-info:
       maintainer-email: prebid-tech-team@yahooinc.com
       app-media-types:

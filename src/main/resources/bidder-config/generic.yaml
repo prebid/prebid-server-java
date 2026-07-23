@@ -4,6 +4,8 @@ adapters:
     aliases:
       genericAlias:
         enabled: false
+        meta-info:
+          vendor-id: 0
       adrino:
         enabled: false
         endpoint: https://prd-prebid-bidder.adrino.io/openrtb/bid

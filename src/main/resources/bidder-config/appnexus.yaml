@@ -5,6 +5,7 @@ adapters:
       mediafuse:
         meta-info:
           maintainer-email: support@mediafuse.com
+          vendor-id: 32
     meta-info:
       maintainer-email: prebid@microsoft.com
       app-media-types:

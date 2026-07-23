@@ -44,8 +44,9 @@ class SetUidSpec extends BaseSpec {
     private static final String GENERIC_COOKIE_FAMILY_NAME = GENERIC.value
     private static final String VENDOR_ID = PBSUtils.randomNumber as String
     private static final Map<String, String> UID_COOKIES_CONFIG = ['setuid.number-of-uid-cookies': MAX_NUMBER_OF_UID_COOKIES.toString()]
-    private static final Map<String, String> GENERIC_ALIAS_CONFIG = ["adapters.generic.aliases.alias.enabled" : "true",
-                                                                     "adapters.generic.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
+    private static final Map<String, String> GENERIC_ALIAS_CONFIG = ["adapters.generic.aliases.alias.enabled"          : "true",
+                                                                     "adapters.generic.aliases.alias.meta-info.vendor-id": "0",
+                                                                     "adapters.generic.aliases.alias.endpoint"         : "$networkServiceContainer.rootUri/auction".toString()]
     private static final String TCF_ERROR_MESSAGE = "The gdpr_consent param prevents cookies from being saved"
     private static final int UNAVAILABLE_FOR_LEGAL_REASONS_CODE = 451
     private static final Map<String, String> PBS_CONFIG =

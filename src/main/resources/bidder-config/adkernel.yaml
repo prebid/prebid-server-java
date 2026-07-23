@@ -3,8 +3,12 @@ adapters:
     endpoint: http://pbs.adksrv.com/hb?zone={ZoneId}
     endpoint-compression: gzip
     aliases:
-      rxnetwork: ~
-      152media: ~
+      rxnetwork:
+        meta-info:
+          vendor-id: 0
+      152media:
+        meta-info:
+          vendor-id: 1111
       xapads:
         enabled: false
         meta-info:

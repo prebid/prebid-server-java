@@ -39,8 +39,9 @@ class OpenxSpec extends BaseSpec {
 
     private static final Map OPENX_CONFIG = ["adapters.openx.enabled" : "true",
                                              "adapters.openx.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
-    private static final Map OPENX_ALIAS_CONFIG = ["adapters.openx.aliases.openxalias.enabled" : "true",
-                                                   "adapters.openx.aliases.openxalias.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
+    private static final Map OPENX_ALIAS_CONFIG = ["adapters.openx.aliases.openxalias.enabled"            : "true",
+                                                   "adapters.openx.aliases.openxalias.meta-info.vendor-id": "0",
+                                                   "adapters.openx.aliases.openxalias.endpoint"           : "$networkServiceContainer.rootUri/auction".toString()]
 
     @Shared
     PrebidServerService pbsService = pbsServiceFactory.getService(OPENX_CONFIG)

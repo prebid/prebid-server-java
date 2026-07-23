@@ -6,24 +6,30 @@ adapters:
         enabled: false
         meta-info:
           maintainer-email: publisher@adtarget.com.tr
-        vendor-id: 779
+          vendor-id: 779
       pixad:
         enabled: false
         meta-info:
           maintainer-email: prebid@pixad.com.tr
+          vendor-id: 1281
       monetixads:
         enabled: false
         meta-info:
           maintainer-email: team@monetixads.com
+          vendor-id: 1281
       admaticde:
         enabled: false
+        meta-info:
+          vendor-id: 1281
       yobee:
         enabled: false
         meta-info:
           maintainer-email: adops@yobee.it
+          vendor-id: 1281
       netaddiction:
         meta-info:
           maintainer-email: publishers-support@netaddiction.it
+          vendor-id: 1281
     meta-info:
       maintainer-email: prebid@admatic.com.tr
       app-media-types:

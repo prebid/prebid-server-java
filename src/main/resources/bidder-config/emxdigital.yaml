@@ -4,6 +4,8 @@ adapters:
     aliases:
       cadent_aperture_mx:
         enabled: false
+        meta-info:
+          vendor-id: 183
         # CadentAperture only operates in North America
         geoscope:
           - USA

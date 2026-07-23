@@ -6,6 +6,8 @@ adapters:
       adport:
         enabled: false
         endpoint: https://adport.pbsadverxo.com/auction?id={adUnitId}&auth={auth}
+        meta-info:
+          vendor-id: 0
         usersync:
           enabled: false
           cookie-family-name: adport
@@ -20,6 +22,8 @@ adapters:
       bidsmind:
         enabled: false
         endpoint: https://bidsmind.pbsadverxo.com/auction?id={adUnitId}&auth={auth}
+        meta-info:
+          vendor-id: 0
         usersync:
           enabled: false
           cookie-family-name: bidsmind
@@ -34,6 +38,8 @@ adapters:
       harrenmedia:
         enabled: false
         endpoint: https://harrenmedia.pbsadverxo.com/auction?id={adUnitId}&auth={auth}
+        meta-info:
+          vendor-id: 0
         usersync:
           enabled: false
           cookie-family-name: harrenmedia

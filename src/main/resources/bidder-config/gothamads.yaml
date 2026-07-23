@@ -7,6 +7,7 @@ adapters:
         endpoint: http://lb-east.intenze.co/?pass={AccountID}
         meta-info:
           maintainer-email: connect@intenze.co
+          vendor-id: 0
     meta-info:
       maintainer-email: support@gothamads.com
       app-media-types:

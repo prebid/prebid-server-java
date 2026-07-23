@@ -7,6 +7,7 @@ adapters:
         endpoint: https://srv.datacygnal.io/pbs/bidder?zid={ZoneID}
         meta-info:
           maintainer-email: contact@bcm.ltd
+          vendor-id: 0
         usersync:
           cookie-family-name: bcmint
           redirect:
@@ -18,6 +19,7 @@ adapters:
         endpoint: https://srv.bidgx.com/pbs/bidder?zid={ZoneID}
         meta-info:
           maintainer-email: aso@bidgency.com
+          vendor-id: 0
         usersync:
           cookie-family-name: bidagency
           redirect:
@@ -29,6 +31,7 @@ adapters:
         endpoint: https://srv.kntxy.com/pbs/bidder?zid={ZoneID}
         meta-info:
           maintainer-email: ssp@kuantyx.com
+          vendor-id: 0
         usersync:
           cookie-family-name: kuantyx
           redirect:

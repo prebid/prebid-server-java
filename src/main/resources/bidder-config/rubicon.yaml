@@ -11,6 +11,8 @@ adapters:
     aliases:
       magnite:
         enabled: false
+        meta-info:
+          vendor-id: 52
     ortb:
       multiformat-supported: true
     meta-info:
