@@ -31,7 +31,7 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 
 public class XeworksBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://randomurl.com?pid={{SourceId}}&host={{Host}}";
+    private static final String ENDPOINT_URL = "https://randomurl.com?pid={SourceId}&host={Host}";
 
     private final XeworksBidder target = new XeworksBidder(ENDPOINT_URL, jacksonMapper);
 

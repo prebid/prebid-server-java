@@ -39,6 +39,10 @@ class MultibidSpec extends BaseSpec {
 
         then: "PBS should not return targeting for non-winning bid"
         assert !response.seatbid?.first()?.bid?.last()?.ext?.prebid?.targeting
+
+        and: "Bid request should contain requested ext.prebid.multiBid"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.ext.prebid.multibid == [multiBid]
     }
 
     def "PBS should return seatbid[].bid[].ext.prebid.targeting for non-winning bid in multi-bid response when includeBidderKeys = true"() {
@@ -66,6 +70,10 @@ class MultibidSpec extends BaseSpec {
 
         then: "PBS should return targeting for non-winning bid"
         assert response.seatbid?.first()?.bid?.last()?.ext?.prebid?.targeting
+
+        and: "Bidder request should contain multibid"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.ext.prebid.multibid == [multiBid]
     }
 
     def "PBS should prefer bidRequest over account level config"() {

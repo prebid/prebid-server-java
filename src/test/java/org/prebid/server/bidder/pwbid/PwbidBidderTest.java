@@ -72,7 +72,10 @@ public class PwbidBidderTest extends VertxTest {
                 .payload(bidRequest)
                 .build());
 
-        assertThat(result.getValue()).usingRecursiveComparison().isEqualTo(expectedResults.getValue());
+        assertThat(result.getValue())
+                .usingRecursiveComparison()
+                .withEqualsForType((a, b) -> a.entries().equals(b.entries()), MultiMap.class)
+                .isEqualTo(expectedResults.getValue());
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -229,5 +232,4 @@ public class PwbidBidderTest extends VertxTest {
                         .build()))
                 .build();
     }
-
 }

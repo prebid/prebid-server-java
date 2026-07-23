@@ -26,6 +26,7 @@ import org.prebid.server.proto.openrtb.ext.request.bematterfull.ExtImpBematterfu
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -35,17 +36,17 @@ import java.util.Optional;
 
 public class BematterfullBidder implements Bidder<BidRequest> {
 
-    private static final String HOST_MACRO = "{{Host}}";
-    private static final String SOURCE_ID_MACRO = "{{SourceId}}";
+    private static final String HOST_MACRO = "Host";
+    private static final String SOURCE_ID_MACRO = "SourceId";
     private static final String EXT_PREBID = "prebid";
     private static final TypeReference<ExtPrebid<?, ExtImpBematterfull>> EXT_TYPE_REFERENCE = new TypeReference<>() {
     };
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public BematterfullBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -87,8 +88,9 @@ public class BematterfullBidder implements Bidder<BidRequest> {
 
     private String makeUrl(ExtImpBematterfull extImp) {
         return endpointUrl
-                .replace(HOST_MACRO, StringUtils.defaultString(extImp.getEnv()))
-                .replace(SOURCE_ID_MACRO, StringUtils.defaultString(extImp.getPid()));
+                .replaceMacro(HOST_MACRO, StringUtils.defaultString(extImp.getEnv()))
+                .replaceMacro(SOURCE_ID_MACRO, StringUtils.defaultString(extImp.getPid()))
+                .expand();
     }
 
     @Override

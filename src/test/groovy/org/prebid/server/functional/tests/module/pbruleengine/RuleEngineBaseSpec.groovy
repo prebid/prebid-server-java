@@ -45,6 +45,8 @@ import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDO
 abstract class RuleEngineBaseSpec extends ModuleBaseSpec {
 
     protected static final List<BidderName> MULTI_BID_ADAPTERS = [GENERIC, OPENX, AMX].sort()
+    protected static final Integer OPENX_VENDOR_ID = PBSUtils.getRandomNumber(0, 65534)
+    protected static final Integer AMX_VENDOR_ID = PBSUtils.getRandomNumber(0, 65534)
     protected static final String APPLIED_FOR_ALL_IMPS = "*"
     protected static final String DEFAULT_CONDITIONS = "default"
     protected final static String CALL_METRIC = "modules.module.${PB_RULE_ENGINE.code}.stage.${PROCESSED_AUCTION_REQUEST.metricValue}.hook.${PB_RULES_ENGINE_PROCESSED_AUCTION_REQUEST.code}.call"
@@ -75,17 +77,18 @@ abstract class RuleEngineBaseSpec extends ModuleBaseSpec {
     }
 
     protected static final Map<String, String> ENABLED_DEBUG_LOG_MODE = ["logging.level.root": "debug"]
-    protected static final Map<String, String> OPENX_CONFIG = ["adapters.${OPENX}.enabled" : "true",
-                                                               "adapters.${OPENX}.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
-    protected static final Map<String, String> AMX_CONFIG = ["adapters.${AMX}.enabled" : "true",
-                                                             "adapters.${AMX}.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
+    protected static final Map<String, String> OPENX_CONFIG = ["adapters.${OPENX}.enabled"            : "true",
+                                                               "adapters.${OPENX}.endpoint"           : "$networkServiceContainer.rootUri/auction".toString(),
+                                                               "adapters.${OPENX}.meta-info.vendor-id": OPENX_VENDOR_ID as String]
+    protected static final Map<String, String> AMX_CONFIG = ["adapters.${AMX}.enabled"            : "true",
+                                                             "adapters.${AMX}.endpoint"           : "$networkServiceContainer.rootUri/auction".toString(),
+                                                             "adapters.${AMX}.meta-info.vendor-id": AMX_VENDOR_ID as String]
     protected static final Map<String, String> OPENX_ALIAS_CONFIG = ["adapters.${OPENX}.aliases.${OPENX_ALIAS}.enabled" : "true",
                                                                      "adapters.${OPENX}.aliases.${OPENX_ALIAS}.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
     protected static final String CONFIG_DATA_CENTER = PBSUtils.randomString
     private static final String USER_SYNC_URL = "$networkServiceContainer.rootUri/generic-usersync"
     private static final Map<String, String> GENERIC_CONFIG = [
             "adapters.${GENERIC.value}.usersync.redirect.url"         : USER_SYNC_URL,
-            "adapters.${GENERIC.value}.usersync.redirect.support-cors": false as String,
             "adapters.${GENERIC.value}.meta-info.vendor-id"           : GENERIC_VENDOR_ID as String]
     protected static final PrebidServerService pbsServiceWithRulesEngineModule = pbsServiceFactory.getService(GENERIC_CONFIG +
             getRulesEngineSettings() + AMX_CONFIG + OPENX_CONFIG + OPENX_ALIAS_CONFIG + ['datacenter-region': CONFIG_DATA_CENTER] +

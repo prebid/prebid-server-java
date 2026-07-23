@@ -3,7 +3,6 @@ package org.prebid.server.privacy.gdpr.vendorlist;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.FileProps;
@@ -21,6 +20,7 @@ import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.Vendor;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorList;
+import org.prebid.server.util.Uri;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
@@ -55,11 +55,11 @@ public class VendorListService {
     private static final int TCF_VERSION = 2;
 
     private static final String JSON_SUFFIX = ".json";
-    private static final String VERSION_PLACEHOLDER = "{VERSION}";
+    private static final String VERSION_PLACEHOLDER = "VERSION";
 
     private final double logSamplingRate;
     private final String cacheDir;
-    private final String endpointTemplate;
+    private final Uri endpoint;
     private final int defaultTimeoutMs;
     private final long refreshMissingListPeriodMs;
     private final boolean deprecated;
@@ -82,7 +82,7 @@ public class VendorListService {
 
     public VendorListService(double logSamplingRate,
                              String cacheDir,
-                             String endpointTemplate,
+                             String endpoint,
                              int defaultTimeoutMs,
                              long refreshMissingListPeriodMs,
                              boolean deprecated,
@@ -97,7 +97,7 @@ public class VendorListService {
 
         this.logSamplingRate = logSamplingRate;
         this.cacheDir = Objects.requireNonNull(cacheDir);
-        this.endpointTemplate = Objects.requireNonNull(endpointTemplate);
+        this.endpoint = Uri.of(endpoint);
         this.defaultTimeoutMs = defaultTimeoutMs;
         this.refreshMissingListPeriodMs = refreshMissingListPeriodMs;
         this.deprecated = deprecated;
@@ -276,7 +276,7 @@ public class VendorListService {
      * Proceeds obtaining new vendor list from HTTP resource.
      */
     private void fetchNewVendorListFor(int version) {
-        final String url = endpointTemplate.replace(VERSION_PLACEHOLDER, String.valueOf(version));
+        final String url = endpoint.replaceMacro(VERSION_PLACEHOLDER, String.valueOf(version)).expand();
 
         httpClient.get(url, defaultTimeoutMs)
                 .map(response -> processResponse(response, version))
@@ -317,23 +317,15 @@ public class VendorListService {
      * Saves given vendor list on file system.
      */
     private Future<VendorListResult<VendorList>> saveToFile(VendorListResult<VendorList> vendorListResult) {
-        final Promise<VendorListResult<VendorList>> promise = Promise.promise();
         final int version = vendorListResult.getVersion();
         final String filepath = new File(cacheDir, version + JSON_SUFFIX).getPath();
 
-        fileSystem.writeFile(filepath, Buffer.buffer(vendorListResult.getVendorListAsString()), result -> {
-            if (result.succeeded()) {
-                promise.complete(vendorListResult);
-            } else {
-                conditionalLogger.error(
+        return fileSystem.writeFile(filepath, Buffer.buffer(vendorListResult.getVendorListAsString()))
+                .map(vendorListResult)
+                .onFailure(error -> conditionalLogger.error(
                         "Could not create new vendor list for version %s.%s, file: %s, trace: %s".formatted(
-                                generationVersion, version, filepath, ExceptionUtils.getStackTrace(result.cause())),
-                        logSamplingRate);
-                promise.fail(result.cause());
-            }
-        });
-
-        return promise.future();
+                                generationVersion, version, filepath, ExceptionUtils.getStackTrace(error.getCause())),
+                        logSamplingRate));
     }
 
     private Void updateCache(VendorListResult<VendorList> vendorListResult) {

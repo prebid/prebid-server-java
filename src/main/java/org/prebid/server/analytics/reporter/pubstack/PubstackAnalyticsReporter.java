@@ -1,8 +1,6 @@
 package org.prebid.server.analytics.reporter.pubstack;
 
-import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
@@ -117,21 +115,22 @@ public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializab
     }
 
     @Override
-    public void initialize(Promise<Void> initializePromise) {
+    public Future<Void> initialize() {
         vertx.setPeriodic(configurationRefreshDelay, id -> fetchRemoteConfig());
-        fetchRemoteConfig();
-        initializePromise.tryComplete();
+        return fetchRemoteConfig();
     }
 
     void shutdown() {
         eventHandlers.values().forEach(PubstackEventHandler::reportEvents);
     }
 
-    private void fetchRemoteConfig() {
+    private Future<Void> fetchRemoteConfig() {
         logger.info("[pubstack] Updating config: {}", pubstackConfig);
-        httpClient.get(makeEventEndpointUrl(pubstackConfig.getEndpoint(), pubstackConfig.getScopeId()), timeout)
+        return httpClient.get(makeEventEndpointUrl(pubstackConfig.getEndpoint(), pubstackConfig.getScopeId()), timeout)
                 .map(this::processRemoteConfigurationResponse)
-                .onComplete(this::updateConfigsOnChange);
+                .map(this::updateConfigsOnChange)
+                .onFailure(PubstackAnalyticsReporter::logError)
+                .mapEmpty();
     }
 
     private PubstackConfig processRemoteConfigurationResponse(HttpClientResponse response) {
@@ -148,15 +147,14 @@ public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializab
         }
     }
 
-    private void updateConfigsOnChange(AsyncResult<PubstackConfig> asyncConfigResult) {
-        if (asyncConfigResult.failed()) {
-            logger.error("[pubstask] Fail to fetch remote configuration: {}", asyncConfigResult.cause().getMessage());
-        } else if (!Objects.equals(pubstackConfig, asyncConfigResult.result())) {
-            final PubstackConfig pubstackConfig = asyncConfigResult.result();
+    private Void updateConfigsOnChange(PubstackConfig config) {
+        if (!Objects.equals(pubstackConfig, config)) {
             eventHandlers.values().forEach(PubstackEventHandler::reportEvents);
-            this.pubstackConfig = pubstackConfig;
+            this.pubstackConfig = config;
             updateHandlers(pubstackConfig);
         }
+
+        return null;
     }
 
     private void updateHandlers(PubstackConfig pubstackConfig) {
@@ -186,5 +184,9 @@ public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializab
             logger.error(message);
             throw new PreBidException(message);
         }
+    }
+
+    private static void logError(Throwable throwable) {
+        logger.error("[pubstask] Fail to fetch remote configuration: {}", throwable.getMessage());
     }
 }

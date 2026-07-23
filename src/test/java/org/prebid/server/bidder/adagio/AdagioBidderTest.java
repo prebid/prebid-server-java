@@ -137,7 +137,7 @@ public class AdagioBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                .containsExactly(BidderBid.of(bannerBid, BidType.banner, "adagio", "USD"));
+                .containsExactly(BidderBid.of(bannerBid, BidType.banner, "USD"));
     }
 
     @Test
@@ -154,7 +154,6 @@ public class AdagioBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .containsExactly(BidderBid.builder()
                         .type(BidType.video)
-                        .seat("adagio")
                         .bidCurrency("USD")
                         .bid(videoBid)
                         .videoInfo(ExtBidPrebidVideo.of(10, "cat"))
@@ -173,7 +172,7 @@ public class AdagioBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                .containsExactly(BidderBid.of(nativeBid, BidType.xNative, "adagio", "USD"));
+                .containsExactly(BidderBid.of(nativeBid, BidType.xNative, "USD"));
     }
 
     @Test
@@ -232,7 +231,7 @@ public class AdagioBidderTest extends VertxTest {
     private static String givenBidResponse(Bid... bids) throws JsonProcessingException {
         return mapper.writeValueAsString(BidResponse.builder()
                 .cur("USD")
-                .seatbid(singletonList(SeatBid.builder().seat("adagio").bid(List.of(bids)).build()))
+                .seatbid(singletonList(SeatBid.builder().bid(List.of(bids)).build()))
                 .build());
     }
 

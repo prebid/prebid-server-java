@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -397,7 +396,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
                         clock,
                         jacksonMapper));
 
-        currencyService.initialize(Promise.promise());
+        currencyService.initialize();
 
         return currencyService;
     }

@@ -32,5 +32,4 @@ public class InsticatorTest extends IntegrationTest {
                 response,
                 singletonList("insticator"));
     }
-
 }

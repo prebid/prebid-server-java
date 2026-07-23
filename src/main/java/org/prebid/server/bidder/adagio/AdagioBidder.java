@@ -59,12 +59,12 @@ public class AdagioBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(seatBid -> seatBid.getBid().stream()
                         .filter(Objects::nonNull)
-                        .map(bid -> makeBid(bid, bidResponse.getCur(), seatBid.getSeat(), errors)))
+                        .map(bid -> makeBid(bid, bidResponse.getCur(), errors)))
                 .filter(Objects::nonNull)
                 .toList();
     }
 
-    private BidderBid makeBid(Bid bid, String currency, String seat, List<BidderError> errors) {
+    private BidderBid makeBid(Bid bid, String currency, List<BidderError> errors) {
         try {
             final ExtBidPrebid extBidPrebid = parseBidExt(bid);
             return BidderBid.builder()
@@ -72,7 +72,6 @@ public class AdagioBidder implements Bidder<BidRequest> {
                     .type(getBidType(bid))
                     .bidCurrency(currency)
                     .videoInfo(extBidPrebid != null ? extBidPrebid.getVideo() : null)
-                    .seat(seat)
                     .build();
 
         } catch (PreBidException e) {

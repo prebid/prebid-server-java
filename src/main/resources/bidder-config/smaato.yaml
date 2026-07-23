@@ -2,6 +2,8 @@ adapters:
   smaato:
     endpoint: https://prebid.ad.smaato.net/oapi/prebid
     endpoint-compression: gzip
+    geoscope:
+      - global
     meta-info:
       maintainer-email: prebid@smaato.com
       app-media-types:
@@ -19,10 +21,8 @@ adapters:
     usersync:
       cookie-family-name: smaato
       redirect:
-        url: https://s.ad.smaato.net/c/?adExInit=p&redir={{redirect_url}}&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}
-        support-cors: false
+        url: https://s.ad.smaato.net/c/?adExInit=p&redir={redirect_url}&gdpr={gdpr}&gdpr_consent={gdpr_consent}
         uid-macro: '$UID'
       iframe:
-        url: https://s.ad.smaato.net/i/?adExInit=p&redir={{redirect_url}}&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}
-        support-cors: false
+        url: https://s.ad.smaato.net/i/?adExInit=p&redir={redirect_url}&gdpr={gdpr}&gdpr_consent={gdpr_consent}
         uid-macro: '$UID'

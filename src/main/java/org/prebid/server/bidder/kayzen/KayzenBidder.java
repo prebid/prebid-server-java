@@ -19,7 +19,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.kayzen.ExtImpKayzen;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -32,15 +32,15 @@ public class KayzenBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpKayzen>> KAYZEN_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
-    private static final String URL_ZONE_ID_MACRO = "{{ZoneID}}";
-    private static final String URL_ACCOUNT_ID_MACRO = "{{AccountID}}";
+    private static final String URL_ZONE_ID_MACRO = "ZoneID";
+    private static final String URL_ACCOUNT_ID_MACRO = "AccountID";
     private static final int FIRST_IMP_INDEX = 0;
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public KayzenBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -71,10 +71,11 @@ public class KayzenBidder implements Bidder<BidRequest> {
     }
 
     private HttpRequest<BidRequest> createRequest(ExtImpKayzen extImpKayzen, BidRequest request, List<Imp> imps) {
-        final String url = endpointUrl.replace(URL_ZONE_ID_MACRO, extImpKayzen.getZone())
-                .replace(URL_ACCOUNT_ID_MACRO, extImpKayzen.getExchange());
+        final String url = endpointUrl
+                .replaceMacro(URL_ZONE_ID_MACRO, extImpKayzen.getZone())
+                .replaceMacro(URL_ACCOUNT_ID_MACRO, extImpKayzen.getExchange())
+                .expand();
         final BidRequest outgoingRequest = request.toBuilder().imp(imps).build();
-
         return BidderUtil.defaultRequest(outgoingRequest, url, mapper);
     }
 

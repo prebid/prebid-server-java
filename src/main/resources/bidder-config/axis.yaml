@@ -16,6 +16,5 @@ adapters:
     usersync:
       cookie-family-name: axis
       redirect:
-        url: https://cs.axis-marketplace.com/pbserver?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&redir={{redirect_url}}
-        support-cors: false
+        url: https://cs.axis-marketplace.com/pbserver?gdpr={gdpr}&gdpr_consent={gdpr_consent}&ccpa={us_privacy}&redir={redirect_url}
         uid-macro: '[UID]'

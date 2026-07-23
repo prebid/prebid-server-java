@@ -19,8 +19,6 @@ adapters:
     usersync:
       cookie-family-name: connectad
       redirect:
-        url: https://sync.connectad.io/ImageSyncer?gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&cb={{redirect_url}}
-        support-cors: false
+        url: https://sync.connectad.io/ImageSyncer?gdpr={gdpr}&consent={gdpr_consent}&us_privacy={us_privacy}&gpp={gpp}&gpp_sid={gpp_sid}&cb={redirect_url}
       iframe:
-        url: https://sync.connectad.io/iFrameSyncer?gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&cb={{redirect_url}}
-        support-cors: false
+        url: https://sync.connectad.io/iFrameSyncer?gdpr={gdpr}&consent={gdpr_consent}&us_privacy={us_privacy}&gpp={gpp}&gpp_sid={gpp_sid}&cb={redirect_url}
