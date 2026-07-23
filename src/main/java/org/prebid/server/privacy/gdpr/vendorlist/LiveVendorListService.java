@@ -115,13 +115,13 @@ public class LiveVendorListService implements Initializable {
 
     private Void updateDeletedVendorIds(Set<Integer> ids) {
         deletedVendorIds = ids;
-        metrics.updatePrivacyTcfVendorListLatestOkMetric();
+        metrics.updatePrivacyTcfLiveVendorListOkMetric();
         return null;
     }
 
     private Void handleError(Throwable exception) {
         logger.warn("Error occurred while fetching live GVL", exception);
-        metrics.updatePrivacyTcfVendorListLatestErrorMetric();
+        metrics.updatePrivacyTcfLiveVendorListErrorMetric();
         return null;
     }
 }

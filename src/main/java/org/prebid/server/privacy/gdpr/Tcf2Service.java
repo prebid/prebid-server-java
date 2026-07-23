@@ -115,7 +115,7 @@ public class Tcf2Service {
                                 mergedPurposeOneTreatmentInterpretation),
                         ignored -> processDowngradedSupportedPurposeStrategies(
                                 tcfConsent,
-                                wrapWithGVL(vendorPermissionsByType, VendorListWrapper.empty()),
+                                wrapWithGVL(vendorPermissionsByType, VendorListWrapper.EMPTY),
                                 mergedPurposes,
                                 mergedPurposeOneTreatmentInterpretation))
                 .map(ignored -> enforcePurpose4IfRequired(mergedPurposes, vendorPermissionsByType))

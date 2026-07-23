@@ -123,8 +123,8 @@ public class LiveVendorListServiceTest extends VertxTest {
 
         // then
         assertThat(target.getDeletedVendorIds()).containsExactly(1);
-        verify(metrics).updatePrivacyTcfVendorListLatestOkMetric();
-        verify(metrics, never()).updatePrivacyTcfVendorListLatestErrorMetric();
+        verify(metrics).updatePrivacyTcfLiveVendorListOkMetric();
+        verify(metrics, never()).updatePrivacyTcfLiveVendorListErrorMetric();
     }
 
     @Test
@@ -158,8 +158,8 @@ public class LiveVendorListServiceTest extends VertxTest {
 
         // then
         assertThat(target.getDeletedVendorIds()).isEmpty();
-        verify(metrics).updatePrivacyTcfVendorListLatestErrorMetric();
-        verify(metrics, never()).updatePrivacyTcfVendorListLatestOkMetric();
+        verify(metrics).updatePrivacyTcfLiveVendorListErrorMetric();
+        verify(metrics, never()).updatePrivacyTcfLiveVendorListOkMetric();
     }
 
     @Test
@@ -172,7 +172,7 @@ public class LiveVendorListServiceTest extends VertxTest {
 
         // then
         assertThat(target.getDeletedVendorIds()).isEmpty();
-        verify(metrics).updatePrivacyTcfVendorListLatestErrorMetric();
+        verify(metrics).updatePrivacyTcfLiveVendorListErrorMetric();
     }
 
     @Test
@@ -185,7 +185,7 @@ public class LiveVendorListServiceTest extends VertxTest {
 
         // then
         assertThat(target.getDeletedVendorIds()).isEmpty();
-        verify(metrics).updatePrivacyTcfVendorListLatestErrorMetric();
+        verify(metrics).updatePrivacyTcfLiveVendorListErrorMetric();
     }
 
     @Test
@@ -201,7 +201,7 @@ public class LiveVendorListServiceTest extends VertxTest {
 
         // then
         assertThat(target.getDeletedVendorIds()).isEmpty();
-        verify(metrics).updatePrivacyTcfVendorListLatestErrorMetric();
+        verify(metrics).updatePrivacyTcfLiveVendorListErrorMetric();
     }
 
     @Test
@@ -257,8 +257,8 @@ public class LiveVendorListServiceTest extends VertxTest {
 
         // then
         assertThat(target.getDeletedVendorIds()).containsExactly(1);
-        verify(metrics).updatePrivacyTcfVendorListLatestOkMetric();
-        verify(metrics).updatePrivacyTcfVendorListLatestErrorMetric();
+        verify(metrics).updatePrivacyTcfLiveVendorListOkMetric();
+        verify(metrics).updatePrivacyTcfLiveVendorListErrorMetric();
     }
 
     private void givenHttpClientReturnsResponse(int statusCode, String response) {

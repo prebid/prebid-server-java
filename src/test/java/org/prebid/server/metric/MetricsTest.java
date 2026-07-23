@@ -1005,21 +1005,21 @@ public class MetricsTest {
     }
 
     @Test
-    public void updatePrivacyTcfVendorListLatestOkMetricShouldIncrementMetric() {
+    public void updatePrivacyTcfLiveVendorListOkMetricShouldIncrementMetric() {
         // when
-        metrics.updatePrivacyTcfVendorListLatestOkMetric();
+        metrics.updatePrivacyTcfLiveVendorListOkMetric();
 
         // then
-        assertThat(metricRegistry.counter("privacy.tcf.vendorlist.latest.ok").getCount()).isOne();
+        assertThat(metricRegistry.counter("privacy.tcf.vendorlist.live.ok").getCount()).isOne();
     }
 
     @Test
-    public void updatePrivacyTcfVendorListLatestErrorMetricShouldIncrementMetric() {
+    public void updatePrivacyTcfLiveVendorListErrorMetricShouldIncrementMetric() {
         // when
-        metrics.updatePrivacyTcfVendorListLatestErrorMetric();
+        metrics.updatePrivacyTcfLiveVendorListErrorMetric();
 
         // then
-        assertThat(metricRegistry.counter("privacy.tcf.vendorlist.latest.err").getCount()).isOne();
+        assertThat(metricRegistry.counter("privacy.tcf.vendorlist.live.err").getCount()).isOne();
     }
 
     @Test

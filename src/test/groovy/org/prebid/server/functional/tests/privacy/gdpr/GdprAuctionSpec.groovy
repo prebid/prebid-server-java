@@ -1326,7 +1326,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
             deletedDate = ZonedDateTime.now().plusYears(1)
         }
         downloadLiveGvtList(VENDOR_LIST_VERSION + 1, newerVendorList, Times.once())
-        pbsWithLiveGvlSetup.isContainMetricByValue('privacy.tcf.vendorlist.latest.ok')
+        pbsWithLiveGvlSetup.isContainMetricByValue('privacy.tcf.vendorlist.live.ok')
 
         and: "GVL list is warmed up for PBS"
         warmupGvtList(pbsWithLiveGvlSetup, VENDOR_LIST_VERSION - 1)

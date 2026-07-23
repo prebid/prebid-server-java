@@ -16,7 +16,7 @@ class TcfMetrics extends UpdatableMetrics {
 
     private final TcfVersionMetrics tcfVersion1Metrics;
     private final TcfVersionMetrics tcfVersion2Metrics;
-    private final VendorListLatestMetrics vendorListLatestMetrics;
+    private final LiveVendorListMetrics liveVendorListMetrics;
 
     TcfMetrics(MetricRegistry metricRegistry, CounterType counterType, String prefix) {
         super(
@@ -26,7 +26,7 @@ class TcfMetrics extends UpdatableMetrics {
 
         tcfVersion1Metrics = new TcfVersionMetrics(metricRegistry, counterType, createTcfPrefix(prefix), "v1");
         tcfVersion2Metrics = new TcfVersionMetrics(metricRegistry, counterType, createTcfPrefix(prefix), "v2");
-        vendorListLatestMetrics = new VendorListLatestMetrics(metricRegistry, counterType, createTcfPrefix(prefix));
+        liveVendorListMetrics = new LiveVendorListMetrics(metricRegistry, counterType, createTcfPrefix(prefix));
     }
 
     TcfVersionMetrics fromVersion(int version) {
@@ -37,8 +37,8 @@ class TcfMetrics extends UpdatableMetrics {
         };
     }
 
-    VendorListLatestMetrics vendorListLatest() {
-        return vendorListLatestMetrics;
+    LiveVendorListMetrics liveVendorList() {
+        return liveVendorListMetrics;
     }
 
     private static String createTcfPrefix(String prefix) {
@@ -94,9 +94,9 @@ class TcfMetrics extends UpdatableMetrics {
         }
     }
 
-    static class VendorListLatestMetrics extends UpdatableMetrics {
+    static class LiveVendorListMetrics extends UpdatableMetrics {
 
-        VendorListLatestMetrics(MetricRegistry metricRegistry, CounterType counterType, String prefix) {
+        LiveVendorListMetrics(MetricRegistry metricRegistry, CounterType counterType, String prefix) {
             super(
                     metricRegistry,
                     counterType,
@@ -104,7 +104,7 @@ class TcfMetrics extends UpdatableMetrics {
         }
 
         private static String createLatestPrefix(String prefix) {
-            return prefix + ".vendorlist.latest";
+            return prefix + ".vendorlist.live";
         }
 
         private static Function<MetricName, String> nameCreator(String prefix) {

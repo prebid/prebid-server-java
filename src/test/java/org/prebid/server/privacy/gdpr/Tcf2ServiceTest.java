@@ -103,7 +103,7 @@ public class Tcf2ServiceTest extends VertxTest {
 
     @BeforeEach
     public void setUp() {
-        given(vendorListService.forConsent(any())).willReturn(Future.succeededFuture(VendorListWrapper.empty()));
+        given(vendorListService.forConsent(any())).willReturn(Future.succeededFuture(VendorListWrapper.EMPTY));
 
         given(purposeStrategyOne.getPurpose()).willReturn(ONE);
         given(purposeStrategyTwo.getPurpose()).willReturn(TWO);

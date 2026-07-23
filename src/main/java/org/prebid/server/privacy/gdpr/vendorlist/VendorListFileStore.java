@@ -1,6 +1,5 @@
 package org.prebid.server.privacy.gdpr.vendorlist;
 
-import com.github.benmanes.caffeine.cache.Caffeine;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.FileProps;
@@ -23,6 +22,7 @@ import java.util.Comparator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public class VendorListFileStore {
@@ -49,9 +49,7 @@ public class VendorListFileStore {
         createAndCheckWritePermissionsForCacheDir(cacheDir);
         final Map<Integer, String> versionToFileContent = readFileSystemCache(cacheDir);
 
-        final Map<Integer, Map<Integer, Vendor>> cache = Caffeine.newBuilder()
-                .<Integer, Map<Integer, Vendor>>build()
-                .asMap();
+        final Map<Integer, Map<Integer, Vendor>> cache = new ConcurrentHashMap<>();
 
         for (Map.Entry<Integer, String> versionAndFileContent : versionToFileContent.entrySet()) {
             final VendorList vendorList = VendorListUtil.parseVendorList(versionAndFileContent.getValue(), mapper);
