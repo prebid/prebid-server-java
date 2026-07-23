@@ -128,7 +128,7 @@ class SetUidSpec extends BaseSpec {
         assert response.responseBody ==
                 ResourceUtil.readByteArrayFromClassPath("org/prebid/server/functional/tracking-pixel.png")
 
-        and: "usersync.FAMILY.sets metric should be updated"
+        and: "usersync.BIDDER.sets metric should be updated"
         def metrics = singleCookiesPbsService.sendCollectedMetricsRequest()
         assert metrics["usersync.${GENERIC.value}.sets"] == 1
     }
@@ -285,7 +285,7 @@ class SetUidSpec extends BaseSpec {
         assert exception.statusCode == UNAVAILABLE_FOR_LEGAL_REASONS_CODE
         assert exception.responseBody == TCF_ERROR_MESSAGE
 
-        and: "usersync.FAMILY.tcf.blocked metric should be updated"
+        and: "usersync.BIDDER.tcf.blocked metric should be updated"
         def metric = prebidServerService.sendCollectedMetricsRequest()
         assert metric["usersync.${RUBICON.value}.tcf.blocked"] == 1
 
@@ -362,7 +362,7 @@ class SetUidSpec extends BaseSpec {
         def metricsRequest = prebidServerService.sendCollectedMetricsRequest()
         assert metricsRequest["usersync.${APPNEXUS.value}.sizeblocked"] == 1
 
-        and: "usersync.FAMILY.sets metric should be updated"
+        and: "usersync.BIDDER.sets metric should be updated"
         assert metricsRequest["usersync.${OPENX.value}.sets"] == 1
 
         cleanup: "Stop and remove pbs container"
