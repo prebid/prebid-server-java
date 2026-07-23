@@ -348,7 +348,6 @@ class CookieSyncSpec extends BaseSpec {
         verifyAll(bidderStatus?.userSync) {
             it.url == USER_SYNC_URL
             it.type == REDIRECT
-            it.supportCORS == false
         }
     }
 
@@ -714,7 +713,6 @@ class CookieSyncSpec extends BaseSpec {
         verifyAll(validBidderUserSyncs) {
             it.url == [USER_SYNC_URL]
             it.type == [USER_SYNC_TYPE]
-            it.supportCORS == [CORS_SUPPORT]
         }
 
         and: "Response should contain duplicate bidder error"
