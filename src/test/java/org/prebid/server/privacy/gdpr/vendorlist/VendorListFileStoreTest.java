@@ -9,9 +9,9 @@ import io.vertx.core.file.FileSystemException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.exception.PreBidException;
@@ -23,7 +23,8 @@ import org.prebid.server.privacy.gdpr.vendorlist.proto.Vendor;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorList;
 
 import java.io.File;
-import java.nio.file.Path;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.List;
@@ -40,6 +41,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode.ONE;
@@ -54,9 +56,6 @@ public class VendorListFileStoreTest extends VertxTest {
 
     @Mock
     private FileSystem fileSystem;
-
-    @TempDir
-    private Path tempDir;
 
     private VendorListFileStore target;
 
@@ -110,31 +109,37 @@ public class VendorListFileStoreTest extends VertxTest {
     @Test
     public void createCacheFromDiskShouldFailIfCacheDirIsNotWritable() {
         // given
-        final String cacheDir = tempDir.toString();
-        tempDir.toFile().setWritable(false, false);
         final FileProps fileProps = mock(FileProps.class);
-        given(fileSystem.existsBlocking(eq(cacheDir))).willReturn(true);
-        given(fileSystem.propsBlocking(eq(cacheDir))).willReturn(fileProps);
+        given(fileSystem.existsBlocking(eq(CACHE_DIR))).willReturn(true);
+        given(fileSystem.propsBlocking(eq(CACHE_DIR))).willReturn(fileProps);
         given(fileProps.isDirectory()).willReturn(true);
 
-        // when and then
-        assertThatThrownBy(() -> target.createCacheFromDisk(cacheDir))
-                .isInstanceOf(PreBidException.class)
-                .hasMessage("No write permissions for directory: " + cacheDir);
+        try (MockedStatic<Files> filesMock = mockStatic(Files.class)) {
+            filesMock.when(() -> Files.isWritable(eq(Paths.get(CACHE_DIR)))).thenReturn(false);
+
+            // when and then
+            assertThatThrownBy(() -> target.createCacheFromDisk(CACHE_DIR))
+                    .isInstanceOf(PreBidException.class)
+                    .hasMessage("No write permissions for directory: " + CACHE_DIR);
+        }
+
     }
 
     @Test
-    public void createCacheFromDiskShouldNotFailIfCacheDirIsWriable() {
+    public void createCacheFromDiskShouldNotFailIfCacheDirExistsAndIsWritable() {
         // given
-        final String cacheDir = tempDir.toString();
-        tempDir.toFile().setWritable(true, false);
         final FileProps fileProps = mock(FileProps.class);
-        given(fileSystem.existsBlocking(eq(cacheDir))).willReturn(true);
-        given(fileSystem.propsBlocking(eq(cacheDir))).willReturn(fileProps);
+        given(fileSystem.existsBlocking(eq(CACHE_DIR))).willReturn(true);
+        given(fileSystem.propsBlocking(eq(CACHE_DIR))).willReturn(fileProps);
         given(fileProps.isDirectory()).willReturn(true);
 
-        // when and then
-        assertDoesNotThrow(() -> target.createCacheFromDisk(cacheDir));
+        try (MockedStatic<Files> filesMock = mockStatic(Files.class)) {
+            filesMock.when(() -> Files.isWritable(eq(Paths.get(CACHE_DIR)))).thenReturn(true);
+
+            // when and then
+            assertDoesNotThrow(() -> target.createCacheFromDisk(CACHE_DIR));
+        }
+
     }
 
     @Test
