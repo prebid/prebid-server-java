@@ -16,7 +16,7 @@ import org.prebid.server.proto.openrtb.ext.request.audiencenetwork.ExtImpAudienc
 import org.prebid.server.proto.openrtb.ext.request.beachfront.ExtImpBeachfront;
 import org.prebid.server.proto.openrtb.ext.request.eplanning.ExtImpEplanning;
 import org.prebid.server.proto.openrtb.ext.request.openx.ExtImpOpenx;
-import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon;
+import org.prebid.server.proto.openrtb.ext.request.magnite.ExtImpMagnite;
 import org.prebid.server.proto.openrtb.ext.request.sovrn.ExtImpSovrn;
 import org.prebid.server.spring.config.bidder.model.CompressionType;
 import org.prebid.server.spring.config.bidder.model.Ortb;
@@ -39,7 +39,7 @@ import static org.mockito.Mock.Strictness.LENIENT;
 @ExtendWith(MockitoExtension.class)
 public class BidderParamValidatorTest extends VertxTest {
 
-    private static final String RUBICON = "rubicon";
+    private static final String MAGNITE = "magnite";
     private static final String APPNEXUS = "appnexus";
     private static final String APPNEXUS_ALIAS = "appnexusAlias";
     private static final String SOVRN = "sovrn";
@@ -59,7 +59,7 @@ public class BidderParamValidatorTest extends VertxTest {
     @BeforeEach
     public void setUp() {
         given(bidderCatalog.names()).willReturn(new HashSet<>(asList(
-                RUBICON,
+                MAGNITE,
                 APPNEXUS,
                 APPNEXUS_ALIAS,
                 SOVRN,
@@ -97,26 +97,26 @@ public class BidderParamValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldNotReturnValidationMessagesWhenRubiconImpExtIsOkIgnoringCase() {
+    public void validateShouldNotReturnValidationMessagesWhenMagniteImpExtIsOkIgnoringCase() {
         // given
-        final ExtImpRubicon ext = ExtImpRubicon.builder().accountId(1).siteId(2).zoneId(3).build();
+        final ExtImpMagnite ext = ExtImpMagnite.builder().accountId(1).siteId(2).zoneId(3).build();
         final JsonNode node = mapper.convertValue(ext, JsonNode.class);
 
         // when
-        final Set<String> messages = bidderParamValidator.validate("rUBIcon", node);
+        final Set<String> messages = bidderParamValidator.validate("MAGnite", node);
 
         // then
         assertThat(messages).isEmpty();
     }
 
     @Test
-    public void validateShouldReturnValidationMessagesWhenRubiconImpExtNotValid() {
+    public void validateShouldReturnValidationMessagesWhenMagniteImpExtNotValid() {
         // given
-        final ExtImpRubicon ext = ExtImpRubicon.builder().siteId(2).zoneId(3).build();
+        final ExtImpMagnite ext = ExtImpMagnite.builder().siteId(2).zoneId(3).build();
 
         final JsonNode node = mapper.convertValue(ext, JsonNode.class);
 
-        final Set<String> messages = bidderParamValidator.validate(RUBICON, node);
+        final Set<String> messages = bidderParamValidator.validate(MAGNITE, node);
 
         // then
         assertThat(messages.size()).isEqualTo(1);
@@ -345,7 +345,7 @@ public class BidderParamValidatorTest extends VertxTest {
     @Test
     public void schemaShouldReturnSchemasString() throws IOException {
         // given
-        given(bidderCatalog.names()).willReturn(new HashSet<>(asList("test-rubicon", "test-appnexus")));
+        given(bidderCatalog.names()).willReturn(new HashSet<>(asList("test-magnite", "test-appnexus")));
 
         bidderParamValidator = BidderParamValidator.create(
                 bidderCatalog, "org/prebid/server/validation/schema/valid", jacksonMapper);

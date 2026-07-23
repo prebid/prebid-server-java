@@ -81,8 +81,8 @@ class PrometheusSpec extends BaseSpec {
 
     def "PBS should add namespace and subsystem parts to Prometheus metric names when those are config provided"() {
         given: "PBS config with set up Prometheus"
-        def namespace = "namespace_01_Rubicon"
-        def subsystem = "subsystem_01_Rubicon"
+        def namespace = "namespace_01_Magnite"
+        def subsystem = "subsystem_01_Magnite"
         def config = basePrometheusConfig + getNamespaceSubsystemConfig(namespace, subsystem)
 
         and: "PBS is started"
@@ -105,8 +105,8 @@ class PrometheusSpec extends BaseSpec {
 
     def "PBS service fails to start when invalid symbols by namespace and subsystem in Prometheus config are present"() {
         given: "PBS config with invalid symbols in namespace, subsystem Prometheus config"
-        def namespace = "namespace_01_Rubi%con"
-        def subsystem = "sub@system_01_Rubicon"
+        def namespace = "namespace_01_Mag%nite"
+        def subsystem = "sub@system_01_Magnite"
         def config = basePrometheusConfig + getNamespaceSubsystemConfig(namespace, subsystem)
 
         and: "PBS container is prepared"

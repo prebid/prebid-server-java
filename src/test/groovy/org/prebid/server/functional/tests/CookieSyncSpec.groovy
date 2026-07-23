@@ -36,7 +36,7 @@ import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.model.bidder.BidderName.BOGUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
-import static org.prebid.server.functional.model.bidder.BidderName.RUBICON
+import static org.prebid.server.functional.model.bidder.BidderName.MAGNITE
 import static org.prebid.server.functional.model.request.cookiesync.FilterType.EXCLUDE
 import static org.prebid.server.functional.model.request.cookiesync.FilterType.INCLUDE
 import static org.prebid.server.functional.model.response.cookiesync.CookieSyncResponse.Status.NO_COOKIE
@@ -50,7 +50,7 @@ import static org.prebid.server.functional.util.HttpUtil.SET_COOKIE_HEADER
 import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.ENFORCED
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
-import static org.prebid.server.functional.util.privacy.TcfConsent.RUBICON_VENDOR_ID
+import static org.prebid.server.functional.util.privacy.TcfConsent.MAGNITE_VENDOR_ID
 
 class CookieSyncSpec extends BaseSpec {
 
@@ -66,12 +66,12 @@ class CookieSyncSpec extends BaseSpec {
             "adapters.${ACEEX.value}.enabled"                       : "true",
             "adapters.${ACEEX.value}.usersync.cookie-family-name"   : ACEEX.value,
             "adapters.${ACEEX.value}.usersync.redirect.url"         : "https://test.redirect.endpoint.com={redirect_url}"]
-    private static final Map<String, String> RUBICON_CONFIG = [
-            "adapters.${RUBICON.value}.enabled"                       : "true",
-            "adapters.${RUBICON.value}.meta-info.vendor-id"           : RUBICON_VENDOR_ID as String,
-            "adapters.${RUBICON.value}.usersync.cookie-family-name"   : RUBICON.value,
-            "adapters.${RUBICON.value}.usersync.redirect.url"         : "https://test.redirect.endpoint.com",
-            "adapters.${RUBICON.value}.usersync.iframe.url"           : "https://test.iframe.endpoint.com&redir={redirect_url}"]
+    private static final Map<String, String> MAGNITE_CONFIG = [
+            "adapters.${MAGNITE.value}.enabled"                       : "true",
+            "adapters.${MAGNITE.value}.meta-info.vendor-id"           : MAGNITE_VENDOR_ID as String,
+            "adapters.${MAGNITE.value}.usersync.cookie-family-name"   : MAGNITE.value,
+            "adapters.${MAGNITE.value}.usersync.redirect.url"         : "https://test.redirect.endpoint.com",
+            "adapters.${MAGNITE.value}.usersync.iframe.url"           : "https://test.iframe.endpoint.com&redir={redirect_url}"]
     private static final Map<String, String> OPENX_CONFIG = [
             "adapters.${OPENX.value}.enabled"                       : "true",
             "adapters.${OPENX.value}.usersync.cookie-family-name"   : OPENX.value,
@@ -91,7 +91,7 @@ class CookieSyncSpec extends BaseSpec {
 
     ]
 
-    private static final Map<String, String> PBS_CONFIG = APPNEXUS_CONFIG + RUBICON_CONFIG + OPENX_CONFIG +
+    private static final Map<String, String> PBS_CONFIG = APPNEXUS_CONFIG + MAGNITE_CONFIG + OPENX_CONFIG +
             GENERIC_CONFIG + ACEEX_CONFIG + AAX_CONFIG + ACUITYADS_CONFIG + ADKERNEL_CONFIG +
             ["cookie-sync.pri": "grid, ix, adkernel"]
 
@@ -161,7 +161,7 @@ class CookieSyncSpec extends BaseSpec {
 
     def "PBS cookie sync request should replace bidder without config and fill up response with enabled bidders to the limit in request"() {
         given: "PBS bidder config"
-        def prebidServerService = pbsServiceFactory.getService(RUBICON_CONFIG + GENERIC_CONFIG
+        def prebidServerService = pbsServiceFactory.getService(MAGNITE_CONFIG + GENERIC_CONFIG
                 + ["adapters.${BOGUS.value}.enabled": "true"])
 
         and: "Default Cookie sync request"
@@ -183,13 +183,13 @@ class CookieSyncSpec extends BaseSpec {
         assert !response.getBidderUserSync(BOGUS)
 
         and: "Response should contain coop-synced bidder"
-        assert response.getBidderUserSync(RUBICON)
+        assert response.getBidderUserSync(MAGNITE)
         assert response.getBidderUserSync(GENERIC)
     }
 
     def "PBS cookie sync request should replace unknown bidder and fill up response with enabled bidders to the limit in request"() {
         given: "PBS bidder config"
-        def prebidServerService = pbsServiceFactory.getService(RUBICON_CONFIG + APPNEXUS_CONFIG)
+        def prebidServerService = pbsServiceFactory.getService(MAGNITE_CONFIG + APPNEXUS_CONFIG)
 
         and: "Cookie sync request"
         def requestLimit = 2
@@ -210,13 +210,13 @@ class CookieSyncSpec extends BaseSpec {
         assert !response.getBidderUserSync(BOGUS)
 
         and: "Response should contain coop-synced bidder"
-        assert response.getBidderUserSync(RUBICON)
+        assert response.getBidderUserSync(MAGNITE)
         assert response.getBidderUserSync(APPNEXUS)
     }
 
     def "PBS cookie sync request should replace disabled bidder and fill up response with enabled bidders to the limit in request"() {
         given: "PBS bidder config"
-        def prebidServerService = pbsServiceFactory.getService(RUBICON_CONFIG + APPNEXUS_CONFIG
+        def prebidServerService = pbsServiceFactory.getService(MAGNITE_CONFIG + APPNEXUS_CONFIG
                 + ["adapters.${GENERIC.value}.enabled": "false",])
 
         and: "Default Cookie sync request"
@@ -238,13 +238,13 @@ class CookieSyncSpec extends BaseSpec {
         assert !response.getBidderUserSync(GENERIC)
 
         and: "Response should contain coop-synced bidder"
-        assert response.getBidderUserSync(RUBICON)
+        assert response.getBidderUserSync(MAGNITE)
         assert response.getBidderUserSync(APPNEXUS)
     }
 
     def "PBS cookie sync request should replace filtered bidder and fill up response with enabled bidders to the limit in request"() {
         given: "PBS bidder config"
-        def prebidServerService = pbsServiceFactory.getService(RUBICON_CONFIG + APPNEXUS_CONFIG)
+        def prebidServerService = pbsServiceFactory.getService(MAGNITE_CONFIG + APPNEXUS_CONFIG)
 
         and: "Cookie sync request"
         def requestLimit = 2
@@ -266,7 +266,7 @@ class CookieSyncSpec extends BaseSpec {
         assert !response.getBidderUserSync(GENERIC)
 
         and: "Response should contain coop-synced bidder"
-        assert response.getBidderUserSync(RUBICON)
+        assert response.getBidderUserSync(MAGNITE)
         assert response.getBidderUserSync(APPNEXUS)
     }
 
@@ -880,7 +880,7 @@ class CookieSyncSpec extends BaseSpec {
         def accountId = PBSUtils.randomNumber
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             limit = requestLimit
-            bidders = [RUBICON, APPNEXUS, GENERIC]
+            bidders = [MAGNITE, APPNEXUS, GENERIC]
             account = accountId
             debug = false
         }
@@ -906,7 +906,7 @@ class CookieSyncSpec extends BaseSpec {
         and: "Default cookie sync request with 3 bidders"
         def accountId = PBSUtils.randomNumber
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
-            bidders = [RUBICON, APPNEXUS, GENERIC]
+            bidders = [MAGNITE, APPNEXUS, GENERIC]
             account = accountId
             debug = false
         }
@@ -934,7 +934,7 @@ class CookieSyncSpec extends BaseSpec {
         def requestLimit = 1
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             limit = requestLimit
-            bidders = [RUBICON, APPNEXUS, GENERIC]
+            bidders = [MAGNITE, APPNEXUS, GENERIC]
             debug = false
         }
 
@@ -953,7 +953,7 @@ class CookieSyncSpec extends BaseSpec {
 
         and: "Default cookie sync request with 2 bidders"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
-            bidders = [GENERIC, RUBICON]
+            bidders = [GENERIC, MAGNITE]
             debug = false
         }
 
@@ -973,7 +973,7 @@ class CookieSyncSpec extends BaseSpec {
 
         and: "Default cookie sync request with 3 bidders"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
-            bidders = [GENERIC, APPNEXUS, RUBICON]
+            bidders = [GENERIC, APPNEXUS, MAGNITE]
             limit = 5
             debug = false
         }
@@ -994,7 +994,7 @@ class CookieSyncSpec extends BaseSpec {
         and: "Default cookie sync request with 3 bidders"
         def accountId = PBSUtils.randomNumber
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
-            bidders = [GENERIC, APPNEXUS, RUBICON]
+            bidders = [GENERIC, APPNEXUS, MAGNITE]
             limit = 5
             account = accountId
             debug = false
@@ -1094,7 +1094,7 @@ class CookieSyncSpec extends BaseSpec {
 
         and: "Default cookie sync request with 2 bidders and limit of 1"
         def limit = 1
-        def bidders = [GENERIC, RUBICON]
+        def bidders = [GENERIC, MAGNITE]
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             it.limit = limit
             it.bidders = bidders
@@ -1423,7 +1423,7 @@ class CookieSyncSpec extends BaseSpec {
                  "cookie-sync.default-limit": limit as String] + PBS_CONFIG)
 
         and: "Default cookie sync request with 2 bidders"
-        def bidders = [GENERIC, RUBICON]
+        def bidders = [GENERIC, MAGNITE]
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             it.bidders = bidders
         }
@@ -1450,7 +1450,7 @@ class CookieSyncSpec extends BaseSpec {
         and: "Default cookie sync request with 2 bidders"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             coopSync = true
-            bidders = [RUBICON]
+            bidders = [MAGNITE]
         }
 
         when: "PBS processes cookie sync request"
@@ -1476,12 +1476,12 @@ class CookieSyncSpec extends BaseSpec {
         assert HttpUtil.findUrlParameterValue(genericBidderStatus.userSync?.url, "f") == PIXEL.name
 
         and: "Response should contain '#formatParam' format parameter"
-        def rubiconBidderStatus = response.getBidderUserSync(RUBICON)
-        assert rubiconBidderStatus?.userSync?.type == IFRAME
-        assert HttpUtil.findUrlParameterValue(rubiconBidderStatus.userSync?.url, "f") == BLANK.name
+        def magniteBidderStatus = response.getBidderUserSync(MAGNITE)
+        assert magniteBidderStatus?.userSync?.type == IFRAME
+        assert HttpUtil.findUrlParameterValue(magniteBidderStatus.userSync?.url, "f") == BLANK.name
 
         and: "Response should contain coop-synced bidder"
-        assert response.bidderStatus.bidder.containsAll(ADKERNEL, ACUITYADS, ACEEX, APPNEXUS, AAX, RUBICON, OPENX, GENERIC)
+        assert response.bidderStatus.bidder.containsAll(ADKERNEL, ACUITYADS, ACEEX, APPNEXUS, AAX, MAGNITE, OPENX, GENERIC)
     }
 
     def "PBS cookie sync request shouldn't return bidder due to filter setting request"() {
@@ -1512,7 +1512,7 @@ class CookieSyncSpec extends BaseSpec {
     def "PBS cookie sync request should include all bidder due to filterSettings"() {
         given: "Cookie sync request with filter setting"
         def filterSettings = new FilterSettings().tap {
-            iframe = new MethodFilter(bidders: [RUBICON], filter: INCLUDE)
+            iframe = new MethodFilter(bidders: [MAGNITE], filter: INCLUDE)
             image = new MethodFilter(bidders: [APPNEXUS], filter: INCLUDE)
         }
         def cookieSyncRequest = new CookieSyncRequest(filterSettings: filterSettings, limit: 0)
@@ -1525,7 +1525,7 @@ class CookieSyncSpec extends BaseSpec {
 
         and: "Bidder should be include by filter"
         assert response.getBidderUserSync(APPNEXUS)
-        assert response.getBidderUserSync(RUBICON)
+        assert response.getBidderUserSync(MAGNITE)
     }
 
     def "PBS cookie sync request should exclude all iframe bidders when asterisk present in bidders filterSettings"() {
@@ -1650,7 +1650,7 @@ class CookieSyncSpec extends BaseSpec {
 
         and: "Response should contain configured bidders"
         assert response?.getBidderStatus()?.bidder?.sort() ==
-                [GENERIC, RUBICON, APPNEXUS, OPENX, ACEEX, ACUITYADS, AAX, ADKERNEL].sort()
+                [GENERIC, MAGNITE, APPNEXUS, OPENX, ACEEX, ACUITYADS, AAX, ADKERNEL].sort()
     }
 
     def "PBS cookie sync request should return url for all bidders when no uids cookie is present"() {
@@ -1687,7 +1687,7 @@ class CookieSyncSpec extends BaseSpec {
 
         and: "Response should contain configured bidders"
         assert response?.getBidderStatus()?.bidder?.sort() ==
-                [RUBICON, APPNEXUS, OPENX, ACEEX, ACUITYADS, AAX, ADKERNEL].sort()
+                [MAGNITE, APPNEXUS, OPENX, ACEEX, ACUITYADS, AAX, ADKERNEL].sort()
     }
 
     def "PBS cookie sync request shouldn't return iframe sync url included by sync type bidders for bidder in cookie"() {
@@ -1765,7 +1765,7 @@ class CookieSyncSpec extends BaseSpec {
         assert response.getBidderUserSync(OPENX)
         assert response.getBidderUserSync(GENERIC)
         assert response.getBidderUserSync(APPNEXUS)
-        assert response.getBidderUserSync(RUBICON)
+        assert response.getBidderUserSync(MAGNITE)
         assert response.getBidderUserSync(ACEEX)
     }
 
@@ -1820,7 +1820,7 @@ class CookieSyncSpec extends BaseSpec {
     def "PBS cookie sync request should contain only request bidders with limit when coop sync off and limit specified"() {
         given: "Default cookie sync request"
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
-            bidders = [APPNEXUS, GENERIC, RUBICON]
+            bidders = [APPNEXUS, GENERIC, MAGNITE]
             coopSync = false
             limit = 2
         }
@@ -1840,11 +1840,11 @@ class CookieSyncSpec extends BaseSpec {
     def "PBS cookie sync request should return only requested bidder and reduce image list by filter settings"() {
         given: "Default cookie sync request"
         def cookieSyncRequest = new CookieSyncRequest().tap {
-            bidders = [RUBICON, APPNEXUS, ACEEX]
+            bidders = [MAGNITE, APPNEXUS, ACEEX]
             coopSync = false
             filterSettings = new FilterSettings().tap {
                 image = new MethodFilter(bidders: [ACEEX], filter: EXCLUDE)
-                iframe = new MethodFilter(bidders: [RUBICON], filter: INCLUDE)
+                iframe = new MethodFilter(bidders: [MAGNITE], filter: INCLUDE)
             }
         }
 
@@ -1856,7 +1856,7 @@ class CookieSyncSpec extends BaseSpec {
 
         and: "Response should contain two requested bidders"
         assert response.getBidderStatus().size() == cookieSyncRequest.bidders.size() - 1
-        assert response.getBidderUserSync(RUBICON)
+        assert response.getBidderUserSync(MAGNITE)
         assert response.getBidderUserSync(APPNEXUS)
 
         and: "Response shouldn't contain requested bidders due to filter"
@@ -1882,7 +1882,7 @@ class CookieSyncSpec extends BaseSpec {
 
     def "PBS cookie sync request shouldn't return all bidders when coop sync #coopSync and limit param specified"() {
         given: "Cookie sync request with bidders and limit"
-        def cookieSyncRequest = new CookieSyncRequest(coopSync: coopSync, bidders: [APPNEXUS, RUBICON], limit: 1)
+        def cookieSyncRequest = new CookieSyncRequest(coopSync: coopSync, bidders: [APPNEXUS, MAGNITE], limit: 1)
 
         when: "PBS processes cookie sync request without cookies"
         def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
@@ -1901,8 +1901,8 @@ class CookieSyncSpec extends BaseSpec {
         given: "Empty cookie sync request body"
         def cookieSyncRequest = new CookieSyncRequest().tap {
             limit = 1
-            bidders = [RUBICON, GENERIC]
-            filterSettings = new FilterSettings(image: new MethodFilter(bidders: [RUBICON, GENERIC], filter: INCLUDE))
+            bidders = [MAGNITE, GENERIC]
+            filterSettings = new FilterSettings(image: new MethodFilter(bidders: [MAGNITE, GENERIC], filter: INCLUDE))
         }
 
         when: "PBS processes cookie sync request without cookies"
@@ -1950,8 +1950,8 @@ class CookieSyncSpec extends BaseSpec {
         given: "Cookie sync request body"
         def cookieSyncRequest = new CookieSyncRequest().tap {
             it.coopSync = false
-            it.bidders = [GENERIC, RUBICON]
-            it.filterSettings = new FilterSettings(image: new MethodFilter(bidders: [GENERIC, RUBICON, APPNEXUS], filter: INCLUDE))
+            it.bidders = [GENERIC, MAGNITE]
+            it.filterSettings = new FilterSettings(image: new MethodFilter(bidders: [GENERIC, MAGNITE, APPNEXUS], filter: INCLUDE))
         }
 
         when: "PBS processes cookie sync request without cookies"
@@ -1961,7 +1961,7 @@ class CookieSyncSpec extends BaseSpec {
         assert response.bidderStatus.bidder.size() == cookieSyncRequest.bidders.size()
 
         and: "Should contain requested bidders"
-        assert response.bidderStatus.bidder.containsAll(GENERIC, RUBICON)
+        assert response.bidderStatus.bidder.containsAll(GENERIC, MAGNITE)
     }
 
     def "PBS cookie sync request should fill response with all available coop sync bidder when limit is not specified"() {
@@ -1996,7 +1996,7 @@ class CookieSyncSpec extends BaseSpec {
         given: "Cookie sync request body"
         def cookieSyncRequest = new CookieSyncRequest().tap {
             coopSync = false
-            bidders = [ACEEX, RUBICON]
+            bidders = [ACEEX, MAGNITE]
             filterSettings = new FilterSettings(image: new MethodFilter(bidders: [ACEEX], filter: EXCLUDE))
             debug = true
         }
@@ -2009,15 +2009,15 @@ class CookieSyncSpec extends BaseSpec {
         assert bidderStatus.error == "Rejected by request filter"
 
         and: "Response should contain one valid bidder"
-        assert response.getBidderUserSync(RUBICON)
+        assert response.getBidderUserSync(MAGNITE)
     }
 
     def "PBS cookie sync request shouldn't include bidder when bidder specified in uids cookie"() {
         given: "Cookie sync request body"
         def cookieSyncRequest = new CookieSyncRequest().tap {
             coopSync = false
-            bidders = [APPNEXUS, RUBICON]
-            filterSettings = new FilterSettings(image: new MethodFilter(bidders: [APPNEXUS, RUBICON], filter: INCLUDE))
+            bidders = [APPNEXUS, MAGNITE]
+            filterSettings = new FilterSettings(image: new MethodFilter(bidders: [APPNEXUS, MAGNITE], filter: INCLUDE))
             debug = false
         }
 
@@ -2028,7 +2028,7 @@ class CookieSyncSpec extends BaseSpec {
         def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest, cookie)
 
         then: "Response should contain valid bidder"
-        assert response.getBidderUserSync(RUBICON)
+        assert response.getBidderUserSync(MAGNITE)
 
         and: "Response shouldn't contain bidder that present in uids cookie"
         assert !response.getBidderUserSync(APPNEXUS)

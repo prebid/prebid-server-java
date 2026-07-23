@@ -12,7 +12,7 @@ This module allows Prebid Server host companies to better support adapters that 
 
 # Maintainer contacts
 
-Any suggestions or questions can be directed to [header-bidding@rubiconproject.com](header-bidding@rubiconproject.com)
+Any suggestions or questions can be directed to [header-bidding@magnite.com](header-bidding@magnite.com)
 e-mail.
 
 Or just open new [issue](https://github.com/prebid/prebid-server-java/issues/new)
