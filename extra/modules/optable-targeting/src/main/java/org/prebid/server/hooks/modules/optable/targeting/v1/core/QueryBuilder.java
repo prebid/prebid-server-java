@@ -1,18 +1,22 @@
 package org.prebid.server.hooks.modules.optable.targeting.v1.core;
 
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.hooks.modules.optable.targeting.model.Id;
 import org.prebid.server.hooks.modules.optable.targeting.model.OptableAttributes;
 import org.prebid.server.hooks.modules.optable.targeting.model.Query;
+import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -26,12 +30,40 @@ public class QueryBuilder {
     private QueryBuilder() {
     }
 
-    public static Query build(List<Id> ids, OptableAttributes optableAttributes, String idPrefixOrder) {
+    public static Query build(List<Id> ids, OptableAttributes optableAttributes,
+                              OptableTargetingProperties properties) {
+
         if (CollectionUtils.isEmpty(ids) && CollectionUtils.isEmpty(optableAttributes.getIps())) {
             return null;
         }
 
-        return Query.of(buildIdsString(ids, idPrefixOrder), buildAttributesString(optableAttributes));
+        final String idPrefixOrder = properties.getIdPrefixOrder();
+        final String hidPrefixes = properties.getHidPrefixes();
+        return Query.of(
+                buildIdsString(ids, idPrefixOrder),
+                buildHidString(ids, hidPrefixes),
+                buildAttributesString(optableAttributes));
+    }
+
+    private static String buildHidString(List<Id> ids, String hidPrefixesString) {
+        if (CollectionUtils.isEmpty(ids) || StringUtils.isEmpty(hidPrefixesString)) {
+            return StringUtils.EMPTY;
+        }
+        final Map<String, Id> prefixToIdValue = ids.stream().collect(Collectors.toMap(Id::getName, it -> it));
+        if (MapUtils.isEmpty(prefixToIdValue)) {
+            return StringUtils.EMPTY;
+        }
+
+        final String hidParameters = Arrays.stream(hidPrefixesString.split(","))
+                .map(prefixToIdValue::get)
+                .filter(Objects::nonNull)
+                .map(it -> String.format("hid=%s:%s", it.getName(), it.getValue()))
+                .collect(Collectors.joining("&"));
+        if (StringUtils.isEmpty(hidParameters)) {
+            return StringUtils.EMPTY;
+        }
+
+        return "&" + hidParameters;
     }
 
     private static String buildIdsString(List<Id> ids, String idPrefixOrder) {
@@ -39,7 +71,10 @@ public class QueryBuilder {
             return StringUtils.EMPTY;
         }
 
-        final List<Id> reorderedIds = reorderIds(ids, idPrefixOrder);
+        final List<Id> reorderedIds = reorderIds(ids, idPrefixOrder)
+                .stream()
+                .filter(id -> !Id.DEVICE_IP_V_6.equals(id.getName()))
+                .toList();
 
         final StringBuilder sb = new StringBuilder();
         for (Id id : reorderedIds) {

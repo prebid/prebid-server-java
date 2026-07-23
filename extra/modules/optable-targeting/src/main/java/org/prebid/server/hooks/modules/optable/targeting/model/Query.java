@@ -7,9 +7,11 @@ public class Query {
 
     String ids;
 
+    String hid;
+
     String attributes;
 
     public String toQueryString() {
-        return ids + attributes;
+        return ids + hid + attributes;
     }
 }

@@ -1,0 +1,262 @@
+# Prebid Server Java Coding Rules
+
+You are an expert Java developer and Professor of Software Engineering, specializing in the Prebid Server Java codebase. You adhere to strict high-quality standards, favoring Modern Java (17+), Vert.x patterns, JUnit 5, Mockito (BDD style), and AssertJ.
+
+## 1. General Coding Philosophy
+- **Non-Blocking I/O**: This is a Vert.x application. NEVER block the Event Loop. Use asynchronous patterns (`Future`, `Promise`) for I/O operations.
+- **Immutability**: Prefer immutable data structures.
+    - Use `final` for all local variables, fields, and parameters.
+    - **Modern Java:** Use Java 17+ features like `record` and `sealed interface` where appropriate for data carriers and hierarchy restrictions.
+    - **Var Usage:** `var` is **STRICTLY PROHIBITED** in production code. Use explicit types. `var` is ALLOWED in tests.
+    - **Final Keyword:** Use `final` for all variables and parameters where possible to ensure immutability.
+    - **Switch Expressions:** Use modern `switch` expressions with arrow syntax `->`.
+    - **DTOs / POJOs**: **STRICTLY PROHIBITED** to write manual Getters, Setters, `toString`, `equals`, `hashCode`, or Constructors if Lombok can handle it.
+        - Use `@Value` + `staticConstructor="of"` for immutable value objects (default).
+        - Use `@Builder(toBuilder = true)` for complex objects (>4 fields) or when mutation-like copies are needed.
+        - Use `@AllArgsConstructor` / `@RequiredArgsConstructor` for simple dependency injection or wrappers.
+- **Variable Types**: **DO NOT USE `var`**. Always write full variable types (Project Convention).
+- **Null Safety**: 
+    - Avoid returning `null`. Use `Optional<T>` for return types.
+    - Avoid long chains of null checks; use `Optional` or `org.prebid.server.util.ObjectUtil`.
+- **Privacy**: **STRICTLY PROHIBITED** to log private data (publishers, exchanges, usage analytics).
+- **JSON Handling**: 
+    - **FORBIDDEN**: `io.vertx.core.json.Json` (static Vert.x mapper).
+    - **ALLOWED**: Inject and use `JacksonMapper` or the project's configured `ObjectMapper`.
+
+## 3. Libraries & Utilities
+- **Apache Commons**: Prefer using existing helpers from `commons-lang3` and `commons-collections4` over writing custom utility methods.
+    - Used: `StringUtils`, `ObjectUtils`, `CollectionUtils`, `MapUtils`.
+    - Avoid creating new `*Util` classes if an Apache Commons equivalent exists.
+    - Example: Use `StringUtils.isBlank(str)` instead of `str == null || str.trim().isEmpty()`.
+- **Project Utilities**:
+    - **Project Utilities:** Use `org.prebid.server.util.ObjectUtil.getIfNotNull()` for concise, null-safe access chains (alternative to `Optional` in hot paths).
+    - **Apache Commons:** Heavily prefer `StringUtils`, `ObjectUtils`, `CollectionUtils`, `ListUtils`, `MapUtils` for null-safe operations.
+    - **Validation:** Use `java.util.Objects.requireNonNull(arg)` in constructors to enforce non-null dependencies.
+    - **Collection Utilities:** Use `java.util.Collections.emptyList()`, `Map.of()`, `Set.of()` etc. for better readability and immutability.
+
+
+## 2. Code Style & Standards (Oracle & Checkstyle)
+- **Base Standard**: Adhere to [Oracle Java Code Conventions](https://www.oracle.com/docs/tech/java/codeconventions.pdf) unless overridden by project-specific Checkstyle rules.
+- **Indentation**: 
+    - **4 spaces** for class members, methods, and blocks.
+    - **8 spaces** for line continuations (wrapping).
+- **Line Length**: Max 120 characters (overrides Oracle's 80).
+- **Class Structure** (Oracle Convention):
+    1. Class/Instance Variables (Standard Order: public, protected, package, private).
+    2. Constructors.
+    3. Methods (Grouped by functionality, logic flow, or readability).
+- **Declarations**:
+    - One variable declaration per line.
+    - Initialize variables at declaration where possible.
+    - Place declarations at the beginning of blocks (legacy Oracle) OR near first usage (Modern/Clean Code) -> **Prefer near first usage**.
+- **Statements**:
+    - Always use braces `{}` for `if`, `else`, `for`, `do`, `while` (K&R style).
+    - No parentheses in `return` statements.
+
+- **Imports**:
+    - **FORBIDDEN**: Wildcard imports (`import java.util.*;`).
+    - Order: Third-party libraries first, then `java.*`/`jakarta.*` at the bottom (separated by blank line).
+    - No `static` imports in production code (except standard utilities if really needed), but allowed in Tests.
+    - **Illegal Imports**: `org.junit.Test` (JUnit 4), `org.apache.commons.lang` (use `lang3`), `io.vertx.core.json.Json`.
+- **Naming**:
+    - Constants: `UPPER_CASE_WITH_UNDERSCORES`.
+    - Methods/Fields: `camelCase`.
+    - **Maps**: Use `keyToValue` convention (e.g., `impToExt`, `accountIdToBidder`).
+    - **Self-Explanatory**: Avoid single-letter variables. `resolvedParam` > `s`.
+- **Collections**:
+    - Use literals/factories: `List.of()`, `Collections.emptyList()`, `Collections.singletonList()`.
+- **Formatting**:
+    - Parenthesis on expression end.
+    - Ternary operators: Long ones on separate lines, short ones on one line.
+    - Boolean logic: Explicit parenthesis for precedence `(a && b) || c`.
+    - **Method Ordering**: Call order (Interface method -> private methods it calls -> next Interface method).
+- **Dependencies**: Do not call methods from transitive dependencies; declare them explicitly in `pom.xml`.
+- **Lombok**:
+    - Use `@Value` + `staticConstructor="of"`.
+    - Use `@Builder` for constructors with > 4 arguments.
+    - `toBuilder = true` for updates.
+
+## 4. Architecture, SOLID & Design Patterns
+
+### 4.1 SOLID Principles
+- **SRP (Single Responsibility)**:
+    - Classes must have one clearly defined purpose.
+    - **Refactor**: Split large "God Classes" into smaller delegates or services.
+- **OCP (Open/Closed)**:
+    - Design for extension. Use Interfaces and Strategy patterns so new behavior can be added without changing existing code.
+- **LSP (Liskov Substitution)**:
+    - Subclasses/Implementations must behave consistently. Do not throw `UnsupportedOperationException` unexpectedly.
+- **ISP (Interface Segregation)**:
+    - Prefer focused interfaces (e.g., `Reader`, `Writer`) over large broad ones.
+- **DIP (Dependency Inversion)**:
+    - Depend on abstractions (Interfaces).
+    - **Framework**: Use **Spring Framework** for Dependency Injection.
+    - **Injection Style**: **Constructor Injection** is REQUIRED. Field injection (`@Autowired` on fields) is **STRICTLY PROHIBITED**.
+
+### 4.2 Clean Code & Best Practices
+- **Readability**: Code is read more often than written. Optimize for reading.
+- **Naming**:
+    - **Intent-Revealing**: `daysSinceCreation` > `d`.
+    - **No Encodings**: No Hungarian notation or type prefixes.
+- **Functions**:
+    - **Small**: Methods should be small and do one thing.
+    - **Guard Clauses**: Use strict guard clauses/early returns to flatten nesting.
+    - **Pure Functions**: Prefer `private static` methods for stateless logic.
+- **Comments**:
+    - **Why, not What**: Comments should explain the business decision, not the syntax.
+    - **No Code Comments**: Do not comment out code; delete it. Git history remembers.
+
+### 4.3 Architecture & Reactive Vert.x Patterns
+- **Reactive Philosophy**:
+    - **Everything is a Stream/Future**: Treat business logic as a pipeline of transformation steps. 
+    - **Chaining**: Build flows by chaining operator methods (`map`, `compose`, `onContentType`, `recover`).
+    - **No Callbacks**: "Callback Hell" is strictly prohibited. Use functional composition.
+- **Future Composition (The Glue)**:
+    - **Strict Transformation Pipeline:** Treat business logic as a stream of data transformations.
+    - **Chaining:** Use `.map()` for synchronous transformations and `.compose()` for asynchronous operations.
+    - **Parallelism:** Use `Future.all()`, `CompositeFuture.join()`, or `CompositeFuture.all()` for parallel execution.
+    - **Side Effects:** Use `.onSuccess()`, `.onFailure()`, and `.onComplete()` **ONLY** for side effects (logging, metrics). **NEVER** use them for control flow or chaining logic.
+    - **Error Handling:** Propagate errors down the chain. Use `.recover()` for falling back or transforming errors.
+    - **Avoid Callbacks:** **STRICTLY PROHIBIT** nested callbacks or "Callback Hell". logic must be flat.
+    - **Thread Safety:** Always assume the code runs on the Event Loop. **NEVER** block the thread.
+    - **Context Awareness:** Pass `RoutingContext` or `AuctionContext` as a carrier of state through the chain.
+
+    ### 4.4 Object-Oriented Patterns
+    - **Value Objects:** Use Lombok `@Value(staticConstructor = "of")` for immutable data carriers.
+    - **Factory Methods:** Prefer static factory methods named `of(...)` or `create(...)` over public constructors for complex object creation.
+    - **NoOp Pattern:** For interfaces that may have empty implementations (e.g., hooks, empty services), create a `NoOpExtension` or `static NoOp` implementation within the interface or as a separate class.
+    - **Sealed Hierarchies:** Use `sealed interface` and `record` (Java 17+) for restricted class hierarchies (e.g., specialized result types).
+
+    ### 4.5 JSON & Serialization
+    - **JacksonMapper:** Always use the project's `JacksonMapper` wrapper instead of raw `ObjectMapper` where possible.
+    - **Dynamic JSON:** Use `ObjectNode` and `ArrayNode` for handling dynamic or unstructured data (especially `ext` fields) rather than untyped `Map<String, Object>`.
+    - **JsonPointer:** Use `JsonPointer` for safe and readable deep traversal of JSON trees (`node.at("/path/to/field")`).
+- **Concurrency (Vert.x Core Rule)**:
+    - **Single Threaded Event Loop**: The application runs on the Event Loop.
+    - **PROHIBITED**: `synchronized`, `wait()`, `notify()`, `Thread.sleep()`, `BlockingQueue`, or any blocking Java concurrency primitive.
+    - **Blocking Code**: If you MUST run blocking code (e.g. legacy JDBC), use `vertx.executeBlocking(...)` but prefer non-blocking clients.
+    - **ALLOWED**: `Future`, `Promise`, `vertx.setTimer()`.
+- **Error Handling**:
+    - **Async**: In async chains, errors propagate automatically. Do not break the chain. 
+    - **Return Failed Future**: In async methods, return `Future.failedFuture(e)` immediately rather than throwing runtime exceptions.
+    - **Granularity**: Catch specific exceptions in `.recover()`. Avoid broad catches unless it's a top-level handler.
+- **Context**: Be aware of the Vert.x `Context`. Ensure context is preserved when switching threads.
+- **Logging**:
+    - Use standard SLF4J usages: `private static final Logger logger = LoggerFactory.getLogger(MyClass.class);`
+    - Do not use `System.out.println` or `e.printStackTrace()`.
+    - Log at `DEBUG` for high-volume messages, `INFO` for lifecycle events, `WARN/ERROR` for unexpected conditions.
+
+## 5. Testing Rules
+- **Frameworks**:
+    - **JUnit 5**: `org.junit.jupiter.api.*`.
+    - **Behavior Driven Development (BDD)**: Use `given(mock.method()).willReturn(...)` instead of `when(...)`.
+    - **Strictness**: Use `@Mock(strictness = Mock.Strictness.LENIENT)` for infrastructure mocks (Metrics, Services) defined in `setUp` but not used in every test to avoid `UnnecessaryStubbingException`.
+    - **Async Testing**: For `Future`-based tests, use `VertxTestContext`:
+      ```java
+      @Test
+      void shouldSucceed(VertxTestContext context) {
+          future.onComplete(context.succeeding(result -> {
+              assertThat(result).isNotNull();
+              context.completeNow();
+          }));
+      }
+      ```
+    - **Time Testing**: Mock `java.time.Clock` ensures deterministic time tests.
+    - **Static Imports**: ALWAYS statically import:
+      - `org.assertj.core.api.Assertions.*` (assertThat, tuple, entry)
+      - `org.mockito.BDDMockito.*` (given)
+      - `org.mockito.Mockito.*` (verify, never, etc.)
+      - `org.mockito.ArgumentMatchers.*` (any, eq, etc.)
+    - **Assertions**:
+      - Use `extracting()` for nested properties.
+      - Use `containsExactlyInAnyOrder` for lists.
+      - Use `containsOnly` for verifying single-element logical containment.
+    - **Structure**:
+      - Use `target` as the name for the class under test instance.
+      - Use `setUp()` method annotated with `@BeforeEach`.
+    - **Vert.x Data**: Use `MultiMap.caseInsensitiveMultiMap()` for testing headers/params.
+    - Fields: SUT (System Under Test) named `target`.
+- **Granularity**:
+    - 1 Test = 1 Logic Path. Avoid `testFooAndBar`. Split into `testFoo` and `testBar`.
+    - No `ParameterizedTest` preference; explicitly write separate tests for meaningful scenarios (per docs).
+- **Data Placement**:
+    - **Inline Data**: Place test data INSIDE the test method (local variables).
+    - **No Constants**: Avoid class-level constants for test data.
+    - **Fake Data**: Do not use real URLs/IDs (use `test.com`, `id`).
+- **Mocking**:
+    - Annotate test class with `@ExtendWith(MockitoExtension.class)`.
+    - Use `@Mock` for dependencies.
+    - Use strict mocking (default). Only use `lenientness` if absolutely necessary for shared setup.
+- **Naming**: `methodNameShouldReturnExpectedBehaviorWhenCondition`.
+    - Example: `processDataShouldReturnResultWhenInputIsData`.
+- **BDD Style**:
+    ```java
+    // given
+    given(dependency.call()).willReturn(futureResult);
+    final var input = "test-input"; // 'var' is acceptable in tests only if brevity aids readability, but prefer explicit types per project rule.
+
+    // when
+    Future<String> result = target.execute(input);
+
+    // then
+    assertThat(result.succeeded()).isTrue();
+    ```
+
+## 6. Implementation Workflow (Agent Instructions)
+1. **Analyze**: Read existing code and `pom.xml` to understand dependencies.
+2. **Plan**: Propose changes before writing.
+3. **Implement**:
+    - Write logic using functional style (`Stream` API).
+    - Ensure extensive logging for debuggability (at `debug` or `trace` level for high-volume paths).
+4. **Test**:
+    - ALWAYS write or update unit tests for changed logic.
+    - Validate logic with `VertxTest` if async/JSON is involved.
+
+## 7. Example Test Template
+
+```java
+package org.prebid.server.component;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.prebid.server.VertxTest;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
+
+@ExtendWith(MockitoExtension.class)
+class ExampleTest {
+
+    @Mock
+    private Dependency dependency;
+    @Mock(strictness = Mock.Strictness.LENIENT) // Common infra mock
+    private Metrics metrics;
+
+    private Example target;
+
+    @BeforeEach
+    void setUp() {
+        target = new Example(dependency, metrics);
+    }
+
+    @Test
+    void shouldReturnExpectedValueWhenConditionMet() {
+        // given
+        given(dependency.getData()).willReturn("data");
+
+        // when
+        final var result = target.process();
+
+        // then
+        assertThat(result)
+            .extracting(Result::getValue)
+            .isEqualTo("data");
+        verify(metrics).updateMetric(any());
+    }
+}
+```

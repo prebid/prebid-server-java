@@ -1,0 +1,33 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "Maven: Fetch dependencies",
+        "type": "shell",
+        "command": "mvn -q dependency:go-offline",
+        "group": "build",
+        "problemMatcher": []
+      },
+      {
+        "label": "Maven: Build (full package)",
+        "type": "shell",
+        "command": "mvn -q clean package -DskipTests",
+        "group": "build",
+        "problemMatcher": "$maven"
+      },
+      {
+        "label": "Maven: Test",
+        "type": "shell",
+        "command": "mvn -q test",
+        "group": "test",
+        "problemMatcher": "$maven"
+      },
+      {
+        "label": "Format Java (Google Style)",
+        "type": "shell",
+        "command": "mvn -q spotless:apply",
+        "problemMatcher": []
+      }
+    ]
+  }
+  

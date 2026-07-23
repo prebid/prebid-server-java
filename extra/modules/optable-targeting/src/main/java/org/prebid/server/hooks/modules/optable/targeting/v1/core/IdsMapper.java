@@ -81,6 +81,11 @@ public class IdsMapper {
         final String ifa = device != null ? device.getIfa() : null;
         final String os = device != null ? StringUtils.toRootLowerCase(device.getOs()) : null;
         final int lmt = Optional.ofNullable(device).map(Device::getLmt).orElse(0);
+        final String ip6 = device != null ? device.getIpv6() : null;
+
+        if (ip6 != null) {
+            ids.put(Id.DEVICE_IP_V_6, ip6);
+        }
 
         if (ifa == null || StringUtils.isEmpty(os) || lmt == 1) {
             return;

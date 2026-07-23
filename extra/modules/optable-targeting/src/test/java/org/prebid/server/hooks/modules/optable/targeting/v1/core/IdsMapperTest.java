@@ -56,7 +56,8 @@ public class IdsMapperTest {
                 .doesNotContain(Id.of(Id.APPLE_IDFA, "ifa"))
                 .contains(Id.of(Id.ID5, "id5_id"))
                 .contains(Id.of(Id.UTIQ, "utiq_id"))
-                .contains(Id.of("c", "test_id"));
+                .contains(Id.of("c", "test_id"))
+                .contains(Id.of(Id.DEVICE_IP_V_6, "0:0:0:0:0:0:0:1"));
     }
 
     @Test
@@ -69,6 +70,17 @@ public class IdsMapperTest {
 
         // then
         assertThat(ids).isNotNull();
+    }
+
+    @Test
+    public void shouldMapIpv6WhenPresent() {
+        final BidRequest bidRequest = givenBidRequestWithEids(Map.of());
+
+        final List<Id> ids = target.toIds(bidRequest, Map.of());
+
+        assertThat(ids).isNotNull()
+                .contains(Id.of(Id.EMAIL, "email"))
+                .contains(Id.of(Id.DEVICE_IP_V_6, "0:0:0:0:0:0:0:1"));
     }
 
     private BidRequest givenBidRequestWithEids(Map<String, String> eids) {

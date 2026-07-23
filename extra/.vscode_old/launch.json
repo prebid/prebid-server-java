@@ -1,0 +1,36 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "type": "java",
+        "name": "Debug Prebid Server (default config)",
+        "request": "launch",
+        "mainClass": "org.prebid.server.Application",
+        "projectName": "prebid-server-bundle",
+        "args": [
+          "--spring.config.additional-location=sample/configs/prebid-config-with-optable.yaml"
+        ],
+        "vmArgs": "-Xmx2G -Dlogging.level.root=INFO"
+      },
+      {
+        "type": "java",
+        "name": "Debug Prebid Server (custom YAML)",
+        "request": "launch",
+        "mainClass": "org.prebid.server.Application",
+        "projectName": "prebid-server",
+        "args": [
+          "--spring.config.additional-location=config/my-prebid.yaml"
+        ],
+        "vmArgs": "-Xmx2G -Dlogging.level.root=DEBUG"
+      },
+      {
+        "type": "java",
+        "name": "Debug Prebid Server (no args)",
+        "request": "launch",
+        "mainClass": "org.prebid.server.Application",
+        "projectName": "prebid-server",
+        "vmArgs": "-Xmx1G"
+      }
+    ]
+  }
+  
