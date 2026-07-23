@@ -448,6 +448,15 @@ class PrebidServerService implements ObjectMapperWrapper {
         }
     }
 
+    Boolean isMetricFilled(String metricName) {
+        try {
+            PBSUtils.waitUntil({ this.sendCollectedMetricsRequest()[metricName] != 0 })
+            true
+        } catch (IllegalStateException ignored) {
+            false
+        }
+    }
+
     Boolean isContainMetricByValue(String value) {
         try {
             PBSUtils.waitUntil({ sendInfluxMetricsRequest()[value] != null })

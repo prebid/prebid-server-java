@@ -38,7 +38,6 @@ class SetUidSpec extends BaseSpec {
     private static final Integer MAX_NUMBER_OF_UID_COOKIES = 30
     private static final Integer UPDATED_EXPIRE_DAYS = 14
     private static final UserSyncInfo.Type USER_SYNC_TYPE = REDIRECT
-    private static final boolean CORS_SUPPORT = false
     private static final Integer RANDOM_EXPIRE_DAY = PBSUtils.getRandomNumber(1, 10)
     private static final String USER_SYNC_URL = "$networkServiceContainer.rootUri/generic-usersync"
     private static final String GENERIC_COOKIE_FAMILY_NAME = GENERIC.value
@@ -63,14 +62,12 @@ class SetUidSpec extends BaseSpec {
              "adapters.${GENERIC.value}.meta-info.vendor-id"                                           : VENDOR_ID,
              "adapters.${GENERIC.value}.usersync.cookie-family-name"                                   : GENERIC_COOKIE_FAMILY_NAME,
              "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url"                          : USER_SYNC_URL,
-             "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.support-cors"                 : CORS_SUPPORT.toString(),
              "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.uid-macro"                    : "",
 
              "adapters.${GRID.value}.enabled"                                                          : "true",
              "adapters.${GRID.value}.meta-info.vendor-id"                                              : VENDOR_ID,
              "adapters.${GRID.value}.usersync.cookie-family-name"                                      : GENERIC_COOKIE_FAMILY_NAME,
              "adapters.${GRID.value}.usersync.${USER_SYNC_TYPE.value}.url"                             : USER_SYNC_URL,
-             "adapters.${GRID.value}.usersync.${USER_SYNC_TYPE.value}.support-cors"                    : CORS_SUPPORT.toString(),
              "adapters.${GRID.value}.usersync.${USER_SYNC_TYPE.value}.uid-macro"                       : "",
 
              "adapters.${GENERIC}.aliases.${ALIAS}.enabled"                                            : "true",
@@ -78,7 +75,6 @@ class SetUidSpec extends BaseSpec {
              "adapters.${GENERIC}.aliases.${ALIAS}.meta-info.vendor-id"                                : VENDOR_ID,
              "adapters.${GENERIC}.aliases.${ALIAS}.usersync.cookie-family-name"                        : GENERIC_COOKIE_FAMILY_NAME,
              "adapters.${GENERIC}.aliases.${ALIAS}.usersync.${USER_SYNC_TYPE.value}.url"               : USER_SYNC_URL,
-             "adapters.${GENERIC}.aliases.${ALIAS}.usersync.${USER_SYNC_TYPE.value}.support-cors"      : CORS_SUPPORT.toString(),
              "adapters.${GENERIC}.aliases.${ALIAS}.usersync.${USER_SYNC_TYPE.value}.uid-macro"         : "",
 
              "adapters.${GENERIC}.aliases.${OPENX_ALIAS}.enabled"                                      : "true",
@@ -86,7 +82,6 @@ class SetUidSpec extends BaseSpec {
              "adapters.${GENERIC}.aliases.${OPENX_ALIAS}.meta-info.vendor-id"                          : VENDOR_ID,
              "adapters.${GENERIC}.aliases.${OPENX_ALIAS}.usersync.cookie-family-name"                  : GENERIC_COOKIE_FAMILY_NAME,
              "adapters.${GENERIC}.aliases.${OPENX_ALIAS}.usersync.${USER_SYNC_TYPE.value}.url"         : USER_SYNC_URL,
-             "adapters.${GENERIC}.aliases.${OPENX_ALIAS}.usersync.${USER_SYNC_TYPE.value}.support-cors": CORS_SUPPORT.toString(),
              "adapters.${GENERIC}.aliases.${OPENX_ALIAS}.usersync.${USER_SYNC_TYPE.value}.uid-macro"   : ""]
 
     @Shared
@@ -128,7 +123,7 @@ class SetUidSpec extends BaseSpec {
         assert response.responseBody ==
                 ResourceUtil.readByteArrayFromClassPath("org/prebid/server/functional/tracking-pixel.png")
 
-        and: "usersync.FAMILY.sets metric should be updated"
+        and: "usersync.BIDDER.sets metric should be updated"
         def metrics = singleCookiesPbsService.sendCollectedMetricsRequest()
         assert metrics["usersync.${GENERIC.value}.sets"] == 1
     }
@@ -285,7 +280,7 @@ class SetUidSpec extends BaseSpec {
         assert exception.statusCode == UNAVAILABLE_FOR_LEGAL_REASONS_CODE
         assert exception.responseBody == TCF_ERROR_MESSAGE
 
-        and: "usersync.FAMILY.tcf.blocked metric should be updated"
+        and: "usersync.BIDDER.tcf.blocked metric should be updated"
         def metric = prebidServerService.sendCollectedMetricsRequest()
         assert metric["usersync.${RUBICON.value}.tcf.blocked"] == 1
 
@@ -362,7 +357,7 @@ class SetUidSpec extends BaseSpec {
         def metricsRequest = prebidServerService.sendCollectedMetricsRequest()
         assert metricsRequest["usersync.${APPNEXUS.value}.sizeblocked"] == 1
 
-        and: "usersync.FAMILY.sets metric should be updated"
+        and: "usersync.BIDDER.sets metric should be updated"
         assert metricsRequest["usersync.${OPENX.value}.sets"] == 1
 
         cleanup: "Stop and remove pbs container"

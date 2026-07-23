@@ -15,19 +15,17 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.ntv.EventTrackingMethod;
 import com.iab.openrtb.request.ntv.EventType;
 import com.iab.openrtb.response.Bid;
+import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.EventTracker;
 import com.iab.openrtb.response.Response;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.ix.model.response.IxBidResponse;
-import org.prebid.server.bidder.ix.model.response.IxExtBidResponse;
 import org.prebid.server.bidder.ix.model.response.NativeV11Wrapper;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.CompositeBidderResponse;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -41,8 +39,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
 import org.prebid.server.proto.openrtb.ext.request.ix.ExtImpIx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
-import org.prebid.server.proto.openrtb.ext.response.ExtIgi;
-import org.prebid.server.proto.openrtb.ext.response.ExtIgiIgs;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
@@ -243,29 +239,18 @@ public class IxBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    @Deprecated(since = "Not used, since Bidder.makeBidderResponse(...) was overridden.")
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
-        return Result.withError(BidderError.generic("Invalid method call"));
-    }
-
-    @Override
-    public CompositeBidderResponse makeBidderResponse(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            final IxBidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), IxBidResponse.class);
             final List<BidderError> errors = new ArrayList<>();
-
-            return CompositeBidderResponse.builder()
-                    .bids(extractBids(bidRequest, bidResponse, errors))
-                    .igi(extractIgi(bidResponse))
-                    .errors(errors)
-                    .build();
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            return Result.of(extractBids(bidRequest, bidResponse, errors), errors);
         } catch (DecodeException e) {
-            return CompositeBidderResponse.withError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
     private List<BidderBid> extractBids(BidRequest bidRequest,
-                                        IxBidResponse bidResponse,
+                                        BidResponse bidResponse,
                                         List<BidderError> errors) {
 
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
@@ -283,7 +268,7 @@ public class IxBidder implements Bidder<BidRequest> {
                 .toList();
     }
 
-    private BidderBid toBidderBid(Bid bid, BidRequest bidRequest, IxBidResponse bidResponse, List<BidderError> errors) {
+    private BidderBid toBidderBid(Bid bid, BidRequest bidRequest, BidResponse bidResponse, List<BidderError> errors) {
         final BidType bidType;
         try {
             bidType = getBidType(bid, bidRequest.getImp());
@@ -368,8 +353,8 @@ public class IxBidder implements Bidder<BidRequest> {
     private Bid updateBidWithVideoAttributes(Bid bid, ExtBidPrebidVideo extBidPrebidVideo) {
         return CollectionUtils.isEmpty(bid.getCat()) && extBidPrebidVideo != null
                 ? bid.toBuilder()
-                .cat(Collections.singletonList(extBidPrebidVideo.getPrimaryCategory()))
-                .build()
+                  .cat(Collections.singletonList(extBidPrebidVideo.getPrimaryCategory()))
+                  .build()
                 : bid;
     }
 
@@ -427,18 +412,5 @@ public class IxBidder implements Bidder<BidRequest> {
         return extBidPrebidVideo != null
                 ? ExtBidPrebidVideo.of(extBidPrebidVideo.getDuration(), null)
                 : null;
-    }
-
-    private List<ExtIgi> extractIgi(IxBidResponse bidResponse) {
-        final List<ExtIgiIgs> igs = Optional.ofNullable(bidResponse)
-                .map(IxBidResponse::getExt)
-                .map(IxExtBidResponse::getProtectedAudienceAuctionConfigs)
-                .orElse(Collections.emptyList())
-                .stream()
-                .filter(Objects::nonNull)
-                .map(config -> ExtIgiIgs.builder().impId(config.getBidId()).config(config.getConfig()).build())
-                .toList();
-
-        return igs.isEmpty() ? null : Collections.singletonList(ExtIgi.builder().igs(igs).build());
     }
 }

@@ -186,7 +186,7 @@ class AnalyticsSpec extends BaseSpec {
 
         then: "Bidder request shouldn't contain additional field from logAnalytics"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert !bidderRequest.ext.prebid.analytics.logAnalytics
+        assert !bidderRequest?.ext?.prebid?.analytics?.logAnalytics
 
         then: "Analytics bid request should be emitted in logs"
         PBSUtils.waitUntil({ pbsServiceWithLogAnalytics.isContainLogsByValue(bidRequest.id) })
