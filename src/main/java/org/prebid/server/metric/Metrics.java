@@ -554,6 +554,14 @@ public class Metrics extends UpdatableMetrics {
         updatePrivacyTcfVendorListMetric(version, MetricName.fallback);
     }
 
+    public void updatePrivacyTcfLiveVendorListOkMetric() {
+        privacy().tcf().liveVendorList().incCounter(MetricName.ok);
+    }
+
+    public void updatePrivacyTcfLiveVendorListErrorMetric() {
+        privacy().tcf().liveVendorList().incCounter(MetricName.err);
+    }
+
     private void updatePrivacyTcfVendorListMetric(int version, MetricName metricName) {
         final TcfMetrics tcfMetrics = privacy().tcf();
         tcfMetrics.fromVersion(version).vendorList().incCounter(metricName);

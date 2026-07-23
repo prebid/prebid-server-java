@@ -21,6 +21,7 @@ import org.prebid.server.functional.model.request.auction.BidderConfigOrtb
 import org.prebid.server.functional.model.request.auction.ConsentedProvidersSettings
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.DeviceExt
+import org.prebid.server.functional.model.request.auction.DevicePrebid
 import org.prebid.server.functional.model.request.auction.Dooh
 import org.prebid.server.functional.model.request.auction.DoohExt
 import org.prebid.server.functional.model.request.auction.EidPermission
@@ -28,9 +29,7 @@ import org.prebid.server.functional.model.request.auction.ExtPrebidBidderConfig
 import org.prebid.server.functional.model.request.auction.ExtRequestPrebidData
 import org.prebid.server.functional.model.request.auction.Interstitial
 import org.prebid.server.functional.model.request.auction.MultiBid
-import org.prebid.server.functional.model.request.auction.PaaFormat
 import org.prebid.server.functional.model.request.auction.PrebidCache
-import org.prebid.server.functional.model.request.auction.DevicePrebid
 import org.prebid.server.functional.model.request.auction.PrebidCurrency
 import org.prebid.server.functional.model.request.auction.Renderer
 import org.prebid.server.functional.model.request.auction.RendererData
@@ -47,9 +46,9 @@ import org.prebid.server.functional.util.PBSUtils
 
 import static org.prebid.server.functional.model.Currency.USD
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
+import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.bidder.BidderName.RUBICON
-import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.mock.services.currencyconversion.CurrencyConversionRatesResponse.defaultConversionRates
 import static org.prebid.server.functional.model.request.auction.AdjustmentType.MULTIPLIER
 import static org.prebid.server.functional.model.request.auction.BidAdjustmentMediaType.BANNER
@@ -321,20 +320,6 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
             it.version == renderers.version
             it.data.any == renderers.data.any
         }
-    }
-
-    def "PBS auction should pass ext.prebid.paaformat to bidder request when paaformat specified"() {
-        given: "Default bid request"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.paaFormat = PaaFormat.ORIGINAL
-        }
-
-        when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
-
-        then: "Bidder request should contain paaFormat value same in request"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.ext.prebid.paaFormat == bidRequest.ext.prebid.paaFormat
     }
 
     def "PBS auction shouldn't pass ext.prebid.kvps to bidder request when kvps specified"() {
