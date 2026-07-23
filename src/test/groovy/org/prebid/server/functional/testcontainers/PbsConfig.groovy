@@ -117,6 +117,10 @@ LIMIT 1
         ["admin-endpoints.collected-metrics.enabled": "true"].asImmutable()
     }
 
+    static Map<String, String> getTracelogConfig() {
+        ["admin-endpoints.tracelog.enabled": "true"].asImmutable()
+    }
+
     // due to a config validation we'll need to circumvent all future aliases this way
     static Map<String, String> getBidderAliasConfig() {
         ["adapters.generic.aliases.cwire.meta-info.site-media-types"          : "",
