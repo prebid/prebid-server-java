@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
@@ -88,6 +89,7 @@ public class RtbhouseBidder implements Bidder<BidRequest> {
         final BidRequest outgoingRequest = bidRequest.toBuilder()
                 .cur(Collections.singletonList(BIDDER_CURRENCY))
                 .site(modifySite(bidRequest.getSite(), publisherId))
+                .app(modifyApp(bidRequest.getApp(), publisherId))
                 .imp(modifiedImps)
                 .build();
 
@@ -178,23 +180,32 @@ public class RtbhouseBidder implements Bidder<BidRequest> {
     }
 
     private Site modifySite(Site site, String publisherId) {
+        return Optional.ofNullable(site)
+                .map(Site::toBuilder)
+                .map(builder -> builder.publisher(modifyPublisher(site.getPublisher(), publisherId)))
+                .map(Site.SiteBuilder::build)
+                .orElse(site);
+    }
+
+    private App modifyApp(App app, String publisherId) {
+        return Optional.ofNullable(app)
+                .map(App::toBuilder)
+                .map(builder -> builder.publisher(modifyPublisher(app.getPublisher(), publisherId)))
+                .map(App.AppBuilder::build)
+                .orElse(app);
+    }
+
+    private Publisher modifyPublisher(Publisher publisher, String publisherId) {
         final ObjectNode prebidNode = mapper.mapper().createObjectNode();
         prebidNode.put("publisherId", publisherId);
 
         final ExtPublisher extPublisher = ExtPublisher.empty();
         extPublisher.addProperty("prebid", prebidNode);
 
-        final Publisher publisher = Optional.ofNullable(site)
-                .map(Site::getPublisher)
+        return Optional.ofNullable(publisher)
                 .map(Publisher::toBuilder)
                 .orElseGet(Publisher::builder)
                 .ext(extPublisher)
-                .build();
-
-        return Optional.ofNullable(site)
-                .map(Site::toBuilder)
-                .orElseGet(Site::builder)
-                .publisher(publisher)
                 .build();
     }
 
