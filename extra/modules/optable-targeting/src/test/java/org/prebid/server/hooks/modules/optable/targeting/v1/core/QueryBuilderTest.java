@@ -1,6 +1,7 @@
 package org.prebid.server.hooks.modules.optable.targeting.v1.core;
 
 import org.junit.jupiter.api.Test;
+import org.prebid.server.hooks.modules.optable.targeting.model.App;
 import org.prebid.server.hooks.modules.optable.targeting.model.Id;
 import org.prebid.server.hooks.modules.optable.targeting.model.OptableAttributes;
 import org.prebid.server.hooks.modules.optable.targeting.model.Query;
@@ -248,6 +249,65 @@ public class QueryBuilderTest {
 
         // then
         assertThat(query.getHid()).isEqualTo("");
+    }
+
+    @Test
+    public void shouldAppendBundleAndVerWhenAppHasBoth() {
+        // given
+        final OptableAttributes attributes = OptableAttributes.builder()
+                .app(App.of("com.example.app", "1.2.3"))
+                .build();
+        final List<Id> ids = List.of(Id.of(Id.EMAIL, "email"));
+
+        // when
+        final String query = QueryBuilder.build(ids, attributes, properties()).toQueryString();
+
+        // then
+        assertThat(query).contains("&bundle=com.example.app", "&ver=1.2.3");
+    }
+
+    @Test
+    public void shouldAppendBundleOnlyWhenVerIsEmpty() {
+        // given
+        final OptableAttributes attributes = OptableAttributes.builder()
+                .app(App.of("com.example.app", ""))
+                .build();
+        final List<Id> ids = List.of(Id.of(Id.EMAIL, "email"));
+
+        // when
+        final String query = QueryBuilder.build(ids, attributes, properties()).toQueryString();
+
+        // then
+        assertThat(query).contains("&bundle=com.example.app");
+        assertThat(query).doesNotContain("&ver=");
+    }
+
+    @Test
+    public void shouldNotAppendBundleAndVerWhenBundleIsEmpty() {
+        // given
+        final OptableAttributes attributes = OptableAttributes.builder()
+                .app(App.of("", "1.2.3"))
+                .build();
+        final List<Id> ids = List.of(Id.of(Id.EMAIL, "email"));
+
+        // when
+        final String query = QueryBuilder.build(ids, attributes, properties()).toQueryString();
+
+        // then
+        assertThat(query).doesNotContain("&bundle=", "&ver=");
+    }
+
+    @Test
+    public void shouldNotAppendBundleAndVerWhenAppIsNull() {
+        // given
+        final OptableAttributes attributes = OptableAttributes.builder().build();
+        final List<Id> ids = List.of(Id.of(Id.EMAIL, "email"));
+
+        // when
+        final String query = QueryBuilder.build(ids, attributes, properties()).toQueryString();
+
+        // then
+        assertThat(query).doesNotContain("&bundle=", "&ver=");
     }
 
     private OptableAttributes givenOptableAttributes() {

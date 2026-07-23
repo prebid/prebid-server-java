@@ -23,4 +23,6 @@ public class OptableAttributes {
     String userAgent;
 
     Long timeout;
+
+    App app;
 }

@@ -11,6 +11,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.auction.gpp.model.GppContext;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.hooks.modules.optable.targeting.model.App;
 import org.prebid.server.hooks.modules.optable.targeting.model.OptableAttributes;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
 import org.prebid.server.hooks.modules.optable.targeting.v1.BaseOptableTest;
@@ -152,6 +153,42 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
                 .returns(false, OptableAttributes::isGdprApplies)
                 .returns("consent", OptableAttributes::getGpp)
                 .returns(Set.of(1), OptableAttributes::getGppSid);
+    }
+
+    @Test
+    public void shouldResolveAppWhenAppIsPresent() {
+        // given
+        final com.iab.openrtb.request.App ortbApp = com.iab.openrtb.request.App.builder()
+                .bundle("com.example.app")
+                .ver("1.2.3")
+                .build();
+        final BidRequest bidRequest = BidRequest.builder()
+                .app(ortbApp)
+                .build();
+        final AuctionContext auctionContext = givenAuctionContext(bidRequest, tcfContext, gppContext);
+
+        // when
+        final OptableAttributes result = OptableAttributesResolver.resolveAttributes(
+                auctionContext, properties.getTimeout());
+
+        // then
+        assertThat(result).isNotNull()
+                .returns(App.of("com.example.app", "1.2.3"), OptableAttributes::getApp);
+    }
+
+    @Test
+    public void shouldNotResolveAppWhenAppIsAbsent() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder().build();
+        final AuctionContext auctionContext = givenAuctionContext(bidRequest, tcfContext, gppContext);
+
+        // when
+        final OptableAttributes result = OptableAttributesResolver.resolveAttributes(
+                auctionContext, properties.getTimeout());
+
+        // then
+        assertThat(result).isNotNull()
+                .returns(null, OptableAttributes::getApp);
     }
 
     public AuctionContext givenAuctionContext(BidRequest bidRequest, TcfContext tcfContext, GppContext gppContext) {

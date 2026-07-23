@@ -121,6 +121,19 @@ public class QueryBuilder {
 
         sb.append("&osdk=").append(REQUEST_SOURCE);
 
+        Optional.ofNullable(optableAttributes.getApp())
+                .ifPresent(app -> {
+                    final String bundle = app.getBundle();
+                    if (StringUtils.isNotEmpty(bundle)) {
+                        sb.append("&bundle=").append(bundle);
+
+                        final String ver = app.getVer();
+                        if (StringUtils.isNotEmpty(ver)) {
+                            sb.append("&ver=").append(ver);
+                        }
+                    }
+                });
+
         return sb.toString();
     }
 }

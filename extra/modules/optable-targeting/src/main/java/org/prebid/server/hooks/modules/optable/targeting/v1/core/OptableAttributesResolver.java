@@ -8,6 +8,7 @@ import org.apache.commons.collections4.SetUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.gpp.model.GppContext;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.hooks.modules.optable.targeting.model.App;
 import org.prebid.server.hooks.modules.optable.targeting.model.OptableAttributes;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
@@ -35,6 +36,7 @@ public class OptableAttributesResolver {
         final OptableAttributes.OptableAttributesBuilder builder = OptableAttributes.builder()
                 .ips(resolveIp(auctionContext))
                 .userAgent(resolveUserAgent(auctionContext))
+                .app(resolveApp(auctionContext))
                 .timeout(timeout);
 
         if (gdpr != null && gdpr > 0) {
@@ -51,13 +53,18 @@ public class OptableAttributesResolver {
             }
         }
 
-        if (gppScope.getGppModel() != null) {
+        if (gppScope != null && gppScope.getGppModel() != null) {
             builder
                     .gpp(gppScope.getGppModel().encode())
                     .gppSid(SetUtils.emptyIfNull(gppScope.getSectionsIds()));
         }
 
         return builder.build();
+    }
+
+    private static App resolveApp(AuctionContext auctionContext) {
+        final com.iab.openrtb.request.App app = auctionContext.getBidRequest().getApp();
+        return app != null ? App.of(app.getBundle(), app.getVer()) : null;
     }
 
     public static String resolveUserAgent(AuctionContext auctionContext) {
