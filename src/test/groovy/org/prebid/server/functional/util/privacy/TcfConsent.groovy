@@ -12,7 +12,7 @@ import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVers
 
 class TcfConsent implements ConsentString {
 
-    public static final Integer RUBICON_VENDOR_ID = PBSUtils.getRandomNumber(0, 65534)
+    public static final Integer MAGNITE_VENDOR_ID = PBSUtils.getRandomNumber(0, 65534)
     public static final Integer GENERIC_VENDOR_ID = PBSUtils.getRandomNumber(0, 65534)
     public static final Integer VENDOR_LIST_VERSION = PBSUtils.getRandomNumber(0, 4095)
 

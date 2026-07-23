@@ -88,7 +88,7 @@ class Imp {
                 (bidder.alias)           : BidderName.ALIAS,
                 (bidder.generic)         : BidderName.GENERIC,
                 (bidder.genericCamelCase): BidderName.GENERIC_CAMEL_CASE,
-                (bidder.rubicon)         : BidderName.RUBICON,
+                (bidder.magnite)         : BidderName.MAGNITE,
                 (bidder.appNexus)        : BidderName.APPNEXUS,
                 (bidder.openx)           : BidderName.OPENX,
                 (bidder.ix)              : BidderName.IX

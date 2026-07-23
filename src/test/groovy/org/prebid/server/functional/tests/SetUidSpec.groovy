@@ -23,14 +23,14 @@ import static org.prebid.server.functional.model.bidder.BidderName.GENERIC_CAMEL
 import static org.prebid.server.functional.model.bidder.BidderName.GRID
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX_ALIAS
-import static org.prebid.server.functional.model.bidder.BidderName.RUBICON
+import static org.prebid.server.functional.model.bidder.BidderName.MAGNITE
 import static org.prebid.server.functional.model.bidder.BidderName.UNKNOWN
 import static org.prebid.server.functional.model.bidder.BidderName.WILDCARD
 import static org.prebid.server.functional.model.request.setuid.UidWithExpiry.defaultUidWithExpiry
 import static org.prebid.server.functional.model.response.cookiesync.UserSyncInfo.Type.REDIRECT
 import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
-import static org.prebid.server.functional.util.privacy.TcfConsent.RUBICON_VENDOR_ID
+import static org.prebid.server.functional.util.privacy.TcfConsent.MAGNITE_VENDOR_ID
 
 class SetUidSpec extends BaseSpec {
 
@@ -50,8 +50,8 @@ class SetUidSpec extends BaseSpec {
     private static final Map<String, String> PBS_CONFIG =
             ["host-cookie.max-cookie-size-bytes"                                                       : MAX_COOKIE_SIZE as String,
 
-             "adapters.${RUBICON.value}.enabled"                                                       : "true",
-             "adapters.${RUBICON.value}.usersync.cookie-family-name"                                   : RUBICON.value,
+             "adapters.${MAGNITE.value}.enabled"                                                       : "true",
+             "adapters.${MAGNITE.value}.usersync.cookie-family-name"                                   : MAGNITE.value,
 
              "adapters.${OPENX.value}.enabled"                                                         : "true",
              "adapters.${OPENX.value}.usersync.cookie-family-name"                                     : OPENX.value,
@@ -131,7 +131,7 @@ class SetUidSpec extends BaseSpec {
     def "PBS setuid should remove expired uids cookie"() {
         given: "Default SetuidRequest"
         def request = SetuidRequest.defaultSetuidRequest
-        def uidsCookie = UidsCookie.getDefaultUidsCookie(RUBICON, -RANDOM_EXPIRE_DAY)
+        def uidsCookie = UidsCookie.getDefaultUidsCookie(MAGNITE, -RANDOM_EXPIRE_DAY)
 
         when: "PBS processes setuid request"
         def response = singleCookiesPbsService.sendSetUidRequest(request, uidsCookie)
@@ -150,7 +150,7 @@ class SetUidSpec extends BaseSpec {
             uid = UUID.randomUUID().toString()
         }
         def uidsCookie = UidsCookie.defaultUidsCookie.tap {
-            tempUIDs = [(RUBICON): defaultUidWithExpiry]
+            tempUIDs = [(MAGNITE): defaultUidWithExpiry]
         }
 
         when: "PBS processes setuid request"
@@ -158,7 +158,7 @@ class SetUidSpec extends BaseSpec {
 
         then: "Response should contain requested tempUIDs"
         assert response.uidsCookie.tempUIDs[GENERIC]
-        assert response.uidsCookie.tempUIDs[RUBICON]
+        assert response.uidsCookie.tempUIDs[MAGNITE]
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsConfig)
@@ -175,17 +175,17 @@ class SetUidSpec extends BaseSpec {
             it.bidder = genericBidder
             uid = UUID.randomUUID().toString()
         }
-        def rubiconBidder = RUBICON
+        def magniteBidder = MAGNITE
         def uidsCookie = UidsCookie.defaultUidsCookie.tap {
             tempUIDs = [(APPNEXUS)     : getDefaultUidWithExpiry(RANDOM_EXPIRE_DAY + 1),
-                        (rubiconBidder): getDefaultUidWithExpiry(RANDOM_EXPIRE_DAY)]
+                        (magniteBidder): getDefaultUidWithExpiry(RANDOM_EXPIRE_DAY)]
         }
 
         when: "PBS processes setuid request"
         def response = prebidServerService.sendSetUidRequest(request, uidsCookie)
 
         then: "Response should contain uids cookies"
-        assert response.uidsCookie.tempUIDs[rubiconBidder]
+        assert response.uidsCookie.tempUIDs[magniteBidder]
         assert response.uidsCookie.tempUIDs[genericBidder]
 
         cleanup: "Stop and remove pbs container"
@@ -205,18 +205,18 @@ class SetUidSpec extends BaseSpec {
             def appnexusUidWithExpiry = defaultUidWithExpiry.tap {
                 expires = ZonedDateTime.now(Clock.systemUTC()).plusDays(5)
             }
-            def rubiconUidWithExpiry = defaultUidWithExpiry.tap {
+            def magniteUidWithExpiry = defaultUidWithExpiry.tap {
                 expires = ZonedDateTime.now(Clock.systemUTC()).plusDays(1)
             }
             tempUIDs = [(APPNEXUS): appnexusUidWithExpiry,
-                        (RUBICON) : rubiconUidWithExpiry]
+                        (MAGNITE) : magniteUidWithExpiry]
         }
 
         when: "PBS processes setuid request"
         def response = prebidServerService.sendSetUidRequest(request, uidsCookie)
 
         then: "Response should contain uids cookies"
-        assert response.uidsCookie.tempUIDs[RUBICON]
+        assert response.uidsCookie.tempUIDs[MAGNITE]
         assert response.uidsCookie.tempUIDs[GENERIC]
 
         cleanup: "Stop and remove pbs container"
@@ -237,7 +237,7 @@ class SetUidSpec extends BaseSpec {
 
         def uidsCookie = UidsCookie.defaultUidsCookie.tap {
             tempUIDs = [(APPNEXUS): defaultUidWithExpiry,
-                        (RUBICON) : defaultUidWithExpiry]
+                        (MAGNITE) : defaultUidWithExpiry]
         }
 
         when: "PBS processes setuid request"
@@ -249,7 +249,7 @@ class SetUidSpec extends BaseSpec {
 
         and: "Response should contain uids cookies"
         assert response.uidsCookie.tempUIDs[APPNEXUS]
-        assert response.uidsCookie.tempUIDs[RUBICON]
+        assert response.uidsCookie.tempUIDs[MAGNITE]
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsConfig)
@@ -257,19 +257,19 @@ class SetUidSpec extends BaseSpec {
 
     def "PBS setuid should reject bidder when cookie's filled and requested bidder in pri and rejected by tcf"() {
         given: "Setuid request"
-        def pbsConfig = PBS_CONFIG + ["gdpr.host-vendor-id": RUBICON_VENDOR_ID.toString(),
-                                      "cookie-sync.pri"    : RUBICON.value]
+        def pbsConfig = PBS_CONFIG + ["gdpr.host-vendor-id": MAGNITE_VENDOR_ID.toString(),
+                                      "cookie-sync.pri"    : MAGNITE.value]
         def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
         def request = SetuidRequest.defaultSetuidRequest.tap {
-            it.bidder = RUBICON
+            it.bidder = MAGNITE
             gdpr = "1"
             gdprConsent = new TcfConsent.Builder().setDisclosedVendors([GENERIC_VENDOR_ID]).build()
         }
 
         def uidsCookie = UidsCookie.defaultUidsCookie.tap {
             tempUIDs = [(APPNEXUS): defaultUidWithExpiry,
-                        (RUBICON) : defaultUidWithExpiry]
+                        (MAGNITE) : defaultUidWithExpiry]
         }
 
         when: "PBS processes setuid request"
@@ -282,7 +282,7 @@ class SetUidSpec extends BaseSpec {
 
         and: "usersync.FAMILY.tcf.blocked metric should be updated"
         def metric = prebidServerService.sendCollectedMetricsRequest()
-        assert metric["usersync.${RUBICON.value}.tcf.blocked"] == 1
+        assert metric["usersync.${MAGNITE.value}.tcf.blocked"] == 1
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsConfig)
@@ -303,7 +303,7 @@ class SetUidSpec extends BaseSpec {
 
         def uidsCookie = UidsCookie.defaultUidsCookie.tap {
             tempUIDs = [(APPNEXUS): getDefaultUidWithExpiry(RANDOM_EXPIRE_DAY),
-                        (RUBICON) : getDefaultUidWithExpiry(RANDOM_EXPIRE_DAY + 1)]
+                        (MAGNITE) : getDefaultUidWithExpiry(RANDOM_EXPIRE_DAY + 1)]
         }
 
         when: "PBS processes setuid request"
@@ -311,7 +311,7 @@ class SetUidSpec extends BaseSpec {
 
         and: "usersync.FAMILY.sizeblocked metric should be updated"
         def metrics = prebidServerService.sendCollectedMetricsRequest()
-        assert metrics["usersync.${RUBICON.value}.sizeblocked"] == 1
+        assert metrics["usersync.${MAGNITE.value}.sizeblocked"] == 1
 
         then: "Response should contain uids cookies"
         assert response.uidsCookie.tempUIDs[APPNEXUS]
@@ -335,7 +335,7 @@ class SetUidSpec extends BaseSpec {
         and: "Set up set uid cookie"
         def uidsCookie = UidsCookie.defaultUidsCookie.tap {
             tempUIDs = [(APPNEXUS): getDefaultUidWithExpiry(RANDOM_EXPIRE_DAY + 1),
-                        (RUBICON) : getDefaultUidWithExpiry(RANDOM_EXPIRE_DAY)]
+                        (MAGNITE) : getDefaultUidWithExpiry(RANDOM_EXPIRE_DAY)]
         }
 
         and: "Flush metrics"
@@ -366,7 +366,7 @@ class SetUidSpec extends BaseSpec {
 
     def "PBS set uid should emit sizedout metric and remove most distant expiration bidder from uids cookie in prioritized bidder"() {
         given: "PBS config"
-        def pbsConfig = PBS_CONFIG + ["cookie-sync.pri": "$OPENX.value, $APPNEXUS.value, $RUBICON.value" as String]
+        def pbsConfig = PBS_CONFIG + ["cookie-sync.pri": "$OPENX.value, $APPNEXUS.value, $MAGNITE.value" as String]
         def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Set uid request"
@@ -376,7 +376,7 @@ class SetUidSpec extends BaseSpec {
         def uidsCookie = UidsCookie.defaultUidsCookie.tap {
             tempUIDs = [(APPNEXUS): getDefaultUidWithExpiry(RANDOM_EXPIRE_DAY + 1),
                         (OPENX)   : getDefaultUidWithExpiry(RANDOM_EXPIRE_DAY),
-                        (RUBICON) : getDefaultUidWithExpiry(RANDOM_EXPIRE_DAY)]
+                        (MAGNITE) : getDefaultUidWithExpiry(RANDOM_EXPIRE_DAY)]
         }
 
         and: "Flush metrics"
@@ -387,7 +387,7 @@ class SetUidSpec extends BaseSpec {
 
         then: "Response should contain pri bidder in uids cookies"
         assert response.uidsCookie.tempUIDs[OPENX]
-        assert response.uidsCookie.tempUIDs[RUBICON]
+        assert response.uidsCookie.tempUIDs[MAGNITE]
 
         and: "Response set cookie header size should be lowest or the same as max cookie config size"
         assert getSetUidsHeaders(response).first.split("Secure;")[0].length() <= MAX_COOKIE_SIZE
@@ -459,21 +459,21 @@ class SetUidSpec extends BaseSpec {
             uid = UUID.randomUUID().toString()
         }
         def genericUidsCookie = UidsCookie.getDefaultUidsCookie(GENERIC)
-        def rubiconUidsCookie = UidsCookie.getDefaultUidsCookie(RUBICON)
+        def magniteUidsCookie = UidsCookie.getDefaultUidsCookie(MAGNITE)
 
         when: "PBS processes setuid request"
-        def response = multipleCookiesPbsService.sendSetUidRequest(request, [genericUidsCookie, rubiconUidsCookie])
+        def response = multipleCookiesPbsService.sendSetUidRequest(request, [genericUidsCookie, magniteUidsCookie])
 
         then: "Response should contain requested tempUIDs"
         assert response.uidsCookie.tempUIDs[GENERIC]
-        assert response.uidsCookie.tempUIDs[RUBICON]
+        assert response.uidsCookie.tempUIDs[MAGNITE]
 
         and: "Headers uids cookies should contain same cookie as response"
         def setUidsHeaders = getSetUidsHeaders(response)
         def uidsCookie = extractHeaderTempUIDs(setUidsHeaders.first)
         assert setUidsHeaders.size() == 1
         assert uidsCookie.tempUIDs[GENERIC]
-        assert uidsCookie.tempUIDs[RUBICON]
+        assert uidsCookie.tempUIDs[MAGNITE]
     }
 
     def "PBS should send multiple uids cookies by priority and expiration timestamp"() {
@@ -489,15 +489,15 @@ class SetUidSpec extends BaseSpec {
         def request = SetuidRequest.defaultSetuidRequest
 
         def genericUidsCookie = UidsCookie.getDefaultUidsCookie(GENERIC, RANDOM_EXPIRE_DAY + 1)
-        def rubiconUidsCookie = UidsCookie.getDefaultUidsCookie(RUBICON, RANDOM_EXPIRE_DAY + 2)
+        def magniteUidsCookie = UidsCookie.getDefaultUidsCookie(MAGNITE, RANDOM_EXPIRE_DAY + 2)
         def openxUidsCookie = UidsCookie.getDefaultUidsCookie(OPENX, RANDOM_EXPIRE_DAY + 3)
         def appnexusUidsCookie = UidsCookie.getDefaultUidsCookie(APPNEXUS, RANDOM_EXPIRE_DAY)
 
         when: "PBS processes setuid request"
-        def response = prebidServerService.sendSetUidRequest(request, [appnexusUidsCookie, genericUidsCookie, rubiconUidsCookie, openxUidsCookie])
+        def response = prebidServerService.sendSetUidRequest(request, [appnexusUidsCookie, genericUidsCookie, magniteUidsCookie, openxUidsCookie])
 
         then: "Response should contain requested tempUIDs"
-        assert response.uidsCookie.tempUIDs.keySet() == new LinkedHashSet([GENERIC, OPENX, APPNEXUS, RUBICON])
+        assert response.uidsCookie.tempUIDs.keySet() == new LinkedHashSet([GENERIC, OPENX, APPNEXUS, MAGNITE])
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsConfig)
@@ -545,14 +545,14 @@ class SetUidSpec extends BaseSpec {
             uid = UUID.randomUUID().toString()
         }
         def genericUidsCookie = UidsCookie.getDefaultUidsCookie(GENERIC)
-        def rubiconUidsCookie = UidsCookie.getDefaultUidsCookie(RUBICON)
+        def magniteUidsCookie = UidsCookie.getDefaultUidsCookie(MAGNITE)
 
         when: "PBS processes setuid request"
-        def response = multipleCookiesPbsService.sendSetUidRequest(request, [genericUidsCookie, rubiconUidsCookie])
+        def response = multipleCookiesPbsService.sendSetUidRequest(request, [genericUidsCookie, magniteUidsCookie])
 
         then: "Response should contain requested tempUIDs"
         assert response.uidsCookie.tempUIDs[GENERIC]
-        assert response.uidsCookie.tempUIDs[RUBICON]
+        assert response.uidsCookie.tempUIDs[MAGNITE]
 
         and: "Headers uids cookies should contain same cookie as response"
         assert getSetUidsHeaders(response).size() == 1

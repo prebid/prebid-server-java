@@ -35,7 +35,7 @@ import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.AMX
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
-import static org.prebid.server.functional.model.bidder.BidderName.RUBICON
+import static org.prebid.server.functional.model.bidder.BidderName.MAGNITE
 import static org.prebid.server.functional.model.request.auction.AdjustmentType.CPM
 import static org.prebid.server.functional.model.request.auction.AdjustmentType.MULTIPLIER
 import static org.prebid.server.functional.model.request.auction.AdjustmentType.STATIC
@@ -146,7 +146,7 @@ class BidAdjustmentSpec extends BaseSpec {
         assert response?.seatbid?.first?.bid?.first?.price == bidResponse.seatbid.first.bid.first.price
 
         where:
-        adjustmentBidder << [RUBICON, APPNEXUS]
+        adjustmentBidder << [MAGNITE, APPNEXUS]
     }
 
     def "PBS should adjust bid price based on media type only when request contains corresponding media type adjustment for bidder"() {

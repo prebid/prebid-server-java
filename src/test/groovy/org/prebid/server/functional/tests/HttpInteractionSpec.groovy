@@ -2,7 +2,7 @@ package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.bidder.Generic
-import org.prebid.server.functional.model.bidder.Rubicon
+import org.prebid.server.functional.model.bidder.Magnite
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.logging.httpinteraction.HttpInteractionRequest
 import org.prebid.server.functional.util.PBSUtils
@@ -11,7 +11,7 @@ import spock.lang.Retry
 import java.time.Instant
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
-import static org.prebid.server.functional.model.bidder.BidderName.RUBICON
+import static org.prebid.server.functional.model.bidder.BidderName.MAGNITE
 
 class HttpInteractionSpec extends BaseSpec {
 
@@ -27,7 +27,7 @@ class HttpInteractionSpec extends BaseSpec {
         and: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
         bidRequest.imp.first().ext.prebid.bidder.generic = new Generic()
-        bidRequest.imp.first().ext.prebid.bidder.rubicon = new Rubicon(accountId: PBSUtils.randomNumber,
+        bidRequest.imp.first().ext.prebid.bidder.magnite = new Magnite(accountId: PBSUtils.randomNumber,
                 siteId: PBSUtils.randomNumber, zoneId: PBSUtils.randomNumber)
 
         when: "PBS processes bidders params request"
@@ -42,9 +42,9 @@ class HttpInteractionSpec extends BaseSpec {
         and: "PBS log should contain request to allowed adapter"
         def logs = defaultPbsService.getLogsByTime(startTime)
         def genericBidderLogs = getLogsByBidder(logs, GENERIC)
-        def rubiconBidderLogs = getLogsByBidder(logs, RUBICON)
+        def magniteBidderLogs = getLogsByBidder(logs, MAGNITE)
         assert getLogsByText(genericBidderLogs, bidRequest.id).size() == 1
-        assert getLogsByText(rubiconBidderLogs, bidRequest.id).size() == 0
+        assert getLogsByText(magniteBidderLogs, bidRequest.id).size() == 0
     }
 
     def "PBS should not log request to adapter when it is not allowed"() {
@@ -72,10 +72,10 @@ class HttpInteractionSpec extends BaseSpec {
         def request = HttpInteractionRequest.defaultHttpInteractionRequest
         request.bidder = GENERIC
 
-        and: "Default basic generic BidRequest with rubicon"
+        and: "Default basic generic BidRequest with magnite"
         def bidRequest = BidRequest.defaultBidRequest
         bidRequest.imp.first().ext.prebid.bidder.generic = new Generic()
-        bidRequest.imp.first().ext.prebid.bidder.rubicon = new Rubicon(accountId: PBSUtils.randomNumber,
+        bidRequest.imp.first().ext.prebid.bidder.magnite = new Magnite(accountId: PBSUtils.randomNumber,
                 siteId: PBSUtils.randomNumber, zoneId: PBSUtils.randomNumber)
 
         when: "PBS processes bidders params request"
@@ -97,13 +97,13 @@ class HttpInteractionSpec extends BaseSpec {
 
         and: "Logged request should not contain bidder parameters in imp[].ext.prebid.bidder.BIDDER"
         assert !retrievedRequest?.imp?.first()?.ext?.prebid?.bidder?.generic
-        assert !retrievedRequest?.imp?.first()?.ext?.prebid?.bidder?.rubicon
+        assert !retrievedRequest?.imp?.first()?.ext?.prebid?.bidder?.magnite
 
         and: "Logged request should contain bidder parameters in imp[].ext.BIDDER"
         assert retrievedRequest?.imp?.first()?.ext?.generic
 
         and: "Logged request should contain only bidder parameters for the named bidder"
-        assert !retrievedRequest?.imp?.first()?.ext?.rubicon
+        assert !retrievedRequest?.imp?.first()?.ext?.magnite
     }
 
     private static List<String> getLogsByBidder(List<String> logs, BidderName bidderName) {

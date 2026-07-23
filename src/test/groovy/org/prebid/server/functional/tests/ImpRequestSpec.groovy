@@ -16,7 +16,7 @@ import static org.prebid.server.functional.model.bidder.BidderName.EMPTY
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC_CAMEL_CASE
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
-import static org.prebid.server.functional.model.bidder.BidderName.RUBICON
+import static org.prebid.server.functional.model.bidder.BidderName.MAGNITE
 import static org.prebid.server.functional.model.bidder.BidderName.UNKNOWN
 import static org.prebid.server.functional.model.bidder.BidderName.WILDCARD
 import static org.prebid.server.functional.model.bidder.BidderName.GENER_X
@@ -206,7 +206,7 @@ class ImpRequestSpec extends BaseSpec {
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp.first.tap {
                 pmp = impPmp
-                ext.prebid.imp = [(RUBICON): new Imp(pmp: Pmp.defaultPmp)]
+                ext.prebid.imp = [(MAGNITE): new Imp(pmp: Pmp.defaultPmp)]
             }
         }
 
