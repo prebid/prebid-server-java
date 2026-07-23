@@ -948,8 +948,7 @@ class BidderParamsSpec extends BaseSpec {
         given: "Default bid request with populated ext.prebid.bidderParams"
         def genericBidderParams = PBSUtils.randomString
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.bidderParams = [ae             : PBSUtils.randomString,
-                                       all            : PBSUtils.randomString,
+            ext.prebid.bidderParams = [all            : PBSUtils.randomString,
                                        context        : PBSUtils.randomString,
                                        data           : PBSUtils.randomString,
                                        general        : PBSUtils.randomString,
