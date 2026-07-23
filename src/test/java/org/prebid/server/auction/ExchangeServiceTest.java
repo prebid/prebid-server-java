@@ -87,6 +87,7 @@ import org.prebid.server.hooks.execution.model.ExecutionStatus;
 import org.prebid.server.hooks.execution.model.GroupExecutionOutcome;
 import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.hooks.execution.model.HookExecutionOutcome;
+import org.prebid.server.hooks.execution.model.HookHttpEndpoint;
 import org.prebid.server.hooks.execution.model.HookId;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
 import org.prebid.server.hooks.execution.model.Stage;
@@ -103,7 +104,6 @@ import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
-import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.model.UpdateResult;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
@@ -3316,7 +3316,7 @@ public class ExchangeServiceTest extends VertxTest {
     public void shouldReturnEmptyBidResponseWhenRequestIsRejected() {
         // given
         final AuctionContext auctionContext = AuctionContext.builder()
-                .hookExecutionContext(HookExecutionContext.of(Endpoint.openrtb2_auction))
+                .hookExecutionContext(HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION))
                 .debugContext(DebugContext.empty())
                 .requestRejected(true)
                 .build();
@@ -3343,7 +3343,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
         final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
                 .hookExecutionContext(HookExecutionContext.of(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         stageOutcomes(givenAppliedToImpl(identity()))))
                 .debugContext(DebugContext.of(true, true, null))
                 .build();
@@ -3411,7 +3411,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
         final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
                 .hookExecutionContext(HookExecutionContext.of(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         stageOutcomes(givenAppliedToImpl(identity()))))
                 .debugContext(DebugContext.of(false, false, TraceLevel.basic))
                 .build();
@@ -3505,7 +3505,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
         final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
                 .hookExecutionContext(HookExecutionContext.of(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         stageOutcomes(givenAppliedToImpl(identity()))))
                 .debugContext(DebugContext.of(false, false, TraceLevel.verbose))
                 .build();
@@ -3543,7 +3543,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
         final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
                 .hookExecutionContext(HookExecutionContext.of(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         stageOutcomes(givenAppliedToImpl(appliedToImplBuilder -> appliedToImplBuilder
                                 .impIds(asList("impId1", "impId2"))
                                 .response(true)
@@ -3590,7 +3590,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
         final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
                 .hookExecutionContext(HookExecutionContext.of(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         stageOutcomes(null)))
                 .debugContext(DebugContext.of(false, false, TraceLevel.verbose))
                 .build();
@@ -3628,7 +3628,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
         final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
                 .hookExecutionContext(HookExecutionContext.of(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         stageOutcomes(givenAppliedToImpl(identity()))))
                 .debugContext(DebugContext.of(true, true, TraceLevel.basic))
                 .build();
@@ -3650,7 +3650,7 @@ public class ExchangeServiceTest extends VertxTest {
         // given
         final AuctionContext auctionContext = AuctionContext.builder()
                 .hookExecutionContext(HookExecutionContext.of(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         stageOutcomes(givenAppliedToImpl(identity()))))
                 .debugContext(DebugContext.of(true, true, TraceLevel.basic))
                 .requestRejected(true)
@@ -3677,7 +3677,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
         final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
                 .hookExecutionContext(HookExecutionContext.of(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         new EnumMap<>(singletonMap(
                                 Stage.entrypoint,
                                 singletonList(StageExecutionOutcome.of("http-request", emptyList()))))))
@@ -3714,7 +3714,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .build();
         final AuctionContext auctionContext = givenRequestContext(bidRequest, account).toBuilder()
                 .hookExecutionContext(HookExecutionContext.of(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         stageOutcomes(givenAppliedToImpl(identity()))))
                 .build();
 
@@ -3753,7 +3753,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .build())));
         final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
                 .hookExecutionContext(HookExecutionContext.of(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         stageOutcomes(givenAppliedToImpl(identity()))))
                 .build();
 
@@ -4600,7 +4600,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .account(account)
                 .requestTypeMetric(MetricName.openrtb2web)
                 .timeoutContext(TimeoutContext.of(clock.millis(), timeout, 90))
-                .hookExecutionContext(HookExecutionContext.of(Endpoint.openrtb2_auction))
+                .hookExecutionContext(HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION))
                 .debugContext(DebugContext.empty())
                 .bidRejectionTrackers(new HashMap<>())
                 .activityInfrastructure(activityInfrastructure)

@@ -25,6 +25,7 @@ import org.prebid.server.hooks.execution.model.ExecutionStatus;
 import org.prebid.server.hooks.execution.model.GroupExecutionOutcome;
 import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.hooks.execution.model.HookExecutionOutcome;
+import org.prebid.server.hooks.execution.model.HookHttpEndpoint;
 import org.prebid.server.hooks.execution.model.HookId;
 import org.prebid.server.hooks.execution.model.Stage;
 import org.prebid.server.hooks.execution.model.StageExecutionOutcome;
@@ -33,7 +34,6 @@ import org.prebid.server.hooks.execution.v1.analytics.AppliedToImpl;
 import org.prebid.server.hooks.execution.v1.analytics.ResultImpl;
 import org.prebid.server.hooks.execution.v1.analytics.TagsImpl;
 import org.prebid.server.json.ObjectMapperProvider;
-import org.prebid.server.model.Endpoint;
 import org.prebid.server.util.ListUtil;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
@@ -208,7 +208,7 @@ public class LiveintentAnalyticsReporterTest extends VertxTest {
                                                 .build()))
                                         .build()))
                                 .build())
-                        .hookExecutionContext(HookExecutionContext.of(Endpoint.openrtb2_auction, stageOutcomes))
+                        .hookExecutionContext(HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION, stageOutcomes))
                         .build())
                 .build();
     }
