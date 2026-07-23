@@ -66,7 +66,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
     private static final String LIVE_GVL_FILE_NAME = "live-gvl-vendor-list.json"
     private static final VENDOR_LIST_VERSION = PBSUtils.getRandomNumber(2, 4094)
     private static final Map<String, String> REFRESH_LIVE_VENDOR_LIST_CONFIG = GENERAL_PRIVACY_CONFIG +
-            ["gdpr.vendorlist.live-gvl-url": "$networkServiceContainer.rootUri/v3/$LIVE_GVL_FILE_NAME".toString()]
+            ["gdpr.vendorlist.live.url": "$networkServiceContainer.rootUri/v3/$LIVE_GVL_FILE_NAME".toString()]
     private static final VendorList liveVendorListResponse = new VendorList(networkServiceContainer, LIVE_GVL_FILE_NAME)
 
     def setup() {
@@ -1315,7 +1315,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         downloadLiveGvtList(VENDOR_LIST_VERSION, olderVendorList, Times.once())
 
         and: "PBS with a high-frequency live GVL refresh config"
-        def config = REFRESH_LIVE_VENDOR_LIST_CONFIG + ['gdpr.vendorlist.live-gvl-refresh-period-ms': '1000']
+        def config = REFRESH_LIVE_VENDOR_LIST_CONFIG + ['gdpr.vendorlist.live.refresh-period-ms': '1000']
         def pbsWithLiveGvlSetup = pbsServiceFactory.getService(config)
 
         and: "Flash metrics"
