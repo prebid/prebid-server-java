@@ -131,7 +131,7 @@ public class MobkoiBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, BidType.banner, "mobkoi", bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, BidType.banner, bidResponse.getCur()))
                 .toList();
     }
 }
