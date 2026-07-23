@@ -34,7 +34,7 @@ import java.util.Optional;
 
 public class LiveIntentAnalyticsReporter implements AnalyticsReporter {
 
-    private static final String LIVEINTENT_HOOK_ID = "liveintent-omni-channel-identity-enrichment-hook";
+    private static final String LIVEINTENT_HOOK_ID = "liveintent-omni-channel-identity-processed-auction-request-hook";
 
     private final HttpClient httpClient;
     private final LiveIntentAnalyticsProperties properties;

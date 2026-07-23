@@ -29,7 +29,7 @@ hooks:
                       "hook-sequence": [
                         {
                           "module-code": "liveintent-omni-channel-identity",
-                          "hook-impl-code": "liveintent-omni-channel-identity-enrichment-hook"
+                          "hook-impl-code": "liveintent-omni-channel-identity-processed-auction-request-hook"
                         }
                       ]
                     }
