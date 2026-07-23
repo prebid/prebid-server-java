@@ -149,6 +149,32 @@ public class IxBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldSetImpBannerFormatsToFormatWithWidthAndHeightIfFormatsAreNullList() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        .banner(Banner.builder().w(1).h(2).format(null).build())
+                        .ext(givenImpExt(null, null)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        final Banner expectedBanner = Banner.builder()
+                .w(1)
+                .h(2)
+                .format(singletonList(Format.builder().w(1).h(2).build()))
+                .build();
+
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .containsExactly(expectedBanner);
+    }
+
+    @Test
     public void makeHttpRequestsShouldSetImpBannerWidthAndHeightIfTheyAreAbsentAndBannerHasOnlyOneFormat() {
         // given
         final BidRequest bidRequest = givenBidRequest(

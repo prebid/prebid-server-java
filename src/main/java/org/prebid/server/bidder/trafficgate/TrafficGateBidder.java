@@ -21,7 +21,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.trafficgate.ExtImpTrafficGate;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -35,13 +35,13 @@ public class TrafficGateBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpTrafficGate>> TAPX_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
-    private static final String SUBDOMAIN_MACRO = "{{subdomain}}";
+    private static final String SUBDOMAIN_MACRO = "subdomain";
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public TrafficGateBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(endpointUrl);
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -65,7 +65,7 @@ public class TrafficGateBidder implements Bidder<BidRequest> {
     }
 
     private String resolveHost(ExtImpTrafficGate extImpTrafficGate) {
-        return endpointUrl.replace(SUBDOMAIN_MACRO, extImpTrafficGate.getHost());
+        return endpointUrl.replaceMacro(SUBDOMAIN_MACRO, extImpTrafficGate.getHost()).expand();
     }
 
     private ExtImpTrafficGate parseImpExt(Imp imp) {

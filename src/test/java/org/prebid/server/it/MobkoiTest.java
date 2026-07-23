@@ -25,8 +25,7 @@ public class MobkoiTest extends IntegrationTest {
         // when
         final Response response = responseFor(
                 "openrtb2/mobkoi/test-auction-mobkoi-request.json",
-                Endpoint.openrtb2_auction
-        );
+                Endpoint.openrtb2_auction);
 
         // then
         assertJsonEquals("openrtb2/mobkoi/test-auction-mobkoi-response.json", response, singletonList("mobkoi"));

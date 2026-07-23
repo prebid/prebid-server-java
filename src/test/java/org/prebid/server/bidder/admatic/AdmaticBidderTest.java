@@ -43,7 +43,7 @@ import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
 
 public class AdmaticBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://{{Host}}/prebid/bid";
+    private static final String ENDPOINT_URL = "https://host.comt/prebid/bid?host={Host}";
 
     private final AdmaticBidder target = new AdmaticBidder(ENDPOINT_URL, jacksonMapper);
 
@@ -163,7 +163,7 @@ public class AdmaticBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://host/prebid/bid");
+                .containsExactly("https://host.comt/prebid/bid?host=host");
     }
 
     @Test

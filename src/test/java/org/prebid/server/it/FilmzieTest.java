@@ -18,7 +18,7 @@ public class FilmzieTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromTheFilmzieBidder() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/filmzie-exchange/test.host/123456"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/filmzie-exchange"))
                 .withRequestBody(equalToJson(
                         jsonFrom("openrtb2/filmzie/test-filmzie-bid-request.json")))
                 .willReturn(aResponse().withBody(

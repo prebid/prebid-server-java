@@ -18,18 +18,16 @@ public class OmnidexTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromOmnidex() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/omnidex-exchange/connectionId"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/omnidex-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/omnidex/test-omnidex-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/omnidex/test-omnidex-bid-response.json"))));
 
         // when
         final Response response = responseFor(
                 "openrtb2/omnidex/test-auction-omnidex-request.json",
-                Endpoint.openrtb2_auction
-        );
+                Endpoint.openrtb2_auction);
 
         // then
         assertJsonEquals("openrtb2/omnidex/test-auction-omnidex-response.json", response, List.of("omnidex"));
     }
-
 }

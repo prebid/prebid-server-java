@@ -1,7 +1,7 @@
 adapters:
   smartadserver:
-    endpoint: https://ssb-global.smartadserver.com
-    secondary-endpoint: https://prebid-global.smartadserver.com
+    endpoint: https://ssb-global.smartadserver.com/api/bid
+    pg-endpoint: https://prebid-global.smartadserver.com/ortb
     endpoint-compression: gzip
     aliases:
       equativ:
@@ -23,6 +23,6 @@ adapters:
     usersync:
       cookie-family-name: smartadserver
       redirect:
-        url: https://ssbsync-global.smartadserver.com/api/sync?callerId=5&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirectUri={{redirect_url}}
+        url: https://ssbsync-global.smartadserver.com/api/sync?callerId=5&gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&redirectUri={redirect_url}
         support-cors: false
         uid-macro: '[ssb_sync_pid]'

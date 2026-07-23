@@ -26,6 +26,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.marsmedia.ExtImpMarsmedia;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -38,11 +39,11 @@ public class MarsmediaBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public MarsmediaBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -57,12 +58,11 @@ public class MarsmediaBidder implements Bidder<BidRequest> {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
-        final String uri = "%s&zone=%s".formatted(endpointUrl, firstImpZone);
         final MultiMap headers = resolveHeaders(bidRequest.getDevice());
 
         return Result.withValue(HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
-                .uri(uri)
+                .uri(endpointUrl.addQueryParam("zone", firstImpZone).expand())
                 .headers(headers)
                 .body(mapper.encodeToBytes(outgoingRequest))
                 .payload(outgoingRequest)

@@ -24,6 +24,7 @@ import org.prebid.server.proto.openrtb.ext.request.ownadx.ExtImpOwnAdx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -38,15 +39,15 @@ public class OwnAdxBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
     private static final String X_OPEN_RTB_VERSION = "2.5";
-    private static final String SEAT_ID_MACROS_ENDPOINT = "{{SeatID}}";
-    private static final String SSP_ID_MACROS_ENDPOINT = "{{SspID}}";
-    private static final String TOKEN_ID_MACROS_ENDPOINT = "{{TokenID}}";
+    private static final String SEAT_ID_MACROS_ENDPOINT = "SeatID";
+    private static final String SSP_ID_MACROS_ENDPOINT = "SspID";
+    private static final String TOKEN_ID_MACROS_ENDPOINT = "TokenID";
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public OwnAdxBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -88,9 +89,10 @@ public class OwnAdxBidder implements Bidder<BidRequest> {
     private String makeUrl(ExtImpOwnAdx extImpOwnAdx) {
         final Optional<ExtImpOwnAdx> ownAdx = Optional.ofNullable(extImpOwnAdx);
         return endpointUrl
-                .replace(SEAT_ID_MACROS_ENDPOINT, ownAdx.map(ExtImpOwnAdx::getSeatId).orElse(StringUtils.EMPTY))
-                .replace(SSP_ID_MACROS_ENDPOINT, ownAdx.map(ExtImpOwnAdx::getSspId).orElse(StringUtils.EMPTY))
-                .replace(TOKEN_ID_MACROS_ENDPOINT, ownAdx.map(ExtImpOwnAdx::getTokenId).orElse(StringUtils.EMPTY));
+                .replaceMacro(SEAT_ID_MACROS_ENDPOINT, ownAdx.map(ExtImpOwnAdx::getSeatId).orElse(StringUtils.EMPTY))
+                .replaceMacro(SSP_ID_MACROS_ENDPOINT, ownAdx.map(ExtImpOwnAdx::getSspId).orElse(StringUtils.EMPTY))
+                .replaceMacro(TOKEN_ID_MACROS_ENDPOINT, ownAdx.map(ExtImpOwnAdx::getTokenId).orElse(StringUtils.EMPTY))
+                .expand();
     }
 
     private static MultiMap makeHeaders() {
