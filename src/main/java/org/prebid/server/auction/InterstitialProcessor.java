@@ -5,15 +5,22 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
+import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeviceInt;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevicePrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSdk;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 public class InterstitialProcessor {
 
@@ -36,15 +43,28 @@ public class InterstitialProcessor {
         if (extDeviceInt != null) {
             final int minWidthPerc = extDeviceInt.getMinWidthPerc();
             final int minHeightPerc = extDeviceInt.getMinHeightPerc();
+            final boolean usePxRatio = usePxRatio(bidRequest);
             final List<Imp> updatedImps = bidRequest.getImp().stream()
-                    .map(imp -> processInterstitialImp(imp, device, minWidthPerc, minHeightPerc))
+                    .map(imp -> processInterstitialImp(imp, device, minWidthPerc, minHeightPerc, usePxRatio))
                     .toList();
             bidRequest = bidRequest.toBuilder().imp(updatedImps).build();
         }
         return bidRequest;
     }
 
-    private Imp processInterstitialImp(Imp imp, Device device, int minWidthPerc, int minHeightPerc) {
+    private static boolean usePxRatio(BidRequest bidRequest) {
+        final ExtRequest extRequest = bidRequest.getExt();
+        final ExtRequestPrebid prebid = extRequest != null ? extRequest.getPrebid() : null;
+        final ExtRequestPrebidSdk sdk = prebid != null ? prebid.getSdk() : null;
+        return sdk != null && BooleanUtils.isTrue(sdk.getUsePxRatio());
+    }
+
+    private Imp processInterstitialImp(Imp imp,
+                                       Device device,
+                                       int minWidthPerc,
+                                       int minHeightPerc,
+                                       boolean usePxRatio) {
+
         if (!isInterstitial(imp)) {
             return imp;
         }
@@ -54,36 +74,58 @@ public class InterstitialProcessor {
             return imp;
         }
 
+        final InterstitialSize maxSize = getMaxSize(banner, device, imp.getId(), usePxRatio);
+        final double minWidth = getMinSize(maxSize.getW(), minWidthPerc);
+        final double minHeight = getMinSize(maxSize.getH(), minHeightPerc);
+
+        final List<Format> interstitialFormats = InterstitialSize.getNestedSizes(minWidth, minHeight, maxSize)
+                .map(size -> Format.builder().w(size.w).h(size.h).build())
+                .toList();
+
+        return CollectionUtils.isNotEmpty(interstitialFormats)
+                ? imp.toBuilder().banner(banner.toBuilder().format(interstitialFormats).build()).build()
+                : imp;
+    }
+
+    private static InterstitialSize getMaxSize(Banner banner, Device device, String impId, boolean usePxRatio) {
         final List<Format> formats = banner.getFormat();
         final Format firstFormat = CollectionUtils.isEmpty(formats) ? null : formats.getFirst();
-        Integer maxHeight = firstFormat != null ? firstFormat.getH() : null;
-        Integer maxWidth = firstFormat != null ? firstFormat.getW() : null;
+        final Integer firstFormatWidth = firstFormat != null ? firstFormat.getW() : null;
+        final Integer firstFormatHeight = firstFormat != null ? firstFormat.getH() : null;
 
-        if (maxHeight == null || maxWidth == null || (maxHeight == 1 && maxWidth == 1)) {
-            maxHeight = device.getH();
-            maxWidth = device.getW();
+        if (firstFormatWidth != null
+                && firstFormatHeight != null
+                && (firstFormatWidth != 1 || firstFormatHeight != 1)) {
+
+            return InterstitialSize.interstitialSize(firstFormatWidth, firstFormatHeight);
         }
 
-        if (maxHeight == null || maxWidth == null) {
+        final Integer deviceWidth = device.getW();
+        final Integer deviceHeight = device.getH();
+        if (deviceWidth == null || deviceHeight == null) {
             throw new InvalidRequestException(
                     "Unable to read max interstitial size for Imp id=%s (No Device sizes and no Format objects)"
-                            .formatted(imp.getId()));
+                            .formatted(impId));
         }
 
-        final double minHeight = (double) maxHeight / 100 * minHeightPerc;
-        final double minWidth = (double) maxWidth / 100 * minWidthPerc;
-
-        final List<Format> interstitialFormats =
-                InterstitialSize.getNestedSizes(minWidth, minHeight, maxWidth, maxHeight, MAX_SIZES_COUNT)
-                        .stream()
-                        .map(interstitialSize -> Format.builder().w(interstitialSize.w).h(interstitialSize.h).build())
-                        .toList();
-
-        if (CollectionUtils.isEmpty(interstitialFormats)) {
-            return imp;
+        if (usePxRatio) {
+            final BigDecimal pxRatio = device.getPxratio();
+            return InterstitialSize.interstitialSize(
+                    deviceSizeToDips(deviceWidth, pxRatio),
+                    deviceSizeToDips(deviceHeight, pxRatio));
         }
 
-        return imp.toBuilder().banner(banner.toBuilder().format(interstitialFormats).build()).build();
+        return InterstitialSize.interstitialSize(deviceWidth, deviceHeight);
+    }
+
+    private static int deviceSizeToDips(int size, BigDecimal pxRatio) {
+        return pxRatio != null && pxRatio.signum() > 0
+                ? Math.max(1, (int) Math.round(size / pxRatio.doubleValue()))
+                : size;
+    }
+
+    private static double getMinSize(int maxSize, int minSizePerc) {
+        return maxSize / 100.0 * minSizePerc;
     }
 
     private ExtDeviceInt getExtDeviceInt(Device device) {
@@ -92,6 +134,7 @@ public class InterstitialProcessor {
         return extDevicePrebid != null ? extDevicePrebid.getInterstitial() : null;
     }
 
+    @Value(staticConstructor = "interstitialSize")
     private static class InterstitialSize {
 
         private static final List<InterstitialSize> INTERSTITIAL_SIZES = new ArrayList<>();
@@ -349,33 +392,19 @@ public class InterstitialProcessor {
             INTERSTITIAL_SIZES.add(interstitialSize(120, 20));
         }
 
-        private final Integer w;
-        private final Integer h;
+        int w;
+        int h;
 
-        private InterstitialSize(Integer w, Integer h) {
-            this.w = w;
-            this.h = h;
-        }
-
-        private static InterstitialSize interstitialSize(Integer w, Integer h) {
-            return new InterstitialSize(w, h);
-        }
-
-        private static List<InterstitialSize> getNestedSizes(double minWidth,
-                                                             double minHeight,
-                                                             double maxWidth,
-                                                             double maxHeight,
-                                                             int count) {
-
+        private static Stream<InterstitialSize> getNestedSizes(double minWidth, double minHeight,
+                                                                 InterstitialSize max) {
             return INTERSTITIAL_SIZES.stream()
-                    .filter(size -> isNested(size, minWidth, minHeight, maxWidth, maxHeight))
-                    .limit(count)
-                    .toList();
+                    .filter(size -> isNested(size, minWidth, minHeight, max))
+                    .limit(MAX_SIZES_COUNT);
         }
 
-        private static boolean isNested(InterstitialSize size, double minWidth, double minHeight, double maxWidth,
-                                        double maxHeight) {
-            return size.w >= minWidth && size.w <= maxWidth && size.h >= minHeight && size.h <= maxHeight;
+        private static boolean isNested(InterstitialSize size, double minWidth, double minHeight,
+                                         InterstitialSize max) {
+            return size.w >= minWidth && size.w <= max.w && size.h >= minHeight && size.h <= max.h;
         }
     }
 }
