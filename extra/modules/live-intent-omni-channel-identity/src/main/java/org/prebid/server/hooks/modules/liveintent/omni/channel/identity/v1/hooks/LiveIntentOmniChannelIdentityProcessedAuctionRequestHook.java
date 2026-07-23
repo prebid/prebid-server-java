@@ -55,7 +55,7 @@ public class LiveIntentOmniChannelIdentityProcessedAuctionRequestHook implements
     private static final ConditionalLogger conditionalLogger = new ConditionalLogger(LoggerFactory.getLogger(
             LiveIntentOmniChannelIdentityProcessedAuctionRequestHook.class));
 
-    private static final String CODE = "liveintent-omni-channel-identity-enrichment-hook";
+    private static final String CODE = "liveintent-omni-channel-identity-processed-auction-request-hook";
 
     private static final String INSERTER = "s2s.liveintent.com";
 
