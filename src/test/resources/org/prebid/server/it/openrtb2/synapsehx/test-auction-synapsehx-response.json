@@ -1,0 +1,40 @@
+{
+  "id": "tid",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid001",
+          "impid": "impId001",
+          "price": 3.33,
+          "crid": "crid001",
+          "w": 300,
+          "h": 250,
+          "exp" : 300,
+          "mtype": 1,
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "meta" : {
+                "adaptercode" : "synapsehx"
+              }
+            },
+            "origbidcpm" : 3.33
+          }
+        }
+      ],
+      "seat": "synapsehx",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "synapsehx": "{{ synapsehx.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 1000
+    },
+    "tmaxrequest": 5000
+  }
+}
