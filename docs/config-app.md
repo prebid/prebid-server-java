@@ -52,7 +52,7 @@ This parameter exists to allow to change the location of the directory Vert.x wi
 - `http-client.circuit-breaker.opening-interval-ms` - time interval for opening the circuit breaker if failures count reached. (Must be a multiple of 1000)
 - `http-client.circuit-breaker.closing-interval-ms` - time spent in open state before attempting to re-try.
 - `http-client.circuit-breaker.idle-expire-hours` - idle time to clean the circuit breaker up.
-- `http-client.use-compression` - if equals to `true` httpclient compression is enabled for requests (see [also](https://vertx.io/docs/apidocs/io/vertx/core/http/HttpClientOptions.html#setTryUseCompression-boolean-))
+- `http-client.use-decompression` - if equals to `true` httpclient compression is enabled for requests (see [also](https://vertx.io/docs/apidocs/io/vertx/core/http/HttpClientOptions.html#setDecompressionSupported(boolean)))
 - `http-client.max-redirects` - set the maximum amount of HTTP redirections to follow. A value of 0 (the default) prevents redirections from being followed.
 - `http-client.ssl` - enable SSL/TLS support.
 - `http-client.jks-path` - path to the java keystore (if ssl is enabled).
@@ -154,7 +154,6 @@ There are several typical keys:
 - `adapters.<BIDDER_NAME>.usersync.redirect-url` - the redirect part of url for synchronizing UIDs cookie.
 - `adapters.<BIDDER_NAME>.usersync.cookie-family-name` - the family name by which user ids within adapter's realm are stored in uidsCookie.
 - `adapters.<BIDDER_NAME>.usersync.type` - usersync type (i.e. redirect, iframe).
-- `adapters.<BIDDER_NAME>.usersync.support-cors` - flag signals if CORS supported by usersync.
 - `adapters.<BIDDER_NAME>.debug.allow` - enables debug output in the auction response for the given bidder. Default `true`.
 - `adapters.<BIDDER_NAME>.tmax-deduction-ms` - adjusts the tmax sent to the bidder by deducting the provided value (ms). Default `0 ms` - no deduction.
 

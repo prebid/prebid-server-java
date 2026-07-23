@@ -365,7 +365,6 @@ public class UsersyncMethodChooserTest extends VertxTest {
         return UsersyncMethod.builder()
                 .type(UsersyncMethodType.IFRAME)
                 .usersyncUrl(Uri.of(url))
-                .supportCORS(false)
                 .build();
     }
 
@@ -373,7 +372,6 @@ public class UsersyncMethodChooserTest extends VertxTest {
         return UsersyncMethod.builder()
                 .type(UsersyncMethodType.REDIRECT)
                 .usersyncUrl(Uri.of(url))
-                .supportCORS(false)
                 .build();
     }
 }

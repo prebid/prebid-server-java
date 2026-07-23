@@ -11,6 +11,7 @@ import org.prebid.server.functional.model.config.PurposeEnforcement
 import org.prebid.server.functional.model.mock.services.vendorlist.VendorListResponse
 import org.prebid.server.functional.model.pricefloors.Country
 import org.prebid.server.functional.model.privacy.EnforcementRequirement
+import org.prebid.server.functional.model.request.Channel
 import org.prebid.server.functional.model.request.auction.DistributionChannel
 import org.prebid.server.functional.model.request.auction.Regs
 import org.prebid.server.functional.model.request.auction.RegsExt
@@ -48,7 +49,6 @@ import static org.prebid.server.functional.model.request.auction.ActivityType.FE
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_EIDS
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_PRECISE_GEO
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_UFPD
-import static org.prebid.server.functional.model.request.auction.Prebid.Channel
 import static org.prebid.server.functional.model.request.auction.PublicCountryIp.BGR_IP
 import static org.prebid.server.functional.model.request.auction.TraceLevel.BASIC
 import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE

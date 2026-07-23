@@ -685,7 +685,7 @@ public class ServiceConfiguration {
         final HttpClientOptions options = new HttpClientOptions()
                 .setIdleTimeoutUnit(TimeUnit.MILLISECONDS)
                 .setIdleTimeout(httpClientProperties.getIdleTimeoutMs())
-                .setDecompressionSupported(httpClientProperties.getUseCompression())
+                .setDecompressionSupported(httpClientProperties.getUseDecompression())
                 .setConnectTimeout(httpClientProperties.getConnectTimeoutMs())
                 // Vert.x's HttpClientRequest needs this value to be 2 for redirections to be followed once,
                 // 3 for twice, and so on

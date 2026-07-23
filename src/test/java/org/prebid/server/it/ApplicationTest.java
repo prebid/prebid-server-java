@@ -136,9 +136,7 @@ public class ApplicationTest extends IntegrationTest {
         // pre-bid cache
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToBidCacheRequest(
-                        jsonFrom(
-                                "openrtb2/multi_bid/test-cache-generic-genericAlias-request.json"
-                        )))
+                        jsonFrom("openrtb2/multi_bid/test-cache-generic-genericAlias-request.json")))
                 .willReturn(aResponse()
                         .withTransformers("cache-response-transformer")
                         .withTransformerParameter("matcherName",
@@ -324,7 +322,7 @@ public class ApplicationTest extends IntegrationTest {
                                         + "&gpp_sid="
                                         + "&f=i"
                                         + "&uid=host-cookie-uid",
-                                UsersyncMethodType.REDIRECT, false))
+                                UsersyncMethodType.REDIRECT))
                         .build(),
                 BidderUsersyncStatus.builder()
                         .bidder(APPNEXUS)
@@ -337,7 +335,7 @@ public class ApplicationTest extends IntegrationTest {
                                         + "%26gpp_sid%3D"
                                         + "%26f%3Di"
                                         + "%26uid%3D%24UID",
-                                UsersyncMethodType.REDIRECT, false))
+                                UsersyncMethodType.REDIRECT))
                         .build());
     }
 
