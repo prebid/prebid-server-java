@@ -230,7 +230,7 @@ public class SetuidHandler implements ApplicationResource {
 
         final TcfContext tcfContext = setuidContext.getPrivacyContext().getTcfContext();
         if (tcfContext.isInGdprScope() && !tcfContext.isConsentValid()) {
-            metrics.updateUserSyncTcfInvalidMetric(usersyncer.getCookieFamilyName());
+            metrics.updateUserSyncTcfInvalidMetric(setuidContext.getBidder());
             throw new InvalidRequestException("Consent string is invalid");
         }
 
@@ -254,7 +254,6 @@ public class SetuidHandler implements ApplicationResource {
 
         final TcfContext tcfContext = setuidContext.getPrivacyContext().getTcfContext();
         final RoutingContext routingContext = setuidContext.getRoutingContext();
-        final String cookieFamilyName = setuidContext.getUsersyncer().getCookieFamilyName();
 
         if (hostTcfResponseResult.succeeded()) {
             final CompositeFuture compositeFuture = hostTcfResponseResult.result();
@@ -272,7 +271,7 @@ public class SetuidHandler implements ApplicationResource {
             if (hostVendorTcfResponse.isVendorAllowed() && isBidderVendorAllowed) {
                 respondWithCookie(setuidContext);
             } else {
-                metrics.updateUserSyncTcfBlockedMetric(cookieFamilyName);
+                metrics.updateUserSyncTcfBlockedMetric(setuidContext.getBidder());
 
                 final HttpResponseStatus status = new HttpResponseStatus(UNAVAILABLE_FOR_LEGAL_REASONS,
                         "Unavailable for legal reasons");
@@ -287,7 +286,7 @@ public class SetuidHandler implements ApplicationResource {
             }
         } else {
             final Throwable error = hostTcfResponseResult.cause();
-            metrics.updateUserSyncTcfBlockedMetric(cookieFamilyName);
+            metrics.updateUserSyncTcfBlockedMetric(setuidContext.getBidder());
             handleErrors(error, routingContext, tcfContext);
         }
     }
@@ -304,7 +303,7 @@ public class SetuidHandler implements ApplicationResource {
                 .forEach(routingContext.response()::addCookie);
 
         if (uidsCookieUpdateResult.isUpdated()) {
-            metrics.updateUserSyncSetsMetric(cookieFamilyName);
+            metrics.updateUserSyncSetsMetric(setuidContext.getBidder());
         }
         final int statusCode = HttpResponseStatus.OK.code();
         HttpUtil.executeSafely(routingContext, Endpoint.setuid, buildCookieResponseConsumer(setuidContext, statusCode));
