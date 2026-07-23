@@ -18,7 +18,8 @@ class Banner {
     Integer pos
     List<String> mimes
     Integer topframe
-    List<Integer> expdir
+    @JsonProperty("expdir")
+    List<Integer> expandableDirections
     List<Integer> api
     String id
     Integer vcm

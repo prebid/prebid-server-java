@@ -1,15 +1,19 @@
 package org.prebid.server.functional.model.request.auction
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.annotation.JsonValue
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 
+@EqualsAndHashCode
 @ToString
 @EqualsAndHashCode
 class DeviceExt {
 
     Atts atts
     String cdep
+    @JsonProperty("ifa_type")
+    String ifaType
     DevicePrebid prebid
 
     enum Atts {

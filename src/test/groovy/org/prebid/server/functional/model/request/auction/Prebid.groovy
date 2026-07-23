@@ -54,4 +54,6 @@ class Prebid {
     Boolean supportDeals
     String integration
     Map<String, String> bidders
+    String outputFormat
+    String outputModule
 }
