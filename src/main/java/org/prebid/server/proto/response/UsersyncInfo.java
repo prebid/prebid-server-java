@@ -1,6 +1,5 @@
 package org.prebid.server.proto.response;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Value;
 import org.prebid.server.bidder.UsersyncMethodType;
 
@@ -15,7 +14,4 @@ public class UsersyncInfo {
     String url;
 
     UsersyncMethodType type;
-
-    @JsonProperty("supportCORS")
-    Boolean supportCORS;
 }
