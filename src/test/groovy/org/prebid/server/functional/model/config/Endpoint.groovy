@@ -6,16 +6,20 @@ import groovy.transform.ToString
 @ToString
 enum Endpoint {
 
-    OPENRTB2_AUCTION("/openrtb2/auction"),
-    OPENRTB2_AMP("/openrtb2/amp"),
-    OPENRTB2_VIDEO("/openrtb2/video"),
+    AUCTION("/openrtb2/auction"),
+    AMP("/openrtb2/amp"),
+    VIDEO("/openrtb2/video"),
     COOKIE_SYNC("/cookie_sync"),
     SETUID("/setuid"),
     BIDDER_PARAMS("/bidders/params"),
     EVENT("/event"),
     GETUIDS("/getuids"),
     INFO_BIDDERS("/info/bidders"),
-    OPTOUT("/optout"),
+    CURRENCY_RATES("/currency/rates"),
+    HTTP_INTERACTION("/logging/httpinteraction"),
+    COLLECTED_METRICS("/collected-metrics"),
+    PROMETHEUS_METRICS ("/metrics"),
+    INFLUX_DB("/query"),
     STATUS("/status"),
     VTRACK("/vtrack")
 
