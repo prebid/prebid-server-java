@@ -17,17 +17,18 @@
     <description>Umbrellas all PBS modules</description>
 
     <modules>
-        <module>ortb2-blocking</module>
-        <module>confiant-ad-quality</module>
+        <module>pb-ortb2-blocking</module>
         <module>pb-richmedia-filter</module>
-        <module>fiftyone-devicedetection</module>
         <module>pb-response-correction</module>
-        <module>greenbids-real-time-data</module>
         <module>pb-request-correction</module>
+        <module>pb-rule-engine</module>
+
+        <module>confiant-ad-quality</module>
+        <module>fiftyone-devicedetection</module>
+        <module>greenbids-real-time-data</module>
         <module>optable-targeting</module>
         <module>wurfl-devicedetection</module>
         <module>live-intent-omni-channel-identity</module>
-        <module>pb-rule-engine</module>
     </modules>
 
     <dependencyManagement>
