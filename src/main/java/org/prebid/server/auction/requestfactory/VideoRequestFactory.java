@@ -51,7 +51,6 @@ public class VideoRequestFactory {
     private static final int DEFAULT_CACHE_LOG_TTL = 3600;
     private static final String ENDPOINT = Endpoint.openrtb2_video.value();
 
-    private final int maxRequestSize;
     private final boolean enforceStoredRequest;
     private final Pattern escapeLogCacheRegexPattern;
 
@@ -64,8 +63,7 @@ public class VideoRequestFactory {
     private final JacksonMapper mapper;
     private final GeoLocationServiceWrapper geoLocationServiceWrapper;
 
-    public VideoRequestFactory(int maxRequestSize,
-                               boolean enforceStoredRequest,
+    public VideoRequestFactory(boolean enforceStoredRequest,
                                String escapeLogCacheRegex,
                                Ortb2RequestFactory ortb2RequestFactory,
                                VideoStoredRequestProcessor storedRequestProcessor,
@@ -77,7 +75,6 @@ public class VideoRequestFactory {
                                GeoLocationServiceWrapper geoLocationServiceWrapper) {
 
         this.enforceStoredRequest = enforceStoredRequest;
-        this.maxRequestSize = maxRequestSize;
         this.ortb2RequestFactory = Objects.requireNonNull(ortb2RequestFactory);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.ortbVersionConversionManager = Objects.requireNonNull(ortbVersionConversionManager);
@@ -176,10 +173,6 @@ public class VideoRequestFactory {
         final String body = routingContext.body().asString();
         if (body == null) {
             throw new InvalidRequestException("Incoming request has no body");
-        }
-
-        if (body.length() > maxRequestSize) {
-            throw new InvalidRequestException("Request size exceeded max size of %d bytes.".formatted(maxRequestSize));
         }
 
         return body;

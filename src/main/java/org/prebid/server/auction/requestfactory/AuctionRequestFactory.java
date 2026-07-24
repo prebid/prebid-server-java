@@ -39,7 +39,6 @@ import java.util.Optional;
  */
 public class AuctionRequestFactory {
 
-    private final long maxRequestSize;
     private final Ortb2RequestFactory ortb2RequestFactory;
     private final StoredRequestProcessor storedRequestProcessor;
     private final ProfilesProcessor profilesProcessor;
@@ -58,8 +57,7 @@ public class AuctionRequestFactory {
 
     private static final String ENDPOINT = Endpoint.openrtb2_auction.value();
 
-    public AuctionRequestFactory(long maxRequestSize,
-                                 Ortb2RequestFactory ortb2RequestFactory,
+    public AuctionRequestFactory(Ortb2RequestFactory ortb2RequestFactory,
                                  StoredRequestProcessor storedRequestProcessor,
                                  ProfilesProcessor profilesProcessor,
                                  BidRequestOrtbVersionConversionManager ortbVersionConversionManager,
@@ -75,7 +73,6 @@ public class AuctionRequestFactory {
                                  GeoLocationServiceWrapper geoLocationServiceWrapper,
                                  BidAdjustmentsEnricher bidAdjustmentsEnricher) {
 
-        this.maxRequestSize = maxRequestSize;
         this.ortb2RequestFactory = Objects.requireNonNull(ortb2RequestFactory);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.profilesProcessor = Objects.requireNonNull(profilesProcessor);
@@ -165,10 +162,6 @@ public class AuctionRequestFactory {
         final String body = routingContext.body().asString();
         if (body == null) {
             throw new InvalidRequestException("Incoming request has no body");
-        }
-
-        if (body.length() > maxRequestSize) {
-            throw new InvalidRequestException("Request size exceeded max size of %d bytes.".formatted(maxRequestSize));
         }
 
         return body;

@@ -12,9 +12,12 @@ import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.spring.config.metrics.MetricsConfiguration;
 import org.prebid.server.vertx.ContextRunner;
+import org.prebid.server.vertx.http.ParametrizedDecompressionHandler;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import jakarta.validation.constraints.Min;
 
 @Configuration
 public class VertxConfiguration {
@@ -55,8 +58,18 @@ public class VertxConfiguration {
     }
 
     @Bean
-    BodyHandler bodyHandler(@Value("${vertx.uploads-dir}") String uploadsDir) {
-        return BodyHandler.create(uploadsDir);
+    BodyHandler bodyHandler(@Value("${vertx.uploads-dir}") String uploadsDir,
+                            @Value("${server.max-body-size}") @Min(0) long maxBodySize) {
+
+        return BodyHandler.create(uploadsDir)
+                .setBodyLimit(maxBodySize);
+    }
+
+    @Bean
+    ParametrizedDecompressionHandler gzipParamDecompressionHandler(
+            @Value("${server.max-body-size}") @Min(0) int maxBodySize) {
+
+        return new ParametrizedDecompressionHandler(maxBodySize);
     }
 
     @Bean

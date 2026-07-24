@@ -141,7 +141,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 import org.springframework.context.annotation.ScopedProxyMode;
 
-import jakarta.validation.constraints.Min;
 import java.io.IOException;
 import java.time.Clock;
 import java.util.ArrayList;
@@ -471,7 +470,6 @@ public class ServiceConfiguration {
 
     @Bean
     AuctionRequestFactory auctionRequestFactory(
-            @Value("${auction.max-request-size}") @Min(0) int maxRequestSize,
             Ortb2RequestFactory ortb2RequestFactory,
             StoredRequestProcessor storedRequestProcessor,
             ProfilesProcessor profilesProcessor,
@@ -488,7 +486,6 @@ public class ServiceConfiguration {
             BidAdjustmentsEnricher bidAdjustmentsEnricher) {
 
         return new AuctionRequestFactory(
-                maxRequestSize,
                 ortb2RequestFactory,
                 storedRequestProcessor,
                 profilesProcessor,
@@ -558,7 +555,6 @@ public class ServiceConfiguration {
 
     @Bean
     VideoRequestFactory videoRequestFactory(
-            @Value("${auction.max-request-size}") int maxRequestSize,
             @Value("${video.stored-request-required}") boolean enforceStoredRequest,
             @Value("${auction.video.escape-log-cache-regex:#{null}}") String escapeLogCacheRegex,
             Ortb2RequestFactory ortb2RequestFactory,
@@ -571,7 +567,6 @@ public class ServiceConfiguration {
             GeoLocationServiceWrapper geoLocationServiceWrapper) {
 
         return new VideoRequestFactory(
-                maxRequestSize,
                 enforceStoredRequest,
                 escapeLogCacheRegex,
                 ortb2RequestFactory,
