@@ -310,6 +310,34 @@ public class QueryBuilderTest {
         assertThat(query).doesNotContain("&bundle=", "&ver=");
     }
 
+    @Test
+    public void shouldAppendId5SignatureWhenPresent() {
+        // given
+        final OptableAttributes attributes = OptableAttributes.builder()
+                .id5Signature("signature")
+                .build();
+        final List<Id> ids = List.of(Id.of(Id.EMAIL, "email"));
+
+        // when
+        final String query = QueryBuilder.build(ids, attributes, properties()).toQueryString();
+
+        // then
+        assertThat(query).contains("&id5_signature=signature");
+    }
+
+    @Test
+    public void shouldNotAppendId5SignatureWhenNull() {
+        // given
+        final OptableAttributes attributes = OptableAttributes.builder().build();
+        final List<Id> ids = List.of(Id.of(Id.EMAIL, "email"));
+
+        // when
+        final String query = QueryBuilder.build(ids, attributes, properties()).toQueryString();
+
+        // then
+        assertThat(query).doesNotContain("&id5_signature=");
+    }
+
     private OptableAttributes givenOptableAttributes() {
         return OptableAttributes.builder()
                 .timeout(100L)

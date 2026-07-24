@@ -14,7 +14,7 @@ import java.util.List;
 public class BidRequestCleaner implements PayloadUpdate<AuctionRequestPayload> {
 
     private static final String OPTABLE_FIELD = "optable";
-    private static final List<String> FIELDS_TO_REMOVE = List.of("email", "phone", "zip", "vid");
+    private static final List<String> FIELDS_TO_REMOVE = List.of("email", "phone", "zip", "vid", "id5_signature");
 
     public static BidRequestCleaner instance() {
         return new BidRequestCleaner();

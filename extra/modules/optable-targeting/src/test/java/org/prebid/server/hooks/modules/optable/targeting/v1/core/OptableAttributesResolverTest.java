@@ -1,9 +1,12 @@
 package org.prebid.server.hooks.modules.optable.targeting.v1.core;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.gpp.encoder.GppModel;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.User;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -84,34 +87,6 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
                 .returns("consent", OptableAttributes::getGdprConsent);
     }
 
-    private BidRequest givenBidRequestWithGdprORTB26(boolean isGdprEnabled, String consent) {
-        final User user = User.builder()
-                .consent(consent)
-                .build();
-
-        return BidRequest.builder()
-                .user(user)
-                .regs(Regs.builder()
-                        .gdpr(isGdprEnabled ? 1 : 0)
-                        .build())
-                .build();
-    }
-
-    private BidRequest givenBidRequestWithGdprORTB25(boolean isGdprEnabled, String consent) {
-        final User user = User.builder()
-                .ext(ExtUser.builder()
-                        .consent(consent)
-                        .build())
-                .build();
-
-        return BidRequest.builder()
-                .user(user)
-                .regs(Regs.builder()
-                        .ext(ExtRegs.of(isGdprEnabled ? 1 : 0, null, null, null))
-                        .build())
-                .build();
-    }
-
     @Test
     public void shouldNotResolveTcfAttributesWhenConsentIsNotValid() {
         // given
@@ -189,6 +164,77 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
         // then
         assertThat(result).isNotNull()
                 .returns(null, OptableAttributes::getApp);
+    }
+
+    @Test
+    public void shouldResolveId5SignatureWhenPresentInUserExtOptable() {
+        // given
+        final BidRequest bidRequest = givenBidRequestWithId5Signature("signature");
+        final AuctionContext auctionContext = givenAuctionContext(bidRequest, tcfContext, gppContext);
+
+        // when
+        final OptableAttributes result = OptableAttributesResolver.resolveAttributes(
+                auctionContext, properties.getTimeout());
+
+        // then
+        assertThat(result).isNotNull()
+                .returns("signature", OptableAttributes::getId5Signature);
+    }
+
+    @Test
+    public void shouldNotResolveId5SignatureWhenAbsentInUserExtOptable() {
+        // given
+        final BidRequest bidRequest = givenBidRequestWithId5Signature(null);
+        final AuctionContext auctionContext = givenAuctionContext(bidRequest, tcfContext, gppContext);
+
+        // when
+        final OptableAttributes result = OptableAttributesResolver.resolveAttributes(
+                auctionContext, properties.getTimeout());
+
+        // then
+        assertThat(result).isNotNull()
+                .returns(null, OptableAttributes::getId5Signature);
+    }
+
+    private BidRequest givenBidRequestWithId5Signature(String signature) {
+        final ObjectNode optable = mapper.createObjectNode();
+        if (StringUtils.isNotEmpty(signature)) {
+            optable.set("id5_signature", TextNode.valueOf(signature));
+        }
+
+        final ExtUser extUser = ExtUser.builder().build();
+        extUser.addProperty("optable", optable);
+        final User user = User.builder().ext(extUser).build();
+
+        return BidRequest.builder().user(user).build();
+    }
+
+    private BidRequest givenBidRequestWithGdprORTB26(boolean isGdprEnabled, String consent) {
+        final User user = User.builder()
+                .consent(consent)
+                .build();
+
+        return BidRequest.builder()
+                .user(user)
+                .regs(Regs.builder()
+                        .gdpr(isGdprEnabled ? 1 : 0)
+                        .build())
+                .build();
+    }
+
+    private BidRequest givenBidRequestWithGdprORTB25(boolean isGdprEnabled, String consent) {
+        final User user = User.builder()
+                .ext(ExtUser.builder()
+                        .consent(consent)
+                        .build())
+                .build();
+
+        return BidRequest.builder()
+                .user(user)
+                .regs(Regs.builder()
+                        .ext(ExtRegs.of(isGdprEnabled ? 1 : 0, null, null, null))
+                        .build())
+                .build();
     }
 
     public AuctionContext givenAuctionContext(BidRequest bidRequest, TcfContext tcfContext, GppContext gppContext) {

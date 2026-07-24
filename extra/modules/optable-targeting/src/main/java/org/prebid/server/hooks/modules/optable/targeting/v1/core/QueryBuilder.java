@@ -134,6 +134,9 @@ public class QueryBuilder {
                     }
                 });
 
+        Optional.ofNullable(optableAttributes.getId5Signature())
+                .ifPresent(id5Signature -> sb.append("&id5_signature=").append(id5Signature));
+
         return sb.toString();
     }
 }

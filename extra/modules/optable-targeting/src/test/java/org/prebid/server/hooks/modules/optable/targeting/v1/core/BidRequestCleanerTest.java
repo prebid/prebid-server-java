@@ -33,7 +33,8 @@ public class BidRequestCleanerTest extends BaseOptableTest {
         // given
         final User user = givenUser();
         ((com.fasterxml.jackson.databind.node.ObjectNode) user.getExt().getProperty("optable"))
-                .put("other", "value");
+                .put("other", "value")
+                .put("id5_signature", "signature");
 
         final AuctionRequestPayload auctionRequestPayload = AuctionRequestPayloadImpl.of(givenBidRequest(bidRequest ->
                 bidRequest.user(user)));
@@ -50,6 +51,7 @@ public class BidRequestCleanerTest extends BaseOptableTest {
                 .satisfies(optable -> {
                     assertThat(optable.has("other")).isTrue();
                     assertThat(optable.has("email")).isFalse();
+                    assertThat(optable.has("id5_signature")).isFalse();
                 });
     }
 }

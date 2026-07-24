@@ -25,4 +25,6 @@ public class OptableAttributes {
     Long timeout;
 
     App app;
+
+    String id5Signature;
 }
