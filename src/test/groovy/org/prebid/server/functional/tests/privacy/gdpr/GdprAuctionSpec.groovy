@@ -359,6 +359,10 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         and: "Flush metrics"
         flushMetrics(privacyPbsService)
 
+        and: "Mock responses"
+        bidder.setResponse()
+        vendorListResponse.setResponse(TCF_POLICY_V5)
+
         when: "PBS processes auction request"
         def response = privacyPbsService.sendAuctionRequest(bidRequest)
 
@@ -1310,7 +1314,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         def olderVendorList = VendorListResponse.Vendor.getDefaultVendor(GENERIC_VENDOR_ID).tap {
             deletedDate = ZonedDateTime.now().minusSeconds(1)
         }
-        downloadLiveGvtList(VENDOR_LIST_VERSION, olderVendorList, Times.once())
+        downloadLiveGvtList(VENDOR_LIST_VERSION, olderVendorList, 1)
 
         and: "PBS with a high-frequency live GVL refresh config"
         def config = REFRESH_LIVE_VENDOR_LIST_CONFIG + ['gdpr.vendorlist.live.refresh-period-ms': '1000']
@@ -1323,7 +1327,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         def newerVendorList = VendorListResponse.Vendor.getDefaultVendor(GENERIC_VENDOR_ID).tap {
             deletedDate = ZonedDateTime.now().plusYears(1)
         }
-        downloadLiveGvtList(VENDOR_LIST_VERSION + 1, newerVendorList, Times.once())
+        downloadLiveGvtList(VENDOR_LIST_VERSION + 1, newerVendorList, 1)
         pbsWithLiveGvlSetup.isContainMetricByValue('privacy.tcf.vendorlist.live.ok')
 
         and: "GVL list is warmed up for PBS"
@@ -1373,7 +1377,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
     private static void downloadLiveGvtList(
             Integer vendorListVersion = VENDOR_LIST_VERSION,
             VendorListResponse.Vendor vendor = VendorListResponse.Vendor.getDefaultVendor(GENERIC_VENDOR_ID),
-            Times times = Times.unlimited()) {
+            Integer times =  Integer.MAX_VALUE) {
 
         liveVendorListResponse.reset()
         liveVendorListResponse.setResponse(TCF_POLICY_V5, null, [(vendor.id): vendor], vendorListVersion, times)
@@ -1389,6 +1393,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
                 .build()
 
         vendorList.reset()
+        bidder.setResponse()
         vendorList.setResponse(TCF_POLICY_V2, null, [(vendor.id): vendor])
 
         def bidRequest = getGdprBidRequest(simpleTcfString)
