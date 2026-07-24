@@ -1,6 +1,5 @@
 package org.prebid.server.spring.config.bidder;
 
-import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.yahooads.YahooAdsBidder;
 import org.prebid.server.json.JacksonMapper;
@@ -26,12 +25,11 @@ public class YahooAdsConfiguration {
 
     @Bean
     BidderDeps yahooAdsBidderDeps(BidderConfigurationProperties yahooAdsConfigurationProperties,
-                                  JacksonMapper mapper,
-                                  BidRequestOrtbVersionConversionManager conversionManager) {
+                                  JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(yahooAdsConfigurationProperties)
-                .bidderCreator(config -> new YahooAdsBidder(config.getEndpoint(), conversionManager, mapper))
+                .bidderCreator(config -> new YahooAdsBidder(config.getEndpoint(), mapper))
                 .assemble();
     }
 }
