@@ -359,7 +359,7 @@ class CacheVtrackSpec extends BaseSpec {
 
         and: "Verify parameters that came to external cache services"
         def requestParams = prebidCache.getVTracGetRequestParams()
-        assert requestParams == "[{ch=[$cacheHost], uuid=[$uuid]}]"
+        assert requestParams == "[[uuid:[$uuid], ch:[$cacheHost]]]"
     }
 
     def "PBS should return 200 status code when internal cache and get vtrack request contain uuid"() {
@@ -388,7 +388,7 @@ class CacheVtrackSpec extends BaseSpec {
 
         and: "Verify parameters that came to external cache services"
         def requestParams = prebidCache.getVTracGetRequestParams()
-        assert requestParams == "[{uuid=[$uuid]}]"
+        assert requestParams == "[[uuid:[$uuid]]]"
     }
 
     def "PBS should return status code that came from pbc when internal cache and get vtrack request and response from pbc invalid"() {
@@ -416,7 +416,7 @@ class CacheVtrackSpec extends BaseSpec {
 
         and: "Verify parameters that came to external cache services"
         def requestParams = prebidCache.getVTracGetRequestParams()
-        assert requestParams == "[{uuid=[$uuid]}]"
+        assert requestParams == "[[uuid:[$uuid]]]"
     }
 
     def "PBS should return 400 status code when internal cache and get vtrack request without uuid"() {
