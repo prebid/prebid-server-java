@@ -35,7 +35,7 @@ import static org.prebid.server.bidder.model.BidderError.badServerResponse;
 
 public class RediadsBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "http://{{SUBDOMAIN}}.domain.com/path";
+    private static final String ENDPOINT_URL = "http://{SUBDOMAIN}.domain.com/path";
 
     private final RediadsBidder target = new RediadsBidder(ENDPOINT_URL, jacksonMapper, "subdomain");
 

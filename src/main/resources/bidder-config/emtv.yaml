@@ -16,6 +16,5 @@ adapters:
     usersync:
       cookie-family-name: emtv
       redirect:
-        url: https://cs.engagemedia.tv/pbserver?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&redir={{redirect_url}}
-        support-cors: false
+        url: https://cs.engagemedia.tv/pbserver?gdpr={gdpr}&gdpr_consent={gdpr_consent}&ccpa={us_privacy}&redir={redirect_url}
         uid-macro: '[UID]'

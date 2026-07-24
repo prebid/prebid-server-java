@@ -21,7 +21,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.brave.ExtImpBrave;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.Collection;
 import java.util.List;
@@ -30,18 +30,17 @@ import java.util.stream.IntStream;
 
 public class BraveBidder implements Bidder<BidRequest> {
 
-    private static final String PUBLISHER_MACRO = "{{.PublisherID}}";
-
+    private static final String PUBLISHER_MACRO = "PublisherID";
     private static final String BIDDER_CURRENCY = "USD";
 
     private static final TypeReference<ExtPrebid<?, ExtImpBrave>> BRAVE_TYPE_REFERENCE = new TypeReference<>() {
     };
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public BraveBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -80,7 +79,7 @@ public class BraveBidder implements Bidder<BidRequest> {
     }
 
     private String resolveEndpoint(String publisherId) {
-        return endpointUrl.replace(PUBLISHER_MACRO, StringUtils.stripToEmpty(publisherId));
+        return endpointUrl.replaceMacro(PUBLISHER_MACRO, StringUtils.stripToEmpty(publisherId)).expand();
     }
 
     @Override

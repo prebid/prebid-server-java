@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.databind.annotation.JsonNaming
 import groovy.transform.ToString
-import org.prebid.server.functional.model.ModuleName
 
 @ToString(includeNames = true, ignoreNulls = true)
 @JsonNaming(PropertyNamingStrategies.KebabCaseStrategy)
@@ -19,7 +18,7 @@ class ExecutionGroup {
     static ExecutionGroup getModuleExecutionGroup(ModuleName name, Stage stage) {
         new ExecutionGroup().tap {
             timeout = 1000
-            hookSequence = [new HookId(moduleCode: name.code, hookImplCode: ModuleHookImplementation.forValue(name, stage).code)]
+            hookSequence = [new HookId(moduleCode: name.code, hookImplCode: "${name.code}-$stage-hook")]
         }
     }
 }

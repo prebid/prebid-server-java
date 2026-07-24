@@ -17,8 +17,6 @@ import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.verticles.server.HttpEndpoint;
 import org.prebid.server.vertx.verticles.server.application.ApplicationResource;
 
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.List;
 import java.util.Objects;
 
@@ -121,9 +119,8 @@ public class OptoutHandler implements ApplicationResource {
 
     public static String getOptoutRedirectUrl(String externalUrl) {
         try {
-            final URL url = new URL(externalUrl);
-            return new URL(url.toExternalForm() + "/static/optout.html").toString();
-        } catch (MalformedURLException e) {
+            return HttpUtil.parseUrl(externalUrl + "/static/optout.html").toString();
+        } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("Could not get optout redirect url", e);
         }
     }

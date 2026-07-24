@@ -44,7 +44,7 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 public class TaboolaBidderTest extends VertxTest {
 
     private final TaboolaBidder target = new TaboolaBidder(
-            "https://{{MediaType}}.bidder.taboola.com/OpenRTB/PS/auction/{{GvlID}}/{{PublisherID}}",
+            "https://{MediaType}.bidder.taboola.com/OpenRTB/PS/auction/{GvlID}/{PublisherID}",
             1,
             jacksonMapper);
 
@@ -606,7 +606,7 @@ public class TaboolaBidderTest extends VertxTest {
                                               Imp... imps) {
         return bidRequestCustomizer.apply(BidRequest.builder()
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .server(ExtRequestPrebidServer.of(null, 1, null, null))
+                        .server(ExtRequestPrebidServer.of(null, 1, null, null, null))
                         .build())).imp(List.of(imps))).build();
     }
 

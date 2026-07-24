@@ -16,7 +16,7 @@ enum HookHttpEndpoint {
 
     VIDEO("/openrtb2/video"),
     VIDEO_GET("GET /openrtb2/video"),
-    VIDEO_POST("POST /openrtb2/video"),
+    VIDEO_POST("POST /openrtb2/video")
 
     @JsonValue
     final String value

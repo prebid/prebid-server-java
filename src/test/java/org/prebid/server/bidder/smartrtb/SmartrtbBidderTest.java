@@ -38,7 +38,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 
 public class SmartrtbBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.endpoint.com/";
+    private static final String ENDPOINT_URL = "https://test.endpoint.com?pubid={PubId}";
 
     private final SmartrtbBidder target = new SmartrtbBidder(ENDPOINT_URL, jacksonMapper);
 
@@ -95,7 +95,7 @@ public class SmartrtbBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().getFirst().getUri()).isEqualTo(ENDPOINT_URL + "publisherID");
+        assertThat(result.getValue().getFirst().getUri()).isEqualTo("https://test.endpoint.com?pubid=publisherID");
     }
 
     @Test
@@ -110,7 +110,7 @@ public class SmartrtbBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsOnly("https://test.endpoint.com/publisherID");
+                .containsOnly("https://test.endpoint.com?pubid=publisherID");
         assertThat(result.getValue().getFirst().getHeaders()).isNotNull()
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(tuple(HttpUtil.X_OPENRTB_VERSION_HEADER.toString(), "2.5"),

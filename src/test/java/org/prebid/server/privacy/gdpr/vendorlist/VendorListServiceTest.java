@@ -2,17 +2,13 @@ package org.prebid.server.privacy.gdpr.vendorlist;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.core.file.FileSystem;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.exception.PreBidException;
@@ -26,7 +22,6 @@ import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorList;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
-import java.io.File;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -34,7 +29,6 @@ import java.util.Map;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singleton;
-import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -42,9 +36,11 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.prebid.server.assertion.FutureAssertion.assertThat;
@@ -61,8 +57,6 @@ public class VendorListServiceTest extends VertxTest {
 
     @Mock
     private Vertx vertx;
-    @Mock
-    private FileSystem fileSystem;
     @Mock(strictness = LENIENT)
     private HttpClient httpClient;
     @Mock
@@ -71,19 +65,17 @@ public class VendorListServiceTest extends VertxTest {
     private BidderCatalog bidderCatalog;
     @Mock(strictness = LENIENT)
     private VendorListFetchThrottler fetchThrottler;
+    @Mock(strictness = LENIENT)
+    private VendorListFileStore vendorListFileStore;
 
     private VendorListService target;
 
     @BeforeEach
     public void setUp() throws JsonProcessingException {
-        given(fileSystem.existsBlocking(anyString())).willReturn(false); // always create cache dir
-
         given(bidderCatalog.knownVendorIds()).willReturn(singleton(52));
-
-        given(fileSystem.readFileBlocking(eq(FALLBACK_VENDOR_LIST_PATH)))
-                .willReturn(Buffer.buffer(mapper.writeValueAsString(givenVendorList())));
-
         given(fetchThrottler.registerFetchAttempt(anyInt())).willReturn(true);
+        given(vendorListFileStore.readFallbackVendorList(isNull())).willReturn(null);
+        given(vendorListFileStore.readFallbackVendorList(eq(FALLBACK_VENDOR_LIST_PATH))).willReturn(givenVendorMap());
 
         target = new VendorListService(
                 0,
@@ -94,44 +86,72 @@ public class VendorListServiceTest extends VertxTest {
                 false,
                 FALLBACK_VENDOR_LIST_PATH,
                 vertx,
-                fileSystem,
                 httpClient,
                 metrics,
                 GENERATION_VERSION,
-                jacksonMapper,
-                fetchThrottler);
+                fetchThrottler,
+                vendorListFileStore,
+                jacksonMapper);
     }
 
     // Creation related tests
 
     @Test
-    public void creationShouldFailsIfCannotCreateCacheDir() {
-        // given
-        given(fileSystem.mkdirsBlocking(anyString())).willThrow(new RuntimeException("dir creation error"));
+    public void creationShouldCreateCacheFromDisk() {
+        reset(vendorListFileStore);
+
+        // given and when
+        new VendorListService(
+                0,
+                CACHE_DIR,
+                "http://vendorlist/{VERSION}",
+                0,
+                REFRESH_MISSING_LIST_PERIOD_MS,
+                false,
+                FALLBACK_VENDOR_LIST_PATH,
+                vertx,
+                httpClient,
+                metrics,
+                GENERATION_VERSION,
+                fetchThrottler,
+                vendorListFileStore,
+                jacksonMapper);
 
         // then
-        assertThatThrownBy(
-                () -> new VendorListService(
-                        0,
-                        CACHE_DIR,
-                        "http://vendorlist/%s",
-                        0,
-                        REFRESH_MISSING_LIST_PERIOD_MS,
-                        false,
-                        FALLBACK_VENDOR_LIST_PATH,
-                        vertx,
-                        fileSystem,
-                        httpClient,
-                        metrics,
-                        GENERATION_VERSION,
-                        jacksonMapper,
-                        fetchThrottler))
-                .hasMessage("dir creation error");
+        verify(vendorListFileStore).createCacheFromDisk(eq(CACHE_DIR));
+    }
+
+    @Test
+    public void creationShouldFailIfCannotCreateCache() {
+        // given
+        given(vendorListFileStore.createCacheFromDisk(anyString()))
+                .willThrow(new RuntimeException("error creating cache"));
+
+        // when and then
+        assertThatThrownBy(() -> new VendorListService(
+                0,
+                CACHE_DIR,
+                "http://vendorlist/{VERSION}",
+                0,
+                REFRESH_MISSING_LIST_PERIOD_MS,
+                true,
+                null,
+                vertx,
+                httpClient,
+                metrics,
+                GENERATION_VERSION,
+                fetchThrottler,
+                vendorListFileStore,
+                jacksonMapper))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessage("error creating cache");
     }
 
     @Test
     public void shouldStartUsingFallbackVersionIfDeprecatedIsTrue() {
         // given
+        given(vendorListFileStore.readFallbackVendorList(anyString())).willReturn(givenVendorMap());
+
         target = new VendorListService(
                 0,
                 CACHE_DIR,
@@ -141,12 +161,12 @@ public class VendorListServiceTest extends VertxTest {
                 true,
                 FALLBACK_VENDOR_LIST_PATH,
                 vertx,
-                fileSystem,
                 httpClient,
                 metrics,
                 GENERATION_VERSION,
-                jacksonMapper,
-                fetchThrottler);
+                fetchThrottler,
+                vendorListFileStore,
+                jacksonMapper);
 
         // when
         final Future<Map<Integer, Vendor>> future = target.forVersion(1);
@@ -177,94 +197,14 @@ public class VendorListServiceTest extends VertxTest {
                 true,
                 null,
                 vertx,
-                fileSystem,
                 httpClient,
                 metrics,
                 GENERATION_VERSION,
-                jacksonMapper,
-                fetchThrottler))
+                fetchThrottler,
+                vendorListFileStore,
+                jacksonMapper))
                 .isInstanceOf(PreBidException.class)
                 .hasMessage("No fallback vendorList for deprecated version present");
-    }
-
-    @Test
-    public void creationShouldFailsIfCannotReadFiles() {
-        // given
-        given(fileSystem.readDirBlocking(anyString())).willThrow(new RuntimeException("read error"));
-
-        // then
-        assertThatThrownBy(
-                () -> new VendorListService(
-                        0,
-                        CACHE_DIR,
-                        "http://vendorlist/%s",
-                        0,
-                        REFRESH_MISSING_LIST_PERIOD_MS,
-                        false,
-                        FALLBACK_VENDOR_LIST_PATH,
-                        vertx,
-                        fileSystem,
-                        httpClient,
-                        metrics,
-                        GENERATION_VERSION,
-                        jacksonMapper,
-                        fetchThrottler))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessage("read error");
-    }
-
-    @Test
-    public void creationShouldFailsIfCannotReadAtLeastOneVendorListFile() {
-        // given
-        given(fileSystem.readDirBlocking(anyString())).willReturn(singletonList("1.json"));
-        given(fileSystem.readFileBlocking(anyString())).willThrow(new RuntimeException("read error"));
-
-        // then
-        assertThatThrownBy(
-                () -> new VendorListService(
-                        0,
-                        CACHE_DIR,
-                        "http://vendorlist/%s",
-                        0,
-                        REFRESH_MISSING_LIST_PERIOD_MS,
-                        false,
-                        FALLBACK_VENDOR_LIST_PATH,
-                        vertx,
-                        fileSystem,
-                        httpClient,
-                        metrics,
-                        GENERATION_VERSION,
-                        jacksonMapper,
-                        fetchThrottler))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessage("read error");
-    }
-
-    @Test
-    public void creationShouldFailsIfAtLeastOneVendorListFileCannotBeParsed() {
-        // given
-        given(fileSystem.readDirBlocking(anyString())).willReturn(singletonList("1.json"));
-        given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("invalid"));
-
-        // then
-        assertThatThrownBy(
-                () -> new VendorListService(
-                        0,
-                        CACHE_DIR,
-                        "http://vendorlist/%s",
-                        0,
-                        REFRESH_MISSING_LIST_PERIOD_MS,
-                        false,
-                        FALLBACK_VENDOR_LIST_PATH,
-                        vertx,
-                        fileSystem,
-                        httpClient,
-                        metrics,
-                        GENERATION_VERSION,
-                        jacksonMapper,
-                        fetchThrottler))
-                .isInstanceOf(PreBidException.class)
-                .hasMessage("Cannot parse vendor list from: invalid");
     }
 
     // Http related tests
@@ -293,11 +233,11 @@ public class VendorListServiceTest extends VertxTest {
 
         // then
         verify(httpClient, never()).get(anyString(), anyLong());
-        verify(fileSystem, never()).writeFile(any(), any(), any());
+        verify(vendorListFileStore, never()).saveToFile(any(), anyString(), anyString());
     }
 
     @Test
-    public void shouldNotAskToSaveFileIfReadingHttpResponseFails() {
+    public void shouldNotTryToSaveFileIfReadingHttpResponseFails() {
         // given
         givenHttpClientProducesException(new RuntimeException("Response exception"));
 
@@ -306,11 +246,11 @@ public class VendorListServiceTest extends VertxTest {
 
         // then
         verify(httpClient).get(anyString(), anyLong());
-        verify(fileSystem, never()).writeFile(any(), any(), any());
+        verify(vendorListFileStore, never()).saveToFile(any(), anyString(), anyString());
     }
 
     @Test
-    public void shouldNotAskToSaveFileIfResponseCodeIsNot200() {
+    public void shouldNotTryToSaveFileIfResponseCodeIsNot200() {
         // given
         givenHttpClientReturnsResponse(503, null);
 
@@ -319,11 +259,11 @@ public class VendorListServiceTest extends VertxTest {
 
         // then
         verify(httpClient).get(anyString(), anyLong());
-        verify(fileSystem, never()).writeFile(any(), any(), any());
+        verify(vendorListFileStore, never()).saveToFile(any(), anyString(), anyString());
     }
 
     @Test
-    public void shouldNotAskToSaveFileIfResponseBodyCouldNotBeParsed() {
+    public void shouldNotTryToSaveFileIfResponseBodyCouldNotBeParsed() {
         // given
         givenHttpClientReturnsResponse(200, "response");
 
@@ -332,11 +272,11 @@ public class VendorListServiceTest extends VertxTest {
 
         // then
         verify(httpClient).get(anyString(), anyLong());
-        verify(fileSystem, never()).writeFile(any(), any(), any());
+        verify(vendorListFileStore, never()).saveToFile(any(), anyString(), anyString());
     }
 
     @Test
-    public void shouldNotAskToSaveFileIfFetchedVendorListHasInvalidVendorListVersion() throws JsonProcessingException {
+    public void shouldNotTryToSaveFileIfFetchedVendorListHasInvalidVendorListVersion() throws JsonProcessingException {
         // given
         final VendorList vendorList = VendorList.of(null, null, null);
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(vendorList));
@@ -346,11 +286,11 @@ public class VendorListServiceTest extends VertxTest {
 
         // then
         verify(httpClient).get(anyString(), anyLong());
-        verify(fileSystem, never()).writeFile(any(), any(), any());
+        verify(vendorListFileStore, never()).saveToFile(any(), anyString(), anyString());
     }
 
     @Test
-    public void shouldNotAskToSaveFileIfFetchedVendorListHasInvalidLastUpdated() throws JsonProcessingException {
+    public void shouldNotTryToSaveFileIfFetchedVendorListHasInvalidLastUpdated() throws JsonProcessingException {
         // given
         final VendorList vendorList = VendorList.of(1, null, null);
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(vendorList));
@@ -360,11 +300,11 @@ public class VendorListServiceTest extends VertxTest {
 
         // then
         verify(httpClient).get(anyString(), anyLong());
-        verify(fileSystem, never()).writeFile(any(), any(), any());
+        verify(vendorListFileStore, never()).saveToFile(any(), anyString(), anyString());
     }
 
     @Test
-    public void shouldNotAskToSaveFileIfFetchedVendorListHasNoVendors() throws JsonProcessingException {
+    public void shouldNotTryToSaveFileIfFetchedVendorListHasNoVendors() throws JsonProcessingException {
         // given
         final VendorList vendorList = VendorList.of(1, new Date(), null);
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(vendorList));
@@ -374,11 +314,11 @@ public class VendorListServiceTest extends VertxTest {
 
         // then
         verify(httpClient).get(anyString(), anyLong());
-        verify(fileSystem, never()).writeFile(any(), any(), any());
+        verify(vendorListFileStore, never()).saveToFile(any(), anyString(), anyString());
     }
 
     @Test
-    public void shouldNotAskToSaveFileIfFetchedVendorListHasEmptyVendors() throws JsonProcessingException {
+    public void shouldNotTryToSaveFileIfFetchedVendorListHasEmptyVendors() throws JsonProcessingException {
         // given
         final VendorList vendorList = VendorList.of(1, new Date(), emptyMap());
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(vendorList));
@@ -388,11 +328,11 @@ public class VendorListServiceTest extends VertxTest {
 
         // then
         verify(httpClient).get(anyString(), anyLong());
-        verify(fileSystem, never()).writeFile(any(), any(), any());
+        verify(vendorListFileStore, never()).saveToFile(any(), anyString(), anyString());
     }
 
     @Test
-    public void shouldNotAskToSaveFileIfFetchedVendorListHasAtLeastOneInvalidVendor() throws JsonProcessingException {
+    public void shouldNotTryToSaveFileIfFetchedVendorListHasAtLeastOneInvalidVendor() throws JsonProcessingException {
         // given
         final VendorList vendorList = VendorList.of(1, new Date(), singletonMap(1, Vendor.builder().build()));
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(vendorList));
@@ -402,7 +342,7 @@ public class VendorListServiceTest extends VertxTest {
 
         // then
         verify(httpClient).get(anyString(), anyLong());
-        verify(fileSystem, never()).writeFile(any(), any(), any());
+        verify(vendorListFileStore, never()).saveToFile(any(), anyString(), anyString());
     }
 
     // File system related tests
@@ -410,16 +350,20 @@ public class VendorListServiceTest extends VertxTest {
     @Test
     public void shouldSaveFileWithExpectedPathAndContentIfVendorListNotFound() throws JsonProcessingException {
         // given
-        final String vendorListAsString = mapper.writeValueAsString(givenVendorList());
+        final VendorList vendorList = givenVendorList();
+        final String vendorListAsString = mapper.writeValueAsString(vendorList);
         givenHttpClientReturnsResponse(200, vendorListAsString);
-        // generate file path to avoid conflicts with path separators in different OS
-        final String filePath = new File("/cache/dir/1.json").getPath();
+        given(vendorListFileStore.saveToFile(any(), anyString(), anyString()))
+                .willAnswer(inv -> Future.succeededFuture(inv.getArgument(0)));
 
         // when
         target.forVersion(1);
 
         // then
-        verify(fileSystem).writeFile(eq(filePath), eq(Buffer.buffer(vendorListAsString)), any());
+        verify(vendorListFileStore).saveToFile(
+                eq(VendorListResult.of(1, vendorListAsString, vendorList)),
+                eq(CACHE_DIR),
+                eq(GENERATION_VERSION));
     }
 
     // In-memory cache related tests
@@ -456,8 +400,8 @@ public class VendorListServiceTest extends VertxTest {
         // given
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(givenVendorList()));
 
-        given(fileSystem.writeFile(anyString(), any(), any()))
-                .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture()));
+        given(vendorListFileStore.saveToFile(any(), anyString(), anyString()))
+                .willAnswer(inv -> Future.succeededFuture(inv.getArgument(0)));
 
         // when
         target.forVersion(1); // populate cache
@@ -504,8 +448,8 @@ public class VendorListServiceTest extends VertxTest {
         final VendorList vendorList = VendorList.of(1, new Date(), idToVendor);
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(vendorList));
 
-        given(fileSystem.writeFile(anyString(), any(), any()))
-                .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture()));
+        given(vendorListFileStore.saveToFile(any(), anyString(), anyString()))
+                .willAnswer(inv -> Future.succeededFuture(inv.getArgument(0)));
 
         // when
         target.forVersion(1); // populate cache
@@ -572,8 +516,8 @@ public class VendorListServiceTest extends VertxTest {
         // given
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(givenVendorList()));
 
-        given(fileSystem.writeFile(anyString(), any(), any()))
-                .willAnswer(withSelfAndPassObjectToHandler(Future.failedFuture("error")));
+        given(vendorListFileStore.saveToFile(any(), anyString(), anyString()))
+                .willReturn(Future.failedFuture("error"));
 
         // when
         target.forVersion(1);
@@ -587,8 +531,8 @@ public class VendorListServiceTest extends VertxTest {
         // given
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(givenVendorList()));
 
-        given(fileSystem.writeFile(anyString(), any(), any()))
-                .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture()));
+        given(vendorListFileStore.saveToFile(any(), anyString(), anyString()))
+                .willAnswer(inv -> Future.succeededFuture(inv.getArgument(0)));
 
         // when
         target.forVersion(1);
@@ -614,6 +558,10 @@ public class VendorListServiceTest extends VertxTest {
     }
 
     private static VendorList givenVendorList() {
+        return VendorList.of(1, new Date(), givenVendorMap());
+    }
+
+    private static Map<Integer, Vendor> givenVendorMap() {
         final Vendor vendor = Vendor.builder()
                 .id(52)
                 .purposes(EnumSet.of(ONE))
@@ -623,7 +571,7 @@ public class VendorListServiceTest extends VertxTest {
                 .features(EnumSet.noneOf(Feature.class))
                 .specialFeatures(EnumSet.noneOf(SpecialFeature.class))
                 .build();
-        return VendorList.of(1, new Date(), singletonMap(52, vendor));
+        return singletonMap(52, vendor);
     }
 
     private void givenHttpClientReturnsResponse(int statusCode, String response) {
@@ -634,14 +582,5 @@ public class VendorListServiceTest extends VertxTest {
     private void givenHttpClientProducesException(Throwable throwable) {
         given(httpClient.get(anyString(), anyLong()))
                 .willReturn(Future.failedFuture(throwable));
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T> Answer<Object> withSelfAndPassObjectToHandler(T obj) {
-        return inv -> {
-            // invoking handler right away passing mock to it
-            ((Handler<T>) inv.getArgument(2)).handle(obj);
-            return inv.getMock();
-        };
     }
 }

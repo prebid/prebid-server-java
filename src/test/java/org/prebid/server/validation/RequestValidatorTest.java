@@ -635,7 +635,9 @@ public class RequestValidatorTest extends VertxTest {
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .data(ExtRequestPrebidData.of(null,
-                                singletonList(ExtRequestPrebidDataEidPermissions.of("source", null))))
+                                singletonList(ExtRequestPrebidDataEidPermissions.builder()
+                                        .source("source")
+                                        .build())))
                         .build()))
                 .build();
 
@@ -654,7 +656,10 @@ public class RequestValidatorTest extends VertxTest {
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .data(ExtRequestPrebidData.of(null,
-                                singletonList(ExtRequestPrebidDataEidPermissions.of("source", emptyList()))))
+                                singletonList(ExtRequestPrebidDataEidPermissions.builder()
+                                        .source("source")
+                                        .bidders(Collections.emptyList())
+                                        .build())))
                         .build()))
                 .build();
 
@@ -675,7 +680,10 @@ public class RequestValidatorTest extends VertxTest {
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .data(ExtRequestPrebidData.of(null,
                                 singletonList(
-                                        ExtRequestPrebidDataEidPermissions.of("source", singletonList("bidder1")))))
+                                        ExtRequestPrebidDataEidPermissions.builder()
+                                                .source("source")
+                                                .bidders(Collections.singletonList("bidder1"))
+                                                .build())))
                         .build()))
                 .build();
 
@@ -698,7 +706,10 @@ public class RequestValidatorTest extends VertxTest {
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .data(ExtRequestPrebidData.of(null,
                                 singletonList(
-                                        ExtRequestPrebidDataEidPermissions.of("source", singletonList("bidder1")))))
+                                        ExtRequestPrebidDataEidPermissions.builder()
+                                                .source("source")
+                                                .bidders(Collections.singletonList("bidder1"))
+                                                .build())))
                         .build()))
                 .build();
 
@@ -718,7 +729,10 @@ public class RequestValidatorTest extends VertxTest {
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .data(ExtRequestPrebidData.of(null,
                                 singletonList(
-                                        ExtRequestPrebidDataEidPermissions.of("source", singletonList(" ")))))
+                                        ExtRequestPrebidDataEidPermissions.builder()
+                                                .source("source")
+                                                .bidders(Collections.singletonList(" "))
+                                                .build())))
                         .build()))
                 .build();
 
@@ -744,7 +758,10 @@ public class RequestValidatorTest extends VertxTest {
                         .aliases(singletonMap("bidder1Alias", "bidder1"))
                         .data(ExtRequestPrebidData.of(null,
                                 singletonList(
-                                        ExtRequestPrebidDataEidPermissions.of("source", singletonList("bidder1")))))
+                                        ExtRequestPrebidDataEidPermissions.builder()
+                                                .source("source")
+                                                .bidders(Collections.singletonList("bidder1"))
+                                                .build())))
                         .build()))
                 .build();
 
@@ -762,7 +779,10 @@ public class RequestValidatorTest extends VertxTest {
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .data(ExtRequestPrebidData.of(null,
                                 singletonList(
-                                        ExtRequestPrebidDataEidPermissions.of("source", singletonList("*")))))
+                                        ExtRequestPrebidDataEidPermissions.builder()
+                                                .source("source")
+                                                .bidders(Collections.singletonList("*"))
+                                                .build())))
                         .build()))
                 .build();
 
@@ -780,7 +800,9 @@ public class RequestValidatorTest extends VertxTest {
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .data(ExtRequestPrebidData.of(null,
                                 singletonList(
-                                        ExtRequestPrebidDataEidPermissions.of(null, singletonList("bidder1")))))
+                                        ExtRequestPrebidDataEidPermissions.builder()
+                                                .bidders(Collections.singletonList("bidder1"))
+                                                .build())))
                         .build()))
                 .build();
 
@@ -789,7 +811,8 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Missing required value request.ext.prebid.data.eidPermissions[].source");
+                .containsOnly("Missing required parameter(s) in request.ext.prebid.data.eidPermissions[]. "
+                        + "Either one or a combination of inserter, source, matcher, or mm should be defined.");
     }
 
     @Test

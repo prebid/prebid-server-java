@@ -5,6 +5,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import io.vertx.core.http.Cookie;
 import io.vertx.core.http.CookieSameSite;
+import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,6 +27,7 @@ import org.prebid.server.settings.model.AccountPrivacySandboxConfig;
 import org.prebid.server.settings.model.AccountPrivacySandboxCookieDeprecationConfig;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.UnaryOperator;
@@ -41,18 +43,22 @@ public class CookieDeprecationServiceTest extends VertxTest {
     @Mock(strictness = LENIENT)
     private RoutingContext routingContext;
 
+    @Mock(strictness = LENIENT)
+    private HttpServerRequest request;
+
     private final CookieDeprecationService target = new CookieDeprecationService();
 
     @BeforeEach
     public void before() {
-        given(routingContext.cookieMap()).willReturn(Map.of());
+        given(routingContext.request()).willReturn(request);
+        given(request.cookies()).willReturn(Collections.emptySet());
     }
 
     @Test
     public void makeCookieShouldReturnNullWhenRequestContainsDeprecationCookie() {
         // given
-        given(routingContext.cookieMap())
-                .willReturn(Map.of("receive-cookie-deprecation", Cookie.cookie("receive-cookie-deprecation", "1")));
+        given(routingContext.request().cookies())
+                .willReturn(Collections.singleton(Cookie.cookie("receive-cookie-deprecation", "1")));
 
         // when
         final PartitionedCookie actualCookie = target.makeCookie(
@@ -66,8 +72,8 @@ public class CookieDeprecationServiceTest extends VertxTest {
     @Test
     public void makeCookieShouldReturnNullWhenRequestContainsDeprecationCookieAndAccountIsEmpty() {
         // given
-        given(routingContext.cookieMap())
-                .willReturn(Map.of("receive-cookie-deprecation", Cookie.cookie("receive-cookie-deprecation", "1")));
+        given(request.cookies()).willReturn(
+                Collections.singleton(Cookie.cookie("receive-cookie-deprecation", "1")));
 
         // when
         final PartitionedCookie actualCookie = target.makeCookie(Account.builder().build(), routingContext);

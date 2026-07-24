@@ -20,7 +20,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.onetag.ExtImpOnetag;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -32,13 +32,13 @@ public class OnetagBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpOnetag>> ONETAG_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
-    private static final String URL_PUBLISHER_ID_MACRO = "{{publisherId}}";
+    private static final String URL_PUBLISHER_ID_MACRO = "publisherId";
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public OnetagBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -54,7 +54,9 @@ public class OnetagBidder implements Bidder<BidRequest> {
             }
         }
 
-        final String url = endpointUrl.replace(URL_PUBLISHER_ID_MACRO, StringUtils.defaultString(requestPubId));
+        final String url = endpointUrl
+                .replaceMacro(URL_PUBLISHER_ID_MACRO, StringUtils.defaultString(requestPubId))
+                .expand();
         return Result.withValue(BidderUtil.defaultRequest(request, url, mapper));
     }
 

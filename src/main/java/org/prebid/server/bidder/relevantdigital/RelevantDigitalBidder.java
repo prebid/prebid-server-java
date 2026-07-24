@@ -36,6 +36,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -54,15 +55,15 @@ public class RelevantDigitalBidder implements Bidder<BidRequest> {
     private static final String RELEVANT_COUNT_PROPERTY = "count";
     private static final String RELEVANT_ADAPTER_TYPE_PROPERTY = "adapterType";
     private static final String ADAPTER_TYPE = "server";
-    private static final String HOST_MACRO = "{{Host}}";
+    private static final String HOST_MACRO = "Host";
     private static final long DEFAULT_TMAX = 1000L;
     private static final String EXT_PREBID = "prebid";
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public RelevantDigitalBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -174,7 +175,7 @@ public class RelevantDigitalBidder implements Bidder<BidRequest> {
                 .replace("http://", "")
                 .replace("https://", "")
                 .replace(".relevant-digital.com", "");
-        return endpointUrl.replace(HOST_MACRO, modifiedHost);
+        return endpointUrl.replaceMacro(HOST_MACRO, modifiedHost).expand();
     }
 
     private static MultiMap makeHeaders(BidRequest bidRequest) {

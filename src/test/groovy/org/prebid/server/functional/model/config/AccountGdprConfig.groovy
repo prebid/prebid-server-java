@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.databind.annotation.JsonNaming
 import groovy.transform.ToString
 import org.prebid.server.functional.model.ChannelType
+import org.prebid.server.functional.model.bidder.BidderName
 
 @ToString(includeNames = true, ignoreNulls = true)
 @JsonNaming(PropertyNamingStrategies.KebabCaseStrategy)
@@ -22,7 +23,7 @@ class AccountGdprConfig {
     PurposeOneTreatmentInterpretation purposeOneTreatmentInterpretation
     @JsonProperty("purpose_one_treatment_interpretation")
     PurposeOneTreatmentInterpretation purposeOneTreatmentInterpretationSnakeCase
-    List<String> basicEnforcementVendors
+    List<BidderName> basicEnforcementVendors
     @JsonProperty("basic_enforcement_vendors")
-    List<String> basicEnforcementVendorsSnakeCase
+    List<BidderName> basicEnforcementVendorsSnakeCase
 }

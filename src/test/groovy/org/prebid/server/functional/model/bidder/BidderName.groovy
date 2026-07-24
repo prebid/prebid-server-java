@@ -29,7 +29,7 @@ enum BidderName {
     MEDIANET("medianet"),
     AMX("amx"),
     AMX_CAMEL_CASE("AmX"),
-    AMX_UPPER_CASE("AMX"),
+    AMX_UPPER_CASE("AMX")
 
     @JsonValue
     final String value

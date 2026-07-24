@@ -50,5 +50,4 @@ class CacheModuleStorageMetrics extends UpdatableMetrics {
     CacheCreativeTtlMetrics entryTtl() {
         return entryTtlMetrics;
     }
-
 }

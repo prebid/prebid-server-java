@@ -18,7 +18,7 @@ public class AdtonosTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromTheAdtonosBidder() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/adtonos-exchange/testPublisherId"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/adtonos-exchange"))
                 .withRequestBody(equalToJson(
                         jsonFrom("openrtb2/adtonos/test-adtonos-bid-request.json")))
                 .willReturn(aResponse().withBody(

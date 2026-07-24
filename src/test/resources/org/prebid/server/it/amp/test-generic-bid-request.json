@@ -104,9 +104,6 @@
       "storedrequest": {
         "id": "test-amp-stored-request"
       },
-      "cache": {
-        "bids": {}
-      },
       "auctiontimestamp": 0,
       "amp": {
         "data": {
@@ -124,13 +121,6 @@
           "account": "accountId"
         }
       },
-      "adservertargeting": [
-        {
-          "key": "static_keyword1",
-          "source": "static",
-          "value": "static_value1"
-        }
-      ],
       "channel": {
         "name": "amp"
       },
@@ -138,6 +128,7 @@
         "externalurl": "http://localhost:8080",
         "gvlid": 1,
         "datacenter": "local",
+        "http_method": "GET",
         "endpoint": "/openrtb2/amp"
       }
     }
