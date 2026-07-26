@@ -49,7 +49,8 @@ public class QueryBuilder {
         if (CollectionUtils.isEmpty(ids) || StringUtils.isEmpty(hidPrefixesString)) {
             return StringUtils.EMPTY;
         }
-        final Map<String, Id> prefixToIdValue = ids.stream().collect(Collectors.toMap(Id::getName, it -> it));
+        final Map<String, Id> prefixToIdValue = ids.stream()
+                .collect(Collectors.toMap(Id::getName, it -> it, (a, b) -> b));
         if (MapUtils.isEmpty(prefixToIdValue)) {
             return StringUtils.EMPTY;
         }
@@ -135,7 +136,8 @@ public class QueryBuilder {
                 });
 
         Optional.ofNullable(optableAttributes.getId5Signature())
-                .ifPresent(id5Signature -> sb.append("&id5_signature=").append(id5Signature));
+                .ifPresent(id5Signature -> sb.append("&id5_signature=")
+                        .append(URLEncoder.encode(id5Signature, StandardCharsets.UTF_8)));
 
         return sb.toString();
     }

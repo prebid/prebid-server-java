@@ -68,7 +68,9 @@ public class OptableAttributesResolver {
                 .map(ext -> ext.getProperty("optable"))
                 .map(OptableAttributesResolver::parseExtUserOptable);
 
-        extUserOptable.map(ExtUserOptable::getId5Signature).ifPresent(builder::id5Signature);
+        if (extUserOptable.isPresent()) {
+            extUserOptable.map(ExtUserOptable::getId5Signature).ifPresent(builder::id5Signature);
+        }
 
         return builder.build();
     }

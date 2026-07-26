@@ -14,6 +14,12 @@ import java.util.Optional;
 
 public class Id5Resolver {
 
+    public static final String STR_OPTABLE_CO = "optable.co";
+    public static final String STR_ID_5_SYNC_COM = "id5-sync.com";
+    public static final String STR_OPTABLE = "optable";
+    public static final String STR_REF = "ref";
+    public static final String STR_SIGNATURE = "signature";
+
     private Id5Resolver() {
 
     }
@@ -29,11 +35,14 @@ public class Id5Resolver {
                 .map(User::getEids)
                 .orElseGet(List::of)
                 .stream()
-                .filter(it -> "optable.co".equals(it.getInserter()) && "id5-sync.com".equals(it.getSource()))
+                .filter(it -> STR_OPTABLE_CO.equals(it.getInserter()) && STR_ID_5_SYNC_COM.equals(it.getSource()))
                 .map(Eid::getUids)
                 .flatMap(Collection::stream)
                 .map(Uid::getExt)
-                .map(it -> it.at("/optable/ref"))
+                .filter(Objects::nonNull)
+                .map(it -> it.get(STR_OPTABLE))
+                .filter(Objects::nonNull)
+                .map(it -> it.get(STR_REF))
                 .filter(Objects::nonNull)
                 .map(JsonNode::asText)
                 .findFirst()
@@ -45,7 +54,7 @@ public class Id5Resolver {
 
         return Optional.ofNullable(targetingResult.getRefs())
                 .map(refs -> refs.get(ref))
-                .map(it -> it.get("signature"))
+                .map(it -> it.get(STR_SIGNATURE))
                 .map(JsonNode::asText)
                 .orElse(null);
     }
