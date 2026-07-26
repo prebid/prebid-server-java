@@ -42,7 +42,7 @@ public class CachedAPIClient implements APIClient {
         return cache.get(createCachingKey(tenant, origin, ips, query, true))
                 .recover(ignore -> apiClient.getTargeting(properties, query, ips, userAgent, timeout)
                         .recover(throwable -> isCircuitBreakerEnabled
-                                ? Future.succeededFuture(new TargetingResult(null, null))
+                                ? Future.succeededFuture(new TargetingResult(null, null, null))
                                 : Future.failedFuture(throwable))
                         .compose(result -> cache.put(
                                         createCachingKey(tenant, origin, ips, query, false),

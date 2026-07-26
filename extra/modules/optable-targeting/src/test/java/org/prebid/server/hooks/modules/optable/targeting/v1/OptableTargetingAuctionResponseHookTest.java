@@ -1,6 +1,8 @@
 package org.prebid.server.hooks.modules.optable.targeting.v1;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.Future;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,6 +14,7 @@ import org.prebid.server.hooks.execution.v1.auction.AuctionResponsePayloadImpl;
 import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Audience;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.AudienceId;
+import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
@@ -60,7 +63,8 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
     @Test
     public void shouldReturnResultWithNoActionAndWithPBSAnalyticsTags() {
         // given
-        when(invocationContext.moduleContext()).thenReturn(givenModuleContext());
+        when(invocationContext.moduleContext()).thenReturn(
+                givenModuleContext(null, Future.failedFuture(new RuntimeException("error"))));
 
         // when
         final Future<InvocationResult<AuctionResponsePayload>> future =
@@ -93,7 +97,8 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
                         "provider",
                         List.of(new AudienceId("audienceId")),
                         "keyspace",
-                        1))));
+                        1)),
+                Future.succeededFuture(givenEmptyTargetingResult())));
         when(auctionResponsePayload.bidResponse()).thenReturn(givenBidResponse());
 
         // when
@@ -127,6 +132,130 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
     }
 
     @Test
+    public void shouldEnrichBidResponseWithBothTargetingKeywordsAndId5Signature() {
+        // given
+        final String refValue = "refValue";
+        final String signature = "id5Signature";
+        final Eid id5Eid = givenId5Eid(refValue);
+        final ObjectNode refs = givenRefsObject(refValue, signature);
+        final TargetingResult targetingResult = givenTargetingResult(List.of(id5Eid), null, refs);
+
+        when(invocationContext.moduleContext()).thenReturn(givenModuleContext(
+                List.of(new Audience(
+                        "provider",
+                        List.of(new AudienceId("audienceId")),
+                        "keyspace",
+                        1)),
+                Future.succeededFuture(targetingResult)));
+        when(auctionResponsePayload.bidResponse()).thenReturn(givenBidResponse());
+
+        // when
+        final Future<InvocationResult<AuctionResponsePayload>> future =
+                target.call(auctionResponsePayload, invocationContext);
+        final InvocationResult<AuctionResponsePayload> result = future.result();
+        final BidResponse bidResponse = result
+                .payloadUpdate()
+                .apply(AuctionResponsePayloadImpl.of(givenBidResponse()))
+                .bidResponse();
+        final ObjectNode targeting = (ObjectNode) bidResponse.getSeatbid()
+                .getFirst()
+                .getBid()
+                .getFirst()
+                .getExt()
+                .get("prebid")
+                .get("targeting");
+        final JsonNode passthrough = bidResponse.getExt().getPrebid().getPassthrough();
+
+        // then
+        assertThat(future).isNotNull();
+        assertThat(future.succeeded()).isTrue();
+        assertThat(result).isNotNull()
+                .returns(InvocationStatus.success, InvocationResult::status)
+                .returns(InvocationAction.update, InvocationResult::action);
+
+        assertThat(targeting.get("keyspace").asText()).isEqualTo("audienceId");
+        assertThat(passthrough).isNotNull();
+        assertThat(passthrough.get("optable").get("id5_signature").asText()).isEqualTo(signature);
+    }
+
+    @Test
+    public void shouldEnrichBidResponseWithId5SignatureOnlyWhenNoTargeting() {
+        // given
+        final String refValue = "refValue";
+        final String signature = "id5Signature";
+        final Eid id5Eid = givenId5Eid(refValue);
+        final ObjectNode refs = givenRefsObject(refValue, signature);
+        final TargetingResult targetingResult = givenTargetingResult(List.of(id5Eid), null, refs);
+
+        when(invocationContext.moduleContext()).thenReturn(
+                givenModuleContext(null, Future.succeededFuture(targetingResult)));
+        when(auctionResponsePayload.bidResponse()).thenReturn(givenBidResponse());
+
+        // when
+        final Future<InvocationResult<AuctionResponsePayload>> future =
+                target.call(auctionResponsePayload, invocationContext);
+        final InvocationResult<AuctionResponsePayload> result = future.result();
+        final BidResponse bidResponse = result
+                .payloadUpdate()
+                .apply(AuctionResponsePayloadImpl.of(givenBidResponse()))
+                .bidResponse();
+        final JsonNode passthrough = bidResponse.getExt().getPrebid().getPassthrough();
+
+        // then
+        assertThat(future).isNotNull();
+        assertThat(future.succeeded()).isTrue();
+        assertThat(result).isNotNull()
+                .returns(InvocationStatus.success, InvocationResult::status)
+                .returns(InvocationAction.update, InvocationResult::action);
+        assertThat(passthrough).isNotNull();
+        assertThat(passthrough.get("optable").get("id5_signature").asText()).isEqualTo(signature);
+    }
+
+    @Test
+    public void shouldReturnNoActionWhenOptableTargetingCallFailsAndTargetingIsPresent() {
+        // given
+        when(invocationContext.moduleContext()).thenReturn(givenModuleContext(
+                List.of(new Audience(
+                        "provider",
+                        List.of(new AudienceId("audienceId")),
+                        "keyspace",
+                        1)),
+                Future.failedFuture(new RuntimeException("error"))));
+        when(auctionResponsePayload.bidResponse()).thenReturn(givenBidResponse());
+
+        // when
+        final Future<InvocationResult<AuctionResponsePayload>> future =
+                target.call(auctionResponsePayload, invocationContext);
+        final InvocationResult<AuctionResponsePayload> result = future.result();
+
+        // then
+        assertThat(future).isNotNull();
+        assertThat(future.succeeded()).isTrue();
+        assertThat(result).isNotNull()
+                .returns(InvocationStatus.success, InvocationResult::status)
+                .returns(InvocationAction.no_action, InvocationResult::action);
+    }
+
+    @Test
+    public void shouldReturnNoActionWhenOptableTargetingCallFailsAndTargetingIsEmpty() {
+        // given
+        when(invocationContext.moduleContext()).thenReturn(
+                givenModuleContext(null, Future.failedFuture(new RuntimeException("error"))));
+
+        // when
+        final Future<InvocationResult<AuctionResponsePayload>> future =
+                target.call(auctionResponsePayload, invocationContext);
+        final InvocationResult<AuctionResponsePayload> result = future.result();
+
+        // then
+        assertThat(future).isNotNull();
+        assertThat(future.succeeded()).isTrue();
+        assertThat(result).isNotNull()
+                .returns(InvocationStatus.success, InvocationResult::status)
+                .returns(InvocationAction.no_action, InvocationResult::action);
+    }
+
+    @Test
     public void shouldReturnResultWithNoActionWhenAdvertiserTargetingOptionIsOff() {
         // given
         when(invocationContext.moduleContext()).thenReturn(givenModuleContext(List.of(
@@ -134,7 +263,8 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
                         "provider",
                         List.of(new AudienceId("audienceId")),
                         "keyspace",
-                        1))));
+                        1)),
+                Future.failedFuture(new RuntimeException("error"))));
 
         // when
         final Future<InvocationResult<AuctionResponsePayload>> future =
