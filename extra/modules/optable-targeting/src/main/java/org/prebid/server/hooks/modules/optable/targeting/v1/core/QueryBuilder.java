@@ -51,9 +51,6 @@ public class QueryBuilder {
         }
         final Map<String, Id> prefixToIdValue = ids.stream()
                 .collect(Collectors.toMap(Id::getName, it -> it, (a, b) -> b));
-        if (MapUtils.isEmpty(prefixToIdValue)) {
-            return StringUtils.EMPTY;
-        }
 
         final String hidParameters = Arrays.stream(hidPrefixesString.split(","))
                 .map(String::trim)
