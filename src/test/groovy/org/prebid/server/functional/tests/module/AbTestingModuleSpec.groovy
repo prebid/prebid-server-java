@@ -1,10 +1,10 @@
 package org.prebid.server.functional.tests.module
 
-import org.prebid.server.functional.model.config.ModuleName
 import org.prebid.server.functional.model.config.AbTest
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountHooksConfiguration
 import org.prebid.server.functional.model.config.ExecutionPlan
+import org.prebid.server.functional.model.config.ModuleName
 import org.prebid.server.functional.model.config.Stage
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.BidRequest
@@ -15,8 +15,8 @@ import org.prebid.server.functional.model.response.auction.InvocationResult
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
 
+import static org.prebid.server.functional.model.config.HookHttpEndpoint.AUCTION
 import static org.prebid.server.functional.model.config.ModuleName.PB_RESPONSE_CORRECTION
-import static org.prebid.server.functional.model.config.Endpoint.OPENRTB2_AUCTION
 import static org.prebid.server.functional.model.config.Stage.ALL_PROCESSED_BID_RESPONSES
 import static org.prebid.server.functional.model.config.Stage.BIDDER_REQUEST
 import static org.prebid.server.functional.model.config.Stage.RAW_BIDDER_RESPONSE
@@ -1077,7 +1077,9 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
     def "PBS should prioritise a/b test config from account over default account and only specified module when specific account and default account contains a/b test configs"() {
         given: "PBS service with specific ab test config"
-        def accountExecutionPlan = new ExecutionPlan(abTests: [AbTest.getDefault(ModuleName.PB_ORTB2_BLOCKING.code)])
+        def accountExecutionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(AUCTION, MODULES_STAGES).tap {
+            abTests = [AbTest.getDefault(ModuleName.PB_ORTB2_BLOCKING.code)]
+        }
         def defaultAccountConfigSettings = AccountConfig.defaultAccountConfig.tap {
             hooks = new AccountHooksConfiguration(executionPlan: accountExecutionPlan)
         }
