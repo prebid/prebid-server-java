@@ -9,7 +9,9 @@
       },
       "ext": {
         "nextmillennium" : {
-          "placement_id": "placement_id"
+          "placement_id": "placement_id",
+          "adSlots": ["slot-1", "slot-2"],
+          "allowedAds": ["banner", "native"]
         }
       }
     }

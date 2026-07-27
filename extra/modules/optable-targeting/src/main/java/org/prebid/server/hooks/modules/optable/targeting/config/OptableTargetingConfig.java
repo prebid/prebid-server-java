@@ -32,7 +32,7 @@ public class OptableTargetingConfig {
 
     @Bean
     @ConfigurationProperties(prefix = "hooks.modules." + OptableTargetingModule.CODE)
-    OptableTargetingProperties properties() {
+    OptableTargetingProperties optableTargetingProperties() {
         return new OptableTargetingProperties();
     }
 
@@ -45,11 +45,11 @@ public class OptableTargetingConfig {
     APIClientImpl apiClient(HttpClient httpClient,
                             @Value("${logging.sampling-rate:0.01}")
                             double logSamplingRate,
-                            OptableTargetingProperties properties,
+                            OptableTargetingProperties optableTargetingProperties,
                             JacksonMapper jacksonMapperr) {
 
         return new APIClientImpl(
-                properties.getApiEndpoint(),
+                optableTargetingProperties.getApiEndpoint(),
                 httpClient,
                 jacksonMapperr,
                 logSamplingRate);

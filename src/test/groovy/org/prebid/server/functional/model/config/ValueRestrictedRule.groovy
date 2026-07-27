@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.JsonSerializer
 import com.fasterxml.jackson.databind.SerializerProvider
 import com.fasterxml.jackson.databind.annotation.JsonSerialize
 import groovy.transform.ToString
+import org.prebid.server.functional.model.privacy.gpp.GppDataActivity
 
 @ToString(includeNames = true, ignoreNulls = true)
 @JsonSerialize(using = ValueRestrictedRuleSerializer.class)
@@ -13,13 +14,13 @@ import groovy.transform.ToString
 abstract class ValueRestrictedRule {
 
     protected UsNationalPrivacySection privacySection
-    protected DataActivity value
+    protected GppDataActivity value
 
     protected static final String JSON_LOGIC_VALUE_FIELD = "var"
 
-    ValueRestrictedRule(UsNationalPrivacySection privacySection, DataActivity dataActivity) {
+    ValueRestrictedRule(UsNationalPrivacySection privacySection, GppDataActivity value) {
         this.privacySection = privacySection
-        this.value = dataActivity
+        this.value = value
     }
 
     static class ValueRestrictedRuleSerializer extends JsonSerializer<ValueRestrictedRule> {
@@ -30,7 +31,7 @@ abstract class ValueRestrictedRule {
             jsonGenerator.writeStartObject()
             jsonGenerator.writeStringField(JSON_LOGIC_VALUE_FIELD, valueRestrictedRule.privacySection.value)
             jsonGenerator.writeEndObject()
-            jsonGenerator.writeObject(valueRestrictedRule.value.dataActivityBits)
+            jsonGenerator.writeObject(valueRestrictedRule.value.value)
             jsonGenerator.writeEndArray()
         }
     }

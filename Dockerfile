@@ -1,4 +1,4 @@
-FROM amazoncorretto:21.0.8-al2023
+FROM amazoncorretto:25.0.3-al2023-headless
 
 WORKDIR /app/prebid-server
 

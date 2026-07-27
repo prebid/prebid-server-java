@@ -210,11 +210,11 @@ public class USNatTransmitUfpdTest {
 
     @Test
     public void proceedShouldDisallowIfSensitiveDataProcessingOptOutNoticeEquals0AndOnCertainSensitiveDataProcessing() {
-        for (int i : Set.of(0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11)) {
+        for (int i : Set.of(0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15)) {
             // given
             given(gppReader.getSensitiveDataProcessingOptOutNotice()).willReturn(0);
 
-            final ArrayList<Integer> data = new ArrayList<>(asList(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+            final ArrayList<Integer> data = new ArrayList<>(asList(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
             data.remove(i);
             data.add(i, 2);
             given(gppReader.getSensitiveDataProcessing()).willReturn(data);
@@ -231,11 +231,11 @@ public class USNatTransmitUfpdTest {
 
     @Test
     public void proceedShouldDisallowIfSensitiveDataLimitUseNoticeEquals0AndOnCertainSensitiveDataProcessing() {
-        for (int i : Set.of(0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11)) {
+        for (int i : Set.of(0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15)) {
             // given
             given(gppReader.getSensitiveDataLimitUseNotice()).willReturn(0);
 
-            final ArrayList<Integer> data = new ArrayList<>(asList(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+            final ArrayList<Integer> data = new ArrayList<>(asList(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
             data.remove(i);
             data.add(i, 2);
             given(gppReader.getSensitiveDataProcessing()).willReturn(data);
@@ -252,9 +252,9 @@ public class USNatTransmitUfpdTest {
 
     @Test
     public void proceedShouldDisallowIfSensitiveDataProcessingAtCertainIndicesEquals1() {
-        for (int i : Set.of(0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11)) {
+        for (int i : Set.of(0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15)) {
             // given
-            final ArrayList<Integer> data = new ArrayList<>(asList(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+            final ArrayList<Integer> data = new ArrayList<>(asList(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
             data.remove(i);
             data.add(i, 1);
             given(gppReader.getSensitiveDataProcessing()).willReturn(data);
@@ -271,9 +271,9 @@ public class USNatTransmitUfpdTest {
 
     @Test
     public void proceedShouldDisallowIfSensitiveDataProcessingAtCertainIndicesEquals2() {
-        for (int i : Set.of(5, 6, 8, 9, 11)) {
+        for (int i : Set.of(5, 6, 8, 9, 11, 13, 15)) {
             // given
-            final ArrayList<Integer> data = new ArrayList<>(asList(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+            final ArrayList<Integer> data = new ArrayList<>(asList(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
             data.remove(i);
             data.add(i, 2);
             given(gppReader.getSensitiveDataProcessing()).willReturn(data);
@@ -305,6 +305,19 @@ public class USNatTransmitUfpdTest {
     public void proceedShouldDisallowIfKnownChildSensitiveDataConsents2NotEquals0() {
         // given
         given(gppReader.getKnownChildSensitiveDataConsents()).willReturn(asList(1, 1));
+        final PrivacyModule target = new USNatTransmitUfpd(gppReader, null);
+
+        // when
+        final Rule.Result result = target.proceed(null);
+
+        // then
+        assertThat(result).isEqualTo(Rule.Result.DISALLOW);
+    }
+
+    @Test
+    public void proceedShouldDisallowIfKnownChildSensitiveDataConsents3Equals1() {
+        // given
+        given(gppReader.getKnownChildSensitiveDataConsents()).willReturn(asList(3, 3, 1));
         final PrivacyModule target = new USNatTransmitUfpd(gppReader, null);
 
         // when

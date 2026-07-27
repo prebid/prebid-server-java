@@ -21,4 +21,6 @@ public class ExtImpAdnuntius {
 
     @JsonProperty("bidType")
     String bidType;
+
+    ExtImpAdnuntiusTargeting targeting;
 }

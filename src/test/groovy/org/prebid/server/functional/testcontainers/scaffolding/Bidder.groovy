@@ -4,7 +4,6 @@ import org.mockserver.matchers.TimeToLive
 import org.mockserver.matchers.Times
 import org.mockserver.model.HttpRequest
 import org.mockserver.model.HttpResponse
-import org.prebid.server.functional.model.bidderspecific.BidderRequest
 import org.prebid.server.functional.model.request.auction.Banner
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Format
@@ -12,6 +11,8 @@ import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.testcontainers.containers.MockServerContainer
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS
+import static java.util.concurrent.TimeUnit.SECONDS
 import static org.mockserver.model.HttpRequest.request
 import static org.mockserver.model.HttpResponse.response
 import static org.mockserver.model.HttpStatusCode.OK_200
@@ -26,7 +27,7 @@ class Bidder extends NetworkScaffolding {
     @Override
     protected HttpRequest getRequest(String bidRequestId) {
         request().withPath(endpoint)
-                 .withBody(jsonPath("\$[?(@.id == '$bidRequestId')]"))
+                .withBody(jsonPath("\$[?(@.id == '$bidRequestId')]"))
     }
 
     @Override
@@ -36,22 +37,31 @@ class Bidder extends NetworkScaffolding {
 
     HttpRequest getRequest(String bidRequestId, String requestMatchPath) {
         request().withPath(endpoint)
-                 .withBody(jsonPath("\$[?(@.$requestMatchPath == '$bidRequestId')]"))
+                .withBody(jsonPath("\$[?(@.$requestMatchPath == '$bidRequestId')]"))
     }
 
     @Override
     void setResponse() {
         mockServerClient.when(request().withPath(endpoint), Times.unlimited(), TimeToLive.unlimited(), -10)
-                        .respond {request -> request.withPath(endpoint)
-                                ? response().withStatusCode(OK_200.code()).withBody(getBodyByRequest(request))
-                                : HttpResponse.notFoundResponse()}
+                .respond { request ->
+                    request.withPath(endpoint)
+                            ? response().withStatusCode(OK_200.code()).withBody(getBodyByRequest(request))
+                            : HttpResponse.notFoundResponse()
+                }
     }
 
-    List<BidderRequest> getBidderRequests(String bidRequestId) {
-        getRecordedRequestsBody(bidRequestId).collect { decode(it, BidderRequest) }
+    void setResponseWithDelay(Long dilayTimeoutMillisecond = 5000) {
+        mockServerClient.when(request().withPath(endpoint), Times.unlimited(), TimeToLive.unlimited(), -10)
+                .respond {request -> request.withPath(endpoint)
+                        ? response().withDelay(MILLISECONDS, dilayTimeoutMillisecond).withStatusCode(OK_200.code()).withBody(getBodyByRequest(request))
+                        : HttpResponse.notFoundResponse()}
     }
 
-    BidderRequest getBidderRequest(String bidRequestId) {
+    List<BidRequest> getBidderRequests(String bidRequestId) {
+        getRecordedRequestsBody(bidRequestId).collect { decode(it, BidRequest) }
+    }
+
+    BidRequest getBidderRequest(String bidRequestId) {
         def bidderRequests = getBidderRequests(bidRequestId)
         def bidderCallCount = bidderRequests.size()
 
@@ -76,7 +86,8 @@ class Bidder extends NetworkScaffolding {
             new Imp(id: it.get("id").asText(),
                     banner: formatNode != null
                             ? new Banner(format: [new Format(width: formatNode.first().get("w").asInt(), height: formatNode.first().get("h").asInt())])
-                            : null)}
+                            : null)
+        }
         def bidRequest = new BidRequest(id: id, imp: imps)
         def response = BidResponse.getDefaultBidResponse(bidRequest)
         encode(response)

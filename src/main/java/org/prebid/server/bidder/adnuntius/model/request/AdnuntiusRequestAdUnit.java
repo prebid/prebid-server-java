@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Value;
 
 import java.util.List;
+import java.util.Map;
 
 @Builder(toBuilder = true)
 @Value
@@ -26,4 +27,17 @@ public class AdnuntiusRequestAdUnit {
 
     @JsonProperty("adType")
     String adType;
+
+    @JsonProperty("c")
+    List<String> category;
+
+    List<String> segments;
+
+    List<String> keywords;
+
+    @JsonProperty("kv")
+    Map<String, List<String>> keyValues;
+
+    @JsonProperty("auml")
+    List<String> adUnitMatchingLabel;
 }

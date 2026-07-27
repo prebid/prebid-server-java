@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.seedtag;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
@@ -20,6 +21,7 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.proto.openrtb.ext.request.seedtag.ExtImpSeedtag;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -75,10 +77,9 @@ public class SeedtagBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(HttpRequest::getPayload)
-                .flatExtracting(BidRequest::getImp)
-                .hasSize(2);
+        final BidRequest outgoingRequest = result.getValue().get(0).getPayload();
+        assertThat(outgoingRequest.getImp()).hasSize(2);
+        assertThat(outgoingRequest.getCur()).containsExactly("USD");
     }
 
     @Test
@@ -126,6 +127,115 @@ public class SeedtagBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .hasSize(1);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSucceedWithPublisherIdAndRonIdIntegrationType() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                requestBuilder -> requestBuilder.imp(singletonList(
+                        givenImp(ExtImpSeedtag.of(null, "somePubId", "ronId")))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getValue().get(0).getPayload().getImp()).hasSize(1);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSucceedWithAdUnitIdAndPublisherIdWhenIntegrationTypeIsRonId() {
+        // given: adUnitId is irrelevant when integrationType is ronId — publisherId is what matters
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                requestBuilder -> requestBuilder.imp(singletonList(
+                        givenImp(ExtImpSeedtag.of("someAdUnitId", "somePubId", "ronId")))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSucceedWithAdUnitIdWhenIntegrationTypeIsAbsent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                requestBuilder -> requestBuilder.imp(singletonList(
+                        givenImp(ExtImpSeedtag.of("someAdUnitId", null, null)))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSkipImpWithRonIdIntegrationTypeButMissingPublisherId() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                requestBuilder -> requestBuilder.imp(singletonList(
+                        givenImp(ExtImpSeedtag.of("someAdUnitId", null, "ronId")))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+                    assertThat(error.getMessage()).contains("publisherId is required when integrationType is 'ronId'");
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSkipImpWithNoAdUnitIdAndNoRonIdIntegrationType() {
+        // given: no adUnitId and integrationType is not ronId → adUnitId is required
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                requestBuilder -> requestBuilder.imp(singletonList(
+                        givenImp(ExtImpSeedtag.of(null, "somePubId", null)))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+                    assertThat(error.getMessage()).contains("adUnitId is required when integrationType is not 'ronId'");
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSkipImpWithNoAdUnitIdAndNoParams() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                requestBuilder -> requestBuilder.imp(singletonList(
+                        givenImp(ExtImpSeedtag.of(null, null, null)))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+                    assertThat(error.getMessage()).contains("adUnitId is required when integrationType is not 'ronId'");
+                });
     }
 
     @Test
@@ -232,7 +342,15 @@ public class SeedtagBidderTest extends VertxTest {
     }
 
     private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
-        return impCustomizer.apply(Imp.builder().id("123")).build();
+        final ObjectNode bidderExt = mapper.createObjectNode();
+        bidderExt.set("bidder", mapper.valueToTree(ExtImpSeedtag.of("someAdUnitId", null, null)));
+        return impCustomizer.apply(Imp.builder().id("123").ext(bidderExt)).build();
+    }
+
+    private static Imp givenImp(ExtImpSeedtag extImpSeedtag) {
+        final ObjectNode bidderExt = mapper.createObjectNode();
+        bidderExt.set("bidder", mapper.valueToTree(extImpSeedtag));
+        return Imp.builder().id("123").ext(bidderExt).build();
     }
 
     private static BidResponse givenBidResponse(UnaryOperator<Bid.BidBuilder> bidCustomizer) {

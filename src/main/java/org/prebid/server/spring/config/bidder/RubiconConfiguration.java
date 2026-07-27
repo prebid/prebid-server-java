@@ -11,7 +11,6 @@ import org.prebid.server.identity.UUIDIdGenerator;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
-import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.prebid.server.version.PrebidVersionProvider;
 import org.springframework.beans.factory.annotation.Value;
@@ -47,11 +46,11 @@ public class RubiconConfiguration {
 
         return BidderDepsAssembler.<RubiconConfigurationProperties>forBidder(BIDDER_NAME)
                 .withConfig(rubiconConfigurationProperties)
-                .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config ->
                         new RubiconBidder(
                                 BIDDER_NAME,
                                 config.getEndpoint(),
+                                config.getDefaultTkXInt(),
                                 externalUrl,
                                 config.getXapi().getUsername(),
                                 config.getXapi().getPassword(),
@@ -80,6 +79,8 @@ public class RubiconConfiguration {
 
         @NotNull
         private String apexRendererUrl;
+
+        private String defaultTkXInt;
     }
 
     @Data

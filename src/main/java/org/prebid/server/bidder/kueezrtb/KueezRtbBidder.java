@@ -20,7 +20,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.kueezrtb.KueezRtbImpExt;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 import org.springframework.util.CollectionUtils;
 
 import java.util.ArrayList;
@@ -31,13 +31,15 @@ import java.util.Objects;
 
 public class KueezRtbBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, KueezRtbImpExt>> TYPE_REFERENCE = new TypeReference<>() { };
+    private static final String CONNECTION_MACRO = "ConnectionId";
+    private static final TypeReference<ExtPrebid<?, KueezRtbImpExt>> TYPE_REFERENCE = new TypeReference<>() {
+    };
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public KueezRtbBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -67,7 +69,9 @@ public class KueezRtbBidder implements Bidder<BidRequest> {
 
     private HttpRequest<BidRequest> makeHttpRequest(BidRequest bidRequest, Imp imp, KueezRtbImpExt impExt) {
         final BidRequest modifiedBidRequest = bidRequest.toBuilder().imp(Collections.singletonList(imp)).build();
-        final String uri = endpointUrl + HttpUtil.encodeUrl(StringUtils.defaultString(impExt.getConnectionId()).trim());
+        final String uri = endpointUrl
+                .replaceMacro(CONNECTION_MACRO, StringUtils.defaultString(impExt.getConnectionId().trim()))
+                .expand();
 
         return BidderUtil.defaultRequest(modifiedBidRequest, uri, mapper);
     }

@@ -17,7 +17,6 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.adocean.ExtImpAdocean;
 import org.prebid.server.proto.openrtb.ext.request.smarthub.ExtImpSmarthub;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
@@ -39,7 +38,7 @@ import static org.assertj.core.api.Assertions.tuple;
 public class SmarthubBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL =
-            "http://localhost/prebid_server?host={{Host}}&AccountID={{AccountID}}&SourceId={{SourceId}}";
+            "http://localhost/prebid_server?host={Host}&AccountID={AccountID}&SourceId={SourceId}";
 
     private final SmarthubBidder target = new SmarthubBidder(ENDPOINT_URL, jacksonMapper);
 
@@ -178,7 +177,7 @@ public class SmarthubBidderTest extends VertxTest {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(givenBidResponse(builder -> builder.ext(mapper.valueToTree(
-                        ExtPrebid.of(null, ExtImpAdocean.of("someEmitterDomain", "someMasterId", "someSlaveID")))))));
+                        ExtPrebid.of(null, ExtImpSmarthub.of("someEmitterDomain", "someMasterId", "someSlaveID")))))));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);

@@ -2,16 +2,15 @@ package org.prebid.server.floors;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.netty.channel.ConnectTimeoutException;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
-import io.vertx.core.impl.ConcurrentHashSet;
 import lombok.Value;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.apache.http.HttpStatus;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.floors.model.PriceFloorData;
@@ -37,6 +36,7 @@ import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.regex.Matcher;
@@ -79,7 +79,7 @@ public class PriceFloorFetcher {
         this.debugProperties = debugProperties;
         this.mapper = Objects.requireNonNull(mapper);
 
-        fetchInProgress = new ConcurrentHashSet<>();
+        fetchInProgress = ConcurrentHashMap.newKeySet();
         fetchedData = Caffeine.newBuilder()
                 .maximumSize(MAXIMUM_CACHE_SIZE)
                 .<String, AccountFetchContext>build()
@@ -165,7 +165,7 @@ public class PriceFloorFetcher {
                                                  AccountPriceFloorsFetchConfig fetchConfig) {
 
         final int statusCode = httpClientResponse.getStatusCode();
-        if (statusCode != HttpStatus.SC_OK) {
+        if (statusCode != HttpResponseStatus.OK.code()) {
             throw new PreBidException("Failed to request, provider respond with status %s".formatted(statusCode));
         }
         final String body = httpClientResponse.getBody();

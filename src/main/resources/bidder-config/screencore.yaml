@@ -1,6 +1,6 @@
 adapters:
   screencore:
-    endpoint: http://h1.screencore.io/?kp={{AccountId}}&kn={{SourceId}}
+    endpoint: http://h1.screencore.io/?kp={AccountId}&kn={SourceId}
     meta-info:
       maintainer-email: connect@screencore.io
       app-media-types:

@@ -24,12 +24,12 @@ public class LiveIntentOmniChannelIdentityConfiguration {
 
     @Bean
     @ConfigurationProperties(prefix = "hooks.modules." + LiveIntentOmniChannelIdentityModule.CODE)
-    LiveIntentOmniChannelProperties properties() {
+    LiveIntentOmniChannelProperties liveIntentOmniChannelProperties() {
         return new LiveIntentOmniChannelProperties();
     }
 
     @Bean
-    Module liveIntentOmniChannelIdentityModule(LiveIntentOmniChannelProperties properties,
+    Module liveIntentOmniChannelIdentityModule(LiveIntentOmniChannelProperties liveIntentOmniChannelProperties,
                                                JacksonMapper mapper,
                                                UserFpdActivityMask userFpdActivityMask,
                                                HttpClient httpClient,
@@ -37,7 +37,7 @@ public class LiveIntentOmniChannelIdentityConfiguration {
 
         final LiveIntentOmniChannelIdentityProcessedAuctionRequestHook hook =
                 new LiveIntentOmniChannelIdentityProcessedAuctionRequestHook(
-                        properties, userFpdActivityMask, mapper, httpClient, logSamplingRate);
+                        liveIntentOmniChannelProperties, userFpdActivityMask, mapper, httpClient, logSamplingRate);
 
         return new LiveIntentOmniChannelIdentityModule(Collections.singleton(hook));
     }

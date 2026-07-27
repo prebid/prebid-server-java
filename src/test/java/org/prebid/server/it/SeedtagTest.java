@@ -30,4 +30,5 @@ public class SeedtagTest extends IntegrationTest {
         assertJsonEquals("openrtb2/seedtag/test-auction-seedtag-response.json", response,
                 singletonList("seedtag"));
     }
+
 }

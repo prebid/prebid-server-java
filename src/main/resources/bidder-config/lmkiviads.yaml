@@ -1,6 +1,6 @@
 adapters:
   lm_kiviads:
-    endpoint: http://pbs.kiviads.live/?pid={{SourceId}}&host={{Host}}
+    endpoint: http://pbs.kiviads.live/?pid={SourceId}&host={Host}
     meta-info:
       maintainer-email: prebid@kiviads.com
       app-media-types:

@@ -13,9 +13,12 @@ import org.prebid.server.functional.model.request.auction.UserExt
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
 
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.bidder.BidderName.GENERIC_CAMEL_CASE
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
+import static org.prebid.server.functional.model.bidder.BidderName.RUBICON
 import static org.prebid.server.functional.model.bidder.BidderName.UNKNOWN
 import static org.prebid.server.functional.model.bidder.BidderName.WILDCARD
 import static org.prebid.server.functional.model.request.auction.DebugCondition.DISABLED
@@ -224,7 +227,7 @@ class EidsSpec extends BaseSpec {
             imp[0].ext.prebid.bidder.openx = Openx.defaultOpenx
             ext.prebid.data = new ExtRequestPrebidData(
                     eidpermissions: [new EidPermission(source: PBSUtils.randomString, bidders: eidsBidder),
-                                     new EidPermission(source: PBSUtils.randomString)])
+                                     new EidPermission(source: PBSUtils.randomString, bidders: null)])
         }
 
         when: "PBS processes auction request"
@@ -337,5 +340,257 @@ class EidsSpec extends BaseSpec {
 
         and: "Bid response shouldn't contain warning"
         assert !bidResponse.ext.warnings
+    }
+
+    def "PBS should pass user.eids to all bidders when any of required eid permissions doesn't match"() {
+        given: "Default BidRequest with eids"
+        def eidPermission = EidPermission.getDefaultEidPermission([RUBICON])
+        def userEid = updateEidClosure(Eid.from(eidPermission))
+
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            user = new User(eids: [userEid])
+            ext.prebid.data = new ExtRequestPrebidData(eidpermissions: [eidPermission])
+        }
+
+        when: "PBS processes auction request"
+        def bidResponse = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain requested eids"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.user.eids == [userEid]
+
+        and: "Bid response shouldn't contain any errors and warnings"
+        assert !bidResponse.ext.errors
+        assert !bidResponse.ext.warnings
+
+        where:
+        updateEidClosure << [
+                { Eid eid -> eid.tap { it.inserter = null } },
+                { Eid eid -> eid.tap { it.matcher = null } },
+                { Eid eid -> eid.tap { it.matchMethod = null } },
+
+                { Eid eid -> eid.tap { it.inserter = "" } },
+                { Eid eid -> eid.tap { it.matcher = "" } },
+
+                { Eid eid -> eid.tap { it.source = PBSUtils.randomString } },
+                { Eid eid -> eid.tap { it.inserter = PBSUtils.randomString } },
+                { Eid eid -> eid.tap { it.matcher = PBSUtils.randomString } },
+                { Eid eid -> eid.tap { it.matchMethod = PBSUtils.randomNumber } }
+        ]
+    }
+
+    def "PBS shouldn't pass user.eids to unmatched bidders when eidPermissions fields match user.eids"() {
+        given: "Default BidRequest with eids"
+        def eidPermissionWithUnmatchedBidder = eidPermission.tap {
+            bidders = [RUBICON]
+        }
+        def userEid = updateEidClosure(eidPermissionWithUnmatchedBidder)
+
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            user = new User(eids: [userEid])
+            ext.prebid.data = new ExtRequestPrebidData(eidpermissions: [eidPermissionWithUnmatchedBidder])
+        }
+
+        when: "PBS processes auction request"
+        def bidResponse = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request shouldn't contain eids"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert !bidderRequest.user.eids
+
+        and: "Bid response shouldn't contain any errors and warnings"
+        assert !bidResponse.ext.errors
+        assert !bidResponse.ext.warnings
+
+        where:
+        eidPermission                                         | updateEidClosure
+        new EidPermission(source: PBSUtils.randomString)      | { EidPermission eid -> Eid.from(eid) }
+        new EidPermission(source: PBSUtils.randomString)      | { EidPermission eid -> Eid.getDefaultEid().tap { it.source = eid.source } }
+        new EidPermission(inserter: PBSUtils.randomString)    | { EidPermission eid -> Eid.from(eid).tap { it.source = PBSUtils.randomString } }
+        new EidPermission(inserter: PBSUtils.randomString)    | { EidPermission eid -> Eid.getDefaultEid().tap { it.inserter = eid.inserter } }
+        new EidPermission(matcher: PBSUtils.randomString)     | { EidPermission eid -> Eid.from(eid).tap { it.source = PBSUtils.randomString } }
+        new EidPermission(matcher: PBSUtils.randomString)     | { EidPermission eid -> Eid.getDefaultEid().tap { it.matcher = eid.matcher } }
+        new EidPermission(matchMethod: PBSUtils.randomNumber) | { EidPermission eid -> Eid.from(eid).tap { it.source = PBSUtils.randomString } }
+        new EidPermission(matchMethod: PBSUtils.randomNumber) | { EidPermission eid -> Eid.getDefaultEid().tap { it.matchMethod = eid.matchMethod } }
+    }
+
+    def "PBS should filter only unauthorized eids when multiple eids with different permissions are present"() {
+        given: "Default BidRequest with eids"
+        def eidPermissionWithUnmatchedBidder = EidPermission.getDefaultEidPermission([RUBICON])
+        def userEid = Eid.from(eidPermissionWithUnmatchedBidder)
+        def properEids = [Eid.defaultEid, Eid.defaultEid]
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            user = new User(eids: properEids + userEid)
+            ext.prebid.data = new ExtRequestPrebidData(eidpermissions: [eidPermissionWithUnmatchedBidder])
+        }
+
+        when: "PBS processes auction request"
+        def bidResponse = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain requested eids"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.user.eids == properEids
+
+        and: "Bid response shouldn't contain any errors and warnings"
+        assert !bidResponse.ext.errors
+        assert !bidResponse.ext.warnings
+    }
+
+    def "PBS should pass user.eids to matched bidders when eidPermissions fields match user.eids"() {
+        given: "Default BidRequest with eids"
+        def eidPermissionAllowingCurrentBidder = eidPermission.tap {
+            bidders = [[GENERIC, GENERIC_CAMEL_CASE].shuffled().first()]
+        }
+        def userEid = updateEidClosure(eidPermissionAllowingCurrentBidder)
+
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            user = new User(eids: [userEid])
+            ext.prebid.data = new ExtRequestPrebidData(eidpermissions: [eidPermissionAllowingCurrentBidder])
+        }
+
+        when: "PBS processes auction request"
+        def bidResponse = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain requested eids"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.user.eids == [userEid]
+
+        and: "Bid response shouldn't contain any errors and warnings"
+        assert !bidResponse.ext.errors
+        assert !bidResponse.ext.warnings
+
+        where:
+        eidPermission                                         | updateEidClosure
+        new EidPermission(source: PBSUtils.randomString)      | { EidPermission eid -> Eid.from(eid) }
+        new EidPermission(source: PBSUtils.randomString)      | { EidPermission eid -> Eid.getDefaultEid().tap { it.source = eid.source } }
+        new EidPermission(inserter: PBSUtils.randomString)    | { EidPermission eid -> Eid.from(eid).tap { it.source = PBSUtils.randomString } }
+        new EidPermission(inserter: PBSUtils.randomString)    | { EidPermission eid -> Eid.getDefaultEid().tap { it.inserter = eid.inserter } }
+        new EidPermission(matcher: PBSUtils.randomString)     | { EidPermission eid -> Eid.from(eid).tap { it.source = PBSUtils.randomString } }
+        new EidPermission(matcher: PBSUtils.randomString)     | { EidPermission eid -> Eid.getDefaultEid().tap { it.matcher = eid.matcher } }
+        new EidPermission(matchMethod: PBSUtils.randomNumber) | { EidPermission eid -> Eid.from(eid).tap { it.source = PBSUtils.randomString } }
+        new EidPermission(matchMethod: PBSUtils.randomNumber) | { EidPermission eid -> Eid.getDefaultEid().tap { it.matchMethod = eid.matchMethod } }
+    }
+
+    def "PBS should apply most specific eidPermissions rule when multiple rules match"() {
+        given: "Default BidRequest with eids"
+        def userEid = Eid.getDefaultEid()
+        def moreSpecificEidPermission = moreSpecificPermissionClosure(userEid).tap {
+            it.bidders = [RUBICON]
+        }
+        def lessSpecificEidPermission = lessSpecificPermissionClosure(userEid).tap {
+            it.bidders = [GENERIC]
+        }
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            user = new User(eids: [userEid])
+            ext.prebid.data = new ExtRequestPrebidData(eidpermissions: [moreSpecificEidPermission, lessSpecificEidPermission].shuffled())
+        }
+
+        when: "PBS processes auction request"
+        def bidResponse = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request shouldn't contain eids"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert !bidderRequest.user.eids
+
+        and: "Bid response shouldn't contain any errors and warnings"
+        assert !bidResponse.ext.errors
+        assert !bidResponse.ext.warnings
+
+        where:
+        moreSpecificPermissionClosure                                                    | lessSpecificPermissionClosure
+        ({ Eid eid -> EidPermission.from(eid) })                                         | ({ Eid eid -> EidPermission.from(eid).tap { it.source = null } })
+        ({ Eid eid -> EidPermission.from(eid) })                                         | ({ Eid eid -> EidPermission.from(eid).tap { it.inserter = null } })
+        ({ Eid eid -> EidPermission.from(eid) })                                         | ({ Eid eid -> EidPermission.from(eid).tap { it.matcher = null } })
+        ({ Eid eid -> EidPermission.from(eid) })                                         | ({ Eid eid -> EidPermission.from(eid).tap { it.matchMethod = null } })
+        ({ Eid eid -> EidPermission.from(eid).tap { it.source = null } })                | ({ Eid eid -> new EidPermission(inserter: eid.inserter, matcher: eid.matcher) })
+        ({ Eid eid -> new EidPermission(inserter: eid.inserter, matcher: eid.matcher) }) | ({ Eid eid -> new EidPermission(matchMethod: eid.matchMethod) })
+    }
+
+    def "PBS should allow access to bidder defined in most specific rule when multiple rules match"() {
+        given: "Default BidRequest with eids"
+        def userEid = Eid.getDefaultEid()
+        def moreSpecificEidPermission = moreSpecificPermissionClosure(userEid).tap {
+            it.bidders = [GENERIC]
+        }
+        def lessSpecificEidPermission = lessSpecificPermissionClosure(userEid).tap {
+            it.bidders = [RUBICON]
+        }
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            user = new User(eids: [userEid])
+            ext.prebid.data = new ExtRequestPrebidData(eidpermissions: [moreSpecificEidPermission, lessSpecificEidPermission].shuffled())
+        }
+
+        when: "PBS processes auction request"
+        def bidResponse = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain requested eids"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.user.eids == [userEid]
+
+        and: "Bid response shouldn't contain any errors and warnings"
+        assert !bidResponse.ext.errors
+        assert !bidResponse.ext.warnings
+
+        where:
+        moreSpecificPermissionClosure                                                    | lessSpecificPermissionClosure
+        ({ Eid eid -> EidPermission.from(eid) })                                         | ({ Eid eid -> EidPermission.from(eid).tap { it.source = null } })
+        ({ Eid eid -> EidPermission.from(eid) })                                         | ({ Eid eid -> EidPermission.from(eid).tap { it.inserter = null } })
+        ({ Eid eid -> EidPermission.from(eid) })                                         | ({ Eid eid -> EidPermission.from(eid).tap { it.matcher = null } })
+        ({ Eid eid -> EidPermission.from(eid) })                                         | ({ Eid eid -> EidPermission.from(eid).tap { it.matchMethod = null } })
+        ({ Eid eid -> EidPermission.from(eid).tap { it.source = null } })                | ({ Eid eid -> new EidPermission(inserter: eid.inserter, matcher: eid.matcher) })
+        ({ Eid eid -> new EidPermission(inserter: eid.inserter, matcher: eid.matcher) }) | ({ Eid eid -> new EidPermission(matchMethod: eid.matchMethod) })
+    }
+
+    def "PBS should apply permissions from any matching rule when specificity is equal"() {
+        given: "Default BidRequest with eids"
+        def userEid = Eid.getDefaultEid()
+        def allowingRule = allowingPermissionClosure(userEid).tap {
+            it.bidders = [GENERIC]
+        }
+        def restrictingRule = restrictingPermissionClosure(userEid).tap {
+            it.bidders = [RUBICON]
+        }
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            user = new User(eids: [userEid])
+            ext.prebid.data = new ExtRequestPrebidData(eidpermissions: [allowingRule, restrictingRule].shuffled())
+        }
+
+        when: "PBS processes auction request"
+        def bidResponse = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain requested eids"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.user.eids == [userEid]
+
+        and: "Bid response shouldn't contain any errors and warnings"
+        assert !bidResponse.ext.errors
+        assert !bidResponse.ext.warnings
+
+        where:
+        allowingPermissionClosure                                                            | restrictingPermissionClosure
+        ({ Eid eid -> new EidPermission(source: eid.source) })                               | ({ Eid eid -> new EidPermission(inserter: eid.inserter) })
+        ({ Eid eid -> new EidPermission(matcher: eid.matcher) })                             | ({ Eid eid -> new EidPermission(source: eid.source) })
+        ({ Eid eid -> new EidPermission(matchMethod: eid.matchMethod) })                     | ({ Eid eid -> new EidPermission(matcher: eid.matcher) })
+        ({ Eid eid -> new EidPermission(source: eid.source, matcher: eid.matcher) })         | ({ Eid eid -> new EidPermission(inserter: eid.inserter, matchMethod: eid.matchMethod) })
+        ({ Eid eid -> new EidPermission(source: eid.source, inserter: eid.inserter) })       | ({ Eid eid -> new EidPermission(matcher: eid.matcher, matchMethod: eid.matchMethod) })
+        ({ Eid eid -> new EidPermission(source: eid.source, matchMethod: eid.matchMethod) }) | ({ Eid eid -> new EidPermission(inserter: eid.inserter, matcher: eid.matcher) })
+        ({ Eid eid -> EidPermission.from(eid).tap { matchMethod = null } })                  | ({ Eid eid -> EidPermission.from(eid).tap { matcher = null } })
+    }
+
+    def "PBS should throw an error when all eidPermissions fields are empty"() {
+        given: "Default bid request with invalid eidPermission"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.data = new ExtRequestPrebidData(eidpermissions: [new EidPermission()])
+        }
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS should throw error"
+        def exception = thrown(PrebidServerException)
+        assert exception.statusCode == BAD_REQUEST.code()
+        assert exception.responseBody == "Invalid request format: " +
+                "Missing required parameter(s) in request.ext.prebid.data.eidPermissions[]. " +
+                "Either one or a combination of inserter, source, matcher, or mm should be defined."
     }
 }

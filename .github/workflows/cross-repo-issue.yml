@@ -2,9 +2,12 @@ name: Cross-repo Issue Creation
 
 on:
   pull_request_target:
-    types: [closed]
+    types: [ closed ]
     branches:
-      - "master"
+      - 'master'
+
+permissions:
+  contents: read
 
 jobs:
   cross-repo:
@@ -12,7 +15,7 @@ jobs:
     steps:
       - name: Generate token
         id: generate_token
-        uses: tibdex/github-app-token@v1
+        uses: tibdex/github-app-token@v2.1.0
         with:
           app_id: ${{ secrets.XREPO_APP_ID }}
           private_key: ${{ secrets.XREPO_PEM }}
@@ -23,9 +26,10 @@ jobs:
           github.event.pull_request.merged
         env:
           GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           echo -e "A PR was merged over on PBS-Java\n\n- [https://github.com/prebid/prebid-server-java/pull/${{github.event.number}}](https://github.com/prebid/prebid-server-java/pull/${{github.event.number}})\n- timestamp: ${{ github.event.pull_request.merged_at}}" > msg
           export msg=$(cat msg)
-          gh issue create --repo prebid/prebid-server --title "Port PR from PBS-Java: ${{ github.event.pull_request.title }}" \
+          gh issue create --repo prebid/prebid-server --title "Port PR from PBS-Java: $PR_TITLE" \
               --body "$msg" \
               --label auto

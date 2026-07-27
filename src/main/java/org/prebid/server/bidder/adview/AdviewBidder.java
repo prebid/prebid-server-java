@@ -24,7 +24,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.adview.ExtImpAdview;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -38,10 +38,10 @@ public class AdviewBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpAdview>> ADVIEW_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
-    private static final String ACCOUNT_ID_MACRO = "{{AccountId}}";
+    private static final String ACCOUNT_ID_MACRO = "AccountId";
     private static final String BIDDER_CURRENCY = "USD";
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final CurrencyConversionService currencyConversionService;
     private final JacksonMapper mapper;
 
@@ -49,7 +49,7 @@ public class AdviewBidder implements Bidder<BidRequest> {
                         CurrencyConversionService currencyConversionService,
                         JacksonMapper mapper) {
 
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -59,7 +59,7 @@ public class AdviewBidder implements Bidder<BidRequest> {
         final List<BidderError> errors = new ArrayList<>();
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
 
-        for (Imp imp: request.getImp()) {
+        for (Imp imp : request.getImp()) {
             try {
                 final ExtImpAdview extImp = parseExtImp(imp);
                 final Price bidFloorPrice = resolveBidFloor(imp, request);
@@ -131,7 +131,7 @@ public class AdviewBidder implements Bidder<BidRequest> {
     }
 
     private String resolveEndpoint(String accountId) {
-        return endpointUrl.replace(ACCOUNT_ID_MACRO, HttpUtil.encodeUrl(accountId));
+        return endpointUrl.replaceMacro(ACCOUNT_ID_MACRO, accountId).expand();
     }
 
     @Override

@@ -29,7 +29,7 @@ import org.prebid.server.proto.openrtb.ext.request.taboola.ExtImpTaboola;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.spring.config.bidder.model.MediaType;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -43,6 +43,9 @@ import java.util.Optional;
 
 public class TaboolaBidder implements Bidder<BidRequest> {
 
+    private static final String GVL_ID_MACRO = "GvlID";
+    private static final String MEDIA_TYPE_MACRO = "MediaType";
+    private static final String PUBLISHER_ID_MACRO = "PublisherID";
     private static final String DISPLAY_ENDPOINT_PREFIX = "display";
     private static final String NATIVE_ENDPOINT_PREFIX = "native";
     private static final String PRICE_MACRO = "${AUCTION_PRICE}";
@@ -51,12 +54,12 @@ public class TaboolaBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private final String endpointTemplate;
+    private final Uri endpoint;
     private final String gvlId;
     private final JacksonMapper mapper;
 
-    public TaboolaBidder(String endpointTemplate, Integer gvlId, JacksonMapper mapper) {
-        this.endpointTemplate = HttpUtil.validateUrl(Objects.requireNonNull(endpointTemplate));
+    public TaboolaBidder(String endpoint, Integer gvlId, JacksonMapper mapper) {
+        this.endpoint = Uri.of(endpoint);
         this.gvlId = gvlId != null ? String.valueOf(gvlId) : "";
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -82,7 +85,7 @@ public class TaboolaBidder implements Bidder<BidRequest> {
 
             final Imp modifiedImp = modifyImp(imp, extImpTaboola);
             mediaTypeToImps
-                    .computeIfAbsent(impMediaType, key -> new ArrayList<>())
+                    .computeIfAbsent(impMediaType, _ -> new ArrayList<>())
                     .add(modifiedImp);
         }
 
@@ -138,10 +141,10 @@ public class TaboolaBidder implements Bidder<BidRequest> {
         return resolvedTagId.isUpdated() || resolvedBidFloor.isUpdated() || resolvedBanner.isUpdated()
 
                 ? imp.toBuilder()
-                .tagid(resolvedTagId.getValue())
-                .bidfloor(resolvedBidFloor.getValue())
-                .banner(resolvedBanner.getValue())
-                .build()
+                  .tagid(resolvedTagId.getValue())
+                  .bidfloor(resolvedBidFloor.getValue())
+                  .banner(resolvedBanner.getValue())
+                  .build()
 
                 : imp;
     }
@@ -158,19 +161,19 @@ public class TaboolaBidder implements Bidder<BidRequest> {
         final Site modifiedSite = site == null
                 ? null
                 : site.toBuilder()
-                .id(impExtPublisherId)
-                .name(impExtPublisherId)
-                .domain(resolveDomain(impExt.getPublisherDomain(), request))
-                .publisher(publisher)
-                .build();
+                  .id(impExtPublisherId)
+                  .name(impExtPublisherId)
+                  .domain(resolveDomain(impExt.getPublisherDomain(), request))
+                  .publisher(publisher)
+                  .build();
 
         final App app = request.getApp();
         final App modifiedApp = app == null
                 ? null
                 : app.toBuilder()
-                .id(impExtPublisherId)
-                .publisher(publisher)
-                .build();
+                  .id(impExtPublisherId)
+                  .publisher(publisher)
+                  .build();
 
         final ExtRequest extRequest = StringUtils.isNotEmpty(impExtPageType)
                 ? createExtRequest(impExtPageType)
@@ -190,8 +193,8 @@ public class TaboolaBidder implements Bidder<BidRequest> {
         return StringUtils.isNotEmpty(impExtPublisherDomain)
                 ? impExtPublisherDomain
                 : Optional.ofNullable(request.getSite())
-                .map(Site::getDomain)
-                .orElse(StringUtils.EMPTY);
+                  .map(Site::getDomain)
+                  .orElse(StringUtils.EMPTY);
     }
 
     private ExtRequest createExtRequest(String pageType) {
@@ -219,10 +222,11 @@ public class TaboolaBidder implements Bidder<BidRequest> {
                 .or(() -> Optional.ofNullable(bidRequest.getApp()).map(App::getId))
                 .orElse(StringUtils.EMPTY);
 
-        return endpointTemplate
-                .replace("{{GvlID}}", gvlId)
-                .replace("{{MediaType}}", type)
-                .replace("{{PublisherID}}", HttpUtil.encodeUrl(publisherId));
+        return endpoint
+                .replaceMacro(GVL_ID_MACRO, gvlId)
+                .replaceMacro(MEDIA_TYPE_MACRO, type)
+                .replaceMacro(PUBLISHER_ID_MACRO, publisherId)
+                .expand();
     }
 
     @Override

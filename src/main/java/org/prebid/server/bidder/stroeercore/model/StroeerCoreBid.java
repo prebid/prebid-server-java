@@ -29,9 +29,15 @@ public class StroeerCoreBid {
     @JsonProperty("crid")
     String creativeId;
 
+    /**
+     * @deprecated The dsa will move to the bid's ext.
+     */
+    @Deprecated(forRemoval = true)
     ObjectNode dsa;
 
     String mtype;
 
     List<String> adomain;
+
+    ObjectNode ext;
 }

@@ -25,7 +25,7 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 
 public class AdelementBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test-url.com/?param={{SupplyId}}";
+    private static final String ENDPOINT_URL = "https://test-url.com/?param={SupplyId}";
 
     private AdelementBidder adelementBidder;
 

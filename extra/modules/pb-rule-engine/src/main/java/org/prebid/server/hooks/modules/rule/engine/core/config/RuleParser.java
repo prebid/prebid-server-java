@@ -47,13 +47,13 @@ public class RuleParser {
         this.retryPolicy = Objects.requireNonNull(retryPolicy);
 
         this.accountIdToParsingAttempt = Caffeine.newBuilder()
-                .expireAfterAccess(cacheExpireAfterMinutes, TimeUnit.MINUTES)
+                .expireAfterWrite(cacheExpireAfterMinutes, TimeUnit.MINUTES)
                 .maximumSize(cacheMaxSize)
                 .<String, ParsingAttempt>build()
                 .asMap();
 
         this.accountIdToRules = Caffeine.newBuilder()
-                .expireAfterAccess(cacheExpireAfterMinutes, TimeUnit.MINUTES)
+                .expireAfterWrite(cacheExpireAfterMinutes, TimeUnit.MINUTES)
                 .maximumSize(cacheMaxSize)
                 .<String, PerStageRule>build()
                 .asMap();

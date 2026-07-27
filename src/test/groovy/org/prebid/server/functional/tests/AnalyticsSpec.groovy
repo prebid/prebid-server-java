@@ -20,6 +20,11 @@ class AnalyticsSpec extends BaseSpec {
 
     private static final String SCOPE_ID = UUID.randomUUID()
     private static final Map<String, String> ENABLED_DEBUG_LOG_MODE = ["logging.level.root": "debug"]
+
+    private static final PubStackAnalytics analytics = new PubStackAnalytics(Dependencies.networkServiceContainer).tap {
+        it.setResponse(PubStackResponse.getDefaultPubStackResponse(SCOPE_ID, Dependencies.networkServiceContainer.rootUri))
+    }
+
     private static final PrebidServerService pbsService = pbsServiceFactory.getService(PbsConfig.getPubstackAnalyticsConfig(SCOPE_ID))
     private static final PrebidServerService pbsServiceWithLogAnalytics = pbsServiceFactory.getService(
             ENABLED_DEBUG_LOG_MODE + ['analytics.log.enabled'    : 'true',
@@ -27,12 +32,6 @@ class AnalyticsSpec extends BaseSpec {
     private static final PrebidServerService pbsServiceWithoutLogAnalytics = pbsServiceFactory.getService(
             ENABLED_DEBUG_LOG_MODE + ['analytics.log.enabled'    : 'true',
                                       'analytics.global.adapters': ''])
-
-
-    @Shared
-    PubStackAnalytics analytics = new PubStackAnalytics(Dependencies.networkServiceContainer).tap {
-        it.setResponse(PubStackResponse.getDefaultPubStackResponse(SCOPE_ID, Dependencies.networkServiceContainer.rootUri))
-    }
 
     @Ignore("Currently impossible to make this test pass 100% of the time")
     def "PBS should send PubStack analytics when analytics.pubstack.enabled=true"() {
@@ -187,7 +186,7 @@ class AnalyticsSpec extends BaseSpec {
 
         then: "Bidder request shouldn't contain additional field from logAnalytics"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert !bidderRequest.ext.prebid.analytics.logAnalytics
+        assert !bidderRequest?.ext?.prebid?.analytics?.logAnalytics
 
         then: "Analytics bid request should be emitted in logs"
         PBSUtils.waitUntil({ pbsServiceWithLogAnalytics.isContainLogsByValue(bidRequest.id) })

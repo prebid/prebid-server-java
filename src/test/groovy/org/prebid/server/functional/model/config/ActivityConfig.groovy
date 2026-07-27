@@ -3,9 +3,9 @@ package org.prebid.server.functional.model.config
 import groovy.transform.ToString
 import org.prebid.server.functional.model.request.auction.ActivityType
 
-import static org.prebid.server.functional.model.config.DataActivity.INVALID
 import static org.prebid.server.functional.model.config.LogicalRestrictedRule.LogicalOperation.OR
 import static org.prebid.server.functional.model.config.UsNationalPrivacySection.GPC
+import static org.prebid.server.functional.model.privacy.gpp.GppDataActivity.INVALID
 
 @ToString(includeNames = true, ignoreNulls = true)
 class ActivityConfig {

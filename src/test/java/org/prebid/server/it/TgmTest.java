@@ -18,7 +18,7 @@ public class TgmTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromTheTgmBidder() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/tgm-exchange/test.host/123456"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/tgm-exchange"))
                 .withRequestBody(equalToJson(
                         jsonFrom("openrtb2/tgm/test-tgm-bid-request.json")))
                 .willReturn(aResponse().withBody(
