@@ -161,7 +161,7 @@ class GdprSetUidSpec extends PrivacyBaseSpec {
         assert exception.statusCode == UNAVAILABLE_FOR_LEGAL_REASONS_CODE
         assert exception.responseBody == TCF_ERROR_MESSAGE
 
-        and: "Metric should be increased usersync.FAMILY.tcf.blocked"
+        and: "Metric should be increased usersync.BIDDER.tcf.blocked"
         def metric = prebidServerService.sendCollectedMetricsRequest()
         assert metric["usersync.${GENERIC.value}.tcf.blocked"] == 1
     }
@@ -203,7 +203,7 @@ class GdprSetUidSpec extends PrivacyBaseSpec {
         assert exception.statusCode == UNAVAILABLE_FOR_LEGAL_REASONS_CODE
         assert exception.responseBody == TCF_ERROR_MESSAGE
 
-        and: "Metric should be increased usersync.FAMILY.tcf.blocked"
+        and: "Metric should be increased usersync.BIDDER.tcf.blocked"
         def metric = prebidServerService.sendCollectedMetricsRequest()
         assert metric["usersync.${GENERIC.value}.tcf.blocked"] == 1
     }
@@ -249,7 +249,7 @@ class GdprSetUidSpec extends PrivacyBaseSpec {
         assert exception.statusCode == UNAVAILABLE_FOR_LEGAL_REASONS_CODE
         assert exception.responseBody == TCF_ERROR_MESSAGE
 
-        and: "Metric should be increased usersync.FAMILY.tcf.blocked"
+        and: "Metric should be increased usersync.BIDDER.tcf.blocked"
         def metric = prebidServerService.sendCollectedMetricsRequest()
         assert metric["usersync.${GENERIC.value}.tcf.blocked"] == 1
 

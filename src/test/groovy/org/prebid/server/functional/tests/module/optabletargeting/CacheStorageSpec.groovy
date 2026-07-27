@@ -21,7 +21,7 @@ import org.prebid.server.functional.util.PBSUtils
 
 import static org.apache.commons.codec.binary.Base64.encodeBase64
 import static org.mockserver.model.HttpStatusCode.NOT_FOUND_404
-import static org.prebid.server.functional.model.ModuleName.OPTABLE_TARGETING
+import static org.prebid.server.functional.model.config.ModuleName.OPTABLE_TARGETING
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 
 class CacheStorageSpec extends ModuleBaseSpec {

@@ -52,7 +52,7 @@ This parameter exists to allow to change the location of the directory Vert.x wi
 - `http-client.circuit-breaker.opening-interval-ms` - time interval for opening the circuit breaker if failures count reached. (Must be a multiple of 1000)
 - `http-client.circuit-breaker.closing-interval-ms` - time spent in open state before attempting to re-try.
 - `http-client.circuit-breaker.idle-expire-hours` - idle time to clean the circuit breaker up.
-- `http-client.use-compression` - if equals to `true` httpclient compression is enabled for requests (see [also](https://vertx.io/docs/apidocs/io/vertx/core/http/HttpClientOptions.html#setTryUseCompression-boolean-))
+- `http-client.use-decompression` - if equals to `true` httpclient compression is enabled for requests (see [also](https://vertx.io/docs/apidocs/io/vertx/core/http/HttpClientOptions.html#setDecompressionSupported(boolean)))
 - `http-client.max-redirects` - set the maximum amount of HTTP redirections to follow. A value of 0 (the default) prevents redirections from being followed.
 - `http-client.ssl` - enable SSL/TLS support.
 - `http-client.jks-path` - path to the java keystore (if ssl is enabled).
@@ -457,6 +457,9 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 - `gdpr.special-features.sfN.vendor-exceptions[]` - bidder names that will be treated opposite to `sfN.enforce` value.
 - `gdpr.purpose-one-treatment-interpretation` - option that allows to skip the Purpose one enforcement workflow.
 - `gdpr.vendorlist.default-timeout-ms` - default operation timeout for obtaining new vendor list.
+- `gdpr.vendorlist.live.url` - URL of the latest TCF GVL used to detect vendors with a past `deletedDate`. Default `https://vendor-list.consensu.org/v3/vendor-list.json`.
+- `gdpr.vendorlist.live.refresh-period-ms` - how often to refresh the live GVL deleted-vendor set, in milliseconds. Default `86400000` (24 hours).
+- `gdpr.vendorlist.live.startup-cache-dir` - directory for local storage vendor list cache. At startup server will attempt to read latest GVL from this location.
 - `gdpr.vendorlist.v2.http-endpoint-template` - template string for vendor list url version 2.
 - `gdpr.vendorlist.v2.refresh-missing-list-period-ms` - time to wait between attempts to fetch vendor list version that previously was reported to be missing by origin. Default `3600000` (one hour).
 - `gdpr.vendorlist.v2.fallback-vendor-list-path` - location on the file system of the fallback vendor list that will be used in place of missing vendor list versions. Optional.

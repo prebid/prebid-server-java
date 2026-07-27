@@ -136,9 +136,7 @@ public class ApplicationTest extends IntegrationTest {
         // pre-bid cache
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToBidCacheRequest(
-                        jsonFrom(
-                                "openrtb2/multi_bid/test-cache-generic-genericAlias-request.json"
-                        )))
+                        jsonFrom("openrtb2/multi_bid/test-cache-generic-genericAlias-request.json")))
                 .willReturn(aResponse()
                         .withTransformers("cache-response-transformer")
                         .withTransformerParameter("matcherName",

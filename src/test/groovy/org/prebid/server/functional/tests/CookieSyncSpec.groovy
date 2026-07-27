@@ -374,7 +374,7 @@ class CookieSyncSpec extends BaseSpec {
         def bidderStatus = response.getBidderUserSync(GENERIC)
         assert bidderStatus.error == "Rejected by TCF"
 
-        and: "Metric should contain cookie_sync.FAMILY.tcf.blocked"
+        and: "Metric should contain cookie_sync.BIDDER.tcf.blocked"
         def metric = this.prebidServerService.sendCollectedMetricsRequest()
         assert metric["cookie_sync.generic.tcf.blocked"] == 1
     }
@@ -1382,7 +1382,7 @@ class CookieSyncSpec extends BaseSpec {
         def bidderStatus = response.getBidderUserSync(GENERIC)
         assert bidderStatus.error == "Rejected by TCF"
 
-        and: "Metric should contain cookie_sync.FAMILY.tcf.blocked"
+        and: "Metric should contain cookie_sync.BIDDER.tcf.blocked"
         def metric = prebidServerService.sendCollectedMetricsRequest()
         assert metric["cookie_sync.generic.tcf.blocked"] == 1
     }

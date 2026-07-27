@@ -1005,6 +1005,24 @@ public class MetricsTest {
     }
 
     @Test
+    public void updatePrivacyTcfLiveVendorListOkMetricShouldIncrementMetric() {
+        // when
+        metrics.updatePrivacyTcfLiveVendorListOkMetric();
+
+        // then
+        assertThat(metricRegistry.counter("privacy.tcf.vendorlist.live.ok").getCount()).isOne();
+    }
+
+    @Test
+    public void updatePrivacyTcfLiveVendorListErrorMetricShouldIncrementMetric() {
+        // when
+        metrics.updatePrivacyTcfLiveVendorListErrorMetric();
+
+        // then
+        assertThat(metricRegistry.counter("privacy.tcf.vendorlist.live.err").getCount()).isOne();
+    }
+
+    @Test
     public void shouldNotUpdateAccountMetricsIfVerbosityIsNone() {
         // given
         given(accountMetricsVerbosityResolver.forAccount(any())).willReturn(AccountMetricsVerbosityLevel.none);

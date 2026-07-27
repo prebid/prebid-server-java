@@ -685,7 +685,7 @@ public class ServiceConfiguration {
         final HttpClientOptions options = new HttpClientOptions()
                 .setIdleTimeoutUnit(TimeUnit.MILLISECONDS)
                 .setIdleTimeout(httpClientProperties.getIdleTimeoutMs())
-                .setDecompressionSupported(httpClientProperties.getUseCompression())
+                .setDecompressionSupported(httpClientProperties.getUseDecompression())
                 .setConnectTimeout(httpClientProperties.getConnectTimeoutMs())
                 // Vert.x's HttpClientRequest needs this value to be 2 for redirections to be followed once,
                 // 3 for twice, and so on
@@ -898,7 +898,6 @@ public class ServiceConfiguration {
 
     @Bean
     BidResponseCreator bidResponseCreator(
-            @Value("${logging.sampling-rate:0.01}") double logSamplingRate,
             CoreCacheService coreCacheService,
             BidderCatalog bidderCatalog,
             VastModifier vastModifier,
@@ -912,13 +911,11 @@ public class ServiceConfiguration {
             @Value("${auction.enforce-random-bid-id:false}") boolean enforceRandomBidId,
             Clock clock,
             JacksonMapper mapper,
-            Metrics metrics,
             @Value("${cache.banner-ttl-seconds:#{null}}") Integer bannerCacheTtl,
             @Value("${cache.video-ttl-seconds:#{null}}") Integer videoCacheTtl,
             CacheDefaultTtlProperties cacheDefaultTtlProperties) {
 
         return new BidResponseCreator(
-                logSamplingRate,
                 coreCacheService,
                 bidderCatalog,
                 vastModifier,
@@ -933,7 +930,6 @@ public class ServiceConfiguration {
                 enforceRandomBidId,
                 clock,
                 mapper,
-                metrics,
                 CacheTtl.of(bannerCacheTtl, videoCacheTtl),
                 cacheDefaultTtlProperties);
     }
