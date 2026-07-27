@@ -56,6 +56,8 @@ public class QueryBuilder {
         }
 
         final String hidParameters = Arrays.stream(hidPrefixesString.split(","))
+                .map(String::trim)
+                .filter(StringUtils::isNotEmpty)
                 .map(prefixToIdValue::get)
                 .filter(Objects::nonNull)
                 .map(it -> String.format(
