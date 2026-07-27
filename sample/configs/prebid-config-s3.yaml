@@ -13,7 +13,7 @@ adapters:
     enabled: true
   pubmatic:
     enabled: true
-  rubicon:
+  magnite:
     enabled: true
 metrics:
   prefix: prebid
