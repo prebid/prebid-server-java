@@ -37,7 +37,7 @@ import static org.prebid.server.functional.model.config.ModuleName.PB_ORTB2_BLOC
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.IX
-import static org.prebid.server.functional.model.config.Endpoint.OPENRTB2_AUCTION
+import static org.prebid.server.functional.model.config.HookHttpEndpoint.AUCTION
 import static org.prebid.server.functional.model.config.Ortb2BlockingAttribute.AUDIO_BATTR
 import static org.prebid.server.functional.model.config.Ortb2BlockingAttribute.BADV
 import static org.prebid.server.functional.model.config.Ortb2BlockingAttribute.BAPP
@@ -1531,7 +1531,7 @@ class PbOrtb2BlockingSpec extends ModuleBaseSpec {
 
     private static Account getAccountWithOrtb2BlockingConfig(String accountId, Map<Ortb2BlockingAttribute, Ortb2BlockingAttributeConfig> attributes) {
         def blockingConfig = new Ortb2BlockingConfig(attributes: attributes)
-        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, PB_ORTB2_BLOCKING, [BIDDER_REQUEST, RAW_BIDDER_RESPONSE])
+        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(AUCTION, PB_ORTB2_BLOCKING, [BIDDER_REQUEST, RAW_BIDDER_RESPONSE])
         def moduleConfig = new PbsModulesConfig(pbOrtb2Blocking: blockingConfig)
         def accountHooksConfig = new AccountHooksConfiguration(executionPlan: executionPlan, modules: moduleConfig)
         def accountConfig = new AccountConfig(hooks: accountHooksConfig)
