@@ -63,7 +63,8 @@ public class OptableRawAuctionRequestHookTest extends BaseOptableTest {
         when(userFpdActivityMask.maskDevice(any(), anyBoolean(), anyBoolean()))
                 .thenAnswer(answer -> answer.getArgument(0));
         configResolver = new ConfigResolver(mapper, jsonMerger, givenOptableTargetingProperties(false));
-        targetingRequestExecutor = new TargetingRequestExecutor(optableTargeting, userFpdActivityMask, timeoutFactory);
+        targetingRequestExecutor = new TargetingRequestExecutor(
+                optableTargeting, userFpdActivityMask, timeoutFactory, 0.01);
         target = new OptableRawAuctionRequestHook(
                 configResolver, targetingRequestExecutor, bidderEnrichmentSampler,
                 CompositeHookExecutionPlan.of(ExecutionPlan.empty()), 0.01);

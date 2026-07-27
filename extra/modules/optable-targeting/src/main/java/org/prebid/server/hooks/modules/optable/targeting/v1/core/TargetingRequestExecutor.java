@@ -29,14 +29,17 @@ public class TargetingRequestExecutor {
     private final OptableTargeting optableTargeting;
     private final UserFpdActivityMask userFpdActivityMask;
     private final TimeoutFactory timeoutFactory;
+    private double logSamplingRate;
 
     public TargetingRequestExecutor(OptableTargeting optableTargeting,
-                       UserFpdActivityMask userFpdActivityMask,
-                       TimeoutFactory timeoutFactory) {
+                                    UserFpdActivityMask userFpdActivityMask,
+                                    TimeoutFactory timeoutFactory,
+                                    double logSamplingRate) {
 
         this.optableTargeting = Objects.requireNonNull(optableTargeting);
         this.userFpdActivityMask = Objects.requireNonNull(userFpdActivityMask);
         this.timeoutFactory = ObjectUtils.requireNonEmpty(timeoutFactory);
+        this.logSamplingRate = logSamplingRate;
     }
 
     public Future<TargetingResult> makeRequest(AuctionRequestPayload payload,
@@ -51,7 +54,8 @@ public class TargetingRequestExecutor {
                 : timeoutFactory.create(getHookTimeout(invocationContext).remaining() + apiTimeout);
         final OptableAttributes attributes = OptableAttributesResolver.resolveAttributes(
                 invocationContext.auctionContext(),
-                properties.getTimeout());
+                properties.getTimeout(),
+                logSamplingRate);
 
         return optableTargeting.getTargeting(properties, bidRequest, attributes, timeout);
     }

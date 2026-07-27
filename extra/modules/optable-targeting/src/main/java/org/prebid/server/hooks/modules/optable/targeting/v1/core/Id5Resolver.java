@@ -24,7 +24,6 @@ public class Id5Resolver {
     public static final String STR_SIGNATURE = "signature";
 
     private Id5Resolver() {
-
     }
 
     public static String resolveId5Signature(TargetingResult targetingResult) {

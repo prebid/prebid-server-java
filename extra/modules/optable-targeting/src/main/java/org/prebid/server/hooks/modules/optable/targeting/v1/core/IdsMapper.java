@@ -1,7 +1,5 @@
 package org.prebid.server.hooks.modules.optable.targeting.v1.core;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -14,8 +12,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.hooks.modules.optable.targeting.model.Id;
 import org.prebid.server.hooks.modules.optable.targeting.model.OS;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.ExtUserOptable;
-import org.prebid.server.log.ConditionalLogger;
-import org.prebid.server.log.LoggerFactory;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -25,9 +21,6 @@ import java.util.Objects;
 import java.util.Optional;
 
 public class IdsMapper {
-
-    private static final ConditionalLogger conditionalLogger =
-            new ConditionalLogger(LoggerFactory.getLogger(IdsMapper.class));
 
     private static final Map<String, String> STATIC_PPID_MAPPING = Map.of(
             "id5-sync.com", Id.ID5,
@@ -60,21 +53,12 @@ public class IdsMapper {
         final Optional<ExtUserOptable> extUserOptable = Optional.ofNullable(user)
                 .map(User::getExt)
                 .map(ext -> ext.getProperty("optable"))
-                .map(this::parseExtUserOptable);
+                .map(it -> ExtUserOptableResolver.resolveExtUserOptable(it, logSamplingRate));
 
         extUserOptable.map(ExtUserOptable::getEmail).ifPresent(it -> ids.put(Id.EMAIL, it));
         extUserOptable.map(ExtUserOptable::getPhone).ifPresent(it -> ids.put(Id.PHONE, it));
         extUserOptable.map(ExtUserOptable::getZip).ifPresent(it -> ids.put(Id.ZIP, it));
         extUserOptable.map(ExtUserOptable::getVid).ifPresent(it -> ids.put(Id.OPTABLE_VID, it));
-    }
-
-    private ExtUserOptable parseExtUserOptable(JsonNode node) {
-        try {
-            return objectMapper.treeToValue(node, ExtUserOptable.class);
-        } catch (JsonProcessingException e) {
-            conditionalLogger.warn("Can't parse $.ext.user.Optable tag", logSamplingRate);
-            return null;
-        }
     }
 
     private static void addDeviceIds(Map<String, String> ids, Device device) {

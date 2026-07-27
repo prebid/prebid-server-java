@@ -60,7 +60,7 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
 
         // when
         final OptableAttributes result = OptableAttributesResolver.resolveAttributes(
-                auctionContext, properties.getTimeout());
+                auctionContext, properties.getTimeout(), 0.01);
 
         // then
         assertThat(result).isNotNull()
@@ -79,7 +79,7 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
 
         // when
         final OptableAttributes result = OptableAttributesResolver.resolveAttributes(
-                auctionContext, properties.getTimeout());
+                auctionContext, properties.getTimeout(), 0.01);
 
         // then
         assertThat(result).isNotNull()
@@ -100,7 +100,7 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
 
         // when
         final OptableAttributes result = OptableAttributesResolver.resolveAttributes(
-                auctionContext, properties.getTimeout());
+                auctionContext, properties.getTimeout(), 0.01);
 
         // then
         assertThat(result).isNotNull()
@@ -121,7 +121,7 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
 
         // when
         final OptableAttributes result = OptableAttributesResolver.resolveAttributes(
-                auctionContext, properties.getTimeout());
+                auctionContext, properties.getTimeout(), 0.01);
 
         // then
         assertThat(result).isNotNull()
@@ -144,7 +144,7 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
 
         // when
         final OptableAttributes result = OptableAttributesResolver.resolveAttributes(
-                auctionContext, properties.getTimeout());
+                auctionContext, properties.getTimeout(), 0.01);
 
         // then
         assertThat(result).isNotNull()
@@ -159,7 +159,7 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
 
         // when
         final OptableAttributes result = OptableAttributesResolver.resolveAttributes(
-                auctionContext, properties.getTimeout());
+                auctionContext, properties.getTimeout(), 0.01);
 
         // then
         assertThat(result).isNotNull()
@@ -174,7 +174,7 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
 
         // when
         final OptableAttributes result = OptableAttributesResolver.resolveAttributes(
-                auctionContext, properties.getTimeout());
+                auctionContext, properties.getTimeout(), 0.01);
 
         // then
         assertThat(result).isNotNull()
@@ -189,7 +189,7 @@ public class OptableAttributesResolverTest extends BaseOptableTest {
 
         // when
         final OptableAttributes result = OptableAttributesResolver.resolveAttributes(
-                auctionContext, properties.getTimeout());
+                auctionContext, properties.getTimeout(), 0.01);
 
         // then
         assertThat(result).isNotNull()

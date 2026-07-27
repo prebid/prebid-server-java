@@ -31,7 +31,7 @@ accounts:
           enrich-app: true
           id-prefix-order: "e,v,c"
           hid-prefixes: "c,i6"
-          ppid-mapping: { "pubmatic.com": "c" }
+          ppid-mapping: { "pubcid.org": "c" }
           adserver-targeting: true
           cache:
             enabled: false

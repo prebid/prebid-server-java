@@ -1,7 +1,5 @@
 package org.prebid.server.hooks.modules.optable.targeting.v1.core;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Regs;
@@ -13,7 +11,6 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.hooks.modules.optable.targeting.model.App;
 import org.prebid.server.hooks.modules.optable.targeting.model.OptableAttributes;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.ExtUserOptable;
-import org.prebid.server.json.ObjectMapperProvider;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 
@@ -26,7 +23,10 @@ public class OptableAttributesResolver {
     private OptableAttributesResolver() {
     }
 
-    public static OptableAttributes resolveAttributes(AuctionContext auctionContext, Long timeout) {
+    public static OptableAttributes resolveAttributes(AuctionContext auctionContext,
+                                                      Long timeout,
+                                                      double logSamplingRate) {
+
         final GppContext.Scope gppScope = auctionContext.getGppContext().scope();
 
         final BidRequest bidRequest = auctionContext.getBidRequest();
@@ -63,24 +63,14 @@ public class OptableAttributesResolver {
                     .gppSid(SetUtils.emptyIfNull(gppScope.getSectionsIds()));
         }
 
-        final Optional<ExtUserOptable> extUserOptable = Optional.ofNullable(bidRequest.getUser())
+        Optional.ofNullable(bidRequest.getUser())
                 .map(User::getExt)
                 .map(ext -> ext.getProperty("optable"))
-                .map(OptableAttributesResolver::parseExtUserOptable);
-
-        if (extUserOptable.isPresent()) {
-            extUserOptable.map(ExtUserOptable::getId5Signature).ifPresent(builder::id5Signature);
-        }
+                .map(it -> ExtUserOptableResolver.resolveExtUserOptable(it, logSamplingRate))
+                .map(ExtUserOptable::getId5Signature)
+                .ifPresent(builder::id5Signature);
 
         return builder.build();
-    }
-
-    private static ExtUserOptable parseExtUserOptable(JsonNode node) {
-        try {
-            return ObjectMapperProvider.mapper().treeToValue(node, ExtUserOptable.class);
-        } catch (JsonProcessingException e) {
-            return null;
-        }
     }
 
     private static App resolveApp(AuctionContext auctionContext) {
