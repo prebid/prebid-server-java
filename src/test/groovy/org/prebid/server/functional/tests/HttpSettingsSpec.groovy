@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests
 
+import org.apache.http.HttpStatus
 import org.prebid.server.functional.model.UidsCookie
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.mock.services.httpsettings.HttpAccountsResponse
@@ -16,6 +17,7 @@ import org.prebid.server.functional.testcontainers.scaffolding.HttpSettings
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.util.ResourceUtil
 
+import static org.apache.http.HttpStatus.SC_UNAUTHORIZED
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
 
@@ -25,21 +27,16 @@ class HttpSettingsSpec extends BaseSpec {
     static PrebidServerService prebidServerService
     static PrebidServerService prebidServerServiceWithRfc
 
+    private static final String rfcEndpoint = "/stored-requests-rfc"
     private static final HttpSettings httpSettings = new HttpSettings(networkServiceContainer)
+    private static final HttpSettings httpSettingsWithRfc = new HttpSettings(networkServiceContainer, rfcEndpoint)
     private static final Map<String, String> PBS_CONFIG_WITH_RFC = new HashMap<>(PbsConfig.httpSettingsConfig) +
-            ['settings.http.endpoint': "${networkServiceContainer.rootUri}${HttpSettings.rfcEndpoint}".toString(),
-            'settings.http.rfc3986-compatible': 'true']
+            ['settings.http.endpoint'          : "${networkServiceContainer.rootUri}${rfcEndpoint}".toString(),
+             'settings.http.rfc3986-compatible': 'true']
 
     def setupSpec() {
         prebidServerService = pbsServiceFactory.getService(PbsConfig.httpSettingsConfig)
         prebidServerServiceWithRfc = pbsServiceFactory.getService(PBS_CONFIG_WITH_RFC)
-        bidder.setResponse()
-        vendorList.setResponse()
-    }
-
-    def cleanupSpec() {
-        prebidServerService = pbsServiceFactory.removeContainer(PbsConfig.httpSettingsConfig)
-        prebidServerService = pbsServiceFactory.removeContainer(PBS_CONFIG_WITH_RFC)
     }
 
     def "PBS should take account information from http data source on auction request"() {
@@ -74,7 +71,7 @@ class HttpSettingsSpec extends BaseSpec {
 
         and: "Prepare default account response with gdpr = 0"
         def httpSettingsResponse = HttpAccountsResponse.getDefaultHttpAccountsResponse(bidRequest.accountId)
-        httpSettings.setRfcResponse(bidRequest.accountId, httpSettingsResponse)
+        httpSettingsWithRfc.setRfcResponse(bidRequest.accountId, httpSettingsResponse)
 
         when: "PBS processes auction request"
         def response = prebidServerServiceWithRfc.sendAuctionRequest(bidRequest)
@@ -89,7 +86,7 @@ class HttpSettingsSpec extends BaseSpec {
         assert bidder.getRequestCount(bidRequest.id) == 1
 
         and: "There should be only one account request"
-        assert httpSettings.getRfcRequestCount(bidRequest.accountId) == 1
+        assert httpSettingsWithRfc.getRfcRequestCount(bidRequest.accountId) == 1
     }
 
     def "PBS should take account information from http data source on AMP request"() {
@@ -137,7 +134,7 @@ class HttpSettingsSpec extends BaseSpec {
 
         and: "Prepare default account response with gdpr = 0"
         def httpSettingsResponse = HttpAccountsResponse.getDefaultHttpAccountsResponse(ampRequest.account.toString())
-        httpSettings.setRfcResponse(ampRequest.account.toString(), httpSettingsResponse)
+        httpSettingsWithRfc.setRfcResponse(ampRequest.account.toString(), httpSettingsResponse)
 
         when: "PBS processes amp request"
         def response = prebidServerServiceWithRfc.sendAmpRequest(ampRequest)
@@ -146,7 +143,7 @@ class HttpSettingsSpec extends BaseSpec {
         assert !response.ext?.debug?.httpcalls?.isEmpty()
 
         and: "There should be only one account request"
-        assert httpSettings.getRfcRequestCount(ampRequest.account.toString()) == 1
+        assert httpSettingsWithRfc.getRfcRequestCount(ampRequest.account.toString()) == 1
 
         then: "Response should contain targeting"
         assert !response.ext?.debug?.httpcalls?.isEmpty()
@@ -177,7 +174,7 @@ class HttpSettingsSpec extends BaseSpec {
 
         and: "Prepare default account response"
         def httpSettingsResponse = HttpAccountsResponse.getDefaultHttpAccountsResponse(eventRequest.accountId.toString())
-        httpSettings.setRfcResponse(eventRequest.accountId.toString(), httpSettingsResponse)
+        httpSettingsWithRfc.setRfcResponse(eventRequest.accountId.toString(), httpSettingsResponse)
 
         when: "PBS processes event request"
         def responseBody = prebidServerServiceWithRfc.sendEventRequest(eventRequest)
@@ -187,7 +184,7 @@ class HttpSettingsSpec extends BaseSpec {
                 ResourceUtil.readByteArrayFromClassPath("org/prebid/server/functional/tracking-pixel.png")
 
         and: "There should be only one account request"
-        assert httpSettings.getRfcRequestCount(eventRequest.accountId.toString()) == 1
+        assert httpSettingsWithRfc.getRfcRequestCount(eventRequest.accountId.toString()) == 1
     }
 
     def "PBS should take account information from http data source on setuid request"() {
@@ -226,8 +223,8 @@ class HttpSettingsSpec extends BaseSpec {
     def "PBS should take account information from http data source on setuid request when rfc3986 enabled"() {
         given: "Pbs config with adapters.generic.usersync.redirect.*"
         def pbsConfig = new HashMap<>(PbsConfig.httpSettingsConfig) +
-                ['settings.http.endpoint': "${networkServiceContainer.rootUri}${HttpSettings.rfcEndpoint}".toString(),
-                 'settings.http.rfc3986-compatible': 'true',
+                ['settings.http.endpoint'                            : "${networkServiceContainer.rootUri}${rfcEndpoint}".toString(),
+                 'settings.http.rfc3986-compatible'                  : 'true',
                  'adapters.generic.usersync.redirect.url'            : "$networkServiceContainer.rootUri/generic-usersync&redir={redirect_url}".toString(),
                  'adapters.generic.usersync.redirect.format-override': 'blank']
         def prebidServerService = pbsServiceFactory.getService(pbsConfig)
@@ -240,7 +237,7 @@ class HttpSettingsSpec extends BaseSpec {
 
         and: "Prepare default account response"
         def httpSettingsResponse = HttpAccountsResponse.getDefaultHttpAccountsResponse(request.account)
-        httpSettings.setRfcResponse(request.account, httpSettingsResponse)
+        httpSettingsWithRfc.setRfcResponse(request.account, httpSettingsResponse)
 
         when: "PBS processes setuid request"
         def response = prebidServerService.sendSetUidRequest(request, uidsCookie)
@@ -252,7 +249,7 @@ class HttpSettingsSpec extends BaseSpec {
                 ResourceUtil.readByteArrayFromClassPath("org/prebid/server/functional/tracking-pixel.png")
 
         and: "There should be only one account request"
-        assert httpSettings.getRfcRequestCount(request.account) == 1
+        assert httpSettingsWithRfc.getRfcRequestCount(request.account) == 1
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsConfig)
@@ -291,7 +288,7 @@ class HttpSettingsSpec extends BaseSpec {
 
         and: "Prepare default account response"
         def httpSettingsResponse = HttpAccountsResponse.getDefaultHttpAccountsResponse(accountId)
-        httpSettings.setRfcResponse(accountId, httpSettingsResponse)
+        httpSettingsWithRfc.setRfcResponse(accountId, httpSettingsResponse)
 
         when: "PBS processes vtrack request"
         def response = prebidServerServiceWithRfc.sendPostVtrackRequest(request, accountId)
@@ -300,7 +297,7 @@ class HttpSettingsSpec extends BaseSpec {
         assert response.responses[0]?.uuid
 
         and: "There should be only one account request and pbc request"
-        assert httpSettings.getRfcRequestCount(accountId.toString()) == 1
+        assert httpSettingsWithRfc.getRfcRequestCount(accountId) == 1
         assert prebidCache.getXmlRequestCount(payload) == 1
 
         and: "VastXml that was send to PrebidCache must contain event url"
@@ -317,7 +314,7 @@ class HttpSettingsSpec extends BaseSpec {
 
         then: "Request should fail with error"
         def exception = thrown(PrebidServerException)
-        assert exception.statusCode == 401
+        assert exception.statusCode == SC_UNAUTHORIZED
         assert exception.responseBody.contains("Account '$eventRequest.accountId' doesn't support events")
     }
 
@@ -330,7 +327,7 @@ class HttpSettingsSpec extends BaseSpec {
 
         then: "Request should fail with error"
         def exception = thrown(PrebidServerException)
-        assert exception.statusCode == 401
+        assert exception.statusCode == SC_UNAUTHORIZED
         assert exception.responseBody.contains("Account '$eventRequest.accountId' doesn't support events")
     }
 }
