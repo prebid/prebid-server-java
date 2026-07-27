@@ -157,6 +157,50 @@ class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
     }
 
     @Test
+    void callShouldSetId5SignatureOnModuleContextWhenTargetingResultContainsId5Signature() {
+        // given
+        final String refValue = "refValue";
+        final String signature = "id5Signature";
+        final Eid id5Eid = givenId5Eid(refValue);
+        final ObjectNode refs = givenRefsObject(refValue, signature);
+        when(auctionRequestPayload.bidRequest()).thenReturn(givenBidRequest());
+        when(optableTargeting.getTargeting(any(), any(), any(), any()))
+                .thenReturn(Future.succeededFuture(givenTargetingResult(List.of(id5Eid), null, refs)));
+
+        // when
+        final Future<InvocationResult<AuctionRequestPayload>> future = target.call(auctionRequestPayload,
+                invocationContext);
+
+        // then
+        assertThat(future).isNotNull();
+        assertThat(future.succeeded()).isTrue();
+        assertThat((ModuleContext) future.result().moduleContext())
+                .isNotNull()
+                .extracting(ModuleContext::getId5Signature)
+                .isEqualTo(signature);
+    }
+
+    @Test
+    void callShouldLeaveId5SignatureNullWhenTargetingResultHasNoId5Signature() {
+        // given
+        when(auctionRequestPayload.bidRequest()).thenReturn(givenBidRequest());
+        when(optableTargeting.getTargeting(any(), any(), any(), any()))
+                .thenReturn(Future.succeededFuture(givenTargetingResult()));
+
+        // when
+        final Future<InvocationResult<AuctionRequestPayload>> future = target.call(auctionRequestPayload,
+                invocationContext);
+
+        // then
+        assertThat(future).isNotNull();
+        assertThat(future.succeeded()).isTrue();
+        assertThat((ModuleContext) future.result().moduleContext())
+                .isNotNull()
+                .extracting(ModuleContext::getId5Signature)
+                .isNull();
+    }
+
+    @Test
     void callShouldReturnResultWithUpdateActionWhenEarlyOptableCallIsEnabled() {
         // given
         final ModuleContext moduleContext = new ModuleContext();

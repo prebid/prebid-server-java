@@ -11,6 +11,7 @@ import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidRequestClean
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidRequestEnricher;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.CompositeHookExecutionPlan;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
+import org.prebid.server.hooks.modules.optable.targeting.v1.core.Id5Resolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.PropertiesValidator;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.TargetingRequestExecutor;
 import org.prebid.server.hooks.v1.InvocationAction;
@@ -105,6 +106,7 @@ public class OptableTargetingProcessedAuctionRequestHook implements ProcessedAuc
             OptableTargetingProperties properties) {
 
         moduleContext.setTargeting(targetingResult.getAudience());
+        moduleContext.setId5Signature(Id5Resolver.resolveId5Signature(targetingResult));
         moduleContext.setEnrichRequestStatus(EnrichmentStatus.success());
 
         final PayloadUpdate<AuctionRequestPayload> payloadUpdate =

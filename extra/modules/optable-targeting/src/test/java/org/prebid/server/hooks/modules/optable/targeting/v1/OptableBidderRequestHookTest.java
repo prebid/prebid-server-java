@@ -1,7 +1,9 @@
 package org.prebid.server.hooks.modules.optable.targeting.v1;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Eid;
 import io.vertx.core.Future;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -14,6 +16,7 @@ import org.prebid.server.hooks.execution.v1.bidder.BidderRequestPayloadImpl;
 import org.prebid.server.hooks.modules.optable.targeting.model.EnrichmentStatus;
 import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
 import org.prebid.server.hooks.modules.optable.targeting.model.Status;
+import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
@@ -23,6 +26,7 @@ import org.prebid.server.hooks.v1.bidder.BidderInvocationContext;
 import org.prebid.server.hooks.v1.bidder.BidderRequestPayload;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
 
@@ -168,6 +172,48 @@ public class OptableBidderRequestHookTest extends BaseOptableTest {
                 .extracting(EnrichmentStatus::getStatus)
                 .extracting(Status::getValue)
                 .isEqualTo("success");
+    }
+
+    @Test
+    public void shouldSetId5SignatureOnModuleContextWhenTargetingResultHasId5Signature() {
+        // given
+        final String refValue = "refValue";
+        final String signature = "id5Signature";
+        final Eid id5Eid = givenId5Eid(refValue);
+        final ObjectNode refs = givenRefsObject(refValue, signature);
+        final TargetingResult targetingResult = givenTargetingResult(List.of(id5Eid), null, refs);
+
+        final ModuleContext moduleContext = givenModuleContextWithProperties(
+                givenPropertiesWithPerBidderEnrichmentEnabled());
+        moduleContext.setBiddersToEnrich(Set.of("bidder1"));
+        moduleContext.setCallTargetingAPITimestamp(System.currentTimeMillis() - 100);
+        moduleContext.setOptableTargetingCall(Future.succeededFuture(targetingResult));
+        when(invocationContext.moduleContext()).thenReturn(moduleContext);
+        when(invocationContext.bidder()).thenReturn("bidder1");
+
+        // when
+        target.call(bidderRequestPayload, invocationContext);
+
+        // then
+        assertThat(moduleContext.getId5Signature()).isEqualTo(signature);
+    }
+
+    @Test
+    public void shouldNotSetId5SignatureOnModuleContextWhenTargetingResultHasNoId5Signature() {
+        // given
+        final ModuleContext moduleContext = givenModuleContextWithProperties(
+                givenPropertiesWithPerBidderEnrichmentEnabled());
+        moduleContext.setBiddersToEnrich(Set.of("bidder1"));
+        moduleContext.setCallTargetingAPITimestamp(System.currentTimeMillis() - 100);
+        moduleContext.setOptableTargetingCall(Future.succeededFuture(givenTargetingResult()));
+        when(invocationContext.moduleContext()).thenReturn(moduleContext);
+        when(invocationContext.bidder()).thenReturn("bidder1");
+
+        // when
+        target.call(bidderRequestPayload, invocationContext);
+
+        // then
+        assertThat(moduleContext.getId5Signature()).isNull();
     }
 
     @Test

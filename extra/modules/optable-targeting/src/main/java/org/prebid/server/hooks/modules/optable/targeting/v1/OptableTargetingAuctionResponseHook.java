@@ -9,12 +9,10 @@ import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
 import org.prebid.server.hooks.modules.optable.targeting.model.Status;
 import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Audience;
-import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.AnalyticTagsResolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.AuctionResponseValidator;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.BidResponseEnricher;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
-import org.prebid.server.hooks.modules.optable.targeting.v1.core.Id5Resolver;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.Id5SignatureBidResponseEnricher;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
@@ -70,36 +68,32 @@ public class OptableTargetingAuctionResponseHook implements AuctionResponseHook 
 
     private Future<InvocationResult<AuctionResponsePayload>> enrichedPayload(ModuleContext moduleContext) {
         final List<Audience> targeting = moduleContext.getTargeting();
+        final String id5Signature = moduleContext.getId5Signature();
 
-        return moduleContext.getOptableTargetingCall()
-                .compose(targetingResult ->
-                    CollectionUtils.isNotEmpty(targeting)
-                            ? update(fullEnrichmentChain(moduleContext, targeting, targetingResult), moduleContext)
-                            : update(id5SignatureEnrichmentChain(targetingResult), moduleContext))
-                .recover(throwable -> success(moduleContext));
+        return CollectionUtils.isNotEmpty(targeting)
+                ? update(fullEnrichmentChain(targeting, id5Signature), moduleContext)
+                : update(id5SignatureEnrichmentChain(id5Signature), moduleContext);
     }
 
     private Future<InvocationResult<AuctionResponsePayload>> enrichedById5SignaturePayload(
             ModuleContext moduleContext) {
 
+        final String id5Signature = moduleContext.getId5Signature();
+
         return moduleContext.getOptableTargetingCall()
                 .compose(targetingResult ->
-                        update(id5SignatureEnrichmentChain(targetingResult), moduleContext))
+                        update(id5SignatureEnrichmentChain(id5Signature), moduleContext))
                 .recover(throwable -> success(moduleContext));
     }
 
-    private PayloadUpdate<AuctionResponsePayload> fullEnrichmentChain(ModuleContext moduleContext,
-                                                                      final List<Audience> targeting,
-                                                                      TargetingResult targetingResult) {
-        final String id5Signature = Id5Resolver.resolveId5Signature(targetingResult);
+    private PayloadUpdate<AuctionResponsePayload> fullEnrichmentChain(final List<Audience> targeting,
+                                                                      final String id5Signature) {
 
         return BidResponseEnricher.of(targeting, objectMapper, jsonMerger)
                 .andThen(Id5SignatureBidResponseEnricher.of(id5Signature, objectMapper, jsonMerger))::apply;
     }
 
-    private PayloadUpdate<AuctionResponsePayload> id5SignatureEnrichmentChain(TargetingResult targetingResult) {
-        final String id5Signature = Id5Resolver.resolveId5Signature(targetingResult);
-
+    private PayloadUpdate<AuctionResponsePayload> id5SignatureEnrichmentChain(String id5Signature) {
         return Id5SignatureBidResponseEnricher.of(id5Signature, objectMapper, jsonMerger);
     }
 

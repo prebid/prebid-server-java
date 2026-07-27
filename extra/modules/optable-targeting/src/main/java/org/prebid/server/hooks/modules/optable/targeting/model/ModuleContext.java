@@ -35,6 +35,8 @@ public class ModuleContext {
 
     private boolean shouldSkipEnrichment;
 
+    private String id5Signature;
+
     public static ModuleContext of(AuctionInvocationContext invocationContext) {
         final ModuleContext moduleContext = (ModuleContext) invocationContext.moduleContext();
         return moduleContext != null ? moduleContext : new ModuleContext();
