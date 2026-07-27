@@ -26,6 +26,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.bidmachine.ExtImpBidmachine;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -39,11 +40,11 @@ public class BidmachineBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public BidmachineBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -142,9 +143,11 @@ public class BidmachineBidder implements Bidder<BidRequest> {
     }
 
     private String buildEndpointUrl(ExtImpBidmachine extImpBidmachine) {
-        return endpointUrl.replace("{{HOST}}", extImpBidmachine.getHost())
-                .replace("{{PATH}}", extImpBidmachine.getPath())
-                .replace("{{SELLER_ID}}", extImpBidmachine.getSellerId());
+        return endpointUrl
+                .replaceMacro("HOST", extImpBidmachine.getHost())
+                .replaceMacro("PATH", extImpBidmachine.getPath())
+                .replaceMacro("SELLER_ID", extImpBidmachine.getSellerId())
+                .expand();
     }
 
     private ExtPrebid<ExtImpPrebid, ExtImpBidmachine> parseImpExt(Imp imp) {

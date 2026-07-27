@@ -23,7 +23,7 @@ import org.prebid.server.proto.openrtb.ext.request.omx.ExtImpOms;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -32,15 +32,15 @@ import java.util.Objects;
 
 public class OmsBidder implements Bidder<BidRequest> {
 
-    private static final String PUBLISHER_ID_MACRO = "{{PublisherId}}";
+    private static final String PUBLISHER_ID_MACRO = "PublisherId";
     private static final TypeReference<ExtPrebid<?, ExtImpOms>> EXT_TYPE_REFERENCE = new TypeReference<>() {
     };
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public OmsBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -49,8 +49,7 @@ public class OmsBidder implements Bidder<BidRequest> {
         try {
             final ExtImpOms impExt = parseImpExt(request.getImp().getFirst());
             final String publisherId = resolverPublisherId(impExt.getPid(), impExt.getPublisherId());
-            final String encodedPublisherId = HttpUtil.encodeUrl(publisherId);
-            final String url = endpointUrl.replace(PUBLISHER_ID_MACRO, encodedPublisherId);
+            final String url = endpointUrl.replaceMacro(PUBLISHER_ID_MACRO, publisherId).expand();
             return Result.withValue(BidderUtil.defaultRequest(request, url, mapper));
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));

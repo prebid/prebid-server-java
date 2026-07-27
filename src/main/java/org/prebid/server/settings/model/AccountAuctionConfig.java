@@ -5,10 +5,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
 import lombok.Value;
-import org.prebid.server.auction.model.PaaFormat;
 import org.prebid.server.spring.config.bidder.model.MediaType;
 
 import java.util.Map;
+import java.util.Set;
 
 @Builder(toBuilder = true)
 @Value
@@ -54,9 +54,6 @@ public class AccountAuctionConfig {
     @JsonProperty("privacysandbox")
     AccountPrivacySandboxConfig privacySandbox;
 
-    @JsonProperty("paaformat")
-    PaaFormat paaFormat;
-
     AccountCacheConfig cache;
 
     AccountBidRankingConfig ranking;
@@ -65,4 +62,7 @@ public class AccountAuctionConfig {
     Integer impressionLimit;
 
     AccountProfilesConfig profiles;
+
+    @JsonAlias("secondary-bidders")
+    Set<String> secondaryBidders;
 }

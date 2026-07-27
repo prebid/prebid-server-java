@@ -22,12 +22,12 @@ public class TCStringEmpty implements TCString {
 
     @Override
     public Instant getCreated() {
-        return null;
+        return Instant.MAX;
     }
 
     @Override
     public Instant getLastUpdated() {
-        return null;
+        return Instant.MAX;
     }
 
     @Override

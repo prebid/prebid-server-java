@@ -1,7 +1,6 @@
 package org.prebid.server.vertx.verticles.server;
 
 import io.vertx.core.AbstractVerticle;
-import io.vertx.core.AsyncResult;
 import io.vertx.core.Promise;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
@@ -55,19 +54,13 @@ public class ServerVerticle extends AbstractVerticle {
             server.exceptionHandler(exceptionHandler);
         }
 
-        server.listen(address, result -> onServerStarted(result, startPromise));
-    }
-
-    private void onServerStarted(AsyncResult<HttpServer> result, Promise<Void> startPromise) {
-        if (result.succeeded()) {
-            startPromise.tryComplete();
-            logger.info(
-                    "Successfully started {} instance on address: {}, thread: {}",
-                    name,
-                    address,
-                    Thread.currentThread().getName());
-        } else {
-            startPromise.tryFail(result.cause());
-        }
+        server.listen(address)
+                .<Void>mapEmpty()
+                .onComplete(startPromise)
+                .onSuccess(ignored -> logger.info(
+                        "Successfully started {} instance on address: {}, thread: {}",
+                        name,
+                        address,
+                        Thread.currentThread().getName()));
     }
 }

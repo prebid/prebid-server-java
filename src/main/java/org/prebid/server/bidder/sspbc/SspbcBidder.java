@@ -6,7 +6,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -19,8 +18,8 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
-import java.net.URISyntaxException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -34,8 +33,12 @@ public class SspbcBidder implements Bidder<SspbcRequest> {
     private final JacksonMapper mapper;
 
     public SspbcBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = resolveEndpointUrl(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
+    }
+
+    private static String resolveEndpointUrl(String base) {
+        return Uri.of(base).addQueryParam("bdver", ADAPTER_VERSION).expand();
     }
 
     @Override
@@ -47,23 +50,12 @@ public class SspbcBidder implements Bidder<SspbcRequest> {
         final SspbcRequest outgoingRequest = SspbcRequest.of(request);
         return HttpRequest.<SspbcRequest>builder()
                 .method(HttpMethod.POST)
-                .uri(makeUrl(endpointUrl))
+                .uri(endpointUrl)
                 .headers(HttpUtil.headers())
                 .impIds(BidderUtil.impIds(outgoingRequest.getBidRequest()))
                 .body(mapper.encodeToBytes(outgoingRequest))
                 .payload(outgoingRequest)
                 .build();
-    }
-
-    private static String makeUrl(String endpointUrl) {
-        try {
-            return new URIBuilder(endpointUrl)
-                    .addParameter("bdver", ADAPTER_VERSION)
-                    .build()
-                    .toString();
-        } catch (URISyntaxException e) {
-            throw new PreBidException("Malformed URL: %s.".formatted(endpointUrl));
-        }
     }
 
     @Override

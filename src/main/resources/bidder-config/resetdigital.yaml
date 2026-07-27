@@ -19,6 +19,6 @@ adapters:
     usersync:
       cookie-family-name: resetdigital
       redirect:
-        url: https://sync.resetdigital.co/usersync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+        url: https://sync.resetdigital.co/usersync?gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&redirect={redirect_url}
         support-cors: true
         uid-macro: '$UID'

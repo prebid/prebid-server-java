@@ -41,7 +41,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
 public class GamoshiBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.endpoint.com";
+    private static final String ENDPOINT_URL = "https://test.endpoint.com/r/{SupplyPartnerId}/bidr?bidder=prebid-server";
 
     private final GamoshiBidder target = new GamoshiBidder(ENDPOINT_URL, jacksonMapper);
 

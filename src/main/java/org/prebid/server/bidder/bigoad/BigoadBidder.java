@@ -24,6 +24,7 @@ import org.prebid.server.proto.openrtb.ext.request.bigoad.ExtImpBigoad;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -35,14 +36,14 @@ public class BigoadBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpBigoad>> BIGOAD_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
-    private static final String SSP_ID_MACRO = "{{SspId}}";
+    private static final String SSP_ID_MACRO = "SspId";
     private static final String OPEN_RTB_VERSION = "2.5";
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public BigoadBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -88,8 +89,7 @@ public class BigoadBidder implements Bidder<BidRequest> {
     }
 
     private String makeEndpointUrl(ExtImpBigoad extImpBigoadx) {
-        final String safeSspId = HttpUtil.encodeUrl(StringUtils.trimToEmpty(extImpBigoadx.getSspId()));
-        return endpointUrl.replace(SSP_ID_MACRO, safeSspId);
+        return endpointUrl.replaceMacro(SSP_ID_MACRO, StringUtils.trimToEmpty(extImpBigoadx.getSspId())).expand();
     }
 
     @Override

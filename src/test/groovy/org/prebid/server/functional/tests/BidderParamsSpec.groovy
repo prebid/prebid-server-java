@@ -9,7 +9,6 @@ import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.Adrino
 import org.prebid.server.functional.model.request.auction.Amx
-import org.prebid.server.functional.model.request.auction.AuctionEnvironment
 import org.prebid.server.functional.model.request.auction.Banner
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Device
@@ -19,7 +18,6 @@ import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.ImpExt
 import org.prebid.server.functional.model.request.auction.ImpExtContext
 import org.prebid.server.functional.model.request.auction.ImpExtContextData
-import org.prebid.server.functional.model.request.auction.InterestGroupAuctionSupport
 import org.prebid.server.functional.model.request.auction.Native
 import org.prebid.server.functional.model.request.auction.PrebidOptions
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
@@ -47,10 +45,6 @@ import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.bidder.CompressionType.GZIP
 import static org.prebid.server.functional.model.bidder.CompressionType.NONE
 import static org.prebid.server.functional.model.request.auction.Asset.titleAsset
-import static org.prebid.server.functional.model.request.auction.AuctionEnvironment.DEVICE_ORCHESTRATED
-import static org.prebid.server.functional.model.request.auction.AuctionEnvironment.NOT_SUPPORTED
-import static org.prebid.server.functional.model.request.auction.AuctionEnvironment.SERVER_ORCHESTRATED
-import static org.prebid.server.functional.model.request.auction.AuctionEnvironment.UNKNOWN
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.DOOH
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
@@ -69,6 +63,15 @@ import static org.prebid.server.functional.util.HttpUtil.CONTENT_ENCODING_HEADER
 import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.ENFORCED
 
 class BidderParamsSpec extends BaseSpec {
+
+    private static final Map<String, String> DISABLE_INVALID_BIDDER_CONFIGS = [
+            "adapters.audiencenetwork.enabled": "false",
+            "adapters.adxcg.enabled"          : "false",
+            "adapters.avocet.enabled"         : "false",
+            "adapters.pangle.enabled"         : "false",
+            "adapters.teqblaze.enabled"       : "false",
+            "adapters.ix.enabled"             : "false"
+    ]
 
     def "PBS should send request to bidder when adapter-defaults.enabled = #adapterDefault and adapters.BIDDER.enabled = #generic"() {
         given: "PBS with adapter configuration"
@@ -91,9 +94,8 @@ class BidderParamsSpec extends BaseSpec {
 
         where:
         adapterDefault | generic | adapterConfig
-        "true"         | "true"  | ["adapter-defaults.enabled"        : adapterDefault,
-                                    "adapters.audiencenetwork.enabled": "false",
-                                    "adapters.generic.enabled"        : generic]
+        "true"         | "true"  | ["adapter-defaults.enabled": adapterDefault,
+                                    "adapters.generic.enabled": generic] + DISABLE_INVALID_BIDDER_CONFIGS
 
         "false"        | "true"  | ["adapter-defaults.enabled": adapterDefault,
                                     "adapters.generic.enabled": generic]
@@ -119,9 +121,8 @@ class BidderParamsSpec extends BaseSpec {
         adapterDefault | generic | adapterConfig
         "false"        | "false" | ["adapter-defaults.enabled": adapterDefault,
                                     "adapters.generic.enabled": generic]
-        "true"         | "false" | ["adapter-defaults.enabled"        : adapterDefault,
-                                    "adapters.audiencenetwork.enabled": "false",
-                                    "adapters.generic.enabled"        : generic]
+        "true"         | "false" | ["adapter-defaults.enabled": adapterDefault,
+                                    "adapters.generic.enabled": generic] + DISABLE_INVALID_BIDDER_CONFIGS
     }
 
     def "PBS should modify vast xml when adapter-defaults.modifying-vast-xml-allowed = #adapterDefault and BIDDER.modifying-vast-xml-allowed = #generic"() {
@@ -262,9 +263,12 @@ class BidderParamsSpec extends BaseSpec {
         when: "PBS processes auction request"
         defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Response should contain zoneId value from imp[*].ext.prebid.bidder.BIDDER"
+        then: "Bidder request should contain zoneId value from imp[*].ext.prebid.bidder.BIDDER"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp[0]?.ext?.bidder?.firstParam == firstParam
+
+        and: "Bidder request should contain requested bidder param for related itself bidder"
+        assert bidderRequest.ext.prebid.bidderParams[GENERIC] == bidRequest.ext.prebid.bidderParams[GENERIC]
     }
 
     def "PBS should send bidder params from imp[*].ext.prebid.bidder.BIDDER when ext.prebid.bidderparams.BIDDER isn't specified"() {
@@ -318,28 +322,6 @@ class BidderParamsSpec extends BaseSpec {
 
         then: "Response shouldn't contain bidder param from another bidder"
         bidder.getBidderRequest(bidRequest.id)
-    }
-
-    // TODO: create same test for enabled circuit breaker
-    def "PBS should emit warning when bidder endpoint is invalid"() {
-        given: "Pbs config"
-        def pbsConfig = ["adapters.generic.enabled"           : "true",
-                         "adapters.generic.endpoint"          : "https://",
-                         "http-client.circuit-breaker.enabled": "false"]
-        def pbsService = pbsServiceFactory.getService(pbsConfig)
-
-        and: "Default basic generic BidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
-
-        when: "PBS processes auction request"
-        def response = pbsService.sendAuctionRequest(bidRequest)
-
-        then: "Response should contain error"
-        assert response.ext?.errors[GENERIC]*.code == [999]
-        assert response.ext?.errors[GENERIC]*.message == ["host name must not be empty"]
-
-        cleanup: "Stop and remove pbs container"
-        pbsServiceFactory.removeContainer(pbsConfig)
     }
 
     def "PBS should reject bidder when bidder params from request doesn't satisfy json-schema for auction request"() {
@@ -782,7 +764,7 @@ class BidderParamsSpec extends BaseSpec {
         when: "Requesting PBS auction"
         defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Response should contain imp[0].secure same value as in request"
+        then: "Bidder request should contain imp[0].secure same value as in request"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp[0].secure == secureBidderRequest
 
@@ -882,7 +864,6 @@ class BidderParamsSpec extends BaseSpec {
             prebid.bidder.generic = null
             prebid.adUnitCode = PBSUtils.randomString
             generic = new Generic()
-            auctionEnvironment = PBSUtils.getRandomEnum(AuctionEnvironment, [AuctionEnvironment.SERVER_ORCHESTRATED, AuctionEnvironment.UNKNOWN])
             all = PBSUtils.randomNumber
             context = new ImpExtContext(data: new ImpExtContextData())
             data = new ImpExtContextData(pbAdSlot: PBSUtils.randomString)
@@ -908,7 +889,6 @@ class BidderParamsSpec extends BaseSpec {
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         verifyAll(bidderRequest.imp[0].ext) {
             it.bidder == impExt.generic
-            it.auctionEnvironment == impExt.auctionEnvironment
             it.all == impExt.all
             it.context == impExt.context
             it.data == impExt.data
@@ -971,8 +951,7 @@ class BidderParamsSpec extends BaseSpec {
         given: "Default bid request with populated ext.prebid.bidderParams"
         def genericBidderParams = PBSUtils.randomString
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.bidderParams = [ae             : PBSUtils.randomString,
-                                       all            : PBSUtils.randomString,
+            ext.prebid.bidderParams = [all            : PBSUtils.randomString,
                                        context        : PBSUtils.randomString,
                                        data           : PBSUtils.randomString,
                                        general        : PBSUtils.randomString,
@@ -1250,68 +1229,6 @@ class BidderParamsSpec extends BaseSpec {
         pbsServiceFactory.removeContainer(pbsConfig)
     }
 
-    def "PBS should add auction environment to imp.ext.igs when it is present in imp.ext and imp.ext.igs is empty"() {
-        given: "Default bid request with populated imp.ext"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp[0].ext.tap {
-                auctionEnvironment = requestedAuctionEnvironment
-                interestGroupAuctionSupports = new InterestGroupAuctionSupport(auctionEnvironment: null)
-            }
-        }
-
-        when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
-
-        then: "Bidder request should imp[].{ae/ext.igs.ae} same value as requested"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.imp[0].ext.auctionEnvironment == requestedAuctionEnvironment
-        assert bidderRequest.imp[0].ext.interestGroupAuctionSupports.auctionEnvironment == requestedAuctionEnvironment
-
-        where:
-        requestedAuctionEnvironment << [NOT_SUPPORTED, DEVICE_ORCHESTRATED]
-    }
-
-    def "PBS shouldn't add unsupported auction environment to imp.ext.igs when it is present in imp.ext and imp.ext.igs is empty"() {
-        given: "Default bid request with populated imp.ext"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp[0].ext.tap {
-                auctionEnvironment = requestedAuctionEnvironment
-                interestGroupAuctionSupports = new InterestGroupAuctionSupport(auctionEnvironment: null)
-            }
-        }
-
-        when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
-
-        then: "Bidder request should imp[].ae same value as requested"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.imp[0].ext.auctionEnvironment == requestedAuctionEnvironment
-        assert !bidderRequest.imp[0].ext.interestGroupAuctionSupports.auctionEnvironment
-
-        where:
-        requestedAuctionEnvironment << [SERVER_ORCHESTRATED, UNKNOWN]
-    }
-
-    def "PBS shouldn't change auction environment in imp.ext.igs when it is present in both imp.ext and imp.ext.igs"() {
-        given: "Default bid request with populated imp.ext"
-        def extAuctionEnv = PBSUtils.getRandomEnum(AuctionEnvironment, [SERVER_ORCHESTRATED, UNKNOWN])
-        def extIgsAuctionEnv = PBSUtils.getRandomEnum(AuctionEnvironment, [SERVER_ORCHESTRATED, UNKNOWN])
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp[0].ext.tap {
-                auctionEnvironment = extAuctionEnv
-                interestGroupAuctionSupports = new InterestGroupAuctionSupport(auctionEnvironment: extIgsAuctionEnv)
-            }
-        }
-
-        when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
-
-        then: "Bidder request should imp[].{ae/ext.igs.ae} same value as requested"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.imp[0].ext.auctionEnvironment == extAuctionEnv
-        assert bidderRequest.imp[0].ext.interestGroupAuctionSupports.auctionEnvironment == extIgsAuctionEnv
-    }
-
     def "PBS should reject alias bidders when bidder params from request doesn't satisfy own json-schema"() {
         given: "Default bid request"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -1348,8 +1265,8 @@ class BidderParamsSpec extends BaseSpec {
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].ext.prebid.bidder.tap {
                 it.generic.exampleProperty = PBSUtils.randomNumber
-                //Nativo hard coded bidder alias in generic.yaml
-                it.nativo = new Generic(exampleProperty: PBSUtils.randomNumber)
+                //Adrino hard coded bidder alias in generic.yaml
+                it.adrino = new Adrino(hash: PBSUtils.randomNumber)
             }
         }
 
@@ -1362,9 +1279,9 @@ class BidderParamsSpec extends BaseSpec {
                 ["WARNING: request.imp[0].ext.prebid.bidder.generic was dropped with a reason: " +
                          "request.imp[0].ext.prebid.bidder.generic failed validation.\n" +
                          "\$.exampleProperty: integer found, string expected",
-                 "WARNING: request.imp[0].ext.prebid.bidder.nativo was dropped with a reason: " +
-                         "request.imp[0].ext.prebid.bidder.nativo failed validation.\n" +
-                         "\$.exampleProperty: integer found, string expected",
+                 "WARNING: request.imp[0].ext.prebid.bidder.adrino was dropped with a reason: " +
+                         "request.imp[0].ext.prebid.bidder.adrino failed validation.\n" +
+                         "\$.hash: integer found, string expected",
                  "WARNING: request.imp[0].ext must contain at least one valid bidder"]
 
         and: "PBS should not call bidder"
@@ -1424,8 +1341,9 @@ class BidderParamsSpec extends BaseSpec {
         and: "Response should contain repose millis with corresponding bidder"
         assert response.ext.responsetimemillis.containsKey(ALIAS.value)
 
-        and: "Bidder request should be valid"
-        assert bidder.getBidderRequests(bidRequest.id)
+        and: "Bidder request should be valid and not contain aliases"
+        def bidderRequests = bidder.getBidderRequests(bidRequest.id).first
+        assert !bidderRequests.ext.prebid.aliases
     }
 
     def "PBS should populate same code for adapter code when make call for generic hard code alias"() {

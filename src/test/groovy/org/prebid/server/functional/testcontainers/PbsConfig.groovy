@@ -48,7 +48,7 @@ LIMIT 1
          "analytics.pubstack.scopeid"                       : scopeId,
          "analytics.pubstack.configuration-refresh-delay-ms": "1000",
          "analytics.pubstack.buffers.size-bytes"            : "1",
-         "analytics.pubstack.timeout-ms"                    : "100"].asImmutable()
+         "analytics.pubstack.timeout-ms"                    : "1000"].asImmutable()
     }
 
     static Map<String, String> getHttpSettingsConfig(String rootUri = networkServiceContainer.rootUri) {
@@ -123,8 +123,6 @@ LIMIT 1
          "adapters.generic.aliases.cwire.meta-info.app-media-types"           : "",
          "adapters.generic.aliases.blue.meta-info.app-media-types"            : "",
          "adapters.generic.aliases.blue.meta-info.site-media-types"           : "",
-         "adapters.generic.aliases.nativo.meta-info.app-media-types"          : "",
-         "adapters.generic.aliases.nativo.meta-info.site-media-types"         : "",
          "adapters.generic.aliases.infytv.meta-info.app-media-types"          : "",
          "adapters.generic.aliases.infytv.meta-info.site-media-types"         : "",
          "adapters.generic.aliases.zeta-global-ssp.meta-info.app-media-types" : "",

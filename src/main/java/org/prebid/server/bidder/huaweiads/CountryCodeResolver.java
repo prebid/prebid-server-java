@@ -50,5 +50,4 @@ public class CountryCodeResolver {
             default -> Optional.ofNullable(countryCodeMapper.mapToAlpha2(countryCode));
         };
     }
-
 }

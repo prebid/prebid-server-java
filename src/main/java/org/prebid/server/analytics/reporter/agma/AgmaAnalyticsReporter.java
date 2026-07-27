@@ -12,7 +12,6 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
@@ -97,9 +96,9 @@ public class AgmaAnalyticsReporter implements AnalyticsReporter, Initializable {
     }
 
     @Override
-    public void initialize(Promise<Void> initializePromise) {
+    public Future<Void> initialize() {
         vertx.setPeriodic(bufferTimeoutMs, ignored -> sendEvents(buffer.pollAll()));
-        initializePromise.complete();
+        return Future.succeededFuture();
     }
 
     @Override

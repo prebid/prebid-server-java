@@ -16,10 +16,8 @@ adapters:
     usersync:
       cookie-family-name: dianomi
       iframe:
-        url: https://www-prebid.dianomi.com/prebid/usersync/index.html?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
-        support-cors: false
+        url: https://www-prebid.dianomi.com/prebid/usersync/index.html?gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&redirect={redirect_url}
         uid-macro: '$UID'
       redirect:
-        url: https://data.dianomi.com/frontend/usync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
-        support-cors: false
+        url: https://data.dianomi.com/frontend/usync?gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&redirect={redirect_url}
         uid-macro: '$UID'

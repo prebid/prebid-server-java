@@ -33,5 +33,4 @@ public class MediasquareTest extends IntegrationTest {
                 response,
                 List.of("mediasquare"));
     }
-
 }

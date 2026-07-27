@@ -1,6 +1,6 @@
 adapters:
   elementaltv:
-    endpoint: https://pbs.elementaltv.io/ads/processHeaderBid/{{AdUnit}}
+    endpoint: https://pbs.elementaltv.io/ads/processHeaderBid/{AdUnit}
     ortb-version: "2.6"
     aliases:
       adoppler: ~

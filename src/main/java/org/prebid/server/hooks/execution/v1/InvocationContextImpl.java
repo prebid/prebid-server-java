@@ -1,5 +1,6 @@
 package org.prebid.server.hooks.execution.v1;
 
+import io.vertx.core.http.HttpMethod;
 import lombok.Value;
 import lombok.experimental.Accessors;
 import org.prebid.server.execution.timeout.Timeout;
@@ -11,6 +12,8 @@ import org.prebid.server.model.Endpoint;
 public class InvocationContextImpl implements InvocationContext {
 
     Timeout timeout;
+
+    HttpMethod httpMethod;
 
     Endpoint endpoint;
 }

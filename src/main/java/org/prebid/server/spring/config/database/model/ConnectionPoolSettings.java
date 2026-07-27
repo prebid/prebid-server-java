@@ -17,5 +17,7 @@ public class ConnectionPoolSettings {
 
     String password;
 
+    SslMode sslMode;
+
     DatabaseType databaseType;
 }

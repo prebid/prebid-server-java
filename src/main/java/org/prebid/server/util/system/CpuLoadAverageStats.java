@@ -1,6 +1,6 @@
 package org.prebid.server.util.system;
 
-import io.vertx.core.Promise;
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import org.prebid.server.vertx.Initializable;
 import oshi.SystemInfo;
@@ -31,10 +31,10 @@ public class CpuLoadAverageStats implements Initializable {
     }
 
     @Override
-    public void initialize(Promise<Void> initializePromise) {
+    public Future<Void> initialize() {
         measureCpuLoad();
         vertx.setPeriodic(measurementIntervalMillis, timerId -> measureCpuLoad());
-        initializePromise.tryComplete();
+        return Future.succeededFuture();
     }
 
     private void measureCpuLoad() {
