@@ -87,6 +87,13 @@ abstract class BaseSpec extends Specification implements ObjectMapperWrapper {
         logs.findAll { it.contains(text) }
     }
 
+    protected static BidResponse getTraceLoggedResponse(List<String> logs, String bidRequestId) {
+        def logLine = getLogsByText(logs, bidRequestId)?[0]
+        def restoredResponse = logLine?.find(/\{.*/)
+
+        restoredResponse ? decode(restoredResponse, BidResponse) : null
+     }
+
     protected static String getRoundedTargetingValueWithDownPrecision(BigDecimal value) {
         roundWithDefaultPrecisionAndRoundingType(value, DOWN)
     }
