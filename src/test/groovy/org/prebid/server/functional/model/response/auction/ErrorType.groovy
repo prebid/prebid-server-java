@@ -7,7 +7,7 @@ enum ErrorType {
     GENERAL("general"),
     GENERIC("generic"),
     GENERIC_CAMEL_CASE("GeNerIc"),
-    RUBICON("rubicon"),
+    MAGNITE("magnite"),
     APPNEXUS("appnexus"),
     PREBID("prebid"),
     CACHE("cache"),
