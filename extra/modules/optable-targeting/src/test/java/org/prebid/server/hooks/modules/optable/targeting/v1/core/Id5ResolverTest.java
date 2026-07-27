@@ -189,6 +189,96 @@ public class Id5ResolverTest {
     }
 
     @Test
+    public void shouldReturnSignatureFromSecondMatchingEidWhenFirstRefNotInRefs() {
+        // given
+        final ObjectNode firstUidExt = ObjectMapperProvider.mapper().createObjectNode();
+        firstUidExt.set("optable", ObjectMapperProvider.mapper().createObjectNode()
+                .set("ref", TextNode.valueOf("firstRef")));
+
+        final ObjectNode secondUidExt = ObjectMapperProvider.mapper().createObjectNode();
+        secondUidExt.set("optable", ObjectMapperProvider.mapper().createObjectNode()
+                .set("ref", TextNode.valueOf("secondRef")));
+
+        final Eid firstEid = Eid.builder()
+                .source("id5-sync.com")
+                .inserter("optable.co")
+                .uids(List.of(Uid.builder().id("id1").ext(firstUidExt).build()))
+                .build();
+        final Eid secondEid = Eid.builder()
+                .source("id5-sync.com")
+                .inserter("optable.co")
+                .uids(List.of(Uid.builder().id("id2").ext(secondUidExt).build()))
+                .build();
+        final ObjectNode refs = ObjectMapperProvider.mapper().createObjectNode();
+        refs.set("secondRef", ObjectMapperProvider.mapper().createObjectNode()
+                .set("signature", TextNode.valueOf("secondSignature")));
+        final TargetingResult targetingResult = new TargetingResult(
+                List.of(),
+                new Ortb2(new User(List.of(firstEid, secondEid), null)),
+                refs);
+
+        // when
+        final String result = Id5Resolver.resolveId5Signature(targetingResult);
+
+        // then
+        assertThat(result).isEqualTo("secondSignature");
+    }
+
+    @Test
+    public void shouldReturnNullWhenRefEntrySignatureIsBlank() {
+        // given
+        final ObjectNode uidExt = ObjectMapperProvider.mapper().createObjectNode();
+        uidExt.set("optable", ObjectMapperProvider.mapper().createObjectNode()
+                .set("ref", TextNode.valueOf("refValue")));
+
+        final Eid eid = Eid.builder()
+                .source("id5-sync.com")
+                .inserter("optable.co")
+                .uids(List.of(Uid.builder().id("id").ext(uidExt).build()))
+                .build();
+        final ObjectNode refs = ObjectMapperProvider.mapper().createObjectNode();
+        refs.set("refValue", ObjectMapperProvider.mapper().createObjectNode()
+                .set("signature", TextNode.valueOf("   ")));
+        final TargetingResult targetingResult = new TargetingResult(
+                List.of(),
+                new Ortb2(new User(List.of(eid), null)),
+                refs);
+
+        // when
+        final String result = Id5Resolver.resolveId5Signature(targetingResult);
+
+        // then
+        assertThat(result).isNull();
+    }
+
+    @Test
+    public void shouldReturnNullWhenRefEntrySignatureIsContainerNode() {
+        // given
+        final ObjectNode uidExt = ObjectMapperProvider.mapper().createObjectNode();
+        uidExt.set("optable", ObjectMapperProvider.mapper().createObjectNode()
+                .set("ref", TextNode.valueOf("refValue")));
+
+        final Eid eid = Eid.builder()
+                .source("id5-sync.com")
+                .inserter("optable.co")
+                .uids(List.of(Uid.builder().id("id").ext(uidExt).build()))
+                .build();
+        final ObjectNode refs = ObjectMapperProvider.mapper().createObjectNode();
+        refs.set("refValue", ObjectMapperProvider.mapper().createObjectNode()
+                .set("signature", ObjectMapperProvider.mapper().createObjectNode()));
+        final TargetingResult targetingResult = new TargetingResult(
+                List.of(),
+                new Ortb2(new User(List.of(eid), null)),
+                refs);
+
+        // when
+        final String result = Id5Resolver.resolveId5Signature(targetingResult);
+
+        // then
+        assertThat(result).isNull();
+    }
+
+    @Test
     public void shouldReturnNullWhenRefEntryHasNoSignature() {
         // given
         final ObjectNode uidExt = ObjectMapperProvider.mapper().createObjectNode();

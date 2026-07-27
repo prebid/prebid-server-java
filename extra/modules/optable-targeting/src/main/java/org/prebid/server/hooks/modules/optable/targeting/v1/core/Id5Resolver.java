@@ -1,8 +1,11 @@
 package org.prebid.server.hooks.modules.optable.targeting.v1.core;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Uid;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Ortb2;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.User;
@@ -29,7 +32,7 @@ public class Id5Resolver {
             return null;
         }
 
-        final String ref = Optional.of(targetingResult)
+        final List<String> refs = Optional.of(targetingResult)
                 .map(TargetingResult::getOrtb2)
                 .map(Ortb2::getUser)
                 .map(User::getEids)
@@ -37,6 +40,7 @@ public class Id5Resolver {
                 .stream()
                 .filter(it -> STR_OPTABLE_CO.equals(it.getInserter()) && STR_ID_5_SYNC_COM.equals(it.getSource()))
                 .map(Eid::getUids)
+                .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(Uid::getExt)
                 .filter(Objects::nonNull)
@@ -45,17 +49,26 @@ public class Id5Resolver {
                 .map(it -> it.get(STR_REF))
                 .filter(Objects::nonNull)
                 .map(JsonNode::asText)
-                .findFirst()
-                .orElse(null);
+                .toList();
 
-        if (ref == null) {
+        if (CollectionUtils.isEmpty(refs)) {
             return null;
         }
 
-        return Optional.ofNullable(targetingResult.getRefs())
-                .map(refs -> refs.get(ref))
+        final ObjectNode references = targetingResult.getRefs();
+        if (references == null) {
+            return null;
+        }
+
+        return refs.stream()
+                .map(references::get)
+                .filter(Objects::nonNull)
                 .map(it -> it.get(STR_SIGNATURE))
+                .filter(Objects::nonNull)
+                .filter(JsonNode::isValueNode)
                 .map(JsonNode::asText)
+                .filter(StringUtils::isNotBlank)
+                .findFirst()
                 .orElse(null);
     }
 }
