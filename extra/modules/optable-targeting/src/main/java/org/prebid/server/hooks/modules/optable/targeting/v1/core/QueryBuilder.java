@@ -58,7 +58,8 @@ public class QueryBuilder {
         final String hidParameters = Arrays.stream(hidPrefixesString.split(","))
                 .map(prefixToIdValue::get)
                 .filter(Objects::nonNull)
-                .map(it -> String.format("hid=%s:%s", it.getName(), it.getValue()))
+                .map(it -> String.format(
+                        "hid=%s:%s", it.getName(), URLEncoder.encode(it.getValue(), StandardCharsets.UTF_8)))
                 .collect(Collectors.joining("&"));
         if (StringUtils.isEmpty(hidParameters)) {
             return StringUtils.EMPTY;
@@ -126,11 +127,11 @@ public class QueryBuilder {
                 .ifPresent(app -> {
                     final String bundle = app.getBundle();
                     if (StringUtils.isNotEmpty(bundle)) {
-                        sb.append("&bundle=").append(bundle);
+                        sb.append("&bundle=").append(URLEncoder.encode(bundle, StandardCharsets.UTF_8));
 
                         final String ver = app.getVer();
                         if (StringUtils.isNotEmpty(ver)) {
-                            sb.append("&ver=").append(ver);
+                            sb.append("&ver=").append(URLEncoder.encode(ver, StandardCharsets.UTF_8));
                         }
                     }
                 });

@@ -207,7 +207,7 @@ public class QueryBuilderTest {
         final Query query = QueryBuilder.build(ids, optableAttributes, props);
 
         // then
-        assertThat(query.getHid()).isEqualTo("&hid=c:234&hid=i6:0:0:0:0:0:0:0:1");
+        assertThat(query.getHid()).isEqualTo("&hid=c:234&hid=i6:0%3A0%3A0%3A0%3A0%3A0%3A0%3A1");
     }
 
     @Test
@@ -223,7 +223,33 @@ public class QueryBuilderTest {
 
         // then
         assertThat(query.getIds()).doesNotContain(Id.DEVICE_IP_V_6);
-        assertThat(query.getHid()).isEqualTo("&hid=i6:0:0:0:0:0:0:0:1");
+        assertThat(query.getHid()).isEqualTo("&hid=i6:0%3A0%3A0%3A0%3A0%3A0%3A0%3A1");
+    }
+
+    @Test
+    public void shouldUrlEncodeHidValueWithSpecialCharacters() {
+        // given
+        final OptableTargetingProperties props = givenProperties(null, "c");
+        final List<Id> ids = List.of(Id.of("c", "a b&c=d+e/f"));
+
+        // when
+        final Query query = QueryBuilder.build(ids, optableAttributes, props);
+
+        // then
+        assertThat(query.getHid()).isEqualTo("&hid=c:a+b%26c%3Dd%2Be%2Ff");
+    }
+
+    @Test
+    public void shouldLeaveHidValueUnchangedForAlphanumericValue() {
+        // given
+        final OptableTargetingProperties props = givenProperties(null, "c");
+        final List<Id> ids = List.of(Id.of("c", "abc123"));
+
+        // when
+        final Query query = QueryBuilder.build(ids, optableAttributes, props);
+
+        // then
+        assertThat(query.getHid()).isEqualTo("&hid=c:abc123");
     }
 
     @Test
