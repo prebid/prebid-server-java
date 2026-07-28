@@ -15,21 +15,21 @@
             "prebid": {
               "type": "banner",
               "meta": {
-                "adaptercode": "bidagency"
+                "adaptercode": "bidgency"
               }
             },
             "origbidcpm": 4.7
           }
         }
       ],
-      "seat": "bidagency",
+      "seat": "bidgency",
       "group": 0
     }
   ],
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "bidagency": "{{ bidagency.response_time_ms }}"
+      "bidgency": "{{ bidgency.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 0
