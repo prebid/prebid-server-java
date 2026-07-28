@@ -53,12 +53,19 @@ public class CachedAPIClient implements APIClient {
     }
 
     private String createCachingKey(String tenant, String origin, List<String> ips, Query query, boolean encodeQuery) {
-        return "%s:%s:%s:%s".formatted(
+        return "%s:%s:%s:%s:%s:%s".formatted(
                 tenant,
                 origin,
                 ips.getFirst(),
                 encodeQuery
                         ? URLEncoder.encode(query.getIds(), StandardCharsets.UTF_8)
-                        : query.getIds());
+                        : query.getIds(),
+                encodeQuery && query.getHid() != null
+                        ? URLEncoder.encode(query.getHid(), StandardCharsets.UTF_8)
+                        : query.getHid(),
+                encodeQuery && query.getHidAttributes() != null
+                        ? URLEncoder.encode(query.getHidAttributes(), StandardCharsets.UTF_8)
+                        : query.getHidAttributes()
+                );
     }
 }

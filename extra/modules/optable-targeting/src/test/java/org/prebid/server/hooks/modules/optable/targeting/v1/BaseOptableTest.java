@@ -301,7 +301,7 @@ public abstract class BaseOptableTest {
     }
 
     protected Query givenQuery() {
-        return Query.of("?que", "r", "y");
+        return Query.of("?que", "r", "y", "");
     }
 
     protected ObjectNode givenAccountConfig(String key, String tenant, String origin, boolean cacheEnabled) {

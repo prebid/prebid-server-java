@@ -11,7 +11,9 @@ public class Query {
 
     String attributes;
 
+    String hidAttributes;
+
     public String toQueryString() {
-        return ids + hid + attributes;
+        return ids + hid + attributes + hidAttributes;
     }
 }

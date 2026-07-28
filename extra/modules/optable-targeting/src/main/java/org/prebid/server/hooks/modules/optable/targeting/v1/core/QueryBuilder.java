@@ -41,7 +41,8 @@ public class QueryBuilder {
         return Query.of(
                 buildIdsString(ids, idPrefixOrder),
                 buildHidString(ids, hidPrefixes),
-                buildAttributesString(optableAttributes));
+                buildAttributesString(optableAttributes),
+                buildHidAttributesString(optableAttributes));
     }
 
     private static String buildHidString(List<Id> ids, String hidPrefixesString) {
@@ -118,6 +119,29 @@ public class QueryBuilder {
                 .ifPresent(timeout -> sb.append("&timeout=").append(timeout).append("ms"));
 
         sb.append("&osdk=").append(REQUEST_SOURCE);
+
+        Optional.ofNullable(optableAttributes.getApp())
+                .ifPresent(app -> {
+                    final String bundle = app.getBundle();
+                    if (StringUtils.isNotEmpty(bundle)) {
+                        sb.append("&bundle=").append(URLEncoder.encode(bundle, StandardCharsets.UTF_8));
+
+                        final String ver = app.getVer();
+                        if (StringUtils.isNotEmpty(ver)) {
+                            sb.append("&ver=").append(URLEncoder.encode(ver, StandardCharsets.UTF_8));
+                        }
+                    }
+                });
+
+        Optional.ofNullable(optableAttributes.getId5Signature())
+                .ifPresent(id5Signature -> sb.append("&id5_signature=")
+                        .append(URLEncoder.encode(id5Signature, StandardCharsets.UTF_8)));
+
+        return sb.toString();
+    }
+
+    private static String buildHidAttributesString(OptableAttributes optableAttributes) {
+        final StringBuilder sb = new StringBuilder();
 
         Optional.ofNullable(optableAttributes.getApp())
                 .ifPresent(app -> {

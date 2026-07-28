@@ -337,6 +337,140 @@ public class QueryBuilderTest {
     }
 
     @Test
+    public void shouldBuildHidAttributesWithBundleAndVerWhenAppIsPresent() {
+        // given
+        final OptableAttributes attributes = OptableAttributes.builder()
+                .app(App.of("com.example.app", "1.2.3"))
+                .build();
+        final List<Id> ids = List.of(Id.of(Id.EMAIL, "email"));
+
+        // when
+        final Query query = QueryBuilder.build(ids, attributes, properties());
+
+        // then
+        assertThat(query.getHidAttributes())
+                .isEqualTo("&bundle=com.example.app&ver=1.2.3");
+    }
+
+    @Test
+    public void shouldBuildHidAttributesWithBundleOnlyWhenVerIsEmpty() {
+        // given
+        final OptableAttributes attributes = OptableAttributes.builder()
+                .app(App.of("com.example.app", ""))
+                .build();
+        final List<Id> ids = List.of(Id.of(Id.EMAIL, "email"));
+
+        // when
+        final Query query = QueryBuilder.build(ids, attributes, properties());
+
+        // then
+        assertThat(query.getHidAttributes()).isEqualTo("&bundle=com.example.app");
+    }
+
+    @Test
+    public void shouldNotBuildHidAttributesWithBundleWhenBundleIsEmpty() {
+        // given
+        final OptableAttributes attributes = OptableAttributes.builder()
+                .app(App.of("", "1.2.3"))
+                .build();
+        final List<Id> ids = List.of(Id.of(Id.EMAIL, "email"));
+
+        // when
+        final Query query = QueryBuilder.build(ids, attributes, properties());
+
+        // then
+        assertThat(query.getHidAttributes()).doesNotContain("&bundle=", "&ver=");
+    }
+
+    @Test
+    public void shouldNotBuildHidAttributesWithBundleWhenAppIsNull() {
+        // given
+        final OptableAttributes attributes = OptableAttributes.builder().build();
+        final List<Id> ids = List.of(Id.of(Id.EMAIL, "email"));
+
+        // when
+        final Query query = QueryBuilder.build(ids, attributes, properties());
+
+        // then
+        assertThat(query.getHidAttributes()).isEmpty();
+    }
+
+    @Test
+    public void shouldBuildHidAttributesWithId5SignatureWhenPresent() {
+        // given
+        final OptableAttributes attributes = OptableAttributes.builder()
+                .id5Signature("signature")
+                .build();
+        final List<Id> ids = List.of(Id.of(Id.EMAIL, "email"));
+
+        // when
+        final Query query = QueryBuilder.build(ids, attributes, properties());
+
+        // then
+        assertThat(query.getHidAttributes()).isEqualTo("&id5_signature=signature");
+    }
+
+    @Test
+    public void shouldNotBuildHidAttributesWithId5SignatureWhenNull() {
+        // given
+        final OptableAttributes attributes = OptableAttributes.builder().build();
+        final List<Id> ids = List.of(Id.of(Id.EMAIL, "email"));
+
+        // when
+        final Query query = QueryBuilder.build(ids, attributes, properties());
+
+        // then
+        assertThat(query.getHidAttributes()).doesNotContain("&id5_signature=");
+    }
+
+    @Test
+    public void shouldIncludeHidAttributesInToQueryString() {
+        // given
+        final OptableAttributes attributes = OptableAttributes.builder()
+                .app(App.of("com.example.app", "1.2.3"))
+                .id5Signature("signature")
+                .build();
+        final List<Id> ids = List.of(Id.of(Id.EMAIL, "email"));
+
+        // when
+        final String queryString = QueryBuilder.build(ids, attributes, properties()).toQueryString();
+
+        // then
+        assertThat(queryString).endsWith("&bundle=com.example.app&ver=1.2.3&id5_signature=signature");
+    }
+
+    @Test
+    public void shouldAppendBundleAndVerToHidAttributesWithSpecialCharacters() {
+        // given
+        final OptableAttributes attributes = OptableAttributes.builder()
+                .app(App.of("com.example app", "1.2 3"))
+                .build();
+        final List<Id> ids = List.of(Id.of(Id.EMAIL, "email"));
+
+        // when
+        final Query query = QueryBuilder.build(ids, attributes, properties());
+
+        // then
+        assertThat(query.getHidAttributes())
+                .isEqualTo("&bundle=com.example+app&ver=1.2+3");
+    }
+
+    @Test
+    public void shouldAppendId5SignatureToHidAttributesWithSpecialCharacters() {
+        // given
+        final OptableAttributes attributes = OptableAttributes.builder()
+                .id5Signature("a b&c=d")
+                .build();
+        final List<Id> ids = List.of(Id.of(Id.EMAIL, "email"));
+
+        // when
+        final Query query = QueryBuilder.build(ids, attributes, properties());
+
+        // then
+        assertThat(query.getHidAttributes()).isEqualTo("&id5_signature=a+b%26c%3Dd");
+    }
+
+    @Test
     public void shouldAppendId5SignatureWhenPresent() {
         // given
         final OptableAttributes attributes = OptableAttributes.builder()
