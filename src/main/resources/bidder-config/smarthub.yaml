@@ -26,7 +26,7 @@ adapters:
       addigi:
         enabled: false
         endpoint: https://addigi-prebid.attekmi.com/pbserver/?seat={AccountID}&token={SourceId}
-      radianfusion:
+      radiantfusion:
         enabled: false
         endpoint: https://radiantfusion-prebid.attekmi.co/pbserver/?seat={AccountID}&token={SourceId}
     meta-info:
