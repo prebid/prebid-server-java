@@ -48,7 +48,7 @@ import static org.prebid.server.functional.model.Currency.USD
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
-import static org.prebid.server.functional.model.bidder.BidderName.RUBICON
+import static org.prebid.server.functional.model.bidder.BidderName.MAGNITE
 import static org.prebid.server.functional.model.mock.services.currencyconversion.CurrencyConversionRatesResponse.defaultConversionRates
 import static org.prebid.server.functional.model.request.auction.AdjustmentType.MULTIPLIER
 import static org.prebid.server.functional.model.request.auction.BidAdjustmentMediaType.BANNER
@@ -342,7 +342,7 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
             ext.prebid.alternateBidderCodes = new AlternateBidderCodes().tap {
                 it.enabled = true
                 it.bidders = [(GENERIC): new CodesBidderConfig(enabled: true, allowedBidderCodes: [GENERIC]),
-                              (RUBICON): new CodesBidderConfig(enabled: true, allowedBidderCodes: [RUBICON])]
+                              (MAGNITE): new CodesBidderConfig(enabled: true, allowedBidderCodes: [MAGNITE])]
             }
         }
 
@@ -497,11 +497,11 @@ class BidderFieldDisplayBehaviorSpec extends BaseSpec {
         given: "Default basic BidRequest with generic bidder with includeBidderKeys = false"
         def bidRequest = BidRequest.defaultBidRequest
 
-        and: "Set maxbids = 2 for generic and rubicon bidder"
+        and: "Set maxbids = 2 for generic and magnite bidder"
         def maxBids = 2
         def genericMultiBid = new MultiBid(bidder: GENERIC, maxBids: maxBids, targetBidderCodePrefix: PBSUtils.randomString)
-        def rubiconMultiBid = new MultiBid(bidder: RUBICON, maxBids: maxBids, targetBidderCodePrefix: PBSUtils.randomString)
-        bidRequest.ext.prebid.multibid = [genericMultiBid, rubiconMultiBid]
+        def magniteMultiBid = new MultiBid(bidder: MAGNITE, maxBids: maxBids, targetBidderCodePrefix: PBSUtils.randomString)
+        bidRequest.ext.prebid.multibid = [genericMultiBid, magniteMultiBid]
 
         and: "Default basic bid"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
