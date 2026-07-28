@@ -79,9 +79,7 @@ public class QueryBuilder {
         final StringBuilder sb = new StringBuilder();
         for (Id id : reorderedIds) {
             sb.append("&id=");
-            sb.append(URLEncoder.encode(
-                    "%s:%s".formatted(id.getName(), id.getValue()),
-                    StandardCharsets.UTF_8));
+            sb.append(URLEncoder.encode(String.format("%s:%s", id.getName(), id.getValue()), StandardCharsets.UTF_8));
         }
 
         return sb.toString();

@@ -79,6 +79,61 @@ public class OptableBidderRequestHookTest extends BaseOptableTest {
     }
 
     @Test
+    public void shouldSetId5SignatureOnModuleContextWhenPerBidderEnrichmentIsDisabledAndTargetingCallIsPresent() {
+        // given
+        final String refValue = "refValue";
+        final String signature = "id5Signature";
+        final Eid id5Eid = givenId5Eid(refValue);
+        final ObjectNode refs = givenRefsObject(refValue, signature);
+        final TargetingResult targetingResult = givenTargetingResult(List.of(id5Eid), null, refs);
+
+        final ModuleContext moduleContext = givenModuleContextWithProperties(
+                givenOptableTargetingProperties(false));
+        moduleContext.setOptableTargetingCall(Future.succeededFuture(targetingResult));
+        when(invocationContext.moduleContext()).thenReturn(moduleContext);
+
+        // when
+        final Future<InvocationResult<BidderRequestPayload>> future =
+                target.call(bidderRequestPayload, invocationContext);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+        final InvocationResult<BidderRequestPayload> result = future.result();
+        assertThat(result).isNotNull()
+                .returns(InvocationStatus.success, InvocationResult::status)
+                .returns(InvocationAction.no_action, InvocationResult::action);
+        assertThat(moduleContext.getId5Signature()).isEqualTo(signature);
+    }
+
+    @Test
+    public void shouldSetId5SignatureOnModuleContextWhenBidderNotInEnrichmentSetAndTargetingCallIsPresent() {
+        // given
+        final String refValue = "refValue";
+        final String signature = "id5Signature";
+        final Eid id5Eid = givenId5Eid(refValue);
+        final ObjectNode refs = givenRefsObject(refValue, signature);
+        final TargetingResult targetingResult = givenTargetingResult(List.of(id5Eid), null, refs);
+
+        final ModuleContext moduleContext = givenModuleContextWithProperties(
+                givenPropertiesWithPerBidderEnrichmentEnabled());
+        moduleContext.setBiddersToEnrich(Set.of("otherBidder"));
+        moduleContext.setOptableTargetingCall(Future.succeededFuture(targetingResult));
+        when(invocationContext.moduleContext()).thenReturn(moduleContext);
+
+        // when
+        final Future<InvocationResult<BidderRequestPayload>> future =
+                target.call(bidderRequestPayload, invocationContext);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+        final InvocationResult<BidderRequestPayload> result = future.result();
+        assertThat(result).isNotNull()
+                .returns(InvocationStatus.success, InvocationResult::status)
+                .returns(InvocationAction.no_action, InvocationResult::action);
+        assertThat(moduleContext.getId5Signature()).isEqualTo(signature);
+    }
+
+    @Test
     public void shouldReturnNoActionWhenBiddersToEnrichIsEmpty() {
         // given
         final ModuleContext moduleContext = givenModuleContextWithProperties(

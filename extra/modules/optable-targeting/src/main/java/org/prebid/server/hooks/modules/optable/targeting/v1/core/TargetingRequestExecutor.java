@@ -29,7 +29,7 @@ public class TargetingRequestExecutor {
     private final OptableTargeting optableTargeting;
     private final UserFpdActivityMask userFpdActivityMask;
     private final TimeoutFactory timeoutFactory;
-    private double logSamplingRate;
+    private final double logSamplingRate;
 
     public TargetingRequestExecutor(OptableTargeting optableTargeting,
                                     UserFpdActivityMask userFpdActivityMask,

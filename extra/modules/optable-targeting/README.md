@@ -308,7 +308,7 @@ The ID5 signature is propagated to the Targeting API in two ways:
    resolves the signature through the matching optable-eid and propagates it back into the request context, where it
    is later injected into the bid response (`ext.prebid.passthrough.optable.id5_signature`) for downstream use.
 
-The `id5_signature` field is also part of the Optable input erasure — see below.
+The `id5_signature` field is also part of the Optable input erasure — see above.
 
 ## Analytics Tags
 

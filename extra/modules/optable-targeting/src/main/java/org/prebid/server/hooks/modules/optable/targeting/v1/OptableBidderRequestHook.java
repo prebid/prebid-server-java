@@ -81,7 +81,7 @@ public class OptableBidderRequestHook implements BidderRequestHook {
         final Tags analyticsTags = AnalyticTagsResolver.toBidderEnrichRequestAnalyticTags(
                 bidder, outcome, executionTime);
 
-        return noAction(moduleContext, analyticsTags);
+        return noActionResponse(moduleContext, analyticsTags);
     }
 
     private static boolean hasEnrichmentData(TargetingResult targetingResult) {
@@ -97,6 +97,27 @@ public class OptableBidderRequestHook implements BidderRequestHook {
     }
 
     private Future<InvocationResult<BidderRequestPayload>> noAction(ModuleContext moduleContext, Tags analyticsTags) {
+        final Future<TargetingResult> targetingCall = moduleContext.getOptableTargetingCall();
+        if (targetingCall != null) {
+            return targetingCall.compose(targetingResult -> {
+                moduleContext.setId5Signature(Id5Resolver.resolveId5Signature(targetingResult));
+
+                return Future.succeededFuture(
+                        InvocationResultImpl.<BidderRequestPayload>builder()
+                                .status(InvocationStatus.success)
+                                .action(InvocationAction.no_action)
+                                .analyticsTags(analyticsTags)
+                                .moduleContext(moduleContext)
+                                .build());
+            });
+        }
+
+        return noActionResponse(moduleContext, analyticsTags);
+    }
+
+    private Future<InvocationResult<BidderRequestPayload>> noActionResponse(ModuleContext moduleContext,
+                                                                            Tags analyticsTags) {
+
         return Future.succeededFuture(
                 InvocationResultImpl.<BidderRequestPayload>builder()
                         .status(InvocationStatus.success)

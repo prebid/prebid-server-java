@@ -17,11 +17,11 @@ import java.util.Optional;
 
 public class Id5Resolver {
 
-    public static final String STR_OPTABLE_CO = "optable.co";
-    public static final String STR_ID_5_SYNC_COM = "id5-sync.com";
-    public static final String STR_OPTABLE = "optable";
-    public static final String STR_REF = "ref";
-    public static final String STR_SIGNATURE = "signature";
+    public static final String OPTABLE_INSERTER = "optable.co";
+    public static final String ID5_SOURCE = "id5-sync.com";
+    public static final String OPTABLE = "optable";
+    public static final String REF = "ref";
+    public static final String SIGNATURE = "signature";
 
     private Id5Resolver() {
     }
@@ -37,15 +37,15 @@ public class Id5Resolver {
                 .map(User::getEids)
                 .orElseGet(List::of)
                 .stream()
-                .filter(it -> STR_OPTABLE_CO.equals(it.getInserter()) && STR_ID_5_SYNC_COM.equals(it.getSource()))
+                .filter(it -> OPTABLE_INSERTER.equals(it.getInserter()) && ID5_SOURCE.equals(it.getSource()))
                 .map(Eid::getUids)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(Uid::getExt)
                 .filter(Objects::nonNull)
-                .map(it -> it.get(STR_OPTABLE))
+                .map(it -> it.get(OPTABLE))
                 .filter(Objects::nonNull)
-                .map(it -> it.get(STR_REF))
+                .map(it -> it.get(REF))
                 .filter(Objects::nonNull)
                 .map(JsonNode::asText)
                 .toList();
@@ -62,9 +62,10 @@ public class Id5Resolver {
         return refs.stream()
                 .map(references::get)
                 .filter(Objects::nonNull)
-                .map(it -> it.get(STR_SIGNATURE))
+                .map(it -> it.get(SIGNATURE))
                 .filter(Objects::nonNull)
                 .filter(JsonNode::isValueNode)
+                .filter(it -> !it.isNull())
                 .map(JsonNode::asText)
                 .filter(StringUtils::isNotBlank)
                 .findFirst()

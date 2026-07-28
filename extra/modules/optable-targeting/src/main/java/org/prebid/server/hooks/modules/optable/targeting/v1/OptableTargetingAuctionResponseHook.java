@@ -80,10 +80,7 @@ public class OptableTargetingAuctionResponseHook implements AuctionResponseHook 
 
         final String id5Signature = moduleContext.getId5Signature();
 
-        return moduleContext.getOptableTargetingCall()
-                .compose(targetingResult ->
-                        update(id5SignatureEnrichmentChain(id5Signature), moduleContext))
-                .recover(throwable -> success(moduleContext));
+        return update(id5SignatureEnrichmentChain(id5Signature), moduleContext);
     }
 
     private PayloadUpdate<AuctionResponsePayload> fullEnrichmentChain(final List<Audience> targeting,
@@ -112,13 +109,8 @@ public class OptableTargetingAuctionResponseHook implements AuctionResponseHook 
     }
 
     private Future<InvocationResult<AuctionResponsePayload>> success(ModuleContext moduleContext) {
-        return Future.succeededFuture(
-                InvocationResultImpl.<AuctionResponsePayload>builder()
-                        .status(InvocationStatus.success)
-                        .action(InvocationAction.no_action)
-                        .moduleContext(moduleContext)
-                        .analyticsTags(AnalyticTagsResolver.toEnrichResponseAnalyticTags(moduleContext))
-                        .build());
+        final String id5Signature = moduleContext.getId5Signature();
+        return update(id5SignatureEnrichmentChain(id5Signature), moduleContext);
     }
 
     @Override

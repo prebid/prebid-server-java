@@ -1,9 +1,11 @@
 package org.prebid.server.hooks.modules.optable.targeting.v1.core;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Uid;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Ortb2;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.TargetingResult;
@@ -15,6 +17,13 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class Id5ResolverTest {
+
+    private ObjectMapper mapper;
+
+    @BeforeEach
+    public void setUp() {
+        mapper = ObjectMapperProvider.mapper();
+    }
 
     @Test
     public void shouldReturnNullWhenTargetingResultIsNull() {
@@ -75,8 +84,8 @@ public class Id5ResolverTest {
     @Test
     public void shouldReturnNullWhenMatchingEidButRefsAreAbsent() {
         // given
-        final ObjectNode uidExt = ObjectMapperProvider.mapper().createObjectNode();
-        uidExt.set("optable", ObjectMapperProvider.mapper().createObjectNode()
+        final ObjectNode uidExt = mapper.createObjectNode();
+        uidExt.set("optable", mapper.createObjectNode()
                 .set("ref", TextNode.valueOf("refValue")));
 
         final Eid eid = Eid.builder()
@@ -99,8 +108,8 @@ public class Id5ResolverTest {
     @Test
     public void shouldReturnNullWhenRefsDoNotContainResolvedRef() {
         // given
-        final ObjectNode uidExt = ObjectMapperProvider.mapper().createObjectNode();
-        uidExt.set("optable", ObjectMapperProvider.mapper().createObjectNode()
+        final ObjectNode uidExt = mapper.createObjectNode();
+        uidExt.set("optable", mapper.createObjectNode()
                 .set("ref", TextNode.valueOf("refValue")));
 
         final Eid eid = Eid.builder()
@@ -108,8 +117,8 @@ public class Id5ResolverTest {
                 .inserter("optable.co")
                 .uids(List.of(Uid.builder().id("id").ext(uidExt).build()))
                 .build();
-        final ObjectNode refs = ObjectMapperProvider.mapper().createObjectNode();
-        refs.set("otherRef", ObjectMapperProvider.mapper().createObjectNode()
+        final ObjectNode refs = mapper.createObjectNode();
+        refs.set("otherRef", mapper.createObjectNode()
                 .set("signature", TextNode.valueOf("signatureValue")));
         final TargetingResult targetingResult = new TargetingResult(
                 List.of(),
@@ -126,8 +135,8 @@ public class Id5ResolverTest {
     @Test
     public void shouldReturnSignatureWhenAllConditionsAreMet() {
         // given
-        final ObjectNode uidExt = ObjectMapperProvider.mapper().createObjectNode();
-        uidExt.set("optable", ObjectMapperProvider.mapper().createObjectNode()
+        final ObjectNode uidExt = mapper.createObjectNode();
+        uidExt.set("optable", mapper.createObjectNode()
                 .set("ref", TextNode.valueOf("refValue")));
 
         final Eid eid = Eid.builder()
@@ -135,8 +144,8 @@ public class Id5ResolverTest {
                 .inserter("optable.co")
                 .uids(List.of(Uid.builder().id("id").ext(uidExt).build()))
                 .build();
-        final ObjectNode refs = ObjectMapperProvider.mapper().createObjectNode();
-        refs.set("refValue", ObjectMapperProvider.mapper().createObjectNode()
+        final ObjectNode refs = mapper.createObjectNode();
+        refs.set("refValue", mapper.createObjectNode()
                 .set("signature", TextNode.valueOf("signatureValue")));
         final TargetingResult targetingResult = new TargetingResult(
                 List.of(),
@@ -153,12 +162,12 @@ public class Id5ResolverTest {
     @Test
     public void shouldReturnSignatureWhenMultipleMatchingEidsExist() {
         // given
-        final ObjectNode firstUidExt = ObjectMapperProvider.mapper().createObjectNode();
-        firstUidExt.set("optable", ObjectMapperProvider.mapper().createObjectNode()
+        final ObjectNode firstUidExt = mapper.createObjectNode();
+        firstUidExt.set("optable", mapper.createObjectNode()
                 .set("ref", TextNode.valueOf("firstRef")));
 
-        final ObjectNode secondUidExt = ObjectMapperProvider.mapper().createObjectNode();
-        secondUidExt.set("optable", ObjectMapperProvider.mapper().createObjectNode()
+        final ObjectNode secondUidExt = mapper.createObjectNode();
+        secondUidExt.set("optable", mapper.createObjectNode()
                 .set("ref", TextNode.valueOf("secondRef")));
 
         final Eid firstEid = Eid.builder()
@@ -171,10 +180,10 @@ public class Id5ResolverTest {
                 .inserter("optable.co")
                 .uids(List.of(Uid.builder().id("id2").ext(secondUidExt).build()))
                 .build();
-        final ObjectNode refs = ObjectMapperProvider.mapper().createObjectNode();
-        refs.set("firstRef", ObjectMapperProvider.mapper().createObjectNode()
+        final ObjectNode refs = mapper.createObjectNode();
+        refs.set("firstRef", mapper.createObjectNode()
                 .set("signature", TextNode.valueOf("firstSignature")));
-        refs.set("secondRef", ObjectMapperProvider.mapper().createObjectNode()
+        refs.set("secondRef", mapper.createObjectNode()
                 .set("signature", TextNode.valueOf("secondSignature")));
         final TargetingResult targetingResult = new TargetingResult(
                 List.of(),
@@ -191,12 +200,12 @@ public class Id5ResolverTest {
     @Test
     public void shouldReturnSignatureFromSecondMatchingEidWhenFirstRefNotInRefs() {
         // given
-        final ObjectNode firstUidExt = ObjectMapperProvider.mapper().createObjectNode();
-        firstUidExt.set("optable", ObjectMapperProvider.mapper().createObjectNode()
+        final ObjectNode firstUidExt = mapper.createObjectNode();
+        firstUidExt.set("optable", mapper.createObjectNode()
                 .set("ref", TextNode.valueOf("firstRef")));
 
-        final ObjectNode secondUidExt = ObjectMapperProvider.mapper().createObjectNode();
-        secondUidExt.set("optable", ObjectMapperProvider.mapper().createObjectNode()
+        final ObjectNode secondUidExt = mapper.createObjectNode();
+        secondUidExt.set("optable", mapper.createObjectNode()
                 .set("ref", TextNode.valueOf("secondRef")));
 
         final Eid firstEid = Eid.builder()
@@ -209,8 +218,8 @@ public class Id5ResolverTest {
                 .inserter("optable.co")
                 .uids(List.of(Uid.builder().id("id2").ext(secondUidExt).build()))
                 .build();
-        final ObjectNode refs = ObjectMapperProvider.mapper().createObjectNode();
-        refs.set("secondRef", ObjectMapperProvider.mapper().createObjectNode()
+        final ObjectNode refs = mapper.createObjectNode();
+        refs.set("secondRef", mapper.createObjectNode()
                 .set("signature", TextNode.valueOf("secondSignature")));
         final TargetingResult targetingResult = new TargetingResult(
                 List.of(),
@@ -227,8 +236,8 @@ public class Id5ResolverTest {
     @Test
     public void shouldReturnNullWhenRefEntrySignatureIsBlank() {
         // given
-        final ObjectNode uidExt = ObjectMapperProvider.mapper().createObjectNode();
-        uidExt.set("optable", ObjectMapperProvider.mapper().createObjectNode()
+        final ObjectNode uidExt = mapper.createObjectNode();
+        uidExt.set("optable", mapper.createObjectNode()
                 .set("ref", TextNode.valueOf("refValue")));
 
         final Eid eid = Eid.builder()
@@ -236,8 +245,8 @@ public class Id5ResolverTest {
                 .inserter("optable.co")
                 .uids(List.of(Uid.builder().id("id").ext(uidExt).build()))
                 .build();
-        final ObjectNode refs = ObjectMapperProvider.mapper().createObjectNode();
-        refs.set("refValue", ObjectMapperProvider.mapper().createObjectNode()
+        final ObjectNode refs = mapper.createObjectNode();
+        refs.set("refValue", mapper.createObjectNode()
                 .set("signature", TextNode.valueOf("   ")));
         final TargetingResult targetingResult = new TargetingResult(
                 List.of(),
@@ -254,8 +263,8 @@ public class Id5ResolverTest {
     @Test
     public void shouldReturnNullWhenRefEntrySignatureIsContainerNode() {
         // given
-        final ObjectNode uidExt = ObjectMapperProvider.mapper().createObjectNode();
-        uidExt.set("optable", ObjectMapperProvider.mapper().createObjectNode()
+        final ObjectNode uidExt = mapper.createObjectNode();
+        uidExt.set("optable", mapper.createObjectNode()
                 .set("ref", TextNode.valueOf("refValue")));
 
         final Eid eid = Eid.builder()
@@ -263,9 +272,9 @@ public class Id5ResolverTest {
                 .inserter("optable.co")
                 .uids(List.of(Uid.builder().id("id").ext(uidExt).build()))
                 .build();
-        final ObjectNode refs = ObjectMapperProvider.mapper().createObjectNode();
-        refs.set("refValue", ObjectMapperProvider.mapper().createObjectNode()
-                .set("signature", ObjectMapperProvider.mapper().createObjectNode()));
+        final ObjectNode refs = mapper.createObjectNode();
+        refs.set("refValue", mapper.createObjectNode()
+                .set("signature", mapper.createObjectNode()));
         final TargetingResult targetingResult = new TargetingResult(
                 List.of(),
                 new Ortb2(new User(List.of(eid), null)),
@@ -281,8 +290,8 @@ public class Id5ResolverTest {
     @Test
     public void shouldReturnNullWhenRefEntryHasNoSignature() {
         // given
-        final ObjectNode uidExt = ObjectMapperProvider.mapper().createObjectNode();
-        uidExt.set("optable", ObjectMapperProvider.mapper().createObjectNode()
+        final ObjectNode uidExt = mapper.createObjectNode();
+        uidExt.set("optable", mapper.createObjectNode()
                 .set("ref", TextNode.valueOf("refValue")));
 
         final Eid eid = Eid.builder()
@@ -290,8 +299,8 @@ public class Id5ResolverTest {
                 .inserter("optable.co")
                 .uids(List.of(Uid.builder().id("id").ext(uidExt).build()))
                 .build();
-        final ObjectNode refs = ObjectMapperProvider.mapper().createObjectNode();
-        refs.set("refValue", ObjectMapperProvider.mapper().createObjectNode()
+        final ObjectNode refs = mapper.createObjectNode();
+        refs.set("refValue", mapper.createObjectNode()
                 .set("other", TextNode.valueOf("value")));
         final TargetingResult targetingResult = new TargetingResult(
                 List.of(),
