@@ -31,17 +31,21 @@ class SecondaryBidderSpec extends BaseSpec {
             "adapters.${GENERIC.value}.aliases.${ALIAS}.enabled"            : "true",
             "adapters.${GENERIC.value}.aliases.${ALIAS}.meta-info.vendor-id": "0",
             "adapters.${GENERIC.value}.aliases.${ALIAS}.endpoint"           : "$networkServiceContainer.rootUri$GENERIC_ALIAS_AUCTION_ENDPOINT".toString()]
-    private static final String WARNING_TIME_OUT_MESSAGE = "secondary bidder timed out, auction proceeded"
-    private static final Long RESPONSE_DELAY_MILLISECONDS = 5000
+    private static final Integer RESPONSE_DELAY_MILLISECONDS = 5_000
     private static final Bidder openXBidder = new Bidder(networkServiceContainer, OPENX_AUCTION_ENDPOINT)
     private static final Bidder genericAliasBidder = new Bidder(networkServiceContainer, GENERIC_ALIAS_AUCTION_ENDPOINT)
 
-    @Shared
-    PrebidServerService pbsServiceWithOpenXBidder = pbsServiceFactory.getService(OPENX_CONFIG + GENERIC_ALIAS_CONFIG)
+    private static final String WARNING_TIME_OUT_MESSAGE = "secondary bidder timed out, auction proceeded"
+
+    private static final PrebidServerService pbsServiceWithOpenXBidder = pbsServiceFactory.getService(OPENX_CONFIG + GENERIC_ALIAS_CONFIG)
 
     @Override
     def cleanupSpec() {
         pbsServiceFactory.removeContainer(OPENX_CONFIG + GENERIC_ALIAS_CONFIG)
+    }
+
+    def setup() {
+        bidder.setResponse()
     }
 
     def cleanup() {
@@ -258,7 +262,7 @@ class SecondaryBidderSpec extends BaseSpec {
 
         and: "Set up openx bidder response with delay"
         def openXRandomDelay = bidRequest.tmax - PBSUtils.getRandomNumber(100, 500)
-        openXBidder.setResponseWithDelay(openXRandomDelay)
+        openXBidder.setResponseWithDelay(openXRandomDelay.toInteger())
 
         when: "PBS processes auction request"
         def bidResponse = pbsServiceWithOpenXBidder.sendAuctionRequest(bidRequest)

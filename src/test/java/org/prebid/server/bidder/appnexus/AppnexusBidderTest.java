@@ -13,6 +13,7 @@ import com.iab.openrtb.request.SupplyChain;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.vertx.core.http.HttpMethod;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.appnexus.proto.AppnexusBidExt;
@@ -553,7 +554,12 @@ public class AppnexusBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 request -> request.ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .server(ExtRequestPrebidServer.of(null, null, null, openrtb2_amp.value()))
+                        .server(ExtRequestPrebidServer.of(
+                                null,
+                                null,
+                                null,
+                                HttpMethod.GET.name(),
+                                openrtb2_amp.value()))
                         .build())),
                 givenImp(givenExt(identity())));
 
@@ -578,7 +584,12 @@ public class AppnexusBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 request -> request.ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .server(ExtRequestPrebidServer.of(null, null, null, openrtb2_video.value()))
+                        .server(ExtRequestPrebidServer.of(
+                                null,
+                                null,
+                                null,
+                                HttpMethod.POST.name(),
+                                openrtb2_video.value()))
                         .build())),
                 givenImp(givenExt(identity())));
 
@@ -624,7 +635,12 @@ public class AppnexusBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 request -> request.ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .server(ExtRequestPrebidServer.of(null, null, null, openrtb2_video.value()))
+                        .server(ExtRequestPrebidServer.of(
+                                null,
+                                null,
+                                null,
+                                HttpMethod.POST.name(),
+                                openrtb2_video.value()))
                         .build())),
                 IntStream.range(0, 42)
                         .mapToObj(i -> givenImp(
@@ -650,7 +666,12 @@ public class AppnexusBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 request -> request.ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .server(ExtRequestPrebidServer.of(null, null, null, openrtb2_video.value()))
+                        .server(ExtRequestPrebidServer.of(
+                                null,
+                                null,
+                                null,
+                                HttpMethod.POST.name(),
+                                openrtb2_video.value()))
                         .build())),
                 givenImp(imp -> imp.id("1_random"), givenExt(ext -> ext.generateAdPodId(true))),
                 givenImp(imp -> imp.id("1_random"), givenExt(ext -> ext.generateAdPodId(true))),

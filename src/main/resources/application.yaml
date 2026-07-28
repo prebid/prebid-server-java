@@ -78,7 +78,7 @@ http-client:
   idle-timeout-ms: 0
   pool-cleaner-period-ms: 1000
   connect-timeout-ms: 2500
-  use-compression: true
+  use-decompression: true
   max-redirects: 0
   ssl: false
   jks-path:
@@ -131,6 +131,7 @@ auction:
   category-mapping-enabled: false
   strict-app-site-dooh: true
 video:
+  enable-deprecated-endpoint: false
   stored-request-required: false
   stored-requests-timeout-ms: 90
 event:
@@ -228,6 +229,9 @@ gdpr:
           max-delay-millis: 120000
           factor: 1.1
           jitter: 0.2
+    live:
+      url: https://vendor-list.consensu.org/v3/vendor-list.json
+      refresh-period-ms: 86400000
   purposes:
     p1:
       enforce-purpose: full

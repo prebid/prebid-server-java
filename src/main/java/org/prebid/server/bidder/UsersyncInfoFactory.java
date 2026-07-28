@@ -48,8 +48,7 @@ public class UsersyncInfoFactory {
                 hostCookieUid == null
                         ? buildSyncUrl(bidder, usersyncMethod, privacy)
                         : buildSetUidUrl(bidder, HttpUtil.encodeUrl(hostCookieUid), usersyncMethod, privacy),
-                usersyncMethod.getType(),
-                usersyncMethod.isSupportCORS());
+                usersyncMethod.getType());
     }
 
     private String buildSyncUrl(String bidder, UsersyncMethod usersyncMethod, Privacy privacy) {

@@ -14,7 +14,5 @@ public class UsersyncMethod {
 
     String uidMacro;
 
-    boolean supportCORS;
-
     UsersyncFormat formatOverride;
 }

@@ -58,7 +58,6 @@ public class UsersyncerUtilTest {
         final UsersyncMethodConfigurationProperties iframe = new UsersyncMethodConfigurationProperties();
         iframe.setUrl("https://iframe-url");
         iframe.setUidMacro("iframe-uid-macro");
-        iframe.setSupportCors(true);
         iframe.setFormatOverride(UsersyncFormat.BLANK);
 
         final UsersyncConfigurationProperties properties = givenUsersyncConfigurationProperties();
@@ -72,7 +71,6 @@ public class UsersyncerUtilTest {
                 .type(UsersyncMethodType.IFRAME)
                 .usersyncUrl(Uri.of("https://iframe-url"))
                 .uidMacro("iframe-uid-macro")
-                .supportCORS(true)
                 .formatOverride(UsersyncFormat.BLANK)
                 .build());
     }
@@ -131,7 +129,6 @@ public class UsersyncerUtilTest {
     private static UsersyncMethodConfigurationProperties givenUsersyncMethodConfigurationProperties() {
         final UsersyncMethodConfigurationProperties properties = new UsersyncMethodConfigurationProperties();
         properties.setUrl("https://url");
-        properties.setSupportCors(false);
         return properties;
     }
 }

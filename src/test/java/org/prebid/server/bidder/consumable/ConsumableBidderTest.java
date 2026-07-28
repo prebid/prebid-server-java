@@ -16,13 +16,11 @@ import io.vertx.core.MultiMap;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.CompositeBidderResponse;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -32,7 +30,6 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.util.HttpUtil;
-import org.prebid.server.version.PrebidVersionProvider;
 
 import java.util.List;
 import java.util.Map;
@@ -48,9 +45,6 @@ import static org.assertj.core.api.Assertions.tuple;
 public class ConsumableBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "http://exchange.org";
-
-    @Mock
-    private PrebidVersionProvider prebidVersionProvider;
 
     private ConsumableBidder target;
 
@@ -111,18 +105,18 @@ public class ConsumableBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidderResponseShouldReturnBidderBidWithNoErrors() throws JsonProcessingException {
+    public void makeBidsShouldReturnBidderBidWithNoErrors() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenSiteBidRequest(identity());
         final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
                 givenBidResponse(bidBuilder -> bidBuilder.impid("123")));
 
         // when
-        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getBids()).isNotEmpty();
+        assertThat(result.getValue()).isNotEmpty();
     }
 
     @Test
@@ -169,51 +163,51 @@ public class ConsumableBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidderResponseShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
+    public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1).first().satisfies(error -> {
             assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token");
             assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
         });
-        assertThat(result.getBids()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
-    public void makeBidderResponseShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
+    public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(null));
 
         // when
-        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getBids()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
-    public void makeBidderResponseShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
+    public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getBids()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
-    public void makeBidderResponseShouldReturnBannerBidIfBannerIsPresent() throws JsonProcessingException {
+    public void makeBidsShouldReturnBannerBidIfBannerIsPresent() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
@@ -223,17 +217,17 @@ public class ConsumableBidderTest extends VertxTest {
                 givenBidResponse(bidBuilder -> bidBuilder.impid("123")));
 
         // when
-        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getBids())
+        assertThat(result.getValue())
                 .extracting(BidderBid::getType)
                 .containsExactly(BidType.banner);
     }
 
     @Test
-    public void makeBidderResponseShouldReturnAudioBidIfAudioIsPresent() throws JsonProcessingException {
+    public void makeBidsShouldReturnAudioBidIfAudioIsPresent() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().id("123").audio(Audio.builder().build()).build()))
@@ -243,17 +237,17 @@ public class ConsumableBidderTest extends VertxTest {
                 givenBidResponse(bidBuilder -> bidBuilder.impid("123")));
 
         // when
-        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getBids())
+        assertThat(result.getValue())
                 .extracting(BidderBid::getType)
                 .containsExactly(BidType.audio);
     }
 
     @Test
-    public void makeBidderResponseShouldReturnErrorIfImpNotMatched() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorIfImpNotMatched() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().id("123").build()))
@@ -263,15 +257,15 @@ public class ConsumableBidderTest extends VertxTest {
                 givenBidResponse(bidBuilder -> bidBuilder.impid("489")));
 
         // when
-        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
-        assertThat(result.getBids()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).containsExactly(BidderError.badServerResponse("Unmatched impression id 489"));
     }
 
     @Test
-    public void makeBidderResponseShouldReturnBidWithVideoExt() throws JsonProcessingException {
+    public void makeBidsShouldReturnBidWithVideoExt() throws JsonProcessingException {
         // given
         final Video video = Video.builder().build();
         final BidRequest bidRequest = BidRequest.builder()
@@ -286,18 +280,18 @@ public class ConsumableBidderTest extends VertxTest {
                                 .mtype(2)));
 
         // when
-        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getBids())
+        assertThat(result.getValue())
                 .extracting(BidderBid::getVideoInfo)
                 .extracting(ExtBidPrebidVideo::getDuration)
                 .containsExactly(1);
     }
 
     @Test
-    public void makeBidderResponseShouldReturnBannerBidIfMTypeIsOne() throws JsonProcessingException {
+    public void makeBidsShouldReturnBannerBidIfMTypeIsOne() throws JsonProcessingException {
         // given
         final Banner banner = Banner.builder().w(300).h(200).build();
         final Video video = Video.builder().build();
@@ -315,17 +309,17 @@ public class ConsumableBidderTest extends VertxTest {
                                 .mtype(1)));
 
         // when
-        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getBids())
+        assertThat(result.getValue())
                 .extracting(BidderBid::getType)
                 .containsExactly(BidType.banner);
     }
 
     @Test
-    public void makeBidderResponseShouldReturnVideoBidIfMTypeIsTwo() throws JsonProcessingException {
+    public void makeBidsShouldReturnVideoBidIfMTypeIsTwo() throws JsonProcessingException {
         // given
         final Banner banner = Banner.builder().w(300).h(200).build();
         final Video video = Video.builder().build();
@@ -343,17 +337,17 @@ public class ConsumableBidderTest extends VertxTest {
                                 .mtype(2)));
 
         // when
-        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getBids())
+        assertThat(result.getValue())
                 .extracting(BidderBid::getType)
                 .containsExactly(BidType.video);
     }
 
     @Test
-    public void makeBidderResponseShouldReturnAudioBidIfMTypeIsThree() throws JsonProcessingException {
+    public void makeBidsShouldReturnAudioBidIfMTypeIsThree() throws JsonProcessingException {
         // given
         final Banner banner = Banner.builder().w(300).h(200).build();
         final Video video = Video.builder().build();
@@ -371,17 +365,17 @@ public class ConsumableBidderTest extends VertxTest {
                                 .mtype(3)));
 
         // when
-        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getBids())
+        assertThat(result.getValue())
                 .extracting(BidderBid::getType)
                 .containsExactly(BidType.audio);
     }
 
     @Test
-    public void makeBidderResponseShouldReturnCorrectTypeExtPrebidTypeInResponse() throws JsonProcessingException {
+    public void makeBidsShouldReturnCorrectTypeExtPrebidTypeInResponse() throws JsonProcessingException {
         // given
         final Banner banner = Banner.builder().w(300).h(200).build();
         final Video video = Video.builder().build();
@@ -400,11 +394,11 @@ public class ConsumableBidderTest extends VertxTest {
                                         .set("prebid", mapper.createObjectNode().put("type", "video")))));
 
         // when
-        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getBids())
+        assertThat(result.getValue())
                 .extracting(BidderBid::getType)
                 .containsExactly(BidType.video);
     }

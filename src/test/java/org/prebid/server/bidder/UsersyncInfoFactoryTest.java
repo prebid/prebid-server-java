@@ -286,18 +286,6 @@ public class UsersyncInfoFactoryTest {
     }
 
     @Test
-    public void buildShouldReturnIsSupportCORSFromUsersyncMethod() {
-        // given
-        final UsersyncMethod method = givenUsersyncMethod(builder -> builder.supportCORS(true));
-
-        // when
-        final UsersyncInfo result = target.build(BIDDER, null, method, givenEmptyPrivacy());
-
-        // then
-        assertThat(result.getSupportCORS()).isTrue();
-    }
-
-    @Test
     public void buildShouldUseFormatOverrideOverTypeFormat() {
         // given
         final UsersyncMethod method = givenUsersyncMethod(builder -> builder
@@ -338,7 +326,6 @@ public class UsersyncInfoFactoryTest {
                         &gpp={gpp}\
                         &gpp_sid={gpp_sid}"""))
                 .uidMacro("$UID-MACRO")
-                .supportCORS(true)
                 .formatOverride(UsersyncFormat.PIXEL)
                 .build();
         final Privacy privacy = Privacy.builder()
@@ -353,7 +340,6 @@ public class UsersyncInfoFactoryTest {
         final UsersyncInfo result = target.build("sync-bidder test", null, method, privacy);
 
         // then
-        assertThat(result.getSupportCORS()).isTrue();
         assertThat(result.getType()).isEqualTo(UsersyncMethodType.IFRAME);
         assertThat(result.getUrl()).isEqualTo("""
                 https://usersync-url\
@@ -381,7 +367,6 @@ public class UsersyncInfoFactoryTest {
                 .type(UsersyncMethodType.IFRAME)
                 .usersyncUrl(Uri.of("https://ignored.example/should-not-appear"))
                 .uidMacro("$IGNORED")
-                .supportCORS(true)
                 .formatOverride(UsersyncFormat.PIXEL)
                 .build();
         final Privacy privacy = Privacy.builder()
@@ -396,7 +381,6 @@ public class UsersyncInfoFactoryTest {
         final UsersyncInfo result = target.build("sync-bidder test", "host-uid value", method, privacy);
 
         // then
-        assertThat(result.getSupportCORS()).isTrue();
         assertThat(result.getType()).isEqualTo(UsersyncMethodType.IFRAME);
         assertThat(result.getUrl()).isEqualTo("""
                 https://localhost:8080/setuid?\

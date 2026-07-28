@@ -12,6 +12,7 @@ import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.privacy.gdpr.model.VendorPermissionWithGvl;
 import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.PurposeStrategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.specialfeature.SpecialFeaturesStrategy;
+import org.prebid.server.privacy.gdpr.vendorlist.VendorListWrapper;
 import org.prebid.server.privacy.gdpr.vendorlist.VersionedVendorListService;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.Vendor;
@@ -114,7 +115,7 @@ public class Tcf2Service {
                                 mergedPurposeOneTreatmentInterpretation),
                         ignored -> processDowngradedSupportedPurposeStrategies(
                                 tcfConsent,
-                                wrapWithGVL(vendorPermissionsByType, Collections.emptyMap()),
+                                wrapWithGVL(vendorPermissionsByType, VendorListWrapper.EMPTY),
                                 mergedPurposes,
                                 mergedPurposeOneTreatmentInterpretation))
                 .map(ignored -> enforcePurpose4IfRequired(mergedPurposes, vendorPermissionsByType))
@@ -146,7 +147,7 @@ public class Tcf2Service {
 
     private static VendorPermissionsByType<VendorPermissionWithGvl> wrapWithGVL(
             VendorPermissionsByType<VendorPermission> vendorPermissionsByType,
-            Map<Integer, Vendor> vendorGvlPermissions) {
+            VendorListWrapper vendorGvlPermissions) {
 
         final List<VendorPermissionWithGvl> weakPermissions = vendorPermissionsByType.getWeakPermissions().stream()
                 .map(vendorPermission -> wrapWithGVL(vendorPermission, vendorGvlPermissions))
@@ -161,7 +162,7 @@ public class Tcf2Service {
     }
 
     private static VendorPermissionWithGvl wrapWithGVL(VendorPermission vendorPermission,
-                                                       Map<Integer, Vendor> vendorGvlPermissions) {
+                                                       VendorListWrapper vendorGvlPermissions) {
 
         final Integer vendorId = vendorPermission.getVendorId();
         final Vendor vendorGvlByVendorId = Optional.ofNullable(vendorId)
