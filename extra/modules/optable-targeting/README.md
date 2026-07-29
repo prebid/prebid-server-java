@@ -295,20 +295,20 @@ the Targeting API:
 
 For app traffic (requests with an `app` object) the module forwards the application's bundle identifier as the
 `bundle=` query parameter and, when available, its version as `ver=`. Both values are URL-encoded. The `ver` parameter
-is only sent when `bundle` is present and non-empty — requests with a version but no bundle will not produce either
+is only sent when `bundle` is present and non-empty; requests with a version but no bundle will not produce either
 parameter.
 
 ### ID5 signature
 
 The ID5 signature is propagated to the Targeting API in two ways:
 
-1. **Request-side signature** — when the incoming OpenRTB request carries `user.ext.optable.id5_signature`, that value
+1. **Request-side signature**: when the incoming OpenRTB request carries `user.ext.optable.id5_signature`, that value
    is sent to the Targeting API as the `id5_signature=` query parameter.
-2. **Response-side signature** — when the Targeting API response contains refs with an ID5 signature, the module
+2. **Response-side signature**: when the Targeting API response contains refs with an ID5 signature, the module
    resolves the signature through the matching optable-eid and propagates it back into the request context, where it
    is later injected into the bid response (`ext.prebid.passthrough.optable.id5_signature`) for downstream use.
 
-The `id5_signature` field is also part of the Optable input erasure — see above.
+The `id5_signature` field is also part of the Optable input erasure, see above.
 
 ## Analytics Tags
 
