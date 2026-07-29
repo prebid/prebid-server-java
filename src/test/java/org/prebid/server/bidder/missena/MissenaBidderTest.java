@@ -45,6 +45,7 @@ import java.util.function.UnaryOperator;
 import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
@@ -414,6 +415,8 @@ class MissenaBidderTest extends VertxTest {
                 .cpm(BigDecimal.TEN)
                 .currency("USD")
                 .ad("adm")
+                .width(320)
+                .height(100)
                 .build();
 
         final BidderCall<MissenaAdRequest> httpCall = givenHttpCall(mapper.writeValueAsString(bidResponse));
@@ -431,10 +434,36 @@ class MissenaBidderTest extends VertxTest {
                 .price(BigDecimal.TEN)
                 .adm("adm")
                 .crid("id")
+                .w(320)
+                .h(100)
                 .build();
 
         assertThat(result.getValue()).hasSize(1)
                 .containsOnly(BidderBid.of(expectedBid, BidType.banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnBidWithoutSizeWhenResponseHasNoSize() throws JsonProcessingException {
+        // given
+        final MissenaAdResponse bidResponse = MissenaAdResponse.builder()
+                .requestId("id")
+                .cpm(BigDecimal.TEN)
+                .currency("USD")
+                .ad("adm")
+                .build();
+
+        final BidderCall<MissenaAdRequest> httpCall = givenHttpCall(mapper.writeValueAsString(bidResponse));
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.id("impId")).toBuilder().id("requestId").build();
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getW, Bid::getH)
+                .containsExactly(tuple(null, null));
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder>... impCustomizers) {

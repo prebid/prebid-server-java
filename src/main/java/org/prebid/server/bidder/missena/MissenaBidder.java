@@ -215,6 +215,8 @@ public class MissenaBidder implements Bidder<MissenaAdRequest> {
                 .impid(request.getImp().getFirst().getId())
                 .adm(response.getAd())
                 .crid(response.getRequestId())
+                .w(response.getWidth())
+                .h(response.getHeight())
                 .build();
 
         return BidderBid.of(bid, BidType.banner, response.getCurrency());
