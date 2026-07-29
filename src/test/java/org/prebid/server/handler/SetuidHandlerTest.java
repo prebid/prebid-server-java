@@ -80,6 +80,7 @@ import static org.prebid.server.model.UpdateResult.updated;
 public class SetuidHandlerTest extends VertxTest {
 
     private static final String RUBICON = "rubicon";
+    private static final String MAGNITE = "magnite";
     private static final String FACEBOOK = "audienceNetwork";
     private static final String ADNXS = "adnxs";
     private static final String APPNEXUS = "appnexus";
@@ -119,7 +120,7 @@ public class SetuidHandlerTest extends VertxTest {
     @BeforeEach
     public void setUp() {
         final Map<String, PrivacyEnforcementAction> bidderToGdpr = Map.of(
-                RUBICON, PrivacyEnforcementAction.allowAll(),
+                MAGNITE, PrivacyEnforcementAction.allowAll(),
                 APPNEXUS, PrivacyEnforcementAction.allowAll(),
                 FACEBOOK, PrivacyEnforcementAction.allowAll());
 
@@ -151,12 +152,12 @@ public class SetuidHandlerTest extends VertxTest {
                         Base64.getUrlEncoder().encodeToString(((UidsCookie) invocation.getArgument(0))
                                 .toJson().getBytes()))));
 
-        given(bidderCatalog.usersyncReadyBidders()).willReturn(Set.of(RUBICON, FACEBOOK, APPNEXUS));
+        given(bidderCatalog.usersyncReadyBidders()).willReturn(Set.of(MAGNITE, FACEBOOK, APPNEXUS));
         given(bidderCatalog.isAlias(any())).willReturn(false);
 
-        given(bidderCatalog.usersyncerByName(eq(RUBICON))).willReturn(
+        given(bidderCatalog.usersyncerByName(eq(MAGNITE))).willReturn(
                 Optional.of(Usersyncer.of(RUBICON, null, redirectMethod(), false, null)));
-        given(bidderCatalog.cookieFamilyName(eq(RUBICON))).willReturn(Optional.of(RUBICON));
+        given(bidderCatalog.cookieFamilyName(eq(MAGNITE))).willReturn(Optional.of(RUBICON));
 
         given(bidderCatalog.usersyncerByName(eq(FACEBOOK))).willReturn(
                 Optional.of(Usersyncer.of(FACEBOOK, null, redirectMethod(), false, null)));
@@ -194,7 +195,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).optout(true).build(), jacksonMapper));
 
-        given(httpRequest.getParam("bidder")).willReturn(RUBICON);
+        given(httpRequest.getParam("bidder")).willReturn(MAGNITE);
 
         // when
         setuidHandler.handle(routingContext);
@@ -246,7 +247,7 @@ public class SetuidHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithBadRequestStatusIfGdprConsentIsInvalid() {
         // given
-        given(httpRequest.getParam("bidder")).willReturn(RUBICON);
+        given(httpRequest.getParam("bidder")).willReturn(MAGNITE);
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
@@ -258,7 +259,7 @@ public class SetuidHandlerTest extends VertxTest {
         setuidHandler.handle(routingContext);
 
         // then
-        verify(metrics).updateUserSyncTcfInvalidMetric(RUBICON);
+        verify(metrics).updateUserSyncTcfInvalidMetric(MAGNITE);
         verify(httpResponse).setStatusCode(eq(400));
         verify(httpResponse).end(eq("Invalid request format: Consent string is invalid"));
     }
@@ -266,7 +267,7 @@ public class SetuidHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithUnavailableForLegalReasonsStatusIfDisallowedActivity() {
         // given
-        given(httpRequest.getParam("bidder")).willReturn(RUBICON);
+        given(httpRequest.getParam("bidder")).willReturn(MAGNITE);
         given(httpRequest.getParam("account")).willReturn("accountId");
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(emptyUidsCookie());
@@ -287,7 +288,7 @@ public class SetuidHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithErrorOnInvalidAccountConfigException() {
         // given
-        given(httpRequest.getParam("bidder")).willReturn(RUBICON);
+        given(httpRequest.getParam("bidder")).willReturn(MAGNITE);
         given(httpRequest.getParam("account")).willReturn("accountId");
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(emptyUidsCookie());
@@ -314,7 +315,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(uidsCookieService.updateUidsCookie(uidsCookie, RUBICON, null))
                 .willReturn(unaltered(uidsCookie));
 
-        given(httpRequest.getParam("bidder")).willReturn(RUBICON);
+        given(httpRequest.getParam("bidder")).willReturn(MAGNITE);
 
         // when
         setuidHandler.handle(routingContext);
@@ -334,12 +335,12 @@ public class SetuidHandlerTest extends VertxTest {
         final PrivacyEnforcementAction privacyEnforcementAction = PrivacyEnforcementAction.restrictAll();
         given(tcfDefinerService.resultForBidderNames(anySet(), any(), any()))
                 .willReturn(Future.succeededFuture(
-                        TcfResponse.of(true, singletonMap(RUBICON, privacyEnforcementAction), null)));
+                        TcfResponse.of(true, singletonMap(MAGNITE, privacyEnforcementAction), null)));
 
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
-        given(httpRequest.getParam("bidder")).willReturn(RUBICON);
+        given(httpRequest.getParam("bidder")).willReturn(MAGNITE);
         given(httpResponse.setStatusMessage(anyString())).willReturn(httpResponse);
 
         // when
@@ -349,7 +350,7 @@ public class SetuidHandlerTest extends VertxTest {
         verify(httpResponse, never()).addCookie(any(Cookie.class));
         verify(httpResponse).setStatusCode(eq(451));
         verify(httpResponse).end(eq("The gdpr_consent param prevents cookies from being saved"));
-        verify(metrics).updateUserSyncTcfBlockedMetric(RUBICON);
+        verify(metrics).updateUserSyncTcfBlockedMetric(MAGNITE);
 
         final SetuidEvent setuidEvent = captureSetuidEvent();
         assertThat(setuidEvent).isEqualTo(SetuidEvent.builder().status(451).build());
@@ -364,7 +365,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
-        given(httpRequest.getParam("bidder")).willReturn(RUBICON);
+        given(httpRequest.getParam("bidder")).willReturn(MAGNITE);
 
         // when
         setuidHandler.handle(routingContext);
@@ -387,7 +388,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
-        given(httpRequest.getParam("bidder")).willReturn(RUBICON);
+        given(httpRequest.getParam("bidder")).willReturn(MAGNITE);
 
         // when
         setuidHandler.handle(routingContext);
@@ -408,7 +409,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(uidsCookieService.updateUidsCookie(uidsCookie, RUBICON, null))
                 .willReturn(updated(uidsCookie));
 
-        given(httpRequest.getParam("bidder")).willReturn(RUBICON);
+        given(httpRequest.getParam("bidder")).willReturn(MAGNITE);
         given(httpRequest.getParam("account")).willReturn("accId");
 
         final AccountGdprConfig accountGdprConfig = AccountGdprConfig.builder()
@@ -437,7 +438,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(uidsCookieService.updateUidsCookie(uidsCookie, RUBICON, null))
                 .willReturn(updated(uidsCookie));
 
-        given(httpRequest.getParam("bidder")).willReturn(RUBICON);
+        given(httpRequest.getParam("bidder")).willReturn(MAGNITE);
         given(httpRequest.getParam("account")).willReturn("accId");
 
         given(applicationSettings.getAccountById(any(), any())).willReturn(Future.failedFuture("bad req"));
@@ -462,7 +463,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(uidsCookieService.updateUidsCookie(uidsCookie, RUBICON, "J5VLCWQP-26-CWFT"))
                 .willReturn(updated(updatedUidsCookie));
 
-        given(httpRequest.getParam("bidder")).willReturn(RUBICON);
+        given(httpRequest.getParam("bidder")).willReturn(MAGNITE);
         given(httpRequest.getParam("uid")).willReturn("J5VLCWQP-26-CWFT");
 
         // when
@@ -528,7 +529,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(uidsCookieService.updateUidsCookie(any(), any(), any()))
                 .willReturn(updated(uidsCookie));
 
-        given(httpRequest.getParam("bidder")).willReturn(RUBICON);
+        given(httpRequest.getParam("bidder")).willReturn(MAGNITE);
         given(httpRequest.getParam("f")).willReturn("i");
         given(httpRequest.getParam("uid")).willReturn("J5VLCWQP-26-CWFT");
 
@@ -551,10 +552,10 @@ public class SetuidHandlerTest extends VertxTest {
         given(uidsCookieService.updateUidsCookie(uidsCookie, RUBICON, "J5VLCWQP-26-CWFT"))
                 .willReturn(updated(uidsCookie));
 
-        given(httpRequest.getParam("bidder")).willReturn(RUBICON);
+        given(httpRequest.getParam("bidder")).willReturn(MAGNITE);
         given(httpRequest.getParam("f")).willReturn("b");
         given(httpRequest.getParam("uid")).willReturn("J5VLCWQP-26-CWFT");
-        given(bidderCatalog.usersyncReadyBidders()).willReturn(singleton(RUBICON));
+        given(bidderCatalog.usersyncReadyBidders()).willReturn(singleton(MAGNITE));
         given(bidderCatalog.usersyncerByName(any()))
                 .willReturn(Optional.of(Usersyncer.of(RUBICON, null, redirectMethod(), false, null)));
 
@@ -592,10 +593,10 @@ public class SetuidHandlerTest extends VertxTest {
         given(uidsCookieService.updateUidsCookie(uidsCookie, RUBICON, "J5VLCWQP-26-CWFT"))
                 .willReturn(updated(uidsCookie));
 
-        given(bidderCatalog.usersyncerByName(eq(RUBICON))).willReturn(
+        given(bidderCatalog.usersyncerByName(eq(MAGNITE))).willReturn(
                 Optional.of(Usersyncer.of(RUBICON, iframeMethod(), null, false, null)));
 
-        given(httpRequest.getParam("bidder")).willReturn(RUBICON);
+        given(httpRequest.getParam("bidder")).willReturn(MAGNITE);
         given(httpRequest.getParam("uid")).willReturn("J5VLCWQP-26-CWFT");
 
         setuidHandler = new SetuidHandler(
@@ -632,8 +633,8 @@ public class SetuidHandlerTest extends VertxTest {
         given(uidsCookieService.updateUidsCookie(uidsCookie, RUBICON, "J5VLCWQP-26-CWFT"))
                 .willReturn(updated(uidsCookie));
 
-        given(httpRequest.getParam("bidder")).willReturn(RUBICON);
-        given(bidderCatalog.usersyncReadyBidders()).willReturn(singleton(RUBICON));
+        given(httpRequest.getParam("bidder")).willReturn(MAGNITE);
+        given(bidderCatalog.usersyncReadyBidders()).willReturn(singleton(MAGNITE));
         given(bidderCatalog.usersyncerByName(any()))
                 .willReturn(Optional.of(Usersyncer.of(RUBICON, null, redirectMethod(), false, null)));
         given(httpRequest.getParam("uid")).willReturn("J5VLCWQP-26-CWFT");
@@ -673,7 +674,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(uidsCookieService.updateUidsCookie(uidsCookie, RUBICON, "updatedUid"))
                 .willReturn(updated(updatedUidsCookie));
 
-        given(httpRequest.getParam("bidder")).willReturn(RUBICON);
+        given(httpRequest.getParam("bidder")).willReturn(MAGNITE);
         given(httpRequest.getParam("uid")).willReturn("updatedUid");
 
         // when
@@ -701,7 +702,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(uidsCookieService.updateUidsCookie(uidsCookie, RUBICON, "updatedUid"))
                 .willReturn(updated(givenUidsCookie));
 
-        given(httpRequest.getParam("bidder")).willReturn(RUBICON);
+        given(httpRequest.getParam("bidder")).willReturn(MAGNITE);
         given(httpRequest.getParam("uid")).willReturn("updatedUid");
 
         // {"tempUIDs":{"adnxs":{"uid":"12345"}, "rubicon":{"uid":"updatedUid"}}}
@@ -734,7 +735,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(uidsCookieService.updateUidsCookie(uidsCookie, RUBICON, "J5VLCWQP-26-CWFT"))
                 .willReturn(updated(updatedUidsCookie));
 
-        given(httpRequest.getParam("bidder")).willReturn(RUBICON);
+        given(httpRequest.getParam("bidder")).willReturn(MAGNITE);
         given(httpRequest.getParam("uid")).willReturn("J5VLCWQP-26-CWFT");
 
         // when
@@ -772,7 +773,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(uidsCookieService.updateUidsCookie(uidsCookie, RUBICON, "J5VLCWQP-26-CWFT"))
                 .willReturn(updated(updatedUidsCookie));
 
-        given(httpRequest.getParam("bidder")).willReturn(RUBICON);
+        given(httpRequest.getParam("bidder")).willReturn(MAGNITE);
         given(httpRequest.getParam("uid")).willReturn("J5VLCWQP-26-CWFT");
 
         // when
@@ -793,7 +794,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(uidsCookieService.updateUidsCookie(uidsCookie, RUBICON, "uid"))
                 .willReturn(updated(uidsCookie));
 
-        given(httpRequest.getParam("bidder")).willReturn(RUBICON);
+        given(httpRequest.getParam("bidder")).willReturn(MAGNITE);
         given(httpRequest.getParam("uid")).willReturn("uid");
 
         given(routingContext.response().closed()).willReturn(true);
@@ -817,7 +818,7 @@ public class SetuidHandlerTest extends VertxTest {
         given(uidsCookieService.updateUidsCookie(uidsCookie, RUBICON, "updatedUid"))
                 .willReturn(updated(uidsCookie));
 
-        given(httpRequest.getParam("bidder")).willReturn(RUBICON);
+        given(httpRequest.getParam("bidder")).willReturn(MAGNITE);
         given(httpRequest.getParam("uid")).willReturn("updatedUid");
 
         // when

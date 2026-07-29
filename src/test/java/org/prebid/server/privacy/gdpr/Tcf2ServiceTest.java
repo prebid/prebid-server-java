@@ -171,13 +171,13 @@ public class Tcf2ServiceTest extends VertxTest {
     @Test
     public void permissionsForShouldReturnByGdprPurpose() {
         // given
-        given(bidderCatalog.nameByVendorId(any())).willReturn("rubicon");
+        given(bidderCatalog.nameByVendorId(any())).willReturn("magnite");
 
         // when
         final Future<Collection<VendorPermission>> result = target.permissionsFor(singleton(1), tcString);
 
         // then
-        final VendorPermission expectedVendorPermission = VendorPermission.of(1, "rubicon", restrictAll());
+        final VendorPermission expectedVendorPermission = VendorPermission.of(1, "magnite", restrictAll());
         assertThat(result).succeededWith(singletonList(expectedVendorPermission));
 
         verifyEachPurposeStrategyReceive(singletonList(withGvl(expectedVendorPermission, 1)));
@@ -190,13 +190,13 @@ public class Tcf2ServiceTest extends VertxTest {
     public void permissionsForShouldReturnByGdprPurposeAndDowngradeToBasicTypeWhenVendorListServiceFailed() {
         // given
         given(vendorListService.forConsent(any())).willReturn(Future.failedFuture("Bad version"));
-        given(bidderCatalog.nameByVendorId(any())).willReturn("rubicon");
+        given(bidderCatalog.nameByVendorId(any())).willReturn("magnite");
 
         // when
         final Future<Collection<VendorPermission>> result = target.permissionsFor(singleton(1), tcString);
 
         // then
-        final VendorPermission expectedVendorPermission = VendorPermission.of(1, "rubicon", restrictAll());
+        final VendorPermission expectedVendorPermission = VendorPermission.of(1, "magnite", restrictAll());
         assertThat(result).succeededWith(singletonList(expectedVendorPermission));
 
         final Purpose downgradedPurpose7 = Purpose.of(
@@ -336,7 +336,7 @@ public class Tcf2ServiceTest extends VertxTest {
     @Test
     public void permissionsForShouldReturnAllDeniedWhenP1TIIsNoAccessAllowed() {
         // given
-        given(bidderCatalog.nameByVendorId(any())).willReturn("rubicon");
+        given(bidderCatalog.nameByVendorId(any())).willReturn("magnite");
         given(tcString.getPurposeOneTreatment()).willReturn(true);
         initTcf2Service(PurposeOneTreatmentInterpretation.noAccessAllowed);
 
@@ -344,7 +344,7 @@ public class Tcf2ServiceTest extends VertxTest {
         final Future<Collection<VendorPermission>> result = target.permissionsFor(singleton(1), tcString);
 
         // then
-        final VendorPermission expectedVendorPermission = VendorPermission.of(1, "rubicon", restrictAll());
+        final VendorPermission expectedVendorPermission = VendorPermission.of(1, "magnite", restrictAll());
         assertThat(result).succeededWith(singletonList(expectedVendorPermission));
 
         final List<VendorPermissionWithGvl> permissions = singletonList(withGvl(expectedVendorPermission, 1));
@@ -364,7 +364,7 @@ public class Tcf2ServiceTest extends VertxTest {
     @Test
     public void permissionsForShouldAllowAllWhenP1TIIsAccessAllowed() {
         // given
-        given(bidderCatalog.nameByVendorId(any())).willReturn("rubicon");
+        given(bidderCatalog.nameByVendorId(any())).willReturn("magnite");
         given(tcString.getPurposeOneTreatment()).willReturn(true);
         initTcf2Service(PurposeOneTreatmentInterpretation.accessAllowed);
 
@@ -372,7 +372,7 @@ public class Tcf2ServiceTest extends VertxTest {
         final Future<Collection<VendorPermission>> result = target.permissionsFor(singleton(1), tcString);
 
         // then
-        final VendorPermission expectedVendorPermission = VendorPermission.of(1, "rubicon", restrictAll());
+        final VendorPermission expectedVendorPermission = VendorPermission.of(1, "magnite", restrictAll());
         assertThat(result).succeededWith(singletonList(expectedVendorPermission));
 
         final List<VendorPermissionWithGvl> permissions = singletonList(withGvl(expectedVendorPermission, 1));
@@ -393,7 +393,7 @@ public class Tcf2ServiceTest extends VertxTest {
     @Test
     public void permissionsForShouldNotAllowAllWhenP1TIsFalseAndP1TIIsAccessAllowed() {
         // given
-        given(bidderCatalog.nameByVendorId(any())).willReturn("rubicon");
+        given(bidderCatalog.nameByVendorId(any())).willReturn("magnite");
         given(tcString.getPurposeOneTreatment()).willReturn(false);
         initTcf2Service(PurposeOneTreatmentInterpretation.accessAllowed);
 
@@ -401,7 +401,7 @@ public class Tcf2ServiceTest extends VertxTest {
         final Future<Collection<VendorPermission>> result = target.permissionsFor(singleton(1), tcString);
 
         // then
-        final VendorPermission expectedVendorPermission = VendorPermission.of(1, "rubicon", restrictAll());
+        final VendorPermission expectedVendorPermission = VendorPermission.of(1, "magnite", restrictAll());
         assertThat(result).succeededWith(singletonList(expectedVendorPermission));
 
         final List<VendorPermissionWithGvl> standardPermissions = singletonList(withGvl(expectedVendorPermission, 1));

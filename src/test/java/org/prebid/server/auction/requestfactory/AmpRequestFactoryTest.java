@@ -1309,7 +1309,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         // given
         routingContext.queryParams()
                 .add("targeting", mapper.writeValueAsString(
-                        Targeting.of(Arrays.asList("appnexus", "rubicon"), null, null)));
+                        Targeting.of(Arrays.asList("appnexus", "magnite"), null, null)));
 
         given(fpdResolver.resolveImpExt(any(), any()))
                 .willReturn(mapper.createObjectNode().set("context", mapper.createObjectNode()
