@@ -12,8 +12,6 @@ public class PubmaticBidderImpExt {
 
     ObjectNode data;
 
-    Integer ae;
-
     @JsonProperty("gpid")
     String gpId;
 

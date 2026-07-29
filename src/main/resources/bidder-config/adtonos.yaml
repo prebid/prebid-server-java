@@ -1,6 +1,6 @@
 adapters:
   adtonos:
-    endpoint: https://exchange.adtonos.com/bid/{{PublisherId}}
+    endpoint: https://exchange.adtonos.com/bid/{PublisherId}
     geoscope:
       - global
     meta-info:
@@ -17,6 +17,5 @@ adapters:
     usersync:
       cookie-family-name: adtonos
       redirect:
-        url: https://play.adtonos.com/redir?to={{redirect_url}}
-        support-cors: false
+        url: https://play.adtonos.com/redir?to={redirect_url}
         uid-macro: '@UUID@'

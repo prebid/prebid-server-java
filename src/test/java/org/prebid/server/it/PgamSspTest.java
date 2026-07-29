@@ -25,11 +25,9 @@ public class PgamSspTest extends IntegrationTest {
         // when
         final Response response = responseFor(
                 "openrtb2/pgamssp/test-auction-pgamssp-request.json",
-                Endpoint.openrtb2_auction
-        );
+                Endpoint.openrtb2_auction);
 
         // then
         assertJsonEquals("openrtb2/pgamssp/test-auction-pgamssp-response.json", response, List.of("pgamssp"));
     }
-
 }

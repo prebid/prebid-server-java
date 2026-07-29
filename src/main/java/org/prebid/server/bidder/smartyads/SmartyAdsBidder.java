@@ -23,6 +23,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.smartyads.ExtImpSmartyAds;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -34,15 +35,15 @@ public class SmartyAdsBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpSmartyAds>> SMARTYADS_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
-    private static final String URL_HOST_MACRO = "{{Host}}";
-    private static final String URL_SOURCE_ID_MACRO = "{{SourceId}}";
-    private static final String URL_ACCOUNT_ID_MACRO = "{{AccountID}}";
+    private static final String URL_HOST_MACRO = "Host";
+    private static final String URL_SOURCE_ID_MACRO = "SourceId";
+    private static final String URL_ACCOUNT_ID_MACRO = "AccountID";
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public SmartyAdsBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -97,9 +98,10 @@ public class SmartyAdsBidder implements Bidder<BidRequest> {
 
     private String resolveUrl(ExtImpSmartyAds extImp) {
         return endpointUrl
-                .replace(URL_HOST_MACRO, extImp.getHost())
-                .replace(URL_SOURCE_ID_MACRO, HttpUtil.encodeUrl(extImp.getSourceId()))
-                .replace(URL_ACCOUNT_ID_MACRO, HttpUtil.encodeUrl(extImp.getAccountId()));
+                .replaceMacro(URL_HOST_MACRO, extImp.getHost())
+                .replaceMacro(URL_SOURCE_ID_MACRO, extImp.getSourceId())
+                .replaceMacro(URL_ACCOUNT_ID_MACRO, extImp.getAccountId())
+                .expand();
     }
 
     private static MultiMap resolveHeaders(Device device) {

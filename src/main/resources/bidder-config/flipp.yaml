@@ -1,6 +1,6 @@
 adapters:
   flipp:
-    endpoint: https://cdn-gateflipp.flippback.com/flyer-locator-service/prebid_campaigns
+    endpoint: https://ads-flipp.com/flyer-locator-service/prebid_campaigns
     meta-info:
       maintainer-email: prebid@flipp.com
       app-media-types:

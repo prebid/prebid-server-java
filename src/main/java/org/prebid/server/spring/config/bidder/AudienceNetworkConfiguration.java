@@ -9,7 +9,6 @@ import org.prebid.server.bidder.audiencenetwork.AudienceNetworkBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
-import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -41,7 +40,6 @@ public class AudienceNetworkConfiguration {
 
         return BidderDepsAssembler.<AudienceNetworkConfigurationProperties>forBidder(BIDDER_NAME)
                 .withConfig(audienceNetworkConfigurationProperties)
-                .usersyncerCreator(UsersyncerCreator.create(null))
                 .bidderCreator(audienceNetworkConfigurationProperties.getEnabled() ? bidderCreator : null)
                 .assemble();
     }

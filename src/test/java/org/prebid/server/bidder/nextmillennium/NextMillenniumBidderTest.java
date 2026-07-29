@@ -466,6 +466,7 @@ public class NextMillenniumBidderTest extends VertxTest {
                 "http://localhost:8080",
                 1,
                 "dc-test",
+                "POST",
                 "/openrtb2/auction");
 
         final ExtRequest extRequest = ExtRequest.of(ExtRequestPrebid.builder()

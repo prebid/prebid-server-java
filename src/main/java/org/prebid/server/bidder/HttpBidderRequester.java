@@ -8,8 +8,8 @@ import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.auction.aliases.BidderAliases;
 import org.prebid.server.auction.ExchangeService;
+import org.prebid.server.auction.aliases.BidderAliases;
 import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.BidderRequest;
@@ -18,7 +18,6 @@ import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderCallType;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
-import org.prebid.server.bidder.model.CompositeBidderResponse;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -30,8 +29,6 @@ import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
-import org.prebid.server.proto.openrtb.ext.response.ExtIgi;
-import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
@@ -191,9 +188,7 @@ public class HttpBidderRequester {
                 "The bidder failed to generate any bid requests, but also failed to generate an error"))
                 : bidderErrors;
 
-        return Future.succeededFuture(BidderSeatBid.builder()
-                .errors(errors)
-                .build());
+        return Future.succeededFuture(BidderSeatBid.builder().errors(errors).build());
     }
 
     /**
@@ -296,10 +291,7 @@ public class HttpBidderRequester {
         return null;
     }
 
-    /**
-     * Returns result based on response status code, list of {@link BidderBid}s and other data from bidder.
-     */
-    private static <T> CompositeBidderResponse makeBids(Bidder<T> bidder,
+    private static <T> Result<List<BidderBid>> makeBids(Bidder<T> bidder,
                                                         BidderCall<T> httpCall,
                                                         BidRequest bidRequest) {
 
@@ -309,13 +301,13 @@ public class HttpBidderRequester {
 
         final int statusCode = httpCall.getResponse().getStatusCode();
         if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
-            return CompositeBidderResponse.empty();
+            return Result.empty();
         }
         if (statusCode != HttpResponseStatus.OK.code()) {
             return null;
         }
 
-        return bidder.makeBidderResponse(toHttpCallWithSafeResponseBody(httpCall), bidRequest);
+        return bidder.makeBids(toHttpCallWithSafeResponseBody(httpCall), bidRequest);
     }
 
     /**
@@ -346,8 +338,6 @@ public class HttpBidderRequester {
         private final Map<HttpRequest<T>, BidderCall<T>> bidderCallsRecorded = new HashMap<>();
         private final List<BidderBid> bidsRecorded = new ArrayList<>();
         private final List<BidderError> errorsRecorded = new ArrayList<>();
-        private final List<ExtIgi> igiRecorded = new ArrayList<>();
-        private final List<FledgeAuctionConfig> fledgeRecorded = new ArrayList<>();
 
         ResultBuilder(List<HttpRequest<T>> httpRequests,
                       List<BidderError> previousErrors,
@@ -362,17 +352,15 @@ public class HttpBidderRequester {
             this.mapper = mapper;
         }
 
-        void addHttpCall(BidderCall<T> bidderCall, CompositeBidderResponse bidderResponse) {
+        void addHttpCall(BidderCall<T> bidderCall, Result<List<BidderBid>> bidderResponse) {
             bidderCallsRecorded.put(bidderCall.getRequest(), bidderCall);
             handleBids(bidderResponse);
             handleBidderErrors(bidderResponse);
             handleBidderCallError(bidderCall);
-            handleIgis(bidderResponse);
-            handleFledgeAuctionConfigs(bidderResponse);
         }
 
-        private void handleBids(CompositeBidderResponse bidderResponse) {
-            final List<BidderBid> bids = bidderResponse != null ? bidderResponse.getBids() : null;
+        private void handleBids(Result<List<BidderBid>> bidderResponse) {
+            final List<BidderBid> bids = bidderResponse != null ? bidderResponse.getValue() : null;
             if (bids != null) {
                 bidsRecorded.addAll(bids);
                 completionTracker.processBids(bids);
@@ -380,7 +368,7 @@ public class HttpBidderRequester {
             }
         }
 
-        private void handleBidderErrors(CompositeBidderResponse bidderResponse) {
+        private void handleBidderErrors(Result<List<BidderBid>> bidderResponse) {
             final List<BidderError> bidderErrors = bidderResponse != null ? bidderResponse.getErrors() : null;
             if (bidderErrors != null) {
                 errorsRecorded.addAll(bidderErrors);
@@ -425,18 +413,6 @@ public class HttpBidderRequester {
             bidRejectionTracker.rejectImps(requestedImpIds, reason);
         }
 
-        private void handleFledgeAuctionConfigs(CompositeBidderResponse bidderResponse) {
-            Optional.ofNullable(bidderResponse)
-                    .map(CompositeBidderResponse::getFledgeAuctionConfigs)
-                    .ifPresent(fledgeRecorded::addAll);
-        }
-
-        private void handleIgis(CompositeBidderResponse bidderResponse) {
-            Optional.ofNullable(bidderResponse)
-                    .map(CompositeBidderResponse::getIgi)
-                    .ifPresent(igiRecorded::addAll);
-        }
-
         BidderSeatBid toBidderSeatBid(boolean debugEnabled) {
             final List<BidderCall<T>> httpCalls = new ArrayList<>(bidderCallsRecorded.values());
             httpRequests.stream()
@@ -454,8 +430,6 @@ public class HttpBidderRequester {
                     .bids(bidsRecorded)
                     .httpCalls(extHttpCalls)
                     .errors(errors)
-                    .igi(igiRecorded)
-                    .fledgeAuctionConfigs(fledgeRecorded)
                     .build();
         }
 

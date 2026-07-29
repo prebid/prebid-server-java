@@ -12,6 +12,7 @@ import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.privacy.gdpr.model.VendorPermissionWithGvl;
 import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.PurposeStrategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.specialfeature.SpecialFeaturesStrategy;
+import org.prebid.server.privacy.gdpr.vendorlist.VendorListWrapper;
 import org.prebid.server.privacy.gdpr.vendorlist.VersionedVendorListService;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.Vendor;
@@ -114,7 +115,7 @@ public class Tcf2Service {
                                 mergedPurposeOneTreatmentInterpretation),
                         ignored -> processDowngradedSupportedPurposeStrategies(
                                 tcfConsent,
-                                wrapWithGVL(vendorPermissionsByType, Collections.emptyMap()),
+                                wrapWithGVL(vendorPermissionsByType, VendorListWrapper.EMPTY),
                                 mergedPurposes,
                                 mergedPurposeOneTreatmentInterpretation))
                 .map(ignored -> enforcePurpose4IfRequired(mergedPurposes, vendorPermissionsByType))
@@ -146,7 +147,7 @@ public class Tcf2Service {
 
     private static VendorPermissionsByType<VendorPermissionWithGvl> wrapWithGVL(
             VendorPermissionsByType<VendorPermission> vendorPermissionsByType,
-            Map<Integer, Vendor> vendorGvlPermissions) {
+            VendorListWrapper vendorGvlPermissions) {
 
         final List<VendorPermissionWithGvl> weakPermissions = vendorPermissionsByType.getWeakPermissions().stream()
                 .map(vendorPermission -> wrapWithGVL(vendorPermission, vendorGvlPermissions))
@@ -161,7 +162,7 @@ public class Tcf2Service {
     }
 
     private static VendorPermissionWithGvl wrapWithGVL(VendorPermission vendorPermission,
-                                                       Map<Integer, Vendor> vendorGvlPermissions) {
+                                                       VendorListWrapper vendorGvlPermissions) {
 
         final Integer vendorId = vendorPermission.getVendorId();
         final Vendor vendorGvlByVendorId = Optional.ofNullable(vendorId)
@@ -358,17 +359,17 @@ public class Tcf2Service {
 
         return accountPurposes != null
                 ? Purposes.builder()
-                .p1(mergeItem(accountPurposes.getP1(), defaultPurposes.getP1()))
-                .p2(mergeItem(accountPurposes.getP2(), defaultPurposes.getP2()))
-                .p3(mergeItem(accountPurposes.getP3(), defaultPurposes.getP3()))
-                .p4(mergeItem(accountPurposes.getP4(), defaultPurposes.getP4()))
-                .p5(mergeItem(accountPurposes.getP5(), defaultPurposes.getP5()))
-                .p6(mergeItem(accountPurposes.getP6(), defaultPurposes.getP6()))
-                .p7(mergeItem(accountPurposes.getP7(), defaultPurposes.getP7()))
-                .p8(mergeItem(accountPurposes.getP8(), defaultPurposes.getP8()))
-                .p9(mergeItem(accountPurposes.getP9(), defaultPurposes.getP9()))
-                .p10(mergeItem(accountPurposes.getP10(), defaultPurposes.getP10()))
-                .build()
+                  .p1(mergeItem(accountPurposes.getP1(), defaultPurposes.getP1()))
+                  .p2(mergeItem(accountPurposes.getP2(), defaultPurposes.getP2()))
+                  .p3(mergeItem(accountPurposes.getP3(), defaultPurposes.getP3()))
+                  .p4(mergeItem(accountPurposes.getP4(), defaultPurposes.getP4()))
+                  .p5(mergeItem(accountPurposes.getP5(), defaultPurposes.getP5()))
+                  .p6(mergeItem(accountPurposes.getP6(), defaultPurposes.getP6()))
+                  .p7(mergeItem(accountPurposes.getP7(), defaultPurposes.getP7()))
+                  .p8(mergeItem(accountPurposes.getP8(), defaultPurposes.getP8()))
+                  .p9(mergeItem(accountPurposes.getP9(), defaultPurposes.getP9()))
+                  .p10(mergeItem(accountPurposes.getP10(), defaultPurposes.getP10()))
+                  .build()
                 : defaultPurposes;
     }
 
@@ -379,9 +380,9 @@ public class Tcf2Service {
 
         return accountSpecialFeatures != null
                 ? SpecialFeatures.builder()
-                .sf1(mergeItem(accountSpecialFeatures.getSf1(), defaultSpecialFeatures.getSf1()))
-                .sf2(mergeItem(accountSpecialFeatures.getSf2(), defaultSpecialFeatures.getSf2()))
-                .build()
+                  .sf1(mergeItem(accountSpecialFeatures.getSf1(), defaultSpecialFeatures.getSf1()))
+                  .sf2(mergeItem(accountSpecialFeatures.getSf2(), defaultSpecialFeatures.getSf2()))
+                  .build()
                 : defaultSpecialFeatures;
     }
 

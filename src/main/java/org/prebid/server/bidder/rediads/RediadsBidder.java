@@ -25,7 +25,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.rediads.ExtImpRediads;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -38,14 +38,14 @@ public class RediadsBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpRediads>> TYPE_REFERENCE = new TypeReference<>() {
     };
-    private static final String SUBDOMAIN_MACRO = "{{SUBDOMAIN}}";
+    private static final String SUBDOMAIN_MACRO = "SUBDOMAIN";
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final String defaultSubdomain;
     private final JacksonMapper mapper;
 
     public RediadsBidder(String endpointUrl, JacksonMapper mapper, String defaultSubdomain) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
         this.defaultSubdomain = Objects.requireNonNull(defaultSubdomain);
     }
@@ -125,7 +125,9 @@ public class RediadsBidder implements Bidder<BidRequest> {
     }
 
     private String resolveEndpointUrl(String subdomain) {
-        return endpointUrl.replace(SUBDOMAIN_MACRO, StringUtils.defaultIfBlank(subdomain, defaultSubdomain));
+        return endpointUrl
+                .replaceMacro(SUBDOMAIN_MACRO, StringUtils.defaultIfBlank(subdomain, defaultSubdomain))
+                .expand();
     }
 
     @Override

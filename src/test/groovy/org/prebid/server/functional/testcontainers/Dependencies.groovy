@@ -10,7 +10,6 @@ import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.lifecycle.Startables
 import org.testcontainers.utility.DockerImageName
 
-import static org.prebid.server.functional.util.SystemProperties.MOCKSERVER_VERSION
 import static org.testcontainers.containers.localstack.LocalStackContainer.Service.S3
 
 class Dependencies {
@@ -42,14 +41,14 @@ class Dependencies {
             .withDatabase("prebid")
             .withNetwork(network)
 
-    static final NetworkServiceContainer networkServiceContainer = new NetworkServiceContainer(MOCKSERVER_VERSION)
+    static final NetworkServiceContainer networkServiceContainer = new NetworkServiceContainer()
             .withNetwork(network)
 
     static LocalStackContainer localStackContainer
 
     static void start() {
         if (IS_LAUNCH_CONTAINERS) {
-            localStackContainer = new LocalStackContainer(DockerImageName.parse("localstack/localstack:s3-latest"))
+            localStackContainer = new LocalStackContainer(DockerImageName.parse("localstack/localstack:s3-community-archive"))
                     .withNetwork(network)
                     .withServices(S3)
             Startables.deepStart([networkServiceContainer, mysqlContainer, localStackContainer, influxdbContainer]).join()
@@ -58,7 +57,8 @@ class Dependencies {
 
     static void stop() {
         if (IS_LAUNCH_CONTAINERS) {
-            [networkServiceContainer, mysqlContainer, localStackContainer, influxdbContainer].parallelStream()
+            [networkServiceContainer, mysqlContainer, localStackContainer, influxdbContainer]
+                    .parallelStream()
                     .forEach({ it.stop() })
         }
     }

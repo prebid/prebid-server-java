@@ -39,11 +39,12 @@ import org.prebid.server.auction.privacy.contextfactory.AmpPrivacyContextFactory
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.geolocation.model.GeoInfo;
+import org.prebid.server.hooks.execution.model.HookHttpEndpoint;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
-import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.privacy.ccpa.Ccpa;
+import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.privacy.model.PrivacyContext;
@@ -123,6 +124,8 @@ public class AmpRequestFactoryTest extends VertxTest {
     private DebugResolver debugResolver;
     @Mock(strictness = LENIENT)
     private GeoLocationServiceWrapper geoLocationServiceWrapper;
+    @Mock(strictness = LENIENT)
+    private TcfDefinerService tcfDefinerService;
 
     private AmpRequestFactory target;
 
@@ -157,10 +160,11 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(httpRequest.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
         given(httpRequest.remoteAddress()).willReturn(new SocketAddressImpl(1234, "host"));
 
-        given(ortb2RequestFactory.createAuctionContext(any(), eq(MetricName.amp))).willReturn(AuctionContext.builder()
-                .prebidErrors(new ArrayList<>())
-                .debugWarnings(new ArrayList<>())
-                .build());
+        given(ortb2RequestFactory.createAuctionContext(any(), eq(MetricName.amp)))
+                .willReturn(AuctionContext.builder()
+                        .prebidErrors(new ArrayList<>())
+                        .debugWarnings(new ArrayList<>())
+                        .build());
         given(ortb2RequestFactory.executeEntrypointHooks(any(), any(), any()))
                 .willAnswer(invocation -> toHttpRequest(invocation.getArgument(0), invocation.getArgument(1)));
         given(ortb2RequestFactory.restoreResultFromRejection(any()))
@@ -207,7 +211,8 @@ public class AmpRequestFactoryTest extends VertxTest {
                 ampPrivacyContextFactory,
                 debugResolver,
                 jacksonMapper,
-                geoLocationServiceWrapper);
+                geoLocationServiceWrapper,
+                tcfDefinerService);
     }
 
     @Test
@@ -1244,6 +1249,7 @@ public class AmpRequestFactoryTest extends VertxTest {
     public void shouldReturnBidRequestWithUserExtConsentWhenGdprConsentIsValidAndConsentTypeIsNotPresent() {
         // given
         routingContext.queryParams().add("gdpr_consent", "BONV8oqONXwgmADACHENAO7pqzAAppY");
+        given(tcfDefinerService.isConsentStringValid(any())).willReturn(true);
 
         givenBidRequest();
 
@@ -1649,7 +1655,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         target.fromRequest(routingContext, 0L);
 
         // then
-        verify(ortb2RequestFactory).createAuctionContext(eq(Endpoint.openrtb2_amp), eq(MetricName.amp));
+        verify(ortb2RequestFactory).createAuctionContext(eq(HookHttpEndpoint.AMP), eq(MetricName.amp));
     }
 
     @Test

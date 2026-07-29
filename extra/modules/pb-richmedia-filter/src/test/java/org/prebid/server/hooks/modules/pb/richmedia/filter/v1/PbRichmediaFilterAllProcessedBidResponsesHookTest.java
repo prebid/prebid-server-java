@@ -280,5 +280,4 @@ public class PbRichmediaFilterAllProcessedBidResponsesHookTest {
                         Bid.builder().id("bid-" + impId).impid(impId).build()).build()).toList(),
                 RESPONSE_REJECTED_INVALID_CREATIVE);
     }
-
 }

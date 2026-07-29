@@ -1,6 +1,6 @@
 adapters:
   adot:
-    endpoint: https://dsp.adotmob.com/headerbidding{{PUBLISHER_PATH}}/bidrequest
+    endpoint: https://dsp.adotmob.com/headerbidding{/PUBLISHER_PATH*}/bidrequest
     meta-info:
       maintainer-email: admin@we-are-adot.com
       app-media-types:
@@ -16,6 +16,5 @@ adapters:
     usersync:
       cookie-family-name: adot
       redirect:
-        url: https://sync.adotmob.com/cookie/pbs?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&r={{redirect_url}}
-        support-cors: false
+        url: https://sync.adotmob.com/cookie/pbs?gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&r={redirect_url}
         uid-macro: '{amob_user_id}'

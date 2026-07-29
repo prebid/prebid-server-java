@@ -48,5 +48,4 @@ public class PictureAdm {
                 + "function sendSomeGetReq(urls) {for (var i = 0; i < urls.length; i++) {sendOneGetReq(urls[i]);}}"
                 + "</script>";
     }
-
 }

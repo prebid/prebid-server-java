@@ -99,5 +99,4 @@ public class ModuleConfigResolverTest {
         // then
         assertThat(actualProperties).isEqualTo(GLOBAL_PROPERTIES);
     }
-
 }

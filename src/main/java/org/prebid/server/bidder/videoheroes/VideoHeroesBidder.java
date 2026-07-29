@@ -19,7 +19,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.videoheroes.ExtImpVideoHeroes;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -33,14 +33,14 @@ public class VideoHeroesBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private static final String URL_PUBLISHER_ID_MACRO = "{{PublisherID}}";
+    private static final String URL_PUBLISHER_ID_MACRO = "PublisherID";
     private static final int FIRST_IMP_INDEX = 0;
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public VideoHeroesBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -76,7 +76,7 @@ public class VideoHeroesBidder implements Bidder<BidRequest> {
     }
 
     private String resolveEndpoint(String publisherId) {
-        return endpointUrl.replace(URL_PUBLISHER_ID_MACRO, HttpUtil.encodeUrl(publisherId));
+        return endpointUrl.replaceMacro(URL_PUBLISHER_ID_MACRO, publisherId).expand();
     }
 
     private HttpRequest<BidRequest> createRequest(List<Imp> imp,

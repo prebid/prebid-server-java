@@ -22,7 +22,6 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.CompositeBidderResponse;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -31,6 +30,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.epsilon.ExtImpEpsilon;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
+import org.prebid.server.util.VersionInfo;
 
 import java.math.BigDecimal;
 import java.util.Collections;
@@ -64,13 +64,14 @@ public class EpsilonBidderTest extends VertxTest {
 
     @BeforeEach
     public void setUp() {
-        target = new EpsilonBidder(ENDPOINT_URL, false, jacksonMapper, currencyConversionService);
+        target = new EpsilonBidder(ENDPOINT_URL, false, null, jacksonMapper, currencyConversionService);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new EpsilonBidder("invalid_url", false, jacksonMapper, currencyConversionService));
+                .isThrownBy(() -> new EpsilonBidder(
+                        "invalid_url", false, null, jacksonMapper, currencyConversionService));
     }
 
     @Test
@@ -186,7 +187,7 @@ public class EpsilonBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSetImpDisplayManagerAndDisplayManagerVer() {
+    public void makeHttpRequestsShouldSetImpDisplayManager() {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
 
@@ -198,8 +199,63 @@ public class EpsilonBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getDisplaymanager, Imp::getDisplaymanagerver)
-                .containsExactly(tuple("prebid-s2s", "2.0.0"));
+                .extracting(Imp::getDisplaymanager)
+                .containsExactly("prebid-s2s-java");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotSetDisplayManagerVerWhenVersionIsNull() {
+        // given
+        target = new EpsilonBidder(ENDPOINT_URL, false, null, jacksonMapper, currencyConversionService);
+        final BidRequest bidRequest = givenBidRequest(identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getDisplaymanagerver)
+                .containsOnlyNulls();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotSetDisplayManagerVerWhenVersionIsUndefined() {
+        // given
+        target = new EpsilonBidder(
+                ENDPOINT_URL, false, VersionInfo.UNDEFINED, jacksonMapper, currencyConversionService);
+        final BidRequest bidRequest = givenBidRequest(identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getDisplaymanagerver)
+                .containsOnlyNulls();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetDisplayManagerVerWhenVersionIsProvided() {
+        // given
+        target = new EpsilonBidder(ENDPOINT_URL, false, "1.2.3", jacksonMapper, currencyConversionService);
+        final BidRequest bidRequest = givenBidRequest(identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getDisplaymanagerver)
+                .containsExactly("1.2.3");
     }
 
     @Test
@@ -697,7 +753,7 @@ public class EpsilonBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldUpdateBidWithUUIDIfGenerateBidIdIsTrue() throws JsonProcessingException {
         // given
-        target = new EpsilonBidder(ENDPOINT_URL, true, jacksonMapper, currencyConversionService);
+        target = new EpsilonBidder(ENDPOINT_URL, true, null, jacksonMapper, currencyConversionService);
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(builder -> builder.id("123")
                         .banner(Banner.builder().build())),
@@ -738,25 +794,25 @@ public class EpsilonBidderTest extends VertxTest {
 
         final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
                 mapper.writeValueAsString(BidResponse.builder()
-                .seatbid(singletonList(SeatBid.builder()
-                        .bid(singletonList(Bid.builder()
-                                .price(BigDecimal.ONE)
-                                .impid("impid-0")
-                                .adm(nativeResponseString)
-                                .mtype(4)
-                                .cat(singletonList("IAB3"))
+                        .seatbid(singletonList(SeatBid.builder()
+                                .bid(singletonList(Bid.builder()
+                                        .price(BigDecimal.ONE)
+                                        .impid("impid-0")
+                                        .adm(nativeResponseString)
+                                        .mtype(4)
+                                        .cat(singletonList("IAB3"))
+                                        .build()))
                                 .build()))
-                        .build()))
-                .cur("USD")
-                .ext(ExtBidResponse.builder().build())
-                .build()));
+                        .cur("USD")
+                        .ext(ExtBidResponse.builder().build())
+                        .build()));
 
         // when
-        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getBids()).hasSize(1)
+        assertThat(result.getValue()).hasSize(1)
                 .containsOnly(BidderBid.of(
                         Bid.builder()
                                 .impid("impid-0")

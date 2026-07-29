@@ -1,0 +1,45 @@
+{
+  "id": "test-request-id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "2315f4a3-f2c4-8cac-69de-985272e1d706",
+          "impid": "test-imp-id",
+          "price": 10,
+          "adm": "<img src=\"demo ad\" width=\"300\" height=\"250\">",
+          "crid": "4235d4b1-e2a6-9bbb-a34c-766714c2d221",
+          "exp": 300,
+          "mtype": 1,
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "meta": {
+                "adaptercode": "trustx",
+                "networkName": "test-network"
+              }
+            },
+            "bidder" : {
+              "trustx" : {
+                "networkName" : "test-network"
+              }
+            },
+            "origbidcpm": 10
+          }
+        }
+      ],
+      "seat": "trustx",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "trustx": "{{ trustedstack.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}

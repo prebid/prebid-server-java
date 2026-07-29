@@ -3,6 +3,7 @@ package org.prebid.server.privacy.gdpr.tcfstrategies.purpose;
 import com.iabtcf.decoder.TCString;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
+import org.prebid.server.privacy.gdpr.DisclosedVendorsStrictness;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.privacy.gdpr.model.VendorPermissionWithGvl;
@@ -20,14 +21,17 @@ import java.util.stream.Stream;
 
 public abstract class PurposeStrategy {
 
+    private final DisclosedVendorsStrictness disclosedVendorsStrictness;
     private final FullEnforcePurposeStrategy fullEnforcePurposeStrategy;
     private final BasicEnforcePurposeStrategy basicEnforcePurposeStrategy;
     private final NoEnforcePurposeStrategy noEnforcePurposeStrategy;
 
-    public PurposeStrategy(FullEnforcePurposeStrategy fullEnforcePurposeStrategy,
+    public PurposeStrategy(DisclosedVendorsStrictness disclosedVendorsStrictness,
+                           FullEnforcePurposeStrategy fullEnforcePurposeStrategy,
                            BasicEnforcePurposeStrategy basicEnforcePurposeStrategy,
                            NoEnforcePurposeStrategy noEnforcePurposeStrategy) {
 
+        this.disclosedVendorsStrictness = disclosedVendorsStrictness;
         this.fullEnforcePurposeStrategy = fullEnforcePurposeStrategy;
         this.basicEnforcePurposeStrategy = basicEnforcePurposeStrategy;
         this.noEnforcePurposeStrategy = noEnforcePurposeStrategy;
@@ -64,6 +68,8 @@ public abstract class PurposeStrategy {
         final Collection<VendorPermissionWithGvl> excludedVendors = excludedVendors(vendorPermissions, purpose);
         final Collection<VendorPermissionWithGvl> vendorForPurpose = vendorPermissions.stream()
                 .filter(vendorPermission -> !excludedVendors.contains(vendorPermission))
+                .filter(vendorPermission -> disclosedVendorsStrictness
+                        .isVendorDisclosed(vendorConsent, vendorPermission.getVendor().getId()))
                 .toList();
 
         allowedByTypeStrategy(vendorConsent, purpose, vendorForPurpose, excludedVendors)
