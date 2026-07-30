@@ -120,26 +120,13 @@ public class QueryBuilder {
 
         sb.append("&osdk=").append(REQUEST_SOURCE);
 
-        Optional.ofNullable(optableAttributes.getApp())
-                .ifPresent(app -> {
-                    final String bundle = app.getBundle();
-                    if (StringUtils.isNotEmpty(bundle)) {
-                        sb.append("&bundle=").append(URLEncoder.encode(bundle, StandardCharsets.UTF_8));
-
-                        final String ver = app.getVer();
-                        if (StringUtils.isNotEmpty(ver)) {
-                            sb.append("&ver=").append(URLEncoder.encode(ver, StandardCharsets.UTF_8));
-                        }
-                    }
-                });
-
-        Optional.ofNullable(optableAttributes.getId5Signature())
-                .ifPresent(id5Signature -> sb.append("&id5_signature=")
-                        .append(URLEncoder.encode(id5Signature, StandardCharsets.UTF_8)));
-
         return sb.toString();
     }
-
+    
+    /**
+     * Kept apart from buildAttributesString because these are the only attributes that
+     * discriminate one user from another, so they have to take part in the cache key.
+     */
     private static String buildHidAttributesString(OptableAttributes optableAttributes) {
         final StringBuilder sb = new StringBuilder();
 
