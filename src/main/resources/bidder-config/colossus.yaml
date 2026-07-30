@@ -5,6 +5,8 @@ adapters:
     aliases:
       colossusssp:
         enabled: false
+        meta-info:
+          vendor-id: 0
     meta-info:
       maintainer-email: support@colossusmediassp.com
       app-media-types:

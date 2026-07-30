@@ -4,6 +4,8 @@ adapters:
     ortb-version: "2.6"
     aliases:
       conversant:
+        meta-info:
+          vendor-id: 24
         usersync:
           cookie-family-name: conversant
     meta-info:
