@@ -2,7 +2,6 @@ package org.prebid.server.hooks.modules.optable.targeting.v1;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.vertx.core.Future;
-import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.hooks.execution.v1.InvocationResultImpl;
 import org.prebid.server.hooks.modules.optable.targeting.model.EnrichmentStatus;
 import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
@@ -57,30 +56,16 @@ public class OptableTargetingAuctionResponseHook implements AuctionResponseHook 
             return success(moduleContext);
         }
 
-        final EnrichmentStatus validationStatus = AuctionResponseValidator.checkEnrichmentPossibility(
-                auctionResponsePayload.bidResponse(), moduleContext.getTargeting());
-        moduleContext.setEnrichResponseStatus(validationStatus);
-
-        return validationStatus.getStatus() == Status.SUCCESS
-                ? enrichedPayload(moduleContext)
-                : enrichedById5SignaturePayload(moduleContext);
-    }
-
-    private Future<InvocationResult<AuctionResponsePayload>> enrichedPayload(ModuleContext moduleContext) {
         final List<Audience> targeting = moduleContext.getTargeting();
         final String id5Signature = moduleContext.getId5Signature();
 
-        return CollectionUtils.isNotEmpty(targeting)
+        final EnrichmentStatus validationStatus = AuctionResponseValidator.checkEnrichmentPossibility(
+                auctionResponsePayload.bidResponse(), targeting);
+        moduleContext.setEnrichResponseStatus(validationStatus);
+
+        return validationStatus.getStatus() == Status.SUCCESS
                 ? update(fullEnrichmentChain(targeting, id5Signature), moduleContext)
                 : update(id5SignatureEnrichmentChain(id5Signature), moduleContext);
-    }
-
-    private Future<InvocationResult<AuctionResponsePayload>> enrichedById5SignaturePayload(
-            ModuleContext moduleContext) {
-
-        final String id5Signature = moduleContext.getId5Signature();
-
-        return update(id5SignatureEnrichmentChain(id5Signature), moduleContext);
     }
 
     private PayloadUpdate<AuctionResponsePayload> fullEnrichmentChain(final List<Audience> targeting,
@@ -109,8 +94,13 @@ public class OptableTargetingAuctionResponseHook implements AuctionResponseHook 
     }
 
     private Future<InvocationResult<AuctionResponsePayload>> success(ModuleContext moduleContext) {
-        final String id5Signature = moduleContext.getId5Signature();
-        return update(id5SignatureEnrichmentChain(id5Signature), moduleContext);
+        return Future.succeededFuture(
+                InvocationResultImpl.<AuctionResponsePayload>builder()
+                        .status(InvocationStatus.success)
+                        .action(InvocationAction.no_action)
+                        .moduleContext(moduleContext)
+                        .analyticsTags(AnalyticTagsResolver.toEnrichResponseAnalyticTags(moduleContext))
+                        .build());
     }
 
     @Override

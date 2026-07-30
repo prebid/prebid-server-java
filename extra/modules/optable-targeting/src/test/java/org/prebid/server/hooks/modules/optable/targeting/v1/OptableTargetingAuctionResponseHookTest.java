@@ -11,6 +11,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.hooks.execution.v1.auction.AuctionResponsePayloadImpl;
 import org.prebid.server.hooks.modules.optable.targeting.model.ModuleContext;
+import org.prebid.server.hooks.modules.optable.targeting.model.config.OptableTargetingProperties;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.Audience;
 import org.prebid.server.hooks.modules.optable.targeting.model.openrtb.AudienceId;
 import org.prebid.server.hooks.modules.optable.targeting.v1.core.ConfigResolver;
@@ -283,32 +284,54 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
     }
 
     @Test
-    public void shouldReturnUpdateActionWithId5SignatureWhenSkipEnrichmentIsTrue() {
+    public void shouldReturnNoActionWhenAdserverTargetingIsDisabled() {
         // given
-        final String signature = "id5Signature";
-        final ModuleContext moduleContext = givenModuleContext();
-        moduleContext.setShouldSkipEnrichment(true);
-        moduleContext.setId5Signature(signature);
-        when(invocationContext.moduleContext()).thenReturn(moduleContext);
+        final OptableTargetingProperties properties = givenOptableTargetingProperties(false);
+        properties.setAdserverTargeting(false);
+        configResolver = new ConfigResolver(mapper, jsonMerger, properties);
+        target = new OptableTargetingAuctionResponseHook(configResolver, mapper, jsonMerger);
+        when(invocationContext.accountConfig()).thenReturn(mapper.valueToTree(properties));
+        when(invocationContext.moduleContext()).thenReturn(givenModuleContext(List.of(
+                new Audience(
+                        "provider",
+                        List.of(new AudienceId("audienceId")),
+                        "keyspace",
+                        1)),
+                Future.failedFuture(new RuntimeException("error"))));
 
         // when
         final Future<InvocationResult<AuctionResponsePayload>> future =
                 target.call(auctionResponsePayload, invocationContext);
         final InvocationResult<AuctionResponsePayload> result = future.result();
-        final BidResponse bidResponse = result
-                .payloadUpdate()
-                .apply(AuctionResponsePayloadImpl.of(givenBidResponse()))
-                .bidResponse();
-        final JsonNode passthrough = bidResponse.getExt().getPrebid().getPassthrough();
 
         // then
         assertThat(future).isNotNull();
         assertThat(future.succeeded()).isTrue();
         assertThat(result).isNotNull()
                 .returns(InvocationStatus.success, InvocationResult::status)
-                .returns(InvocationAction.update, InvocationResult::action);
-        assertThat(passthrough).isNotNull();
-        assertThat(passthrough.get("optable").get("id5_signature").asText()).isEqualTo(signature);
+                .returns(InvocationAction.no_action, InvocationResult::action);
+        assertThat(result.payloadUpdate()).isNull();
+    }
+
+    @Test
+    public void shouldReturnNoActionWhenSkipEnrichmentIsTrue() {
+        // given
+        final ModuleContext moduleContext = givenModuleContext();
+        moduleContext.setShouldSkipEnrichment(true);
+        when(invocationContext.moduleContext()).thenReturn(moduleContext);
+
+        // when
+        final Future<InvocationResult<AuctionResponsePayload>> future =
+                target.call(auctionResponsePayload, invocationContext);
+        final InvocationResult<AuctionResponsePayload> result = future.result();
+
+        // then
+        assertThat(future).isNotNull();
+        assertThat(future.succeeded()).isTrue();
+        assertThat(result).isNotNull()
+                .returns(InvocationStatus.success, InvocationResult::status)
+                .returns(InvocationAction.no_action, InvocationResult::action);
+        assertThat(result.payloadUpdate()).isNull();
     }
 
     private ObjectNode givenAccountConfig(boolean cacheEnabled) {
