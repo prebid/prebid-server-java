@@ -4,6 +4,8 @@ adapters:
     aliases:
       liftoff:
         enabled: false
+        meta-info:
+          vendor-id: 0
     modifying-vast-xml-allowed: true
     endpoint-compression: gzip
     meta-info:

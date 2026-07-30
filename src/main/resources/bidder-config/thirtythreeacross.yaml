@@ -7,8 +7,12 @@ adapters:
     aliases:
       33across:
         enabled: false
+        meta-info:
+          vendor-id: 58
       ttx:
         enabled: false
+        meta-info:
+          vendor-id: 58
     meta-info:
       maintainer-email: headerbidding@33across.com
       app-media-types:

@@ -7,18 +7,20 @@ adapters:
         endpoint: https://srv.datacygnal.io/pbs/bidder?zid={ZoneID}
         meta-info:
           maintainer-email: contact@bcm.ltd
+          vendor-id: 0
         usersync:
           cookie-family-name: bcmint
           redirect:
             url: https://track.datacygnal.io/sync/v2?gdpr={gdpr}&gdpr_consent={gdpr_consent}&usp={us_privacy}&gpp={gpp}&gpp_sid={gpp_sid}&redir={redirect_url}
             uid-macro: '{uid}'
-      bidagency:
+      bidgency:
         enabled: false
         endpoint: https://srv.bidgx.com/pbs/bidder?zid={ZoneID}
         meta-info:
           maintainer-email: aso@bidgency.com
+          vendor-id: 0
         usersync:
-          cookie-family-name: bidagency
+          cookie-family-name: bidgency
           redirect:
             url: https://track.bidgx.com/sync/v2?gdpr={gdpr}&gdpr_consent={gdpr_consent}&usp={us_privacy}&gpp={gpp}&gpp_sid={gpp_sid}&redir={redirect_url}
             uid-macro: '{uid}'
@@ -27,6 +29,7 @@ adapters:
         endpoint: https://srv.kntxy.com/pbs/bidder?zid={ZoneID}
         meta-info:
           maintainer-email: ssp@kuantyx.com
+          vendor-id: 0
         usersync:
           cookie-family-name: kuantyx
           redirect:

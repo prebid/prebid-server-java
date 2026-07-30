@@ -102,6 +102,7 @@ class CookieSyncSpec extends BaseSpec {
         def bidderAlias = ALIAS
         def prebidServerService = pbsServiceFactory.getService(GENERIC_CONFIG + APPNEXUS_CONFIG
                 + ["adapters.${GENERIC.value}.aliases.${bidderAlias.value}.enabled"                    : "true",
+                   "adapters.${GENERIC.value}.aliases.${bidderAlias.value}.meta-info.vendor-id"        : "0",
                    "adapters.${GENERIC.value}.aliases.${bidderAlias.value}.usersync.cookie-family-name": null])
 
         and: "Default cookie sync request"
@@ -133,6 +134,7 @@ class CookieSyncSpec extends BaseSpec {
         def prebidServerService = pbsServiceFactory.getService(GENERIC_CONFIG +
                 ["adapters.${GENERIC.value}.usersync.redirect.url"                                   : "$networkServiceContainer.rootUri/generic-usersync&redir={redirect_url}".toString(),
                  "adapters.${GENERIC.value}.aliases.${bidderAlias.value}.enabled"                    : "true",
+                 "adapters.${GENERIC.value}.aliases.${bidderAlias.value}.meta-info.vendor-id"        : "0",
                  "adapters.${GENERIC.value}.aliases.${bidderAlias.value}.usersync.cookie-family-name": GENERIC.value])
 
         and: "Cookie sync request for alias bidder"
@@ -326,6 +328,7 @@ class CookieSyncSpec extends BaseSpec {
         def bidderAlias = ALIAS
         def prebidServerService = pbsServiceFactory.getService(GENERIC_CONFIG
                 + ["adapters.${GENERIC.value}.aliases.${bidderAlias.value}.enabled"                    : "true",
+                   "adapters.${GENERIC.value}.aliases.${bidderAlias.value}.meta-info.vendor-id"        : "0",
                    "adapters.${GENERIC.value}.aliases.${bidderAlias.value}.usersync.cookie-family-name": null])
 
         and: "Cookie sync request with 2 bidders"
@@ -695,6 +698,7 @@ class CookieSyncSpec extends BaseSpec {
         def bidderAlias = ALIAS
         def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG
                 + ["adapters.${GENERIC.value}.aliases.${bidderAlias.value}.enabled"                    : "true",
+                   "adapters.${GENERIC.value}.aliases.${bidderAlias.value}.meta-info.vendor-id"        : "0",
                    "adapters.${GENERIC.value}.aliases.${bidderAlias.value}.usersync.cookie-family-name": null])
 
         and: "Cookie sync request with 2 bidders"
@@ -725,6 +729,7 @@ class CookieSyncSpec extends BaseSpec {
         def bidderAlias = ALIAS
         def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG
                 + ["adapters.${GENERIC.value}.aliases.${bidderAlias.value}.enabled"                    : "true",
+                   "adapters.${GENERIC.value}.aliases.${bidderAlias.value}.meta-info.vendor-id"        : "0",
                    "adapters.${GENERIC.value}.aliases.${bidderAlias.value}.usersync.cookie-family-name": bidderAlias.value])
 
         and: "Cookie sync request with 2 bidders"
