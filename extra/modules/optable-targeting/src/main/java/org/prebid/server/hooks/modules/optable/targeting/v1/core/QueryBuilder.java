@@ -122,7 +122,7 @@ public class QueryBuilder {
 
         return sb.toString();
     }
-    
+
     /**
      * Kept apart from buildAttributesString because these are the only attributes that
      * discriminate one user from another, so they have to take part in the cache key.

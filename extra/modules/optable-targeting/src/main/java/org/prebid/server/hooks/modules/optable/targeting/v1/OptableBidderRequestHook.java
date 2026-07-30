@@ -102,14 +102,8 @@ public class OptableBidderRequestHook implements BidderRequestHook {
             return targetingCall.compose(targetingResult -> {
                 moduleContext.setId5Signature(Id5Resolver.resolveId5Signature(targetingResult));
 
-                return Future.succeededFuture(
-                        InvocationResultImpl.<BidderRequestPayload>builder()
-                                .status(InvocationStatus.success)
-                                .action(InvocationAction.no_action)
-                                .analyticsTags(analyticsTags)
-                                .moduleContext(moduleContext)
-                                .build());
-            });
+                return noActionResponse(moduleContext, analyticsTags);
+            }).recover(ignored -> noActionResponse(moduleContext, analyticsTags));
         }
 
         return noActionResponse(moduleContext, analyticsTags);
