@@ -98,7 +98,7 @@ public class OptableBidderRequestHookTest extends BaseOptableTest {
     }
 
     @Test
-    public void shouldSetId5SignatureOnModuleContextWhenPerBidderEnrichmentIsDisabledAndTargetingCallIsPresent() {
+    public void shouldNotSetId5SignatureOnModuleContextWhenPerBidderEnrichmentIsDisabledAndTargetingCallIsPresent() {
         // given
         final String refValue = "refValue";
         final String signature = "id5Signature";
@@ -121,11 +121,11 @@ public class OptableBidderRequestHookTest extends BaseOptableTest {
         assertThat(result).isNotNull()
                 .returns(InvocationStatus.success, InvocationResult::status)
                 .returns(InvocationAction.no_action, InvocationResult::action);
-        assertThat(moduleContext.getId5Signature()).isEqualTo(signature);
+        assertThat(moduleContext.getId5Signature()).isNull();
     }
 
     @Test
-    public void shouldSetId5SignatureOnModuleContextWhenBidderNotInEnrichmentSetAndTargetingCallIsPresent() {
+    public void shouldNotSetId5SignatureOnModuleContextWhenBidderNotInEnrichmentSetAndTargetingCallIsPresent() {
         // given
         final String refValue = "refValue";
         final String signature = "id5Signature";
@@ -149,7 +149,7 @@ public class OptableBidderRequestHookTest extends BaseOptableTest {
         assertThat(result).isNotNull()
                 .returns(InvocationStatus.success, InvocationResult::status)
                 .returns(InvocationAction.no_action, InvocationResult::action);
-        assertThat(moduleContext.getId5Signature()).isEqualTo(signature);
+        assertThat(moduleContext.getId5Signature()).isNull();
     }
 
     @Test
