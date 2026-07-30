@@ -30,6 +30,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+import org.prebid.server.util.Uri;
+
 public class ResetDigitalBidder implements Bidder<BidRequest> {
 
     private static final String DEFAULT_CURRENCY = "USD";
@@ -37,11 +39,11 @@ public class ResetDigitalBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public ResetDigitalBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -64,8 +66,7 @@ public class ResetDigitalBidder implements Bidder<BidRequest> {
         final BidRequest outgoingRequest = request.toBuilder()
                 .imp(Collections.singletonList(modifiedImp))
                 .build();
-
-        final String uri = endpointUrl + "?pid=" + HttpUtil.encodeUrl(extImp.getPlacementId());
+        final String uri = endpointUrl.addQueryParam("pid", StringUtils.stripToEmpty(extImp.getPlacementId())).expand();
         final MultiMap headers = HttpUtil.headers()
                 .add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
 

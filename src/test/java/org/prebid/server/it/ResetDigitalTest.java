@@ -20,7 +20,6 @@ public class ResetDigitalTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromResetDigital() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/resetdigital-exchange"))
-                .withQueryParam("pid", equalTo("publisherTestID"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/resetdigital/test-resetdigital-bid-request.json")))
                 .willReturn(aResponse().withBody(
                         jsonFrom("openrtb2/resetdigital/test-resetdigital-bid-response.json"))));
