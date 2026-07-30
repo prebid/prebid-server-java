@@ -437,6 +437,22 @@ public class QueryBuilderTest {
 
         // then
         assertThat(queryString).endsWith("&bundle=com.example.app&ver=1.2.3&id5_signature=signature");
+        // they live in hidAttributes so that they take part in the cache key, and must not
+        // also be emitted from buildAttributesString
+        assertThat(queryString.split("&bundle=", -1)).hasSize(2);
+        assertThat(queryString.split("&ver=", -1)).hasSize(2);
+        assertThat(queryString.split("&id5_signature=", -1)).hasSize(2);
+    }
+
+    @Test
+    public void shouldTrimWhitespaceAroundHidPrefixes() {
+        // given
+        final List<Id> ids = List.of(Id.of(Id.EMAIL, "email"), Id.of(Id.PHONE, "phone"));
+        // when
+        final Query query = QueryBuilder.build(
+                ids, OptableAttributes.builder().build(), givenProperties(idPrefixOrder, " e , p "));
+        // then
+        assertThat(query.getHid()).isEqualTo("&hid=e:email&hid=p:phone");
     }
 
     @Test

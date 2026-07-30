@@ -79,6 +79,25 @@ public class OptableBidderRequestHookTest extends BaseOptableTest {
     }
 
     @Test
+    public void shouldReturnNoActionWhenPerBidderEnrichmentIsDisabledAndTargetingCallFailed() {
+        // given
+        final ModuleContext moduleContext = givenModuleContextWithProperties(
+                givenOptableTargetingProperties(false));
+        moduleContext.setOptableTargetingCall(Future.failedFuture(new RuntimeException("timeout")));
+        when(invocationContext.moduleContext()).thenReturn(moduleContext);
+        // when
+        final Future<InvocationResult<BidderRequestPayload>> future =
+                target.call(bidderRequestPayload, invocationContext);
+        // then
+        assertThat(future.succeeded()).isTrue();
+        final InvocationResult<BidderRequestPayload> result = future.result();
+        assertThat(result).isNotNull()
+                .returns(InvocationStatus.success, InvocationResult::status)
+                .returns(InvocationAction.no_action, InvocationResult::action);
+        assertThat(moduleContext.getId5Signature()).isNull();
+    }
+
+    @Test
     public void shouldSetId5SignatureOnModuleContextWhenPerBidderEnrichmentIsDisabledAndTargetingCallIsPresent() {
         // given
         final String refValue = "refValue";

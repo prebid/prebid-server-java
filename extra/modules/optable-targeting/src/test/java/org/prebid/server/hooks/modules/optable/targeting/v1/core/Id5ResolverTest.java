@@ -26,6 +26,29 @@ public class Id5ResolverTest {
     }
 
     @Test
+    public void shouldReturnNullWhenSignatureIsJsonNull() {
+        // given
+        final ObjectNode uidExt = mapper.createObjectNode();
+        uidExt.set("optable", mapper.createObjectNode()
+                .set("ref", TextNode.valueOf("refValue")));
+        final Eid eid = Eid.builder()
+                .source("id5-sync.com")
+                .inserter("optable.co")
+                .uids(List.of(Uid.builder().id("id").ext(uidExt).build()))
+                .build();
+        final ObjectNode refs = mapper.createObjectNode();
+        refs.set("refValue", mapper.createObjectNode().putNull("signature"));
+        final TargetingResult targetingResult = new TargetingResult(
+                List.of(),
+                new Ortb2(new User(List.of(eid), null)),
+                refs);
+        // when
+        final String result = Id5Resolver.resolveId5Signature(targetingResult);
+        // then
+        assertThat(result).isNull();
+    }
+
+    @Test
     public void shouldReturnNullWhenTargetingResultIsNull() {
         // when
         final String result = Id5Resolver.resolveId5Signature(null);
