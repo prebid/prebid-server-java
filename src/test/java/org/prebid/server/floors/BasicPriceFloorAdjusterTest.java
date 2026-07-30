@@ -44,7 +44,7 @@ import static org.prebid.server.proto.openrtb.ext.request.ImpMediaType.video_ins
 @ExtendWith(MockitoExtension.class)
 public class BasicPriceFloorAdjusterTest extends VertxTest {
 
-    private static final String RUBICON = "rubicon";
+    private static final String MAGNITE = "magnite";
 
     @Mock(strictness = LENIENT)
     private FloorAdjustmentFactorResolver floorAdjustmentFactorResolver;
@@ -74,19 +74,19 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
         // when
         final Price adjustedBidPrice = target.adjustForImp(
                 givenImp(identity()),
-                RUBICON,
+                MAGNITE,
                 givenBidRequest,
                 null,
                 new ArrayList<>());
 
         // then
         assertThat(adjustedBidPrice).isEqualTo(Price.of("UAH", new BigDecimal("117.00")));
-        verify(floorAdjustmentFactorResolver).resolve(eq(Set.of(video_instream)), any(), eq(RUBICON));
+        verify(floorAdjustmentFactorResolver).resolve(eq(Set.of(video_instream)), any(), eq(MAGNITE));
         verify(floorAdjustmentsResolver).resolve(
                 eq(Price.of("USD", new BigDecimal(100))),
                 eq(givenBidRequest),
                 eq(Set.of(video_instream)),
-                eq(RUBICON));
+                eq(MAGNITE));
     }
 
     @Test
@@ -103,7 +103,7 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
         // when
         final Price adjustedBidPrice = target.adjustForImp(
                 givenImp(identity()),
-                RUBICON,
+                MAGNITE,
                 givenBidRequest(identity()),
                 account,
                 new ArrayList<>());
@@ -121,7 +121,7 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
                         .bidadjustmentfactors(ExtRequestBidAdjustmentFactors.builder()
                                 .mediatypes(givenMediaTypes(Map.of(
                                         ImpMediaType.video,
-                                        Map.of(RUBICON, BigDecimal.valueOf(0.85D)))))
+                                        Map.of(MAGNITE, BigDecimal.valueOf(0.85D)))))
                                 .build())
                         .floors(PriceFloorRules.builder()
                                 .enforcement(PriceFloorEnforcement.builder()
@@ -133,7 +133,7 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
         // when
         final Price adjustedBidPrice = target.adjustForImp(
                 givenImp(identity()),
-                RUBICON,
+                MAGNITE,
                 bidRequest,
                 null,
                 new ArrayList<>());
@@ -155,7 +155,7 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
         // when
         final Price adjustedBidPrice = target.adjustForImp(
                 imp,
-                RUBICON,
+                MAGNITE,
                 bidRequest,
                 null,
                 new ArrayList<>());
@@ -167,7 +167,7 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
                 eq(Price.of(imp.getBidfloorcur(), imp.getBidfloor())),
                 eq(bidRequest),
                 eq(Set.of(video_instream)),
-                eq(RUBICON));
+                eq(MAGNITE));
     }
 
     @Test
@@ -178,7 +178,7 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
         // when
         final Price adjustedBidPrice = target.adjustForImp(
                 imp,
-                RUBICON,
+                MAGNITE,
                 givenBidRequest(identity()),
                 null,
                 new ArrayList<>());
@@ -203,7 +203,7 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
         // when
         final Price adjustedBidPrice = target.adjustForImp(
                 givenImp(identity()),
-                RUBICON,
+                MAGNITE,
                 bidRequest,
                 null,
                 new ArrayList<>());
@@ -225,7 +225,7 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
         // when
         final Price adjustedBidPrice = target.adjustForImp(
                 givenImp(identity()),
-                RUBICON,
+                MAGNITE,
                 bidRequest,
                 null,
                 new ArrayList<>());
@@ -243,7 +243,7 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
         // when
         final Price adjustedBidPrice = target.adjustForImp(
                 imp,
-                RUBICON,
+                MAGNITE,
                 bidRequest,
                 null,
                 new ArrayList<>());
@@ -260,14 +260,14 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
                         .bidadjustmentfactors(ExtRequestBidAdjustmentFactors.builder()
                                 .mediatypes(givenMediaTypes(Map.of(
                                         ImpMediaType.video_outstream,
-                                        Map.of(RUBICON, BigDecimal.valueOf(0.8D)))))
+                                        Map.of(MAGNITE, BigDecimal.valueOf(0.8D)))))
                                 .build())
                         .build())));
 
         // when
         final Price adjustedBidPrice = target.adjustForImp(
                 givenImp(identity()),
-                RUBICON,
+                MAGNITE,
                 bidRequest,
                 null,
                 new ArrayList<>());
@@ -287,7 +287,7 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
         // when
         final Price adjustedBidPrice = target.adjustForImp(
                 givenImp(identity()),
-                RUBICON,
+                MAGNITE,
                 givenBidRequest,
                 null,
                 new ArrayList<>());
@@ -303,7 +303,7 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
                                         .bidadjustmentfactors(ExtRequestBidAdjustmentFactors.builder()
                                                 .mediatypes(givenMediaTypes(Map.of(
                                                         ImpMediaType.video,
-                                                        Map.of(RUBICON, BigDecimal.valueOf(0.85D)))))
+                                                        Map.of(MAGNITE, BigDecimal.valueOf(0.85D)))))
                                                 .build())
                                         .build())))
                 .build();

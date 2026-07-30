@@ -28,8 +28,9 @@ class SecondaryBidderSpec extends BaseSpec {
             "adapters.${OPENX.value}.enabled" : "true",
             "adapters.${OPENX.value}.endpoint": "$networkServiceContainer.rootUri$OPENX_AUCTION_ENDPOINT".toString()]
     private static final Map<String, String> GENERIC_ALIAS_CONFIG = [
-            "adapters.${GENERIC.value}.aliases.${ALIAS}.enabled" : "true",
-            "adapters.${GENERIC.value}.aliases.${ALIAS}.endpoint": "$networkServiceContainer.rootUri$GENERIC_ALIAS_AUCTION_ENDPOINT".toString()]
+            "adapters.${GENERIC.value}.aliases.${ALIAS}.enabled"            : "true",
+            "adapters.${GENERIC.value}.aliases.${ALIAS}.meta-info.vendor-id": "0",
+            "adapters.${GENERIC.value}.aliases.${ALIAS}.endpoint"           : "$networkServiceContainer.rootUri$GENERIC_ALIAS_AUCTION_ENDPOINT".toString()]
     private static final Integer RESPONSE_DELAY_MILLISECONDS = 5_000
     private static final Bidder openXBidder = new Bidder(networkServiceContainer, OPENX_AUCTION_ENDPOINT)
     private static final Bidder genericAliasBidder = new Bidder(networkServiceContainer, GENERIC_ALIAS_AUCTION_ENDPOINT)

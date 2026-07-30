@@ -146,10 +146,10 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 public class MagniteBidderTest extends VertxTest {
 
     private static final String BIDDER_NAME = "bidderName";
-    private static final String ENDPOINT_URL = "http://rubiconproject.com/exchange.json";
+    private static final String ENDPOINT_URL = "http://magniteproject.com/exchange.json";
     private static final String DEFAULT_TK_X_INT = "prebid";
     private static final String EXTERNAL_URL = "http://localhost:8080";
-    private static final String APEX_RENDERER_URL = "https://video-outstream.rubiconproject.com/apex-2.2.1.js";
+    private static final String APEX_RENDERER_URL = "https://video-outstream.magniteproject.com/apex-2.2.1.js";
     private static final String USERNAME = "username";
     private static final String PASSWORD = "password";
     private static final String PBS_VERSION = "pbs_version";
@@ -417,7 +417,7 @@ public class MagniteBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        final String expectedUrl = "http://rubiconproject.com/exchange.json?tk_xint=test";
+        final String expectedUrl = "http://magniteproject.com/exchange.json?tk_xint=test";
         assertThat(result.getValue()).hasSize(1).element(0).isNotNull()
                 .returns(HttpMethod.POST, HttpRequest::getMethod)
                 .returns(expectedUrl, HttpRequest::getUri);

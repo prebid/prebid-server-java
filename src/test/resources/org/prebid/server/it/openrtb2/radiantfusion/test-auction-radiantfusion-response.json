@@ -20,20 +20,20 @@
             "prebid": {
               "type": "video",
               "meta": {
-                "adaptercode": "radianfusion"
+                "adaptercode": "radiantfusion"
               }
             }
           }
         }
       ],
-      "seat": "radianfusion",
+      "seat": "radiantfusion",
       "group": 0
     }
   ],
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "radianfusion": "{{ radianfusion.response_time_ms }}"
+      "radiantfusion": "{{ radiantfusion.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 0

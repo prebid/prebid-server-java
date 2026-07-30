@@ -3248,10 +3248,10 @@ public class ExchangeServiceTest extends VertxTest {
                         .bids(singletonList(givenBidderBid(Bid.builder().impid("impId").price(TEN).build())))
                         .errors(asList(
                                 // two identical errors to verify corresponding metric is submitted only once
-                                BidderError.badInput("rubicon error"),
-                                BidderError.badInput("rubicon error"),
-                                BidderError.badServerResponse("rubicon error"),
-                                BidderError.failedToRequestBids("rubicon failed to request bids"),
+                                BidderError.badInput("magnite error"),
+                                BidderError.badInput("magnite error"),
+                                BidderError.badServerResponse("magnite error"),
+                                BidderError.failedToRequestBids("magnite failed to request bids"),
                                 BidderError.timeout("timeout error"),
                                 BidderError.generic("timeout error")))
                         .build()));

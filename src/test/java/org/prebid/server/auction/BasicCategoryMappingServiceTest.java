@@ -79,7 +79,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
     public void applyCategoryMappingShouldReturnFilteredBidsWithCategory() {
         // given
         final List<BidderResponse> bidderResponses = asList(
-                givenBidderResponse("rubicon",
+                givenBidderResponse("magnite",
                         givenBidderBid(givenBid("1", null, "9", singletonList("cat1")),
                                 BidType.video, 10),
                         givenBidderBid(givenBid("2", null, "15", singletonList("cat2")),
@@ -122,14 +122,14 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
                 .containsOnly("2", "3", "4");
 
         assertThat(resultFuture.result().getErrors()).hasSize(1)
-                .containsOnly("Bid rejected [bidder: rubicon, bid ID: 1] with a reason: Bid was deduplicated");
+                .containsOnly("Bid rejected [bidder: magnite, bid ID: 1] with a reason: Bid was deduplicated");
     }
 
     @Test
     public void applyCategoryMappingShouldTolerateBidsWithSameIdWithingDifferentBidders() {
         // given
         final List<BidderResponse> bidderResponses = asList(
-                givenBidderResponse("rubicon", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
+                givenBidderResponse("magnite", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
                         BidType.video, 10)),
                 givenBidderResponse("otherBid", givenBidderBid(givenBid("1", null, "5", singletonList("cat2")),
                         BidType.video, 3)));
@@ -163,7 +163,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
     public void applyCategoryMappingShouldNotCallFetchCategoryWhenTranslateCategoriesFalse() {
         // given
         final List<BidderResponse> bidderResponses = singletonList(
-                givenBidderResponse("rubicon", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
+                givenBidderResponse("magnite", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
                         BidType.video, 10)));
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher",
@@ -185,7 +185,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
     public void applyCategoryMappingShouldReturnFailedFutureWhenTranslateTrueAndAdServerNull() {
         // given
         final List<BidderResponse> bidderResponses = singletonList(
-                givenBidderResponse("rubicon", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
+                givenBidderResponse("magnite", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
                         BidType.video, 10)));
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(null, "publisher", null, true, true);
@@ -201,7 +201,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
     public void applyCategoryMappingShouldReturnFailedFutureWhenTranslateTrueAndAdServerIsThree() {
         // given
         final List<BidderResponse> bidderResponses = singletonList(
-                givenBidderResponse("rubicon", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
+                givenBidderResponse("magnite", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
                         BidType.video, 10)));
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(3, "publisher", null, true, true);
@@ -217,7 +217,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
     public void applyCategoryMappingShouldReturnUseFreewheelAdServerWhenAdServerIs1() {
         // given
         final List<BidderResponse> bidderResponses = singletonList(
-                givenBidderResponse("rubicon", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
+                givenBidderResponse("magnite", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
                         BidType.video, 10)));
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher",
@@ -241,7 +241,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
     public void applyCategoryMappingShouldReturnUseDpfAdServerWhenAdServerIs2() {
         // given
         final List<BidderResponse> bidderResponses = singletonList(
-                givenBidderResponse("rubicon", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
+                givenBidderResponse("magnite", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
                         BidType.video, 10)));
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(2, "publisher",
@@ -265,7 +265,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
     public void applyCategoryMappingShouldRejectBidsWithFailedCategoryFetch() {
         // given
         final List<BidderResponse> bidderResponses = asList(
-                givenBidderResponse("rubicon", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
+                givenBidderResponse("magnite", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
                         BidType.video, 10)),
                 givenBidderResponse("otherBid", givenBidderBid(givenBid("2", null, "5", singletonList("cat2")),
                         BidType.video, 3)));
@@ -293,7 +293,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
     public void applyCategoryMappingShouldRejectBidsWithCatLengthMoreThanOne() {
         // given
         final List<BidderResponse> bidderResponses = asList(
-                givenBidderResponse("rubicon", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
+                givenBidderResponse("magnite", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
                         BidType.video, 10)),
                 givenBidderResponse("otherBid", givenBidderBid(givenBid("2", null, "5", asList("cat2-1", "cat2-2")),
                         BidType.video, 3)));
@@ -321,7 +321,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
     public void applyCategoryMappingShouldRejectBidsWithWhenCatIsNull() {
         // given
         final List<BidderResponse> bidderResponses = asList(
-                givenBidderResponse("rubicon", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
+                givenBidderResponse("magnite", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
                         BidType.video, 10)),
                 givenBidderResponse(
                         "otherBid", givenBidderBid(givenBid("2", null, "5", null), BidType.video, 3)));
@@ -349,7 +349,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
     public void applyCategoryMappingShouldRejectBidWhenNullCategoryReturnedFromSource() {
         // given
         final List<BidderResponse> bidderResponses = asList(
-                givenBidderResponse("rubicon", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
+                givenBidderResponse("magnite", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
                         BidType.video, 10)),
                 givenBidderResponse("otherBid", givenBidderBid(givenBid("2", null, "5", singletonList("cat2")),
                         BidType.video, 3)));
@@ -377,7 +377,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
     public void applyCategoryMappingShouldUseMediaTypePriceGranularityIfDefined() {
         // given
         final List<BidderResponse> bidderResponses = singletonList(
-                givenBidderResponse("rubicon", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
+                givenBidderResponse("magnite", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
                         BidType.video, 10)));
 
         final ExtRequestTargeting extRequestTargeting = ExtRequestTargeting.builder()
@@ -405,7 +405,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
     public void applyCategoryMappingShouldRejectBidIfItsDurationLargerThanTargetingMax() {
         // given
         final List<BidderResponse> bidderResponses = asList(
-                givenBidderResponse("rubicon", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
+                givenBidderResponse("magnite", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
                         BidType.video, 10)),
                 givenBidderResponse("otherBid", givenBidderBid(givenBid("2", null, "5", singletonList("cat2")),
                         BidType.video, 20)));
@@ -433,7 +433,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
     public void applyCategoryMappingShouldReturnEmptyCategoryMappingResult() {
         // given
         final List<BidderResponse> bidderResponses = singletonList(
-                givenBidderResponse("rubicon", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
+                givenBidderResponse("magnite", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
                         BidType.video, null)));
 
         final ExtRequestTargeting extRequestTargeting = ExtRequestTargeting.builder().build();
@@ -457,7 +457,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
         // given
         final List<BidderResponse> bidderResponses = List.of(
                 givenBidderResponse(
-                        "rubicon",
+                        "magnite",
                         givenBidderBid(
                                 givenBid("1", null, "10", singletonList("cat1"), "videoCategory"),
                                 BidType.video,
@@ -482,7 +482,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
         // given
         final List<BidderResponse> bidderResponses = List.of(
                 givenBidderResponse(
-                        "rubicon",
+                        "magnite",
                         givenBidderBid(
                                 givenBid("1", null, "10", singletonList("cat1"), "videoCategory"),
                                 BidType.video,
@@ -507,7 +507,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
         // given
         final List<BidderResponse> bidderResponses = List.of(
                 givenBidderResponse(
-                        "rubicon",
+                        "magnite",
                         givenBidderBid(
                                 givenBid("1", null, "10", List.of("cat1")),
                                 BidType.video,
@@ -532,7 +532,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
         // given
         final List<BidderResponse> bidderResponses = List.of(
                 givenBidderResponse(
-                        "rubicon",
+                        "magnite",
                         givenBidderBid(
                                 givenBid("1", null, "10", List.of("cat1")),
                                 BidType.video,
@@ -559,7 +559,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
     public void applyCategoryMappingShouldSetFirstDurationFromRangeIfDurationIsNull() {
         // given
         final List<BidderResponse> bidderResponses = singletonList(
-                givenBidderResponse("rubicon", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
+                givenBidderResponse("magnite", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
                         BidType.video, null)));
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher",
@@ -582,7 +582,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
     public void applyCategoryMappingShouldDeduplicateBidsByFetchedCategoryWhenWithCategoryIsTrue() {
         // given
         final List<BidderResponse> bidderResponses = asList(
-                givenBidderResponse("rubicon", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
+                givenBidderResponse("magnite", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
                         BidType.video, 10)),
                 givenBidderResponse("otherBid", givenBidderBid(givenBid("2", null, "5", singletonList("cat2")),
                         BidType.video, 4)));
@@ -610,7 +610,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
     public void applyCategoryMappingShouldDeduplicateBidsByBidCatWhenWithCategoryIsTrueAndTranslateFalse() {
         // given
         final List<BidderResponse> bidderResponses = asList(
-                givenBidderResponse("rubicon", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
+                givenBidderResponse("magnite", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
                         BidType.video, 10)),
                 givenBidderResponse("otherBid", givenBidderBid(givenBid("2", null, "5", singletonList("cat1")),
                         BidType.video, 4)));
@@ -637,7 +637,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
     public void applyCategoryMappingShouldDeduplicateBidsByPriceAndDurationIfWithCategoryFalse() {
         // given
         final List<BidderResponse> bidderResponses = asList(
-                givenBidderResponse("rubicon", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
+                givenBidderResponse("magnite", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
                         BidType.video, 10)),
                 givenBidderResponse("otherBid", givenBidderBid(givenBid("2", null, "10", singletonList("cat2")),
                         BidType.video, 10)));
@@ -665,7 +665,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
     public void applyCategoryMappingShouldReturnDurCatBuiltFromPriceAndFetchedCategoryAndDuration() {
         // given
         final List<BidderResponse> bidderResponses = singletonList(
-                givenBidderResponse("rubicon", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
+                givenBidderResponse("magnite", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
                         BidType.video, 10)));
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), true, true);
@@ -687,7 +687,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
     public void applyCategoryMappingShouldReturnDurCatBuiltFromPriceAndBidCatAndDuration() {
         // given
         final List<BidderResponse> bidderResponses = singletonList(
-                givenBidderResponse("rubicon", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
+                givenBidderResponse("magnite", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
                         BidType.video, 10)));
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), true, false);
@@ -709,7 +709,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
     public void applyCategoryMappingShouldReturnDurCatBuiltFromPriceAndBidCatAndDurationAndBidder() {
         // given
         final List<BidderResponse> bidderResponses = singletonList(
-                givenBidderResponse("rubicon", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
+                givenBidderResponse("magnite", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
                         BidType.video, 10)));
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), true, false)
@@ -725,14 +725,14 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
         assertThat(resultFuture.succeeded()).isTrue();
         assertThat(resultFuture.result().getBiddersToBidsCategories())
                 .isEqualTo(Collections.singletonMap(givenBid("1", null, "10", singletonList("cat1")),
-                        "10.00_cat1_10s_rubicon"));
+                        "10.00_cat1_10s_magnite"));
     }
 
     @Test
     public void applyCategoryMappingShouldReturnDurCatBuiltFromPriceAndDuration() {
         // given
         final List<BidderResponse> bidderResponses = singletonList(
-                givenBidderResponse("rubicon", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
+                givenBidderResponse("magnite", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
                         BidType.video, 10)));
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), false, null);
@@ -754,7 +754,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().id("impId1")
-                        .ext(mapper.createObjectNode().set("rubicon", givenDealTier("rubiconPrefix", 3)))
+                        .ext(mapper.createObjectNode().set("magnite", givenDealTier("magnitePrefix", 3)))
                         .build()))
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .targeting(givenTargeting(1, "publisher", asList(10, 15, 5), false, null))
@@ -763,7 +763,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
                 .build();
 
         final List<BidderResponse> bidderResponses = singletonList(
-                givenBidderResponse("rubicon", givenBidderBid(givenBid("1", "impId1", "10", singletonList("cat1")),
+                givenBidderResponse("magnite", givenBidderBid(givenBid("1", "impId1", "10", singletonList("cat1")),
                         BidType.video, 10)));
 
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
@@ -777,7 +777,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
         assertThat(resultFuture.succeeded()).isTrue();
         assertThat(resultFuture.result().getBiddersToBidsCategories())
                 .isEqualTo(Collections.singletonMap(givenBid("1", "impId1", "10", singletonList("cat1")),
-                        "rubiconPrefix3_10s"));
+                        "magnitePrefix3_10s"));
         assertThat(resultFuture.result().getBidderResponses())
                 .extracting(BidderResponse::getSeatBid)
                 .flatExtracting(BidderSeatBid::getBids).hasSize(1);
@@ -791,7 +791,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
                 .imp(singletonList(Imp.builder().id("impId1")
                         .ext(mapper.valueToTree(ExtImp.of(ExtImpPrebid.builder()
                                 .bidder(mapper.createObjectNode()
-                                        .set("rubicon", givenDealTier("prebidPrefix", 4))).build(), null)))
+                                        .set("magnite", givenDealTier("prebidPrefix", 4))).build(), null)))
                         .build()))
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .targeting(givenTargeting(1, "publisher", asList(10, 15, 5), false, null))
@@ -800,7 +800,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
                 .build();
 
         final List<BidderResponse> bidderResponses = singletonList(
-                givenBidderResponse("rubicon", givenBidderBid(givenBid("1", "impId1", "10", singletonList("cat1")),
+                givenBidderResponse("magnite", givenBidderBid(givenBid("1", "impId1", "10", singletonList("cat1")),
                         BidType.video, 10)));
 
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
@@ -825,9 +825,9 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
     public void applyCategoryMappingShouldPrecedencePriorityAndDurationFromPrebidOverFromImpExt() {
         // given
         final ExtImp extImp = ExtImp.of(ExtImpPrebid.builder()
-                .bidder(mapper.createObjectNode().set("rubicon", givenDealTier("prebidPrefix", 4))).build(), null);
+                .bidder(mapper.createObjectNode().set("magnite", givenDealTier("prebidPrefix", 4))).build(), null);
         final ObjectNode impExt = mapper.valueToTree(extImp);
-        impExt.set("rubicon", givenDealTier("extPrefix", 3));
+        impExt.set("magnite", givenDealTier("extPrefix", 3));
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().id("impId1")
                         .ext(impExt)
@@ -839,7 +839,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
                 .build();
 
         final List<BidderResponse> bidderResponses = singletonList(
-                givenBidderResponse("rubicon", givenBidderBid(givenBid("1", "impId1", "10", singletonList("cat1")),
+                givenBidderResponse("magnite", givenBidderBid(givenBid("1", "impId1", "10", singletonList("cat1")),
                         BidType.video, 10)));
 
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
@@ -865,7 +865,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().id("impId1")
-                        .ext(mapper.createObjectNode().set("rubicon", givenDealTier("rubiconPrefix", 3)))
+                        .ext(mapper.createObjectNode().set("magnite", givenDealTier("magnitePrefix", 3)))
                         .build()))
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .targeting(givenTargeting(1, "publisher", asList(10, 15, 5), true, true))
@@ -874,7 +874,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
                 .build();
 
         final List<BidderResponse> bidderResponses = singletonList(
-                givenBidderResponse("rubicon", givenBidderBid(givenBid("1", "impId1", "10", singletonList("cat1")),
+                givenBidderResponse("magnite", givenBidderBid(givenBid("1", "impId1", "10", singletonList("cat1")),
                         BidType.video, 10)));
 
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
@@ -888,7 +888,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
         assertThat(resultFuture.succeeded()).isTrue();
         assertThat(resultFuture.result().getBiddersToBidsCategories())
                 .isEqualTo(Collections.singletonMap(givenBid("1", "impId1", "10", singletonList("cat1")),
-                        "rubiconPrefix3_fetchedCat1_10s"));
+                        "magnitePrefix3_fetchedCat1_10s"));
         assertThat(resultFuture.result().getBidderResponses())
                 .extracting(BidderResponse::getSeatBid)
                 .flatExtracting(BidderSeatBid::getBids).hasSize(1);
@@ -902,7 +902,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().id("impId1")
-                        .ext(mapper.createObjectNode().set("rubicon", givenDealTier("rubiconPrefix", 3)))
+                        .ext(mapper.createObjectNode().set("magnite", givenDealTier("magnitePrefix", 3)))
                         .build()))
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .targeting(givenTargeting(1, "publisher", asList(10, 15, 5), true, true))
@@ -911,7 +911,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
                 .build();
 
         final List<BidderResponse> bidderResponses = singletonList(
-                givenBidderResponse("rubicon", givenBidderBid(givenBid("1", "impId1", "10", singletonList("cat1")),
+                givenBidderResponse("magnite", givenBidderBid(givenBid("1", "impId1", "10", singletonList("cat1")),
                         BidType.video, 10)));
 
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
@@ -937,7 +937,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().id("impId1")
-                        .ext(mapper.createObjectNode().set("rubicon", givenDealTier("rubiconPrefix", 10)))
+                        .ext(mapper.createObjectNode().set("magnite", givenDealTier("magnitePrefix", 10)))
                         .build()))
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .targeting(givenTargeting(1, "publisher", asList(10, 15, 5), true, true))
@@ -946,7 +946,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
                 .build();
 
         final List<BidderResponse> bidderResponses = singletonList(
-                givenBidderResponse("rubicon", givenBidderBid(givenBid("1", "impId1", "10", singletonList("cat1")),
+                givenBidderResponse("magnite", givenBidderBid(givenBid("1", "impId1", "10", singletonList("cat1")),
                         BidType.video, 10)));
 
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
@@ -972,7 +972,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
     @Test
     public void applyCategoryMappingShouldIgnoreContextAndPrebidInImpExt() {
         // given
-        final ObjectNode impExt = mapper.createObjectNode().set("rubicon", givenDealTier("rubiconPrefix", 3));
+        final ObjectNode impExt = mapper.createObjectNode().set("magnite", givenDealTier("magnitePrefix", 3));
         impExt.set("context", mapper.createObjectNode());
         impExt.set("prebid", mapper.createObjectNode());
         final BidRequest bidRequest = BidRequest.builder()
@@ -986,7 +986,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
                 .build();
 
         final List<BidderResponse> bidderResponses = singletonList(
-                givenBidderResponse("rubicon", givenBidderBid(givenBid("1", "impId1", "10", singletonList("cat1")),
+                givenBidderResponse("magnite", givenBidderBid(givenBid("1", "impId1", "10", singletonList("cat1")),
                         BidType.video, 10)));
 
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
@@ -1000,7 +1000,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
         assertThat(resultFuture.succeeded()).isTrue();
         assertThat(resultFuture.result().getBiddersToBidsCategories())
                 .isEqualTo(Collections.singletonMap(givenBid("1", "impId1", "10", singletonList("cat1")),
-                        "rubiconPrefix3_fetchedCat1_10s"));
+                        "magnitePrefix3_fetchedCat1_10s"));
         assertThat(resultFuture.result().getBidderResponses())
                 .extracting(BidderResponse::getSeatBid)
                 .flatExtracting(BidderSeatBid::getBids).hasSize(1);
@@ -1012,7 +1012,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().id("impId1")
-                        .ext(mapper.createObjectNode().set("rubicon", mapper.createObjectNode()))
+                        .ext(mapper.createObjectNode().set("magnite", mapper.createObjectNode()))
                         .build()))
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .targeting(givenTargeting(1, "publisher", asList(10, 15, 5), true, true))
@@ -1021,7 +1021,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
                 .build();
 
         final List<BidderResponse> bidderResponses = singletonList(
-                givenBidderResponse("rubicon", givenBidderBid(givenBid("1", "impId1", "10", singletonList("cat1")),
+                givenBidderResponse("magnite", givenBidderBid(givenBid("1", "impId1", "10", singletonList("cat1")),
                         BidType.video, 10)));
 
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
@@ -1040,7 +1040,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
                 .extracting(BidderResponse::getSeatBid)
                 .flatExtracting(BidderSeatBid::getBids).hasSize(1);
         assertThat(resultFuture.result().getErrors()).hasSize(1)
-                .containsOnly("DealTier configuration not defined for bidder 'rubicon', imp ID 'impId1'");
+                .containsOnly("DealTier configuration not defined for bidder 'magnite', imp ID 'impId1'");
     }
 
     @Test
@@ -1050,7 +1050,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
                 mapper.createObjectNode().put("minDealTier", 3));
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().id("impId1")
-                        .ext(mapper.createObjectNode().set("rubicon", dealTier))
+                        .ext(mapper.createObjectNode().set("magnite", dealTier))
                         .build()))
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .targeting(givenTargeting(1, "publisher", asList(10, 15, 5), true, true))
@@ -1059,7 +1059,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
                 .build();
 
         final List<BidderResponse> bidderResponses = singletonList(
-                givenBidderResponse("rubicon", givenBidderBid(givenBid("1", "impId1", "10", singletonList("cat1")),
+                givenBidderResponse("magnite", givenBidderBid(givenBid("1", "impId1", "10", singletonList("cat1")),
                         BidType.video, 10)));
 
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
@@ -1078,7 +1078,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
                 .extracting(BidderResponse::getSeatBid)
                 .flatExtracting(BidderSeatBid::getBids).hasSize(1);
         assertThat(resultFuture.result().getErrors()).hasSize(1)
-                .containsOnly("DealTier configuration not valid for bidder 'rubicon', imp ID 'impId1' "
+                .containsOnly("DealTier configuration not valid for bidder 'magnite', imp ID 'impId1' "
                         + "with a reason: dealTier.prefix empty string or null");
     }
 
@@ -1086,10 +1086,10 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
     public void applyCategoryMappingShouldAddErrorIfMinDealTierIsNullAndCreateRegularCatDur() {
         // given
         final JsonNode dealTier = mapper.createObjectNode().set("dealTier",
-                mapper.createObjectNode().put("prefix", "rubiconPrefix"));
+                mapper.createObjectNode().put("prefix", "magnitePrefix"));
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().id("impId1")
-                        .ext(mapper.createObjectNode().set("rubicon", dealTier))
+                        .ext(mapper.createObjectNode().set("magnite", dealTier))
                         .build()))
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .targeting(givenTargeting(1, "publisher", asList(10, 15, 5), true, true))
@@ -1098,7 +1098,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
                 .build();
 
         final List<BidderResponse> bidderResponses = singletonList(
-                givenBidderResponse("rubicon", givenBidderBid(givenBid("1", "impId1", "10", singletonList("cat1")),
+                givenBidderResponse("magnite", givenBidderBid(givenBid("1", "impId1", "10", singletonList("cat1")),
                         BidType.video, 10)));
 
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
@@ -1117,7 +1117,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
                 .extracting(BidderResponse::getSeatBid)
                 .flatExtracting(BidderSeatBid::getBids).hasSize(1);
         assertThat(resultFuture.result().getErrors()).hasSize(1)
-                .containsOnly("DealTier configuration not valid for bidder 'rubicon', imp ID 'impId1' with a reason:"
+                .containsOnly("DealTier configuration not valid for bidder 'magnite', imp ID 'impId1' with a reason:"
                         + " dealTier.minDealTier should be larger than 0, but was null");
     }
 
@@ -1126,7 +1126,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().id("impId1")
-                        .ext(mapper.createObjectNode().set("rubicon", givenDealTier("prefix", -1)))
+                        .ext(mapper.createObjectNode().set("magnite", givenDealTier("prefix", -1)))
                         .build()))
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .targeting(givenTargeting(1, "publisher", asList(10, 15, 5), true, true))
@@ -1135,7 +1135,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
                 .build();
 
         final List<BidderResponse> bidderResponses = singletonList(
-                givenBidderResponse("rubicon", givenBidderBid(givenBid("1", "impId1", "10", singletonList("cat1")),
+                givenBidderResponse("magnite", givenBidderBid(givenBid("1", "impId1", "10", singletonList("cat1")),
                         BidType.video, 10)));
 
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
@@ -1154,7 +1154,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
                 .extracting(BidderResponse::getSeatBid)
                 .flatExtracting(BidderSeatBid::getBids).hasSize(1);
         assertThat(resultFuture.result().getErrors()).hasSize(1)
-                .containsOnly("DealTier configuration not valid for bidder 'rubicon', imp ID 'impId1' with a reason:"
+                .containsOnly("DealTier configuration not valid for bidder 'magnite', imp ID 'impId1' with a reason:"
                         + " dealTier.minDealTier should be larger than 0, but was -1");
     }
 
@@ -1162,7 +1162,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
     public void applyCategoryMappingShouldRejectAllBidsFromBidderInDifferentReasons() {
         // given
         final List<BidderResponse> bidderResponses = asList(
-                givenBidderResponse("rubicon",
+                givenBidderResponse("magnite",
                         givenBidderBid(givenBid("1", null, "10", singletonList("cat1")), BidType.video, 10)),
                 givenBidderResponse("otherBidder",
                         givenBidderBid(givenBid("2", null, "10", null), BidType.video, 10),

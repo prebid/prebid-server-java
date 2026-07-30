@@ -45,7 +45,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 @ExtendWith(MockitoExtension.class)
 public class MetricsTest {
 
-    private static final String RUBICON = "rubicon";
+    private static final String MAGNITE = "magnite";
     private static final String CONVERSANT = "conversant";
     private static final String ACCOUNT_ID = "accountId";
     private static final String ACCOUNT_ID_1 = "accountId1";
@@ -94,34 +94,34 @@ public class MetricsTest {
 
     @Test
     public void forAdapterShouldReturnSameAdapterMetricsOnSuccessiveCalls() {
-        assertThat(metrics.forAdapter(RUBICON)).isSameAs(metrics.forAdapter(RUBICON));
+        assertThat(metrics.forAdapter(MAGNITE)).isSameAs(metrics.forAdapter(MAGNITE));
     }
 
     @Test
     public void forAdapterShouldReturnAdapterMetricsConfiguredWithCounterType() {
         verifyCreatesConfiguredCounterType(
-                metrics -> metrics.forAdapter(RUBICON).incCounter(MetricName.bids_received));
+                metrics -> metrics.forAdapter(MAGNITE).incCounter(MetricName.bids_received));
     }
 
     @Test
     public void forAdapterShouldReturnAdapterMetricsConfiguredWithAdapterType() {
         // when
-        metrics.forAdapter(RUBICON).incCounter(MetricName.bids_received);
+        metrics.forAdapter(MAGNITE).incCounter(MetricName.bids_received);
 
         // then
-        assertThat(metricRegistry.counter("adapter.rubicon.bids_received").getCount()).isOne();
+        assertThat(metricRegistry.counter("adapter.magnite.bids_received").getCount()).isOne();
     }
 
     @Test
     public void shouldReturnSameAdapterRequestTypeMetricsOnSuccessiveCalls() {
-        assertThat(metrics.forAdapter(RUBICON).requestType(MetricName.amp))
-                .isSameAs(metrics.forAdapter(RUBICON).requestType(MetricName.amp));
+        assertThat(metrics.forAdapter(MAGNITE).requestType(MetricName.amp))
+                .isSameAs(metrics.forAdapter(MAGNITE).requestType(MetricName.amp));
     }
 
     @Test
     public void shouldReturnAdapterRequestTypeMetricsConfiguredWithCounterType() {
         verifyCreatesConfiguredCounterType(metrics -> metrics
-                .forAdapter(RUBICON)
+                .forAdapter(MAGNITE)
                 .requestType(MetricName.openrtb2app)
                 .incCounter(MetricName.requests));
     }
@@ -129,22 +129,22 @@ public class MetricsTest {
     @Test
     public void shouldReturnAdapterRequestTypeMetricsConfiguredWithAdapterType() {
         // when
-        metrics.forAdapter(RUBICON).requestType(MetricName.openrtb2web).incCounter(MetricName.requests);
+        metrics.forAdapter(MAGNITE).requestType(MetricName.openrtb2web).incCounter(MetricName.requests);
 
         // then
-        assertThat(metricRegistry.counter("adapter.rubicon.requests.type.openrtb2-web").getCount()).isOne();
+        assertThat(metricRegistry.counter("adapter.magnite.requests.type.openrtb2-web").getCount()).isOne();
     }
 
     @Test
     public void shouldReturnSameAdapterRequestMetricsOnSuccessiveCalls() {
-        assertThat(metrics.forAdapter(RUBICON).request())
-                .isSameAs(metrics.forAdapter(RUBICON).request());
+        assertThat(metrics.forAdapter(MAGNITE).request())
+                .isSameAs(metrics.forAdapter(MAGNITE).request());
     }
 
     @Test
     public void shouldReturnAdapterRequestMetricsConfiguredWithCounterType() {
         verifyCreatesConfiguredCounterType(metrics -> metrics
-                .forAdapter(RUBICON)
+                .forAdapter(MAGNITE)
                 .request()
                 .incCounter(MetricName.gotbids));
     }
@@ -152,16 +152,16 @@ public class MetricsTest {
     @Test
     public void shouldReturnAdapterRequestMetricsConfiguredWithAdapterType() {
         // when
-        metrics.forAdapter(RUBICON).request().incCounter(MetricName.gotbids);
+        metrics.forAdapter(MAGNITE).request().incCounter(MetricName.gotbids);
 
         // then
-        assertThat(metricRegistry.counter("adapter.rubicon.requests.gotbids").getCount()).isOne();
+        assertThat(metricRegistry.counter("adapter.magnite.requests.gotbids").getCount()).isOne();
     }
 
     @Test
     public void shouldReturnSameAccountAdapterMetricsOnSuccessiveCalls() {
-        assertThat(metrics.forAccount(ACCOUNT_ID).adapter().forAdapter("rUbIcOn"))
-                .isSameAs(metrics.forAccount(ACCOUNT_ID).adapter().forAdapter(RUBICON));
+        assertThat(metrics.forAccount(ACCOUNT_ID).adapter().forAdapter("mAgNiTe"))
+                .isSameAs(metrics.forAccount(ACCOUNT_ID).adapter().forAdapter(MAGNITE));
     }
 
     @Test
@@ -169,23 +169,23 @@ public class MetricsTest {
         verifyCreatesConfiguredCounterType(metrics -> metrics
                 .forAccount(ACCOUNT_ID)
                 .adapter()
-                .forAdapter(RUBICON)
+                .forAdapter(MAGNITE)
                 .incCounter(MetricName.bids_received));
     }
 
     @Test
     public void shouldReturnAccountAdapterMetricsConfiguredWithAccountAndAdapterType() {
         // when
-        metrics.forAccount(ACCOUNT_ID).adapter().forAdapter(RUBICON).incCounter(MetricName.bids_received);
+        metrics.forAccount(ACCOUNT_ID).adapter().forAdapter(MAGNITE).incCounter(MetricName.bids_received);
 
         // then
-        assertThat(metricRegistry.counter("account.accountId.adapter.rubicon.bids_received").getCount()).isOne();
+        assertThat(metricRegistry.counter("account.accountId.adapter.magnite.bids_received").getCount()).isOne();
     }
 
     @Test
     public void shouldReturnSameAccountAdapterRequestMetricsOnSuccessiveCalls() {
-        assertThat(metrics.forAccount(ACCOUNT_ID).adapter().forAdapter(RUBICON).request())
-                .isSameAs(metrics.forAccount(ACCOUNT_ID).adapter().forAdapter(RUBICON).request());
+        assertThat(metrics.forAccount(ACCOUNT_ID).adapter().forAdapter(MAGNITE).request())
+                .isSameAs(metrics.forAccount(ACCOUNT_ID).adapter().forAdapter(MAGNITE).request());
     }
 
     @Test
@@ -193,7 +193,7 @@ public class MetricsTest {
         verifyCreatesConfiguredCounterType(metrics -> metrics
                 .forAccount(ACCOUNT_ID)
                 .adapter()
-                .forAdapter(RUBICON)
+                .forAdapter(MAGNITE)
                 .request()
                 .incCounter(MetricName.gotbids));
     }
@@ -201,10 +201,10 @@ public class MetricsTest {
     @Test
     public void shouldReturnAccountAdapterRequestMetricsConfiguredWithAccountAndAdapterType() {
         // when
-        metrics.forAccount(ACCOUNT_ID).adapter().forAdapter(RUBICON).request().incCounter(MetricName.gotbids);
+        metrics.forAccount(ACCOUNT_ID).adapter().forAdapter(MAGNITE).request().incCounter(MetricName.gotbids);
 
         // then
-        assertThat(metricRegistry.counter("account.accountId.adapter.rubicon.requests.gotbids").getCount())
+        assertThat(metricRegistry.counter("account.accountId.adapter.magnite.requests.gotbids").getCount())
                 .isOne();
     }
 
@@ -253,24 +253,24 @@ public class MetricsTest {
 
     @Test
     public void shouldReturnSameBidderUserSyncMetricsOnSuccessiveCalls() {
-        assertThat(metrics.userSync().forBidder(RUBICON)).isSameAs(metrics.userSync().forBidder(RUBICON));
+        assertThat(metrics.userSync().forBidder(MAGNITE)).isSameAs(metrics.userSync().forBidder(MAGNITE));
     }
 
     @Test
     public void shouldReturnBidderUserSyncMetricsConfiguredWithCounterType() {
         verifyCreatesConfiguredCounterType(metrics -> metrics
                 .userSync()
-                .forBidder(RUBICON)
+                .forBidder(MAGNITE)
                 .incCounter(MetricName.sets));
     }
 
     @Test
     public void shouldReturnBidderUserSyncMetricsConfiguredWithBidder() {
         // when
-        metrics.userSync().forBidder(RUBICON).incCounter(MetricName.sets);
+        metrics.userSync().forBidder(MAGNITE).incCounter(MetricName.sets);
 
         // then
-        assertThat(metricRegistry.counter("usersync.rubicon.sets").getCount()).isOne();
+        assertThat(metricRegistry.counter("usersync.magnite.sets").getCount()).isOne();
     }
 
     @Test
@@ -280,7 +280,7 @@ public class MetricsTest {
 
     @Test
     public void shouldReturnSameBidderCookieSyncMetricsOnSuccessiveCalls() {
-        assertThat(metrics.cookieSync().forBidder(RUBICON)).isSameAs(metrics.cookieSync().forBidder(RUBICON));
+        assertThat(metrics.cookieSync().forBidder(MAGNITE)).isSameAs(metrics.cookieSync().forBidder(MAGNITE));
     }
 
     @Test
@@ -461,13 +461,13 @@ public class MetricsTest {
     public void updateAdapterRequestTypeAndNoCookieMetricsShouldUpdateMetricsAsExpected() {
 
         // when
-        metrics.updateAdapterRequestTypeAndNoCookieMetrics("rUbIcON", MetricName.openrtb2app, true);
-        metrics.updateAdapterRequestTypeAndNoCookieMetrics(RUBICON, MetricName.amp, false);
+        metrics.updateAdapterRequestTypeAndNoCookieMetrics("mAgNiTe", MetricName.openrtb2app, true);
+        metrics.updateAdapterRequestTypeAndNoCookieMetrics(MAGNITE, MetricName.amp, false);
 
         // then
-        assertThat(metricRegistry.counter("adapter.rubicon.requests.type.openrtb2-app").getCount()).isEqualTo(1);
-        assertThat(metricRegistry.counter("adapter.rubicon.no_cookie_requests").getCount()).isOne();
-        assertThat(metricRegistry.counter("adapter.rubicon.requests.type.amp").getCount()).isOne();
+        assertThat(metricRegistry.counter("adapter.magnite.requests.type.openrtb2-app").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("adapter.magnite.no_cookie_requests").getCount()).isOne();
+        assertThat(metricRegistry.counter("adapter.magnite.requests.type.amp").getCount()).isOne();
     }
 
     @Test
@@ -537,13 +537,13 @@ public class MetricsTest {
     @Test
     public void updateAdapterResponseTimeShouldUpdateMetrics() {
         // when
-        metrics.updateAdapterResponseTime(RUBICON, Account.empty(ACCOUNT_ID), 500);
+        metrics.updateAdapterResponseTime(MAGNITE, Account.empty(ACCOUNT_ID), 500);
         metrics.updateAdapterResponseTime(CONVERSANT, Account.empty(ACCOUNT_ID), 500);
         metrics.updateAdapterResponseTime(CONVERSANT, Account.empty(ACCOUNT_ID), 500);
 
         // then
-        assertThat(metricRegistry.timer("adapter.rubicon.request_time").getCount()).isOne();
-        assertThat(metricRegistry.timer("account.accountId.adapter.rubicon.request_time").getCount()).isOne();
+        assertThat(metricRegistry.timer("adapter.magnite.request_time").getCount()).isOne();
+        assertThat(metricRegistry.timer("account.accountId.adapter.magnite.request_time").getCount()).isOne();
         assertThat(metricRegistry.timer("adapter.conversant.request_time").getCount()).isEqualTo(2);
         assertThat(metricRegistry.timer("account.accountId.adapter.conversant.request_time").getCount()).isEqualTo(2);
     }
@@ -551,15 +551,15 @@ public class MetricsTest {
     @Test
     public void updateAdapterRequestBuyerUidScrubbedMetricsShouldIncrementMetrics() {
         // when
-        metrics.updateAdapterRequestBuyerUidScrubbedMetrics(RUBICON, Account.empty(ACCOUNT_ID));
+        metrics.updateAdapterRequestBuyerUidScrubbedMetrics(MAGNITE, Account.empty(ACCOUNT_ID));
         metrics.updateAdapterRequestBuyerUidScrubbedMetrics(CONVERSANT, Account.empty(ACCOUNT_ID));
         metrics.updateAdapterRequestBuyerUidScrubbedMetrics(CONVERSANT, Account.empty(ACCOUNT_ID));
 
         // then
-        assertThat(metricRegistry.counter("adapter.rubicon.requests.buyeruid_scrubbed")
+        assertThat(metricRegistry.counter("adapter.magnite.requests.buyeruid_scrubbed")
                 .getCount())
                 .isOne();
-        assertThat(metricRegistry.counter("account.accountId.adapter.rubicon.requests.buyeruid_scrubbed")
+        assertThat(metricRegistry.counter("account.accountId.adapter.magnite.requests.buyeruid_scrubbed")
                 .getCount())
                 .isOne();
         assertThat(metricRegistry.counter("adapter.conversant.requests.buyeruid_scrubbed")
@@ -573,13 +573,13 @@ public class MetricsTest {
     @Test
     public void updateAdapterRequestNobidMetricsShouldIncrementMetrics() {
         // when
-        metrics.updateAdapterRequestNobidMetrics(RUBICON, Account.empty(ACCOUNT_ID));
+        metrics.updateAdapterRequestNobidMetrics(MAGNITE, Account.empty(ACCOUNT_ID));
         metrics.updateAdapterRequestNobidMetrics(CONVERSANT, Account.empty(ACCOUNT_ID));
         metrics.updateAdapterRequestNobidMetrics(CONVERSANT, Account.empty(ACCOUNT_ID));
 
         // then
-        assertThat(metricRegistry.counter("adapter.rubicon.requests.nobid").getCount()).isOne();
-        assertThat(metricRegistry.counter("account.accountId.adapter.rubicon.requests.nobid").getCount()).isOne();
+        assertThat(metricRegistry.counter("adapter.magnite.requests.nobid").getCount()).isOne();
+        assertThat(metricRegistry.counter("account.accountId.adapter.magnite.requests.nobid").getCount()).isOne();
         assertThat(metricRegistry.counter("adapter.conversant.requests.nobid").getCount()).isEqualTo(2);
         assertThat(metricRegistry.counter("account.accountId.adapter.conversant.requests.nobid").getCount())
                 .isEqualTo(2);
@@ -588,13 +588,13 @@ public class MetricsTest {
     @Test
     public void updateAdapterRequestGotbidsMetricsShouldIncrementMetrics() {
         // when
-        metrics.updateAdapterRequestGotbidsMetrics(RUBICON, Account.empty(ACCOUNT_ID));
+        metrics.updateAdapterRequestGotbidsMetrics(MAGNITE, Account.empty(ACCOUNT_ID));
         metrics.updateAdapterRequestGotbidsMetrics(CONVERSANT, Account.empty(ACCOUNT_ID));
         metrics.updateAdapterRequestGotbidsMetrics(CONVERSANT, Account.empty(ACCOUNT_ID));
 
         // then
-        assertThat(metricRegistry.counter("adapter.rubicon.requests.gotbids").getCount()).isOne();
-        assertThat(metricRegistry.counter("account.accountId.adapter.rubicon.requests.gotbids").getCount())
+        assertThat(metricRegistry.counter("adapter.magnite.requests.gotbids").getCount()).isOne();
+        assertThat(metricRegistry.counter("account.accountId.adapter.magnite.requests.gotbids").getCount())
                 .isOne();
         assertThat(metricRegistry.counter("adapter.conversant.requests.gotbids").getCount()).isEqualTo(2);
         assertThat(metricRegistry.counter("account.accountId.adapter.conversant.requests.gotbids").getCount())
@@ -604,18 +604,18 @@ public class MetricsTest {
     @Test
     public void updateAdapterBidMetricsShouldUpdateMetrics() {
         // when
-        metrics.updateAdapterBidMetrics(RUBICON, Account.empty(ACCOUNT_ID), 1234L, true, "banner");
-        metrics.updateAdapterBidMetrics(RUBICON, Account.empty(ACCOUNT_ID), 1234L, false, "video");
+        metrics.updateAdapterBidMetrics(MAGNITE, Account.empty(ACCOUNT_ID), 1234L, true, "banner");
+        metrics.updateAdapterBidMetrics(MAGNITE, Account.empty(ACCOUNT_ID), 1234L, false, "video");
         metrics.updateAdapterBidMetrics(CONVERSANT, Account.empty(ACCOUNT_ID), 1234L, false, "banner");
         metrics.updateAdapterBidMetrics(CONVERSANT, Account.empty(ACCOUNT_ID), 1234L, false, "banner");
 
         // then
-        assertThat(metricRegistry.histogram("adapter.rubicon.prices").getCount()).isEqualTo(2);
-        assertThat(metricRegistry.histogram("account.accountId.adapter.rubicon.prices").getCount()).isEqualTo(2);
-        assertThat(metricRegistry.counter("adapter.rubicon.bids_received").getCount()).isEqualTo(2);
-        assertThat(metricRegistry.counter("account.accountId.adapter.rubicon.bids_received").getCount()).isEqualTo(2);
-        assertThat(metricRegistry.counter("adapter.rubicon.banner.adm_bids_received").getCount()).isOne();
-        assertThat(metricRegistry.counter("adapter.rubicon.video.nurl_bids_received").getCount()).isOne();
+        assertThat(metricRegistry.histogram("adapter.magnite.prices").getCount()).isEqualTo(2);
+        assertThat(metricRegistry.histogram("account.accountId.adapter.magnite.prices").getCount()).isEqualTo(2);
+        assertThat(metricRegistry.counter("adapter.magnite.bids_received").getCount()).isEqualTo(2);
+        assertThat(metricRegistry.counter("account.accountId.adapter.magnite.bids_received").getCount()).isEqualTo(2);
+        assertThat(metricRegistry.counter("adapter.magnite.banner.adm_bids_received").getCount()).isOne();
+        assertThat(metricRegistry.counter("adapter.magnite.video.nurl_bids_received").getCount()).isOne();
         assertThat(metricRegistry.histogram("adapter.conversant.prices").getCount()).isEqualTo(2);
         assertThat(metricRegistry.histogram("account.accountId.adapter.conversant.prices").getCount()).isEqualTo(2);
         assertThat(metricRegistry.counter("adapter.conversant.bids_received").getCount()).isEqualTo(2);
@@ -658,23 +658,23 @@ public class MetricsTest {
     @Test
     public void updateAdapterRequestErrorMetricShouldIncrementMetrics() {
         // when
-        metrics.updateAdapterRequestErrorMetric(RUBICON, MetricName.badinput);
+        metrics.updateAdapterRequestErrorMetric(MAGNITE, MetricName.badinput);
         metrics.updateAdapterRequestErrorMetric(CONVERSANT, MetricName.badinput);
         metrics.updateAdapterRequestErrorMetric(CONVERSANT, MetricName.badinput);
 
         // then
-        assertThat(metricRegistry.counter("adapter.rubicon.requests.badinput").getCount()).isOne();
+        assertThat(metricRegistry.counter("adapter.magnite.requests.badinput").getCount()).isOne();
         assertThat(metricRegistry.counter("adapter.conversant.requests.badinput").getCount()).isEqualTo(2);
     }
 
     @Test
     public void updateSizeValidationMetricsShouldIncrementMetrics() {
         // when
-        metrics.updateSizeValidationMetrics(RUBICON, ACCOUNT_ID, MetricName.err);
+        metrics.updateSizeValidationMetrics(MAGNITE, ACCOUNT_ID, MetricName.err);
         metrics.updateSizeValidationMetrics(CONVERSANT, ACCOUNT_ID, MetricName.err);
 
         // then
-        assertThat(metricRegistry.counter("adapter.rubicon.response.validation.size.err").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("adapter.magnite.response.validation.size.err").getCount()).isEqualTo(1);
         assertThat(metricRegistry.counter("adapter.conversant.response.validation.size.err").getCount()).isEqualTo(1);
         assertThat(metricRegistry.counter("account.accountId.response.validation.size.err").getCount()).isEqualTo(2);
     }
@@ -682,11 +682,11 @@ public class MetricsTest {
     @Test
     public void updateSecureValidationMetricsShouldIncrementMetrics() {
         // when
-        metrics.updateSecureValidationMetrics(RUBICON, ACCOUNT_ID, MetricName.err);
+        metrics.updateSecureValidationMetrics(MAGNITE, ACCOUNT_ID, MetricName.err);
         metrics.updateSecureValidationMetrics(CONVERSANT, ACCOUNT_ID, MetricName.err);
 
         // then
-        assertThat(metricRegistry.counter("adapter.rubicon.response.validation.secure.err").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("adapter.magnite.response.validation.secure.err").getCount()).isEqualTo(1);
         assertThat(metricRegistry.counter("adapter.conversant.response.validation.secure.err").getCount()).isEqualTo(1);
         assertThat(metricRegistry.counter("account.accountId.response.validation.secure.err").getCount()).isEqualTo(2);
     }
@@ -694,11 +694,11 @@ public class MetricsTest {
     @Test
     public void updateSeatValidationMetricsShouldIncrementMetrics() {
         // when
-        metrics.updateSeatValidationMetrics(RUBICON);
+        metrics.updateSeatValidationMetrics(MAGNITE);
         metrics.updateSeatValidationMetrics(CONVERSANT);
 
         // then
-        assertThat(metricRegistry.counter("adapter.rubicon.response.validation.seat").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.counter("adapter.magnite.response.validation.seat").getCount()).isEqualTo(1);
         assertThat(metricRegistry.counter("adapter.conversant.response.validation.seat").getCount()).isEqualTo(1);
     }
 
@@ -732,42 +732,42 @@ public class MetricsTest {
     @Test
     public void updateUserSyncSetsMetricShouldIncrementMetric() {
         // when
-        metrics.updateUserSyncSetsMetric("RUBICON");
+        metrics.updateUserSyncSetsMetric("MAGNITE");
 
         // then
-        assertThat(metricRegistry.counter("usersync.rubicon.sets").getCount()).isOne();
+        assertThat(metricRegistry.counter("usersync.magnite.sets").getCount()).isOne();
     }
 
     @Test
     public void updateUserSyncTcfBlockedMetricShouldIncrementMetric() {
         // when
-        metrics.updateUserSyncTcfBlockedMetric(RUBICON);
+        metrics.updateUserSyncTcfBlockedMetric(MAGNITE);
 
         // then
-        assertThat(metricRegistry.counter("usersync.rubicon.tcf.blocked").getCount()).isOne();
+        assertThat(metricRegistry.counter("usersync.magnite.tcf.blocked").getCount()).isOne();
     }
 
     @Test
     public void updateCookieSyncTcfBlockedMetricShouldIncrementMetric() {
         // when
-        metrics.updateCookieSyncTcfBlockedMetric(RUBICON);
+        metrics.updateCookieSyncTcfBlockedMetric(MAGNITE);
         metrics.updateCookieSyncTcfBlockedMetric(CONVERSANT);
         metrics.updateCookieSyncTcfBlockedMetric(CONVERSANT);
 
         // then
-        assertThat(metricRegistry.counter("cookie_sync.rubicon.tcf.blocked").getCount()).isOne();
+        assertThat(metricRegistry.counter("cookie_sync.magnite.tcf.blocked").getCount()).isOne();
         assertThat(metricRegistry.counter("cookie_sync.conversant.tcf.blocked").getCount()).isEqualTo(2);
     }
 
     @Test
     public void updateCookieSyncFilteredMetricShouldIncrementMetric() {
         // when
-        metrics.updateCookieSyncFilteredMetric(RUBICON);
+        metrics.updateCookieSyncFilteredMetric(MAGNITE);
         metrics.updateCookieSyncFilteredMetric("CONVERSANT");
         metrics.updateCookieSyncFilteredMetric(CONVERSANT);
 
         // then
-        assertThat(metricRegistry.counter("cookie_sync.rubicon.filtered").getCount()).isOne();
+        assertThat(metricRegistry.counter("cookie_sync.magnite.filtered").getCount()).isOne();
         assertThat(metricRegistry.counter("cookie_sync.conversant.filtered").getCount()).isEqualTo(2);
     }
 
@@ -776,7 +776,7 @@ public class MetricsTest {
         // when
         metrics.updateAuctionTcfAndLmtMetrics(
                 activityInfrastructure,
-                RUBICON,
+                MAGNITE,
                 MetricName.openrtb2web,
                 true, true, true, true, true, false);
         metrics.updateAuctionTcfAndLmtMetrics(
@@ -791,11 +791,11 @@ public class MetricsTest {
                 false, true, false, true, false, false);
 
         // then
-        assertThat(metricRegistry.counter("adapter.rubicon.openrtb2-web.tcf.userfpd_masked").getCount()).isOne();
-        assertThat(metricRegistry.counter("adapter.rubicon.openrtb2-web.tcf.userid_removed").getCount()).isOne();
-        assertThat(metricRegistry.counter("adapter.rubicon.openrtb2-web.tcf.geo_masked").getCount()).isOne();
-        assertThat(metricRegistry.counter("adapter.rubicon.openrtb2-web.tcf.analytics_blocked").getCount()).isOne();
-        assertThat(metricRegistry.counter("adapter.rubicon.openrtb2-web.tcf.request_blocked").getCount()).isOne();
+        assertThat(metricRegistry.counter("adapter.magnite.openrtb2-web.tcf.userfpd_masked").getCount()).isOne();
+        assertThat(metricRegistry.counter("adapter.magnite.openrtb2-web.tcf.userid_removed").getCount()).isOne();
+        assertThat(metricRegistry.counter("adapter.magnite.openrtb2-web.tcf.geo_masked").getCount()).isOne();
+        assertThat(metricRegistry.counter("adapter.magnite.openrtb2-web.tcf.analytics_blocked").getCount()).isOne();
+        assertThat(metricRegistry.counter("adapter.magnite.openrtb2-web.tcf.request_blocked").getCount()).isOne();
         assertThat(metricRegistry.counter("adapter.conversant.openrtb2-web.tcf.userfpd_masked").getCount()).isOne();
         assertThat(metricRegistry.counter("adapter.conversant.openrtb2-app.tcf.userid_removed").getCount()).isOne();
         assertThat(metricRegistry.counter("adapter.conversant.openrtb2-web.tcf.geo_masked").getCount()).isOne();
@@ -808,12 +808,12 @@ public class MetricsTest {
         // when
         metrics.updateAuctionTcfAndLmtMetrics(
                 activityInfrastructure,
-                RUBICON,
+                MAGNITE,
                 MetricName.openrtb2web,
                 true, false, false, false, false, false);
 
         // then
-        verify(activityInfrastructure).updateActivityMetrics(Activity.TRANSMIT_UFPD, ComponentType.BIDDER, RUBICON);
+        verify(activityInfrastructure).updateActivityMetrics(Activity.TRANSMIT_UFPD, ComponentType.BIDDER, MAGNITE);
         verifyNoMoreInteractions(activityInfrastructure);
     }
 
@@ -822,12 +822,12 @@ public class MetricsTest {
         // when
         metrics.updateAuctionTcfAndLmtMetrics(
                 activityInfrastructure,
-                RUBICON,
+                MAGNITE,
                 MetricName.openrtb2web,
                 false, false, true, false, false, false);
 
         // then
-        verify(activityInfrastructure).updateActivityMetrics(Activity.TRANSMIT_GEO, ComponentType.BIDDER, RUBICON);
+        verify(activityInfrastructure).updateActivityMetrics(Activity.TRANSMIT_GEO, ComponentType.BIDDER, MAGNITE);
         verifyNoMoreInteractions(activityInfrastructure);
     }
 
@@ -836,12 +836,12 @@ public class MetricsTest {
         // when
         metrics.updateAuctionTcfAndLmtMetrics(
                 activityInfrastructure,
-                RUBICON,
+                MAGNITE,
                 MetricName.openrtb2web,
                 false, true, false, false, false, false);
 
         // then
-        verify(activityInfrastructure).updateActivityMetrics(Activity.TRANSMIT_EIDS, ComponentType.BIDDER, RUBICON);
+        verify(activityInfrastructure).updateActivityMetrics(Activity.TRANSMIT_EIDS, ComponentType.BIDDER, MAGNITE);
         verifyNoMoreInteractions(activityInfrastructure);
     }
 
@@ -850,12 +850,12 @@ public class MetricsTest {
         // when
         metrics.updateAuctionTcfAndLmtMetrics(
                 activityInfrastructure,
-                RUBICON,
+                MAGNITE,
                 MetricName.openrtb2web,
                 false, false, false, false, true, false);
 
         // then
-        verify(activityInfrastructure).updateActivityMetrics(Activity.CALL_BIDDER, ComponentType.BIDDER, RUBICON);
+        verify(activityInfrastructure).updateActivityMetrics(Activity.CALL_BIDDER, ComponentType.BIDDER, MAGNITE);
         verifyNoMoreInteractions(activityInfrastructure);
     }
 
@@ -864,14 +864,14 @@ public class MetricsTest {
         // when
         metrics.updateAuctionTcfAndLmtMetrics(
                 activityInfrastructure,
-                RUBICON,
+                MAGNITE,
                 MetricName.openrtb2web,
                 false, false, false, false, false, true);
 
         // then
-        verify(activityInfrastructure).updateActivityMetrics(Activity.TRANSMIT_EIDS, ComponentType.BIDDER, RUBICON);
-        verify(activityInfrastructure).updateActivityMetrics(Activity.TRANSMIT_GEO, ComponentType.BIDDER, RUBICON);
-        verify(activityInfrastructure).updateActivityMetrics(Activity.TRANSMIT_UFPD, ComponentType.BIDDER, RUBICON);
+        verify(activityInfrastructure).updateActivityMetrics(Activity.TRANSMIT_EIDS, ComponentType.BIDDER, MAGNITE);
+        verify(activityInfrastructure).updateActivityMetrics(Activity.TRANSMIT_GEO, ComponentType.BIDDER, MAGNITE);
+        verify(activityInfrastructure).updateActivityMetrics(Activity.TRANSMIT_UFPD, ComponentType.BIDDER, MAGNITE);
         verifyNoMoreInteractions(activityInfrastructure);
     }
 
@@ -910,7 +910,7 @@ public class MetricsTest {
         // when
         metrics.updateAuctionTcfAndLmtMetrics(
                 activityInfrastructure,
-                RUBICON,
+                MAGNITE,
                 MetricName.openrtb2web,
                 false, false, false, false, false, true);
 
@@ -1031,10 +1031,10 @@ public class MetricsTest {
         metrics.updateAccountDebugRequestMetrics(Account.empty(ACCOUNT_ID), false);
         metrics.updateAccountDebugRequestMetrics(Account.empty(ACCOUNT_ID), true);
         metrics.updateAccountRequestMetrics(Account.empty(ACCOUNT_ID), MetricName.openrtb2web);
-        metrics.updateAdapterResponseTime(RUBICON, Account.empty(ACCOUNT_ID), 500);
-        metrics.updateAdapterRequestNobidMetrics(RUBICON, Account.empty(ACCOUNT_ID));
-        metrics.updateAdapterRequestGotbidsMetrics(RUBICON, Account.empty(ACCOUNT_ID));
-        metrics.updateAdapterBidMetrics(RUBICON, Account.empty(ACCOUNT_ID), 1234L, true, "banner");
+        metrics.updateAdapterResponseTime(MAGNITE, Account.empty(ACCOUNT_ID), 500);
+        metrics.updateAdapterRequestNobidMetrics(MAGNITE, Account.empty(ACCOUNT_ID));
+        metrics.updateAdapterRequestGotbidsMetrics(MAGNITE, Account.empty(ACCOUNT_ID));
+        metrics.updateAdapterBidMetrics(MAGNITE, Account.empty(ACCOUNT_ID), 1234L, true, "banner");
         metrics.updateDisabledBidderMetric(Account.empty(ACCOUNT_ID));
         metrics.updateUnknownBidderMetric(Account.empty(ACCOUNT_ID));
 
@@ -1042,15 +1042,15 @@ public class MetricsTest {
         assertThat(metricRegistry.counter("account.accountId.requests").getCount()).isZero();
         assertThat(metricRegistry.counter("account.accountId.debug_requests").getCount()).isZero();
         assertThat(metricRegistry.counter("account.accountId.requests.type.openrtb2-web").getCount()).isZero();
-        assertThat(metricRegistry.timer("account.accountId.adapter.rubicon.request_time").getCount()).isZero();
-        assertThat(metricRegistry.counter("account.accountId.adapter.rubicon.requests.nobid").getCount()).isZero();
-        assertThat(metricRegistry.counter("account.accountId.adapter.rubicon.requests.gotbids").getCount()).isZero();
-        assertThat(metricRegistry.histogram("account.accountId.adapter.rubicon.prices").getCount()).isZero();
-        assertThat(metricRegistry.counter("account.accountId.adapter.rubicon.bids_received").getCount()).isZero();
+        assertThat(metricRegistry.timer("account.accountId.adapter.magnite.request_time").getCount()).isZero();
+        assertThat(metricRegistry.counter("account.accountId.adapter.magnite.requests.nobid").getCount()).isZero();
+        assertThat(metricRegistry.counter("account.accountId.adapter.magnite.requests.gotbids").getCount()).isZero();
+        assertThat(metricRegistry.histogram("account.accountId.adapter.magnite.prices").getCount()).isZero();
+        assertThat(metricRegistry.counter("account.accountId.adapter.magnite.bids_received").getCount()).isZero();
         assertThat(metricRegistry.counter(
-                "account.accountId.adapter.rubicon.requests.unknown_bidder").getCount()).isZero();
+                "account.accountId.adapter.magnite.requests.unknown_bidder").getCount()).isZero();
         assertThat(metricRegistry.counter(
-                "account.accountId.adapter.rubicon.requests.disabled_bidder").getCount()).isZero();
+                "account.accountId.adapter.magnite.requests.disabled_bidder").getCount()).isZero();
     }
 
     @Test
@@ -1062,10 +1062,10 @@ public class MetricsTest {
         metrics.updateAccountRequestMetrics(Account.empty(ACCOUNT_ID), MetricName.openrtb2web);
         metrics.updateAccountDebugRequestMetrics(Account.empty(ACCOUNT_ID), false);
         metrics.updateAccountDebugRequestMetrics(Account.empty(ACCOUNT_ID), true);
-        metrics.updateAdapterResponseTime(RUBICON, Account.empty(ACCOUNT_ID), 500);
-        metrics.updateAdapterRequestNobidMetrics(RUBICON, Account.empty(ACCOUNT_ID));
-        metrics.updateAdapterRequestGotbidsMetrics(RUBICON, Account.empty(ACCOUNT_ID));
-        metrics.updateAdapterBidMetrics(RUBICON, Account.empty(ACCOUNT_ID), 1234L, true, "banner");
+        metrics.updateAdapterResponseTime(MAGNITE, Account.empty(ACCOUNT_ID), 500);
+        metrics.updateAdapterRequestNobidMetrics(MAGNITE, Account.empty(ACCOUNT_ID));
+        metrics.updateAdapterRequestGotbidsMetrics(MAGNITE, Account.empty(ACCOUNT_ID));
+        metrics.updateAdapterBidMetrics(MAGNITE, Account.empty(ACCOUNT_ID), 1234L, true, "banner");
         metrics.updateDisabledBidderMetric(Account.empty(ACCOUNT_ID));
         metrics.updateUnknownBidderMetric(Account.empty(ACCOUNT_ID));
 
@@ -1073,15 +1073,15 @@ public class MetricsTest {
         assertThat(metricRegistry.counter("account.accountId.requests").getCount()).isOne();
         assertThat(metricRegistry.counter("account.accountId.debug_requests").getCount()).isZero();
         assertThat(metricRegistry.counter("account.accountId.requests.type.openrtb2-web").getCount()).isZero();
-        assertThat(metricRegistry.timer("account.accountId.rubicon.request_time").getCount()).isZero();
-        assertThat(metricRegistry.counter("account.accountId.adapter.rubicon.requests.nobid").getCount()).isZero();
-        assertThat(metricRegistry.counter("account.accountId.adapter.rubicon.requests.gotbids").getCount()).isZero();
-        assertThat(metricRegistry.histogram("account.accountId.adapter.rubicon.prices").getCount()).isZero();
-        assertThat(metricRegistry.counter("account.accountId.adapter.rubicon.bids_received").getCount()).isZero();
+        assertThat(metricRegistry.timer("account.accountId.magnite.request_time").getCount()).isZero();
+        assertThat(metricRegistry.counter("account.accountId.adapter.magnite.requests.nobid").getCount()).isZero();
+        assertThat(metricRegistry.counter("account.accountId.adapter.magnite.requests.gotbids").getCount()).isZero();
+        assertThat(metricRegistry.histogram("account.accountId.adapter.magnite.prices").getCount()).isZero();
+        assertThat(metricRegistry.counter("account.accountId.adapter.magnite.bids_received").getCount()).isZero();
         assertThat(metricRegistry.counter(
-                "account.accountId.adapter.rubicon.requests.unknown_bidder").getCount()).isZero();
+                "account.accountId.adapter.magnite.requests.unknown_bidder").getCount()).isZero();
         assertThat(metricRegistry.counter(
-                "account.accountId.adapter.rubicon.requests.disabled_bidder").getCount()).isZero();
+                "account.accountId.adapter.magnite.requests.disabled_bidder").getCount()).isZero();
     }
 
     @Test
@@ -1093,10 +1093,10 @@ public class MetricsTest {
         metrics.updateAccountRequestMetrics(Account.empty(ACCOUNT_ID), MetricName.openrtb2web);
         metrics.updateAccountDebugRequestMetrics(Account.empty(ACCOUNT_ID), false);
         metrics.updateAccountDebugRequestMetrics(Account.empty(ACCOUNT_ID), true);
-        metrics.updateAdapterResponseTime(RUBICON, Account.empty(ACCOUNT_ID), 500);
-        metrics.updateAdapterRequestNobidMetrics(RUBICON, Account.empty(ACCOUNT_ID));
-        metrics.updateAdapterRequestGotbidsMetrics(RUBICON, Account.empty(ACCOUNT_ID));
-        metrics.updateAdapterBidMetrics(RUBICON, Account.empty(ACCOUNT_ID), 1234L, true, "banner");
+        metrics.updateAdapterResponseTime(MAGNITE, Account.empty(ACCOUNT_ID), 500);
+        metrics.updateAdapterRequestNobidMetrics(MAGNITE, Account.empty(ACCOUNT_ID));
+        metrics.updateAdapterRequestGotbidsMetrics(MAGNITE, Account.empty(ACCOUNT_ID));
+        metrics.updateAdapterBidMetrics(MAGNITE, Account.empty(ACCOUNT_ID), 1234L, true, "banner");
         metrics.updateDisabledBidderMetric(Account.empty(ACCOUNT_ID));
         metrics.updateUnknownBidderMetric(Account.empty(ACCOUNT_ID));
 
@@ -1106,13 +1106,13 @@ public class MetricsTest {
                 .isEqualTo(1);
         assertThat(metricRegistry.counter("account.accountId.requests.type.openrtb2-web").getCount())
                 .isEqualTo(1);
-        assertThat(metricRegistry.counter("account.accountId.adapter.rubicon.requests.nobid").getCount())
+        assertThat(metricRegistry.counter("account.accountId.adapter.magnite.requests.nobid").getCount())
                 .isEqualTo(1);
-        assertThat(metricRegistry.counter("account.accountId.adapter.rubicon.requests.gotbids").getCount())
+        assertThat(metricRegistry.counter("account.accountId.adapter.magnite.requests.gotbids").getCount())
                 .isEqualTo(1);
-        assertThat(metricRegistry.histogram("account.accountId.adapter.rubicon.prices").getCount())
+        assertThat(metricRegistry.histogram("account.accountId.adapter.magnite.prices").getCount())
                 .isEqualTo(1);
-        assertThat(metricRegistry.counter("account.accountId.adapter.rubicon.bids_received").getCount())
+        assertThat(metricRegistry.counter("account.accountId.adapter.magnite.bids_received").getCount())
                 .isEqualTo(1);
         assertThat(metricRegistry.counter(
                 "unknown_bidder").getCount()).isEqualTo(1);

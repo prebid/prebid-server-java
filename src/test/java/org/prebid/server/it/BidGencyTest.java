@@ -13,23 +13,23 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static java.util.Collections.singletonList;
 
-public class BidAgencyTest extends IntegrationTest {
+public class BidGencyTest extends IntegrationTest {
 
     @Test
-    public void openrtb2AuctionShouldRespondWithBidsFromBidAgency() throws IOException, JSONException {
+    public void openrtb2AuctionShouldRespondWithBidsFromBidGency() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/bidagency-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/bidgency-exchange"))
                 .withRequestBody(equalToJson(
-                        jsonFrom("openrtb2/bidagency/test-bidagency-bid-request.json")))
+                        jsonFrom("openrtb2/bidgency/test-bidgency-bid-request.json")))
                 .willReturn(aResponse().withBody(
-                        jsonFrom("openrtb2/bidagency/test-bidagency-bid-response.json"))));
+                        jsonFrom("openrtb2/bidgency/test-bidgency-bid-response.json"))));
 
         // when
-        final Response response = responseFor("openrtb2/bidagency/test-auction-bidagency-request.json",
+        final Response response = responseFor("openrtb2/bidgency/test-auction-bidgency-request.json",
                 Endpoint.openrtb2_auction);
 
         // then
-        assertJsonEquals("openrtb2/bidagency/test-auction-bidagency-response.json", response,
-                singletonList("bidagency"));
+        assertJsonEquals("openrtb2/bidgency/test-auction-bidgency-response.json", response,
+                singletonList("bidgency"));
     }
 }

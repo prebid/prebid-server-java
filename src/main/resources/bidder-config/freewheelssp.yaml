@@ -8,6 +8,8 @@ adapters:
         enabled: false
         endpoint: "https://prebid.v.fwmrm.net/ortb/ssp"
         endpoint-compression: gzip
+        meta-info:
+          vendor-id: 285
         usersync:
           enabled: true
           cookie-family-name: fwssp

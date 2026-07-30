@@ -10,6 +10,7 @@ vertx:
 server:
   max-initial-line-length: 8092
   max-headers-size: 16384
+  max-body-size: 262144
   ssl: false
   jks-path:
   jks-password:
@@ -119,7 +120,6 @@ auction:
     log-result: false
     log-failure-only: false
     log-sampling-rate: 0.0
-  max-request-size: 262144
   generate-bid-id: false
   cache:
     expected-request-time-ms: 10
