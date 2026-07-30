@@ -68,6 +68,7 @@ public class OptableAttributesResolver {
                 .map(ext -> ext.getProperty("optable"))
                 .map(it -> ExtUserOptableResolver.resolveExtUserOptable(it, logSamplingRate))
                 .map(ExtUserOptable::getId5Signature)
+                .filter(StringUtils::isNotBlank)
                 .ifPresent(builder::id5Signature);
 
         return builder.build();
