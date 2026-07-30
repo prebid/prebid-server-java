@@ -32,7 +32,7 @@ public class IdsMapperTest {
 
     @BeforeEach
     public void setUp() {
-        target = new IdsMapper(objectMapper, 0.01);
+        target = new IdsMapper(0.01);
     }
 
     @Test

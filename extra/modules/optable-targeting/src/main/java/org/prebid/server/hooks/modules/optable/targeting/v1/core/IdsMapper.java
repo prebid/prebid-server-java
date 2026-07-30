@@ -1,6 +1,5 @@
 package org.prebid.server.hooks.modules.optable.targeting.v1.core;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Eid;
@@ -27,11 +26,9 @@ public class IdsMapper {
             "utiq.com", Id.UTIQ,
             "netid.de", Id.NET_ID);
 
-    private final ObjectMapper objectMapper;
     private final double logSamplingRate;
 
-    public IdsMapper(ObjectMapper objectMapper, double logSamplingRate) {
-        this.objectMapper = Objects.requireNonNull(objectMapper);
+    public IdsMapper(double logSamplingRate) {
         this.logSamplingRate = logSamplingRate;
     }
 
