@@ -23,14 +23,13 @@ import org.prebid.server.proto.openrtb.ext.request.resetdigital.ExtImpResetDigit
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-
-import org.prebid.server.util.Uri;
 
 public class ResetDigitalBidder implements Bidder<BidRequest> {
 
