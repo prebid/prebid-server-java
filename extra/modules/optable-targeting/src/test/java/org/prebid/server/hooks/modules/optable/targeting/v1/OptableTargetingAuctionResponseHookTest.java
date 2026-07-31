@@ -359,7 +359,8 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
                 Future.failedFuture(new RuntimeException("error")));
         moduleContext.setId5Signature(signature);
         when(invocationContext.moduleContext()).thenReturn(moduleContext);
-        when(auctionResponsePayload.bidResponse()).thenReturn(givenBidResponse());
+        final BidResponse bidlessResponse = BidResponse.builder().build();
+        when(auctionResponsePayload.bidResponse()).thenReturn(bidlessResponse);
 
         // when
         final Future<InvocationResult<AuctionResponsePayload>> future =
@@ -367,7 +368,7 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
         final InvocationResult<AuctionResponsePayload> result = future.result();
         final BidResponse bidResponse = result
                 .payloadUpdate()
-                .apply(AuctionResponsePayloadImpl.of(givenBidResponse()))
+                .apply(AuctionResponsePayloadImpl.of(bidlessResponse))
                 .bidResponse();
         final JsonNode passthrough = bidResponse.getExt().getPrebid().getPassthrough();
 
