@@ -33,9 +33,6 @@ public class OptableBidderRequestHook implements BidderRequestHook {
 
         final ModuleContext moduleContext = ModuleContext.of(invocationContext);
         final OptableTargetingProperties properties = moduleContext.getOptableTargetingProperties();
-        if (!properties.isPerBidderEnrichmentEnabled()) {
-            return noAction(moduleContext, null);
-        }
 
         final Set<String> biddersToEnrich = moduleContext.getBiddersToEnrich();
         if (CollectionUtils.isEmpty(biddersToEnrich)
