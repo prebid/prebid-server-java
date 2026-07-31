@@ -49,7 +49,9 @@ public final class OptableTargetingProperties {
     @JsonProperty("bidder-enrichment-percentages")
     Map<String, Integer> bidderEnrichmentPercentages = Map.of();
 
+    @JsonProperty("enrich-web")
     Boolean enrichWeb = true;
 
+    @JsonProperty("enrich-app")
     Boolean enrichApp = true;
 }
