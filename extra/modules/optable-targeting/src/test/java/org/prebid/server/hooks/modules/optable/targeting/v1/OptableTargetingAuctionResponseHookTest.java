@@ -60,7 +60,7 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
     }
 
     @Test
-    public void shouldReturnResultWithUpdateActionAndWithPBSAnalyticsTags() {
+    public void shouldReturnResultWithNoActionAndWithPBSAnalyticsTagsWhenTargetingIsEmptyAndNoId5Signature() {
         // given
         when(invocationContext.moduleContext()).thenReturn(
                 givenModuleContext(null, Future.failedFuture(new RuntimeException("error"))));
@@ -76,7 +76,8 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
         final InvocationResult<AuctionResponsePayload> result = future.result();
         assertThat(result).isNotNull()
                 .returns(InvocationStatus.success, InvocationResult::status)
-                .returns(InvocationAction.update, InvocationResult::action);
+                .returns(InvocationAction.no_action, InvocationResult::action);
+        assertThat(result.payloadUpdate()).isNull();
         assertThat(result.analyticsTags())
                 .extracting(Tags::activities)
                 .extracting(List::getFirst)
@@ -86,6 +87,36 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
                 .extracting(it -> it.get("reason"))
                 .isNotNull();
         assertThat(result.errors()).isNull();
+    }
+
+    @Test
+    public void shouldReturnResultWithUpdateActionAndId5SignatureWhenTargetingIsEmptyButId5SignatureIsPresent() {
+        // given
+        final String signature = "id5Signature";
+        final ModuleContext moduleContext =
+                givenModuleContext(null, Future.failedFuture(new RuntimeException("error")));
+        moduleContext.setId5Signature(signature);
+        when(invocationContext.moduleContext()).thenReturn(moduleContext);
+        when(auctionResponsePayload.bidResponse()).thenReturn(givenBidResponse());
+
+        // when
+        final Future<InvocationResult<AuctionResponsePayload>> future =
+                target.call(auctionResponsePayload, invocationContext);
+        final InvocationResult<AuctionResponsePayload> result = future.result();
+        final BidResponse bidResponse = result
+                .payloadUpdate()
+                .apply(AuctionResponsePayloadImpl.of(givenBidResponse()))
+                .bidResponse();
+        final JsonNode passthrough = bidResponse.getExt().getPrebid().getPassthrough();
+
+        // then
+        assertThat(future).isNotNull();
+        assertThat(future.succeeded()).isTrue();
+        assertThat(result).isNotNull()
+                .returns(InvocationStatus.success, InvocationResult::status)
+                .returns(InvocationAction.update, InvocationResult::action);
+        assertThat(passthrough).isNotNull();
+        assertThat(passthrough.get("optable").get("id5_signature").asText()).isEqualTo(signature);
     }
 
     @Test
@@ -241,7 +272,7 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
     }
 
     @Test
-    public void shouldReturnUpdateActionWhenOptableTargetingCallFailsAndTargetingIsEmpty() {
+    public void shouldReturnNoActionWhenOptableTargetingCallFailsAndTargetingIsEmptyAndNoId5Signature() {
         // given
         when(invocationContext.moduleContext()).thenReturn(
                 givenModuleContext(null, Future.failedFuture(new RuntimeException("error"))));
@@ -256,11 +287,42 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
         assertThat(future.succeeded()).isTrue();
         assertThat(result).isNotNull()
                 .returns(InvocationStatus.success, InvocationResult::status)
-                .returns(InvocationAction.update, InvocationResult::action);
+                .returns(InvocationAction.no_action, InvocationResult::action);
+        assertThat(result.payloadUpdate()).isNull();
     }
 
     @Test
-    public void shouldReturnResultWithUpdateActionWhenTargetingCallFailsAndNoBids() {
+    public void shouldReturnUpdateActionWithId5SignatureWhenOptableTargetingCallFailsAndTargetingIsEmpty() {
+        // given
+        final String signature = "id5Signature";
+        final ModuleContext moduleContext =
+                givenModuleContext(null, Future.failedFuture(new RuntimeException("error")));
+        moduleContext.setId5Signature(signature);
+        when(invocationContext.moduleContext()).thenReturn(moduleContext);
+        when(auctionResponsePayload.bidResponse()).thenReturn(givenBidResponse());
+
+        // when
+        final Future<InvocationResult<AuctionResponsePayload>> future =
+                target.call(auctionResponsePayload, invocationContext);
+        final InvocationResult<AuctionResponsePayload> result = future.result();
+        final BidResponse bidResponse = result
+                .payloadUpdate()
+                .apply(AuctionResponsePayloadImpl.of(givenBidResponse()))
+                .bidResponse();
+        final JsonNode passthrough = bidResponse.getExt().getPrebid().getPassthrough();
+
+        // then
+        assertThat(future).isNotNull();
+        assertThat(future.succeeded()).isTrue();
+        assertThat(result).isNotNull()
+                .returns(InvocationStatus.success, InvocationResult::status)
+                .returns(InvocationAction.update, InvocationResult::action);
+        assertThat(passthrough).isNotNull();
+        assertThat(passthrough.get("optable").get("id5_signature").asText()).isEqualTo(signature);
+    }
+
+    @Test
+    public void shouldReturnNoActionWhenTargetingCallFailsAndNoBidsAndNoId5Signature() {
         // given
         when(invocationContext.moduleContext()).thenReturn(givenModuleContext(List.of(
                 new Audience(
@@ -280,11 +342,47 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
         assertThat(future.succeeded()).isTrue();
         assertThat(result).isNotNull()
                 .returns(InvocationStatus.success, InvocationResult::status)
-                .returns(InvocationAction.update, InvocationResult::action);
+                .returns(InvocationAction.no_action, InvocationResult::action);
+        assertThat(result.payloadUpdate()).isNull();
     }
 
     @Test
-    public void shouldReturnNoActionWhenAdserverTargetingIsDisabled() {
+    public void shouldReturnUpdateActionWithId5SignatureWhenTargetingCallFailsAndNoBids() {
+        // given
+        final String signature = "id5Signature";
+        final ModuleContext moduleContext = givenModuleContext(List.of(
+                new Audience(
+                        "provider",
+                        List.of(new AudienceId("audienceId")),
+                        "keyspace",
+                        1)),
+                Future.failedFuture(new RuntimeException("error")));
+        moduleContext.setId5Signature(signature);
+        when(invocationContext.moduleContext()).thenReturn(moduleContext);
+        when(auctionResponsePayload.bidResponse()).thenReturn(givenBidResponse());
+
+        // when
+        final Future<InvocationResult<AuctionResponsePayload>> future =
+                target.call(auctionResponsePayload, invocationContext);
+        final InvocationResult<AuctionResponsePayload> result = future.result();
+        final BidResponse bidResponse = result
+                .payloadUpdate()
+                .apply(AuctionResponsePayloadImpl.of(givenBidResponse()))
+                .bidResponse();
+        final JsonNode passthrough = bidResponse.getExt().getPrebid().getPassthrough();
+
+        // then
+        assertThat(future).isNotNull();
+        assertThat(future.succeeded()).isTrue();
+        assertThat(result).isNotNull()
+                .returns(InvocationStatus.success, InvocationResult::status)
+                .returns(InvocationAction.update, InvocationResult::action);
+        assertThat(passthrough).isNotNull();
+        assertThat(passthrough.get("optable").get("id5_signature").asText()).isEqualTo(signature);
+    }
+
+    @Test
+    public void shouldReturnNoActionWhenAdserverTargetingIsDisabledAndNoId5Signature() {
         // given
         final OptableTargetingProperties properties = givenOptableTargetingProperties(false);
         properties.setAdserverTargeting(false);
@@ -314,7 +412,46 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
     }
 
     @Test
-    public void shouldReturnNoActionWhenSkipEnrichmentIsTrue() {
+    public void shouldReturnUpdateActionWithId5SignatureWhenAdserverTargetingIsDisabled() {
+        // given
+        final String signature = "id5Signature";
+        final OptableTargetingProperties properties = givenOptableTargetingProperties(false);
+        properties.setAdserverTargeting(false);
+        configResolver = new ConfigResolver(mapper, jsonMerger, properties);
+        target = new OptableTargetingAuctionResponseHook(configResolver, mapper, jsonMerger);
+        when(invocationContext.accountConfig()).thenReturn(mapper.valueToTree(properties));
+        final ModuleContext moduleContext = givenModuleContext(List.of(
+                new Audience(
+                        "provider",
+                        List.of(new AudienceId("audienceId")),
+                        "keyspace",
+                        1)),
+                Future.failedFuture(new RuntimeException("error")));
+        moduleContext.setId5Signature(signature);
+        when(invocationContext.moduleContext()).thenReturn(moduleContext);
+
+        // when
+        final Future<InvocationResult<AuctionResponsePayload>> future =
+                target.call(auctionResponsePayload, invocationContext);
+        final InvocationResult<AuctionResponsePayload> result = future.result();
+        final BidResponse bidResponse = result
+                .payloadUpdate()
+                .apply(AuctionResponsePayloadImpl.of(givenBidResponse()))
+                .bidResponse();
+        final JsonNode passthrough = bidResponse.getExt().getPrebid().getPassthrough();
+
+        // then
+        assertThat(future).isNotNull();
+        assertThat(future.succeeded()).isTrue();
+        assertThat(result).isNotNull()
+                .returns(InvocationStatus.success, InvocationResult::status)
+                .returns(InvocationAction.update, InvocationResult::action);
+        assertThat(passthrough).isNotNull();
+        assertThat(passthrough.get("optable").get("id5_signature").asText()).isEqualTo(signature);
+    }
+
+    @Test
+    public void shouldReturnNoActionWhenSkipEnrichmentIsTrueAndNoId5Signature() {
         // given
         final ModuleContext moduleContext = givenModuleContext();
         moduleContext.setShouldSkipEnrichment(true);
@@ -332,6 +469,35 @@ public class OptableTargetingAuctionResponseHookTest extends BaseOptableTest {
                 .returns(InvocationStatus.success, InvocationResult::status)
                 .returns(InvocationAction.no_action, InvocationResult::action);
         assertThat(result.payloadUpdate()).isNull();
+    }
+
+    @Test
+    public void shouldReturnUpdateActionWithId5SignatureWhenSkipEnrichmentIsTrue() {
+        // given
+        final String signature = "id5Signature";
+        final ModuleContext moduleContext = givenModuleContext();
+        moduleContext.setShouldSkipEnrichment(true);
+        moduleContext.setId5Signature(signature);
+        when(invocationContext.moduleContext()).thenReturn(moduleContext);
+
+        // when
+        final Future<InvocationResult<AuctionResponsePayload>> future =
+                target.call(auctionResponsePayload, invocationContext);
+        final InvocationResult<AuctionResponsePayload> result = future.result();
+        final BidResponse bidResponse = result
+                .payloadUpdate()
+                .apply(AuctionResponsePayloadImpl.of(givenBidResponse()))
+                .bidResponse();
+        final JsonNode passthrough = bidResponse.getExt().getPrebid().getPassthrough();
+
+        // then
+        assertThat(future).isNotNull();
+        assertThat(future.succeeded()).isTrue();
+        assertThat(result).isNotNull()
+                .returns(InvocationStatus.success, InvocationResult::status)
+                .returns(InvocationAction.update, InvocationResult::action);
+        assertThat(passthrough).isNotNull();
+        assertThat(passthrough.get("optable").get("id5_signature").asText()).isEqualTo(signature);
     }
 
     private ObjectNode givenAccountConfig(boolean cacheEnabled) {
