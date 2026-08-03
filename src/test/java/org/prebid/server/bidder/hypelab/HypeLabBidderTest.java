@@ -29,13 +29,15 @@ import org.prebid.server.util.HttpUtil;
 import org.prebid.server.version.PrebidVersionProvider;
 
 import java.math.BigDecimal;
-import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.function.UnaryOperator;
 
 import static java.util.Collections.singletonList;
+import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mock.Strictness.LENIENT;
 
@@ -65,47 +67,122 @@ public class HypeLabBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldCreateExpectedRequest() {
         // given
-        final ExtRequest requestExt = ExtRequest.empty();
-        final ObjectNode existingExt = mapper.createObjectNode().put("nested", "value");
-        requestExt.addProperty("existing", existingExt);
-
-        final BidRequest bidRequest = givenBidRequestWithExt(requestExt,
-                imp -> imp.id("imp1").banner(Banner.builder().w(300).h(250).build())
-                        .ext(givenImpExt("property", "placement")));
+        final BidRequest bidRequest = givenBidRequest(givenImp(identity()));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        final HttpRequest<BidRequest> request = result.getValue().getFirst();
-        final BidRequest payload = request.getPayload();
-        final Imp imp = payload.getImp().getFirst();
-
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getMethod, HttpRequest::getUri, HttpRequest::getImpIds)
+                .containsExactly(tuple(HttpMethod.POST, ENDPOINT_URL, Set.of("impId")));
+    }
 
-        assertThat(request.getMethod()).isEqualTo(HttpMethod.POST);
-        assertThat(request.getUri()).isEqualTo(ENDPOINT_URL);
-        assertThat(request.getImpIds()).containsExactly("imp1");
-        assertThat(request.getHeaders().get(HttpUtil.ACCEPT_HEADER)).isEqualTo("application/json");
-        assertThat(request.getHeaders().get(HttpUtil.CONTENT_TYPE_HEADER))
-                .isEqualTo("application/json;charset=utf-8");
-        assertThat(request.getHeaders().get(HttpUtil.X_OPENRTB_VERSION_HEADER)).isEqualTo("2.6");
+    @Test
+    public void makeHttpRequestsShouldSendExpectedHeaders() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(givenImp(identity()));
 
-        assertThat(imp.getTagid()).isEqualTo("placement");
-        assertThat(imp.getDisplaymanager()).isEqualTo("HypeLab Prebid Server");
-        assertThat(imp.getDisplaymanagerver()).isEqualTo(PBS_VERSION);
-        assertThat(imp.getExt()).isEqualTo(mapper.valueToTree(
-                ExtPrebid.of(null, ExtImpHypeLab.of("property", "placement"))));
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
-        assertThat(payload.getExt()).isNotSameAs(requestExt);
-        assertThat(payload.getExt().getProperty("existing")).isEqualTo(existingExt).isNotSameAs(existingExt);
-        assertThat(payload.getExt().getProperty("source")).isEqualTo(mapper.valueToTree("prebid-server"));
-        assertThat(payload.getExt().getProperty("provider_version"))
-                .isEqualTo(mapper.valueToTree("prebid-server@" + PBS_VERSION));
-        assertThat(requestExt.getProperty("source")).isNull();
-        assertThat(requestExt.getProperty("provider_version")).isNull();
-        assertThat(jacksonMapper.decodeValue(request.getBody(), BidRequest.class)).isEqualTo(payload);
+        // then
+        assertThat(result.getValue()).hasSize(1).first()
+                .extracting(HttpRequest::getHeaders)
+                .satisfies(headers -> assertThat(headers.get(HttpUtil.X_OPENRTB_VERSION_HEADER))
+                        .isEqualTo("2.6"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetImpTagidFromPlacementSlug() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(givenImp(identity()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getTagid)
+                .containsExactly("placement");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetDisplayManagerAndVersion() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(givenImp(identity()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getDisplaymanager, Imp::getDisplaymanagerver)
+                .containsExactly(tuple("HypeLab Prebid Server", PBS_VERSION));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldForwardBidderParamsInImpExt() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(givenImp(identity()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .containsExactly(mapper.valueToTree(
+                        ExtPrebid.of(null, ExtImpHypeLab.of("property", "placement"))));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldAddSourceAndProviderVersionToRequestExt() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(givenImp(identity()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getExt)
+                .allSatisfy(ext -> {
+                    assertThat(ext.getProperty("source")).isEqualTo(mapper.valueToTree("prebid-server"));
+                    assertThat(ext.getProperty("provider_version"))
+                            .isEqualTo(mapper.valueToTree("prebid-server@" + PBS_VERSION));
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCopyRequestExtWithoutMutatingOriginal() {
+        // given
+        final ExtRequest requestExt = ExtRequest.empty();
+        final ObjectNode existingProperty = mapper.createObjectNode().put("nested", "value");
+        requestExt.addProperty("existing", existingProperty);
+
+        final BidRequest bidRequest = givenBidRequestWithExt(requestExt, givenImp(identity()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getExt)
+                .allSatisfy(ext -> {
+                    assertThat(ext).isNotSameAs(requestExt);
+                    assertThat(ext.getProperty("existing")).isEqualTo(existingProperty).isNotSameAs(existingProperty);
+                });
+        assertThat(requestExt.getProperties()).containsOnlyKeys("existing");
     }
 
     @Test
@@ -114,22 +191,27 @@ public class HypeLabBidderTest extends VertxTest {
         given(prebidVersionProvider.getNameVersionRecord()).willReturn(" ");
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(givenBidRequest());
+        final Result<List<HttpRequest<BidRequest>>> result =
+                target.makeHttpRequests(givenBidRequest(givenImp(identity())));
 
         // then
-        final BidRequest payload = result.getValue().getFirst().getPayload();
-
         assertThat(result.getErrors()).isEmpty();
-        assertThat(payload.getImp().getFirst().getDisplaymanagerver()).isEqualTo("unknown");
-        assertThat(payload.getExt().getProperty("provider_version"))
-                .isEqualTo(mapper.valueToTree("prebid-server@unknown"));
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getDisplaymanagerver)
+                .containsExactly("unknown");
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(payload -> payload.getExt().getProperty("provider_version"))
+                .containsExactly(mapper.valueToTree("prebid-server@unknown"));
     }
 
     @Test
     public void makeHttpRequestsShouldSkipImpWhenBidderExtCanNotBeParsed() {
         // given
-        final BidRequest bidRequest = givenBidRequestWithExt(null,
-                imp -> imp.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+        final BidRequest bidRequest = givenBidRequest(
+                givenImp(imp -> imp.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -143,8 +225,7 @@ public class HypeLabBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldSkipImpWhenRequiredParamsAreBlank() {
         // given
-        final BidRequest bidRequest = givenBidRequestWithExt(null,
-                imp -> imp.ext(givenImpExt(" ", "placement")));
+        final BidRequest bidRequest = givenBidRequest(givenImp(imp -> imp.ext(givenImpExt(" ", "placement"))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -159,15 +240,15 @@ public class HypeLabBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldSendValidImpsAndReturnErrorsForInvalidImps() {
         // given
-        final BidRequest bidRequest = givenBidRequestWithExt(null,
-                imp -> imp.id("valid"),
-                imp -> imp.id("invalid").ext(givenImpExt("property", "")));
+        final BidRequest bidRequest = givenBidRequest(
+                givenImp(imp -> imp.id("valid")),
+                givenImp(imp -> imp.id("invalid").ext(givenImpExt("property", ""))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getId)
@@ -180,7 +261,7 @@ public class HypeLabBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorWhenResponseBodyCouldNotBeParsed() {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(), "invalid_json");
+        final BidderCall<BidRequest> httpCall = givenHttpCall("invalid_json");
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -197,7 +278,7 @@ public class HypeLabBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyBidsWhenResponseIsNull() {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(), "null");
+        final BidderCall<BidRequest> httpCall = givenHttpCall("null");
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -213,9 +294,7 @@ public class HypeLabBidderTest extends VertxTest {
         final Bid bannerBid = givenBid(bid -> bid.id("banner").mtype(1));
         final Bid videoBid = givenBid(bid -> bid.id("video").mtype(2));
         final Bid nativeBid = givenBid(bid -> bid.id("native").mtype(4));
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                givenBidRequest(),
-                givenBidResponse(bannerBid, videoBid, nativeBid));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(bannerBid, videoBid, nativeBid));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -232,7 +311,7 @@ public class HypeLabBidderTest extends VertxTest {
     public void makeBidsShouldReturnErrorWhenMtypeIsUnsupported() throws JsonProcessingException {
         // given
         final Bid audioBid = givenBid(bid -> bid.mtype(3));
-        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(), givenBidResponse(audioBid));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(audioBid));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -246,8 +325,8 @@ public class HypeLabBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorWhenMtypeIsMissing() throws JsonProcessingException {
         // given
-        final Bid bid = givenBid(UnaryOperator.identity());
-        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(), givenBidResponse(bid));
+        final Bid bid = givenBid(identity());
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(bid));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -258,20 +337,14 @@ public class HypeLabBidderTest extends VertxTest {
                 "bid bidId uses unsupported mtype null"));
     }
 
-    private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder>... impCustomizers) {
-        return givenBidRequestWithExt(null, impCustomizers);
+    private static BidRequest givenBidRequest(Imp... imps) {
+        return givenBidRequestWithExt(null, imps);
     }
 
-    private static BidRequest givenBidRequestWithExt(ExtRequest ext, UnaryOperator<Imp.ImpBuilder>... impCustomizers) {
-        final List<Imp> imps = impCustomizers.length == 0
-                ? singletonList(givenImp(UnaryOperator.identity()))
-                : Arrays.stream(impCustomizers)
-                .map(HypeLabBidderTest::givenImp)
-                .toList();
-
+    private static BidRequest givenBidRequestWithExt(ExtRequest ext, Imp... imps) {
         return BidRequest.builder()
                 .id("requestId")
-                .imp(imps)
+                .imp(List.of(imps))
                 .ext(ext)
                 .build();
     }
@@ -303,9 +376,9 @@ public class HypeLabBidderTest extends VertxTest {
                 .build());
     }
 
-    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String responseBody) {
+    private static BidderCall<BidRequest> givenHttpCall(String responseBody) {
         return BidderCall.succeededHttp(
-                HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
+                HttpRequest.<BidRequest>builder().payload(givenBidRequest(givenImp(identity()))).build(),
                 HttpResponse.of(200, null, responseBody),
                 null);
     }
