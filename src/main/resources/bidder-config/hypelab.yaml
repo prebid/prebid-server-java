@@ -2,6 +2,8 @@ adapters:
   hypelab:
     endpoint: https://api.hypelab.com/v1/rtb_requests
     ortb-version: "2.6"
+    aliases:
+      hype: ~
     meta-info:
       maintainer-email: sdk@hypelab.com
       site-media-types:

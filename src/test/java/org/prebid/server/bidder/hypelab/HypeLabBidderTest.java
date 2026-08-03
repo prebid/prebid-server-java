@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Native;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -230,62 +229,24 @@ public class HypeLabBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldUseHypeLabBidExtForBidType() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorWhenMtypeIsUnsupported() throws JsonProcessingException {
         // given
-        final Bid bannerBid = givenBid(bid -> bid.id("banner").ext(givenBidExt("display")));
-        final Bid videoBid = givenBid(bid -> bid.id("video").ext(givenBidExt("video")));
-        final Bid nativeBid = givenBid(bid -> bid.id("native").ext(givenBidExt("native")));
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                givenBidRequest(),
-                givenBidResponse(bannerBid, videoBid, nativeBid));
+        final Bid audioBid = givenBid(bid -> bid.mtype(3));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(), givenBidResponse(audioBid));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsExactly(
-                BidderBid.of(bannerBid, BidType.banner, "hypelab", "USD"),
-                BidderBid.of(videoBid, BidType.video, "hypelab", "USD"),
-                BidderBid.of(nativeBid, BidType.xNative, "hypelab", "USD"));
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).containsExactly(BidderError.badServerResponse(
+                "bid bidId uses unsupported mtype 3"));
     }
 
     @Test
-    public void makeBidsShouldUseVastMarkupForBidType() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorWhenMtypeIsMissing() throws JsonProcessingException {
         // given
-        final Bid videoBid = givenBid(bid -> bid.adm("  <VAST version=\"4.0\"></VAST>"));
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                givenBidRequest(),
-                givenBidResponse(videoBid));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsExactly(BidderBid.of(videoBid, BidType.video, "hypelab", "USD"));
-    }
-
-    @Test
-    public void makeBidsShouldInferBidTypeFromImp() throws JsonProcessingException {
-        // given
-        final Bid nativeBid = givenBid(UnaryOperator.identity());
-        final BidRequest bidRequest = givenBidRequestWithExt(null,
-                imp -> imp.id("impId").banner(null).xNative(Native.builder().build()));
-        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, givenBidResponse(nativeBid));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsExactly(BidderBid.of(nativeBid, BidType.xNative, "hypelab", "USD"));
-    }
-
-    @Test
-    public void makeBidsShouldReturnErrorWhenBidTypeCanNotBeInferred() throws JsonProcessingException {
-        // given
-        final Bid bid = givenBid(bidBuilder -> bidBuilder.impid("unknown"));
+        final Bid bid = givenBid(UnaryOperator.identity());
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(), givenBidResponse(bid));
 
         // when
@@ -294,23 +255,7 @@ public class HypeLabBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).containsExactly(BidderError.badServerResponse(
-                "unable to determine media type for bid bidId on imp unknown"));
-    }
-
-    @Test
-    public void makeBidsShouldReturnErrorWhenImpHasMultipleMediaTypes() throws JsonProcessingException {
-        // given
-        final Bid bid = givenBid(UnaryOperator.identity());
-        final BidRequest bidRequest = givenBidRequest(imp -> imp.xNative(Native.builder().build()));
-        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, givenBidResponse(bid));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).containsExactly(BidderError.badServerResponse(
-                "unable to determine media type for bid bidId on imp impId"));
+                "bid bidId uses unsupported mtype null"));
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder>... impCustomizers) {
@@ -349,11 +294,6 @@ public class HypeLabBidderTest extends VertxTest {
                         .impid("impId")
                         .price(BigDecimal.ONE))
                 .build();
-    }
-
-    private static ObjectNode givenBidExt(String creativeType) {
-        return mapper.createObjectNode()
-                .set("hypelab", mapper.createObjectNode().put("creative_type", creativeType));
     }
 
     private static String givenBidResponse(Bid... bids) throws JsonProcessingException {

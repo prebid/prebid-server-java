@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.hypelab;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -30,11 +29,7 @@ import org.prebid.server.version.PrebidVersionProvider;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public class HypeLabBidder implements Bidder<BidRequest> {
 
@@ -88,6 +83,9 @@ public class HypeLabBidder implements Bidder<BidRequest> {
                 errors);
     }
 
+    // The HypeLab exchange resolves the property and placement from
+    // imp.ext.bidder.property_slug / placement_slug, so the params must be
+    // forwarded in the outgoing request.
     private Imp makeOutgoingImp(Imp imp, ExtImpHypeLab extImp) {
         final String pbsVersion = pbsVersion();
 
@@ -114,6 +112,9 @@ public class HypeLabBidder implements Bidder<BidRequest> {
         return extImp;
     }
 
+    // Sets ext.source and ext.provider_version, which the HypeLab exchange
+    // requires to identify the integration type and version of the caller
+    // (its bidding logic differs between prebid and SDK traffic).
     private ExtRequest makeOutgoingRequestExt(ExtRequest ext) {
         final ExtRequest outgoingExt = ext != null ? ExtRequest.of(ext.getPrebid()) : ExtRequest.empty();
         if (ext != null) {
@@ -141,97 +142,42 @@ public class HypeLabBidder implements Bidder<BidRequest> {
         }
 
         final List<BidderError> errors = new ArrayList<>();
-        return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse, errors), errors);
+        return Result.of(extractBids(bidResponse, errors), errors);
     }
 
-    private static List<BidderBid> extractBids(BidRequest request, BidResponse response, List<BidderError> errors) {
+    private static List<BidderBid> extractBids(BidResponse response, List<BidderError> errors) {
         if (response == null || CollectionUtils.isEmpty(response.getSeatbid())) {
             return Collections.emptyList();
         }
-
-        final Map<String, Imp> impIdToImp = request.getImp().stream()
-                .collect(Collectors.toMap(Imp::getId, Function.identity()));
 
         return response.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .flatMap(seatBid -> CollectionUtils.emptyIfNull(seatBid.getBid()).stream()
                         .filter(Objects::nonNull)
-                        .map(bid -> makeBidderBid(bid, seatBid.getSeat(), impIdToImp, response.getCur(), errors))
+                        .map(bid -> makeBidderBid(bid, seatBid.getSeat(), response.getCur(), errors))
                         .filter(Objects::nonNull))
                 .toList();
     }
 
-    private static BidderBid makeBidderBid(Bid bid, String seat, Map<String, Imp> impIdToImp, String currency,
-                                           List<BidderError> errors) {
-
+    private static BidderBid makeBidderBid(Bid bid, String seat, String currency, List<BidderError> errors) {
         try {
-            return BidderBid.of(bid, resolveBidType(bid, impIdToImp), seat, currency);
+            return BidderBid.of(bid, resolveBidType(bid), seat, currency);
         } catch (PreBidException e) {
             errors.add(BidderError.badServerResponse(e.getMessage()));
             return null;
         }
     }
 
-    private static BidType resolveBidType(Bid bid, Map<String, Imp> impIdToImp) {
-        return bidTypeFromMtype(bid.getMtype())
-                .or(() -> bidTypeFromExt(bid))
-                .or(() -> bidTypeFromAdm(bid.getAdm()))
-                .or(() -> bidTypeFromImp(bid, impIdToImp))
-                .orElseThrow(() -> new PreBidException("unable to determine media type for bid %s on imp %s"
-                        .formatted(bid.getId(), bid.getImpid())));
-    }
-
-    private static Optional<BidType> bidTypeFromMtype(Integer mtype) {
-        return Optional.ofNullable(switch (mtype) {
+    // The HypeLab exchange sets mtype on every bid, so no markup or imp-based
+    // fallback is needed to resolve the media type.
+    private static BidType resolveBidType(Bid bid) {
+        return switch (bid.getMtype()) {
             case 1 -> BidType.banner;
             case 2 -> BidType.video;
             case 4 -> BidType.xNative;
-            case null, default -> null;
-        });
-    }
-
-    private static Optional<BidType> bidTypeFromExt(Bid bid) {
-        return Optional.ofNullable(bid.getExt())
-                .map(ext -> ext.get("hypelab"))
-                .map(hypelab -> hypelab.get("creative_type"))
-                .filter(JsonNode::isTextual)
-                .map(JsonNode::asText)
-                .map(creativeType -> switch (creativeType) {
-                    case "display" -> BidType.banner;
-                    case "video" -> BidType.video;
-                    case "native" -> BidType.xNative;
-                    default -> null;
-                });
-    }
-
-    private static Optional<BidType> bidTypeFromAdm(String adm) {
-        return StringUtils.startsWith(StringUtils.trimToEmpty(adm), "<VAST")
-                ? Optional.of(BidType.video)
-                : Optional.empty();
-    }
-
-    private static Optional<BidType> bidTypeFromImp(Bid bid, Map<String, Imp> impIdToImp) {
-        final Imp imp = impIdToImp.get(bid.getImpid());
-        if (imp == null) {
-            return Optional.empty();
-        }
-
-        BidType bidType = null;
-        int mediaTypeCount = 0;
-        if (imp.getBanner() != null) {
-            bidType = BidType.banner;
-            mediaTypeCount++;
-        }
-        if (imp.getVideo() != null) {
-            bidType = BidType.video;
-            mediaTypeCount++;
-        }
-        if (imp.getXNative() != null) {
-            bidType = BidType.xNative;
-            mediaTypeCount++;
-        }
-
-        return mediaTypeCount == 1 ? Optional.ofNullable(bidType) : Optional.empty();
+            case null, default -> throw new PreBidException(
+                    "bid %s uses unsupported mtype %s".formatted(bid.getId(), bid.getMtype()));
+        };
     }
 
     private String pbsVersion() {
