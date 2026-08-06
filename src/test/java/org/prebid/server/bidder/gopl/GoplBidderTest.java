@@ -48,7 +48,7 @@ public class GoplBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://randomurl.com?bdver=6.0");
+                .containsExactly("https://randomurl.com?bdver=7.0");
     }
 
     @Test
