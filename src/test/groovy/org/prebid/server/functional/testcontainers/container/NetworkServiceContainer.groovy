@@ -1,16 +1,18 @@
 package org.prebid.server.functional.testcontainers.container
 
-import org.testcontainers.containers.MockServerContainer
+import org.testcontainers.containers.GenericContainer
 import org.testcontainers.containers.Network
 import org.testcontainers.utility.DockerImageName
 
-class NetworkServiceContainer extends MockServerContainer {
+class NetworkServiceContainer extends GenericContainer<NetworkServiceContainer> {
 
-    NetworkServiceContainer(String version) {
-        super(DockerImageName.parse("mockserver/mockserver:mockserver-$version"))
+    NetworkServiceContainer() {
+        super(DockerImageName.parse("wiremock/wiremock:3.3.1"))
         def aliasWithTopLevelDomain = "${getNetworkAliases().first()}.com".toString()
         withCreateContainerCmdModifier { it.withHostName(aliasWithTopLevelDomain) }
         setNetworkAliases([aliasWithTopLevelDomain])
+        withCommand("--disable-gzip")
+        withExposedPorts(8080)
     }
 
     String getHostAndPort() {

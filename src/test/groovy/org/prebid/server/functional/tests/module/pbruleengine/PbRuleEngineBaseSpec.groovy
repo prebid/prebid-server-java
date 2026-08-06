@@ -38,7 +38,6 @@ import static org.prebid.server.functional.model.request.auction.TraceLevel.VERB
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 
-@Retry //TODO remove in 3.34+
 abstract class PbRuleEngineBaseSpec extends ModuleBaseSpec {
 
     protected static final List<BidderName> MULTI_BID_ADAPTERS = [GENERIC, OPENX, AMX].sort()
@@ -77,8 +76,9 @@ abstract class PbRuleEngineBaseSpec extends ModuleBaseSpec {
     protected static final Map<String, String> AMX_CONFIG = ["adapters.${AMX}.enabled"            : "true",
                                                              "adapters.${AMX}.endpoint"           : "$networkServiceContainer.rootUri/auction".toString(),
                                                              "adapters.${AMX}.meta-info.vendor-id": AMX_VENDOR_ID as String]
-    protected static final Map<String, String> OPENX_ALIAS_CONFIG = ["adapters.${OPENX}.aliases.${OPENX_ALIAS}.enabled" : "true",
-                                                                     "adapters.${OPENX}.aliases.${OPENX_ALIAS}.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
+    protected static final Map<String, String> OPENX_ALIAS_CONFIG = ["adapters.${OPENX}.aliases.${OPENX_ALIAS}.enabled"            : "true",
+                                                                     "adapters.${OPENX}.aliases.${OPENX_ALIAS}.meta-info.vendor-id": "0",
+                                                                     "adapters.${OPENX}.aliases.${OPENX_ALIAS}.endpoint"           : "$networkServiceContainer.rootUri/auction".toString()]
     protected static final String CONFIG_DATA_CENTER = PBSUtils.randomString
     private static final String USER_SYNC_URL = "$networkServiceContainer.rootUri/generic-usersync"
     private static final Map<String, String> GENERIC_CONFIG = [
@@ -90,7 +90,6 @@ abstract class PbRuleEngineBaseSpec extends ModuleBaseSpec {
 
     protected static BidRequest getDefaultBidRequestWithMultiplyBidders(DistributionChannel distributionChannel = SITE) {
         BidRequest.getDefaultBidRequest(distributionChannel).tap {
-            it.tmax = 5_000 // prevents timeout issues on slow pipelines
             it.imp[0].ext.prebid.bidder.amx = new Amx()
             it.imp[0].ext.prebid.bidder.openx = Openx.defaultOpenx
             it.imp[0].ext.prebid.bidder.generic = new Generic()

@@ -66,9 +66,10 @@ import static org.assertj.core.api.Assertions.within;
 public class ApplicationTest extends IntegrationTest {
 
     private static final String APPNEXUS = "appnexus";
-    private static final String RUBICON = "rubicon";
+    private static final String MAGNITE = "magnite";
     private static final String GENERIC = "generic";
     private static final String GENERIC_ALIAS = "genericAlias";
+    private static final String MAGNITE_COOKIE = "rubicon";
 
     private static final int ADMIN_PORT = 8060;
 
@@ -295,7 +296,7 @@ public class ApplicationTest extends IntegrationTest {
         final CookieSyncResponse cookieSyncResponse = given(SPEC)
                 .cookies("host-cookie-name", "host-cookie-uid")
                 .body(CookieSyncRequest.builder()
-                        .bidders(Set.of(RUBICON, APPNEXUS))
+                        .bidders(Set.of(MAGNITE, APPNEXUS))
                         .gdpr(1)
                         .gdprConsent(gdprConsent)
                         .usPrivacy("1YNN")
@@ -312,10 +313,10 @@ public class ApplicationTest extends IntegrationTest {
         assertThat(cookieSyncResponse.getStatus()).isEqualTo(CookieSyncStatus.OK);
         assertThat(cookieSyncResponse.getBidderStatus()).containsExactlyInAnyOrder(
                 BidderUsersyncStatus.builder()
-                        .bidder(RUBICON)
+                        .bidder(MAGNITE)
                         .noCookie(true)
                         .usersync(UsersyncInfo.of(
-                                "http://localhost:8080/setuid?bidder=rubicon"
+                                "http://localhost:8080/setuid?bidder=magnite"
                                         + "&gdpr=1&gdpr_consent=" + gdprConsent
                                         + "&us_privacy=1YNN"
                                         + "&gpp="
@@ -348,7 +349,7 @@ public class ApplicationTest extends IntegrationTest {
                 .cookie("uids", "eyAidGVtcFVJRHMiOnsgInJ1Ymljb24iOnsgInVpZCI6Iko1VkxDV1FQ"
                         + "LTI2LUNXRlQiLCAiZXhwaXJlcyI6IjIwMjMtMTItMDVUMTk6MDA6MDUuMTAzMzI5LTAzOjAwIiB9IH0gfQ==")
                 // this constant is ok to use as long as it coincides with family name
-                .queryParam("bidder", RUBICON)
+                .queryParam("bidder", MAGNITE)
                 .queryParam("uid", "updatedUid")
                 .queryParam("gdpr", "1")
                 .queryParam("gdpr_consent", "CPBCKiyPBCKiyAAAAAENA0CAAIAAAAAAACiQAaQAwAAgAgABoAAAAAA")
@@ -369,9 +370,9 @@ public class ApplicationTest extends IntegrationTest {
                 .extracting(Map::keySet)
                 .extracting(ArrayList::new)
                 .asList()
-                .containsExactly(RUBICON);
-        assertThat(uids.getUids().get(RUBICON).getUid()).isEqualTo("updatedUid");
-        assertThat(uids.getUids().get(RUBICON).getExpires().toInstant())
+                .containsExactly(MAGNITE_COOKIE);
+        assertThat(uids.getUids().get(MAGNITE_COOKIE).getUid()).isEqualTo("updatedUid");
+        assertThat(uids.getUids().get(MAGNITE_COOKIE).getExpires().toInstant())
                 .isCloseTo(Instant.now().plus(14, ChronoUnit.DAYS), within(10, ChronoUnit.SECONDS));
     }
 
@@ -518,7 +519,7 @@ public class ApplicationTest extends IntegrationTest {
     public void infoBidderDetailsShouldReturnMetadataForBidder() throws IOException {
         given(SPEC)
                 .when()
-                .get("/info/bidders/rubicon")
+                .get("/info/bidders/magnite")
                 .then()
                 .assertThat()
                 .body(Matchers.equalTo(jsonFrom("info-bidders/test-info-bidder-details-response.json")));
@@ -660,7 +661,7 @@ public class ApplicationTest extends IntegrationTest {
                 .param("level", "error")
                 .param("duration", "1000")
                 .param("account", "1001")
-                .param("bidderCode", "rubicon")
+                .param("bidderCode", MAGNITE)
                 .post("/pbs-admin/tracelog")
                 .then()
                 .assertThat()

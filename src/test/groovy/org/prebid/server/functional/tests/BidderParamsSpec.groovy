@@ -3,6 +3,7 @@ package org.prebid.server.functional.tests
 import org.prebid.server.functional.model.bidder.AppNexus
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.bidder.Generic
+import org.prebid.server.functional.model.config.Endpoint
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredImp
 import org.prebid.server.functional.model.db.StoredRequest
@@ -146,7 +147,7 @@ class BidderParamsSpec extends BaseSpec {
         then: "vast xml is modified"
         def prebidCacheRequest = prebidCache.getXmlRecordedRequestsBody(payload)
         assert prebidCacheRequest.size() == 1
-        assert prebidCacheRequest.first().contains("/event?t=imp&b=${request.puts[0].bidid}&a=$accountId&bidder=${request.puts[0].bidder}")
+        assert prebidCacheRequest.first().contains("${Endpoint.EVENT}?t=imp&b=${request.puts[0].bidid}&a=$accountId&bidder=${request.puts[0].bidder}")
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsConfig)
@@ -178,7 +179,7 @@ class BidderParamsSpec extends BaseSpec {
         then: "vast xml is not modified"
         def prebidCacheRequest = prebidCache.getXmlRecordedRequestsBody(payload)
         assert prebidCacheRequest.size() == 1
-        assert !prebidCacheRequest.first().contains("/event?t=imp&b=${request.puts[0].bidid}&a=$accountId&bidder=${request.puts[0].bidder}")
+        assert !prebidCacheRequest.first().contains("${Endpoint.EVENT}?t=imp&b=${request.puts[0].bidid}&a=$accountId&bidder=${request.puts[0].bidder}")
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsConfig)
@@ -1016,6 +1017,7 @@ class BidderParamsSpec extends BaseSpec {
         given: "PBS with adapter configuration"
         def pbsConfig = [
                 "adapters.generic.aliases.alias.enabled"                    : "true",
+                "adapters.generic.aliases.alias.meta-info.vendor-id"        : "0",
                 "adapters.generic.aliases.alias.endpoint"                   : "$networkServiceContainer.rootUri/auction".toString(),
                 "adapters.generic.aliases.alias.meta-info.currency-accepted": ""]
         def pbsService = pbsServiceFactory.getService(pbsConfig)
@@ -1136,6 +1138,7 @@ class BidderParamsSpec extends BaseSpec {
         given: "PBS with adapter configuration"
         def pbsConfig = [
                 "adapters.generic.aliases.alias.enabled"                    : "true",
+                "adapters.generic.aliases.alias.meta-info.vendor-id"        : "0",
                 "adapters.generic.aliases.alias.endpoint"                   : "$networkServiceContainer.rootUri/auction".toString(),
                 "adapters.generic.aliases.alias.meta-info.currency-accepted": "${USD},${EUR}".toString()]
         def pbsService = pbsServiceFactory.getService(pbsConfig)
@@ -1181,6 +1184,7 @@ class BidderParamsSpec extends BaseSpec {
         given: "PBS with adapter configuration"
         def pbsConfig = [
                 "adapters.generic.aliases.alias.enabled"                    : "true",
+                "adapters.generic.aliases.alias.meta-info.vendor-id"        : "0",
                 "adapters.generic.aliases.alias.endpoint"                   : "$networkServiceContainer.rootUri/auction".toString(),
                 "adapters.generic.aliases.alias.meta-info.currency-accepted": "${JPY},${CHF}".toString()]
         def pbsService = pbsServiceFactory.getService(pbsConfig)
@@ -1348,8 +1352,9 @@ class BidderParamsSpec extends BaseSpec {
 
     def "PBS should populate same code for adapter code when make call for generic hard code alias"() {
         given: "PBS config with bidder"
-        def pbsConfig = ["adapters.generic.aliases.alias.enabled" : "true",
-                         "adapters.generic.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
+        def pbsConfig = ["adapters.generic.aliases.alias.enabled"            : "true",
+                         "adapters.generic.aliases.alias.meta-info.vendor-id": "0",
+                         "adapters.generic.aliases.alias.endpoint"           : "$networkServiceContainer.rootUri/auction".toString()]
         def defaultPbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request with alias"
@@ -1389,10 +1394,11 @@ class BidderParamsSpec extends BaseSpec {
 
     def "PBS should make call for alias when hard alias and demandSource specified"() {
         given: "PBS config with bidder"
-        def pbsConfig = ["adapters.amx.enabled"               : "true",
-                         "adapters.amx.endpoint"              : "$networkServiceContainer.rootUri/auction".toString(),
-                         "adapters.amx.aliases.alias.enabled" : "true",
-                         "adapters.amx.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
+        def pbsConfig = ["adapters.amx.enabled"                          : "true",
+                         "adapters.amx.endpoint"                         : "$networkServiceContainer.rootUri/auction".toString(),
+                         "adapters.amx.aliases.alias.enabled"            : "true",
+                         "adapters.amx.aliases.alias.meta-info.vendor-id": "0",
+                         "adapters.amx.aliases.alias.endpoint"           : "$networkServiceContainer.rootUri/auction".toString()]
         def defaultPbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid Request with generic and openx bidder within separate imps"
@@ -1536,10 +1542,11 @@ class BidderParamsSpec extends BaseSpec {
 
     def "PBS should populate adapter code with requested bidder when conflict with soft and hard alias"() {
         given: "PBS config with bidder"
-        def pbsConfig = ["adapters.amx.enabled"               : "true",
-                         "adapters.amx.endpoint"              : "$networkServiceContainer.rootUri/auction".toString(),
-                         "adapters.amx.aliases.alias.enabled" : "true",
-                         "adapters.amx.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
+        def pbsConfig = ["adapters.amx.enabled"                          : "true",
+                         "adapters.amx.endpoint"                         : "$networkServiceContainer.rootUri/auction".toString(),
+                         "adapters.amx.aliases.alias.enabled"            : "true",
+                         "adapters.amx.aliases.alias.meta-info.vendor-id": "0",
+                         "adapters.amx.aliases.alias.endpoint"           : "$networkServiceContainer.rootUri/auction".toString()]
         def defaultPbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Bid request with amx bidder and targeting"
@@ -1579,10 +1586,11 @@ class BidderParamsSpec extends BaseSpec {
 
     def "PBS should populate adapter code with requested bidder when conflict with soft and generic hard alias"() {
         given: "PBS config with bidders"
-        def pbsConfig = ["adapters.amx.enabled"                   : "true",
-                         "adapters.amx.endpoint"                  : "$networkServiceContainer.rootUri/auction".toString(),
-                         "adapters.generic.aliases.alias.enabled" : "true",
-                         "adapters.generic.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
+        def pbsConfig = ["adapters.amx.enabled"                              : "true",
+                         "adapters.amx.endpoint"                             : "$networkServiceContainer.rootUri/auction".toString(),
+                         "adapters.generic.aliases.alias.enabled"            : "true",
+                         "adapters.generic.aliases.alias.meta-info.vendor-id": "0",
+                         "adapters.generic.aliases.alias.endpoint"           : "$networkServiceContainer.rootUri/auction".toString()]
         def defaultPbsService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Bid request with amx bidder and targeting"

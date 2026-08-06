@@ -6,7 +6,7 @@ import groovy.transform.ToString
 import org.prebid.server.functional.model.bidder.AppNexus
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.bidder.Openx
-import org.prebid.server.functional.model.bidder.Rubicon
+import org.prebid.server.functional.model.bidder.Magnite
 
 @ToString(includeNames = true, ignoreNulls = true)
 class Bidder {
@@ -19,7 +19,7 @@ class Bidder {
     Generic generX
     @JsonProperty("GeNerIc")
     Generic genericCamelCase
-    Rubicon rubicon
+    Magnite magnite
     @JsonProperty("appnexus")
     AppNexus appNexus
     Openx openx
