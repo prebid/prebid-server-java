@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.sspbc;
+package org.prebid.server.bidder.gopl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.BidRequest;
@@ -9,6 +9,8 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
+import org.prebid.server.bidder.gopl.GoplBidder;
+import org.prebid.server.bidder.gopl.GoplRequest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
@@ -25,15 +27,15 @@ import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
-public class SspbcBidderTest extends VertxTest {
+public class GoplBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://randomurl.com";
 
-    private final SspbcBidder target = new SspbcBidder(ENDPOINT_URL, jacksonMapper);
+    private final GoplBidder target = new GoplBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new SspbcBidder("invalid_url", jacksonMapper));
+        assertThatIllegalArgumentException().isThrownBy(() -> new GoplBidder("invalid_url", jacksonMapper));
     }
 
     @Test
@@ -42,7 +44,7 @@ public class SspbcBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<SspbcRequest>>> result = target.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<GoplRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -57,18 +59,18 @@ public class SspbcBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         //when
-        final Result<List<HttpRequest<SspbcRequest>>> result = target.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<GoplRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().getFirst().getPayload()).isEqualTo(SspbcRequest.of(bidRequest));
+        assertThat(result.getValue().getFirst().getPayload()).isEqualTo(GoplRequest.of(bidRequest));
     }
 
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final BidderCall<SspbcRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<GoplRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -85,7 +87,7 @@ public class SspbcBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
-        final BidderCall<SspbcRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
+        final BidderCall<GoplRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -98,7 +100,7 @@ public class SspbcBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorWhenAdmIsEmpty() throws JsonProcessingException {
         // given
-        final BidderCall<SspbcRequest> httpCall = givenHttpCall(givenBidRequest(identity(),
+        final BidderCall<GoplRequest> httpCall = givenHttpCall(givenBidRequest(identity(),
                         impBuilder -> impBuilder.id("id").tagid("tagId")),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder ->
                         bidBuilder
@@ -117,7 +119,7 @@ public class SspbcBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorWhenMTypeIsIncorrect() throws JsonProcessingException {
         // given
-        final BidderCall<SspbcRequest> httpCall = givenHttpCall(givenBidRequest(identity(),
+        final BidderCall<GoplRequest> httpCall = givenHttpCall(givenBidRequest(identity(),
                         impBuilder -> impBuilder.id("id").tagid("tagId")),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder ->
                         bidBuilder
@@ -137,7 +139,7 @@ public class SspbcBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldParseBid() throws JsonProcessingException {
         // given
-        final BidderCall<SspbcRequest> httpCall = givenHttpCall(givenBidRequest(
+        final BidderCall<GoplRequest> httpCall = givenHttpCall(givenBidRequest(
                         bidRequestBuilder -> bidRequestBuilder
                                 .id("bidRequestId")
                                 .site(Site.builder()
@@ -191,9 +193,9 @@ public class SspbcBidderTest extends VertxTest {
                 .build();
     }
 
-    private static BidderCall<SspbcRequest> givenHttpCall(BidRequest bidRequest, String body) {
+    private static BidderCall<GoplRequest> givenHttpCall(BidRequest bidRequest, String body) {
         return BidderCall.succeededHttp(
-                HttpRequest.<SspbcRequest>builder().payload(SspbcRequest.of(bidRequest)).build(),
+                HttpRequest.<GoplRequest>builder().payload(GoplRequest.of(bidRequest)).build(),
                 HttpResponse.of(200, null, body),
                 null);
     }
