@@ -9,8 +9,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
-import org.prebid.server.bidder.gopl.GoplBidder;
-import org.prebid.server.bidder.gopl.GoplRequest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
