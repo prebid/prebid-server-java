@@ -8,7 +8,7 @@ import java.util.List;
 /**
  * Defines the contract for bidrequest.ext.prebid.sdk
  */
-@Value
+@Value(staticConstructor = "of")
 public class ExtRequestPrebidSdk {
 
     /**
@@ -22,7 +22,4 @@ public class ExtRequestPrebidSdk {
     @JsonProperty("usepxratio")
     Boolean usePxRatio;
 
-    public static ExtRequestPrebidSdk of(List<ExtRequestPrebidSdkRenderer> renderers, Boolean usePxRatio) {
-        return new ExtRequestPrebidSdk(renderers, usePxRatio);
-    }
 }

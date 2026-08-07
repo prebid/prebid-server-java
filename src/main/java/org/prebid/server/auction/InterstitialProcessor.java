@@ -395,15 +395,18 @@ public class InterstitialProcessor {
         int w;
         int h;
 
-        private static Stream<InterstitialSize> getNestedSizes(double minWidth, double minHeight,
-                                                                 InterstitialSize max) {
+        private static Stream<InterstitialSize> getNestedSizes(double minWidth,
+                                                               double minHeight,
+                                                               InterstitialSize max) {
             return INTERSTITIAL_SIZES.stream()
                     .filter(size -> isNested(size, minWidth, minHeight, max))
                     .limit(MAX_SIZES_COUNT);
         }
 
-        private static boolean isNested(InterstitialSize size, double minWidth, double minHeight,
-                                         InterstitialSize max) {
+        private static boolean isNested(InterstitialSize size,
+                                        double minWidth,
+                                        double minHeight,
+                                        InterstitialSize max) {
             return size.w >= minWidth && size.w <= max.w && size.h >= minHeight && size.h <= max.h;
         }
     }

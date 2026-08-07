@@ -138,8 +138,10 @@ public class InterstitialProcessorTest extends VertxTest {
     public void processShouldReturnBidRequestUpdatedWithInterstitialFormatsUsingDeviceSizeInDipsWhenFormatIsOneToOne() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder().banner(Banner.builder().format(singletonList(
-                        Format.builder().w(1).h(1).build())).build()).instl(1).build()))
+                .imp(singletonList(Imp.builder()
+                        .banner(Banner.builder().format(singletonList(Format.builder().w(1).h(1).build())).build())
+                        .instl(1)
+                        .build()))
                 .device(Device.builder()
                         .w(1080)
                         .h(1920)
@@ -172,8 +174,9 @@ public class InterstitialProcessorTest extends VertxTest {
     public void processShouldNotConvertExplicitFormatSizeUsingDevicePxratio() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder().banner(Banner.builder()
-                                .format(singletonList(Format.builder().w(400).h(600).build())).build()).instl(1)
+                .imp(singletonList(Imp.builder()
+                        .banner(Banner.builder().format(singletonList(Format.builder().w(400).h(600).build())).build())
+                        .instl(1)
                         .build()))
                 .device(Device.builder()
                         .w(1080)
@@ -266,8 +269,9 @@ public class InterstitialProcessorTest extends VertxTest {
     public void processShouldNotTruncateMinimumInterstitialSizeThreshold() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder().banner(Banner.builder()
-                                .format(singletonList(Format.builder().w(301).h(500).build())).build()).instl(1)
+                .imp(singletonList(Imp.builder()
+                        .banner(Banner.builder().format(singletonList(Format.builder().w(301).h(500).build())).build())
+                        .instl(1)
                         .build()))
                 .device(Device.builder()
                         .ext(ExtDevice.of(null, ExtDevicePrebid.of(ExtDeviceInt.of(80, 80))))
