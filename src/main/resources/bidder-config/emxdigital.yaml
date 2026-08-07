@@ -10,6 +10,10 @@ adapters:
         geoscope:
           - USA
           - CAN
+      emx_digital:
+        enabled: false
+        meta-info:
+          vendor-id: 183
     meta-info:
       maintainer-email: contactaperturemx@cadent.tv
       app-media-types:
