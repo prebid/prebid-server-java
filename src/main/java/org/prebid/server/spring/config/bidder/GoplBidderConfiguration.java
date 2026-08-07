@@ -1,7 +1,7 @@
 package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.sspbc.SspbcBidder;
+import org.prebid.server.bidder.gopl.GoplBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -12,24 +12,24 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 
 @Configuration
-@PropertySource(value = "classpath:/bidder-config/sspbc.yaml", factory = YamlPropertySourceFactory.class)
-public class SspbcBidderConfiguration {
+@PropertySource(value = "classpath:/bidder-config/gopl.yaml", factory = YamlPropertySourceFactory.class)
+public class GoplBidderConfiguration {
 
-    private static final String BIDDER_NAME = "sspbc";
+    private static final String BIDDER_NAME = "gopl";
 
-    @Bean("sspbcConfigurationProperties")
-    @ConfigurationProperties("adapters.sspbc")
+    @Bean("goplConfigurationProperties")
+    @ConfigurationProperties("adapters.gopl")
     BidderConfigurationProperties configurationProperties() {
         return new BidderConfigurationProperties();
     }
 
     @Bean
-    BidderDeps sspbcBidderDeps(BidderConfigurationProperties sspbcConfigurationProperties,
+    BidderDeps goplBidderDeps(BidderConfigurationProperties goplConfigurationProperties,
                                JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
-                .withConfig(sspbcConfigurationProperties)
-                .bidderCreator(config -> new SspbcBidder(config.getEndpoint(), mapper))
+                .withConfig(goplConfigurationProperties)
+                .bidderCreator(config -> new GoplBidder(config.getEndpoint(), mapper))
                 .assemble();
     }
 }
