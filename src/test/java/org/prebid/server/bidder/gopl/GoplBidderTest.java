@@ -169,6 +169,69 @@ public class GoplBidderTest extends VertxTest {
                 .containsExactly(BidType.banner);
     }
 
+    @Test
+    public void makeBidsShouldParseVideoBid() throws JsonProcessingException {
+        // given
+        final BidderCall<GoplRequest> httpCall = givenHttpCall(givenBidRequest(identity(),
+                        impBuilder -> impBuilder.id("id").tagid("tagId")),
+                mapper.writeValueAsString(givenBidResponse(bidBuilder ->
+                        bidBuilder
+                                .impid("id")
+                                .adm("anyAdm")
+                                .mtype(2))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getType)
+                .containsExactly(BidType.video);
+    }
+
+    @Test
+    public void makeBidsShouldParseAudioBid() throws JsonProcessingException {
+        // given
+        final BidderCall<GoplRequest> httpCall = givenHttpCall(givenBidRequest(identity(),
+                        impBuilder -> impBuilder.id("id").tagid("tagId")),
+                mapper.writeValueAsString(givenBidResponse(bidBuilder ->
+                        bidBuilder
+                                .impid("id")
+                                .adm("anyAdm")
+                                .mtype(3))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getType)
+                .containsExactly(BidType.audio);
+    }
+
+    @Test
+    public void makeBidsShouldParseNativeBid() throws JsonProcessingException {
+        // given
+        final BidderCall<GoplRequest> httpCall = givenHttpCall(givenBidRequest(identity(),
+                        impBuilder -> impBuilder.id("id").tagid("tagId")),
+                mapper.writeValueAsString(givenBidResponse(bidBuilder ->
+                        bidBuilder
+                                .impid("id")
+                                .adm("anyAdm")
+                                .mtype(4))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getType)
+                .containsExactly(BidType.xNative);
+    }
+
     private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
         return givenBidRequest(identity(), impCustomizer);
     }
