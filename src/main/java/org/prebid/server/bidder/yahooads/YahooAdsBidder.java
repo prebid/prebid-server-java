@@ -1,10 +1,8 @@
 package org.prebid.server.bidder.yahooads;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.IntNode;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -20,8 +18,6 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
-import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -32,9 +28,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
-import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsa;
 import org.prebid.server.proto.openrtb.ext.request.yahooads.ExtImpYahooAds;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -44,7 +38,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 public class YahooAdsBidder implements Bidder<BidRequest> {
 
@@ -52,16 +45,17 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
+    private static final String OPENRTB_VERSION = "2.6";
+    private static final String GPP_PROPERTY = "gpp";
+    private static final String GPP_SID_PROPERTY = "gpp_sid";
+
     private final String endpointUrl;
-    private final BidRequestOrtbVersionConversionManager conversionManager;
     private final JacksonMapper mapper;
 
     public YahooAdsBidder(String endpointUrl,
-                          BidRequestOrtbVersionConversionManager conversionManager,
                           JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
-        this.conversionManager = Objects.requireNonNull(conversionManager);
     }
 
     @Override
@@ -70,16 +64,15 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
         final List<BidderError> errors = new ArrayList<>();
 
         final Regs regs = bidRequest.getRegs();
-        final BidRequest bidRequestOpenRtb25 = this.conversionManager.convertFromAuctionSupportedVersion(bidRequest,
-                OrtbVersion.ORTB_2_5);
+        final Regs promotedRegs = regs != null ? promoteRegsExtToTopLevel(regs) : null;
 
-        final List<Imp> impList = bidRequestOpenRtb25.getImp();
+        final List<Imp> impList = bidRequest.getImp();
         for (int i = 0; i < impList.size(); i++) {
             try {
                 final Imp imp = impList.get(i);
                 final ExtImpYahooAds extImpYahooAds = parseAndValidateImpExt(imp.getExt(), i);
-                final BidRequest modifiedRequest = modifyRequest(bidRequestOpenRtb25, imp, extImpYahooAds,
-                        regs);
+                final BidRequest modifiedRequest = modifyRequest(bidRequest, imp, extImpYahooAds,
+                        promotedRegs);
                 bidRequests.add(makeHttpRequest(modifiedRequest));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
@@ -112,7 +105,7 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
     }
 
     private BidRequest modifyRequest(BidRequest request, Imp imp, ExtImpYahooAds extImpYahooAds,
-                                     Regs regs) {
+                                     Regs promotedRegs) {
         final BidRequest.BidRequestBuilder requestBuilder = request.toBuilder();
 
         final Site site = request.getSite();
@@ -124,8 +117,8 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
             requestBuilder.app(app.toBuilder().id(extImpYahooAds.getDcn()).build());
         }
 
-        if (regs != null) {
-            requestBuilder.regs(modifyRegs(regs));
+        if (promotedRegs != null) {
+            requestBuilder.regs(promotedRegs);
         }
 
         return requestBuilder
@@ -170,50 +163,88 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private Regs modifyRegs(Regs regs) {
-        final ExtRegs extRegs = resolveExtRegs(regs);
-
-        return Regs.builder().ext(extRegs).build();
-    }
-
-    private ExtRegs resolveExtRegs(Regs regs) {
-        final Integer gdpr = resolveGdpr(regs);
-        final String usPrivacy = resolveUsPrivacy(regs);
-        final String gpp = regs.getGpp();
-        final List<Integer> gppSid = regs.getGppSid();
-
-        final String gpc = Optional.ofNullable(regs.getExt())
-                .map(ExtRegs::getGpc)
-                .orElse(null);
-        final ExtRegsDsa dsa = Optional.ofNullable(regs.getExt())
-                .map(ExtRegs::getDsa)
-                .orElse(null);
-        final ExtRegs extRegs = ExtRegs.of(gdpr, usPrivacy, gpc, dsa);
-        extRegs.addProperty("gpp", TextNode.valueOf(gpp));
-        if (!CollectionUtils.isEmpty(gppSid)) {
-            final ArrayNode gppArrayNode = mapper.mapper().createArrayNode();
-            gppSid.forEach(gppArrayNode::add);
-            extRegs.addProperty("gpp_sid", gppArrayNode);
-        }
-        if (regs.getCoppa() != null) {
-            extRegs.addProperty("coppa", IntNode.valueOf(regs.getCoppa()));
+    // Promote legacy 2.5 regs.ext gpp/gpp_sid to their 2.6 top-level slots.
+    // An ext key is removed whenever the outbound request has a top-level value for that
+    // field, so one signal never goes out with two values; everything else stays in ext.
+    private static Regs promoteRegsExtToTopLevel(Regs regs) {
+        final ExtRegs ext = regs.getExt();
+        if (ext == null || ext.getProperties().isEmpty()) {
+            return regs;
         }
 
-        Optional.ofNullable(regs.getExt())
-                .map(FlexibleExtension::getProperties)
-                .ifPresent(extRegs::addProperties);
+        final String promotedGpp = gppToPromote(regs, ext);
+        final List<Integer> promotedGppSid = gppSidToPromote(regs, ext);
 
-        return extRegs;
+        final boolean gppSuperseded = ext.containsProperty(GPP_PROPERTY)
+                && (promotedGpp != null || regs.getGpp() != null);
+        final boolean gppSidSuperseded = ext.containsProperty(GPP_SID_PROPERTY)
+                && (promotedGppSid != null || !CollectionUtils.isEmpty(regs.getGppSid()));
+
+        if (!gppSuperseded && !gppSidSuperseded) {
+            return regs;
+        }
+
+        final Regs.RegsBuilder builder = regs.toBuilder();
+        if (promotedGpp != null) {
+            builder.gpp(promotedGpp);
+        }
+        if (promotedGppSid != null) {
+            builder.gppSid(promotedGppSid);
+        }
+        return builder
+                .ext(removeSupersededKeys(ext, gppSuperseded, gppSidSuperseded))
+                .build();
     }
 
-    private static Integer resolveGdpr(Regs regs) {
-        return regs.getGdpr() != null ? regs.getGdpr()
-                : (regs.getExt() != null ? regs.getExt().getGdpr() : null);
+    // Value to lift from ext, or null when top-level already has it or ext lacks a valid value.
+    private static String gppToPromote(Regs regs, ExtRegs ext) {
+        if (regs.getGpp() != null) {
+            return null;
+        }
+        final JsonNode node = ext.getProperties().get(GPP_PROPERTY);
+        return node != null && node.isTextual() ? node.asText() : null;
     }
 
-    private static String resolveUsPrivacy(Regs regs) {
-        return regs.getUsPrivacy() != null ? regs.getUsPrivacy()
-                : (regs.getExt() != null ? regs.getExt().getUsPrivacy() : null);
+    private static List<Integer> gppSidToPromote(Regs regs, ExtRegs ext) {
+        if (!CollectionUtils.isEmpty(regs.getGppSid())) {
+            return null;
+        }
+        final JsonNode node = ext.getProperties().get(GPP_SID_PROPERTY);
+        if (node == null || !node.isArray() || node.isEmpty()) {
+            return null;
+        }
+        final List<Integer> sids = new ArrayList<>(node.size());
+        for (final JsonNode elem : node) {
+            if (!elem.isIntegralNumber() || !elem.canConvertToInt()) {
+                return null;
+            }
+            sids.add(elem.asInt());
+        }
+        return sids;
+    }
+
+    // Rebuild regs.ext keeping the typed fields and every property except the superseded keys.
+    private static ExtRegs removeSupersededKeys(ExtRegs ext,
+                                                boolean gppSuperseded,
+                                                boolean gppSidSuperseded) {
+        final ExtRegs result = ExtRegs.of(
+                ext.getGdpr(), ext.getUsPrivacy(), ext.getGpc(), ext.getDsa());
+        ext.getProperties().forEach((key, value) -> {
+            final boolean isSupersededKey = (gppSuperseded && GPP_PROPERTY.equals(key))
+                    || (gppSidSuperseded && GPP_SID_PROPERTY.equals(key));
+            if (!isSupersededKey) {
+                result.addProperty(key, value);
+            }
+        });
+        return isExtEmpty(result) ? null : result;
+    }
+
+    private static boolean isExtEmpty(ExtRegs ext) {
+        return ext.getGdpr() == null
+                && ext.getUsPrivacy() == null
+                && ext.getGpc() == null
+                && ext.getDsa() == null
+                && ext.getProperties().isEmpty();
     }
 
     private HttpRequest<BidRequest> makeHttpRequest(BidRequest outgoingRequest) {
@@ -228,7 +259,7 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
 
     private static MultiMap makeHeaders(Device device) {
         final MultiMap headers = HttpUtil.headers()
-                .add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
+                .add(HttpUtil.X_OPENRTB_VERSION_HEADER, OPENRTB_VERSION);
 
         final String deviceUa = device != null ? device.getUa() : null;
         HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, deviceUa);
