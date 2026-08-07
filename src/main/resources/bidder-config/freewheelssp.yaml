@@ -4,6 +4,10 @@ adapters:
     ortb-version: "2.6"
     modifying-vast-xml-allowed: true
     aliases:
+      freewheel-ssp:
+        enabled: false
+        meta-info:
+          vendor-id: 285
       fwssp:
         enabled: false
         endpoint: "https://prebid.v.fwmrm.net/ortb/ssp"
