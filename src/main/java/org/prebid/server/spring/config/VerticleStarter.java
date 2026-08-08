@@ -30,11 +30,10 @@ public class VerticleStarter {
                 continue;
             }
 
-            contextRunner.<String>runBlocking(promise ->
+            contextRunner.runBlocking(() ->
                     vertx.deployVerticle(
                             definition.getFactory(),
-                            new DeploymentOptions().setInstances(definition.getAmount()),
-                            promise));
+                            new DeploymentOptions().setInstances(definition.getAmount())));
         }
     }
 }

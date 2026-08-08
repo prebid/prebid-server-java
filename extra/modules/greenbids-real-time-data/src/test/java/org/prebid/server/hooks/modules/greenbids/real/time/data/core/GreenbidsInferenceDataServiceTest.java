@@ -90,7 +90,7 @@ public class GreenbidsInferenceDataServiceTest {
         assertThat(throttlingMessages).isNotEmpty();
         assertThat(throttlingMessages)
                 .extracting(ThrottlingMessage::getBidder)
-                .containsExactly("rubicon", "appnexus", "pubmatic");
+                .containsExactly("magnite", "appnexus", "pubmatic");
 
         throttlingMessages.forEach(message -> {
             assertThat(message.getAdUnitCode()).isEqualTo("adunitcodevalue");
@@ -128,7 +128,7 @@ public class GreenbidsInferenceDataServiceTest {
         assertThat(throttlingMessages).isNotEmpty();
         assertThat(throttlingMessages)
                 .extracting(ThrottlingMessage::getBidder)
-                .containsExactly("rubicon", "appnexus", "pubmatic");
+                .containsExactly("magnite", "appnexus", "pubmatic");
 
         throttlingMessages.forEach(message -> {
             assertThat(message.getAdUnitCode()).isEqualTo("adunitcodevalue");
@@ -162,7 +162,7 @@ public class GreenbidsInferenceDataServiceTest {
         assertThat(throttlingMessages).isNotEmpty();
         assertThat(throttlingMessages)
                 .extracting(ThrottlingMessage::getBidder)
-                .containsExactly("rubicon", "appnexus", "pubmatic");
+                .containsExactly("magnite", "appnexus", "pubmatic");
 
         throttlingMessages.forEach(message -> {
             assertThat(message.getAdUnitCode()).isEqualTo("adunitcodevalue");

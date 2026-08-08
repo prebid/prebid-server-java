@@ -24,10 +24,8 @@ import org.prebid.server.proto.openrtb.ext.request.imds.ExtImpImds;
 import org.prebid.server.proto.openrtb.ext.request.imds.ExtRequestImds;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -36,16 +34,18 @@ import java.util.Objects;
 
 public class ImdsBidder implements Bidder<BidRequest> {
 
+    private static final String ACCOUNT_ID_MACRO = "AccountID";
+    private static final String SOURCE_ID_MACRO = "SourceId";
     private static final TypeReference<ExtPrebid<?, ExtImpImds>> IMDS_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final String prebidVersion;
     private final JacksonMapper mapper;
 
     public ImdsBidder(String endpointUrl, String prebidVersion, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.prebidVersion = Objects.requireNonNull(prebidVersion);
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -85,22 +85,18 @@ public class ImdsBidder implements Bidder<BidRequest> {
         return Result.of(
                 Collections.singletonList(
                         BidderUtil.defaultRequest(
-                            outgoingRequest,
-                            generateEndpointUrl(firstExtImp),
-                            mapper
-                    )
-                ),
+                                outgoingRequest,
+                                generateEndpointUrl(firstExtImp),
+                                mapper)),
                 errors
         );
     }
 
     private String generateEndpointUrl(ExtImpImds firstExtImp) {
-        final String accountId = URLEncoder.encode(
-                HttpUtil.validatePathSegment(firstExtImp.getSeatId()), StandardCharsets.UTF_8);
-        final String sourceId = URLEncoder.encode(prebidVersion, StandardCharsets.UTF_8);
         return endpointUrl
-                .replaceAll("\\{\\{AccountID}}", accountId)
-                .replaceAll("\\{\\{SourceId}}", sourceId);
+                .replaceMacro(ACCOUNT_ID_MACRO, firstExtImp.getSeatId())
+                .replaceMacro(SOURCE_ID_MACRO, prebidVersion)
+                .expand();
     }
 
     private ExtImpImds parseAndValidateExtImp(ObjectNode impExt) {

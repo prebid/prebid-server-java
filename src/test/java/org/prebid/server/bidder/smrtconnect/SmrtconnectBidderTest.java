@@ -33,7 +33,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class SmrtconnectBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test-url.com/?param={{SupplyId}}";
+    private static final String ENDPOINT_URL = "https://test-url.com/?param={SupplyId}";
 
     private SmrtconnectBidder smrtconnectBidder;
 

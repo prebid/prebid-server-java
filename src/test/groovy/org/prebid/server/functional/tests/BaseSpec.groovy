@@ -1,6 +1,6 @@
 package org.prebid.server.functional.tests
 
-import org.prebid.server.functional.model.bidderspecific.BidderRequest
+import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.response.amp.AmpResponse
 import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidMediaType
@@ -47,8 +47,9 @@ abstract class BaseSpec extends Specification implements ObjectMapperWrapper {
     private static final int DEFAULT_TARGETING_PRECISION = 1
     private static final String DEFAULT_CACHE_DIRECTORY = "/app/prebid-server/data"
     protected static final String ALERT_GENERAL = "alerts.general"
-    protected static final Map<String, String> GENERIC_ALIAS_CONFIG = ["adapters.generic.aliases.alias.enabled" : "true",
-                                                                       "adapters.generic.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
+    protected static final Map<String, String> GENERIC_ALIAS_CONFIG = ["adapters.generic.aliases.alias.enabled"            : "true",
+                                                                       "adapters.generic.aliases.alias.meta-info.vendor-id": "0",
+                                                                       "adapters.generic.aliases.alias.endpoint"           : "$networkServiceContainer.rootUri/auction".toString()]
 
     protected static final PrebidServerService defaultPbsService = pbsServiceFactory.getService([:])
 
@@ -99,7 +100,7 @@ abstract class BaseSpec extends Specification implements ObjectMapperWrapper {
         roundWithDefaultPrecisionAndRoundingType(value, UP)
     }
 
-    protected static Map<String, List<BidderRequest>> getRequests(BidResponse bidResponse) {
+    protected static Map<String, List<BidRequest>> getRequests(BidResponse bidResponse) {
         bidResponse.ext.debug.bidders.collectEntries { bidderName, bidderCalls ->
             collectRequestByBidderName(bidderName, bidderCalls)
         }
@@ -109,15 +110,15 @@ abstract class BaseSpec extends Specification implements ObjectMapperWrapper {
         bidResponse.seatbid*.bid.collectMany { it }.findAll { it.mediaType == mediaType }
     }
 
-    protected static Map<String, List<BidderRequest>> getRequests(AmpResponse ampResponse) {
+    protected static Map<String, List<BidRequest>> getRequests(AmpResponse ampResponse) {
         ampResponse.ext.debug.bidders.collectEntries { bidderName, bidderCalls ->
             collectRequestByBidderName(bidderName, bidderCalls)
         }
     }
 
-    private static LinkedHashMap<String, List<BidderRequest>> collectRequestByBidderName(String bidderName,
-                                                                                         List<BidderCall> bidderCalls) {
-        [(bidderName): bidderCalls.collect { bidderCall -> decode(bidderCall.requestBody as String, BidderRequest) }]
+    private static LinkedHashMap<String, List<BidRequest>> collectRequestByBidderName(String bidderName,
+                                                                                      List<BidderCall> bidderCalls) {
+        [(bidderName): bidderCalls.collect { bidderCall -> decode(bidderCall.requestBody as String, BidRequest) }]
     }
 
     private static GString roundWithDefaultPrecisionAndRoundingType(BigDecimal value, RoundingMode roundingMode) {

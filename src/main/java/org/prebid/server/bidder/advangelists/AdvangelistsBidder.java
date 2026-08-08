@@ -27,6 +27,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.advangelists.ExtImpAdvangelists;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -40,13 +41,13 @@ public class AdvangelistsBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpAdvangelists>> ADVANGELISTS_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
-    private static final String URL_PUBLISHER_ID_MACRO = "{{PublisherID}}";
+    private static final String URL_PUBLISHER_ID_MACRO = "PublisherID";
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public AdvangelistsBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -151,12 +152,9 @@ public class AdvangelistsBidder implements Bidder<BidRequest> {
             final MultiMap headers = HttpUtil.headers()
                     .add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
 
-            final String createdEndpoint = endpointUrl
-                    .replace(URL_PUBLISHER_ID_MACRO, HttpUtil.encodeUrl(extImpAdvangelists.getPubid()));
-
             final HttpRequest<BidRequest> createdBidRequest = HttpRequest.<BidRequest>builder()
                     .method(HttpMethod.POST)
-                    .uri(createdEndpoint)
+                    .uri(endpointUrl.replaceMacro(URL_PUBLISHER_ID_MACRO, extImpAdvangelists.getPubid()).expand())
                     .body(mapper.encodeToBytes(updatedBidRequest))
                     .headers(headers)
                     .payload(bidRequest)

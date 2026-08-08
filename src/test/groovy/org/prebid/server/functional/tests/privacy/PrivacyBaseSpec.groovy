@@ -8,10 +8,8 @@ import org.prebid.server.functional.model.config.AccountDsaConfig
 import org.prebid.server.functional.model.config.AccountGdprConfig
 import org.prebid.server.functional.model.config.AccountGppConfig
 import org.prebid.server.functional.model.config.AccountPrivacyConfig
-import org.prebid.server.functional.model.config.Purpose
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.mock.services.vendorlist.VendorListResponse
-import org.prebid.server.functional.model.privacy.EnforcementRequirement
 import org.prebid.server.functional.model.privacy.gpp.GppDataActivity
 import org.prebid.server.functional.model.privacy.gpp.UsCaliforniaV1ChildSensitiveData
 import org.prebid.server.functional.model.privacy.gpp.UsCaliforniaV1SensitiveData
@@ -55,12 +53,9 @@ import org.prebid.server.functional.util.privacy.gpp.v1.UsVaV1Consent
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
-import static org.prebid.server.functional.model.config.PurposeEnforcement.BASIC
-import static org.prebid.server.functional.model.config.PurposeEnforcement.FULL
-import static org.prebid.server.functional.model.config.PurposeEnforcement.NO
 import static org.prebid.server.functional.model.mock.services.vendorlist.VendorListResponse.getDefaultVendorListResponse
-import static org.prebid.server.functional.model.pricefloors.Country.USA
 import static org.prebid.server.functional.model.pricefloors.Country.BULGARIA
+import static org.prebid.server.functional.model.pricefloors.Country.USA
 import static org.prebid.server.functional.model.request.GppSectionId.US_CA_V1
 import static org.prebid.server.functional.model.request.GppSectionId.US_CO_V1
 import static org.prebid.server.functional.model.request.GppSectionId.US_CT_V1
@@ -74,10 +69,6 @@ import static org.prebid.server.functional.model.request.auction.TraceLevel.VERB
 import static org.prebid.server.functional.model.response.cookiesync.UserSyncInfo.Type.REDIRECT
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
-import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
-import static org.prebid.server.functional.util.privacy.TcfConsent.RestrictionType.REQUIRE_CONSENT
-import static org.prebid.server.functional.util.privacy.TcfConsent.RestrictionType.REQUIRE_LEGITIMATE_INTEREST
-import static org.prebid.server.functional.util.privacy.TcfConsent.RestrictionType.UNDEFINED
 import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V2
 import static org.prebid.server.functional.util.privacy.model.State.ALABAMA
 
@@ -86,11 +77,10 @@ abstract class PrivacyBaseSpec extends BaseSpec {
     private static final int GEO_PRECISION = 2
 
     protected static final Map<String, String> GENERIC_CONFIG = ["adapters.${GENERIC.value}.usersync.${REDIRECT.value}.url"         : "$networkServiceContainer.rootUri/generic-usersync".toString(),
-                                                                 "adapters.${GENERIC.value}.usersync.${REDIRECT.value}.support-cors": false.toString(),
                                                                  "adapters.${GENERIC.value}.ortb-version"                           : "2.6"]
     private static final Map<String, String> OPENX_CONFIG = ["adaptrs.${OPENX.value}.enabled"                     : "true",
                                                              "adapters.${OPENX.value}.usersync.cookie-family-name": OPENX.value,
-                                                             "adapters.${OPENX}.ortb-version"                     : "2.6",
+                                                             "adapters.${OPENX.value}.ortb-version"               : "2.6",
                                                              "adapters.${OPENX.value}.endpoint"                   : "$networkServiceContainer.rootUri/auction".toString(),
                                                              "adapters.${OPENX.value}.enabled"                    : 'true']
     protected static final Map<String, String> GDPR_VENDOR_LIST_CONFIG = ["gdpr.vendorlist.v2.http-endpoint-template": "$networkServiceContainer.rootUri/v2/vendor-list.json".toString(),
@@ -362,5 +352,15 @@ abstract class PrivacyBaseSpec extends BaseSpec {
             it.tcfPolicyVersion = TCF_POLICY_V2.vendorListVersion
             it.vendors = [(GENERIC_VENDOR_ID): vendor]
         })
+    }
+
+    protected static String getInvalidGppString(int stringLength = 20) {
+        String invalidGppValue
+        // Random string can potentially generate deprecated v1 value with specific starting values ('A'-'D')
+        do {
+            invalidGppValue = PBSUtils.getRandomString(stringLength)
+        } while (invalidGppValue[0].toUpperCase() in 'A'..'D')
+
+        invalidGppValue
     }
 }

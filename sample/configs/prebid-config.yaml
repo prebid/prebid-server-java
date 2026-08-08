@@ -2,13 +2,13 @@ status-response: "ok"
 adapters:
   appnexus:
     enabled: true
-  ix:
+  criteo:
     enabled: true
   openx:
     enabled: true
   pubmatic:
     enabled: true
-  rubicon:
+  magnite:
     enabled: true
 metrics:
   prefix: prebid
@@ -34,6 +34,8 @@ gdpr:
       cache-dir: /var/tmp/vendor2
     v3:
       cache-dir: /var/tmp/vendor3
+    live:
+      startup-cache-dir: /var/tmp/vendor3
 admin-endpoints:
   logging-changelevel:
     enabled: true

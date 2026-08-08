@@ -11,5 +11,4 @@ public class PbRichmediaFilterModuleTest {
         // given and when and then
         assertThat(PbRichmediaFilterModule.CODE).isEqualTo("pb-richmedia-filter");
     }
-
 }

@@ -29,6 +29,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.gamma.ExtImpGamma;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -41,11 +42,11 @@ public class GammaBidder implements Bidder<Void> {
             new TypeReference<>() {
             };
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public GammaBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -137,40 +138,40 @@ public class GammaBidder implements Bidder<Void> {
     }
 
     private String makeUri(ExtImpGamma extImpGamma, String impId, Device device, App app) {
-        final StringBuilder uri = new StringBuilder(endpointUrl)
-                .append("?id=").append(extImpGamma.getId())
-                .append("&zid=").append(extImpGamma.getZid())
-                .append("&wid=").append(extImpGamma.getWid())
-                .append("&bidid=").append(ObjectUtils.defaultIfNull(impId, ""))
-                .append("&hb=pbmobile");
+        final Uri.ParameterizedUri uri = endpointUrl
+                .addQueryParam("id", extImpGamma.getId())
+                .addQueryParam("zid", extImpGamma.getZid())
+                .addQueryParam("wid", extImpGamma.getWid())
+                .addQueryParam("bidid", ObjectUtils.defaultIfNull(impId, ""))
+                .addQueryParam("hb", "pbmobile");
 
         if (device != null) {
             if (StringUtils.isNotBlank(device.getIp())) {
-                uri.append("&device_ip=").append(device.getIp());
+                uri.addQueryParam("device_ip", device.getIp());
             }
             if (StringUtils.isNotBlank(device.getModel())) {
-                uri.append("&device_model=").append(device.getModel());
+                uri.addQueryParam("device_model", device.getModel());
             }
             if (StringUtils.isNotBlank(device.getOs())) {
-                uri.append("&device_os=").append(device.getOs());
+                uri.addQueryParam("device_os", device.getOs());
             }
             if (StringUtils.isNotBlank(device.getUa())) {
-                uri.append("&device_ua=").append(HttpUtil.encodeUrl(device.getUa()));
+                uri.addQueryParam("device_ua", device.getUa());
             }
             if (StringUtils.isNotBlank(device.getIfa())) {
-                uri.append("&device_ifa=").append(device.getIfa());
+                uri.addQueryParam("device_ifa", device.getIfa());
             }
         }
 
         if (app != null) {
             if (StringUtils.isNotBlank(app.getId())) {
-                uri.append("&app_id=").append(app.getId());
+                uri.addQueryParam("app_id", app.getId());
             }
             if (StringUtils.isNotBlank(app.getBundle())) {
-                uri.append("&app_bundle=").append(app.getBundle());
+                uri.addQueryParam("app_bundle", app.getBundle());
             }
             if (StringUtils.isNotBlank(app.getName())) {
-                uri.append("&app_name=").append(app.getName());
+                uri.addQueryParam("app_name", app.getName());
             }
         }
         return uri.toString();

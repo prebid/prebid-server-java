@@ -38,7 +38,7 @@ import static org.assertj.core.api.Assertions.tuple;
 public class SmarthubBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL =
-            "http://localhost/prebid_server?host={{Host}}&AccountID={{AccountID}}&SourceId={{SourceId}}";
+            "http://localhost/prebid_server?host={Host}&AccountID={AccountID}&SourceId={SourceId}";
 
     private final SmarthubBidder target = new SmarthubBidder(ENDPOINT_URL, jacksonMapper);
 

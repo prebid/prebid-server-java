@@ -1,18 +1,17 @@
 package org.prebid.server.bidder;
 
+import lombok.EqualsAndHashCode;
 import lombok.Value;
-import org.prebid.server.spring.config.bidder.model.usersync.CookieFamilySource;
 
 import java.util.List;
 
 @Value(staticConstructor = "of")
 public class Usersyncer {
 
+    @EqualsAndHashCode.Exclude
     boolean enabled;
 
     String cookieFamilyName;
-
-    CookieFamilySource cookieFamilySource;
 
     UsersyncMethod iframe;
 
@@ -31,7 +30,6 @@ public class Usersyncer {
         return of(
                 true,
                 cookieFamilyName,
-                CookieFamilySource.ROOT,
                 iframe,
                 redirect,
                 skipWhenInGdprScope,

@@ -25,11 +25,9 @@ public class TeadsTest extends IntegrationTest {
         // when
         final Response response = responseFor(
                 "openrtb2/teads/test-auction-teads-request.json",
-                Endpoint.openrtb2_auction
-        );
+                Endpoint.openrtb2_auction);
 
         // then
         assertJsonEquals("openrtb2/teads/test-auction-teads-response.json", response, List.of("teads"));
     }
-
 }

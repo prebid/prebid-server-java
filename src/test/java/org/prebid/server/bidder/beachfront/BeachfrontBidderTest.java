@@ -63,7 +63,7 @@ import static org.mockito.Mockito.when;
 public class BeachfrontBidderTest extends VertxTest {
 
     private static final String BANNER_ENDPOINT = "http://banner-beachfront.com";
-    private static final String VIDEO_ENDPOINT = "http://video-beachfront.com?exchange_id=";
+    private static final String VIDEO_ENDPOINT = "http://video-beachfront.com";
 
     @Mock
     private CurrencyConversionService currencyConversionService;
@@ -179,8 +179,8 @@ public class BeachfrontBidderTest extends VertxTest {
         assertThat(asList(httpRequests.get(1), httpRequests.get(2)))
                 .extracting(HttpRequest::getUri)
                 .containsOnly(
-                        VIDEO_ENDPOINT + "appId",
-                        VIDEO_ENDPOINT + "appId&prebidserver");
+                        VIDEO_ENDPOINT + "?exchange_id=appId",
+                        VIDEO_ENDPOINT + "?exchange_id=appId&prebidserver=");
     }
 
     @Test
@@ -202,7 +202,7 @@ public class BeachfrontBidderTest extends VertxTest {
         final List<HttpRequest<Void>> httpRequests = result.getValue();
         assertThat(httpRequests).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsOnly(VIDEO_ENDPOINT + "appId");
+                .containsOnly(VIDEO_ENDPOINT + "?exchange_id=appId");
     }
 
     @Test

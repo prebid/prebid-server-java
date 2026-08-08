@@ -49,7 +49,7 @@ public class GreenbidsInvocationResultCreatorTest {
         assertThat(ortb2ImpExtResult).isNotNull();
         assertThat(ortb2ImpExtResult.getGreenbids().getIsExploration()).isFalse();
         assertThat(ortb2ImpExtResult.getGreenbids().getFingerprint()).isNotNull();
-        assertThat(keptInAuction.get("rubicon")).isTrue();
+        assertThat(keptInAuction.get("magnite")).isTrue();
         assertThat(keptInAuction.get("appnexus")).isFalse();
         assertThat(keptInAuction.get("pubmatic")).isFalse();
     }
@@ -78,7 +78,7 @@ public class GreenbidsInvocationResultCreatorTest {
         assertThat(ortb2ImpExtResult).isNotNull();
         assertThat(ortb2ImpExtResult.getGreenbids().getIsExploration()).isTrue();
         assertThat(ortb2ImpExtResult.getGreenbids().getFingerprint()).isNotNull();
-        assertThat(keptInAuction.get("rubicon")).isFalse();
+        assertThat(keptInAuction.get("magnite")).isFalse();
         assertThat(keptInAuction.get("appnexus")).isFalse();
         assertThat(keptInAuction.get("pubmatic")).isFalse();
     }
@@ -107,14 +107,14 @@ public class GreenbidsInvocationResultCreatorTest {
         assertThat(ortb2ImpExtResult).isNotNull();
         assertThat(ortb2ImpExtResult.getGreenbids().getIsExploration()).isFalse();
         assertThat(ortb2ImpExtResult.getGreenbids().getFingerprint()).isNotNull();
-        assertThat(keptInAuction.get("rubicon")).isFalse();
+        assertThat(keptInAuction.get("magnite")).isFalse();
         assertThat(keptInAuction.get("appnexus")).isFalse();
         assertThat(keptInAuction.get("pubmatic")).isFalse();
     }
 
     private Map<String, Map<String, Boolean>> givenImpsBiddersFilterMap() {
         final Map<String, Boolean> biddersFitlerMap = Map.of(
-                "rubicon", true,
+                "magnite", true,
                 "appnexus", false,
                 "pubmatic", false);
 
@@ -123,7 +123,7 @@ public class GreenbidsInvocationResultCreatorTest {
 
     private Map<String, Map<String, Boolean>> givenFilterMapWithAllFilteredImps() {
         final Map<String, Boolean> biddersFitlerMap = Map.of(
-                "rubicon", false,
+                "magnite", false,
                 "appnexus", false,
                 "pubmatic", false);
 

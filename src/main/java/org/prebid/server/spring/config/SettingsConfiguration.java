@@ -128,7 +128,7 @@ public class SettingsConfiguration {
 
         @Bean
         HttpApplicationSettings httpApplicationSettings(
-                @Value("${settings.http.rfc3986-compatible:false}") boolean isRfc3986Compatible,
+                @Value("${settings.http.rfc3986-compatible:true}") boolean isRfc3986Compatible,
                 HttpClient httpClient,
                 JacksonMapper mapper,
                 @Value("${settings.http.endpoint}") String endpoint,

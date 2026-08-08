@@ -37,14 +37,14 @@ public class TestBidRequestProvider {
     }
 
     public static ObjectNode givenImpExt() {
-        return givenImpExt(getRubiconNode(), getAppnexusNode(), getPubmaticNode());
+        return givenImpExt(getMagniteNode(), getAppnexusNode(), getPubmaticNode());
     }
 
-    public static ObjectNode givenImpExt(ObjectNode rubiconNode, ObjectNode appnexusNode, ObjectNode pubmaticNode) {
+    public static ObjectNode givenImpExt(ObjectNode magniteNode, ObjectNode appnexusNode, ObjectNode pubmaticNode) {
         final ObjectNode bidderNode = MAPPER.createObjectNode();
 
-        if (rubiconNode != null) {
-            bidderNode.set("rubicon", rubiconNode);
+        if (magniteNode != null) {
+            bidderNode.set("magnite", magniteNode);
         }
 
         if (appnexusNode != null) {
@@ -70,7 +70,7 @@ public class TestBidRequestProvider {
         return MAPPER.createObjectNode().put("placementId", 123456);
     }
 
-    public static ObjectNode getRubiconNode() {
+    public static ObjectNode getMagniteNode() {
         return MAPPER.createObjectNode()
                 .put("accountId", 1001)
                 .put("siteId", 267318)

@@ -25,6 +25,7 @@ import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.auction.privacy.contextfactory.AuctionPrivacyContextFactory;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.exception.InvalidRequestException;
+import org.prebid.server.hooks.execution.model.HookHttpEndpoint;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
@@ -50,7 +51,6 @@ public class VideoRequestFactory {
     private static final int DEFAULT_CACHE_LOG_TTL = 3600;
     private static final String ENDPOINT = Endpoint.openrtb2_video.value();
 
-    private final int maxRequestSize;
     private final boolean enforceStoredRequest;
     private final Pattern escapeLogCacheRegexPattern;
 
@@ -63,8 +63,7 @@ public class VideoRequestFactory {
     private final JacksonMapper mapper;
     private final GeoLocationServiceWrapper geoLocationServiceWrapper;
 
-    public VideoRequestFactory(int maxRequestSize,
-                               boolean enforceStoredRequest,
+    public VideoRequestFactory(boolean enforceStoredRequest,
                                String escapeLogCacheRegex,
                                Ortb2RequestFactory ortb2RequestFactory,
                                VideoStoredRequestProcessor storedRequestProcessor,
@@ -76,7 +75,6 @@ public class VideoRequestFactory {
                                GeoLocationServiceWrapper geoLocationServiceWrapper) {
 
         this.enforceStoredRequest = enforceStoredRequest;
-        this.maxRequestSize = maxRequestSize;
         this.ortb2RequestFactory = Objects.requireNonNull(ortb2RequestFactory);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.ortbVersionConversionManager = Objects.requireNonNull(ortbVersionConversionManager);
@@ -105,7 +103,7 @@ public class VideoRequestFactory {
         final List<PodError> podErrors = new ArrayList<>();
 
         final AuctionContext initialAuctionContext = ortb2RequestFactory.createAuctionContext(
-                Endpoint.openrtb2_video, MetricName.video);
+                HookHttpEndpoint.VIDEO, MetricName.video);
 
         return ortb2RequestFactory.executeEntrypointHooks(routingContext, body, initialAuctionContext)
                 .compose(httpRequest -> createBidRequest(httpRequest)
@@ -120,9 +118,9 @@ public class VideoRequestFactory {
                 .map(auctionContext -> auctionContext.with(debugResolver.debugContextFrom(auctionContext)))
 
                 .compose(auctionContext -> ortb2RequestFactory.limitImpressions(
-                        auctionContext.getAccount(),
-                        auctionContext.getBidRequest(),
-                        auctionContext.getDebugWarnings())
+                                auctionContext.getAccount(),
+                                auctionContext.getBidRequest(),
+                                auctionContext.getDebugWarnings())
                         .map(auctionContext::with))
 
                 .compose(auctionContext -> ortb2RequestFactory.validateRequest(
@@ -175,10 +173,6 @@ public class VideoRequestFactory {
         final String body = routingContext.body().asString();
         if (body == null) {
             throw new InvalidRequestException("Incoming request has no body");
-        }
-
-        if (body.length() > maxRequestSize) {
-            throw new InvalidRequestException("Request size exceeded max size of %d bytes.".formatted(maxRequestSize));
         }
 
         return body;

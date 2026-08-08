@@ -24,6 +24,7 @@ import org.prebid.server.proto.openrtb.ext.request.boldwinrapid.ExtImpBoldwinRap
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -36,15 +37,15 @@ public class BoldwinRapidBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpBoldwinRapid>> BOLDWIN_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
-    private static final String PUBLISHER_ID_MACRO = "{{PublisherID}}";
-    private static final String PLACEMENT_ID_MACRO = "{{PlacementID}}";
+    private static final String PUBLISHER_ID_MACRO = "PublisherID";
+    private static final String PLACEMENT_ID_MACRO = "PlacementID";
     private static final String HOST_HEADER_VALUE = "rtb.beardfleet.com";
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public BoldwinRapidBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -81,8 +82,9 @@ public class BoldwinRapidBidder implements Bidder<BidRequest> {
 
     private String resolveEndpoint(ExtImpBoldwinRapid extImp) {
         return endpointUrl
-                .replace(PUBLISHER_ID_MACRO, HttpUtil.encodeUrl(StringUtils.defaultString(extImp.getPid())))
-                .replace(PLACEMENT_ID_MACRO, HttpUtil.encodeUrl(StringUtils.defaultString(extImp.getTid())));
+                .replaceMacro(PUBLISHER_ID_MACRO, StringUtils.defaultString(extImp.getPid()))
+                .replaceMacro(PLACEMENT_ID_MACRO, StringUtils.defaultString(extImp.getTid()))
+                .expand();
     }
 
     private static MultiMap makeHeaders(Device device) {

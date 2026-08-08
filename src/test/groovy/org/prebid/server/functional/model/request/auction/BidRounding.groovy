@@ -8,9 +8,9 @@ enum BidRounding {
     DOWN("down"),
     TRUE("true"),
     TIME_SPLIT("timesplit"),
-    UNKNOWN("unknown"),
+    UNKNOWN("unknown")
 
-    private String value
+    final String value
 
     BidRounding(String value) {
         this.value = value
