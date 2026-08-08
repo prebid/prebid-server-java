@@ -1,5 +1,6 @@
 package org.prebid.server.bidder.floxis;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -35,7 +36,7 @@ import static org.assertj.core.api.Assertions.tuple;
 
 public class FloxisBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://{{Host}}.floxis.tech/pbs?seat={{SeatId}}";
+    private static final String ENDPOINT_URL = "https://{Host}.floxis.tech/pbs?seat={SeatId}";
 
     private final FloxisBidder target = new FloxisBidder(ENDPOINT_URL, jacksonMapper);
 
@@ -76,7 +77,7 @@ public class FloxisBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://eu.floxis.tech/pbs?seat=a+b%26c");
+                .containsExactly("https://eu.floxis.tech/pbs?seat=a%20b%26c");
     }
 
     @Test
@@ -151,7 +152,7 @@ public class FloxisBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://x+y-a+b.floxis.tech/pbs?seat=abc");
+                .containsExactly("https://x%20y-a%20b.floxis.tech/pbs?seat=abc");
     }
 
     @Test
@@ -167,6 +168,22 @@ public class FloxisBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
                 .containsExactly("https://acme-us-e.floxis.tech/pbs?seat=abc");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldLeaveEndpointUnchangedWhenItDeclaresNoMacros() {
+        // given
+        final FloxisBidder bidder = new FloxisBidder("http://localhost:8090/floxis-exchange", jacksonMapper);
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.ext(givenImpExt("abc", "eu")));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getUri)
+                .containsExactly("http://localhost:8090/floxis-exchange");
     }
 
     @Test
@@ -485,12 +502,11 @@ public class FloxisBidderTest extends VertxTest {
                 .build();
     }
 
-    private static com.fasterxml.jackson.databind.node.ObjectNode givenImpExt(String seat, String region) {
+    private static ObjectNode givenImpExt(String seat, String region) {
         return givenImpExt(seat, region, null);
     }
 
-    private static com.fasterxml.jackson.databind.node.ObjectNode givenImpExt(String seat, String region,
-                                                                             String partner) {
+    private static ObjectNode givenImpExt(String seat, String region, String partner) {
         return mapper.valueToTree(ExtPrebid.of(null, ExtImpFloxis.of(seat, region, partner)));
     }
 

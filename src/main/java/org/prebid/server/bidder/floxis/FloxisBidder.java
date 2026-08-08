@@ -23,6 +23,7 @@ import org.prebid.server.proto.openrtb.ext.request.floxis.ExtImpFloxis;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,17 +35,17 @@ public class FloxisBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private static final String HOST_MACRO = "{{Host}}";
-    private static final String SEAT_MACRO = "{{SeatId}}";
+    private static final String HOST_MACRO = "Host";
+    private static final String SEAT_MACRO = "SeatId";
 
     private static final String DEFAULT_REGION = "us-e";
     private static final String DEFAULT_PARTNER = "floxis";
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public FloxisBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -71,7 +72,7 @@ public class FloxisBidder implements Bidder<BidRequest> {
 
         return Result.withValue(HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
-                .uri(resolveUrl(endpointUrl, firstImpExt))
+                .uri(resolveUrl(firstImpExt))
                 .headers(HttpUtil.headers())
                 .impIds(BidderUtil.impIds(request))
                 .payload(request)
@@ -92,27 +93,26 @@ public class FloxisBidder implements Bidder<BidRequest> {
                                        String impId,
                                        String firstImpId) {
 
-        if (!Objects.equals(impExt.getSeat(), firstImpExt.getSeat())
-                || !Objects.equals(impExt.getRegion(), firstImpExt.getRegion())
-                || !Objects.equals(impExt.getPartner(), firstImpExt.getPartner())) {
+        if (!impExt.equals(firstImpExt)) {
             throw new PreBidException(
                     "all impressions must target the same Floxis seat, region and partner; "
                             + "imp %s differs from imp %s".formatted(impId, firstImpId));
         }
     }
 
-    private static String resolveUrl(String endpoint, ExtImpFloxis extImp) {
-        return endpoint
-                .replace(HOST_MACRO, resolveBidHost(extImp.getRegion(), extImp.getPartner()))
-                .replace(SEAT_MACRO, HttpUtil.encodeUrl(extImp.getSeat()));
+    private String resolveUrl(ExtImpFloxis extImp) {
+        return endpointUrl
+                .replaceMacro(HOST_MACRO, resolveBidHost(extImp.getRegion(), extImp.getPartner()))
+                .replaceMacro(SEAT_MACRO, extImp.getSeat())
+                .expand();
     }
 
     private static String resolveBidHost(String region, String partner) {
         final String resolvedRegion = StringUtils.isBlank(region) ? DEFAULT_REGION : region;
         final String resolvedPartner = StringUtils.isBlank(partner) ? DEFAULT_PARTNER : partner;
         return resolvedPartner.equals(DEFAULT_PARTNER)
-                ? HttpUtil.encodeUrl(resolvedRegion)
-                : HttpUtil.encodeUrl(resolvedPartner) + "-" + HttpUtil.encodeUrl(resolvedRegion);
+                ? resolvedRegion
+                : resolvedPartner + "-" + resolvedRegion;
     }
 
     @Override
