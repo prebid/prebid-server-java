@@ -81,11 +81,18 @@ public class FloxisBidder implements Bidder<BidRequest> {
     }
 
     private ExtImpFloxis parseImpExt(Imp imp) {
+        final ExtImpFloxis impExt;
         try {
-            return mapper.mapper().convertValue(imp.getExt(), FLOXIS_EXT_TYPE_REFERENCE).getBidder();
+            impExt = mapper.mapper().convertValue(imp.getExt(), FLOXIS_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException("invalid imp.ext.bidder for imp %s: %s".formatted(imp.getId(), e.getMessage()));
         }
+
+        // defaults applied here so imps differing only by an omitted region or partner compare equal
+        return ExtImpFloxis.of(
+                impExt.getSeat(),
+                StringUtils.isBlank(impExt.getRegion()) ? DEFAULT_REGION : impExt.getRegion(),
+                StringUtils.isBlank(impExt.getPartner()) ? DEFAULT_PARTNER : impExt.getPartner());
     }
 
     private static void validateImpExt(ExtImpFloxis impExt,
@@ -108,11 +115,7 @@ public class FloxisBidder implements Bidder<BidRequest> {
     }
 
     private static String resolveBidHost(String region, String partner) {
-        final String resolvedRegion = StringUtils.isBlank(region) ? DEFAULT_REGION : region;
-        final String resolvedPartner = StringUtils.isBlank(partner) ? DEFAULT_PARTNER : partner;
-        return resolvedPartner.equals(DEFAULT_PARTNER)
-                ? resolvedRegion
-                : resolvedPartner + "-" + resolvedRegion;
+        return partner.equals(DEFAULT_PARTNER) ? region : partner + "-" + region;
     }
 
     @Override

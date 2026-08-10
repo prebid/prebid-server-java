@@ -213,6 +213,32 @@ public class FloxisBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldRouteOnceWhenImpsResolveToSameHostThroughDefaults() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .id("req-1")
+                .imp(asList(
+                        givenImp(imp -> imp.id("imp-1").ext(givenImpExt("seat-us", null))),
+                        givenImp(imp -> imp.id("imp-2").ext(givenImpExt("seat-us", "us-e", "floxis")))))
+                .site(Site.builder().id("271").build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://us-e.floxis.tech/pbs?seat=seat-us");
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getId)
+                .containsExactly("imp-1", "imp-2");
+    }
+
+    @Test
     public void makeHttpRequestsShouldReturnErrorWhenImpsTargetDifferentSeat() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
