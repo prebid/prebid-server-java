@@ -320,7 +320,7 @@ public class FloxisBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorWhenResponseBodyCannotBeParsed() {
+    public void makeBidsShouldReturnErrorWhenResponseBodyCouldNotBeParsed() {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()), "invalid");
 

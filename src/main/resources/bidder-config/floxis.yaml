@@ -21,5 +21,4 @@ adapters:
       cookie-family-name: floxis
       redirect:
         url: "https://px-us-e.floxis.tech/sync?gdpr={gdpr}&gdpr_consent={gdpr_consent}&gpp={gpp}&gpp_sid={gpp_sid}&us_privacy={us_privacy}&dest={redirect_url}"
-        support-cors: false
         uid-macro: "${USER_ID}"

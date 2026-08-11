@@ -6,7 +6,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -22,10 +21,11 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.floxis.ExtImpFloxis;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -70,14 +70,7 @@ public class FloxisBidder implements Bidder<BidRequest> {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
-        return Result.withValue(HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(resolveUrl(firstImpExt))
-                .headers(HttpUtil.headers())
-                .impIds(BidderUtil.impIds(request))
-                .payload(request)
-                .body(mapper.encodeToBytes(request))
-                .build());
+        return Result.withValue(BidderUtil.defaultRequest(request, resolveUrl(firstImpExt), mapper));
     }
 
     private ExtImpFloxis parseImpExt(Imp imp) {
@@ -88,7 +81,6 @@ public class FloxisBidder implements Bidder<BidRequest> {
             throw new PreBidException("invalid imp.ext.bidder for imp %s: %s".formatted(imp.getId(), e.getMessage()));
         }
 
-        // defaults applied here so imps differing only by an omitted region or partner compare equal
         return ExtImpFloxis.of(
                 impExt.getSeat(),
                 StringUtils.isBlank(impExt.getRegion()) ? DEFAULT_REGION : impExt.getRegion(),
@@ -120,36 +112,39 @@ public class FloxisBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
-        final BidResponse bidResponse;
         try {
-            bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            final List<BidderError> errors = new ArrayList<>();
+            final List<BidderBid> bidderBids = extractBids(bidResponse, bidRequest.getImp(), errors);
+            return Result.of(bidderBids, errors);
         } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
-        return extractBids(bidResponse, bidRequest);
     }
 
-    private static Result<List<BidderBid>> extractBids(BidResponse bidResponse, BidRequest bidRequest) {
+    private static List<BidderBid> extractBids(BidResponse bidResponse, List<Imp> imps, List<BidderError> errors) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
-            return Result.empty();
+            return Collections.emptyList();
         }
 
-        final List<BidderError> errors = new ArrayList<>();
-        final List<BidderBid> bids = new ArrayList<>();
-        for (SeatBid seatBid : bidResponse.getSeatbid()) {
-            if (seatBid == null || CollectionUtils.isEmpty(seatBid.getBid())) {
-                continue;
-            }
-            for (Bid bid : seatBid.getBid()) {
-                try {
-                    bids.add(BidderBid.of(bid, getMediaTypeForBid(bidRequest.getImp(), bid), bidResponse.getCur()));
-                } catch (PreBidException e) {
-                    errors.add(BidderError.badServerResponse(e.getMessage()));
-                }
-            }
-        }
+        return bidResponse.getSeatbid().stream()
+                .filter(Objects::nonNull)
+                .map(SeatBid::getBid)
+                .filter(Objects::nonNull)
+                .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
+                .map(bid -> makeBidderBid(bid, imps, bidResponse.getCur(), errors))
+                .filter(Objects::nonNull)
+                .toList();
+    }
 
-        return Result.of(bids, errors);
+    private static BidderBid makeBidderBid(Bid bid, List<Imp> imps, String currency, List<BidderError> errors) {
+        try {
+            return BidderBid.of(bid, getMediaTypeForBid(imps, bid), currency);
+        } catch (PreBidException e) {
+            errors.add(BidderError.badServerResponse(e.getMessage()));
+            return null;
+        }
     }
 
     private static BidType getMediaTypeForBid(List<Imp> imps, Bid bid) {
