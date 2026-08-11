@@ -711,7 +711,6 @@ class ScaliburBidderTest extends VertxTest {
                 .isEqualTo(VAST_XML.formatted("https://test.com"));
     }
 
-
     @Test
     public void makeBidsShouldPrioritizeVastXmlOverVastUrlWhenBothArePresent() throws JsonProcessingException {
         // given
