@@ -239,7 +239,7 @@ public class FloxisBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorWhenImpsTargetDifferentSeat() {
+    public void makeHttpRequestsShouldSplitPerSeatWhenImpsShareAHost() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .id("req-1")
@@ -253,15 +253,21 @@ public class FloxisBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput(
-                        "all impressions must target the same Floxis seat, region and partner; "
-                                + "imp imp-2 differs from imp imp-1"));
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(2)
+                .extracting(HttpRequest::getUri)
+                .containsExactly(
+                        "https://eu.floxis.tech/pbs?seat=seat-eu",
+                        "https://eu.floxis.tech/pbs?seat=seat-other");
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getId)
+                .containsExactly("imp-1", "imp-2");
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorWhenImpsTargetDifferentRegion() {
+    public void makeHttpRequestsShouldSplitPerRegionWhenImpsTargetDifferentRegions() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .id("req-1")
@@ -275,15 +281,16 @@ public class FloxisBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput(
-                        "all impressions must target the same Floxis seat, region and partner; "
-                                + "imp imp-2 differs from imp imp-1"));
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(2)
+                .extracting(HttpRequest::getUri)
+                .containsExactly(
+                        "https://eu.floxis.tech/pbs?seat=seat-eu",
+                        "https://apac.floxis.tech/pbs?seat=seat-eu");
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorWhenImpsTargetDifferentPartner() {
+    public void makeHttpRequestsShouldSplitPerPartnerWhenImpsTargetDifferentPartners() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .id("req-1")
@@ -297,11 +304,41 @@ public class FloxisBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(2)
+                .extracting(HttpRequest::getUri)
+                .containsExactly(
+                        "https://acme-eu.floxis.tech/pbs?seat=seat-eu",
+                        "https://other-eu.floxis.tech/pbs?seat=seat-eu");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldDropOnlyTheImpWhoseExtCouldNotBeParsed() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .id("req-1")
+                .imp(asList(
+                        givenImp(imp -> imp.id("imp-bad")
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))),
+                        givenImp(imp -> imp.id("imp-good").ext(givenImpExt("seat-eu", "eu")))))
+                .site(Site.builder().id("271").build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput(
-                        "all impressions must target the same Floxis seat, region and partner; "
-                                + "imp imp-2 differs from imp imp-1"));
+                .allSatisfy(error -> assertThat(error.getMessage())
+                        .startsWith("invalid imp.ext.bidder for imp imp-bad:"));
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://eu.floxis.tech/pbs?seat=seat-eu");
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getId)
+                .containsExactly("imp-good");
     }
 
     @Test

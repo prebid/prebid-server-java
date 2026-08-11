@@ -26,7 +26,9 @@ import org.prebid.server.util.Uri;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 public class FloxisBidder implements Bidder<BidRequest> {
@@ -51,26 +53,33 @@ public class FloxisBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final List<Imp> imps = request.getImp();
-        final Imp firstImp = imps.getFirst();
+        final List<BidderError> errors = new ArrayList<>();
+        final Map<String, List<Imp>> impsByTarget = new LinkedHashMap<>();
+        final Map<String, ExtImpFloxis> extsByTarget = new LinkedHashMap<>();
 
-        final ExtImpFloxis firstImpExt;
-        try {
-            firstImpExt = parseImpExt(firstImp);
-        } catch (PreBidException e) {
-            return Result.withError(BidderError.badInput(e.getMessage()));
-        }
-
-        try {
-            for (int i = 1; i < imps.size(); i++) {
-                final Imp imp = imps.get(i);
-                validateImpExt(parseImpExt(imp), firstImpExt, imp.getId(), firstImp.getId());
+        for (Imp imp : request.getImp()) {
+            final ExtImpFloxis impExt;
+            try {
+                impExt = parseImpExt(imp);
+            } catch (PreBidException e) {
+                errors.add(BidderError.badInput(e.getMessage()));
+                continue;
             }
-        } catch (PreBidException e) {
-            return Result.withError(BidderError.badInput(e.getMessage()));
+
+            final String target = impExt.getSeat() + "|"
+                    + resolveBidHost(impExt.getRegion(), impExt.getPartner());
+            impsByTarget.computeIfAbsent(target, key -> new ArrayList<>()).add(imp);
+            extsByTarget.putIfAbsent(target, impExt);
         }
 
-        return Result.withValue(BidderUtil.defaultRequest(request, resolveUrl(firstImpExt), mapper));
+        final List<HttpRequest<BidRequest>> httpRequests = impsByTarget.entrySet().stream()
+                .map(entry -> BidderUtil.defaultRequest(
+                        request.toBuilder().imp(entry.getValue()).build(),
+                        resolveUrl(extsByTarget.get(entry.getKey())),
+                        mapper))
+                .toList();
+
+        return Result.of(httpRequests, errors);
     }
 
     private ExtImpFloxis parseImpExt(Imp imp) {
@@ -85,18 +94,6 @@ public class FloxisBidder implements Bidder<BidRequest> {
                 impExt.getSeat(),
                 StringUtils.isBlank(impExt.getRegion()) ? DEFAULT_REGION : impExt.getRegion(),
                 StringUtils.isBlank(impExt.getPartner()) ? DEFAULT_PARTNER : impExt.getPartner());
-    }
-
-    private static void validateImpExt(ExtImpFloxis impExt,
-                                       ExtImpFloxis firstImpExt,
-                                       String impId,
-                                       String firstImpId) {
-
-        if (!impExt.equals(firstImpExt)) {
-            throw new PreBidException(
-                    "all impressions must target the same Floxis seat, region and partner; "
-                            + "imp %s differs from imp %s".formatted(impId, firstImpId));
-        }
     }
 
     private String resolveUrl(ExtImpFloxis extImp) {
