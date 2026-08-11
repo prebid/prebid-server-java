@@ -28,8 +28,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.regex.Pattern;
 
 public class FloxisBidder implements Bidder<BidRequest> {
 
@@ -42,6 +44,9 @@ public class FloxisBidder implements Bidder<BidRequest> {
 
     private static final String DEFAULT_REGION = "us-e";
     private static final String DEFAULT_PARTNER = "floxis";
+
+    // matches(), not find(): Java's $ also matches before a trailing newline, which the schema does not allow
+    private static final Pattern HOST_LABEL = Pattern.compile("[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?");
 
     private final Uri endpointUrl;
     private final JacksonMapper mapper;
@@ -90,10 +95,27 @@ public class FloxisBidder implements Bidder<BidRequest> {
             throw new PreBidException("invalid imp.ext.bidder for imp %s: %s".formatted(imp.getId(), e.getMessage()));
         }
 
-        return ExtImpFloxis.of(
-                impExt.getSeat(),
-                StringUtils.isBlank(impExt.getRegion()) ? DEFAULT_REGION : impExt.getRegion(),
-                StringUtils.isBlank(impExt.getPartner()) ? DEFAULT_PARTNER : impExt.getPartner());
+        if (impExt == null || StringUtils.isBlank(impExt.getSeat())) {
+            throw new PreBidException("missing seat for imp %s".formatted(imp.getId()));
+        }
+
+        final String region = StringUtils.isBlank(impExt.getRegion())
+                ? DEFAULT_REGION
+                : impExt.getRegion().toLowerCase(Locale.ROOT);
+        final String partner = StringUtils.isBlank(impExt.getPartner())
+                ? DEFAULT_PARTNER
+                : impExt.getPartner().toLowerCase(Locale.ROOT);
+
+        validateHostLabel(region, "region", imp.getId());
+        validateHostLabel(partner, "partner", imp.getId());
+
+        return ExtImpFloxis.of(impExt.getSeat(), region, partner);
+    }
+
+    private static void validateHostLabel(String value, String name, String impId) {
+        if (!HOST_LABEL.matcher(value).matches()) {
+            throw new PreBidException("invalid %s \"%s\" for imp %s".formatted(name, value, impId));
+        }
     }
 
     private String resolveUrl(ExtImpFloxis extImp) {

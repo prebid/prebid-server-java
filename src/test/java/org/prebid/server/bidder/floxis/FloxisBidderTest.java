@@ -141,7 +141,7 @@ public class FloxisBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldUrlEncodeHostParts() {
+    public void makeHttpRequestsShouldReturnErrorWhenHostPartsAreNotLabels() {
         // given
         final BidRequest bidRequest = givenBidRequest(imp -> imp.ext(givenImpExt("abc", "a b", "x y")));
 
@@ -149,10 +149,9 @@ public class FloxisBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(HttpRequest::getUri)
-                .containsExactly("https://x%20y-a%20b.floxis.tech/pbs?seat=abc");
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly(BidderError.badInput("invalid region \"a b\" for imp imp-1"));
     }
 
     @Test
@@ -236,6 +235,55 @@ public class FloxisBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getId)
                 .containsExactly("imp-1", "imp-2");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorWhenSeatMissing() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.id("imp-1").ext(givenImpExt(null, "eu")));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly(BidderError.badInput("missing seat for imp imp-1"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorWhenRegionIsNotAHostLabel() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(imp -> imp.id("imp-1").ext(givenImpExt("seat-eu", "eu\n")));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly(BidderError.badInput("invalid region \"eu\n\" for imp imp-1"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldRouteOnceWhenRegionCaseDiffers() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .id("req-1")
+                .imp(asList(
+                        givenImp(imp -> imp.id("imp-1").ext(givenImpExt("seat-eu", "eu"))),
+                        givenImp(imp -> imp.id("imp-2").ext(givenImpExt("seat-eu", "EU")))))
+                .site(Site.builder().id("271").build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://eu.floxis.tech/pbs?seat=seat-eu");
     }
 
     @Test
