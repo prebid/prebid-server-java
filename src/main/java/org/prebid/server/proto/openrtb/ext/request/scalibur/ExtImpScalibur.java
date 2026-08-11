@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.scalibur.proto.request;
+package org.prebid.server.proto.openrtb.ext.request.scalibur;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Value;

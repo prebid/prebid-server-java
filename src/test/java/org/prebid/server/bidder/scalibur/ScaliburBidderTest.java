@@ -24,7 +24,7 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.bidder.scalibur.proto.request.ExtImpScalibur;
+import org.prebid.server.proto.openrtb.ext.request.scalibur.ExtImpScalibur;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
@@ -397,8 +397,7 @@ class ScaliburBidderTest extends VertxTest {
                 mapper.writeValueAsString(
                         givenBidResponse(
                                 bidBuilder -> bidBuilder.id("bid-1").impid("123"),
-                                bidBuilder -> bidBuilder.id("bid-2").impid("456")
-                        )));
+                                bidBuilder -> bidBuilder.id("bid-2").impid("456"))));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);

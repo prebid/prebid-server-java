@@ -20,7 +20,7 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Price;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.bidder.scalibur.proto.request.ExtImpScalibur;
+import org.prebid.server.proto.openrtb.ext.request.scalibur.ExtImpScalibur;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
@@ -80,9 +80,7 @@ public class ScaliburBidder implements Bidder<BidRequest> {
         final BidRequest modifiedBidRequest = bidRequest.toBuilder()
                 .imp(validImps)
                 .cur(null)
-                .ext(isDebugEnabled(bidRequest)
-                        ? createDebugExt()
-                        : null)
+                .ext(isDebugEnabled(bidRequest) ? createDebugExt() : null)
                 .build();
 
         final HttpRequest<BidRequest> httpRequest = BidderUtil.defaultRequest(modifiedBidRequest, endpointUrl, mapper);
