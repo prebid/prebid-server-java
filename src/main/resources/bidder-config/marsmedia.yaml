@@ -14,6 +14,5 @@ adapters:
     usersync:
       cookie-family-name: marsmedia
       redirect:
-        url: https://dmp.rtbsrv.com/dmp/profiles/cm?p_id=179&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
-        support-cors: false
+        url: https://dmp.rtbsrv.com/dmp/profiles/cm?p_id=179&gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&redirect={redirect_url}
         uid-macro: '${UUID}'

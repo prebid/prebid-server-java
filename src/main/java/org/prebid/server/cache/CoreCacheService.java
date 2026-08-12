@@ -9,7 +9,6 @@ import io.vertx.core.MultiMap;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidInfo;
 import org.prebid.server.auction.model.CachedDebugLog;
@@ -43,11 +42,11 @@ import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
+import org.prebid.server.util.Uri;
 import org.prebid.server.vast.VastModifier;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.time.Clock;
 import java.util.ArrayList;
@@ -76,6 +75,7 @@ public class CoreCacheService {
     private final HttpClient httpClient;
     private final URL externalEndpointUrl;
     private final URL internalEndpointUrl;
+    private final Uri cachedObjectEndpoint;
     private final String cachedAssetUrlTemplate;
     private final long expectedCacheTimeMs;
     private final VastModifier vastModifier;
@@ -111,6 +111,8 @@ public class CoreCacheService {
         this.httpClient = Objects.requireNonNull(httpClient);
         this.externalEndpointUrl = Objects.requireNonNull(externalEndpointUrl);
         this.internalEndpointUrl = internalEndpointUrl;
+        this.cachedObjectEndpoint = Uri.of(
+                ObjectUtils.firstNonNull(internalEndpointUrl, externalEndpointUrl).toString());
         this.cachedAssetUrlTemplate = Objects.requireNonNull(cachedAssetUrlTemplate);
         this.expectedCacheTimeMs = expectedCacheTimeMs;
         this.vastModifier = Objects.requireNonNull(vastModifier);
@@ -657,18 +659,10 @@ public class CoreCacheService {
             return Future.failedFuture(new TimeoutException("Timeout has been exceeded"));
         }
 
-        final URL endpointUrl = ObjectUtils.firstNonNull(internalEndpointUrl, externalEndpointUrl);
-        final String url;
-        try {
-            final URIBuilder uriBuilder = new URIBuilder(endpointUrl.toString());
-            uriBuilder.addParameter(UUID_QUERY_PARAMETER, key);
-            if (StringUtils.isNotBlank(ch)) {
-                uriBuilder.addParameter(CH_QUERY_PARAMETER, ch);
-            }
-            url = uriBuilder.build().toString();
-        } catch (URISyntaxException e) {
-            return Future.failedFuture(new IllegalArgumentException("Configured cache url is malformed", e));
-        }
+        final String url = cachedObjectEndpoint
+                .addQueryParam(UUID_QUERY_PARAMETER, key)
+                .addQueryParam(CH_QUERY_PARAMETER, StringUtils.isNotBlank(ch) ? ch : null)
+                .expand();
 
         final long startTime = clock.millis();
         return httpClient.get(url, cacheHeaders, remainingTimeout)

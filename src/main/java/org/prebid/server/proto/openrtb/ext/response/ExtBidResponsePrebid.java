@@ -26,11 +26,6 @@ public class ExtBidResponsePrebid {
     ExtAnalytics analytics;
 
     /**
-     * FLEDGE response as bidresponse.ext.prebid.fledge.auctionconfigs[]
-     */
-    ExtBidResponseFledge fledge;
-
-    /**
      * Additional targeting key/values for the bid response (only used for AMP)
      * Set targeting options here that will occur in the bidResponse no matter if
      * a bid won the auction or not.

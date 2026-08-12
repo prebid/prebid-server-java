@@ -1,17 +1,16 @@
 package org.prebid.server.spring.config.server.admin;
 
-import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.auth.AuthProvider;
 import io.vertx.ext.auth.User;
+import io.vertx.ext.auth.authentication.AuthenticationProvider;
+import io.vertx.ext.auth.authentication.Credentials;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.Map;
 
-public class AdminServerAuthProvider implements AuthProvider {
+public class AdminServerAuthProvider implements AuthenticationProvider {
 
     private final Map<String, String> credentials;
 
@@ -20,20 +19,18 @@ public class AdminServerAuthProvider implements AuthProvider {
     }
 
     @Override
-    public void authenticate(JsonObject authInfo, Handler<AsyncResult<User>> resultHandler) {
+    public Future<User> authenticate(Credentials userCredentials) {
         if (MapUtils.isEmpty(credentials)) {
-            resultHandler.handle(Future.failedFuture("Credentials not set in configuration."));
-            return;
+            return Future.failedFuture("Credentials not set in configuration.");
         }
 
-        final String requestUsername = authInfo.getString("username");
-        final String requestPassword = StringUtils.chomp(authInfo.getString("password"));
-
+        final JsonObject principal = userCredentials.toJson();
+        final String requestUsername = principal.getString("username");
+        final String requestPassword = StringUtils.chomp(principal.getString("password"));
         final String storedPassword = credentials.get(requestUsername);
-        if (StringUtils.isNotBlank(requestPassword) && StringUtils.equals(storedPassword, requestPassword)) {
-            resultHandler.handle(Future.succeededFuture());
-        } else {
-            resultHandler.handle(Future.failedFuture("No such user, or password incorrect."));
-        }
+
+        return StringUtils.isNotBlank(requestPassword) && StringUtils.equals(storedPassword, requestPassword)
+                ? Future.succeededFuture()
+                : Future.failedFuture("Password does not match.");
     }
 }

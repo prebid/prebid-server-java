@@ -10,6 +10,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -23,9 +24,6 @@ public class BiddersContext {
 
     @Builder.Default
     Set<String> coopSyncBidders = new HashSet<>();
-
-    @Builder.Default
-    Set<String> multiSyncBidders = new HashSet<>();
 
     @Builder.Default
     Map<String, RejectionReason> rejectedBidders = new HashMap<>();
@@ -42,25 +40,21 @@ public class BiddersContext {
     }
 
     private Set<String> involvedBidders() {
-        return SetUtils.union(
-                multiSyncBidders,
-                SetUtils.union(requestedBidders, coopSyncBidders));
+        return SetUtils.union(requestedBidders, coopSyncBidders);
     }
 
     public Set<String> allowedBidders() {
         return SetUtils.difference(involvedBidders(), rejectedBidders.keySet());
     }
 
-    public Set<String> allowedRequestedBidders() {
-        return SetUtils.difference(requestedBidders, rejectedBidders.keySet());
-    }
+    public Set<String> allowedBiddersByPriority() {
+        final Set<String> allowedBiddersByPriority = new LinkedHashSet<>();
 
-    public Set<String> allowedCoopSyncBidders() {
-        return SetUtils.difference(coopSyncBidders, rejectedBidders.keySet());
-    }
+        allowedBiddersByPriority.addAll(requestedBidders);
+        allowedBiddersByPriority.addAll(coopSyncBidders);
+        allowedBiddersByPriority.removeAll(rejectedBidders.keySet());
 
-    public Set<String> allowedMultisyncBidders() {
-        return SetUtils.difference(multiSyncBidders, rejectedBidders.keySet());
+        return allowedBiddersByPriority;
     }
 
     public BiddersContext withRejectedBidder(String bidder, RejectionReason reason) {

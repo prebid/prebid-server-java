@@ -76,5 +76,4 @@ public class SampleItExitpointHook implements ExitpointHook {
     public String code() {
         return "exitpoint";
     }
-
 }

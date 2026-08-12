@@ -1,7 +1,6 @@
 package org.prebid.server.settings.service;
 
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.execution.timeout.Timeout;
@@ -104,12 +103,12 @@ public class DatabasePeriodicRefreshService implements Initializable {
     }
 
     @Override
-    public void initialize(Promise<Void> initializePromise) {
+    public Future<Void> initialize() {
         getAll();
         if (refreshPeriod > 0) {
             vertx.setPeriodic(refreshPeriod, aLong -> refresh());
         }
-        initializePromise.tryComplete();
+        return Future.succeededFuture();
     }
 
     private void getAll() {

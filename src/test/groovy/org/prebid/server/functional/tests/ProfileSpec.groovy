@@ -1299,7 +1299,8 @@ class ProfileSpec extends BaseSpec {
         assert metrics[MISSING_ACCOUNT_PROFILE_METRIC.formatted(accountId)] == 1
 
         and: "Bidder request should contain data from profile"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        verifyAll(bidderRequest) {
             it.site.id == bidRequest.site.id
             it.site.name == bidRequest.site.name
             it.site.domain == bidRequest.site.domain
@@ -1319,6 +1320,9 @@ class ProfileSpec extends BaseSpec {
             it.device.macmd5 == bidRequest.device.macmd5
             it.device.dpidmd5 == bidRequest.device.dpidmd5
         }
+
+        and: "Bidder request should contain ext.prebid.profile"
+        assert bidderRequest.ext.prebid.profileNames
     }
 
     def "PBS should emit error and metrics when imp profile missing"() {

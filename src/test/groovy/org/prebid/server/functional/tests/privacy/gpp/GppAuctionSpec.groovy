@@ -109,7 +109,7 @@ class GppAuctionSpec extends PrivacyBaseSpec {
 
     def "PBS should emit warning when GPP string is invalid"() {
         given: "Default bid request with invalid gpp"
-        def invalidGpp = "Invalid_GPP_Consent_String"
+        def invalidGpp = getInvalidGppString()
         def bidRequest = BidRequest.defaultBidRequest.tap {
             regs = new Regs(gpp: invalidGpp)
         }

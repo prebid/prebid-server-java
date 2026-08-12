@@ -3,24 +3,19 @@ package org.prebid.server.bidder.medianet;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
+import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.medianet.model.response.InterestGroupAuctionIntent;
-import org.prebid.server.bidder.medianet.model.response.MedianetBidResponse;
-import org.prebid.server.bidder.medianet.model.response.MedianetBidResponseExt;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.CompositeBidderResponse;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
-import org.prebid.server.proto.openrtb.ext.response.ExtIgi;
-import org.prebid.server.proto.openrtb.ext.response.ExtIgiIgs;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
@@ -29,7 +24,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 public class MedianetBidder implements Bidder<BidRequest> {
 
@@ -46,34 +40,23 @@ public class MedianetBidder implements Bidder<BidRequest> {
         return Result.withValue(BidderUtil.defaultRequest(bidRequest, endpointUrl, mapper));
     }
 
-    /**
-     * @deprecated for this bidder in favor of @link{makeBidderResponse} which supports additional response data
-     */
     @Override
-    @Deprecated(forRemoval = true)
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
-        return Result.withError(BidderError.generic("Deprecated adapter method invoked"));
-    }
-
-    @Override
-    public final CompositeBidderResponse makeBidderResponse(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
-        final MedianetBidResponse bidResponse;
+        final BidResponse bidResponse;
         try {
-            bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), MedianetBidResponse.class);
+            bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
         } catch (DecodeException e) {
-            return CompositeBidderResponse.withError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
 
         final List<BidderError> errors = new ArrayList<>();
-        return CompositeBidderResponse.builder()
-                .bids(extractBids(httpCall.getRequest().getPayload(), bidResponse, errors))
-                .igi(extractIgi(bidResponse))
-                .errors(errors)
-                .build();
+        return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse, errors), errors);
     }
 
-    private static List<BidderBid> extractBids(BidRequest bidRequest, MedianetBidResponse bidResponse,
+    private static List<BidderBid> extractBids(BidRequest bidRequest,
+                                               BidResponse bidResponse,
                                                List<BidderError> errors) {
+
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
@@ -134,19 +117,5 @@ public class MedianetBidder implements Bidder<BidRequest> {
         }
 
         return BidType.banner;
-    }
-
-    private static List<ExtIgi> extractIgi(MedianetBidResponse bidResponse) {
-        final List<ExtIgiIgs> igs = Optional.ofNullable(bidResponse)
-                .map(MedianetBidResponse::getExt)
-                .map(MedianetBidResponseExt::getIgi)
-                .orElse(Collections.emptyList())
-                .stream()
-                .map(InterestGroupAuctionIntent::getIgs)
-                .flatMap(Collection::stream)
-                .map(igiIgs -> ExtIgiIgs.builder().impId(igiIgs.getImpId()).config(igiIgs.getConfig()).build())
-                .toList();
-
-        return igs.isEmpty() ? null : Collections.singletonList(ExtIgi.builder().igs(igs).build());
     }
 }

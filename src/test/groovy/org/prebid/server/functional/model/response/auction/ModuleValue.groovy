@@ -3,7 +3,7 @@ package org.prebid.server.functional.model.response.auction
 import com.fasterxml.jackson.annotation.JsonProperty
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
-import org.prebid.server.functional.model.ModuleName
+import org.prebid.server.functional.model.config.ModuleName
 import org.prebid.server.functional.model.bidder.BidderName
 
 @ToString(includeNames = true, ignoreNulls = true)

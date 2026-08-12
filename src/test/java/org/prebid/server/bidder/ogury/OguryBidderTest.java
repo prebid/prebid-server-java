@@ -21,7 +21,6 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.CompositeBidderResponse;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -406,12 +405,12 @@ public class OguryBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidderResponseShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
+    public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall("invalid");
 
         // when
-        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -419,155 +418,155 @@ public class OguryBidderTest extends VertxTest {
                     assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
                     assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token");
                 });
-        assertThat(result.getBids()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
-    public void makeBidderResponseShouldNotReturnErrorWhenResponseBodyIsEmpty() throws JsonProcessingException {
+    public void makeBidsShouldNotReturnErrorWhenResponseBodyIsEmpty() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(null));
 
         // when
-        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getBids()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
-    public void makeBidderResponseShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
+    public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getBids()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
-    public void makeBidderResponseShouldReturnEmptyListIfBidResponseSeatBidIsEmpty() throws JsonProcessingException {
+    public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsEmpty() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 mapper.writeValueAsString(BidResponse.builder().seatbid(emptyList()).build()));
 
         // when
-        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getBids()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
-    public void makeBidderResponseShouldReturnErrorWhenBidMTypeIsNotPresent() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorWhenBidMTypeIsNotPresent() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidResponse(bid -> bid.impid("123")));
 
         // when
-        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors())
                 .containsExactly(BidderError.badServerResponse("Missing MType for impression: `123`"));
-        assertThat(result.getBids()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
-    public void makeBidderResponseShouldReturnErrorWhenBidMTypeIsNotSupported() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorWhenBidMTypeIsNotSupported() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidResponse(bid -> bid.impid("123").mtype(10)));
 
         // when
-        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors())
                 .containsExactly(BidderError.badServerResponse("Unsupported MType '10', for impression '123'"));
-        assertThat(result.getBids()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
-    public void makeBidderResponseShouldReturnBannerBid() throws JsonProcessingException {
+    public void makeBidsShouldReturnBannerBid() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidResponse(bid -> bid.mtype(1)));
 
         // when
-        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getBids())
+        assertThat(result.getValue())
                 .extracting(BidderBid::getType)
                 .containsExactly(BidType.banner);
     }
 
     @Test
-    public void makeBidderResponseShouldReturnVideoBid() throws JsonProcessingException {
+    public void makeBidsShouldReturnVideoBid() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidResponse(bid -> bid.mtype(2)));
 
         // when
-        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getBids())
+        assertThat(result.getValue())
                 .extracting(BidderBid::getType)
                 .containsExactly(BidType.video);
     }
 
     @Test
-    public void makeBidderResponseShouldReturnAudioBid() throws JsonProcessingException {
+    public void makeBidsShouldReturnAudioBid() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidResponse(bid -> bid.mtype(3)));
 
         // when
-        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getBids())
+        assertThat(result.getValue())
                 .extracting(BidderBid::getType)
                 .containsExactly(BidType.audio);
     }
 
     @Test
-    public void makeBidderResponseShouldReturnNativeBid() throws JsonProcessingException {
+    public void makeBidsShouldReturnNativeBid() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidResponse(bid -> bid.mtype(4)));
 
         // when
-        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getBids())
+        assertThat(result.getValue())
                 .extracting(BidderBid::getType)
                 .containsExactly(BidType.xNative);
     }
 
     @Test
-    public void makeBidderResponseShouldReturnBidWithCurFromResponse() throws JsonProcessingException {
+    public void makeBidsShouldReturnBidWithCurFromResponse() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidResponse(bid -> bid.mtype(1)));
 
         // when
-        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getBids())
+        assertThat(result.getValue())
                 .extracting(BidderBid::getBidCurrency)
                 .containsExactly("CUR");
     }

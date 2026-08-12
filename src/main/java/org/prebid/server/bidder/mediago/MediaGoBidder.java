@@ -27,6 +27,7 @@ import org.prebid.server.proto.openrtb.ext.request.mediago.MediaGoImpExt;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -42,8 +43,8 @@ public class MediaGoBidder implements Bidder<BidRequest> {
     };
 
     private static final String BIDDER_NAME = "mediago";
-    private static final String HOST_MACRO = "{{Host}}";
-    private static final String ACCOUNT_ID_MACRO = "{{AccountID}}";
+    private static final String HOST_MACRO = "Host";
+    private static final String ACCOUNT_ID_MACRO = "AccountID";
     private static final String X_OPENRTB_VERSION = "2.5";
     private static final String DEFAULT_REGION = "us";
 
@@ -52,11 +53,11 @@ public class MediaGoBidder implements Bidder<BidRequest> {
             "EU", "eu",
             "US", "us");
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public MediaGoBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -142,10 +143,11 @@ public class MediaGoBidder implements Bidder<BidRequest> {
     }
 
     private String resolveEndpoint(MediaGoExt ext) {
+        final String host = REGIONS_MAP.getOrDefault(StringUtils.defaultString(ext.getRegion()), DEFAULT_REGION);
         return endpointUrl
-                .replace(ACCOUNT_ID_MACRO, HttpUtil.encodeUrl(ext.getToken()))
-                .replace(HOST_MACRO, HttpUtil.encodeUrl(
-                        REGIONS_MAP.getOrDefault(StringUtils.defaultString(ext.getRegion()), DEFAULT_REGION)));
+                .replaceMacro(ACCOUNT_ID_MACRO, ext.getToken())
+                .replaceMacro(HOST_MACRO, host)
+                .expand();
     }
 
     @Override

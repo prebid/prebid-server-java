@@ -210,7 +210,6 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(bidAdjustmentsEnricher.enrichBidRequest(any())).willReturn(defaultBidRequest);
 
         target = new AuctionRequestFactory(
-                Integer.MAX_VALUE,
                 ortb2RequestFactory,
                 storedRequestProcessor,
                 profilesProcessor,
@@ -241,39 +240,6 @@ public class AuctionRequestFactoryTest extends VertxTest {
         assertThat(future.cause())
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessage("Incoming request has no body");
-    }
-
-    @Test
-    public void shouldReturnFailedFutureIfRequestBodyExceedsMaxRequestSize() {
-        // given
-        target = new AuctionRequestFactory(
-                1,
-                ortb2RequestFactory,
-                storedRequestProcessor,
-                profilesProcessor,
-                ortbVersionConversionManager,
-                auctionGppService,
-                cookieDeprecationService,
-                paramsExtractor,
-                paramsResolver,
-                interstitialProcessor,
-                ortbTypesResolver,
-                auctionPrivacyContextFactory,
-                debugResolver,
-                jacksonMapper,
-                geoLocationServiceWrapper,
-                bidAdjustmentsEnricher);
-
-        given(requestBody.asString()).willReturn("body");
-
-        // when
-        final Future<?> future = target.parseRequest(routingContext, 0L);
-
-        // then
-        assertThat(future.failed()).isTrue();
-        assertThat(future.cause())
-                .isInstanceOf(InvalidRequestException.class)
-                .hasMessage("Request size exceeded max size of 1 bytes.");
     }
 
     @Test

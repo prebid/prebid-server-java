@@ -16,8 +16,6 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.utils.URLEncodedUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.flipp.model.request.CampaignRequestBody;
 import org.prebid.server.bidder.flipp.model.request.CampaignRequestBodyUser;
@@ -47,7 +45,6 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -57,6 +54,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class FlippBidder implements Bidder<CampaignRequestBody> {
 
@@ -72,6 +71,7 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
     private static final String EXT_REQUEST_TRANSMIT_EIDS = "transmitEids";
     private static final int DEFAULT_STANDARD_HEIGHT = 2400;
     private static final int DEFAULT_COMPACT_HEIGHT = 600;
+    private static final Pattern CONTENT_CODE_PATTERN = Pattern.compile("[?&]flipp-content-code=([^&]+)");
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -167,13 +167,16 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
         final String pageUrl = Optional.ofNullable(site)
                 .map(Site::getPage)
                 .orElse(null);
+        if (StringUtils.isBlank(pageUrl)) {
+            return null;
+        }
 
-        return URLEncodedUtils.parse(pageUrl, StandardCharsets.UTF_8)
-                .stream()
-                .filter(nameValuePair -> nameValuePair.getName().contains("flipp-content-code"))
-                .map(NameValuePair::getValue)
-                .findFirst()
-                .orElse(null);
+        final Matcher matcher = CONTENT_CODE_PATTERN.matcher(pageUrl);
+        if (!matcher.find()) {
+            return null;
+        }
+
+        return HttpUtil.decodeUrl(matcher.group(1));
     }
 
     private static List<String> resolveKeywords(BidRequest bidRequest) {

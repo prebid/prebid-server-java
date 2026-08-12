@@ -27,7 +27,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.pubnative.ExtImpPubnative;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -43,14 +43,15 @@ public class PubnativeBidder implements Bidder<BidRequest> {
             };
     private static final String PUBNATIVE_CURRENCY = "USD";
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
     private final CurrencyConversionService currencyConversionService;
 
     public PubnativeBidder(String endpointUrl,
                            JacksonMapper mapper,
                            CurrencyConversionService currencyConversionService) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
     }
@@ -105,10 +106,10 @@ public class PubnativeBidder implements Bidder<BidRequest> {
         return resolvedBanner == null && resolvedBidFloor == null
                 ? imp
                 : imp.toBuilder()
-                .banner(ObjectUtils.defaultIfNull(resolvedBanner, imp.getBanner()))
-                .bidfloor(ObjectUtils.defaultIfNull(resolvedBidFloor, imp.getBidfloor()))
-                .bidfloorcur(resolvedBidFloor == null ? imp.getBidfloorcur() : PUBNATIVE_CURRENCY)
-                .build();
+                  .banner(ObjectUtils.defaultIfNull(resolvedBanner, imp.getBanner()))
+                  .bidfloor(ObjectUtils.defaultIfNull(resolvedBidFloor, imp.getBidfloor()))
+                  .bidfloorcur(resolvedBidFloor == null ? imp.getBidfloorcur() : PUBNATIVE_CURRENCY)
+                  .build();
     }
 
     private static Banner resolveBanner(Banner banner) {
@@ -152,10 +153,10 @@ public class PubnativeBidder implements Bidder<BidRequest> {
     }
 
     private HttpRequest<BidRequest> createHttpRequest(BidRequest outgoingRequest, ExtImpPubnative impExt) {
-        final String requestUri = "%s?apptoken=%s&zoneid=%s".formatted(
-                endpointUrl,
-                impExt.getAppAuthToken(),
-                impExt.getZoneId());
+        final String requestUri = endpointUrl
+                .addQueryParam("apptoken", impExt.getAppAuthToken())
+                .addQueryParam("zoneid", Objects.toString(impExt.getZoneId()))
+                .expand();
 
         return BidderUtil.defaultRequest(outgoingRequest, requestUri, mapper);
     }
