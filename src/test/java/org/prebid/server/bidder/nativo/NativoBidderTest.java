@@ -276,7 +276,7 @@ public class NativoBidderTest extends VertxTest {
                 .imp(singletonList(impCustomizer.apply(Imp.builder().id("imp1")).build()))
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .sdk(ExtRequestPrebidSdk.of(singletonList(
-                                ExtRequestPrebidSdkRenderer.of(rendererName, rendererVersion, null, null))))
+                                ExtRequestPrebidSdkRenderer.of(rendererName, rendererVersion, null, null)), null))
                         .build()))
                 .build();
     }
