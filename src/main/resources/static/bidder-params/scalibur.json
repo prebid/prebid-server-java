@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Scalibur Adapter Params",
+  "description": "A valid BidderParams object for the Scalibur adapter",
+  "type": "object",
+  "properties": {
+    "placementId": {
+      "type": "string",
+      "description": "Placement ID",
+      "minLength": 1
+    },
+    "bidfloor": {
+      "type": "number",
+      "description": "The minimum price acceptable for a bid",
+      "minimum": 0
+    },
+    "bidfloorcur": {
+      "type": "string",
+      "description": "currency floor price"
+    }
+  },
+  "required": [
+    "placementId"
+  ]
+}

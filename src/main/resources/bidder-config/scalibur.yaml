@@ -1,0 +1,20 @@
+adapters:
+  scalibur:
+    endpoint: https://srv.scalibur.io/adserver/ortb?type=prebid-server
+    ortb-version: "2.6"
+    endpoint-compression: gzip
+    meta-info:
+      maintainer-email: support@scalibur.io
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 1471
+      usersync:
+        cookie-family-name: scalibur
+        iframe:
+          url: https://srv.scalibur.io/adserver/sync?type=iframe&gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&redirect={redirect_url}
+          uid-macro: '[PBS_UID]'
