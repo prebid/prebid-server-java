@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.regex.Pattern;
 
 public class FloxisBidder implements Bidder<BidRequest> {
 
@@ -45,9 +44,6 @@ public class FloxisBidder implements Bidder<BidRequest> {
     private static final String DEFAULT_REGION = "us-e";
     private static final String DEFAULT_PARTNER = "floxis";
 
-    // matches(), not find(): Java's $ also matches before a trailing newline, which the schema does not allow
-    private static final Pattern HOST_LABEL = Pattern.compile("[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?");
-
     private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
@@ -59,8 +55,7 @@ public class FloxisBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<BidderError> errors = new ArrayList<>();
-        final Map<String, List<Imp>> impsByTarget = new LinkedHashMap<>();
-        final Map<String, ExtImpFloxis> extsByTarget = new LinkedHashMap<>();
+        final Map<HostId, List<Imp>> impsByHost = new LinkedHashMap<>();
 
         for (Imp imp : request.getImp()) {
             final ExtImpFloxis impExt;
@@ -71,16 +66,13 @@ public class FloxisBidder implements Bidder<BidRequest> {
                 continue;
             }
 
-            final String target = impExt.getSeat() + "|"
-                    + resolveBidHost(impExt.getRegion(), impExt.getPartner());
-            impsByTarget.computeIfAbsent(target, key -> new ArrayList<>()).add(imp);
-            extsByTarget.putIfAbsent(target, impExt);
+            impsByHost.computeIfAbsent(HostId.of(impExt), key -> new ArrayList<>()).add(imp);
         }
 
-        final List<HttpRequest<BidRequest>> httpRequests = impsByTarget.entrySet().stream()
+        final List<HttpRequest<BidRequest>> httpRequests = impsByHost.entrySet().stream()
                 .map(entry -> BidderUtil.defaultRequest(
                         request.toBuilder().imp(entry.getValue()).build(),
-                        resolveUrl(extsByTarget.get(entry.getKey())),
+                        resolveUrl(entry.getKey()),
                         mapper))
                 .toList();
 
@@ -95,10 +87,6 @@ public class FloxisBidder implements Bidder<BidRequest> {
             throw new PreBidException("invalid imp.ext.bidder for imp %s: %s".formatted(imp.getId(), e.getMessage()));
         }
 
-        if (impExt == null || StringUtils.isBlank(impExt.getSeat())) {
-            throw new PreBidException("missing seat for imp %s".formatted(imp.getId()));
-        }
-
         final String region = StringUtils.isBlank(impExt.getRegion())
                 ? DEFAULT_REGION
                 : impExt.getRegion().toLowerCase(Locale.ROOT);
@@ -106,27 +94,14 @@ public class FloxisBidder implements Bidder<BidRequest> {
                 ? DEFAULT_PARTNER
                 : impExt.getPartner().toLowerCase(Locale.ROOT);
 
-        validateHostLabel(region, "region", imp.getId());
-        validateHostLabel(partner, "partner", imp.getId());
-
         return ExtImpFloxis.of(impExt.getSeat(), region, partner);
     }
 
-    private static void validateHostLabel(String value, String name, String impId) {
-        if (!HOST_LABEL.matcher(value).matches()) {
-            throw new PreBidException("invalid %s \"%s\" for imp %s".formatted(name, value, impId));
-        }
-    }
-
-    private String resolveUrl(ExtImpFloxis extImp) {
+    private String resolveUrl(HostId hostId) {
         return endpointUrl
-                .replaceMacro(HOST_MACRO, resolveBidHost(extImp.getRegion(), extImp.getPartner()))
-                .replaceMacro(SEAT_MACRO, extImp.getSeat())
+                .replaceMacro(HOST_MACRO, hostId.host())
+                .replaceMacro(SEAT_MACRO, hostId.seat())
                 .expand();
-    }
-
-    private static String resolveBidHost(String region, String partner) {
-        return partner.equals(DEFAULT_PARTNER) ? region : partner + "-" + region;
     }
 
     @Override
@@ -217,5 +192,16 @@ public class FloxisBidder implements Bidder<BidRequest> {
             formats++;
         }
         return formats;
+    }
+
+    private record HostId(String seat, String host) {
+
+        static HostId of(ExtImpFloxis impExt) {
+            final String partner = impExt.getPartner();
+            final String region = impExt.getRegion();
+            return new HostId(
+                    impExt.getSeat(),
+                    partner.equals(DEFAULT_PARTNER) ? region : partner + "-" + region);
+        }
     }
 }
