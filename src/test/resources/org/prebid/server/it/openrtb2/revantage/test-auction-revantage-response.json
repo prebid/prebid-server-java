@@ -1,0 +1,41 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "exp": 300,
+          "price": 1.5,
+          "adm": "<div>Revantage Ad</div>",
+          "crid": "creative_1",
+          "w": 300,
+          "h": 250,
+          "mtype": 1,
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "meta": {
+                "adaptercode": "revantage"
+              }
+            },
+            "origbidcpm": 1.5
+          }
+        }
+      ],
+      "seat": "revantage",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "revantage": "{{ revantage.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}
