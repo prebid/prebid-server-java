@@ -22,6 +22,7 @@ import org.prebid.server.proto.openrtb.ext.request.afront.ExtImpAfront;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -36,14 +37,14 @@ public class AfrontBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpAfront>> TYPE_REFERENCE = new TypeReference<>() {
     };
 
-    private static final String ACCOUNT_ID_MACRO = "{{AccountId}}";
-    private static final String SOURCE_ID_MACRO = "{{SourceId}}";
+    private static final String ACCOUNT_ID_MACRO = "AccountId";
+    private static final String SOURCE_ID_MACRO = "SourceId";
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public AfrontBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -74,8 +75,9 @@ public class AfrontBidder implements Bidder<BidRequest> {
 
     private String resolveEndpoint(ExtImpAfront extImp) {
         return endpointUrl
-                .replace(ACCOUNT_ID_MACRO, HttpUtil.encodeUrl(extImp.getAccountId()))
-                .replace(SOURCE_ID_MACRO, HttpUtil.encodeUrl(extImp.getSourceId()));
+                .replaceMacro(ACCOUNT_ID_MACRO, extImp.getAccountId())
+                .replaceMacro(SOURCE_ID_MACRO, extImp.getSourceId())
+                .expand();
     }
 
     private static BidRequest modifyRequest(BidRequest request) {

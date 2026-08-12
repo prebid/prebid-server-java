@@ -1,0 +1,20 @@
+package org.prebid.server.functional.model.config
+
+import com.fasterxml.jackson.annotation.JsonValue
+
+enum ModuleName {
+
+    PB_RICHMEDIA_FILTER("pb-richmedia-filter"),
+    PB_RESPONSE_CORRECTION ("pb-response-correction"),
+    PB_ORTB2_BLOCKING("pb-ortb2-blocking"),
+    PB_REQUEST_CORRECTION('pb-request-correction'),
+    PB_RULE_ENGINE('pb-rule-engine'),
+    OPTABLE_TARGETING('optable-targeting')
+
+    @JsonValue
+    final String code
+
+    ModuleName(String code) {
+        this.code = code
+    }
+}

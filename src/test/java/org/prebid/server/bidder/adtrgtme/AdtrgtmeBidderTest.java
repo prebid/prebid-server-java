@@ -52,7 +52,7 @@ public class AdtrgtmeBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).allSatisfy(httpRequest -> {
             assertThat(httpRequest.getMethod()).isEqualTo(HttpMethod.POST);
-            assertThat(httpRequest.getUri()).isEqualTo(String.format("%s?s=%d&prebid", ENDPOINT_URL, 123));
+            assertThat(httpRequest.getUri()).isEqualTo(String.format("%s?s=%d&prebid=", ENDPOINT_URL, 123));
         });
     }
 
@@ -101,7 +101,7 @@ public class AdtrgtmeBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://z.cdn.adtarget.market/ssp?s=123&prebid");
+                .containsExactly("https://z.cdn.adtarget.market/ssp?s=123&prebid=");
     }
 
     @Test

@@ -42,7 +42,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
 public class LunamediaBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "http://test/get?pubid=";
+    private static final String ENDPOINT_URL = "http://test/get?pubid={Pid}";
 
     private final LunamediaBidder target = new LunamediaBidder(ENDPOINT_URL, jacksonMapper);
 

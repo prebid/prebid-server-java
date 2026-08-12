@@ -31,14 +31,14 @@ public class CriteriaManagerTest extends VertxTest {
     @Test
     public void addCriteriaShouldThrowIllegalArgumentExceptionWhenLoggerLevelHasInvalidValue() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> criteriaManager.addCriteria("1001", "rubicon", "invalid", 800))
+                .isThrownBy(() -> criteriaManager.addCriteria("1001", "magnite", "invalid", 800))
                 .withMessage("Invalid LoggingLevel: invalid");
     }
 
     @Test
     public void addCriteriaShouldAddVertxTimerWithLimitedDurationInMillis() {
         // given and when
-        criteriaManager.addCriteria("1001", "rubicon", "error", 800000);
+        criteriaManager.addCriteria("1001", "magnite", "error", 800000);
 
         // then
         verify(vertx).setTimer(eq(300000L), any());
@@ -47,7 +47,7 @@ public class CriteriaManagerTest extends VertxTest {
     @Test
     public void addCriteriaShouldAddVertxTimerWithDefaultDurationInMillis() {
         // given and when
-        criteriaManager.addCriteria("1001", "rubicon", "error", 200000);
+        criteriaManager.addCriteria("1001", "magnite", "error", 200000);
 
         // then
         verify(vertx).setTimer(eq(200000L), any());

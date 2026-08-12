@@ -23,6 +23,5 @@ adapters:
     usersync:
       cookie-family-name: adagio
       iframe:
-        url: https://u-REGION.4dex.io/pbserver/usync.html?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&&gpp_sid={{gpp_sid}}&r={{redirect_url}}
-        support-cors: false
+        url: https://u-REGION.4dex.io/pbserver/usync.html?gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&gpp={gpp}&&gpp_sid={gpp_sid}&r={redirect_url}
         uid-macro: '{UID}'

@@ -25,11 +25,9 @@ public class IntenzeTest extends IntegrationTest {
         // when
         final Response response = responseFor(
                 "openrtb2/intenze/test-auction-intenze-request.json",
-                Endpoint.openrtb2_auction
-        );
+                Endpoint.openrtb2_auction);
 
         // then
         assertJsonEquals("openrtb2/intenze/test-auction-intenze-response.json", response, List.of("intenze"));
     }
-
 }

@@ -10,6 +10,7 @@ vertx:
 server:
   max-initial-line-length: 8092
   max-headers-size: 16384
+  max-body-size: 262144
   ssl: false
   jks-path:
   jks-password:
@@ -78,7 +79,7 @@ http-client:
   idle-timeout-ms: 0
   pool-cleaner-period-ms: 1000
   connect-timeout-ms: 2500
-  use-compression: true
+  use-decompression: true
   max-redirects: 0
   ssl: false
   jks-path:
@@ -119,7 +120,6 @@ auction:
     log-result: false
     log-failure-only: false
     log-sampling-rate: 0.0
-  max-request-size: 262144
   generate-bid-id: false
   cache:
     expected-request-time-ms: 10
@@ -131,6 +131,7 @@ auction:
   category-mapping-enabled: false
   strict-app-site-dooh: true
 video:
+  enable-deprecated-endpoint: false
   stored-request-required: false
   stored-requests-timeout-ms: 90
 event:
@@ -228,6 +229,9 @@ gdpr:
           max-delay-millis: 120000
           factor: 1.1
           jitter: 0.2
+    live:
+      url: https://vendor-list.consensu.org/v3/vendor-list.json
+      refresh-period-ms: 86400000
   purposes:
     p1:
       enforce-purpose: full

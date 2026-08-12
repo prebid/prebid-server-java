@@ -37,7 +37,9 @@ import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.typestrategies.NoEnf
 import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.typestrategies.PurposeTwoBasicEnforcePurposeStrategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.specialfeature.SpecialFeaturesOneStrategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.specialfeature.SpecialFeaturesStrategy;
+import org.prebid.server.privacy.gdpr.vendorlist.LiveVendorListService;
 import org.prebid.server.privacy.gdpr.vendorlist.VendorListFetchThrottler;
+import org.prebid.server.privacy.gdpr.vendorlist.VendorListFileStore;
 import org.prebid.server.privacy.gdpr.vendorlist.VendorListService;
 import org.prebid.server.privacy.gdpr.vendorlist.VersionedVendorListService;
 import org.prebid.server.settings.model.GdprConfig;
@@ -66,15 +68,24 @@ import java.util.Set;
 public class PrivacyServiceConfiguration {
 
     @Bean
+    VendorListFileStore vendorListFileStore(
+            @Value("${logging.sampling-rate:0.01}") double logSamplingRate,
+            FileSystem fileSystem,
+            JacksonMapper mapper) {
+
+        return new VendorListFileStore(logSamplingRate, fileSystem, mapper);
+    }
+
+    @Bean
     VendorListService vendorListServiceV2(
             @Value("${logging.sampling-rate:0.01}") double logSamplingRate,
             @Value("${gdpr.vendorlist.default-timeout-ms}") int defaultTimeoutMs,
             VendorListServiceConfigurationProperties vendorListServiceV2Properties,
             Vertx vertx,
             Clock clock,
-            FileSystem fileSystem,
             HttpClient httpClient,
             Metrics metrics,
+            VendorListFileStore vendorListFileStore,
             JacksonMapper mapper) {
 
         return new VendorListService(
@@ -86,12 +97,12 @@ public class PrivacyServiceConfiguration {
                 vendorListServiceV2Properties.getDeprecated(),
                 vendorListServiceV2Properties.getFallbackVendorListPath(),
                 vertx,
-                fileSystem,
                 httpClient,
                 metrics,
                 "v2",
-                mapper,
-                new VendorListFetchThrottler(vendorListServiceV2Properties.getRetryPolicy().toPolicy(), clock));
+                new VendorListFetchThrottler(vendorListServiceV2Properties.getRetryPolicy().toPolicy(), clock),
+                vendorListFileStore,
+                mapper);
     }
 
     @Bean
@@ -107,9 +118,9 @@ public class PrivacyServiceConfiguration {
             VendorListServiceConfigurationProperties vendorListServiceV3Properties,
             Vertx vertx,
             Clock clock,
-            FileSystem fileSystem,
             HttpClient httpClient,
             Metrics metrics,
+            VendorListFileStore vendorListFileStore,
             JacksonMapper mapper) {
 
         return new VendorListService(
@@ -121,12 +132,12 @@ public class PrivacyServiceConfiguration {
                 vendorListServiceV3Properties.getDeprecated(),
                 vendorListServiceV3Properties.getFallbackVendorListPath(),
                 vertx,
-                fileSystem,
                 httpClient,
                 metrics,
                 "v3",
-                mapper,
-                new VendorListFetchThrottler(vendorListServiceV3Properties.getRetryPolicy().toPolicy(), clock));
+                new VendorListFetchThrottler(vendorListServiceV3Properties.getRetryPolicy().toPolicy(), clock),
+                vendorListFileStore,
+                mapper);
     }
 
     @Bean
@@ -136,10 +147,39 @@ public class PrivacyServiceConfiguration {
     }
 
     @Bean
-    VersionedVendorListService versionedVendorListService(VendorListService vendorListServiceV2,
-                                                          VendorListService vendorListServiceV3) {
+    LiveVendorListService liveVendorListService(
+            @Value("${gdpr.vendorlist.live.startup-cache-dir}") String startupCacheDir,
+            @Value("${gdpr.vendorlist.live.url}") String liveGvlUrl,
+            @Value("${gdpr.vendorlist.live.refresh-period-ms}") long refreshPeriodMs,
+            @Value("${gdpr.vendorlist.default-timeout-ms}") int defaultTimeoutMs,
+            Vertx vertx,
+            HttpClient httpClient,
+            VendorListFileStore vendorListFileStore,
+            Metrics metrics,
+            JacksonMapper mapper,
+            Clock clock) {
 
-        return new VersionedVendorListService(vendorListServiceV2, vendorListServiceV3);
+        return new LiveVendorListService(
+                startupCacheDir,
+                liveGvlUrl,
+                refreshPeriodMs,
+                defaultTimeoutMs,
+                vertx,
+                httpClient,
+                vendorListFileStore,
+                metrics,
+                mapper,
+                clock);
+    }
+
+    @Bean
+    VersionedVendorListService versionedVendorListService(VendorListService vendorListServiceV2,
+                                                          VendorListService vendorListServiceV3,
+                                                          LiveVendorListService liveVendorListService,
+                                                          Clock clock) {
+
+        return new VersionedVendorListService(
+                vendorListServiceV2, vendorListServiceV3, liveVendorListService, clock);
     }
 
     @Bean

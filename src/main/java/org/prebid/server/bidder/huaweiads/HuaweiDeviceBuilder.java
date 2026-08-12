@@ -106,5 +106,4 @@ public class HuaweiDeviceBuilder {
     private String formatClientTime(List<String> clientTimes) {
         return CollectionUtils.isEmpty(clientTimes) ? null : clientTimeFormatter.format(clientTimes.getFirst());
     }
-
 }

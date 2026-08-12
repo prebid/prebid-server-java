@@ -39,7 +39,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 @ExtendWith(MockitoExtension.class)
 public class ImdsBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://pbs.endpoint.com/{{AccountID}}?src={{SourceId}}&adapter=imds";
+    private static final String ENDPOINT_URL = "https://pbs.endpoint.com/{AccountID}?src={SourceId}&adapter=imds";
     private static final String PREBID_VERSION = "pbs-java/0.1.2";
 
     private final ImdsBidder target = new ImdsBidder(ENDPOINT_URL, PREBID_VERSION, jacksonMapper);

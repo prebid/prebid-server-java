@@ -30,7 +30,7 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 
 public class UcfunnelBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.endpoint.com";
+    private static final String ENDPOINT_URL = "https://test.endpoint.com/{PartnerId}/request";
 
     private final UcfunnelBidder target = new UcfunnelBidder(ENDPOINT_URL, jacksonMapper);
 

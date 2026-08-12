@@ -4,6 +4,8 @@ adapters:
     aliases:
       genericAlias:
         enabled: false
+        meta-info:
+          vendor-id: 0
       adrino:
         enabled: false
         endpoint: https://prd-prebid-bidder.adrino.io/openrtb/bid
@@ -27,8 +29,7 @@ adapters:
           enabled: true
           cookie-family-name: ccx
           redirect:
-            url: https://sync.clickonometrics.pl/prebid/set-cookie?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&cb={{redirect_url}}
-            support-cors: false
+            url: https://sync.clickonometrics.pl/prebid/set-cookie?gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&cb={redirect_url}
             uid-macro: '${USER_ID}'
       infytv:
         enabled: false
@@ -59,9 +60,8 @@ adapters:
           enabled: true
           cookie-family-name: zeta_global_ssp
           redirect:
-            url: https://ssp.disqus.com/redirectuser?sid=GET_SID_FROM_ZETA&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&r={{redirect_url}}
+            url: https://ssp.disqus.com/redirectuser?sid=GET_SID_FROM_ZETA&gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&r={redirect_url}
             uid-macro: 'BUYERUID'
-            support-cors: false
       blue:
         enabled: false
         endpoint: https://prebid-us-east-1.getblue.io/?src=prebid
@@ -90,12 +90,10 @@ adapters:
           enabled: true
           cookie-family-name: cwire
           redirect:
-            url: https://prebid.cwi.re/v1/usersync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&rd={{redirect_url}}
-            support-cors: false
+            url: https://prebid.cwi.re/v1/usersync?gdpr={gdpr}&gdpr_consent={gdpr_consent}&rd={redirect_url}
             uid-macro: '$UID'
           iframe:
-            url:  https://prebid.cwi.re/v1/usersync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&rd={{redirect_url}}
-            support-cors: false
+            url:  https://prebid.cwi.re/v1/usersync?gdpr={gdpr}&gdpr_consent={gdpr_consent}&rd={redirect_url}
             uid-macro: '$UID'
     meta-info:
       maintainer-email: maintainer@example.com

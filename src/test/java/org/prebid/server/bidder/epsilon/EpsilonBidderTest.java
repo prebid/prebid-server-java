@@ -22,7 +22,6 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.CompositeBidderResponse;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -795,25 +794,25 @@ public class EpsilonBidderTest extends VertxTest {
 
         final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
                 mapper.writeValueAsString(BidResponse.builder()
-                .seatbid(singletonList(SeatBid.builder()
-                        .bid(singletonList(Bid.builder()
-                                .price(BigDecimal.ONE)
-                                .impid("impid-0")
-                                .adm(nativeResponseString)
-                                .mtype(4)
-                                .cat(singletonList("IAB3"))
+                        .seatbid(singletonList(SeatBid.builder()
+                                .bid(singletonList(Bid.builder()
+                                        .price(BigDecimal.ONE)
+                                        .impid("impid-0")
+                                        .adm(nativeResponseString)
+                                        .mtype(4)
+                                        .cat(singletonList("IAB3"))
+                                        .build()))
                                 .build()))
-                        .build()))
-                .cur("USD")
-                .ext(ExtBidResponse.builder().build())
-                .build()));
+                        .cur("USD")
+                        .ext(ExtBidResponse.builder().build())
+                        .build()));
 
         // when
-        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getBids()).hasSize(1)
+        assertThat(result.getValue()).hasSize(1)
                 .containsOnly(BidderBid.of(
                         Bid.builder()
                                 .impid("impid-0")

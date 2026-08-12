@@ -7,7 +7,6 @@ import groovy.transform.ToString
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.request.auction.BidAdjustment
 import org.prebid.server.functional.model.request.auction.BidRounding
-import org.prebid.server.functional.model.request.auction.PaaFormat
 import org.prebid.server.functional.model.request.auction.Targeting
 import org.prebid.server.functional.model.response.auction.MediaType
 
@@ -28,7 +27,6 @@ class AccountAuctionConfig {
     AccountPriceFloorsConfig priceFloors
     AccountProfilesConfigs profiles
     Targeting targeting
-    PaaFormat paaformat
     @JsonProperty("preferredmediatype")
     Map<BidderName, MediaType> preferredMediaType
     @JsonProperty("privacysandbox")

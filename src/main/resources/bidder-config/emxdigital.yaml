@@ -4,10 +4,16 @@ adapters:
     aliases:
       cadent_aperture_mx:
         enabled: false
+        meta-info:
+          vendor-id: 183
         # CadentAperture only operates in North America
         geoscope:
           - USA
           - CAN
+      emx_digital:
+        enabled: false
+        meta-info:
+          vendor-id: 183
     meta-info:
       maintainer-email: contactaperturemx@cadent.tv
       app-media-types:
@@ -21,6 +27,5 @@ adapters:
     usersync:
       cookie-family-name: emx_digital
       iframe:
-        url: https://cs.emxdgt.com/um?ssp=pbs&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
-        support-cors: false
+        url: https://cs.emxdgt.com/um?ssp=pbs&gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&redirect={redirect_url}
         uid-macro: '$UID'

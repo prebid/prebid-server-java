@@ -178,5 +178,4 @@ public class ZMaticooBidder implements Bidder<BidRequest> {
                     "unrecognized bid type in response from zmaticoo for bid " + bid.getImpid());
         };
     }
-
 }
