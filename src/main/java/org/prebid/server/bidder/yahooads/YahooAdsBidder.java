@@ -71,8 +71,7 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
             try {
                 final Imp imp = impList.get(i);
                 final ExtImpYahooAds extImpYahooAds = parseAndValidateImpExt(imp.getExt(), i);
-                final BidRequest modifiedRequest = modifyRequest(bidRequest, imp, extImpYahooAds,
-                        promotedRegs);
+                final BidRequest modifiedRequest = modifyRequest(bidRequest, imp, extImpYahooAds, promotedRegs);
                 bidRequests.add(makeHttpRequest(modifiedRequest));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
@@ -104,8 +103,7 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
         return extImpYahooAds;
     }
 
-    private BidRequest modifyRequest(BidRequest request, Imp imp, ExtImpYahooAds extImpYahooAds,
-                                     Regs promotedRegs) {
+    private BidRequest modifyRequest(BidRequest request, Imp imp, ExtImpYahooAds extImpYahooAds, Regs regs) {
         final BidRequest.BidRequestBuilder requestBuilder = request.toBuilder();
 
         final Site site = request.getSite();
@@ -117,8 +115,8 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
             requestBuilder.app(app.toBuilder().id(extImpYahooAds.getDcn()).build());
         }
 
-        if (promotedRegs != null) {
-            requestBuilder.regs(promotedRegs);
+        if (regs != null) {
+            requestBuilder.regs(regs);
         }
 
         return requestBuilder
@@ -163,9 +161,6 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    // Promote legacy 2.5 regs.ext gpp/gpp_sid to their 2.6 top-level slots.
-    // An ext key is removed whenever the outbound request has a top-level value for that
-    // field, so one signal never goes out with two values; everything else stays in ext.
     private static Regs promoteRegsExtToTopLevel(Regs regs) {
         final ExtRegs ext = regs.getExt();
         if (ext == null || ext.getProperties().isEmpty()) {
@@ -196,7 +191,6 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    // Value to lift from ext, or null when top-level already has it or ext lacks a valid value.
     private static String gppToPromote(Regs regs, ExtRegs ext) {
         if (regs.getGpp() != null) {
             return null;
@@ -223,7 +217,6 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
         return sids;
     }
 
-    // Rebuild regs.ext keeping the typed fields and every property except the superseded keys.
     private static ExtRegs removeSupersededKeys(ExtRegs ext,
                                                 boolean gppSuperseded,
                                                 boolean gppSidSuperseded) {
