@@ -46,6 +46,9 @@ public class MissenaBidder implements Bidder<MissenaAdRequest> {
     private static final String USD_CURRENCY = "USD";
     private static final String EUR_CURRENCY = "EUR";
     private static final String PUBLISHER_ID_MACRO = "PublisherID";
+    private static final String VERSION_NAME = "prebid-server-java";
+    private static final String VERSION_UNKNOWN = "unknown";
+    private static final String VERSION_SEPARATOR = "@";
 
     private final Uri endpointUrl;
     private final JacksonMapper mapper;
@@ -113,7 +116,7 @@ public class MissenaBidder implements Bidder<MissenaAdRequest> {
                 .requestId(request.getId())
                 .timeout(request.getTmax())
                 .params(userParams)
-                .version(prebidVersionProvider.getNameVersionRecord())
+                .version(resolveVersion())
                 .bidRequest(request)
                 .build();
 
@@ -125,6 +128,14 @@ public class MissenaBidder implements Bidder<MissenaAdRequest> {
                 .body(mapper.encodeToBytes(missenaAdRequest))
                 .payload(missenaAdRequest)
                 .build();
+    }
+
+    // The Missena bid server expects a "name@version" record: Prebid.js sends "prebid.js@<version>" and Prebid Server
+    // Go sends "prebid-server@<version>". PrebidVersionProvider yields "pbs-java/<version>", so reshape it here to
+    // follow that convention while keeping Go and Java traffic distinguishable.
+    private String resolveVersion() {
+        final String version = StringUtils.substringAfter(prebidVersionProvider.getNameVersionRecord(), "/");
+        return VERSION_NAME + VERSION_SEPARATOR + (StringUtils.isNotEmpty(version) ? version : VERSION_UNKNOWN);
     }
 
     private static List<Eid> resolveUserEids(User user) {
