@@ -130,9 +130,6 @@ public class MissenaBidder implements Bidder<MissenaAdRequest> {
                 .build();
     }
 
-    // The Missena bid server expects a "name@version" record: Prebid.js sends "prebid.js@<version>" and Prebid Server
-    // Go sends "prebid-server@<version>". PrebidVersionProvider yields "pbs-java/<version>", so reshape it here to
-    // follow that convention while keeping Go and Java traffic distinguishable.
     private String resolveVersion() {
         final String version = StringUtils.substringAfter(prebidVersionProvider.getNameVersionRecord(), "/");
         return VERSION_NAME + VERSION_SEPARATOR + (StringUtils.isNotEmpty(version) ? version : VERSION_UNKNOWN);
