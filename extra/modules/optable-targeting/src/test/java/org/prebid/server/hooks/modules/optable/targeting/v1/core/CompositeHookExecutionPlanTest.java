@@ -4,10 +4,10 @@ import org.junit.jupiter.api.Test;
 import org.prebid.server.hooks.execution.model.EndpointExecutionPlan;
 import org.prebid.server.hooks.execution.model.ExecutionGroup;
 import org.prebid.server.hooks.execution.model.ExecutionPlan;
+import org.prebid.server.hooks.execution.model.HookHttpEndpoint;
 import org.prebid.server.hooks.execution.model.HookId;
 import org.prebid.server.hooks.execution.model.Stage;
 import org.prebid.server.hooks.execution.model.StageExecutionPlan;
-import org.prebid.server.model.Endpoint;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountHooksConfiguration;
 
@@ -339,7 +339,7 @@ public class CompositeHookExecutionPlanTest {
         final ExecutionGroup group = ExecutionGroup.of(null, List.of(hookId));
         final StageExecutionPlan stagePlan = StageExecutionPlan.of(List.of(group));
         final EndpointExecutionPlan endpointPlan = EndpointExecutionPlan.of(Map.of(Stage.valueOf(stage), stagePlan));
-        return ExecutionPlan.of(null, Map.of(Endpoint.openrtb2_auction, endpointPlan));
+        return ExecutionPlan.of(null, Map.of(HookHttpEndpoint.POST_AUCTION, endpointPlan));
     }
 
     private ExecutionPlan givenExecutionPlanWithTimeout(String stage, String hookCode, long timeout) {
@@ -347,7 +347,7 @@ public class CompositeHookExecutionPlanTest {
         final ExecutionGroup group = ExecutionGroup.of(timeout, List.of(hookId));
         final StageExecutionPlan stagePlan = StageExecutionPlan.of(List.of(group));
         final EndpointExecutionPlan endpointPlan = EndpointExecutionPlan.of(Map.of(Stage.valueOf(stage), stagePlan));
-        return ExecutionPlan.of(null, Map.of(Endpoint.openrtb2_auction, endpointPlan));
+        return ExecutionPlan.of(null, Map.of(HookHttpEndpoint.POST_AUCTION, endpointPlan));
     }
 
     private Account givenAccount(String accountId, ExecutionPlan executionPlan) {

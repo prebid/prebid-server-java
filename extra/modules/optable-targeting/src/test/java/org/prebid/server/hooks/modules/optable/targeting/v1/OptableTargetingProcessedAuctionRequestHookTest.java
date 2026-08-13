@@ -19,6 +19,7 @@ import org.prebid.server.execution.timeout.TimeoutFactory;
 import org.prebid.server.hooks.execution.model.EndpointExecutionPlan;
 import org.prebid.server.hooks.execution.model.ExecutionGroup;
 import org.prebid.server.hooks.execution.model.ExecutionPlan;
+import org.prebid.server.hooks.execution.model.HookHttpEndpoint;
 import org.prebid.server.hooks.execution.model.HookId;
 import org.prebid.server.hooks.execution.model.Stage;
 import org.prebid.server.hooks.execution.model.StageExecutionPlan;
@@ -34,7 +35,6 @@ import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
-import org.prebid.server.model.Endpoint;
 import org.prebid.server.settings.model.Account;
 
 import java.util.List;
@@ -462,6 +462,6 @@ class OptableTargetingProcessedAuctionRequestHookTest extends BaseOptableTest {
                 Stage.bidder_request, bidderRequestStage
         ));
 
-        return ExecutionPlan.of(null, Map.of(Endpoint.openrtb2_auction, endpointExecutionPlan));
+        return ExecutionPlan.of(null, Map.of(HookHttpEndpoint.POST_AUCTION, endpointExecutionPlan));
     }
 }

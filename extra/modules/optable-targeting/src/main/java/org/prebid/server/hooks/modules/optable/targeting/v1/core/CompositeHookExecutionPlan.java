@@ -4,11 +4,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.hooks.execution.model.EndpointExecutionPlan;
 import org.prebid.server.hooks.execution.model.ExecutionGroup;
 import org.prebid.server.hooks.execution.model.ExecutionPlan;
+import org.prebid.server.hooks.execution.model.HookHttpEndpoint;
 import org.prebid.server.hooks.execution.model.Stage;
 import org.prebid.server.hooks.execution.model.StageExecutionPlan;
 import org.prebid.server.hooks.modules.optable.targeting.v1.OptableBidderRequestHook;
 import org.prebid.server.hooks.modules.optable.targeting.v1.OptableRawAuctionRequestHook;
-import org.prebid.server.model.Endpoint;
 import org.prebid.server.settings.model.Account;
 
 import java.util.List;
@@ -18,7 +18,7 @@ import java.util.function.Function;
 
 public class CompositeHookExecutionPlan {
 
-    private static final String ENDPOINT_AUCTION = "openrtb2_auction";
+    private static final HookHttpEndpoint ENDPOINT_AUCTION = HookHttpEndpoint.POST_AUCTION;
     private static final String STAGE_RAW_AUCTION_REQUEST = "raw_auction_request";
     private static final String STAGE_BIDDER_REQUEST = "bidder_request";
     private static final String HOOK_CODE_OPTABLE_RAW_AUCTION = OptableRawAuctionRequestHook.CODE;
@@ -94,7 +94,7 @@ public class CompositeHookExecutionPlan {
     private static boolean hasHook(ExecutionPlan executionPlan, String stage, String hookCode) {
         return Optional.ofNullable(executionPlan)
                 .map(ExecutionPlan::getEndpoints)
-                .map(endpoints -> endpoints.get(Endpoint.valueOf(ENDPOINT_AUCTION)))
+                .map(endpoints -> endpoints.get(ENDPOINT_AUCTION))
                 .map(EndpointExecutionPlan::getStages)
                 .map(stages -> stages.get(Stage.valueOf(stage)))
                 .map(StageExecutionPlan::getGroups)
@@ -108,7 +108,7 @@ public class CompositeHookExecutionPlan {
     private static long getHookTimeout(ExecutionPlan executionPlan, String stage, String hookCode) {
         return Optional.ofNullable(executionPlan)
                 .map(ExecutionPlan::getEndpoints)
-                .map(endpoints -> endpoints.get(Endpoint.valueOf(ENDPOINT_AUCTION)))
+                .map(endpoints -> endpoints.get(ENDPOINT_AUCTION))
                 .map(EndpointExecutionPlan::getStages)
                 .map(stages -> stages.get(Stage.valueOf(stage)))
                 .map(StageExecutionPlan::getGroups)
