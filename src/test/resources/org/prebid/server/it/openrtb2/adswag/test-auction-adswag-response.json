@@ -1,0 +1,48 @@
+{
+  "id": "test-request-banner",
+  "seatbid": [
+    {
+      "seat": "adswag",
+      "bid": [
+        {
+          "id": "req-abc-1",
+          "impid": "test-imp-banner",
+          "price": 2.50,
+          "burl": "https://ads.adswag.ai/v1/win?sc=c2ln&sig=YWJj&price=${AUCTION_PRICE}",
+          "cid": "cmp-test-1",
+          "crid": "cr-test-1",
+          "adomain": ["advertiser.example"],
+          "adm": "<iframe src=\"https://ads.adswag.ai/v1/ad?sc=c2ln&amp;sig=YWJj\" width=\"300\" height=\"250\" frameborder=\"0\" scrolling=\"no\" marginheight=\"0\" marginwidth=\"0\" style=\"border:0\" title=\"Advertisement\"></iframe>",
+          "w": 300,
+          "h": 250,
+          "exp": 300,
+          "mtype": 1,
+          "ext": {
+            "adswag": {
+              "serve_url": "https://ads.adswag.ai/v1/ad?sc=c2ln&sig=YWJj"
+            },
+            "origbidcpm": 2.50,
+            "origbidcur": "EUR",
+            "prebid": {
+              "type": "banner",
+              "meta": {
+                "adaptercode": "adswag"
+              }
+            }
+          }
+        }
+      ],
+      "group": 0
+    }
+  ],
+  "cur": "EUR",
+  "ext": {
+    "responsetimemillis": {
+      "adswag": "{{ adswag.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}
