@@ -1,16 +1,15 @@
 package org.prebid.server.functional.tests.privacy.lmt
 
+import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.DeviceExt
 import org.prebid.server.functional.tests.privacy.PrivacyBaseSpec
+import org.prebid.server.functional.util.MetricsUtil
 import org.prebid.server.functional.util.PBSUtils
 
-import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ACCOUNT_DISALLOWED_COUNT
-import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ADAPTER_DISALLOWED_COUNT
-import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_REQUEST_DISALLOWED_COUNT
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_EIDS
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_PRECISE_GEO
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_UFPD
@@ -391,15 +390,15 @@ class LmtSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)] == 1
-        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
-        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)] == 1
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)] == 1
+        assert metrics[MetricsUtil.Privacy.adapterDisallowedActivityCount(BidderName.GENERIC, TRANSMIT_UFPD)] == 1
+        assert metrics[MetricsUtil.Privacy.adapterDisallowedActivityCount(BidderName.GENERIC, TRANSMIT_EIDS)] == 1
+        assert metrics[MetricsUtil.Privacy.adapterDisallowedActivityCount(BidderName.GENERIC, TRANSMIT_PRECISE_GEO)] == 1
+        assert metrics[MetricsUtil.Privacy.accountDisallowedActivityCount(bidRequest.accountId, TRANSMIT_UFPD)] == 1
+        assert metrics[MetricsUtil.Privacy.accountDisallowedActivityCount(bidRequest.accountId, TRANSMIT_EIDS)] == 1
+        assert metrics[MetricsUtil.Privacy.accountDisallowedActivityCount(bidRequest.accountId, TRANSMIT_PRECISE_GEO)] == 1
+        assert metrics[MetricsUtil.Privacy.requestDisallowedActivityCount(TRANSMIT_UFPD)] == 1
+        assert metrics[MetricsUtil.Privacy.requestDisallowedActivityCount(TRANSMIT_EIDS)] == 1
+        assert metrics[MetricsUtil.Privacy.requestDisallowedActivityCount(TRANSMIT_PRECISE_GEO)] == 1
     }
 
     def "PBS auction should mask device and user fields for auction request and emit metrics when device.lm = 1 was passed and trace basic"() {
@@ -461,17 +460,17 @@ class LmtSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)] == 1
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)] == 1
+        assert metrics[MetricsUtil.Privacy.adapterDisallowedActivityCount(BidderName.GENERIC, TRANSMIT_UFPD)] == 1
+        assert metrics[MetricsUtil.Privacy.adapterDisallowedActivityCount(BidderName.GENERIC, TRANSMIT_EIDS)] == 1
+        assert metrics[MetricsUtil.Privacy.adapterDisallowedActivityCount(BidderName.GENERIC, TRANSMIT_PRECISE_GEO)] == 1
+        assert metrics[MetricsUtil.Privacy.requestDisallowedActivityCount(TRANSMIT_UFPD)] == 1
+        assert metrics[MetricsUtil.Privacy.requestDisallowedActivityCount(TRANSMIT_EIDS)] == 1
+        assert metrics[MetricsUtil.Privacy.requestDisallowedActivityCount(TRANSMIT_PRECISE_GEO)] == 1
 
         and: "Account metrics shouldn't be populated"
-        assert !metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)]
-        assert !metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)]
-        assert !metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)]
+        assert !metrics[MetricsUtil.Privacy.accountDisallowedActivityCount(bidRequest.accountId, TRANSMIT_UFPD)]
+        assert !metrics[MetricsUtil.Privacy.accountDisallowedActivityCount(bidRequest.accountId, TRANSMIT_EIDS)]
+        assert !metrics[MetricsUtil.Privacy.accountDisallowedActivityCount(bidRequest.accountId, TRANSMIT_PRECISE_GEO)]
     }
 
     def "PBS auction shouldn't mask device and user fields for auction request when device.lm = 0 was passed"() {
@@ -523,15 +522,15 @@ class LmtSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities shouldn't be updated"
         def metrics = privacyPbsService.sendCollectedMetricsRequest()
-        assert !metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)]
-        assert !metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)]
-        assert !metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)]
-        assert !metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)]
-        assert !metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)]
-        assert !metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)]
-        assert !metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)]
-        assert !metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)]
-        assert !metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)]
+        assert !metrics[MetricsUtil.Privacy.adapterDisallowedActivityCount(BidderName.GENERIC, TRANSMIT_UFPD)]
+        assert !metrics[MetricsUtil.Privacy.adapterDisallowedActivityCount(BidderName.GENERIC, TRANSMIT_EIDS)]
+        assert !metrics[MetricsUtil.Privacy.adapterDisallowedActivityCount(BidderName.GENERIC, TRANSMIT_PRECISE_GEO)]
+        assert !metrics[MetricsUtil.Privacy.accountDisallowedActivityCount(bidRequest.accountId, TRANSMIT_UFPD)]
+        assert !metrics[MetricsUtil.Privacy.accountDisallowedActivityCount(bidRequest.accountId, TRANSMIT_EIDS)]
+        assert !metrics[MetricsUtil.Privacy.accountDisallowedActivityCount(bidRequest.accountId, TRANSMIT_PRECISE_GEO)]
+        assert !metrics[MetricsUtil.Privacy.requestDisallowedActivityCount(TRANSMIT_UFPD)]
+        assert !metrics[MetricsUtil.Privacy.requestDisallowedActivityCount(TRANSMIT_EIDS)]
+        assert !metrics[MetricsUtil.Privacy.requestDisallowedActivityCount(TRANSMIT_PRECISE_GEO)]
     }
 
     def "PBS amp should mask device and user fields for auction request when device.lm = 1 was passed"() {
@@ -597,15 +596,15 @@ class LmtSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_EIDS)] == 1
-        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_PRECISE_GEO)] == 1
-        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_EIDS)] == 1
-        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_PRECISE_GEO)] == 1
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)] == 1
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_EIDS)] == 1
-        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_PRECISE_GEO)] == 1
+        assert metrics[MetricsUtil.Privacy.adapterDisallowedActivityCount(BidderName.GENERIC, TRANSMIT_UFPD)] == 1
+        assert metrics[MetricsUtil.Privacy.adapterDisallowedActivityCount(BidderName.GENERIC, TRANSMIT_EIDS)] == 1
+        assert metrics[MetricsUtil.Privacy.adapterDisallowedActivityCount(BidderName.GENERIC, TRANSMIT_PRECISE_GEO)] == 1
+        assert metrics[MetricsUtil.Privacy.accountDisallowedActivityCount(ampStoredRequest.accountId, TRANSMIT_UFPD)] == 1
+        assert metrics[MetricsUtil.Privacy.accountDisallowedActivityCount(ampStoredRequest.accountId, TRANSMIT_EIDS)] == 1
+        assert metrics[MetricsUtil.Privacy.accountDisallowedActivityCount(ampStoredRequest.accountId, TRANSMIT_PRECISE_GEO)] == 1
+        assert metrics[MetricsUtil.Privacy.requestDisallowedActivityCount(TRANSMIT_UFPD)] == 1
+        assert metrics[MetricsUtil.Privacy.requestDisallowedActivityCount(TRANSMIT_EIDS)] == 1
+        assert metrics[MetricsUtil.Privacy.requestDisallowedActivityCount(TRANSMIT_PRECISE_GEO)] == 1
     }
 
     def "PBS amp shouldn't mask device and user fields for auction request when device.lm = 0 was passed"() {
@@ -662,12 +661,12 @@ class LmtSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities shouldn't be updated"
         def metrics = privacyPbsService.sendCollectedMetricsRequest()
-        assert !metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)]
-        assert !metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_EIDS)]
-        assert !metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_PRECISE_GEO)]
-        assert !metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)]
-        assert !metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_EIDS)]
-        assert !metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_PRECISE_GEO)]
+        assert !metrics[MetricsUtil.Privacy.adapterDisallowedActivityCount(BidderName.GENERIC, TRANSMIT_UFPD)]
+        assert !metrics[MetricsUtil.Privacy.adapterDisallowedActivityCount(BidderName.GENERIC, TRANSMIT_EIDS)]
+        assert !metrics[MetricsUtil.Privacy.adapterDisallowedActivityCount(BidderName.GENERIC, TRANSMIT_PRECISE_GEO)]
+        assert !metrics[MetricsUtil.Privacy.requestDisallowedActivityCount(TRANSMIT_UFPD)]
+        assert !metrics[MetricsUtil.Privacy.requestDisallowedActivityCount(TRANSMIT_EIDS)]
+        assert !metrics[MetricsUtil.Privacy.requestDisallowedActivityCount(TRANSMIT_PRECISE_GEO)]
     }
 
     private static getRandomAtts() {

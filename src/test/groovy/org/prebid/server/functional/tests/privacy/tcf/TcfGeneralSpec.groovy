@@ -7,6 +7,7 @@ import org.prebid.server.functional.model.config.PurposeConfig
 import org.prebid.server.functional.model.privacy.EnforcementRequirement
 import org.prebid.server.functional.model.response.auction.NoBidResponse
 import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.util.MetricsUtil
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.TcfConsent
 import org.prebid.server.functional.util.privacy.TcfUtils
@@ -22,7 +23,6 @@ class TcfGeneralSpec extends TcfBaseSpec {
 
     private final static ZonedDateTime TCF_2_3_ENFORCEMENT_DATE = ZonedDateTime.parse("2026-03-01T00:00:00Z")
     private final static Map<String, String> STRICT_DISCLOSED_VENDOR_TREATMENT_CONFIG = TCF_BASE_CONFIG + ["gdpr.strict-disclosed-vendors-treatment": 'true']
-    private final static TCF_NO_DISCLOSED_VENDORS_METRIC = 'privacy.tcf.no-disclosed-vendors'
     private final static DISCLOSED_VENDORS_MESSAGE = 'Invalid TCF string: `disclosedVendors` list is empty.'
 
     private static PrebidServerService pbsWithoutGvlVendorsWithStrictDvTreatment
@@ -69,7 +69,7 @@ class TcfGeneralSpec extends TcfBaseSpec {
 
         and: "PBS shouldn't emit no disclosed vendors metric"
         def metrics = pbsWithoutGvlVendorsWithStrictDvTreatment.sendCollectedMetricsRequest()
-        assert !metrics[TCF_NO_DISCLOSED_VENDORS_METRIC]
+        assert !metrics[MetricsUtil.Privacy.noDisclosedVendors()]
 
         and: "PBS should send bid request to bidder"
         assert bidder.getBidderRequests(bidRequest.id).size() == 1
@@ -106,7 +106,7 @@ class TcfGeneralSpec extends TcfBaseSpec {
 
         and: "PBS shouldn't emit no disclosed vendors metric"
         def metrics = pbsWithMultipleGvlListsWithStrictDvTreatment.sendCollectedMetricsRequest()
-        assert !metrics[TCF_NO_DISCLOSED_VENDORS_METRIC]
+        assert !metrics[MetricsUtil.Privacy.noDisclosedVendors()]
 
         and: "PBS should send bid request to bidder"
         assert bidder.getBidderRequests(bidRequest.id).size() == 1
@@ -144,7 +144,7 @@ class TcfGeneralSpec extends TcfBaseSpec {
 
         and: "PBS shouldn't emit no disclosed vendors metric"
         def metrics = pbsWithoutGvlVendorsWithStrictDvTreatment.sendCollectedMetricsRequest()
-        assert !metrics[TCF_NO_DISCLOSED_VENDORS_METRIC]
+        assert !metrics[MetricsUtil.Privacy.noDisclosedVendors()]
 
         and: "PBS should send bid request to bidder"
         assert bidder.getBidderRequests(bidRequest.id).size() == 1
@@ -185,7 +185,7 @@ class TcfGeneralSpec extends TcfBaseSpec {
 
         and: "PBS shouldn't emit no disclosed vendors metric"
         def metrics = pbsWithMultipleGvlListsWithStrictDvTreatment.sendCollectedMetricsRequest()
-        assert !metrics[TCF_NO_DISCLOSED_VENDORS_METRIC]
+        assert !metrics[MetricsUtil.Privacy.noDisclosedVendors()]
 
         and: "PBS should send bid request to bidder"
         assert bidder.getBidderRequests(bidRequest.id).size() == 1
@@ -226,7 +226,7 @@ class TcfGeneralSpec extends TcfBaseSpec {
 
         and: "PBS should emit no disclosed vendors metric"
         def metrics = pbsWithoutGvlVendorsWithStrictDvTreatment.sendCollectedMetricsRequest()
-        assert metrics[TCF_NO_DISCLOSED_VENDORS_METRIC] == 1
+        assert metrics[MetricsUtil.Privacy.noDisclosedVendors()] == 1
 
         and: "PBS should not send bid request to bidder"
         assert !bidder.getBidderRequests(bidRequest.id)
@@ -267,7 +267,7 @@ class TcfGeneralSpec extends TcfBaseSpec {
 
         and: "PBS should emit no disclosed vendors metric"
         def metrics = pbsWithMultipleGvlListsWithStrictDvTreatment.sendCollectedMetricsRequest()
-        assert metrics[TCF_NO_DISCLOSED_VENDORS_METRIC] == 1
+        assert metrics[MetricsUtil.Privacy.noDisclosedVendors()] == 1
 
         and: "PBS should not send bid request to bidder"
         assert !bidder.getBidderRequests(bidRequest.id)
@@ -417,7 +417,7 @@ class TcfGeneralSpec extends TcfBaseSpec {
 
         and: "PBS should emit no disclosed vendors metric"
         def metrics = pbsService.sendCollectedMetricsRequest()
-        assert metrics[TCF_NO_DISCLOSED_VENDORS_METRIC] == 1
+        assert metrics[MetricsUtil.Privacy.noDisclosedVendors()] == 1
 
         where:
         pbsService                                   | serviceName

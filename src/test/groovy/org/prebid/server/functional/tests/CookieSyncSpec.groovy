@@ -19,6 +19,7 @@ import org.prebid.server.functional.model.response.cookiesync.UserSyncInfo
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.HttpUtil
+import org.prebid.server.functional.util.MetricsUtil
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.CcpaConsent
 import org.prebid.server.functional.util.privacy.TcfConsent
@@ -379,7 +380,7 @@ class CookieSyncSpec extends BaseSpec {
 
         and: "Metric should contain cookie_sync.BIDDER.tcf.blocked"
         def metric = this.prebidServerService.sendCollectedMetricsRequest()
-        assert metric["cookie_sync.generic.tcf.blocked"] == 1
+        assert metric[MetricsUtil.CookieSync.tcfBlocked(GENERIC)] == 1
     }
 
     def "PBS cookie sync request should reflect error when coop-sync enabled and coop sync bidder with ccpa"() {
@@ -427,7 +428,7 @@ class CookieSyncSpec extends BaseSpec {
 
         and: "Metric should contain cookie_sync.generic.filtered"
         def metric = prebidServerService.sendCollectedMetricsRequest()
-        assert metric["cookie_sync.generic.filtered"] == 1
+        assert metric[MetricsUtil.CookieSync.filtered(GENERIC)] == 1
     }
 
     def "PBS cookie sync request should reflect error even when response is full by account cookie sync config limit"() {
@@ -1363,7 +1364,7 @@ class CookieSyncSpec extends BaseSpec {
 
         and: "Metric should contain cookie_sync.FAMILY.filtered"
         def metric = prebidServerService.sendCollectedMetricsRequest()
-        assert metric["cookie_sync.generic.filtered"] == 1
+        assert metric[MetricsUtil.CookieSync.filtered(GENERIC)] == 1
     }
 
     def "PBS cookie sync with gdpr should reject bidder sync"() {
@@ -1389,7 +1390,7 @@ class CookieSyncSpec extends BaseSpec {
 
         and: "Metric should contain cookie_sync.BIDDER.tcf.blocked"
         def metric = prebidServerService.sendCollectedMetricsRequest()
-        assert metric["cookie_sync.generic.tcf.blocked"] == 1
+        assert metric[MetricsUtil.CookieSync.tcfBlocked(GENERIC)] == 1
     }
 
     def "PBS cookie sync with ccpa should reject bidder sync"() {
