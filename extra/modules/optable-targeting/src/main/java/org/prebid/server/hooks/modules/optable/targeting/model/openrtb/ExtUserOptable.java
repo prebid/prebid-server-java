@@ -17,4 +17,6 @@ public class ExtUserOptable extends FlexibleExtension {
     String zip;
 
     String vid;
+
+    String id5Signature;
 }

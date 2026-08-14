@@ -1,127 +1,269 @@
 {
-  "test": 1,
-  "id": "1",
-  "imp":
-  [
+  "imp": [
     {
-      "id": "1",
-      "banner":
-      {
-        "w": 300,
-        "h": 250
-      },
-      "ext":
-      {
-        "prebid":
-        {
-          "storedauctionresponse": { "id": "optable-stored-response" },
-          "bidder":
-          {
-            "appnexus":
-            {
-              "placementId": 0
+      "ext": {
+        "prebid": {
+          "bidder": {
+            "triplelift": {
+              "inventoryCode": "123"
+            },
+            "pubmatic": {
+              "publisherId": "156209",
+              "adSlot": "/1234567/test"
+            },
+            "yieldmo": {
+              "placementId": "12314235"
+            },
+            "openx": {
+              "delDomain": "domain.openx.net",
+              "unit": "12324324",
+              "customParams": {
+                "sens": [
+                  "alc"
+                ]
+              }
+            },
+            "grid": {
+              "uid": 123
+            },
+            "unruly": {
+              "siteId": 567890
+            },
+            "conversant": {
+              "tag_id": "some_id",
+              "site_id": "345678"
+            },
+            "33across": {
+              "siteId": "some_id",
+              "productId": "ddff"
+            },
+            "adform": {
+              "mname": "some_name",
+              "mid": 123456789,
+              "adxDomain": "adx2.adform.net"
+            },
+            "improvedigital": {
+              "publisherId": 1234,
+              "placementId": 123456789
+            },
+            "colossus": {
+              "groupId": "123"
             }
-          }
+          },
+          "adunitcode": "AdUnit_Name_1"
         }
-      }
+      },
+      "id": "imp_id",
+      "banner": {
+        "topframe": 1,
+        "format": [
+          {
+            "w": 320,
+            "h": 50
+          }
+        ]
+      },
+      "bidfloor": 1.0,
+      "bidfloorcur": "USD"
     }
   ],
-  "site":
-  {
-    "domain": "test.com",
-    "publisher":
-    {
-      "domain": "test.com",
+  "cur": [
+    "USD"
+  ],
+  "at": 1,
+  "device": {
+    "w": 591,
+    "h": 771,
+    "dnt": 0,
+    "ua": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
+    "language": "en",
+    "js": 1,
+    "ip": "82.212.42.32",
+    "sua": {
+      "source": 2,
+      "platform": {
+        "brand": "macOS",
+        "version": [
+          "14",
+          "0",
+          "0"
+        ]
+      },
+      "browsers": [
+        {
+          "brand": "Chromium",
+          "version": [
+            "120",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        {
+          "brand": "Not-A.Brand",
+          "version": [
+            "24",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        {
+          "brand": "Google Chrome",
+          "version": [
+            "120",
+            "0",
+            "0",
+            "0"
+          ]
+        }
+      ],
+      "mobile": 0,
+      "model": "",
+      "architecture": "arm"
+    }
+  },
+  "site": {
+    "domain": "example-site.com",
+    "publisher": {
+      "domain": "example-publisher.com",
       "id": "1"
     },
-    "page": "https://www.test.com/"
+    "page": "https://example-site.com/sample-article-slug/",
+    "content": {
+      "language": "en"
+    },
+    "cat": [
+      "IAB8"
+    ],
+    "pagecat": [
+      "IAB8"
+    ],
+    "privacypolicy": 1,
+    "mobile": 1
   },
-  "device":
-  {
-    "ip": "8.8.8.8"
-  },
-  "user":
-  {
-    "ext":
-    {
-      "optable":
-      {
+  "user": {
+    "data": [],
+    "ext": {
+      "optable": {
         "email": "5837d278eabede28e37b5766399ed0d1a4cdc36acee8d35710a255032f45beda"
       },
-      "eids":
-      [
+      "eids": [
         {
-          "source": "growthcode.io",
-          "uids":
-          [
-            {
-              "id": "fb58593e-7ac6-48bd-b2de-89a758726362",
-              "atype": 1
-            }
-          ]
-        },
-        {
-          "source": "pubcid.org",
+          "source": "id5-sync.com",
           "uids": [
             {
-              "id": "test",
-              "atype": 1
+              "id": "ID5*a7fF5d6f1GZgAUunYu5C3Edu5H4_nlp9aN34PiHotjzCtKWRh-vXq84ijeusCYHD",
+              "atype": 1,
+              "ext": {
+                "linkType": 2,
+                "pba": "EGg0hDGKtMSoVfdiLRmUPZc+x7Hm8I37s1sAPcxYmWA="
+              }
             }
           ]
         },
         {
-          "source": "crwdcntrl.net",
-          "uids":
-          [
+          "source": "pubmatic.com",
+          "uids": [
             {
-              "id": "dd1b31e65f5e45548c11a0275ba3a8072c00e3a2a0493e8f5a8f54f8067e8b00",
-              "atype": 1
-            }
-          ]
-        },
-        {
-          "source": "amxdt.net",
-          "uids":
-          [
-            {
-              "id": "amx*3*a583802a-e6fe-48d7-87c6-7db1b6a4a73a*70f06cdcf8ab0b4ac07a56860ed0e0b6ef0388dc0b0ab5a1dd725999d3b339cf",
-              "atype": 1
-            }
-          ]
-        },
-        {
-          "source": "audigent.com",
-          "uids":
-          [
-            {
-              "id": "f84456cd3c72296d7898f62e1c46dd964206ff4d47e64b690c3c5a1d6b1bd286",
-              "atype": 1
-            }
-          ]
-        },
-        {
-          "source": "adnxs.com",
-          "uids":
-          [
-            {
-              "id": "d4fd63f0f4f7ce0d128348cb145c7e0f"
+              "id": "A672B525-C053-45D6-B68E-B1DF0B4D6F3B",
+              "atype": 3,
+              "ext": {
+                "provider": "liveintent.com"
+              }
             }
           ]
         }
-      ]
+      ],
+      "consent": "",
+      "ConsentedProvidersSettings": {
+        "consented_providers": "2~70.1516.89.320.2778.2322.510.1516.2343~dv."
+      }
+    }
+  },
+  "regs": {
+    "gpp": "DBABzw~1YNY~BVQqAAAAAgA",
+    "gpp_sid": [
+      6,
+      5,
+      7
+    ],
+    "ext": {
+      "us_privacy": "1YNY"
     }
   },
   "ext": {
     "prebid": {
       "targeting": {
-        "includebidderkeys": true
+        "includewinners": true,
+        "includebidderkeys": false
       },
-      "analytics":
-      {
+      "analytics": {
         "options": {
           "enableclientdetails": true
         }
-      }
+      },
+      "eidPermissions": [
+        {
+          "source": "bidswitch.net",
+          "bidders": [
+            "conversant",
+            "grid",
+            "improvedigital",
+            "pubmatic",
+            "undertone",
+            "unruly",
+            "yieldmo",
+            "adform",
+            "colossus",
+            "openx",
+            "triplelift"
+          ]
+        }
+      ],
+      "bidderconfig": [
+        {
+          "bidders": [
+            "openx"
+          ],
+          "config": {
+            "ortb2": {
+              "site": {
+                "ext": {
+                  "data": {
+                    "refresh": "0",
+                    "vp": "0",
+                    "hvp": "70",
+                    "site_code": [
+                      "AFOI_2020",
+                      "APIO_2022",
+                      "BIPOC_2024",
+                      "FMLO_2021",
+                      "FMOOI_2022",
+                      "MINO_2021",
+                      "MOMS_2020",
+                      "MRLOI_22",
+                      "NWPR_2021",
+                      "RMOI_24",
+                      "STKCONT_24"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "bidders": [
+            "pubmatic"
+          ],
+          "config": {
+          }
+        }
+      ]
     }
-  }
+  },
+  "tmax": 1000,
+  "id": "id",
+  "test": 1
 }
