@@ -13,8 +13,20 @@ adapters:
   improvedigital:
     enabled: true
   colossus:
-      enabled: true
+    enabled: true
   triplelift:
+    enabled: true
+  adf:
+    enabled: true
+  yieldmo:
+    enabled: true
+  grid:
+    enabled: true
+  unruly:
+    enabled: true
+  epsilon:
+    enabled: true
+  thirtythreeacross:
     enabled: true
 metrics:
   prefix: prebid
