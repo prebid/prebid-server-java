@@ -187,5 +187,4 @@ public class ModelCacheTest {
             assertThat(ar.cause().getMessage()).contains("Bucket not found");
         });
     }
-
 }

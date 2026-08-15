@@ -8,6 +8,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.vertx.core.http.HttpMethod;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.Endpoint;
@@ -140,7 +141,7 @@ public class NativeryBidderTest extends VertxTest {
     public void makeHttpRequestsShouldSetExtWithAmpTrue() {
         // given
         final ExtRequestPrebidServer server = ExtRequestPrebidServer.of(
-                null, null, null, Endpoint.openrtb2_amp.value());
+                null, null, null, HttpMethod.POST.name(), Endpoint.openrtb2_amp.value());
         final ExtRequestPrebid prebid = ExtRequestPrebid.builder()
                 .server(server)
                 .build();

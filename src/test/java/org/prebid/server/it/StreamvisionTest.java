@@ -18,7 +18,7 @@ public class StreamvisionTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromTheStreamvisionBidder() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/streamvision-exchange/test.host/123456"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/streamvision-exchange"))
                 .withRequestBody(equalToJson(
                         jsonFrom("openrtb2/streamvision/test-streamvision-bid-request.json")))
                 .willReturn(aResponse().withBody(

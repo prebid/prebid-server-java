@@ -23,7 +23,7 @@ public class HttpClientProperties {
     @Min(1)
     private Integer connectTimeoutMs;
 
-    private Boolean useCompression;
+    private Boolean useDecompression;
 
     @NotNull
     private Integer maxRedirects;

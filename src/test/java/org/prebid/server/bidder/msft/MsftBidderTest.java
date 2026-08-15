@@ -344,7 +344,7 @@ public class MsftBidderTest extends VertxTest {
     public void makeHttpRequestsShouldNotReplaceDisplayManagerVersionIfItIsPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(request -> request.app(
-                App.builder().ext(ExtApp.of(ExtAppPrebid.of("testSource", "testVersion"), null)).build()),
+                        App.builder().ext(ExtApp.of(ExtAppPrebid.of("testSource", "testVersion"), null)).build()),
                 givenImp(imp -> imp.displaymanagerver("testDisplayManagerVersion").ext(givenImpExt())));
 
         // when
@@ -488,8 +488,14 @@ public class MsftBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldSetIsAmpToOneIfRequestComesFromAmpEndpoint() {
         // given
-        final ExtRequest extRequest = ExtRequest.of(ExtRequestPrebid.builder().server(ExtRequestPrebidServer.of(
-                "testExternalUrl", 1, "testDatacenter", Endpoint.openrtb2_amp.value())).build());
+        final ExtRequest extRequest = ExtRequest.of(ExtRequestPrebid.builder()
+                .server(ExtRequestPrebidServer.of(
+                        "testExternalUrl",
+                        1,
+                        "testDatacenter",
+                        HttpMethod.GET.name(),
+                        Endpoint.openrtb2_amp.value()))
+                .build());
         final BidRequest bidRequest = givenBidRequest(request -> request.ext(extRequest), givenImp());
 
         // when
@@ -506,8 +512,14 @@ public class MsftBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldSetIsAmpToZeroIfRequestDoesNotComeFromAmpEndpoint() {
         // given
-        final ExtRequest extRequest = ExtRequest.of(ExtRequestPrebid.builder().server(ExtRequestPrebidServer.of(
-                "testExternalUrl", 1, "testDatacenter", Endpoint.openrtb2_video.value())).build());
+        final ExtRequest extRequest = ExtRequest.of(ExtRequestPrebid.builder()
+                .server(ExtRequestPrebidServer.of(
+                        "testExternalUrl",
+                        1,
+                        "testDatacenter",
+                        HttpMethod.POST.name(),
+                        Endpoint.openrtb2_video.value()))
+                .build());
         final BidRequest bidRequest = givenBidRequest(request -> request.ext(extRequest), givenImp());
 
         // when
@@ -524,8 +536,14 @@ public class MsftBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldSetHbSourceToHbSourceVideoValueIfRequestComesFromVideoEndpoint() {
         // given
-        final ExtRequest extRequest = ExtRequest.of(ExtRequestPrebid.builder().server(ExtRequestPrebidServer.of(
-                "testExternalUrl", 1, "testDatacenter", Endpoint.openrtb2_video.value())).build());
+        final ExtRequest extRequest = ExtRequest.of(ExtRequestPrebid.builder()
+                .server(ExtRequestPrebidServer.of(
+                        "testExternalUrl",
+                        1,
+                        "testDatacenter",
+                        HttpMethod.POST.name(),
+                        Endpoint.openrtb2_video.value()))
+                .build());
         final BidRequest bidRequest = givenBidRequest(request -> request.ext(extRequest), givenImp());
 
         // when
@@ -542,8 +560,14 @@ public class MsftBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldSetHbSourceToDefaultValueIfRequestDoesNotComeFromVideoEndpoint() {
         // given
-        final ExtRequest extRequest = ExtRequest.of(ExtRequestPrebid.builder().server(ExtRequestPrebidServer.of(
-                "testExternalUrl", 1, "testDatacenter", Endpoint.openrtb2_amp.value())).build());
+        final ExtRequest extRequest = ExtRequest.of(ExtRequestPrebid.builder()
+                .server(ExtRequestPrebidServer.of(
+                        "testExternalUrl",
+                        1,
+                        "testDatacenter",
+                        HttpMethod.GET.name(),
+                        Endpoint.openrtb2_amp.value()))
+                .build());
         final BidRequest bidRequest = givenBidRequest(request -> request.ext(extRequest), givenImp());
 
         // when

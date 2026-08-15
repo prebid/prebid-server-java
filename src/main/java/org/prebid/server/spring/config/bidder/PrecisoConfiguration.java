@@ -37,5 +37,4 @@ public class PrecisoConfiguration {
                 .assemble();
 
     }
-
 }

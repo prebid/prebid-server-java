@@ -1,6 +1,6 @@
 adapters:
   mobfoxpb:
-    endpoint: http://bes.mobfox.com/?c=__route__&m=__method__&key=__key__
+    endpoint: http://bes.mobfox.com/?c={route}&m={method}&key={key}
     meta-info:
       maintainer-email: support@mobfox.com
       app-media-types:

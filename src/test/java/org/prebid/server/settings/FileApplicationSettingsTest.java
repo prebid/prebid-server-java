@@ -133,7 +133,7 @@ public class FileApplicationSettingsTest extends VertxTest {
                                         p1: {
                                             enforce-purpose: basic,
                                             enforce-vendors: false,
-                                            vendor-exceptions: [rubicon, appnexus]
+                                            vendor-exceptions: [magnite, appnexus]
                                         },
                                         p2: {
                                             enforce-purpose: full,
@@ -144,7 +144,7 @@ public class FileApplicationSettingsTest extends VertxTest {
                                     special-features: {
                                         sf1: {
                                             enforce: true,
-                                            vendor-exceptions: [rubicon, appnexus]
+                                            vendor-exceptions: [magnite, appnexus]
                                         },
                                         sf2: {
                                             enforce: false,
@@ -210,12 +210,12 @@ public class FileApplicationSettingsTest extends VertxTest {
                                         .p1(Purpose.of(
                                                 EnforcePurpose.basic,
                                                 false,
-                                                asList("rubicon", "appnexus"),
+                                                asList("magnite", "appnexus"),
                                                 null))
                                         .p2(Purpose.of(EnforcePurpose.full, true, singletonList("openx"), null))
                                         .build())
                                 .specialFeatures(SpecialFeatures.builder()
-                                        .sf1(SpecialFeature.of(true, asList("rubicon", "appnexus")))
+                                        .sf1(SpecialFeature.of(true, asList("magnite", "appnexus")))
                                         .sf2(SpecialFeature.of(false, singletonList("openx")))
                                         .build())
                                 .purposeOneTreatmentInterpretation(PurposeOneTreatmentInterpretation.accessAllowed)

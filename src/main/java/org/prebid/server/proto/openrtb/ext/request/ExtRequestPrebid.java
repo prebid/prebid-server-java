@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
 import lombok.Value;
-import org.prebid.server.auction.model.PaaFormat;
 import org.prebid.server.floors.model.PriceFloorRules;
 import org.prebid.server.json.deserializer.IntegerFlagDeserializer;
 
@@ -190,12 +189,6 @@ public class ExtRequestPrebid {
      * Defines the contract for bidrequest.ext.prebid.sdk
      */
     ExtRequestPrebidSdk sdk;
-
-    /**
-     * Defines the contract for bidrequest.ext.prebid.paaformat
-     */
-    @JsonProperty("paaformat")
-    PaaFormat paaFormat;
 
     @JsonProperty("alternatebiddercodes")
     ExtRequestPrebidAlternateBidderCodes alternateBidderCodes;

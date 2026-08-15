@@ -4,6 +4,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.net.SocketAddress;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
+import org.prebid.server.vertx.http.ParametrizedDecompressionHandler;
 import org.prebid.server.vertx.verticles.VerticleDefinition;
 import org.prebid.server.vertx.verticles.server.ServerVerticle;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,10 +19,12 @@ public class AdminServerConfiguration {
     @Bean
     Router adminPortAdminServerRouter(Vertx vertx,
                                       AdminResourcesBinder adminPortAdminResourcesBinder,
-                                      BodyHandler bodyHandler) {
+                                      BodyHandler bodyHandler,
+                                      ParametrizedDecompressionHandler parametrizedDecompressionHandler) {
 
         final Router router = Router.router(vertx);
         router.route().handler(bodyHandler);
+        router.route().handler(parametrizedDecompressionHandler);
 
         adminPortAdminResourcesBinder.bind(router);
         return router;

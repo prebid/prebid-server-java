@@ -668,5 +668,4 @@ public class ImpValidator {
     private static boolean hasPositiveValue(Integer value) {
         return value != null && value > 0;
     }
-
 }

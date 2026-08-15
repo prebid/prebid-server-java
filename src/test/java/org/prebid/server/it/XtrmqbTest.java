@@ -18,7 +18,7 @@ public class XtrmqbTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromTheXtrmqbBidder() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/xtrmqb-exchange/test.host/123456"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/xtrmqb-exchange"))
                 .withRequestBody(equalToJson(
                         jsonFrom("openrtb2/xtrmqb/test-xtrmqb-bid-request.json")))
                 .willReturn(aResponse().withBody(

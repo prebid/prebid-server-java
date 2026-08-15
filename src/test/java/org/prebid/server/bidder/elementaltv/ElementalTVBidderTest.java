@@ -37,7 +37,7 @@ import static org.assertj.core.api.Assertions.tuple;
 
 public class ElementalTVBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://pbs.test.com/some/path/{{AdUnit}}";
+    private static final String ENDPOINT_URL = "https://pbs.test.com/some/path/{AdUnit}";
 
     private final ElementalTVBidder target = new ElementalTVBidder(ENDPOINT_URL, jacksonMapper);
 

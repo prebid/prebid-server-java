@@ -240,7 +240,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         // given
         given(requestBody.buffer())
                 .willReturn(givenRequestBody(CookieSyncRequest.builder()
-                        .bidders(singleton("rubicon"))
+                        .bidders(singleton("magnite"))
                         .gdpr(1)
                         .gdprConsent("invalid")
                         .build()));
@@ -265,7 +265,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         // given
         given(requestBody.buffer())
                 .willReturn(givenRequestBody(CookieSyncRequest.builder()
-                        .bidders(singleton("rubicon"))
+                        .bidders(singleton("magnite"))
                         .gdpr(1)
                         .gdprConsent("valid")
                         .build()));
@@ -411,10 +411,10 @@ public class CookieSyncHandlerTest extends VertxTest {
     public void shouldPassSuccessfulEventToAnalyticsReporter() {
         // given
         given(requestBody.buffer())
-                .willReturn(givenRequestBody(CookieSyncRequest.builder().bidders(singleton("rubicon")).build()));
+                .willReturn(givenRequestBody(CookieSyncRequest.builder().bidders(singleton("magnite")).build()));
 
         final List<BidderUsersyncStatus> bidderStatuses =
-                singletonList(BidderUsersyncStatus.builder().bidder("rubicon").build());
+                singletonList(BidderUsersyncStatus.builder().bidder("magnite").build());
 
         given(cookieSyncService.processContext(any()))
                 .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));

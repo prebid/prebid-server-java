@@ -21,7 +21,7 @@ import org.prebid.server.functional.util.PBSUtils
 import java.math.RoundingMode
 import java.time.Instant
 
-import static org.mockserver.model.HttpStatusCode.BAD_REQUEST_400
+import static org.apache.http.HttpStatus.SC_BAD_REQUEST
 import static org.prebid.server.functional.model.Currency.USD
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.pricefloors.MediaType.BANNER
@@ -297,7 +297,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         accountDao.save(account)
 
         and: "Set Floors Provider response  with status code != 200"
-        floorsProvider.setResponse(bidRequest.site.publisher.id, BAD_REQUEST_400)
+        floorsProvider.setResponse(bidRequest.site.publisher.id, SC_BAD_REQUEST)
 
         and: "Set bidder response"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)

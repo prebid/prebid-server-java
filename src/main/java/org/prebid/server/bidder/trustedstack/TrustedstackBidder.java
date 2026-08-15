@@ -17,7 +17,7 @@ import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -27,12 +27,13 @@ import java.util.Objects;
 
 public class TrustedstackBidder implements Bidder<BidRequest> {
 
-    private static final String EXTERNAL_URL_MACRO = "{{PREBID_SERVER_ENDPOINT}}";
+    private static final String EXTERNAL_URL_MACRO = "PREBID_SERVER_ENDPOINT";
+
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
     public TrustedstackBidder(String endpointUrl, String externalUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(resolveEndpoint(endpointUrl, externalUrl));
+        this.endpointUrl = Uri.of(endpointUrl).replaceMacro(EXTERNAL_URL_MACRO, externalUrl).expand();
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -85,9 +86,8 @@ public class TrustedstackBidder implements Bidder<BidRequest> {
             case 2 -> BidType.video;
             case 3 -> BidType.audio;
             case 4 -> BidType.xNative;
-            default ->
-                    throw new PreBidException("Unable to fetch mediaType: %s"
-                            .formatted(bid.getImpid()));
+            default -> throw new PreBidException("Unable to fetch mediaType: %s"
+                    .formatted(bid.getImpid()));
         };
     }
 
@@ -119,9 +119,5 @@ public class TrustedstackBidder implements Bidder<BidRequest> {
         }
 
         return BidType.banner;
-    }
-
-    private String resolveEndpoint(String endpointUrl, String externalUrl) {
-        return Objects.requireNonNull(endpointUrl).replace(EXTERNAL_URL_MACRO, HttpUtil.encodeUrl(externalUrl));
     }
 }

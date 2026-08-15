@@ -32,7 +32,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 
 public class InteractiveOffersBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.endpoint.com/";
+    private static final String ENDPOINT_URL = "https://test.endpoint.com?p={PartnerId}";
 
     private final InteractiveOffersBidder target = new InteractiveOffersBidder(ENDPOINT_URL, jacksonMapper);
 
@@ -40,6 +40,22 @@ public class InteractiveOffersBidderTest extends VertxTest {
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> new InteractiveOffersBidder("invalid_url", jacksonMapper));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCreateCorrectUrl() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://test.endpoint.com?p=35");
     }
 
     @Test

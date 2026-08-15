@@ -17,7 +17,6 @@ import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.auction.model.Endpoint;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.appnexus.SameValueValidator;
@@ -26,11 +25,11 @@ import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.bidder.msft.proto.ExtRequestMsft;
 import org.prebid.server.bidder.msft.proto.MsftBidExt;
 import org.prebid.server.bidder.msft.proto.MsftBidExtCreative;
 import org.prebid.server.bidder.msft.proto.MsftBidExtVideo;
 import org.prebid.server.bidder.msft.proto.MsftExtImpOutgoing;
-import org.prebid.server.bidder.msft.proto.ExtRequestMsft;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
@@ -46,8 +45,8 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -66,7 +65,7 @@ public class MsftBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final int hbSource;
     private final int hbSourceVideo;
     private final Map<Integer, String> iabCategories;
@@ -78,7 +77,7 @@ public class MsftBidder implements Bidder<BidRequest> {
                       Map<Integer, String> iabCategories,
                       JacksonMapper mapper) {
 
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.hbSource = hbSource;
         this.hbSourceVideo = hbSourceVideo;
         this.iabCategories = ObjectUtils.defaultIfNull(iabCategories, Collections.emptyMap());
@@ -199,13 +198,7 @@ public class MsftBidder implements Bidder<BidRequest> {
     }
 
     private String makeRequestUrl(Integer member) {
-        try {
-            return member != null
-                    ? new URIBuilder(endpointUrl).addParameter("member_id", member.toString()).build().toString()
-                    : endpointUrl;
-        } catch (URISyntaxException e) {
-            throw new PreBidException(e.getMessage());
-        }
+        return endpointUrl.addQueryParam("member_id", Objects.toString(member, null)).expand();
     }
 
     private BidRequest updateBidRequest(BidRequest bidRequest) {
@@ -258,7 +251,7 @@ public class MsftBidder implements Bidder<BidRequest> {
                 .map(ExtRequest::getPrebid)
                 .map(ExtRequestPrebid::getTargeting)
                 .map(ExtRequestTargeting::getIncludebrandcategory)
-                .ifPresent(v -> {
+                .ifPresent(_ -> {
                     updatedRequestExtMsftBuilder.brandCategoryUniqueness(true);
                     updatedRequestExtMsftBuilder.includeBrandCategory(true);
                 });

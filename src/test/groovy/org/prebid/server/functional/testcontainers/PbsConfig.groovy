@@ -52,10 +52,11 @@ LIMIT 1
     }
 
     static Map<String, String> getHttpSettingsConfig(String rootUri = networkServiceContainer.rootUri) {
-        ["settings.http.endpoint"         : "$rootUri/stored-requests".toString(),
-         "settings.http.amp-endpoint"     : "$rootUri/amp-stored-requests".toString(),
-         "settings.http.video-endpoint"   : "$rootUri/video-stored-requests".toString(),
-         "settings.http.category-endpoint": "$rootUri/video-categories".toString()].asImmutable()
+        ["settings.http.endpoint"          : "$rootUri/stored-requests".toString(),
+         "settings.http.amp-endpoint"      : "$rootUri/amp-stored-requests".toString(),
+         "settings.http.video-endpoint"    : "$rootUri/video-stored-requests".toString(),
+         "settings.http.rfc3986-compatible": "false",
+         "settings.http.category-endpoint" : "$rootUri/video-categories".toString()].asImmutable()
     }
 
     static Map<String, String> getAdminEndpointConfig() {
@@ -101,6 +102,7 @@ LIMIT 1
          "settings.database.idle-connection-timeout": "300"
         ].asImmutable()
     }
+
     static Map<String, String> getPostgreSqlConfig(PostgreSQLContainer postgres = Dependencies.postgresqlContainer) {
         ["settings.database.type"                   : "postgres",
          "settings.database.host"                   : postgres.getNetworkAliases().get(0),

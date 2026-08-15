@@ -32,5 +32,4 @@ public class TealConfiguration {
                 .bidderCreator(config -> new TealBidder(config.getEndpoint(), mapper))
                 .assemble();
     }
-
 }
