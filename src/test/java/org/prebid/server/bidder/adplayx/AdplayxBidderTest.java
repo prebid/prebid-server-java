@@ -31,7 +31,7 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 
 public class AdplayxBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.endpoint.com/v1.0/ortb?apptoken={{apptoken}}";
+    private static final String ENDPOINT_URL = "https://test.endpoint.com/v1.0/ortb";
 
     private AdplayxBidder target;
 
@@ -89,6 +89,22 @@ public class AdplayxBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1);
         assertThat(result.getValue().get(0).getUri())
                 .isEqualTo("https://test.endpoint.com/v1.0/ortb?apptoken=test_token");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUrlEncodeSpecialCharactersWithoutDoubleEncoding() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(imp -> imp
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdplayx.of("token & 123", "placement 456")))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getValue().get(0).getUri())
+                .isEqualTo("https://test.endpoint.com/v1.0/ortb?apptoken=token+%26+123&placementid=placement+456");
     }
 
     @Test

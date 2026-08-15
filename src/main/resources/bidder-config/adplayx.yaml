@@ -1,7 +1,7 @@
 adapters:
   adplayx:
     enabled: true
-    endpoint: "https://api.adplayx.net/v1.0/ortb?apptoken={{apptoken}}"
+    endpoint: "https://api.adplayx.net/v1.0/ortb"
     pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
     meta-info:
