@@ -104,14 +104,6 @@
         "includewinners": true,
         "includebidderkeys": true
       },
-      "cache": {
-        "bids": {
-        },
-        "vastxml": {
-          "ttlseconds": 120
-        }
-      },
-      "events": {},
       "auctiontimestamp": 1000,
       "channel": {
         "name": "web"
@@ -126,6 +118,7 @@
         "externalurl": "http://localhost:8080",
         "gvlid": 1,
         "datacenter": "local",
+        "http_method": "POST",
         "endpoint": "/openrtb2/auction"
       }
     }

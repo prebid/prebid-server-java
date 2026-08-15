@@ -41,6 +41,7 @@ import org.prebid.server.proto.response.UsersyncInfo;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountCookieSyncConfig;
 import org.prebid.server.settings.model.AccountCoopSyncConfig;
+import org.prebid.server.util.Uri;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -1257,7 +1258,7 @@ public class CookieSyncServiceTest extends VertxTest {
     private static UsersyncMethod givenUsersyncMethod(String bidder) {
         return UsersyncMethod.builder()
                 .type(UsersyncMethodType.IFRAME)
-                .usersyncUrl("https://" + bidder + "-usersync-url.com")
+                .usersyncUrl(Uri.of("https://" + bidder + "-usersync-url.com"))
                 .build();
     }
 

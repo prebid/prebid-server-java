@@ -18,7 +18,7 @@ public class TheTradeDeskTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromTheTradeDesk() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/thetradedesk-exchange/somesupplyid"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/thetradedesk-exchange"))
                 .withRequestBody(equalToJson(
                         jsonFrom("openrtb2/thetradedesk/test-thetradedesk-bid-request.json")))
                 .willReturn(aResponse().withBody(
@@ -27,8 +27,7 @@ public class TheTradeDeskTest extends IntegrationTest {
         // when
         final Response response = responseFor(
                 "openrtb2/thetradedesk/test-auction-thetradedesk-request.json",
-                Endpoint.openrtb2_auction
-        );
+                Endpoint.openrtb2_auction);
 
         // then
         assertJsonEquals(
@@ -36,5 +35,4 @@ public class TheTradeDeskTest extends IntegrationTest {
                 response,
                 List.of("thetradedesk"));
     }
-
 }

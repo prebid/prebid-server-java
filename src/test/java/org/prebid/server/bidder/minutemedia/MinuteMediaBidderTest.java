@@ -32,8 +32,8 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
 public class MinuteMediaBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://randomurl.com/exchange?publisherId={{PublisherId}}";
-    private static final String TEST_ENDPOINT_URL = "https://test.com/exchange?publisherId={{PublisherId}}";
+    private static final String ENDPOINT_URL = "https://randomurl.com/exchange?publisherId={PublisherId}";
+    private static final String TEST_ENDPOINT_URL = "https://test.com/exchange?publisherId={PublisherId}";
 
     private final MinuteMediaBidder target = new MinuteMediaBidder(ENDPOINT_URL, TEST_ENDPOINT_URL, jacksonMapper);
 

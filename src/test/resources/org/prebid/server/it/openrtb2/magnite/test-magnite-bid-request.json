@@ -20,7 +20,7 @@
               "http://www.example.com"
             ],
             "pbs_version": "{{ pbs.java.version }}",
-            "pbs_login": "rubicon_user",
+            "pbs_login": "magnite_user",
             "pbs_url": "http://localhost:8080"
           },
           "track": {

@@ -165,5 +165,4 @@ public class PrecisoBidder implements Bidder<BidRequest> {
                         "Missing ext.prebid.type in bid for impression : %s."
                         .formatted(bid.getImpid())));
     }
-
 }

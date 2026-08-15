@@ -30,6 +30,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.insticator.ExtImpInsticator;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidMeta;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
@@ -552,6 +553,34 @@ public class InsticatorBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .containsExactly(BidderBid.of(Bid.builder().mtype(null).impid("3").build(), banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldSetSeatInMetaWhenSeatBidHasSeat() throws JsonProcessingException {
+        // given
+        final String body = mapper.writeValueAsString(BidResponse.builder()
+                .cur("USD")
+                .seatbid(singletonList(SeatBid.builder()
+                        .seat("dsp_seat")
+                        .bid(singletonList(Bid.builder().impid("1").mtype(1).build()))
+                        .build()))
+                .build());
+        final BidderCall<BidRequest> httpCall = givenHttpCall(body);
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        final ObjectNode expectedExt = mapper.createObjectNode();
+        final ObjectNode expectedPrebid = mapper.createObjectNode();
+        expectedPrebid.set("meta", mapper.valueToTree(ExtBidPrebidMeta.builder().seat("dsp_seat").build()));
+        expectedExt.set("prebid", expectedPrebid);
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(
+                        Bid.builder().mtype(1).impid("1").ext(expectedExt).build(),
+                        banner,
+                        "USD"));
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder>... impCustomizers) {

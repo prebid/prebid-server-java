@@ -43,7 +43,7 @@ import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
 
 public class MediaGoBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.host.com/prebid/bid?region={{Host}}&token={{AccountID}}";
+    private static final String ENDPOINT_URL = "https://test.host.com/prebid/bid?region={Host}&token={AccountID}";
 
     private final MediaGoBidder target = new MediaGoBidder(ENDPOINT_URL, jacksonMapper);
 

@@ -6,7 +6,7 @@ import groovy.transform.ToString
 import org.prebid.server.functional.model.bidder.AppNexus
 import org.prebid.server.functional.model.bidder.GeneralBidderAdapter
 import org.prebid.server.functional.model.bidder.Generic
-import org.prebid.server.functional.model.bidder.Rubicon
+import org.prebid.server.functional.model.bidder.Magnite
 import org.prebid.server.functional.model.bidderspecific.Rp
 
 @ToString(includeNames = true, ignoreNulls = true)
@@ -16,7 +16,7 @@ class ImpExt {
     ImpExtPrebid prebid
     Generic generic
     @Deprecated
-    Rubicon rubicon
+    Magnite magnite
     @Deprecated
     @JsonProperty("appnexus")
     AppNexus appNexus
@@ -25,13 +25,9 @@ class ImpExt {
     String tid
     String gpid
     String sid
-    @JsonProperty("ae")
-    AuctionEnvironment auctionEnvironment
     String all
     String skadn
     String general
-    @JsonProperty("igs")
-    InterestGroupAuctionSupport interestGroupAuctionSupports
     AnyUnsupportedBidder anyUnsupportedBidder
     GeneralBidderAdapter bidder
     Rp rp

@@ -5,7 +5,7 @@
             <VASTAdTagURI><![CDATA[adm2]]></VASTAdTagURI>
             <Impression></Impression>
             <Impression>
-                <![CDATA[http://localhost:8080/event?t=imp&b=bidid&a=14062&ts=1000&bidder=rubicon&f=b&int=]]></Impression>
+                <![CDATA[http://localhost:8080/event?t=imp&b=bidid&a=14062&ts=1000&bidder=magnite&f=b&int=]]></Impression>
             <Creatives></Creatives>
         </Wrapper>
     </Ad>

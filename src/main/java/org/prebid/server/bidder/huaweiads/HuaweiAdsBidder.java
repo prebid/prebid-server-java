@@ -351,5 +351,4 @@ public class HuaweiAdsBidder implements Bidder<HuaweiAdsRequest> {
                 .findFirst()
                 .orElse(StringUtils.EMPTY);
     }
-
 }

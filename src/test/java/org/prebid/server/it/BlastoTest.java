@@ -8,7 +8,6 @@ import org.prebid.server.model.Endpoint;
 import java.io.IOException;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
@@ -20,8 +19,6 @@ public class BlastoTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromBlasto() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/blasto-exchange"))
-                .withQueryParam("source", equalTo("sourceId"))
-                .withQueryParam("account", equalTo("accountId"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/blasto/test-blasto-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/blasto/test-blasto-bid-response.json"))));
 

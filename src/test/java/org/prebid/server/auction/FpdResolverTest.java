@@ -565,7 +565,7 @@ public class FpdResolverTest extends VertxTest {
     @Test
     public void resolveImpExtShouldCreateExtImpContextDataIfExtImpContextIsNullAndKeepOtherFields() {
         // given
-        final ObjectNode extImp = mapper.createObjectNode().put("prebid", 1).put("rubicon", 2);
+        final ObjectNode extImp = mapper.createObjectNode().put("prebid", 1).put("magnite", 2);
         final ObjectNode targeting = mapper.createObjectNode()
                 .put("site", "site").put("replacedAttr", "fpdValue").put("fpdAttr", "fpdValue2");
 
@@ -573,7 +573,7 @@ public class FpdResolverTest extends VertxTest {
         final ObjectNode result = target.resolveImpExt(extImp, targeting);
 
         // then
-        final ObjectNode expectedResult = mapper.createObjectNode().put("prebid", 1).put("rubicon", 2);
+        final ObjectNode expectedResult = mapper.createObjectNode().put("prebid", 1).put("magnite", 2);
         assertThat(result).isEqualTo(expectedResult
                 .set("data", mapper.createObjectNode().put("replacedAttr", "fpdValue")
                         .put("fpdAttr", "fpdValue2")));

@@ -1,6 +1,6 @@
 adapters:
   interactiveoffers:
-    endpoint: https://prebid-server.ioadx.com/bidRequest/?partnerId={{PartnerId}}
+    endpoint: https://prebid-server.ioadx.com/bidRequest/?partnerId={PartnerId}
     meta-info:
       maintainer-email: dev@interactiveoffers.com
       app-media-types:
