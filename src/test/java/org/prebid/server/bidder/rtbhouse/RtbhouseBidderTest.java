@@ -256,8 +256,10 @@ public class RtbhouseBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getPayload)
-                .extracting(BidRequest::getSite)
-                .allSatisfy(site -> {
+                .allSatisfy(payload -> {
+                    assertThat(payload.getApp()).isNull();
+
+                    final Site site = payload.getSite();
                     assertThat(site.getId()).isEqualTo("site_id");
                     assertThat(site.getName()).isEqualTo("site_name");
                     assertThat(site.getDomain()).isEqualTo("example.com");
