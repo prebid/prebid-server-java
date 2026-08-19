@@ -215,6 +215,7 @@ public class TheTradeDeskBidder implements Bidder<BidRequest> {
         return switch (bid.getMtype()) {
             case 1 -> BidType.banner;
             case 2 -> BidType.video;
+            case 3 -> BidType.audio;
             case 4 -> BidType.xNative;
             case null, default -> {
                 errors.add(BidderError.badServerResponse(
