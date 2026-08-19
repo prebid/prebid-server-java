@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.connectad;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -10,7 +11,6 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.vertx.core.MultiMap;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
@@ -40,6 +40,7 @@ public class ConnectAdBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpConnectAd>> CONNECTAD_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
+    private static final String BIDDER_EXT_KEY = "bidder";
     private static final String HTTPS_PREFIX = "https";
 
     private final String endpointUrl;
@@ -59,9 +60,6 @@ public class ConnectAdBidder implements Bidder<BidRequest> {
 
         for (Imp imp : request.getImp()) {
             try {
-                if (imp.getBanner() == null && imp.getVideo() == null && imp.getXNative() == null && imp.getAudio() == null) {
-                    throw new PreBidException("We need a Banner, Video, Native or Audio Object in the request");
-                }
                 final ExtImpConnectAd impExt = parseImpExt(imp);
                 final Imp updatedImp = updateImp(imp, secure, impExt);
                 processedImps.add(updatedImp);
@@ -96,8 +94,7 @@ public class ConnectAdBidder implements Bidder<BidRequest> {
         } catch (IllegalArgumentException e) {
             throw new PreBidException("Impression id=%s, has invalid Ext".formatted(imp.getId()));
         }
-        final String siteId = extImpConnectAd.getSiteId();
-        if (siteId == null) {
+        if (extImpConnectAd.getSiteId() == null) {
             throw new PreBidException("Impression id=%s, has no siteId present".formatted(imp.getId()));
         }
         return extImpConnectAd;
@@ -108,35 +105,25 @@ public class ConnectAdBidder implements Bidder<BidRequest> {
         final boolean isValidBidFloor = BidderUtil.isValidPrice(bidFloor);
         return imp.toBuilder()
                 .banner(updateBanner(imp.getBanner()))
-                .tagid(extImpConnectAd.getSiteId())
+                .tagid(String.valueOf(extImpConnectAd.getSiteId()))
                 .secure(secure)
                 .bidfloor(isValidBidFloor ? bidFloor : imp.getBidfloor())
                 .bidfloorcur(isValidBidFloor ? "USD" : imp.getBidfloorcur())
-                .ext(modifyImpExt(imp.getExt(), extImpConnectAd))
+                .ext(modifyImpExt(imp.getExt()))
                 .build();
     }
 
-    private ObjectNode modifyImpExt(ObjectNode impExt, ExtImpConnectAd extImpConnectAd) {
-        final ObjectNode modifiedExt = impExt != null ? impExt.deepCopy() : mapper.mapper().createObjectNode();
-        final String networkId = extImpConnectAd.getNetworkId();
-        final String siteId = extImpConnectAd.getSiteId();
-
-        if (networkId != null) {
-            try {
-                modifiedExt.put("networkId", Integer.parseInt(networkId));
-            } catch (NumberFormatException e) {
-                modifiedExt.put("networkId", networkId);
+    private ObjectNode modifyImpExt(ObjectNode impExt) {
+        final ObjectNode modifiedExt = impExt.deepCopy();
+        final var bidder = impExt.get(BIDDER_EXT_KEY);
+        if (bidder != null) {
+            if (bidder.has("networkId")) {
+                modifiedExt.set("networkId", bidder.get("networkId"));
+            }
+            if (bidder.has("siteId")) {
+                modifiedExt.set("siteId", bidder.get("siteId"));
             }
         }
-
-        if (siteId != null) {
-            try {
-                modifiedExt.put("siteId", Integer.parseInt(siteId));
-            } catch (NumberFormatException e) {
-                modifiedExt.put("siteId", siteId);
-            }
-        }
-
         return modifiedExt;
     }
 

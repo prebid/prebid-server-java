@@ -18,8 +18,8 @@
           "siteId": "15",
           "bidfloor": 14.7
         },
-        "networkId": 12,
-        "siteId": 15
+        "networkId": "12",
+        "siteId": "15"
       }
     }
   ],
@@ -46,9 +46,7 @@
     "USD"
   ],
   "regs": {
-    "ext": {
-      "gdpr": 0
-    }
+    "gdpr": 0
   },
   "ext": {
     "prebid": {

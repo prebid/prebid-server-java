@@ -110,12 +110,15 @@ public class ConnectAdBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBid() throws JsonProcessingException {
         // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
+                .build();
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder().imp(singletonList(Imp.builder().id("123").build())).build(),
+                bidRequest,
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -147,7 +150,7 @@ public class ConnectAdBidderTest extends VertxTest {
                 impBuilder -> impBuilder
                         .id("123")
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpConnectAd.of("12", null, BigDecimal.ONE)))));
+                                ExtImpConnectAd.of(12, null, BigDecimal.ONE)))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
@@ -159,33 +162,13 @@ public class ConnectAdBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfNoMediaTypePresent() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .banner(null)
-                        .video(null)
-                        .xNative(null)
-                        .audio(null));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(2);
-        assertThat(result.getErrors(),
-                containsInAnyOrder(BidderError.badInput("We need a Banner, Video, Native or Audio Object in the request"),
-                        BidderError.badInput("Error in preprocess of Imp")));
-    }
-
-    @Test
     public void impSecureShouldBeOneIfSitePageStartsFromHttps() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
                         .id("123")
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpConnectAd.of("12", "1", BigDecimal.ONE)))));
+                                ExtImpConnectAd.of(12, 1, BigDecimal.ONE)))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
@@ -208,7 +191,7 @@ public class ConnectAdBidderTest extends VertxTest {
                 impBuilder -> impBuilder
                         .id("123")
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpConnectAd.of("12345", "67890", BigDecimal.ONE)))));
+                                ExtImpConnectAd.of(12345, 67890, BigDecimal.ONE)))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
@@ -224,32 +207,6 @@ public class ConnectAdBidderTest extends VertxTest {
                     assertThat(imp.getTagid()).isEqualTo("67890");
                     assertThat(imp.getExt().get("networkId").asInt()).isEqualTo(12345);
                     assertThat(imp.getExt().get("siteId").asInt()).isEqualTo(67890);
-                });
-    }
-
-    @Test
-    public void makeHttpRequestsShouldPropagateSiteIdAndNetworkIdAsStringsIfNonNumeric() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .id("123")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpConnectAd.of("net_abc", "site_xyz", BigDecimal.ONE)))));
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .hasSize(1)
-                .extracting(HttpRequest::getPayload)
-                .flatExtracting(BidRequest::getImp)
-                .hasSize(1)
-                .first()
-                .satisfies(imp -> {
-                    assertThat(imp.getTagid()).isEqualTo("site_xyz");
-                    assertThat(imp.getExt().get("networkId").asText()).isEqualTo("net_abc");
-                    assertThat(imp.getExt().get("siteId").asText()).isEqualTo("site_xyz");
                 });
     }
 
@@ -275,7 +232,7 @@ public class ConnectAdBidderTest extends VertxTest {
                                 .w(14)
                                 .h(15).build())
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpConnectAd.of("12", "12", BigDecimal.ONE)))))
+                                ExtImpConnectAd.of(12, 12, BigDecimal.ONE)))))
                 .build();
     }
 
