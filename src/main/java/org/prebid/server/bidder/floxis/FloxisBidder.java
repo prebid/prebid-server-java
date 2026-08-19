@@ -66,7 +66,9 @@ public class FloxisBidder implements Bidder<BidRequest> {
                 continue;
             }
 
-            impsByHost.computeIfAbsent(HostId.of(impExt), key -> new ArrayList<>()).add(imp);
+            impsByHost.computeIfAbsent(
+                            new HostId(impExt.getSeat(), resolveBidHost(impExt)), key -> new ArrayList<>())
+                    .add(imp);
         }
 
         final List<HttpRequest<BidRequest>> httpRequests = impsByHost.entrySet().stream()
@@ -102,6 +104,12 @@ public class FloxisBidder implements Bidder<BidRequest> {
                 .replaceMacro(HOST_MACRO, hostId.host())
                 .replaceMacro(SEAT_MACRO, hostId.seat())
                 .expand();
+    }
+
+    private static String resolveBidHost(ExtImpFloxis impExt) {
+        final String partner = impExt.getPartner();
+        final String region = impExt.getRegion();
+        return partner.equals(DEFAULT_PARTNER) ? region : partner + "-" + region;
     }
 
     @Override
@@ -195,13 +203,5 @@ public class FloxisBidder implements Bidder<BidRequest> {
     }
 
     private record HostId(String seat, String host) {
-
-        static HostId of(ExtImpFloxis impExt) {
-            final String partner = impExt.getPartner();
-            final String region = impExt.getRegion();
-            return new HostId(
-                    impExt.getSeat(),
-                    partner.equals(DEFAULT_PARTNER) ? region : partner + "-" + region);
-        }
     }
 }
