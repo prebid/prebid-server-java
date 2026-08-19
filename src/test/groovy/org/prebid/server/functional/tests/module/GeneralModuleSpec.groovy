@@ -15,7 +15,7 @@ import org.prebid.server.functional.model.request.auction.TraceLevel
 import org.prebid.server.functional.model.response.auction.InvocationResult
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
-import org.prebid.server.functional.util.PBSUtils
+import spock.lang.IgnoreRest
 
 import java.time.Instant
 
@@ -43,10 +43,9 @@ class GeneralModuleSpec extends ModuleBaseSpec {
     private final static Map<Stage, List<ModuleName>> RESPONSE_STAGES = [(ALL_PROCESSED_BID_RESPONSES): [PB_RICHMEDIA_FILTER]]
     private final static Map<Stage, List<ModuleName>> MODULES_STAGES = ORTB_STAGES + RESPONSE_STAGES
     private final static ExecutionPlan GLOBAL_EXECUTION_PLAN = ExecutionPlan.getSingleEndpointExecutionPlan(AUCTION, MODULES_STAGES)
-    private final static Map<String, String> MULTI_MODULE_CONFIG = getRichMediaFilterSettings(PBSUtils.randomString) +
-            getOrtb2BlockingSettings() +
-            ['settings.enforce-valid-account': 'true',
-             'hooks.host-execution-plan'     : encode(GLOBAL_EXECUTION_PLAN)]
+    private final static Map<String, String> MULTI_MODULE_CONFIG = getModuleBaseSettings(PB_RICHMEDIA_FILTER) +
+            getModuleBaseSettings(PB_ORTB2_BLOCKING) +
+            ['settings.enforce-valid-account': 'true', 'hooks.host-execution-plan': encode(GLOBAL_EXECUTION_PLAN)]
 
     private static final PrebidServerService pbsServiceWithMultipleModule = pbsServiceFactory.getService(MULTI_MODULE_CONFIG + DISABLED_INVOKE_CONFIG)
     private static final PrebidServerService pbsServiceWithMultipleModuleWithRequireInvoke = pbsServiceFactory.getService(MULTI_MODULE_CONFIG + ENABLED_INVOKE_CONFIG)

@@ -8,14 +8,16 @@ import org.prebid.server.functional.model.config.ModuleName
 import org.prebid.server.functional.model.config.Stage
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.BidRequest
-import org.prebid.server.functional.model.request.auction.FetchStatus
+import org.prebid.server.functional.model.request.auction.AnalyticTagStatus
 import org.prebid.server.functional.model.request.auction.TraceLevel
 import org.prebid.server.functional.model.response.auction.AnalyticResult
 import org.prebid.server.functional.model.response.auction.InvocationResult
+import org.prebid.server.functional.model.response.auction.ModuleActivityName
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
 
 import static org.prebid.server.functional.model.config.HookHttpEndpoint.AUCTION
+import static org.prebid.server.functional.model.config.ModuleName.PB_ORTB2_BLOCKING
 import static org.prebid.server.functional.model.config.ModuleName.PB_RESPONSE_CORRECTION
 import static org.prebid.server.functional.model.config.Stage.ALL_PROCESSED_BID_RESPONSES
 import static org.prebid.server.functional.model.config.Stage.BIDDER_REQUEST
@@ -24,7 +26,6 @@ import static org.prebid.server.functional.model.request.auction.BidRequest.getD
 import static org.prebid.server.functional.model.response.auction.InvocationStatus.INVOCATION_FAILURE
 import static org.prebid.server.functional.model.response.auction.InvocationStatus.SUCCESS
 import static org.prebid.server.functional.model.response.auction.ModuleActivityName.AB_TESTING
-import static org.prebid.server.functional.model.response.auction.ModuleActivityName.ORTB2_BLOCKING
 import static org.prebid.server.functional.model.response.auction.ResponseAction.NO_ACTION
 import static org.prebid.server.functional.model.response.auction.ResponseAction.NO_INVOCATION
 
@@ -34,20 +35,18 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
     private final static Integer MAX_PERCENT_AB = 100
     private final static String INVALID_HOOK_MESSAGE = "Hook implementation does not exist or disabled"
 
-    private final static Map<Stage, List<ModuleName>> ORTB_STAGES = [(BIDDER_REQUEST)     : [ModuleName.PB_ORTB2_BLOCKING],
-                                                                     (RAW_BIDDER_RESPONSE): [ModuleName.PB_ORTB2_BLOCKING]]
+    private final static Map<Stage, List<ModuleName>> ORTB_STAGES = [(BIDDER_REQUEST)     : [PB_ORTB2_BLOCKING],
+                                                                     (RAW_BIDDER_RESPONSE): [PB_ORTB2_BLOCKING]]
     private final static Map<Stage, List<ModuleName>> RESPONSE_STAGES = [(ALL_PROCESSED_BID_RESPONSES): [PB_RESPONSE_CORRECTION]]
     private final static Map<Stage, List<ModuleName>> MODULES_STAGES = ORTB_STAGES + RESPONSE_STAGES
 
-    private final static Map<String, String> MULTI_MODULE_CONFIG = getResponseCorrectionConfig() + getOrtb2BlockingSettings() +
+    private final static Map<String, String> MULTI_MODULE_CONFIG = getModuleBaseSettings(PB_RESPONSE_CORRECTION) + getModuleBaseSettings(PB_ORTB2_BLOCKING) +
             ['hooks.host-execution-plan': null]
 
-    private static final PrebidServerService ortbModulePbsService = pbsServiceFactory.getService(getOrtb2BlockingSettings())
-    private static final PrebidServerService pbsServiceWithMultipleModules = pbsServiceFactory.getService(MULTI_MODULE_CONFIG)
+    private static final PrebidServerService ortbModulePbsService = pbsServiceFactory.getService(getModuleBaseSettings(PB_ORTB2_BLOCKING))
 
     def cleanupSpec() {
-        pbsServiceFactory.removeContainer(getOrtb2BlockingSettings())
-        pbsServiceFactory.removeContainer(MULTI_MODULE_CONFIG)
+        pbsServiceFactory.removeContainer(getModuleBaseSettings(PB_ORTB2_BLOCKING))
     }
 
     def "PBS shouldn't apply a/b test config when config of ab test is disabled"() {
@@ -58,7 +57,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         flushMetrics(ortbModulePbsService)
 
         and: "Save account with ab test config"
-        def abTest = AbTest.getDefault(ModuleName.PB_ORTB2_BLOCKING.code).tap {
+        def abTest = AbTest.getDefault(PB_ORTB2_BLOCKING.code).tap {
             enabled = false
         }
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(AUCTION, ORTB_STAGES).tap {
@@ -83,18 +82,18 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         and: "Metric for specified module should be as default call"
         def metrics = ortbModulePbsService.sendCollectedMetricsRequest()
-        assert metrics[CALL_METRIC(ModuleName.PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
-        assert metrics[CALL_METRIC(ModuleName.PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
-        assert metrics[CALL_METRIC(ModuleName.PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
-        assert metrics[CALL_METRIC(ModuleName.PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
+        assert metrics[CALL_METRIC(PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
+        assert metrics[CALL_METRIC(PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
+        assert metrics[CALL_METRIC(PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
+        assert metrics[CALL_METRIC(PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
 
-        assert !metrics[NO_INVOCATION_METRIC(ModuleName.PB_ORTB2_BLOCKING, BIDDER_REQUEST)]
-        assert !metrics[NO_INVOCATION_METRIC(ModuleName.PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)]
+        assert !metrics[NO_INVOCATION_METRIC(PB_ORTB2_BLOCKING, BIDDER_REQUEST)]
+        assert !metrics[NO_INVOCATION_METRIC(PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)]
     }
 
     def "PBS shouldn't apply valid a/b test config when module is disabled"() {
         given: "PBS service with disabled module config"
-        def pbsConfig = getOrtb2BlockingSettings(false)
+        def pbsConfig = getModuleBaseSettings(PB_ORTB2_BLOCKING, false)
         def prebidServerService = pbsServiceFactory.getService(pbsConfig)
 
         and: "Default bid request with verbose trace"
@@ -105,7 +104,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         and: "Save account with ab test config"
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(AUCTION, ORTB_STAGES).tap {
-            abTests = [AbTest.getDefault(ModuleName.PB_ORTB2_BLOCKING.code)]
+            abTests = [AbTest.getDefault(PB_ORTB2_BLOCKING.code)]
         }
         def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(executionPlan: executionPlan))
         def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
@@ -125,15 +124,15 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         and: "Metric for specified module should be with error call"
         def metrics = prebidServerService.sendCollectedMetricsRequest()
-        assert metrics[CALL_METRIC(ModuleName.PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
-        assert metrics[CALL_METRIC(ModuleName.PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
-        assert metrics[CALL_METRIC(ModuleName.PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
-        assert metrics[CALL_METRIC(ModuleName.PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
-        assert metrics[EXECUTION_ERROR_METRIC(ModuleName.PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
-        assert metrics[EXECUTION_ERROR_METRIC(ModuleName.PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
+        assert metrics[CALL_METRIC(PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
+        assert metrics[CALL_METRIC(PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
+        assert metrics[CALL_METRIC(PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
+        assert metrics[CALL_METRIC(PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
+        assert metrics[EXECUTION_ERROR_METRIC(PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
+        assert metrics[EXECUTION_ERROR_METRIC(PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
 
-        assert !metrics[NO_INVOCATION_METRIC(ModuleName.PB_ORTB2_BLOCKING, BIDDER_REQUEST)]
-        assert !metrics[NO_INVOCATION_METRIC(ModuleName.PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)]
+        assert !metrics[NO_INVOCATION_METRIC(PB_ORTB2_BLOCKING, BIDDER_REQUEST)]
+        assert !metrics[NO_INVOCATION_METRIC(PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)]
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsConfig)
@@ -169,16 +168,16 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         and: "Metric for specified module should be as default call"
         def metrics = ortbModulePbsService.sendCollectedMetricsRequest()
-        assert metrics[CALL_METRIC(ModuleName.PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
-        assert metrics[CALL_METRIC(ModuleName.PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
-        assert metrics[CALL_METRIC(ModuleName.PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
-        assert metrics[CALL_METRIC(ModuleName.PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
+        assert metrics[CALL_METRIC(PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
+        assert metrics[CALL_METRIC(PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
+        assert metrics[CALL_METRIC(PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
+        assert metrics[CALL_METRIC(PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
 
-        assert !metrics[NO_INVOCATION_METRIC(ModuleName.PB_ORTB2_BLOCKING, BIDDER_REQUEST)]
-        assert !metrics[NO_INVOCATION_METRIC(ModuleName.PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)]
+        assert !metrics[NO_INVOCATION_METRIC(PB_ORTB2_BLOCKING, BIDDER_REQUEST)]
+        assert !metrics[NO_INVOCATION_METRIC(PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)]
 
         where:
-        moduleName << [ModuleName.PB_ORTB2_BLOCKING.code.toUpperCase(), PBSUtils.randomString]
+        moduleName << [PB_ORTB2_BLOCKING.code.toUpperCase(), PBSUtils.randomString]
     }
 
     def "PBS should apply a/b test config for each module when multiple config are presents and set to allow modules"() {
@@ -189,7 +188,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         flushMetrics(pbsServiceWithMultipleModules)
 
         and: "Save account with ab test config"
-        def ortb2AbTestConfig = AbTest.getDefault(ModuleName.PB_ORTB2_BLOCKING.code).tap {
+        def ortb2AbTestConfig = AbTest.getDefault(PB_ORTB2_BLOCKING.code).tap {
             it.percentActive = MAX_PERCENT_AB
         }
         def richMediaAbTestConfig = AbTest.getDefault(PB_RESPONSE_CORRECTION.code).tap {
@@ -207,14 +206,14 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         then: "PBS should apply ab test config for specified module"
         def invocationResults = response?.ext?.prebid?.modules?.trace?.stages?.outcomes?.groups?.invocationResults?.flatten() as List<InvocationResult>
-        def ortbBlockingInvocationResults = filterInvocationResultsByModule(invocationResults, ModuleName.PB_ORTB2_BLOCKING)
+        def ortbBlockingInvocationResults = filterInvocationResultsByModule(invocationResults, PB_ORTB2_BLOCKING)
         verifyAll(ortbBlockingInvocationResults) {
             it.status == [SUCCESS, SUCCESS]
             it.action == [NO_ACTION, NO_ACTION]
-            it.analyticsTags.activities.name.flatten().sort() == [ORTB2_BLOCKING, AB_TESTING, AB_TESTING].value.sort()
-            it.analyticsTags.activities.status.flatten().sort() == [FetchStatus.SUCCESS, FetchStatus.SUCCESS, FetchStatus.SUCCESS].sort()
-            it.analyticsTags.activities.results.status.flatten().sort() == [FetchStatus.SUCCESS_ALLOW, FetchStatus.RUN, FetchStatus.RUN].sort()
-            it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.PB_ORTB2_BLOCKING, ModuleName.PB_ORTB2_BLOCKING]
+            it.analyticsTags.activities.name.flatten().sort() == [ModuleActivityName.PB_ORTB2_BLOCKING, AB_TESTING, AB_TESTING].value.sort()
+            it.analyticsTags.activities.status.flatten().sort() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS].sort()
+            it.analyticsTags.activities.results.status.flatten().sort() == [AnalyticTagStatus.SUCCESS_ALLOW, AnalyticTagStatus.RUN, AnalyticTagStatus.RUN].sort()
+            it.analyticsTags.activities.results.values.module.flatten() == [PB_ORTB2_BLOCKING, PB_ORTB2_BLOCKING]
         }
 
         and: "PBS should not apply ab test config for other module"
@@ -223,15 +222,15 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.status == [SUCCESS]
             it.action == [NO_ACTION]
             it.analyticsTags.activities.name.flatten() == [AB_TESTING].value
-            it.analyticsTags.activities.status.flatten() == [FetchStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [FetchStatus.RUN]
+            it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS]
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.RUN]
             it.analyticsTags.activities.results.values.module.flatten() == [PB_RESPONSE_CORRECTION]
         }
 
         and: "Metric for allowed to run pb-ortb2blocking module should be updated based on ab test config"
         def metrics = pbsServiceWithMultipleModules.sendCollectedMetricsRequest()
-        assert metrics[CALL_METRIC(ModuleName.PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
-        assert metrics[CALL_METRIC(ModuleName.PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
+        assert metrics[CALL_METRIC(PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
+        assert metrics[CALL_METRIC(PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
         assert !metrics[NO_INVOCATION_METRIC(PB_RESPONSE_CORRECTION, ALL_PROCESSED_BID_RESPONSES)]
         assert !metrics[NO_INVOCATION_METRIC(PB_RESPONSE_CORRECTION, ALL_PROCESSED_BID_RESPONSES)]
 
@@ -250,7 +249,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         flushMetrics(pbsServiceWithMultipleModules)
 
         and: "Save account with ab test config"
-        def ortb2AbTestConfig = AbTest.getDefault(ModuleName.PB_ORTB2_BLOCKING.code).tap {
+        def ortb2AbTestConfig = AbTest.getDefault(PB_ORTB2_BLOCKING.code).tap {
             it.percentActive = MIN_PERCENT_AB
         }
         def richMediaAbTestConfig = AbTest.getDefault(PB_RESPONSE_CORRECTION.code).tap {
@@ -268,14 +267,14 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         then: "PBS should apply ab test config for ortb2blocking module"
         def invocationResults = response?.ext?.prebid?.modules?.trace?.stages?.outcomes?.groups?.invocationResults?.flatten() as List<InvocationResult>
-        def ortbBlockingInvocationResults = filterInvocationResultsByModule(invocationResults, ModuleName.PB_ORTB2_BLOCKING)
+        def ortbBlockingInvocationResults = filterInvocationResultsByModule(invocationResults, PB_ORTB2_BLOCKING)
         verifyAll(ortbBlockingInvocationResults) {
             it.status == [SUCCESS, SUCCESS]
             it.action == [NO_INVOCATION, NO_INVOCATION]
             it.analyticsTags.activities.name.flatten() == [AB_TESTING, AB_TESTING].value
-            it.analyticsTags.activities.status.flatten() == [FetchStatus.SUCCESS, FetchStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [FetchStatus.SKIPPED, FetchStatus.SKIPPED]
-            it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.PB_ORTB2_BLOCKING, ModuleName.PB_ORTB2_BLOCKING]
+            it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS]
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED]
+            it.analyticsTags.activities.results.values.module.flatten() == [PB_ORTB2_BLOCKING, PB_ORTB2_BLOCKING]
         }
 
         and: "PBS should apply ab test config for pb-response-correction module"
@@ -284,15 +283,15 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.status == [SUCCESS]
             it.action == [NO_INVOCATION]
             it.analyticsTags.activities.name.flatten() == [AB_TESTING].value
-            it.analyticsTags.activities.status.flatten() == [FetchStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [FetchStatus.SKIPPED]
+            it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS]
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED]
             it.analyticsTags.activities.results.values.module.flatten() == [PB_RESPONSE_CORRECTION]
         }
 
         and: "Metric for skipped pb-ortb2blocking module should be updated based on ab test config"
         def metrics = pbsServiceWithMultipleModules.sendCollectedMetricsRequest()
-        assert !metrics[CALL_METRIC(ModuleName.PB_ORTB2_BLOCKING, BIDDER_REQUEST)]
-        assert !metrics[CALL_METRIC(ModuleName.PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)]
+        assert !metrics[CALL_METRIC(PB_ORTB2_BLOCKING, BIDDER_REQUEST)]
+        assert !metrics[CALL_METRIC(PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)]
         assert metrics[NO_INVOCATION_METRIC(PB_RESPONSE_CORRECTION, ALL_PROCESSED_BID_RESPONSES)] == 1
         assert metrics[NO_INVOCATION_METRIC(PB_RESPONSE_CORRECTION, ALL_PROCESSED_BID_RESPONSES)] == 1
 
@@ -311,7 +310,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         flushMetrics(pbsServiceWithMultipleModules)
 
         and: "Save account with ab test config"
-        def ortb2AbTestConfig = AbTest.getDefault(ModuleName.PB_ORTB2_BLOCKING.code).tap {
+        def ortb2AbTestConfig = AbTest.getDefault(PB_ORTB2_BLOCKING.code).tap {
             it.percentActive = MIN_PERCENT_AB
         }
         def richMediaAbTestConfig = AbTest.getDefault(PB_RESPONSE_CORRECTION.code).tap {
@@ -329,14 +328,14 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         then: "PBS should apply ab test config for ortb2blocking module"
         def invocationResults = response?.ext?.prebid?.modules?.trace?.stages?.outcomes?.groups?.invocationResults?.flatten() as List<InvocationResult>
-        def ortbBlockingInvocationResults = filterInvocationResultsByModule(invocationResults, ModuleName.PB_ORTB2_BLOCKING)
+        def ortbBlockingInvocationResults = filterInvocationResultsByModule(invocationResults, PB_ORTB2_BLOCKING)
         verifyAll(ortbBlockingInvocationResults) {
             it.status == [SUCCESS, SUCCESS]
             it.action == [NO_INVOCATION, NO_INVOCATION]
             it.analyticsTags.activities.name.flatten() == [AB_TESTING, AB_TESTING].value
-            it.analyticsTags.activities.status.flatten() == [FetchStatus.SUCCESS, FetchStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [FetchStatus.SKIPPED, FetchStatus.SKIPPED]
-            it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.PB_ORTB2_BLOCKING, ModuleName.PB_ORTB2_BLOCKING]
+            it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS]
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED]
+            it.analyticsTags.activities.results.values.module.flatten() == [PB_ORTB2_BLOCKING, PB_ORTB2_BLOCKING]
         }
 
         and: "PBS should not apply ab test config for pb-response-correction module"
@@ -345,15 +344,15 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.status == [SUCCESS]
             it.action == [NO_ACTION]
             it.analyticsTags.activities.name.flatten() == [AB_TESTING].value
-            it.analyticsTags.activities.status.flatten() == [FetchStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [FetchStatus.RUN]
+            it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS]
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.RUN]
             it.analyticsTags.activities.results.values.module.flatten() == [PB_RESPONSE_CORRECTION]
         }
 
         and: "Metric for skipped ortb2blocking module should be updated based on ab test config"
         def metrics = pbsServiceWithMultipleModules.sendCollectedMetricsRequest()
-        assert metrics[NO_INVOCATION_METRIC(ModuleName.PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
-        assert metrics[NO_INVOCATION_METRIC(ModuleName.PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
+        assert metrics[NO_INVOCATION_METRIC(PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
+        assert metrics[NO_INVOCATION_METRIC(PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
 
         and: "Metric for allowed to run pb-response-correction module should be updated based on ab test config"
         assert metrics[CALL_METRIC(PB_RESPONSE_CORRECTION, ALL_PROCESSED_BID_RESPONSES)] == 1
@@ -371,7 +370,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         and: "Save account with ab test config"
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(AUCTION, ORTB_STAGES).tap {
-            abTests = [AbTest.getDefault(ModuleName.PB_ORTB2_BLOCKING.code, [PBSUtils.randomNumber]).tap {
+            abTests = [AbTest.getDefault(PB_ORTB2_BLOCKING.code, [PBSUtils.randomNumber]).tap {
                 percentActive = MIN_PERCENT_AB
             }]
         }
@@ -388,15 +387,15 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.status == [SUCCESS, SUCCESS]
             it.action == [NO_INVOCATION, NO_INVOCATION]
             it.analyticsTags.activities.name.flatten() == [AB_TESTING, AB_TESTING].value
-            it.analyticsTags.activities.status.flatten() == [FetchStatus.SUCCESS, FetchStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [FetchStatus.SKIPPED, FetchStatus.SKIPPED]
-            it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.PB_ORTB2_BLOCKING, ModuleName.PB_ORTB2_BLOCKING]
+            it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS]
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED]
+            it.analyticsTags.activities.results.values.module.flatten() == [PB_ORTB2_BLOCKING, PB_ORTB2_BLOCKING]
         }
 
         and: "Metric for specified module should be updated based on ab test config"
         def metrics = ortbModulePbsService.sendCollectedMetricsRequest()
-        assert metrics[NO_INVOCATION_METRIC(ModuleName.PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
-        assert metrics[NO_INVOCATION_METRIC(ModuleName.PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
+        assert metrics[NO_INVOCATION_METRIC(PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
+        assert metrics[NO_INVOCATION_METRIC(PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
     }
 
     def "PBS should apply a/b test config and run module when config is on max percentage or default value"() {
@@ -408,7 +407,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         and: "Save account with ab test config"
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(AUCTION, ORTB_STAGES).tap {
-            abTests = [AbTest.getDefault(ModuleName.PB_ORTB2_BLOCKING.code).tap {
+            abTests = [AbTest.getDefault(PB_ORTB2_BLOCKING.code).tap {
                 it.percentActive = percentActive
                 it.percentActiveSnakeCase = percentActiveSnakeCase
             }]
@@ -425,21 +424,21 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         verifyAll(invocationResults) {
             it.status == [SUCCESS, SUCCESS]
             it.action == [NO_ACTION, NO_ACTION]
-            it.analyticsTags.activities.name.flatten().sort() == [ORTB2_BLOCKING, AB_TESTING, AB_TESTING].value.sort()
-            it.analyticsTags.activities.status.flatten().sort() == [FetchStatus.SUCCESS, FetchStatus.SUCCESS, FetchStatus.SUCCESS].sort()
-            it.analyticsTags.activities.results.status.flatten().sort() == [FetchStatus.SUCCESS_ALLOW, FetchStatus.RUN, FetchStatus.RUN].sort()
-            it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.PB_ORTB2_BLOCKING, ModuleName.PB_ORTB2_BLOCKING]
+            it.analyticsTags.activities.name.flatten().sort() == [ModuleActivityName.PB_ORTB2_BLOCKING, AB_TESTING, AB_TESTING].value.sort()
+            it.analyticsTags.activities.status.flatten().sort() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS].sort()
+            it.analyticsTags.activities.results.status.flatten().sort() == [AnalyticTagStatus.SUCCESS_ALLOW, AnalyticTagStatus.RUN, AnalyticTagStatus.RUN].sort()
+            it.analyticsTags.activities.results.values.module.flatten() == [PB_ORTB2_BLOCKING, PB_ORTB2_BLOCKING]
         }
 
         and: "Metric for specified module should be as default call"
         def metrics = ortbModulePbsService.sendCollectedMetricsRequest()
-        assert metrics[CALL_METRIC(ModuleName.PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
-        assert metrics[CALL_METRIC(ModuleName.PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
-        assert metrics[CALL_METRIC(ModuleName.PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
-        assert metrics[CALL_METRIC(ModuleName.PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
+        assert metrics[CALL_METRIC(PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
+        assert metrics[CALL_METRIC(PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
+        assert metrics[CALL_METRIC(PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
+        assert metrics[CALL_METRIC(PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
 
-        assert !metrics[NO_INVOCATION_METRIC(ModuleName.PB_ORTB2_BLOCKING, BIDDER_REQUEST)]
-        assert !metrics[NO_INVOCATION_METRIC(ModuleName.PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)]
+        assert !metrics[NO_INVOCATION_METRIC(PB_ORTB2_BLOCKING, BIDDER_REQUEST)]
+        assert !metrics[NO_INVOCATION_METRIC(PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)]
 
         where:
         percentActive  | percentActiveSnakeCase
@@ -457,7 +456,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         and: "Save account with ab test config"
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(AUCTION, ORTB_STAGES).tap {
-            abTests = [AbTest.getDefault(ModuleName.PB_ORTB2_BLOCKING.code).tap {
+            abTests = [AbTest.getDefault(PB_ORTB2_BLOCKING.code).tap {
                 it.percentActive = percentActive
                 it.percentActiveSnakeCase = percentActiveSnakeCase
             }]
@@ -475,15 +474,15 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.status == [SUCCESS, SUCCESS]
             it.action == [NO_INVOCATION, NO_INVOCATION]
             it.analyticsTags.activities.name.flatten() == [AB_TESTING, AB_TESTING].value
-            it.analyticsTags.activities.status.flatten() == [FetchStatus.SUCCESS, FetchStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [FetchStatus.SKIPPED, FetchStatus.SKIPPED]
-            it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.PB_ORTB2_BLOCKING, ModuleName.PB_ORTB2_BLOCKING]
+            it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS]
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED]
+            it.analyticsTags.activities.results.values.module.flatten() == [PB_ORTB2_BLOCKING, PB_ORTB2_BLOCKING]
         }
 
         and: "Metric for specified module should be updated based on ab test config"
         def metrics = ortbModulePbsService.sendCollectedMetricsRequest()
-        assert metrics[NO_INVOCATION_METRIC(ModuleName.PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
-        assert metrics[NO_INVOCATION_METRIC(ModuleName.PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
+        assert metrics[NO_INVOCATION_METRIC(PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
+        assert metrics[NO_INVOCATION_METRIC(PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
 
         where:
         percentActive  | percentActiveSnakeCase
@@ -500,7 +499,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         and: "Save account with ab test config"
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(AUCTION, ORTB_STAGES).tap {
-            abTests = [AbTest.getDefault(ModuleName.PB_ORTB2_BLOCKING.code).tap {
+            abTests = [AbTest.getDefault(PB_ORTB2_BLOCKING.code).tap {
                 it.percentActive = percentActive
                 it.percentActiveSnakeCase = percentActiveSnakeCase
             }]
@@ -522,15 +521,15 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.status == [SUCCESS, SUCCESS]
             it.action == [NO_INVOCATION, NO_INVOCATION]
             it.analyticsTags.activities.name.flatten() == [AB_TESTING, AB_TESTING].value
-            it.analyticsTags.activities.status.flatten() == [FetchStatus.SUCCESS, FetchStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [FetchStatus.SKIPPED, FetchStatus.SKIPPED]
-            it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.PB_ORTB2_BLOCKING, ModuleName.PB_ORTB2_BLOCKING]
+            it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS]
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED]
+            it.analyticsTags.activities.results.values.module.flatten() == [PB_ORTB2_BLOCKING, PB_ORTB2_BLOCKING]
         }
 
         and: "Metric for specified module should be updated based on ab test config"
         def metrics = ortbModulePbsService.sendCollectedMetricsRequest()
-        assert metrics[NO_INVOCATION_METRIC(ModuleName.PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
-        assert metrics[NO_INVOCATION_METRIC(ModuleName.PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
+        assert metrics[NO_INVOCATION_METRIC(PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
+        assert metrics[NO_INVOCATION_METRIC(PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
 
         where:
         percentActive                 | percentActiveSnakeCase
@@ -547,7 +546,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         and: "Save account with ab test config"
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(AUCTION, ORTB_STAGES).tap {
-            abTests = [AbTest.getDefault(ModuleName.PB_ORTB2_BLOCKING.code).tap {
+            abTests = [AbTest.getDefault(PB_ORTB2_BLOCKING.code).tap {
                 it.percentActive = percentActive
                 it.percentActiveSnakeCase = percentActiveSnakeCase
             }]
@@ -569,21 +568,21 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.status == [SUCCESS, SUCCESS]
             it.action == [NO_ACTION, NO_ACTION]
 
-            it.analyticsTags.activities.name.flatten().sort() == [ORTB2_BLOCKING, AB_TESTING, AB_TESTING].value.sort()
-            it.analyticsTags.activities.status.flatten().sort() == [FetchStatus.SUCCESS, FetchStatus.SUCCESS, FetchStatus.SUCCESS].sort()
-            it.analyticsTags.activities.results.status.flatten().sort() == [FetchStatus.SUCCESS_ALLOW, FetchStatus.RUN, FetchStatus.RUN].sort()
-            it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.PB_ORTB2_BLOCKING, ModuleName.PB_ORTB2_BLOCKING]
+            it.analyticsTags.activities.name.flatten().sort() == [ModuleActivityName.PB_ORTB2_BLOCKING, AB_TESTING, AB_TESTING].value.sort()
+            it.analyticsTags.activities.status.flatten().sort() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS].sort()
+            it.analyticsTags.activities.results.status.flatten().sort() == [AnalyticTagStatus.SUCCESS_ALLOW, AnalyticTagStatus.RUN, AnalyticTagStatus.RUN].sort()
+            it.analyticsTags.activities.results.values.module.flatten() == [PB_ORTB2_BLOCKING, PB_ORTB2_BLOCKING]
         }
 
         and: "Metric for specified module should be as default call"
         def metrics = ortbModulePbsService.sendCollectedMetricsRequest()
-        assert metrics[CALL_METRIC(ModuleName.PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
-        assert metrics[CALL_METRIC(ModuleName.PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
-        assert metrics[CALL_METRIC(ModuleName.PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
-        assert metrics[CALL_METRIC(ModuleName.PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
+        assert metrics[CALL_METRIC(PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
+        assert metrics[CALL_METRIC(PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
+        assert metrics[CALL_METRIC(PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
+        assert metrics[CALL_METRIC(PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
 
-        assert !metrics[NO_INVOCATION_METRIC(ModuleName.PB_ORTB2_BLOCKING, BIDDER_REQUEST)]
-        assert !metrics[NO_INVOCATION_METRIC(ModuleName.PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)]
+        assert !metrics[NO_INVOCATION_METRIC(PB_ORTB2_BLOCKING, BIDDER_REQUEST)]
+        assert !metrics[NO_INVOCATION_METRIC(PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)]
 
         where:
         percentActive                            | percentActiveSnakeCase
@@ -600,7 +599,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         and: "Save account with ab test config"
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(AUCTION, ORTB_STAGES).tap {
-            abTests = [AbTest.getDefault(ModuleName.PB_ORTB2_BLOCKING.code).tap {
+            abTests = [AbTest.getDefault(PB_ORTB2_BLOCKING.code).tap {
                 percentActive = MIN_PERCENT_AB
                 it.logAnalyticsTag = logAnalyticsTag
                 it.logAnalyticsTagSnakeCase = logAnalyticsTagSnakeCase
@@ -619,15 +618,15 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.status == [SUCCESS, SUCCESS]
             it.action == [NO_INVOCATION, NO_INVOCATION]
             it.analyticsTags.activities.name.flatten() == [AB_TESTING, AB_TESTING].value
-            it.analyticsTags.activities.status.flatten() == [FetchStatus.SUCCESS, FetchStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [FetchStatus.SKIPPED, FetchStatus.SKIPPED]
-            it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.PB_ORTB2_BLOCKING, ModuleName.PB_ORTB2_BLOCKING]
+            it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS]
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED]
+            it.analyticsTags.activities.results.values.module.flatten() == [PB_ORTB2_BLOCKING, PB_ORTB2_BLOCKING]
         }
 
         and: "Metric for specified module should be updated based on ab test config"
         def metrics = ortbModulePbsService.sendCollectedMetricsRequest()
-        assert metrics[NO_INVOCATION_METRIC(ModuleName.PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
-        assert metrics[NO_INVOCATION_METRIC(ModuleName.PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
+        assert metrics[NO_INVOCATION_METRIC(PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
+        assert metrics[NO_INVOCATION_METRIC(PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
 
         where:
         logAnalyticsTag | logAnalyticsTagSnakeCase
@@ -645,7 +644,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         and: "Save account with ab test config"
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(AUCTION, ORTB_STAGES).tap {
-            abTests = [AbTest.getDefault(ModuleName.PB_ORTB2_BLOCKING.code).tap {
+            abTests = [AbTest.getDefault(PB_ORTB2_BLOCKING.code).tap {
                 percentActive = MIN_PERCENT_AB
                 it.logAnalyticsTag = logAnalyticsTag
                 it.logAnalyticsTagSnakeCase = logAnalyticsTagSnakeCase
@@ -670,8 +669,8 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         and: "Metric for specified module should be updated based on ab test config"
         def metrics = ortbModulePbsService.sendCollectedMetricsRequest()
-        assert metrics[NO_INVOCATION_METRIC(ModuleName.PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
-        assert metrics[NO_INVOCATION_METRIC(ModuleName.PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
+        assert metrics[NO_INVOCATION_METRIC(PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
+        assert metrics[NO_INVOCATION_METRIC(PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
 
         where:
         logAnalyticsTag | logAnalyticsTagSnakeCase
@@ -688,7 +687,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         and: "Save account with ab test config"
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(AUCTION, ORTB_STAGES).tap {
-            abTests = [AbTest.getDefault(ModuleName.PB_ORTB2_BLOCKING.code).tap {
+            abTests = [AbTest.getDefault(PB_ORTB2_BLOCKING.code).tap {
                 percentActive = MAX_PERCENT_AB
                 it.logAnalyticsTag = logAnalyticsTag
                 it.logAnalyticsTagSnakeCase = logAnalyticsTagSnakeCase
@@ -713,13 +712,13 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         and: "Metric for specified module should be as default call"
         def metrics = ortbModulePbsService.sendCollectedMetricsRequest()
-        assert metrics[CALL_METRIC(ModuleName.PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
-        assert metrics[CALL_METRIC(ModuleName.PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
-        assert metrics[CALL_METRIC(ModuleName.PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
-        assert metrics[CALL_METRIC(ModuleName.PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
+        assert metrics[CALL_METRIC(PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
+        assert metrics[CALL_METRIC(PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
+        assert metrics[CALL_METRIC(PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
+        assert metrics[CALL_METRIC(PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
 
-        assert !metrics[NO_INVOCATION_METRIC(ModuleName.PB_ORTB2_BLOCKING, BIDDER_REQUEST)]
-        assert !metrics[NO_INVOCATION_METRIC(ModuleName.PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)]
+        assert !metrics[NO_INVOCATION_METRIC(PB_ORTB2_BLOCKING, BIDDER_REQUEST)]
+        assert !metrics[NO_INVOCATION_METRIC(PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)]
 
         where:
         logAnalyticsTag | logAnalyticsTagSnakeCase
@@ -736,7 +735,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         and: "Save account with ab test config"
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(AUCTION, ORTB_STAGES).tap {
-            abTests = [AbTest.getDefault(ModuleName.PB_ORTB2_BLOCKING.code).tap {
+            abTests = [AbTest.getDefault(PB_ORTB2_BLOCKING.code).tap {
                 percentActive = PBSUtils.getRandomNumber(MIN_PERCENT_AB, MAX_PERCENT_AB)
             }]
         }
@@ -766,7 +765,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
     def "PBS should apply a/b test config from host config when accounts is not specified when account config and default account doesn't include a/b test config"() {
         given: "PBS service with specific ab test config"
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(AUCTION, MODULES_STAGES).tap {
-            abTests = [AbTest.getDefault(ModuleName.PB_ORTB2_BLOCKING.code, accouns).tap {
+            abTests = [AbTest.getDefault(PB_ORTB2_BLOCKING.code, accouns).tap {
                 percentActive = MIN_PERCENT_AB
             }]
         }
@@ -784,14 +783,14 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         then: "PBS should apply ab test config for specified module"
         def invocationResults = response?.ext?.prebid?.modules?.trace?.stages?.outcomes?.groups?.invocationResults?.flatten() as List<InvocationResult>
-        def ortbBlockingInvocationResults = filterInvocationResultsByModule(invocationResults, ModuleName.PB_ORTB2_BLOCKING)
+        def ortbBlockingInvocationResults = filterInvocationResultsByModule(invocationResults, PB_ORTB2_BLOCKING)
         verifyAll(ortbBlockingInvocationResults) {
             it.status == [SUCCESS, SUCCESS]
             it.action == [NO_INVOCATION, NO_INVOCATION]
             it.analyticsTags.activities.name.flatten() == [AB_TESTING, AB_TESTING].value
-            it.analyticsTags.activities.status.flatten() == [FetchStatus.SUCCESS, FetchStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [FetchStatus.SKIPPED, FetchStatus.SKIPPED]
-            it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.PB_ORTB2_BLOCKING, ModuleName.PB_ORTB2_BLOCKING]
+            it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS]
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED]
+            it.analyticsTags.activities.results.values.module.flatten() == [PB_ORTB2_BLOCKING, PB_ORTB2_BLOCKING]
         }
 
         and: "PBS should not apply ab test config for other module"
@@ -805,8 +804,8 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         and: "Metric for specified module should be updated based on ab test config"
         def metrics = pbsServiceWithMultipleModules.sendCollectedMetricsRequest()
-        assert metrics[NO_INVOCATION_METRIC(ModuleName.PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
-        assert metrics[NO_INVOCATION_METRIC(ModuleName.PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
+        assert metrics[NO_INVOCATION_METRIC(PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
+        assert metrics[NO_INVOCATION_METRIC(PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
 
         and: "Metric for non specified module should be as default call"
         assert metrics[CALL_METRIC(PB_RESPONSE_CORRECTION, ALL_PROCESSED_BID_RESPONSES)] == 1
@@ -826,7 +825,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         given: "PBS service with specific ab test config"
         def accountId = PBSUtils.randomNumber
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(AUCTION, MODULES_STAGES).tap {
-            abTests = [AbTest.getDefault(ModuleName.PB_ORTB2_BLOCKING.code, [PBSUtils.randomNumber, accountId]).tap {
+            abTests = [AbTest.getDefault(PB_ORTB2_BLOCKING.code, [PBSUtils.randomNumber, accountId]).tap {
                 percentActive = MIN_PERCENT_AB
             }]
         }
@@ -847,14 +846,14 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         then: "PBS should apply ab test config for specified module"
         def invocationResults = response?.ext?.prebid?.modules?.trace?.stages?.outcomes?.groups?.invocationResults?.flatten() as List<InvocationResult>
-        def ortbBlockingInvocationResults = filterInvocationResultsByModule(invocationResults, ModuleName.PB_ORTB2_BLOCKING)
+        def ortbBlockingInvocationResults = filterInvocationResultsByModule(invocationResults, PB_ORTB2_BLOCKING)
         verifyAll(ortbBlockingInvocationResults) {
             it.status == [SUCCESS, SUCCESS]
             it.action == [NO_INVOCATION, NO_INVOCATION]
             it.analyticsTags.activities.name.flatten() == [AB_TESTING, AB_TESTING].value
-            it.analyticsTags.activities.status.flatten() == [FetchStatus.SUCCESS, FetchStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [FetchStatus.SKIPPED, FetchStatus.SKIPPED]
-            it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.PB_ORTB2_BLOCKING, ModuleName.PB_ORTB2_BLOCKING]
+            it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS]
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED]
+            it.analyticsTags.activities.results.values.module.flatten() == [PB_ORTB2_BLOCKING, PB_ORTB2_BLOCKING]
         }
 
         and: "PBS should not apply ab test config for other module"
@@ -868,8 +867,8 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         and: "Metric for specified module should be updated based on ab test config"
         def metrics = pbsServiceWithMultipleModules.sendCollectedMetricsRequest()
-        assert metrics[NO_INVOCATION_METRIC(ModuleName.PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
-        assert metrics[NO_INVOCATION_METRIC(ModuleName.PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
+        assert metrics[NO_INVOCATION_METRIC(PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
+        assert metrics[NO_INVOCATION_METRIC(PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
 
         and: "Metric for non specified module should be as default call"
         assert metrics[CALL_METRIC(PB_RESPONSE_CORRECTION, ALL_PROCESSED_BID_RESPONSES)] == 1
@@ -885,7 +884,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
     def "PBS should apply a/b test config from host config for specific account and general config when account config and default account doesn't include a/b test config"() {
         given: "PBS service with specific ab test config"
         def accountId = PBSUtils.randomNumber
-        def ortb2AbTestConfig = AbTest.getDefault(ModuleName.PB_ORTB2_BLOCKING.code, []).tap {
+        def ortb2AbTestConfig = AbTest.getDefault(PB_ORTB2_BLOCKING.code, []).tap {
             it.percentActive = MIN_PERCENT_AB
         }
         def richMediaAbTestConfig = AbTest.getDefault(PB_RESPONSE_CORRECTION.code, [accountId]).tap {
@@ -911,14 +910,14 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         then: "PBS should apply ab test config for ortb2blocking module"
         def invocationResults = response?.ext?.prebid?.modules?.trace?.stages?.outcomes?.groups?.invocationResults?.flatten() as List<InvocationResult>
-        def ortbBlockingInvocationResults = filterInvocationResultsByModule(invocationResults, ModuleName.PB_ORTB2_BLOCKING)
+        def ortbBlockingInvocationResults = filterInvocationResultsByModule(invocationResults, PB_ORTB2_BLOCKING)
         verifyAll(ortbBlockingInvocationResults) {
             it.status == [SUCCESS, SUCCESS]
             it.action == [NO_INVOCATION, NO_INVOCATION]
             it.analyticsTags.activities.name.flatten() == [AB_TESTING, AB_TESTING].value
-            it.analyticsTags.activities.status.flatten() == [FetchStatus.SUCCESS, FetchStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [FetchStatus.SKIPPED, FetchStatus.SKIPPED]
-            it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.PB_ORTB2_BLOCKING, ModuleName.PB_ORTB2_BLOCKING]
+            it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS]
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED]
+            it.analyticsTags.activities.results.values.module.flatten() == [PB_ORTB2_BLOCKING, PB_ORTB2_BLOCKING]
         }
 
         and: "PBS should apply ab test config for pb-response-correction module"
@@ -927,15 +926,15 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
             it.status == [SUCCESS]
             it.action == [NO_INVOCATION]
             it.analyticsTags.activities.name.flatten() == [AB_TESTING].value
-            it.analyticsTags.activities.status.flatten() == [FetchStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [FetchStatus.SKIPPED]
+            it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS]
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED]
             it.analyticsTags.activities.results.values.module.flatten() == [PB_RESPONSE_CORRECTION]
         }
 
         and: "Metric for skipped pb-ortb2blocking module should be updated based on ab test config"
         def metrics = pbsServiceWithMultipleModules.sendCollectedMetricsRequest()
-        assert !metrics[CALL_METRIC(ModuleName.PB_ORTB2_BLOCKING, BIDDER_REQUEST)]
-        assert !metrics[CALL_METRIC(ModuleName.PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)]
+        assert !metrics[CALL_METRIC(PB_ORTB2_BLOCKING, BIDDER_REQUEST)]
+        assert !metrics[CALL_METRIC(PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)]
         assert metrics[NO_INVOCATION_METRIC(PB_RESPONSE_CORRECTION, ALL_PROCESSED_BID_RESPONSES)] == 1
         assert metrics[NO_INVOCATION_METRIC(PB_RESPONSE_CORRECTION, ALL_PROCESSED_BID_RESPONSES)] == 1
 
@@ -952,7 +951,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
     def "PBS shouldn't apply a/b test config from host config for non specified accounts when account config and default account doesn't include a/b test config"() {
         given: "PBS service with specific ab test config"
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(AUCTION, MODULES_STAGES).tap {
-            abTests = [AbTest.getDefault(ModuleName.PB_ORTB2_BLOCKING.code, [PBSUtils.randomNumber]).tap {
+            abTests = [AbTest.getDefault(PB_ORTB2_BLOCKING.code, [PBSUtils.randomNumber]).tap {
                 percentActive = MIN_PERCENT_AB
             }]
         }
@@ -970,14 +969,14 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         then: "PBS should apply ab test config for specified module"
         def invocationResults = response?.ext?.prebid?.modules?.trace?.stages?.outcomes?.groups?.invocationResults?.flatten() as List<InvocationResult>
-        def ortbBlockingInvocationResults = filterInvocationResultsByModule(invocationResults, ModuleName.PB_ORTB2_BLOCKING)
+        def ortbBlockingInvocationResults = filterInvocationResultsByModule(invocationResults, PB_ORTB2_BLOCKING)
         verifyAll(ortbBlockingInvocationResults) {
             it.status == [SUCCESS, SUCCESS]
             it.action == [NO_ACTION, NO_ACTION]
 
-            it.analyticsTags.activities.name.flatten() == [ORTB2_BLOCKING].value
-            it.analyticsTags.activities.status.flatten() == [FetchStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [FetchStatus.SUCCESS_ALLOW]
+            it.analyticsTags.activities.name.flatten() == [ModuleActivityName.PB_ORTB2_BLOCKING].value
+            it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS]
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SUCCESS_ALLOW]
             it.analyticsTags.activities.results.values.module.flatten().every { it == null }
         }
 
@@ -992,13 +991,13 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         and: "Metric for specified module should be as default call"
         def metrics = pbsServiceWithMultipleModules.sendCollectedMetricsRequest()
-        assert metrics[CALL_METRIC(ModuleName.PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
-        assert metrics[CALL_METRIC(ModuleName.PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
-        assert metrics[CALL_METRIC(ModuleName.PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
-        assert metrics[CALL_METRIC(ModuleName.PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
+        assert metrics[CALL_METRIC(PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
+        assert metrics[CALL_METRIC(PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
+        assert metrics[CALL_METRIC(PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
+        assert metrics[CALL_METRIC(PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
 
-        assert !metrics[NO_INVOCATION_METRIC(ModuleName.PB_ORTB2_BLOCKING, BIDDER_REQUEST)]
-        assert !metrics[NO_INVOCATION_METRIC(ModuleName.PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)]
+        assert !metrics[NO_INVOCATION_METRIC(PB_ORTB2_BLOCKING, BIDDER_REQUEST)]
+        assert !metrics[NO_INVOCATION_METRIC(PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)]
 
         and: "Metric for non specified module should be as default call"
         assert metrics[CALL_METRIC(PB_RESPONSE_CORRECTION, ALL_PROCESSED_BID_RESPONSES)] == 1
@@ -1014,7 +1013,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
     def "PBS should prioritise a/b test config from default account and only specified module when host and default account contains a/b test configs"() {
         given: "PBS service with specific ab test config"
         def accountExecutionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(AUCTION, MODULES_STAGES).tap {
-            abTests = [AbTest.getDefault(ModuleName.PB_ORTB2_BLOCKING.code).tap {
+            abTests = [AbTest.getDefault(PB_ORTB2_BLOCKING.code).tap {
                 percentActive = MIN_PERCENT_AB
             }]
         }
@@ -1023,7 +1022,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         }
 
         def hostExecutionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(AUCTION, MODULES_STAGES).tap {
-            abTests = [AbTest.getDefault(ModuleName.PB_ORTB2_BLOCKING.code)]
+            abTests = [AbTest.getDefault(PB_ORTB2_BLOCKING.code)]
         }
         def pbsConfig = MULTI_MODULE_CONFIG + ['hooks.host-execution-plan': encode(hostExecutionPlan)] + ["settings.default-account-config": encode(defaultAccountConfigSettings)]
 
@@ -1040,14 +1039,14 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         then: "PBS should apply ab test config for specified module and call it based on all execution plans"
         def invocationResults = response?.ext?.prebid?.modules?.trace?.stages?.outcomes?.groups?.invocationResults?.flatten() as List<InvocationResult>
-        def ortbBlockingInvocationResults = filterInvocationResultsByModule(invocationResults, ModuleName.PB_ORTB2_BLOCKING)
+        def ortbBlockingInvocationResults = filterInvocationResultsByModule(invocationResults, PB_ORTB2_BLOCKING)
         verifyAll(ortbBlockingInvocationResults) {
             it.status == [SUCCESS, SUCCESS, SUCCESS, SUCCESS]
             it.action == [NO_INVOCATION, NO_INVOCATION, NO_INVOCATION, NO_INVOCATION]
             it.analyticsTags.activities.name.flatten() == [AB_TESTING, AB_TESTING, AB_TESTING, AB_TESTING].value
-            it.analyticsTags.activities.status.flatten() == [FetchStatus.SUCCESS, FetchStatus.SUCCESS, FetchStatus.SUCCESS, FetchStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [FetchStatus.SKIPPED, FetchStatus.SKIPPED, FetchStatus.SKIPPED, FetchStatus.SKIPPED]
-            it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.PB_ORTB2_BLOCKING, ModuleName.PB_ORTB2_BLOCKING, ModuleName.PB_ORTB2_BLOCKING, ModuleName.PB_ORTB2_BLOCKING]
+            it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS]
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED]
+            it.analyticsTags.activities.results.values.module.flatten() == [PB_ORTB2_BLOCKING, PB_ORTB2_BLOCKING, PB_ORTB2_BLOCKING, PB_ORTB2_BLOCKING]
         }
 
         and: "PBS should not apply ab test config for other modules and call them based on all execution plans"
@@ -1061,8 +1060,8 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         and: "Metric for specified module should be updated based on ab test config"
         def metrics = pbsServiceWithMultipleModules.sendCollectedMetricsRequest()
-        assert metrics[NO_INVOCATION_METRIC(ModuleName.PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 2
-        assert metrics[NO_INVOCATION_METRIC(ModuleName.PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 2
+        assert metrics[NO_INVOCATION_METRIC(PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 2
+        assert metrics[NO_INVOCATION_METRIC(PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 2
 
         and: "Metric for non specified module should be as default call"
         assert metrics[CALL_METRIC(PB_RESPONSE_CORRECTION, ALL_PROCESSED_BID_RESPONSES)] == 2
@@ -1078,7 +1077,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
     def "PBS should prioritise a/b test config from account over default account and only specified module when specific account and default account contains a/b test configs"() {
         given: "PBS service with specific ab test config"
         def accountExecutionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(AUCTION, MODULES_STAGES).tap {
-            abTests = [AbTest.getDefault(ModuleName.PB_ORTB2_BLOCKING.code)]
+            abTests = [AbTest.getDefault(PB_ORTB2_BLOCKING.code)]
         }
         def defaultAccountConfigSettings = AccountConfig.defaultAccountConfig.tap {
             hooks = new AccountHooksConfiguration(executionPlan: accountExecutionPlan)
@@ -1096,7 +1095,7 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         and: "Save account with ab test config"
         def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(AUCTION, MODULES_STAGES).tap {
-            abTests = [AbTest.getDefault(ModuleName.PB_ORTB2_BLOCKING.code).tap {
+            abTests = [AbTest.getDefault(PB_ORTB2_BLOCKING.code).tap {
                 percentActive = MIN_PERCENT_AB
             }]
         }
@@ -1111,14 +1110,14 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
         def invocationResults = response?.ext?.prebid?.modules?.trace?.stages?.outcomes?.groups?.invocationResults?.flatten() as List<InvocationResult>
 
         and: "PBS should apply ab test config for specified module"
-        def ortbBlockingInvocationResults = filterInvocationResultsByModule(invocationResults, ModuleName.PB_ORTB2_BLOCKING)
+        def ortbBlockingInvocationResults = filterInvocationResultsByModule(invocationResults, PB_ORTB2_BLOCKING)
         verifyAll(ortbBlockingInvocationResults) {
             it.status == [SUCCESS, SUCCESS]
             it.action == [NO_INVOCATION, NO_INVOCATION]
             it.analyticsTags.activities.name.flatten() == [AB_TESTING, AB_TESTING].value
-            it.analyticsTags.activities.status.flatten() == [FetchStatus.SUCCESS, FetchStatus.SUCCESS]
-            it.analyticsTags.activities.results.status.flatten() == [FetchStatus.SKIPPED, FetchStatus.SKIPPED]
-            it.analyticsTags.activities.results.values.module.flatten() == [ModuleName.PB_ORTB2_BLOCKING, ModuleName.PB_ORTB2_BLOCKING]
+            it.analyticsTags.activities.status.flatten() == [AnalyticTagStatus.SUCCESS, AnalyticTagStatus.SUCCESS]
+            it.analyticsTags.activities.results.status.flatten() == [AnalyticTagStatus.SKIPPED, AnalyticTagStatus.SKIPPED]
+            it.analyticsTags.activities.results.values.module.flatten() == [PB_ORTB2_BLOCKING, PB_ORTB2_BLOCKING]
         }
 
         and: "PBS should not apply ab test config for other module"
@@ -1132,8 +1131,8 @@ class AbTestingModuleSpec extends ModuleBaseSpec {
 
         and: "Metric for specified module should be updated based on ab test config"
         def metrics = pbsServiceWithMultipleModules.sendCollectedMetricsRequest()
-        assert metrics[NO_INVOCATION_METRIC(ModuleName.PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
-        assert metrics[NO_INVOCATION_METRIC(ModuleName.PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
+        assert metrics[NO_INVOCATION_METRIC(PB_ORTB2_BLOCKING, BIDDER_REQUEST)] == 1
+        assert metrics[NO_INVOCATION_METRIC(PB_ORTB2_BLOCKING, RAW_BIDDER_RESPONSE)] == 1
 
         and: "Metric for non specified module should be as default call"
         assert metrics[CALL_METRIC(PB_RESPONSE_CORRECTION, ALL_PROCESSED_BID_RESPONSES)] == 1

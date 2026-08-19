@@ -4,6 +4,7 @@ import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountHooksConfiguration
 import org.prebid.server.functional.model.config.PbRequestCorrectionConfig
 import org.prebid.server.functional.model.config.PbsModulesConfig
+import org.prebid.server.functional.model.config.Stage
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.AppExt
@@ -15,6 +16,8 @@ import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.tests.module.ModuleBaseSpec
 import org.prebid.server.functional.util.PBSUtils
 
+import static org.prebid.server.functional.model.config.ModuleName.PB_REQUEST_CORRECTION
+import static org.prebid.server.functional.model.config.Stage.PROCESSED_AUCTION_REQUEST
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.request.auction.OperationState.YES
 
@@ -26,12 +29,6 @@ class PbRequestCorrectionSpec extends ModuleBaseSpec {
     private static final String ACCEPTABLE_DEVICE_INSTL_VERSION_THRESHOLD = PBSUtils.getRandomVersion("0.0", "2.2.2")
     private static final String ANDROID = "android"
     private static final String IOS = "IOS"
-
-    private static final PrebidServerService pbsServiceWithRequestCorrectionModule = pbsServiceFactory.getService(getRequestCorrectionSettings())
-
-    def cleanupSpec() {
-        pbsServiceFactory.removeContainer(getRequestCorrectionSettings())
-    }
 
     def "PBS should remove positive instl from imps for android app when request correction is enabled for account"() {
         given: "Android APP bid request with version lover then version threshold"
@@ -47,7 +44,7 @@ class PbRequestCorrectionSpec extends ModuleBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction request"
-        pbsServiceWithRequestCorrectionModule.sendAuctionRequest(bidRequest)
+        pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bidder request shouldn't contain imp.instl"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -80,7 +77,7 @@ class PbRequestCorrectionSpec extends ModuleBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction request"
-        pbsServiceWithRequestCorrectionModule.sendAuctionRequest(bidRequest)
+        pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain original imp.instl"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -108,7 +105,7 @@ class PbRequestCorrectionSpec extends ModuleBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction request"
-        pbsServiceWithRequestCorrectionModule.sendAuctionRequest(bidRequest)
+        pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain original imp.instl"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -138,7 +135,7 @@ class PbRequestCorrectionSpec extends ModuleBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction request"
-        pbsServiceWithRequestCorrectionModule.sendAuctionRequest(bidRequest)
+        pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain original imp.instl"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -167,7 +164,7 @@ class PbRequestCorrectionSpec extends ModuleBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction request"
-        pbsServiceWithRequestCorrectionModule.sendAuctionRequest(bidRequest)
+        pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain original imp.instl"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -189,7 +186,7 @@ class PbRequestCorrectionSpec extends ModuleBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction request"
-        pbsServiceWithRequestCorrectionModule.sendAuctionRequest(bidRequest)
+        pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain original imp.instl"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -211,7 +208,7 @@ class PbRequestCorrectionSpec extends ModuleBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction request"
-        pbsServiceWithRequestCorrectionModule.sendAuctionRequest(bidRequest)
+        pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain original imp.instl"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -241,7 +238,7 @@ class PbRequestCorrectionSpec extends ModuleBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction request"
-        pbsServiceWithRequestCorrectionModule.sendAuctionRequest(bidRequest)
+        pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain original imp.instl"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -261,7 +258,7 @@ class PbRequestCorrectionSpec extends ModuleBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction request"
-        pbsServiceWithRequestCorrectionModule.sendAuctionRequest(bidRequest)
+        pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bidder request shouldn't contain device.ua"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -289,7 +286,7 @@ class PbRequestCorrectionSpec extends ModuleBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction request"
-        pbsServiceWithRequestCorrectionModule.sendAuctionRequest(bidRequest)
+        pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain device.ua"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -319,7 +316,7 @@ class PbRequestCorrectionSpec extends ModuleBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction request"
-        pbsServiceWithRequestCorrectionModule.sendAuctionRequest(bidRequest)
+        pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain device.ua"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -348,7 +345,7 @@ class PbRequestCorrectionSpec extends ModuleBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction request"
-        pbsServiceWithRequestCorrectionModule.sendAuctionRequest(bidRequest)
+        pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain device.ua"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -377,7 +374,7 @@ class PbRequestCorrectionSpec extends ModuleBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction request"
-        pbsServiceWithRequestCorrectionModule.sendAuctionRequest(bidRequest)
+        pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain device.ua"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -398,7 +395,7 @@ class PbRequestCorrectionSpec extends ModuleBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction request"
-        pbsServiceWithRequestCorrectionModule.sendAuctionRequest(bidRequest)
+        pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain device.ua"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -419,7 +416,7 @@ class PbRequestCorrectionSpec extends ModuleBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction request"
-        pbsServiceWithRequestCorrectionModule.sendAuctionRequest(bidRequest)
+        pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain device.ua"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
@@ -441,18 +438,16 @@ class PbRequestCorrectionSpec extends ModuleBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction request"
-        pbsServiceWithRequestCorrectionModule.sendAuctionRequest(bidRequest)
+        pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain request device ua"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.device.ua == deviceUa
     }
 
-    private static Account createAccountWithRequestCorrectionConfig(BidRequest bidRequest,
-                                                                    PbRequestCorrectionConfig requestCorrectionConfig) {
-        def pbsModulesConfig = new PbsModulesConfig(pbRequestCorrection: requestCorrectionConfig)
-        def accountHooksConfig = new AccountHooksConfiguration(modules: pbsModulesConfig)
-        def accountConfig = new AccountConfig(hooks: accountHooksConfig)
-        new Account(uuid: bidRequest.accountId, config: accountConfig)
+    private static Account createAccountWithRequestCorrectionConfig(BidRequest bidRequest, PbRequestCorrectionConfig requestCorrectionConfig) {
+        getAccountWithModuleConfig(bidRequest.accountId, [(PROCESSED_AUCTION_REQUEST): [PB_REQUEST_CORRECTION]]).tap {
+            it.config.hooks.modules.pbRequestCorrection = requestCorrectionConfig
+        }
     }
 }

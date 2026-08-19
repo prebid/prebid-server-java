@@ -22,10 +22,10 @@ import static org.prebid.server.functional.model.pricefloors.Country.MULTIPLE
 import static org.prebid.server.functional.model.pricefloors.MediaType.BANNER
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
-import static org.prebid.server.functional.model.request.auction.FetchStatus.ERROR
-import static org.prebid.server.functional.model.request.auction.FetchStatus.INPROGRESS
-import static org.prebid.server.functional.model.request.auction.FetchStatus.NONE
-import static org.prebid.server.functional.model.request.auction.FetchStatus.SUCCESS
+import static org.prebid.server.functional.model.request.auction.AnalyticTagStatus.ERROR
+import static org.prebid.server.functional.model.request.auction.AnalyticTagStatus.INPROGRESS
+import static org.prebid.server.functional.model.request.auction.AnalyticTagStatus.NONE
+import static org.prebid.server.functional.model.request.auction.AnalyticTagStatus.SUCCESS
 import static org.prebid.server.functional.model.request.auction.Location.FETCH
 import static org.prebid.server.functional.model.request.auction.Location.NO_DATA
 import static org.prebid.server.functional.model.request.auction.Location.REQUEST

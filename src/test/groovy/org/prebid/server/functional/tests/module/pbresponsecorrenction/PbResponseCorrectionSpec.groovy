@@ -2,11 +2,8 @@ package org.prebid.server.functional.tests.module.pbresponsecorrenction
 
 import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountCacheConfig
-import org.prebid.server.functional.model.config.AccountConfig
-import org.prebid.server.functional.model.config.AccountHooksConfiguration
 import org.prebid.server.functional.model.config.AppVideoHtml
 import org.prebid.server.functional.model.config.PbResponseCorrection
-import org.prebid.server.functional.model.config.PbsModulesConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Imp
@@ -15,13 +12,14 @@ import org.prebid.server.functional.model.response.auction.BidExt
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.Meta
 import org.prebid.server.functional.model.response.auction.Prebid
-import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.tests.module.ModuleBaseSpec
 import org.prebid.server.functional.util.PBSUtils
 
 import java.time.Instant
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.config.ModuleName.PB_RESPONSE_CORRECTION
+import static org.prebid.server.functional.model.config.Stage.ALL_PROCESSED_BID_RESPONSES
 import static org.prebid.server.functional.model.request.auction.BidRequest.getDefaultBidRequest
 import static org.prebid.server.functional.model.request.auction.BidRequest.getDefaultVideoRequest
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
@@ -35,15 +33,6 @@ import static org.prebid.server.functional.model.response.auction.MediaType.VIDE
 class PbResponseCorrectionSpec extends ModuleBaseSpec {
 
     private final static int OPTIMAL_MAX_LENGTH = 20
-    private static final Map PBS_CONFIG = ["adapter-defaults.modifying-vast-xml-allowed": "false",
-                                           "adapters.generic.modifying-vast-xml-allowed": "false"] +
-            getResponseCorrectionConfig()
-
-    private static final PrebidServerService pbsServiceWithResponseCorrectionModule = pbsServiceFactory.getService(PBS_CONFIG)
-
-    def cleanupSpec() {
-        pbsServiceFactory.removeContainer(PBS_CONFIG)
-    }
 
     def "PBS shouldn't modify response when in account correction module disabled"() {
         given: "Start up time"
@@ -59,14 +48,16 @@ class PbResponseCorrectionSpec extends ModuleBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Save account with enabled response correction module"
-        def accountWithResponseCorrectionModule = accountConfigWithResponseCorrectionModule(bidRequest, responseCorrectionEnabled, appVideoHtmlEnabled)
+        def accountWithResponseCorrectionModule = accountConfigWithResponseCorrectionModule(bidRequest,
+                responseCorrectionEnabled,
+                appVideoHtmlEnabled)
         accountDao.save(accountWithResponseCorrectionModule)
 
         when: "PBS processes auction request"
-        def response = pbsServiceWithResponseCorrectionModule.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS shouldn't emit log"
-        def logsByTime = pbsServiceWithResponseCorrectionModule.getLogsByTime(start)
+        def logsByTime = pbsServiceWithMultipleModules.getLogsByTime(start)
         assert getLogsByText(logsByTime, bidResponse.seatbid[0].bid[0].id).size() == 0
 
         and: "Response should contain seatBid"
@@ -106,10 +97,10 @@ class PbResponseCorrectionSpec extends ModuleBaseSpec {
         accountDao.save(accountWithResponseCorrectionModule)
 
         when: "PBS processes auction request"
-        def response = pbsServiceWithResponseCorrectionModule.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS shouldn't emit log"
-        def logsByTime = pbsServiceWithResponseCorrectionModule.getLogsByTime(start)
+        def logsByTime = pbsServiceWithMultipleModules.getLogsByTime(start)
         assert getLogsByText(logsByTime, bidResponse.seatbid[0].bid[0].id).size() == 0
 
         and: "Response should contain seatBid"
@@ -148,10 +139,10 @@ class PbResponseCorrectionSpec extends ModuleBaseSpec {
         accountDao.save(accountWithResponseCorrectionModule)
 
         when: "PBS processes auction request"
-        def response = pbsServiceWithResponseCorrectionModule.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS shouldn't emit log"
-        def logsByTime = pbsServiceWithResponseCorrectionModule.getLogsByTime(start)
+        def logsByTime = pbsServiceWithMultipleModules.getLogsByTime(start)
         assert getLogsByText(logsByTime, bidResponse.seatbid[0].bid[0].id).size() == 0
 
         and: "Response should contain seatBid"
@@ -183,10 +174,10 @@ class PbResponseCorrectionSpec extends ModuleBaseSpec {
         accountDao.save(accountWithResponseCorrectionModule)
 
         when: "PBS processes auction request"
-        def response = pbsServiceWithResponseCorrectionModule.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS should emit log"
-        def logsByTime = pbsServiceWithResponseCorrectionModule.getLogsByTime(start)
+        def logsByTime = pbsServiceWithMultipleModules.getLogsByTime(start)
         def bidId = bidResponse.seatbid[0].bid[0].id
         def responseCorrection = getLogsByText(logsByTime, bidId)
         assert responseCorrection[0].contains("Bid $bidId of bidder generic has an JSON ADM, that appears to be native" as String)
@@ -222,10 +213,10 @@ class PbResponseCorrectionSpec extends ModuleBaseSpec {
         accountDao.save(accountWithResponseCorrectionModule)
 
         when: "PBS processes auction request"
-        def response = pbsServiceWithResponseCorrectionModule.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS shouldn't emit log"
-        def logsByTime = pbsServiceWithResponseCorrectionModule.getLogsByTime(start)
+        def logsByTime = pbsServiceWithMultipleModules.getLogsByTime(start)
         assert getLogsByText(logsByTime, bidResponse.seatbid[0].bid[0].id).size() == 0
 
         and: "Response should contain seatBid"
@@ -265,10 +256,10 @@ class PbResponseCorrectionSpec extends ModuleBaseSpec {
         accountDao.save(accountWithResponseCorrectionModule)
 
         when: "PBS processes auction request"
-        def response = pbsServiceWithResponseCorrectionModule.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS should emit log"
-        def logsByTime = pbsServiceWithResponseCorrectionModule.getLogsByTime(start)
+        def logsByTime = pbsServiceWithMultipleModules.getLogsByTime(start)
         def bidId = bidResponse.seatbid[0].bid[0].id
         def responseCorrection = getLogsByText(logsByTime, bidId)
         assert responseCorrection[0].contains("Bid $bidId of bidder generic has an JSON ADM, that appears to be native" as String)
@@ -306,10 +297,10 @@ class PbResponseCorrectionSpec extends ModuleBaseSpec {
         accountDao.save(accountWithResponseCorrectionModule)
 
         when: "PBS processes auction request"
-        def response = pbsServiceWithResponseCorrectionModule.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS shouldn't emit log"
-        def logsByTime = pbsServiceWithResponseCorrectionModule.getLogsByTime(start)
+        def logsByTime = pbsServiceWithMultipleModules.getLogsByTime(start)
         assert getLogsByText(logsByTime, bidResponse.seatbid[0].bid[0].id).size() == 0
 
         and: "Response should contain seatBid"
@@ -343,10 +334,10 @@ class PbResponseCorrectionSpec extends ModuleBaseSpec {
         accountDao.save(accountWithResponseCorrectionModule)
 
         when: "PBS processes auction request"
-        def response = pbsServiceWithResponseCorrectionModule.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS shouldn't emit log"
-        def logsByTime = pbsServiceWithResponseCorrectionModule.getLogsByTime(start)
+        def logsByTime = pbsServiceWithMultipleModules.getLogsByTime(start)
         assert getLogsByText(logsByTime, bidResponse.seatbid[0].bid[0].id).size() == 0
 
         and: "Response should contain seatBid"
@@ -390,10 +381,10 @@ class PbResponseCorrectionSpec extends ModuleBaseSpec {
         accountDao.save(accountWithResponseCorrectionModule)
 
         when: "PBS processes auction request"
-        def response = pbsServiceWithResponseCorrectionModule.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS should emit log"
-        def logsByTime = pbsServiceWithResponseCorrectionModule.getLogsByTime(start)
+        def logsByTime = pbsServiceWithMultipleModules.getLogsByTime(start)
         def bidId = bidResponse.seatbid[0].bid[0].id
         def responseCorrection = getLogsByText(logsByTime, bidId)
         assert responseCorrection.size() == 1
@@ -445,10 +436,10 @@ class PbResponseCorrectionSpec extends ModuleBaseSpec {
         accountDao.save(accountWithResponseCorrectionModule)
 
         when: "PBS processes auction request"
-        def response = pbsServiceWithResponseCorrectionModule.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS should emit log"
-        def logsByTime = pbsServiceWithResponseCorrectionModule.getLogsByTime(start)
+        def logsByTime = pbsServiceWithMultipleModules.getLogsByTime(start)
         def bidId = bidResponse.seatbid[0].bid[0].id
         def responseCorrection = getLogsByText(logsByTime, bidId)
         assert responseCorrection.size() == 1
@@ -500,10 +491,10 @@ class PbResponseCorrectionSpec extends ModuleBaseSpec {
         accountDao.save(accountWithResponseCorrectionModule)
 
         when: "PBS processes auction request"
-        def response = pbsServiceWithResponseCorrectionModule.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS should emit log"
-        def logsByTime = pbsServiceWithResponseCorrectionModule.getLogsByTime(start)
+        def logsByTime = pbsServiceWithMultipleModules.getLogsByTime(start)
         def bidId = bidResponse.seatbid[0].bid[0].id
         def responseCorrection = getLogsByText(logsByTime, bidId)
         assert responseCorrection.size() == 1
@@ -548,10 +539,10 @@ class PbResponseCorrectionSpec extends ModuleBaseSpec {
         accountDao.save(accountWithResponseCorrectionModule)
 
         when: "PBS processes auction request"
-        def response = pbsServiceWithResponseCorrectionModule.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS should emit log"
-        def logsByTime = pbsServiceWithResponseCorrectionModule.getLogsByTime(start)
+        def logsByTime = pbsServiceWithMultipleModules.getLogsByTime(start)
         def bidId = bidResponse.seatbid[0].bid[0].id
         def responseCorrection = getLogsByText(logsByTime, bidId)
         assert responseCorrection.size() == 2
@@ -595,11 +586,11 @@ class PbResponseCorrectionSpec extends ModuleBaseSpec {
         accountDao.save(accountWithResponseCorrectionModule)
 
         when: "PBS processes auction request"
-        def response = pbsServiceWithResponseCorrectionModule.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithMultipleModules.sendAuctionRequest(bidRequest)
 
         then: "PBS should emit log"
         def responseCorrectionLog = "Bid ${bidResponse.seatbid[0].bid[0].id} of bidder generic: changing media type to banner"
-        assert pbsServiceWithResponseCorrectionModule.isContainLogsByValue(responseCorrectionLog)
+        assert pbsServiceWithMultipleModules.isContainLogsByValue(responseCorrectionLog)
 
         and: "Response should contain seatBid"
         assert response.seatbid.size() == 1
@@ -625,10 +616,13 @@ class PbResponseCorrectionSpec extends ModuleBaseSpec {
         ]
     }
 
-    private static Account accountConfigWithResponseCorrectionModule(BidRequest bidRequest, Boolean enabledResponseCorrection = true, Boolean enabledAppVideoHtml = true) {
-        def modulesConfig = new PbsModulesConfig(pbResponseCorrection: new PbResponseCorrection(
-                enabled: enabledResponseCorrection, appVideoHtml: new AppVideoHtml(enabled: enabledAppVideoHtml)))
-        def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(modules: modulesConfig))
-        new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
+    private static Account accountConfigWithResponseCorrectionModule(BidRequest bidRequest,
+                                                                     Boolean enabledResponseCorrection = true,
+                                                                     Boolean enabledAppVideoHtml = true) {
+
+        getAccountWithModuleConfig(bidRequest.accountId, [(ALL_PROCESSED_BID_RESPONSES): [PB_RESPONSE_CORRECTION]]).tap {
+            it.config.hooks.modules.pbResponseCorrection = new PbResponseCorrection(
+                    enabled: enabledResponseCorrection, appVideoHtml: new AppVideoHtml(enabled: enabledAppVideoHtml))
+        }
     }
 }
