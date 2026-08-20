@@ -8,7 +8,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -21,8 +20,8 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.adplayx.ExtImpAdplayx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -86,18 +85,10 @@ public class AdplayxBidder implements Bidder<BidRequest> {
     }
 
     private String buildEndpointUrl(ExtImpAdplayx extImp) {
-        try {
-            final URIBuilder uriBuilder = new URIBuilder(endpointUrl);
-            uriBuilder.addParameter("apptoken", extImp.getApptoken());
-
-            if (StringUtils.isNotBlank(extImp.getPlacementid())) {
-                uriBuilder.addParameter("placementid", extImp.getPlacementid());
-            }
-
-            return uriBuilder.build().toString();
-        } catch (URISyntaxException e) {
-            throw new PreBidException(String.format("Invalid url: %s, error: %s", endpointUrl, e.getMessage()));
-        }
+        return Uri.of(endpointUrl)
+                .addQueryParam("apptoken", extImp.getApptoken())
+                .addQueryParam("placementid", StringUtils.trimToNull(extImp.getPlacementid()))
+                .toString();
     }
 
     @Override

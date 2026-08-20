@@ -104,7 +104,7 @@ public class AdplayxBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
         assertThat(result.getValue().get(0).getUri())
-                .isEqualTo("https://test.endpoint.com/v1.0/ortb?apptoken=token+%26+123&placementid=placement+456");
+                .isEqualTo("https://test.endpoint.com/v1.0/ortb?apptoken=token%20%26%20123&placementid=placement%20456");
     }
 
     @Test
