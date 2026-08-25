@@ -2,23 +2,23 @@
   "id": "request_id",
   "imp": [
     {
-      "id": "imp_id",
-      "banner": {
+      "id": "imp-1",
+      "video": {
+        "mimes": ["video/mp4"],
         "w": 300,
         "h": 250
       },
       "ext": {
-        "prebid": {
-          "bidder": {
-            "emxdigital": {
-              "tagid": "25251"
-            }
-          }
+        "freewheel-ssp": {
+          "zoneId": 12345
         }
       }
     }
   ],
   "tmax": 5000,
+  "cur": [
+    "USD"
+  ],
   "regs": {
     "ext": {
       "gdpr": 0

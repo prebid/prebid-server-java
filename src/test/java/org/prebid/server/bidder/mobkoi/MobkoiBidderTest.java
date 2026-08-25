@@ -198,7 +198,7 @@ public class MobkoiBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBidWithMobkoiSeat() throws JsonProcessingException {
+    public void makeBidsShouldReturnBannerBidWithoutSeatSoAliasesWork() throws JsonProcessingException {
         // given
         final BidResponse bannerBidResponse = givenBidResponse(bidBuilder -> bidBuilder.mtype(1).impid("123"));
         final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(bannerBidResponse));
@@ -211,7 +211,9 @@ public class MobkoiBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .containsExactly(
                         BidderBid.of(
-                                Bid.builder().mtype(1).impid("123").build(), banner, "mobkoi", "USD"));
+                                Bid.builder().mtype(1).impid("123").build(), banner, "USD"));
+        assertThat(result.getValue()).allSatisfy(bidderBid ->
+                assertThat(bidderBid.getSeat()).isNull());
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impModifier) {
