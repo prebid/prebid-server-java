@@ -10,6 +10,7 @@ import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -39,22 +40,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
-/**
- * Adswag {@link Bidder} implementation.
- * <p>
- * The Adswag bid endpoint speaks plain OpenRTB 2.6 JSON in/out and answers a
- * no-bid as an empty-body HTTP 200 (its Prebid.js contract) as well as the
- * conventional 204.
- * <p>
- * Display (banner) bids carry markup in adm (a loader script tag that
- * injects the composed creative into the containing frame at render time);
- * it passes through unchanged. bid.ext.adswag.serve_url remains populated
- * as a legacy fallback: if adm is ever absent, the adapter synthesizes an
- * iframe tag around that URL so the bid still carries renderable markup
- * for every PBS consumer (network-equivalent to the Prebid.js adapter's
- * adUrl render).
- * Video and audio bids carry VAST markup in adm and pass through unchanged.
- */
 public class AdswagBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpAdswag>> TYPE_REFERENCE = new TypeReference<>() {
@@ -71,17 +56,6 @@ public class AdswagBidder implements Bidder<BidRequest> {
         this.mapper = Objects.requireNonNull(mapper);
     }
 
-    /**
-     * The endpoint resolves the supply-side publisher from site.publisher.id /
-     * app.publisher.id, and the bidder param is the source of truth for that
-     * value. Both are REQUEST-level fields, so imps are grouped by their
-     * publisherId and each group is sent as its own request: PBS hands an
-     * adapter every imp that named the bidder regardless of the bidder params
-     * inside them, and those imps may legitimately belong to different Adswag
-     * publisher accounts. Folding them into one request would report — and
-     * pay — every impression under whichever account happened to come first.
-     * Groups keep the order of their first imp.
-     */
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final Map<String, List<Imp>> impsByPublisher = new LinkedHashMap<>();
@@ -98,7 +72,7 @@ public class AdswagBidder implements Bidder<BidRequest> {
             }
 
             impsByPublisher
-                    .computeIfAbsent(extImpAdswag.getPublisherId(), key -> new ArrayList<>())
+                    .computeIfAbsent(extImpAdswag.getPublisherId(), _ -> new ArrayList<>())
                     .add(modifyImp(imp, extImpAdswag.getPlacementId()));
         }
 
@@ -106,7 +80,6 @@ public class AdswagBidder implements Bidder<BidRequest> {
             return Result.withErrors(errors);
         }
 
-        // Request-level and identical for every group, so it is checked once.
         if (request.getSite() == null && request.getApp() == null) {
             errors.add(BidderError.badInput("request must contain either site or app"));
             return Result.withErrors(errors);
@@ -129,17 +102,11 @@ public class AdswagBidder implements Bidder<BidRequest> {
     }
 
     private static void validateImpExt(ExtImpAdswag extImpAdswag, String impId) {
-        if (extImpAdswag == null || StringUtils.isBlank(extImpAdswag.getPublisherId())) {
+        if (StringUtils.isBlank(extImpAdswag.getPublisherId())) {
             throw new PreBidException("missing publisherId for imp " + impId);
         }
     }
 
-    /**
-     * Rewrites imp.ext into the shape the Adswag endpoint expects: the
-     * prebid/bidder envelopes are removed and an optional placementId
-     * override moves to ext.adswag.placement_id. Standard placement-identity
-     * fields (gpid, tid, data.pbadslot) stay where PBS core put them.
-     */
     private static Imp modifyImp(Imp imp, String placementId) {
         final ObjectNode modifiedExt = imp.getExt().deepCopy();
         modifiedExt.remove("bidder");
@@ -236,7 +203,22 @@ public class AdswagBidder implements Bidder<BidRequest> {
             return null;
         }
 
-        return BidderBid.of(materializeBid(bid, bidType, serveUrl, imp), bidType, currency);
+        final Bid modifiedBid = switch (bidType) {
+            case banner -> makeBannerBid(bid, serveUrl, imp.getBanner());
+            case video -> makeVideoBid(bid, serveUrl, imp.getVideo());
+            case audio -> makeAudioBid(bid, serveUrl);
+            // should never happen
+            default -> throw new AssertionError();
+        };
+
+        return BidderBid.of(modifiedBid, bidType, currency);
+    }
+
+    private static Imp findImp(List<Imp> imps, String impId) {
+        return imps.stream()
+                .filter(imp -> Objects.equals(imp.getId(), impId))
+                .findFirst()
+                .orElse(null);
     }
 
     private static String serveUrl(Bid bid) {
@@ -246,13 +228,6 @@ public class AdswagBidder implements Bidder<BidRequest> {
         return serveUrlNode != null && serveUrlNode.isTextual() ? serveUrlNode.textValue() : null;
     }
 
-    /**
-     * Resolves the bid's media type, mirroring the Prebid.js adapter and the
-     * endpoint's per-imp channel precedence (banner &gt; audio &gt; video):
-     * VAST markup on an imp that declares audio is an audio bid, VAST on a
-     * video imp is a video bid, everything else is banner. bid.mtype is
-     * honored first when present (the endpoint does not currently set it).
-     */
     private static BidType resolveBidType(Imp imp, Bid bid) {
         final Integer mtype = bid.getMtype();
         if (mtype != null) {
@@ -278,56 +253,16 @@ public class AdswagBidder implements Bidder<BidRequest> {
         throw new PreBidException("unable to resolve media type for impression " + bid.getImpid());
     }
 
-    /**
-     * Materializes markup for display bids served by URL and backfills the
-     * bid size from the requested primary size (the endpoint omits w/h).
-     */
-    private static Bid materializeBid(Bid bid, BidType bidType, String serveUrl, Imp imp) {
-        final Bid.BidBuilder builder = bid.toBuilder();
-        final boolean hasSize = bid.getW() != null && bid.getW() > 0 && bid.getH() != null && bid.getH() > 0;
+    private static Bid makeBannerBid(Bid bid, String serveUrl, Banner banner) {
+        final Format size = bannerSize(banner);
+        final boolean updateSize = hasNoSize(bid) && size != null;
 
-        switch (bidType) {
-            case banner -> {
-                final Format size = bannerSize(imp.getBanner());
-                if (StringUtils.isBlank(bid.getAdm())) {
-                    builder.adm(iframeMarkup(serveUrl, size));
-                }
-                if (!hasSize && size != null) {
-                    builder.w(size.getW()).h(size.getH());
-                }
-                builder.mtype(1);
-            }
-            case video -> {
-                if (StringUtils.isBlank(bid.getAdm())) {
-                    // VAST by URL: nurl is the conventional PBS carrier
-                    // (cached / rendered as vastUrl downstream).
-                    builder.nurl(serveUrl);
-                }
-                final com.iab.openrtb.request.Video video = imp.getVideo();
-                if (!hasSize && video != null && video.getW() != null && video.getH() != null) {
-                    builder.w(video.getW()).h(video.getH());
-                }
-                builder.mtype(2);
-            }
-            case audio -> {
-                if (StringUtils.isBlank(bid.getAdm())) {
-                    builder.nurl(serveUrl);
-                }
-                builder.mtype(3);
-            }
-            default -> {
-                // banner/video/audio are the only resolvable types
-            }
-        }
-
-        return builder.build();
-    }
-
-    private static Imp findImp(List<Imp> imps, String impId) {
-        return imps.stream()
-                .filter(imp -> Objects.equals(imp.getId(), impId))
-                .findFirst()
-                .orElse(null);
+        return bid.toBuilder()
+                .adm(StringUtils.isBlank(bid.getAdm()) ? iframeMarkup(serveUrl, size) : bid.getAdm())
+                .w(updateSize ? size.getW() : bid.getW())
+                .h(updateSize ? size.getH() : bid.getH())
+                .mtype(1)
+                .build();
     }
 
     private static Format bannerSize(Banner banner) {
@@ -343,19 +278,23 @@ public class AdswagBidder implements Bidder<BidRequest> {
         return null;
     }
 
-    /**
-     * Wraps a serve URL in an iframe tag; fetching the iframe src at render
-     * time is network-equivalent to Prebid.js rendering the URL as adUrl.
-     */
     private static String iframeMarkup(String serveUrl, Format size) {
-        final StringBuilder markup = new StringBuilder();
-        markup.append("<iframe src=\"").append(escapeHtmlAttribute(serveUrl)).append("\"");
-        if (size != null && size.getW() != null && size.getH() != null) {
-            markup.append(" width=\"").append(size.getW()).append("\"")
-                    .append(" height=\"").append(size.getH()).append("\"");
+        final StringBuilder markup = new StringBuilder()
+                .append("<iframe src=\"").append(escapeHtmlAttribute(serveUrl)).append("\" ");
+
+        if (size != null) {
+            markup
+                    .append("width=\"").append(size.getW()).append("\" ")
+                    .append("height=\"").append(size.getH()).append("\" ");
         }
-        markup.append(" frameborder=\"0\" scrolling=\"no\" marginheight=\"0\" marginwidth=\"0\"")
-                .append(" style=\"border:0\" title=\"Advertisement\"></iframe>");
+        markup.append("""
+                frameborder="0" \
+                scrolling="no" \
+                marginheight="0" \
+                marginwidth="0" \
+                style="border:0" \
+                title="Advertisement"></iframe>""");
+
         return markup.toString();
     }
 
@@ -367,5 +306,26 @@ public class AdswagBidder implements Bidder<BidRequest> {
                 .replace("<", "&lt;")
                 .replace(">", "&gt;")
                 .replace("\"", "&#34;");
+    }
+
+    private static boolean hasNoSize(Bid bid) {
+        return bid.getW() == null || bid.getW() <= 0 || bid.getH() == null || bid.getH() <= 0;
+    }
+
+    private static Bid makeVideoBid(Bid bid, String serveUrl, Video video) {
+        final boolean updateSize = hasNoSize(bid) && video != null && video.getW() != null && video.getH() != null;
+        return bid.toBuilder()
+                .nurl(StringUtils.isBlank(bid.getAdm()) ? serveUrl : bid.getNurl())
+                .w(updateSize ? video.getW() : bid.getW())
+                .h(updateSize ? video.getH() : bid.getH())
+                .mtype(2)
+                .build();
+    }
+
+    private static Bid makeAudioBid(Bid bid, String serveUrl) {
+        return bid.toBuilder()
+                .nurl(StringUtils.isBlank(bid.getAdm()) ? serveUrl : bid.getNurl())
+                .mtype(3)
+                .build();
     }
 }

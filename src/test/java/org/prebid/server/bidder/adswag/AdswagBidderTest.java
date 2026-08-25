@@ -26,15 +26,13 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.adswag.ExtImpAdswag;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
-import java.io.IOException;
 import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Objects;
 import java.util.function.UnaryOperator;
-import java.util.stream.Stream;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
+import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
@@ -43,13 +41,15 @@ public class AdswagBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com/prebid/bid";
     private static final String SERVE_URL = "https://ads.adswag.ai/v1/ad?sc=c2ln&sig=YWJj";
-    private static final String VAST_ADM = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><VAST version=\"4.2\">"
-            + "<Ad id=\"req-abc\"><Wrapper><AdSystem>Adswag</AdSystem>"
-            + "<VASTAdTagURI><![CDATA[https://ads.adswag.ai/v1/vast?sc=c2ln&sig=YWJj]]></VASTAdTagURI>"
-            + "</Wrapper></Ad></VAST>";
-    private static final String IFRAME_ADM = "<iframe src=\"https://ads.adswag.ai/v1/ad?sc=c2ln&amp;sig=YWJj\""
-            + " width=\"300\" height=\"250\" frameborder=\"0\" scrolling=\"no\" marginheight=\"0\""
-            + " marginwidth=\"0\" style=\"border:0\" title=\"Advertisement\"></iframe>";
+    private static final String VAST_ADM = """
+            <?xml version="1.0" encoding="UTF-8"?><VAST version="4.2">\
+            <Ad id="req-abc"><Wrapper><AdSystem>Adswag</AdSystem>\
+            <VASTAdTagURI><![CDATA[https://ads.adswag.ai/v1/vast?sc=c2ln&sig=YWJj]]></VASTAdTagURI>\
+            </Wrapper></Ad></VAST>""";
+    private static final String IFRAME_ADM = """
+            <iframe src="https://ads.adswag.ai/v1/ad?sc=c2ln&amp;sig=YWJj" \
+            width="300" height="250" frameborder="0" scrolling="no" marginheight="0" \
+            marginwidth="0" style="border:0" title="Advertisement"></iframe>""";
 
     private final AdswagBidder target = new AdswagBidder(ENDPOINT_URL, jacksonMapper);
 
@@ -61,8 +61,8 @@ public class AdswagBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
-        final BidRequest bidRequest = givenBidRequest(
-                imp -> imp.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+        final BidRequest bidRequest = givenBidRequest(givenImp(
+                imp -> imp.id("imp1").ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -71,7 +71,7 @@ public class AdswagBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
                     assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
-                    assertThat(error.getMessage()).startsWith("Error parsing imp.ext for impression impId");
+                    assertThat(error.getMessage()).startsWith("Error parsing imp.ext for impression imp1");
                 });
         assertThat(result.getValue()).isEmpty();
     }
@@ -80,7 +80,7 @@ public class AdswagBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfPublisherIdIsMissing() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                imp -> imp.id("imp1").ext(givenImpExt(" ", "placement")));
+                givenImp(imp -> imp.id("imp1").ext(givenImpExt(" ", "placement"))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -97,9 +97,8 @@ public class AdswagBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorIfNeitherSiteNorAppIsPresent() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder().id("imp1").ext(givenImpExt("pub-1", null)).build()))
-                .build();
+        final BidRequest bidRequest = givenBidRequest(
+                givenImp(imp -> imp.id("imp1").ext(givenImpExt("pub-1", null))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -119,8 +118,10 @@ public class AdswagBidderTest extends VertxTest {
         final ObjectNode impExt = givenImpExt("pub-1", "plc-1");
         impExt.put("gpid", "/1111/homepage#div-1");
         final BidRequest bidRequest = givenBidRequest(
-                Site.builder().publisher(Publisher.builder().name("Example").build()).build(),
-                imp -> imp.id("imp1").ext(impExt));
+                request -> request.site(Site.builder()
+                        .publisher(Publisher.builder().name("Example").build())
+                        .build()),
+                givenImp(imp -> imp.id("imp1").ext(impExt)));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -147,7 +148,9 @@ public class AdswagBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldRemoveImpExtWhenOnlyBidderParamsPresent() {
         // given
-        final BidRequest bidRequest = givenBidRequest(imp -> imp.id("imp1").ext(givenImpExt("pub-1", null)));
+        final BidRequest bidRequest = givenBidRequest(
+                request -> request.site(Site.builder().domain("example.nl").build()),
+                givenImp(imp -> imp.id("imp1").ext(givenImpExt("pub-1", null))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -164,10 +167,9 @@ public class AdswagBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldPromotePublisherIdToApp() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder().id("imp1").ext(givenImpExt("pub-1", null)).build()))
-                .app(App.builder().bundle("com.example.app").build())
-                .build();
+        final BidRequest bidRequest = givenBidRequest(
+                request -> request.app(App.builder().bundle("com.example.app").build()),
+                givenImp(imp -> imp.id("imp1").ext(givenImpExt("pub-1", null))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -186,9 +188,9 @@ public class AdswagBidderTest extends VertxTest {
     public void makeHttpRequestsShouldDropImpsWithInvalidExtAndKeepValidOnes() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                null,
-                imp -> imp.id("imp1").ext(givenImpExt("pub-1", null)),
-                imp -> imp.id("imp2").ext(givenImpExt(null, "plc-2")));
+                request -> request.site(Site.builder().domain("example.nl").build()),
+                givenImp(imp -> imp.id("imp1").ext(givenImpExt("pub-1", null))),
+                givenImp(imp -> imp.id("imp2").ext(givenImpExt(null, "plc-2"))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -205,14 +207,12 @@ public class AdswagBidderTest extends VertxTest {
 
     @Test
     public void makeHttpRequestsShouldSplitImpsByPublisherId() {
-        // given: one page, two Adswag publisher accounts. site.publisher.id is
-        // request-level, so folding these into one request would report — and
-        // pay — every impression under whichever account came first.
+        // given
         final BidRequest bidRequest = givenBidRequest(
-                null,
-                imp -> imp.id("imp-a").ext(givenImpExt("pub-a", null)),
-                imp -> imp.id("imp-b").ext(givenImpExt("pub-b", null)),
-                imp -> imp.id("imp-a-2").ext(givenImpExt("pub-a", null)));
+                request -> request.site(Site.builder().domain("example.nl").build()),
+                givenImp(imp -> imp.id("imp-a").ext(givenImpExt("pub-a", null))),
+                givenImp(imp -> imp.id("imp-b").ext(givenImpExt("pub-b", null))),
+                givenImp(imp -> imp.id("imp-a-2").ext(givenImpExt("pub-a", null))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -232,7 +232,7 @@ public class AdswagBidderTest extends VertxTest {
 
     @Test
     public void makeBidsShouldReturnEmptyResultForEmptyBody() {
-        // given: the endpoint's Prebid-path no-bid is an empty-body HTTP 200
+        // given
         final BidderCall<BidRequest> httpCall = BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().build(),
                 HttpResponse.of(200, null, ""),
@@ -270,7 +270,7 @@ public class AdswagBidderTest extends VertxTest {
     public void makeBidsShouldSynthesizeIframeMarkupForBannerServeUrlBid() throws JsonProcessingException {
         // given
         final Bid responseBid = givenServeUrlBid("imp1");
-        final BidRequest bidRequest = givenBidRequest(imp -> imp.id("imp1").banner(givenBanner()));
+        final BidRequest bidRequest = givenBidRequest(givenImp(imp -> imp.id("imp1").banner(givenBanner())));
         final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, singletonList(responseBid));
 
         // when
@@ -288,11 +288,30 @@ public class AdswagBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldPassThroughAdmWhenMarkupIsPresent() throws JsonProcessingException {
+        // given
+        final String loaderAdm = "<script src=\"https://ads.adswag.ai/v1/adj?sc=c2ln&sig=YWJj\"></script>";
+        final Bid responseBid = givenServeUrlBid("imp1").toBuilder().adm(loaderAdm).build();
+        final BidRequest bidRequest = givenBidRequest(givenImp(imp -> imp.id("imp1").banner(givenBanner())));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, singletonList(responseBid));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getAdm)
+                .containsExactly(loaderAdm);
+    }
+
+    @Test
     public void makeBidsShouldReturnVideoBidForVastMarkup() throws JsonProcessingException {
         // given
         final Bid responseBid = givenVastBid("imp1");
         final BidRequest bidRequest = givenBidRequest(
-                imp -> imp.id("imp1").video(Video.builder().w(640).h(360).build()));
+                givenImp(imp -> imp.id("imp1").video(Video.builder().w(640).h(360).build())));
         final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, singletonList(responseBid));
 
         // when
@@ -314,9 +333,9 @@ public class AdswagBidderTest extends VertxTest {
         // given
         final Bid responseBid = givenVastBid("imp1");
         final BidRequest bidRequest = givenBidRequest(
-                imp -> imp.id("imp1")
+                givenImp(imp -> imp.id("imp1")
                         .banner(givenBanner())
-                        .audio(Audio.builder().mimes(singletonList("audio/mpeg")).build()));
+                        .audio(Audio.builder().mimes(singletonList("audio/mpeg")).build())));
         final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, singletonList(responseBid));
 
         // when
@@ -335,10 +354,10 @@ public class AdswagBidderTest extends VertxTest {
 
     @Test
     public void makeBidsShouldResolveServeUrlBidOnMultiFormatImpAsBanner() throws JsonProcessingException {
-        // given: display precedence mirrors the endpoint's per-imp channel resolution
+        // given
         final Bid responseBid = givenServeUrlBid("imp1");
         final BidRequest bidRequest = givenBidRequest(
-                imp -> imp.id("imp1").banner(givenBanner()).video(Video.builder().w(640).h(360).build()));
+                givenImp(imp -> imp.id("imp1").banner(givenBanner()).video(Video.builder().w(640).h(360).build())));
         final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, singletonList(responseBid));
 
         // when
@@ -356,7 +375,7 @@ public class AdswagBidderTest extends VertxTest {
         // given
         final Bid responseBid = givenServeUrlBid("imp1");
         final BidRequest bidRequest = givenBidRequest(
-                imp -> imp.id("imp1").video(Video.builder().w(640).h(360).build()));
+                givenImp(imp -> imp.id("imp1").video(Video.builder().w(640).h(360).build())));
         final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, singletonList(responseBid));
 
         // when
@@ -375,9 +394,9 @@ public class AdswagBidderTest extends VertxTest {
         // given
         final Bid responseBid = givenVastBid("imp1").toBuilder().mtype(2).build();
         final BidRequest bidRequest = givenBidRequest(
-                imp -> imp.id("imp1")
+                givenImp(imp -> imp.id("imp1")
                         .audio(Audio.builder().mimes(singletonList("audio/mpeg")).build())
-                        .video(Video.builder().w(640).h(360).build()));
+                        .video(Video.builder().w(640).h(360).build())));
         final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, singletonList(responseBid));
 
         // when
@@ -394,7 +413,7 @@ public class AdswagBidderTest extends VertxTest {
     public void makeBidsShouldReturnErrorForUnsupportedMtype() throws JsonProcessingException {
         // given
         final Bid responseBid = givenVastBid("imp1").toBuilder().mtype(4).build();
-        final BidRequest bidRequest = givenBidRequest(imp -> imp.id("imp1").banner(givenBanner()));
+        final BidRequest bidRequest = givenBidRequest(givenImp(imp -> imp.id("imp1").banner(givenBanner())));
         final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, singletonList(responseBid));
 
         // when
@@ -413,7 +432,7 @@ public class AdswagBidderTest extends VertxTest {
     public void makeBidsShouldReturnErrorForUnknownImp() throws JsonProcessingException {
         // given
         final Bid responseBid = givenServeUrlBid("unknown-imp");
-        final BidRequest bidRequest = givenBidRequest(imp -> imp.id("imp1").banner(givenBanner()));
+        final BidRequest bidRequest = givenBidRequest(givenImp(imp -> imp.id("imp1").banner(givenBanner())));
         final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, singletonList(responseBid));
 
         // when
@@ -437,7 +456,7 @@ public class AdswagBidderTest extends VertxTest {
                 .impid("imp1")
                 .price(BigDecimal.valueOf(2.5))
                 .build();
-        final BidRequest bidRequest = givenBidRequest(imp -> imp.id("imp1").banner(givenBanner()));
+        final BidRequest bidRequest = givenBidRequest(givenImp(imp -> imp.id("imp1").banner(givenBanner())));
         final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, singletonList(responseBid));
 
         // when
@@ -459,7 +478,7 @@ public class AdswagBidderTest extends VertxTest {
         final BidResponse bidResponse = BidResponse.builder()
                 .seatbid(singletonList(SeatBid.builder().bid(singletonList(givenServeUrlBid("imp1"))).build()))
                 .build();
-        final BidRequest bidRequest = givenBidRequest(imp -> imp.id("imp1").banner(givenBanner()));
+        final BidRequest bidRequest = givenBidRequest(givenImp(imp -> imp.id("imp1").banner(givenBanner())));
         final BidderCall<BidRequest> httpCall = BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, mapper.writeValueAsString(bidResponse)),
@@ -475,63 +494,18 @@ public class AdswagBidderTest extends VertxTest {
                 .containsExactly("EUR");
     }
 
-    @Test
-    public void makeBidsShouldMapLiveCapturedResponse() throws IOException {
-        // given: a real bid.adswag.ai response captured 2026-08-11 (evergreen
-        // test publisher, banner 300x250, EUR 2.50 display bid; adm carries
-        // the loader script tag, ext.adswag.serve_url is the legacy fallback)
-        final String body = new String(Objects.requireNonNull(
-                        getClass().getResourceAsStream("live-captured-response.json")).readAllBytes(),
-                StandardCharsets.UTF_8);
-        final BidRequest bidRequest = BidRequest.builder()
-                .id("adswag-pbs-smoke-1")
-                .imp(singletonList(Imp.builder().id("imp-1").banner(givenBanner()).build()))
-                .build();
-        final BidderCall<BidRequest> httpCall = BidderCall.succeededHttp(
-                HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
-                HttpResponse.of(200, null, body),
-                null);
+    private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
+                                              Imp... imps) {
 
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(BidderBid::getType, BidderBid::getBidCurrency)
-                .containsExactly(tuple(BidType.banner, "EUR"));
-        assertThat(result.getValue())
-                .extracting(BidderBid::getBid)
-                .allSatisfy(bid -> {
-                    assertThat(bid.getPrice()).isEqualByComparingTo(BigDecimal.valueOf(2.5));
-                    assertThat(bid.getMtype()).isEqualTo(1);
-                    assertThat(bid.getW()).isEqualTo(300);
-                    assertThat(bid.getH()).isEqualTo(250);
-                    // adm is the endpoint's loader script tag, passed through
-                    // untouched — no iframe synthesis when markup is present.
-                    assertThat(bid.getAdm()).startsWith("<script src=\"https://ads.adswag.ai/v1/adj?");
-                    assertThat(bid.getAdm()).doesNotContain("<iframe");
-                    assertThat(bid.getExt().path("adswag").path("serve_url").textValue())
-                            .startsWith("https://ads.adswag.ai/v1/ad?");
-                    assertThat(bid.getBurl()).startsWith("https://ads.adswag.ai/v1/win?");
-                    assertThat(bid.getAdomain()).containsExactly("adswag.ai");
-                });
+        return bidRequestCustomizer.apply(BidRequest.builder().imp(asList(imps))).build();
     }
 
-    private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
-        return givenBidRequest(Site.builder().domain("example.nl").build(), impCustomizer);
+    private static BidRequest givenBidRequest(Imp... imps) {
+        return givenBidRequest(identity(), imps);
     }
 
-    @SafeVarargs
-    private static BidRequest givenBidRequest(Site site, UnaryOperator<Imp.ImpBuilder>... impCustomizers) {
-        final List<Imp> imps = Stream.of(impCustomizers)
-                .map(customizer -> customizer.apply(
-                        Imp.builder().id("impId").ext(givenImpExt("pub-1", null))).build())
-                .toList();
-        return BidRequest.builder()
-                .imp(imps)
-                .site(site == null ? Site.builder().domain("example.nl").build() : site)
-                .build();
+    private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
+        return impCustomizer.apply(Imp.builder()).build();
     }
 
     private static ObjectNode givenImpExt(String publisherId, String placementId) {
