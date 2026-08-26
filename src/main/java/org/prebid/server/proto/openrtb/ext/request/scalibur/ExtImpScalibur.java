@@ -16,4 +16,6 @@ public class ExtImpScalibur {
 
     @JsonProperty("bidfloorcur")
     String bidFloorCur;
+
+    String host;
 }

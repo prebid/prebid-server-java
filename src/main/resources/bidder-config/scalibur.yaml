@@ -1,6 +1,8 @@
 adapters:
   scalibur:
-    endpoint: https://srv.scalibur.io/adserver/ortb?type=prebid-server
+    endpoint: http://{Host}.scalibur.io/adserver/ortb?type=prebid-server
+    geoscope:
+      - global
     ortb-version: "2.6"
     endpoint-compression: gzip
     meta-info:
@@ -16,5 +18,5 @@ adapters:
       usersync:
         cookie-family-name: scalibur
         iframe:
-          url: https://srv.scalibur.io/adserver/sync?type=iframe&gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&redirect={redirect_url}
+          url: https://srv.scalibur.io/adserver/sync?type=iframe&gdpr={gdpr}&gdpr_consent={gdpr_consent}&us_privacy={us_privacy}&gpp={gpp}&&gpp_sid={gpp_sid}&redirect={redirect_url}
           uid-macro: '[PBS_UID]'

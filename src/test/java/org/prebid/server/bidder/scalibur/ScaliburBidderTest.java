@@ -47,7 +47,7 @@ import static org.mockito.BDDMockito.given;
 @ExtendWith(MockitoExtension.class)
 class ScaliburBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.endpoint.com";
+    private static final String ENDPOINT_URL = "https://{Host}.test.endpoint.com";
     private static final String DEFAULT_BID_CURRENCY = "USD";
     private static final String VAST_XML = """
             <VAST version="3.0"><Ad><Wrapper><VASTAdTagURI><![CDATA[%s]]></VASTAdTagURI></Wrapper></Ad></VAST>""";
@@ -87,9 +87,18 @@ class ScaliburBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 givenImp(imp -> imp.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))),
+                givenImp(imp -> imp.ext(
+                        givenImpExt(ExtImpScalibur.of(null, null, DEFAULT_BID_CURRENCY, null)))),
+                givenImp(imp -> imp.ext(
+                        givenImpExt(ExtImpScalibur.of("", null, DEFAULT_BID_CURRENCY, null)))),
                 // valid imps
                 givenImp(identity()),
-                givenImp(imp -> imp.ext(givenImpExt(ExtImpScalibur.of("placementId", null, DEFAULT_BID_CURRENCY)))));
+                givenImp(imp -> imp.tagid("test-tag").ext(
+                        givenImpExt(ExtImpScalibur.of(null, null, DEFAULT_BID_CURRENCY, null)))),
+                givenImp(imp -> imp.tagid("test-tag").ext(
+                        givenImpExt(ExtImpScalibur.of("", null, DEFAULT_BID_CURRENCY, null)))),
+                givenImp(imp -> imp.ext(
+                        givenImpExt(ExtImpScalibur.of("placementId", null, null, null)))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -98,12 +107,59 @@ class ScaliburBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
-                .hasSize(2);
+                .hasSize(4);
         assertThat(result.getErrors())
                 .extracting(BidderError::getMessage)
-                .hasSize(1)
-                .satisfies(errors ->
-                        assertThat(errors.getFirst()).startsWith("Cannot deserialize value of type"));
+                .hasSize(3)
+                .satisfies(errors -> {
+                    assertThat(errors.get(0)).startsWith("Cannot deserialize value of type");
+                    assertThat(errors.get(1)).isEqualTo(
+                            "imp 123: missing placement; set imp.tagid or the placementId param");
+                    assertThat(errors.get(2)).isEqualTo(
+                            "imp 123: missing placement; set imp.tagid or the placementId param");
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldPreferImpTagIdOverPlacementId() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                givenImp(imp -> imp
+                        .tagid("tagId")
+                        .ext(givenImpExt(ExtImpScalibur.of("placementId", null, null, null)))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .singleElement()
+                .extracting(Imp::getTagid)
+                .isEqualTo("tagId");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUsePlacementIdWhenImpTagIdIsMissing() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                givenImp(imp -> imp
+                        .tagid(null)
+                        .ext(givenImpExt(ExtImpScalibur.of("placementId", null, null, null)))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .singleElement()
+                .extracting(Imp::getTagid)
+                .isEqualTo("placementId");
     }
 
     @Test
@@ -150,8 +206,11 @@ class ScaliburBidderTest extends VertxTest {
         // given
 
         final BidRequest bidRequest = givenBidRequest(
-                givenImp(imp -> imp.bidfloor(BigDecimal.TEN).bidfloorcur("EUR")
-                        .ext(givenImpExt(ExtImpScalibur.of("placementId", BigDecimal.ONE, DEFAULT_BID_CURRENCY)))));
+                givenImp(imp -> imp
+                        .bidfloor(BigDecimal.TEN)
+                        .bidfloorcur("EUR")
+                        .ext(givenImpExt(
+                                ExtImpScalibur.of("placementId", BigDecimal.ONE, DEFAULT_BID_CURRENCY, null)))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -171,7 +230,7 @@ class ScaliburBidderTest extends VertxTest {
 
         final BidRequest bidRequest = givenBidRequest(
                 givenImp(imp -> imp.bidfloor(BigDecimal.TEN).bidfloorcur(DEFAULT_BID_CURRENCY)
-                        .ext(givenImpExt(ExtImpScalibur.of("placementId", null, "EUR")))));
+                        .ext(givenImpExt(ExtImpScalibur.of("placementId", null, "EUR", null)))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -190,7 +249,7 @@ class ScaliburBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 givenImp(imp -> imp.bidfloor(BigDecimal.TEN).bidfloorcur("EUR")
-                        .ext(givenImpExt(ExtImpScalibur.of("placementId", BigDecimal.ONE, null)))));
+                        .ext(givenImpExt(ExtImpScalibur.of("placementId", BigDecimal.ONE, null, null)))));
 
         given(currencyConversionService.convertCurrency(BigDecimal.ONE, bidRequest, "EUR", DEFAULT_BID_CURRENCY))
                 .willReturn(BigDecimal.valueOf(2));
@@ -208,11 +267,11 @@ class ScaliburBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSetPlacementIdInImpExt() {
+    public void makeHttpRequestsShouldNotSetPlacementIdInImpExt() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 givenImp(imp -> imp
-                        .ext(givenImpExt(ExtImpScalibur.of("placementId", null, null)))));
+                        .ext(givenImpExt(ExtImpScalibur.of("placementId", null, null, null)))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -223,13 +282,14 @@ class ScaliburBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
-                .containsExactly(mapper.valueToTree(ExtImpScalibur.of("placementId", null, DEFAULT_BID_CURRENCY)));
+                .containsExactly(mapper.valueToTree(ExtImpScalibur.of(null, null, null, null)));
     }
 
     @Test
-    public void makeHttpRequestsShouldBuildImpExtWithScaliburFieldsAndGpid() {
+    public void makeHttpRequestsShouldBuildImpExtWithFloorFieldsAndGpid() {
         // given
-        final ObjectNode impExt = givenImpExt(ExtImpScalibur.of("placementId", BigDecimal.ONE, DEFAULT_BID_CURRENCY));
+        final ObjectNode impExt = givenImpExt(
+                ExtImpScalibur.of("placementId", BigDecimal.ONE, DEFAULT_BID_CURRENCY, "host"));
         impExt.put("gpid", "test-gpid");
         impExt.put("random", "test-random");
 
@@ -247,7 +307,6 @@ class ScaliburBidderTest extends VertxTest {
                 .extracting(Imp::getExt)
                 .containsExactly(
                         mapper.createObjectNode()
-                                .put("placementId", "placementId")
                                 .put("bidfloor", BigDecimal.ONE)
                                 .put("bidfloorcur", DEFAULT_BID_CURRENCY)
                                 .put("gpid", "test-gpid"));
@@ -384,6 +443,46 @@ class ScaliburBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getExt)
                 .isNull();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUseDefaultHostWhenHostIsMissing() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                givenImp(identity()),
+                givenImp(imp -> imp.ext(givenImpExtWithHost("")))
+        );
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .singleElement()
+                .extracting(HttpRequest::getUri)
+                .isEqualTo("https://srv.test.endpoint.com");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldGroupMultipleImpsUnderSameHost() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                givenImp(imp -> imp.id("123").ext(givenImpExtWithHost("host1"))),
+                givenImp(imp -> imp.id("456").ext(givenImpExtWithHost("host2"))),
+                givenImp(imp -> imp.id("789").ext(givenImpExtWithHost("host1"))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(2);
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getImp)
+                .extracting(imps -> imps.stream().map(Imp::getId).toList())
+                .containsExactlyInAnyOrder(List.of("123", "789"), List.of("456"));
     }
 
     @Test
@@ -837,8 +936,12 @@ class ScaliburBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                         .id("123")
                         .banner(Banner.builder().w(1).h(1).build())
-                        .ext(givenImpExt(ExtImpScalibur.of("placementId", null, null))))
+                        .ext(givenImpExt(ExtImpScalibur.of("placementId", null, null, null))))
                 .build();
+    }
+
+    private static ObjectNode givenImpExtWithHost(String host) {
+        return givenImpExt(ExtImpScalibur.of("placementId", null, null, host));
     }
 
     private static ObjectNode givenImpExt(ExtImpScalibur extImpScalibur) {

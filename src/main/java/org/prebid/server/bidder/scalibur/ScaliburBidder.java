@@ -20,33 +20,37 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Price;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.request.scalibur.ExtImpScalibur;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.scalibur.ExtImpScalibur;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 public class ScaliburBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpScalibur>> TYPE_REFERENCE = new TypeReference<>() {
     };
+    private static final String DEFAULT_HOST_LABEL = "srv";
+    private static final String HOST_MACRO = "Host";
     private static final String DEFAULT_BID_CURRENCY = "USD";
     private static final String VAST_XML = """
-            <VAST version=\"3.0\"><Ad><Wrapper><VASTAdTagURI><![CDATA[%s]]></VASTAdTagURI></Wrapper></Ad></VAST>
+            <VAST version="3.0"><Ad><Wrapper><VASTAdTagURI><![CDATA[%s]]></VASTAdTagURI></Wrapper></Ad></VAST>
             """;
 
-    private final String endpointUrl;
+    private final Uri endpointUrl;
     private final CurrencyConversionService currencyConversionService;
     private final JacksonMapper mapper;
 
@@ -54,7 +58,7 @@ public class ScaliburBidder implements Bidder<BidRequest> {
                           CurrencyConversionService currencyConversionService,
                           JacksonMapper mapper) {
 
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -62,29 +66,38 @@ public class ScaliburBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         final List<BidderError> errors = new ArrayList<>();
-        final List<Imp> validImps = new ArrayList<>();
+        final Map<String, List<Imp>> hostLabelToImps = new HashMap<>();
+        final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
 
         for (Imp imp : bidRequest.getImp()) {
             try {
                 final ExtImpScalibur scaliburExt = parseImpExt(imp);
-                validImps.add(modifyImp(imp, scaliburExt, bidRequest));
+                final String hostLabel = StringUtils.defaultIfEmpty(scaliburExt.getHost(), DEFAULT_HOST_LABEL);
+                final Imp modifiedImp = modifyImp(imp, scaliburExt, bidRequest);
+
+                hostLabelToImps.computeIfAbsent(hostLabel, ignored -> new ArrayList<>()).add(modifiedImp);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
         }
 
-        if (validImps.isEmpty()) {
+        if (hostLabelToImps.isEmpty()) {
             return Result.withErrors(errors);
         }
 
-        final BidRequest modifiedBidRequest = bidRequest.toBuilder()
-                .imp(validImps)
-                .cur(null)
-                .ext(isDebugEnabled(bidRequest) ? createDebugExt() : null)
-                .build();
+        for (Map.Entry<String, List<Imp>> entry : hostLabelToImps.entrySet()) {
+            final BidRequest modifiedBidRequest = bidRequest.toBuilder()
+                    .imp(entry.getValue())
+                    .cur(null)
+                    .ext(isDebugEnabled(bidRequest) ? createDebugExt() : null)
+                    .build();
+            httpRequests.add(BidderUtil.defaultRequest(
+                    modifiedBidRequest,
+                    resolveUrl(endpointUrl, entry.getKey()),
+                    mapper));
+        }
 
-        final HttpRequest<BidRequest> httpRequest = BidderUtil.defaultRequest(modifiedBidRequest, endpointUrl, mapper);
-        return Result.of(Collections.singletonList(httpRequest), errors);
+        return Result.of(httpRequests, errors);
     }
 
     private ExtImpScalibur parseImpExt(Imp imp) {
@@ -99,14 +112,22 @@ public class ScaliburBidder implements Bidder<BidRequest> {
                           ExtImpScalibur extImpScalibur,
                           BidRequest bidRequest) {
 
+        final String tagId = StringUtils.defaultIfEmpty(imp.getTagid(), extImpScalibur.getPlacementId());
+
+        if (StringUtils.isBlank(tagId)) {
+            throw new PreBidException("imp %s: missing placement; set imp.tagid or the placementId param"
+                    .formatted(imp.getId()));
+        }
+
         final Price resolvedBidFloor = resolveBidFloor(imp, extImpScalibur, bidRequest);
         final JsonNode gpidNode = imp.getExt().get("gpid");
 
         return imp.toBuilder()
+                .tagid(tagId)
                 .bidfloor(resolvedBidFloor.getValue())
                 .bidfloorcur(resolvedBidFloor.getCurrency())
                 .video(resolveVideo(imp.getVideo()))
-                .ext(resolveImpExt(extImpScalibur, resolvedBidFloor, gpidNode))
+                .ext(resolveImpExt(resolvedBidFloor, gpidNode))
                 .build();
     }
 
@@ -135,16 +156,12 @@ public class ScaliburBidder implements Bidder<BidRequest> {
         return Price.of(DEFAULT_BID_CURRENCY, convertedPrice);
     }
 
-    private ObjectNode resolveImpExt(ExtImpScalibur extImpScalibur,
-                                     Price bidFloor,
-                                     JsonNode gpidNode) {
-
+    private ObjectNode resolveImpExt(Price bidFloor, JsonNode gpidNode) {
         final ObjectNode ext = mapper.mapper().createObjectNode();
-        ext.set("placementId", TextNode.valueOf(extImpScalibur.getPlacementId()));
         if (BidderUtil.isValidPrice(bidFloor)) {
             ext.set("bidfloor", mapper.mapper().valueToTree(bidFloor.getValue()));
+            ext.set("bidfloorcur", TextNode.valueOf(bidFloor.getCurrency()));
         }
-        ext.set("bidfloorcur", TextNode.valueOf(bidFloor.getCurrency()));
         if (gpidNode != null && !gpidNode.isNull()) {
             ext.set("gpid", gpidNode);
         }
@@ -204,6 +221,10 @@ public class ScaliburBidder implements Bidder<BidRequest> {
         final ExtRequest extRequest = ExtRequest.empty();
         extRequest.addProperty("isDebug", IntNode.valueOf(1));
         return extRequest;
+    }
+
+    private String resolveUrl(Uri configEndpoint, String externalUrl) {
+        return configEndpoint.replaceMacro(HOST_MACRO, externalUrl).expand();
     }
 
     @Override
