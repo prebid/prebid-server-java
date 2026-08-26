@@ -26,8 +26,7 @@ public class AppMonstaMediaTest extends IntegrationTest {
         // when
         final Response response = responseFor(
                 "openrtb2/appMonstaMedia/test-auction-appMonstaMedia-request.json",
-                Endpoint.openrtb2_auction
-        );
+                Endpoint.openrtb2_auction);
 
         // then
         assertJsonEquals("openrtb2/appMonstaMedia/test-auction-appMonstaMedia-response.json", response,
