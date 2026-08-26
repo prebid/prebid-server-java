@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.connectad;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -33,7 +34,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class ConnectAdBidder implements Bidder<BidRequest> {
 
@@ -41,6 +45,8 @@ public class ConnectAdBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
     private static final String BIDDER_EXT_KEY = "bidder";
+    private static final String NETWORK_ID_FIELD = "networkId";
+    private static final String SITE_ID_FIELD = "siteId";
     private static final String HTTPS_PREFIX = "https";
 
     private final String endpointUrl;
@@ -100,7 +106,7 @@ public class ConnectAdBidder implements Bidder<BidRequest> {
         return extImpConnectAd;
     }
 
-    private Imp updateImp(Imp imp, Integer secure, ExtImpConnectAd extImpConnectAd) {
+    private static Imp updateImp(Imp imp, int secure, ExtImpConnectAd extImpConnectAd) {
         final BigDecimal bidFloor = extImpConnectAd.getBidFloor();
         final boolean isValidBidFloor = BidderUtil.isValidPrice(bidFloor);
         return imp.toBuilder()
@@ -113,16 +119,14 @@ public class ConnectAdBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private ObjectNode modifyImpExt(ObjectNode impExt) {
+    private static ObjectNode modifyImpExt(ObjectNode impExt) {
         final ObjectNode modifiedExt = impExt.deepCopy();
-        final var bidder = impExt.get(BIDDER_EXT_KEY);
-        if (bidder != null) {
-            if (bidder.has("networkId")) {
-                modifiedExt.set("networkId", bidder.get("networkId"));
-            }
-            if (bidder.has("siteId")) {
-                modifiedExt.set("siteId", bidder.get("siteId"));
-            }
+        final JsonNode bidder = modifiedExt.get(BIDDER_EXT_KEY);
+        if (bidder.has(NETWORK_ID_FIELD)) {
+            modifiedExt.set(NETWORK_ID_FIELD, bidder.get(NETWORK_ID_FIELD));
+        }
+        if (bidder.has(SITE_ID_FIELD)) {
+            modifiedExt.set(SITE_ID_FIELD, bidder.get(SITE_ID_FIELD));
         }
         return modifiedExt;
     }
@@ -182,42 +186,31 @@ public class ConnectAdBidder implements Bidder<BidRequest> {
             return Collections.emptyList();
         }
 
+        final Map<String, Imp> impIdToImp = bidRequest.getImp().stream()
+                .collect(Collectors.toMap(Imp::getId, Function.identity()));
+
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(bid, getBidType(bid, bidRequest), bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, getBidType(bid, impIdToImp), bidResponse.getCur()))
                 .toList();
     }
 
-    private static BidType getBidType(Bid bid, BidRequest bidRequest) {
+    private static BidType getBidType(Bid bid, Map<String, Imp> impIdToImp) {
         final Integer mType = bid.getMtype();
-        if (mType != null) {
-            return switch (mType) {
-                case 1 -> BidType.banner;
-                case 2 -> BidType.video;
-                case 3 -> BidType.audio;
-                case 4 -> BidType.xNative;
-                default -> BidType.banner;
-            };
+        if (mType == null) {
+            return BidderUtil.getBidType(bid, impIdToImp);
         }
 
-        for (Imp imp : bidRequest.getImp()) {
-            if (imp.getId().equals(bid.getImpid())) {
-                if (imp.getBanner() != null) {
-                    return BidType.banner;
-                } else if (imp.getVideo() != null) {
-                    return BidType.video;
-                } else if (imp.getXNative() != null) {
-                    return BidType.xNative;
-                } else if (imp.getAudio() != null) {
-                    return BidType.audio;
-                }
-            }
-        }
-
-        return BidType.banner;
+        return switch (mType) {
+            case 1 -> BidType.banner;
+            case 2 -> BidType.video;
+            case 3 -> BidType.audio;
+            case 4 -> BidType.xNative;
+            default -> BidType.banner;
+        };
     }
 }
