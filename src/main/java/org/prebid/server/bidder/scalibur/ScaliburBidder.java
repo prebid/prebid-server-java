@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Video;
@@ -120,14 +119,13 @@ public class ScaliburBidder implements Bidder<BidRequest> {
         }
 
         final Price resolvedBidFloor = resolveBidFloor(imp, extImpScalibur, bidRequest);
-        final JsonNode gpidNode = imp.getExt().get("gpid");
 
         return imp.toBuilder()
                 .tagid(tagId)
                 .bidfloor(resolvedBidFloor.getValue())
                 .bidfloorcur(resolvedBidFloor.getCurrency())
                 .video(resolveVideo(imp.getVideo()))
-                .ext(resolveImpExt(resolvedBidFloor, gpidNode))
+                .ext(resolveImpExt(resolvedBidFloor, imp.getExt()))
                 .build();
     }
 
@@ -156,12 +154,18 @@ public class ScaliburBidder implements Bidder<BidRequest> {
         return Price.of(DEFAULT_BID_CURRENCY, convertedPrice);
     }
 
-    private ObjectNode resolveImpExt(Price bidFloor, JsonNode gpidNode) {
-        final ObjectNode ext = mapper.mapper().createObjectNode();
+    private ObjectNode resolveImpExt(Price bidFloor, ObjectNode impExt) {
+        final ObjectNode ext = impExt.get("bidder").deepCopy();
+        ext.remove("placementId");
+        ext.remove("host");
         if (BidderUtil.isValidPrice(bidFloor)) {
-            ext.set("bidfloor", mapper.mapper().valueToTree(bidFloor.getValue()));
-            ext.set("bidfloorcur", TextNode.valueOf(bidFloor.getCurrency()));
+            ext.put("bidfloor", bidFloor.getValue());
+            ext.put("bidfloorcur", bidFloor.getCurrency());
+        } else {
+            ext.remove("bidfloor");
+            ext.remove("bidfloorcur");
         }
+        final JsonNode gpidNode = impExt.get("gpid");
         if (gpidNode != null && !gpidNode.isNull()) {
             ext.set("gpid", gpidNode);
         }

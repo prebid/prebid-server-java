@@ -10,7 +10,8 @@
       "bidfloorcur": "USD",
       "ext": {
         "scalibur": {
-          "placementId": "placementid"
+          "placementId": "placement_id",
+          "extraField": "extra_field"
         }
       }
     }

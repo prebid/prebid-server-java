@@ -286,10 +286,11 @@ class ScaliburBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldBuildImpExtWithFloorFieldsAndGpid() {
+    public void makeHttpRequestsShouldExtractBidderParamsAndKeepFloorAndGpid() {
         // given
         final ObjectNode impExt = givenImpExt(
                 ExtImpScalibur.of("placementId", BigDecimal.ONE, DEFAULT_BID_CURRENCY, "host"));
+        ((ObjectNode) impExt.get("bidder")).put("extraField", "test-custom");
         impExt.put("gpid", "test-gpid");
         impExt.put("random", "test-random");
 
@@ -309,6 +310,7 @@ class ScaliburBidderTest extends VertxTest {
                         mapper.createObjectNode()
                                 .put("bidfloor", BigDecimal.ONE)
                                 .put("bidfloorcur", DEFAULT_BID_CURRENCY)
+                                .put("extraField", "test-custom")
                                 .put("gpid", "test-gpid"));
     }
 

@@ -7,10 +7,11 @@
         "w": 320,
         "h": 250
       },
-      "tagid" : "placementid",
+      "tagid" : "placement_id",
       "bidfloorcur": "USD",
       "secure" : 1,
       "ext" : {
+        "extraField": "extra_field"
       }
     }
   ],
