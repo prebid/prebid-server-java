@@ -91,6 +91,10 @@ public class OpenxBidder implements Bidder<BidRequest> {
         }
     }
 
+    private static boolean isSupportedImpType(Imp imp) {
+        return imp.getBanner() != null || imp.getVideo() != null || imp.getXNative() != null;
+    }
+
     private List<BidRequest> makeRequests(
             BidRequest bidRequest,
             List<Imp> supportedImps,
@@ -102,10 +106,6 @@ public class OpenxBidder implements Bidder<BidRequest> {
             bidRequests.add(request);
         }
         return bidRequests;
-    }
-
-    private static boolean isSupportedImpType(Imp imp) {
-        return imp.getBanner() != null || imp.getVideo() != null || imp.getXNative() != null;
     }
 
     private static BidType resolveBidType(Imp imp) {
