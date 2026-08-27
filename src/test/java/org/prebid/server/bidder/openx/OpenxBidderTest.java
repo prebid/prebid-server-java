@@ -109,7 +109,7 @@ public class OpenxBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.badInput("openx parameters section is missing"));
+                .containsExactly(BidderError.badInput("imp id=null: openx parameters section is missing"));
     }
 
     @Test
@@ -128,7 +128,7 @@ public class OpenxBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.badInput("openx parameters section is missing"));
+                .containsExactly(BidderError.badInput("imp id=null: openx parameters section is missing"));
     }
 
     @Test
@@ -148,7 +148,7 @@ public class OpenxBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.badInput("openx parameters section is missing"));
+                .containsExactly(BidderError.badInput("imp id=null: openx parameters section is missing"));
     }
 
     @Test
@@ -167,7 +167,7 @@ public class OpenxBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors().getFirst().getMessage())
-                .startsWith("Cannot deserialize value of");
+                .startsWith("imp id=null: Cannot deserialize value of");
     }
 
     @Test
@@ -389,8 +389,8 @@ public class OpenxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(2)
                 .containsExactly(
-                        BidderError.badInput("openx parameters section is missing"),
-                        BidderError.badInput("openx parameters section is missing"));
+                        BidderError.badInput("imp id=badImp: openx parameters section is missing"),
+                        BidderError.badInput("imp id=anotherBadImp: openx parameters section is missing"));
 
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))

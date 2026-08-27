@@ -155,13 +155,14 @@ public class OpenxBidder implements Bidder<BidRequest> {
         ExtRequest requestExt = null;
         for (Imp imp : imps) {
             try {
-                processedImps.add(makeImp(imp));
+                final ExtPrebid<ExtImpPrebid, ExtImpOpenx> impExt = parseOpenxExt(imp);
+                processedImps.add(makeImp(imp, impExt));
                 // the first successfully parsed imp's delDomain/platform win; other imps' values are ignored
                 if (requestExt == null) {
-                    requestExt = makeReqExt(imp);
+                    requestExt = makeReqExt(impExt.getBidder());
                 }
             } catch (PreBidException e) {
-                errors.add(BidderError.badInput(e.getMessage()));
+                errors.add(BidderError.badInput("imp id=" + imp.getId() + ": " + e.getMessage()));
             }
         }
 
@@ -173,8 +174,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
                 : null;
     }
 
-    private Imp makeImp(Imp imp) {
-        final ExtPrebid<ExtImpPrebid, ExtImpOpenx> impExt = parseOpenxExt(imp);
+    private Imp makeImp(Imp imp, ExtPrebid<ExtImpPrebid, ExtImpOpenx> impExt) {
         final ExtImpOpenx openxImpExt = impExt.getBidder();
         final ExtImpPrebid prebidImpExt = impExt.getPrebid();
         final Imp.ImpBuilder impBuilder = imp.toBuilder()
@@ -198,8 +198,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
                 : impBidFloor;
     }
 
-    private ExtRequest makeReqExt(Imp imp) {
-        final ExtImpOpenx openxImpExt = parseOpenxExt(imp).getBidder();
+    private ExtRequest makeReqExt(ExtImpOpenx openxImpExt) {
         return mapper.fillExtension(
                 ExtRequest.empty(),
                 OpenxRequestExt.of(openxImpExt.getDelDomain(), openxImpExt.getPlatform(), OPENX_CONFIG));
