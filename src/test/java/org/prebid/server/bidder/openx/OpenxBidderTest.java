@@ -296,7 +296,7 @@ public class OpenxBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnResultWithSingleBidRequestForMultiFormatImps() {
+    public void makeHttpRequestsShouldReturnResultWithSingleBidRequestForMultipleImpsWithDifferentFormat() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .id("bidRequestId")
@@ -304,16 +304,20 @@ public class OpenxBidderTest extends VertxTest {
                         Imp.builder()
                                 .id("impId1")
                                 .banner(Banner.builder().w(320).h(200).build())
-                                .video(Video.builder().maxduration(10).build())
                                 .ext(mapper.valueToTree(
                                         ExtPrebid.of(null, ExtImpOpenx.builder().unit("1").build())))
                                 .build(),
                         Imp.builder()
                                 .id("impId2")
-                                .banner(Banner.builder().w(300).h(150).build())
                                 .xNative(Native.builder().request("{\"version\":1}").build())
                                 .ext(mapper.valueToTree(
                                         ExtPrebid.of(null, ExtImpOpenx.builder().unit("2").build())))
+                                .build(),
+                        Imp.builder()
+                                .id("impId3")
+                                .video(Video.builder().maxduration(10).build())
+                                .ext(mapper.valueToTree(
+                                        ExtPrebid.of(null, ExtImpOpenx.builder().unit("3").build())))
                                 .build()))
                 .user(User.builder().ext(ExtUser.builder().consent("consent").build()).build())
                 .regs(Regs.builder().coppa(0).ext(ExtRegs.of(1, null, null, null)).build())
@@ -328,23 +332,24 @@ public class OpenxBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .containsExactly(
-                        // check if all native and banner imps are part of single bidRequest
                         BidRequest.builder()
                                 .id("bidRequestId")
                                 .imp(asList(
-                                        // verify banner and video media types are preserved in a single imp
                                         Imp.builder()
                                                 .id("impId1")
                                                 .tagid("1")
                                                 .banner(Banner.builder().w(320).h(200).build())
-                                                .video(Video.builder().maxduration(10).build())
                                                 .ext(mapper.valueToTree(ExtImpOpenx.builder().build())).build(),
-                                        // verify banner and native media types are preserved in a single imp
                                         Imp.builder()
                                                 .id("impId2")
                                                 .tagid("2")
-                                                .banner(Banner.builder().w(300).h(150).build())
                                                 .xNative(Native.builder().request("{\"version\":1}").build())
+                                                .ext(mapper.valueToTree(ExtImpOpenx.builder().build()))
+                                                .build(),
+                                        Imp.builder()
+                                                .id("impId3")
+                                                .tagid("3")
+                                                .video(Video.builder().maxduration(10).build())
                                                 .ext(mapper.valueToTree(ExtImpOpenx.builder().build()))
                                                 .build()))
                                 .ext(jacksonMapper.fillExtension(
