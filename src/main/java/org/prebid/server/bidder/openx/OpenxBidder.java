@@ -157,7 +157,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
             try {
                 final ExtPrebid<ExtImpPrebid, ExtImpOpenx> impExt = parseOpenxExt(imp);
                 processedImps.add(makeImp(imp, impExt));
-                // the first successfully parsed imp's delDomain/platform win; other imps' values are ignored
+
                 if (requestExt == null) {
                     requestExt = makeReqExt(impExt.getBidder());
                 }
