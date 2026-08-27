@@ -16,7 +16,6 @@ import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.bidder.openx.model.OpenxImpType;
 import org.prebid.server.bidder.openx.proto.OpenxBidExt;
 import org.prebid.server.bidder.openx.proto.OpenxRequestExt;
 import org.prebid.server.bidder.openx.proto.OpenxVideoExt;
@@ -43,7 +42,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class OpenxBidder implements Bidder<BidRequest> {
 
@@ -107,20 +105,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
     }
 
     private static boolean isSupportedImpType(Imp imp) {
-        return imp.getBanner() != null ||  imp.getVideo() != null || imp.getXNative() != null;
-    }
-
-    private static OpenxImpType resolveImpType(Imp imp) {
-        if (imp.getBanner() != null) {
-            return OpenxImpType.banner;
-        }
-        if (imp.getVideo() != null) {
-            return OpenxImpType.video;
-        }
-        if (imp.getXNative() != null) {
-            return OpenxImpType.xNative;
-        }
-        return OpenxImpType.other;
+        return imp.getBanner() != null || imp.getVideo() != null || imp.getXNative() != null;
     }
 
     private static BidType resolveBidType(Imp imp) {
@@ -166,17 +151,24 @@ public class OpenxBidder implements Bidder<BidRequest> {
             return null;
         }
 
-        List<Imp> processedImps = null;
-        try {
-            processedImps = imps.stream().map(this::makeImp).toList();
-        } catch (PreBidException e) {
-            errors.add(BidderError.badInput(e.getMessage()));
+        final List<Imp> processedImps = new ArrayList<>();
+        ExtRequest requestExt = null;
+        for (Imp imp : imps) {
+            try {
+                processedImps.add(makeImp(imp));
+                // the first successfully parsed imp's delDomain/platform win; other imps' values are ignored
+                if (requestExt == null) {
+                    requestExt = makeReqExt(imp);
+                }
+            } catch (PreBidException e) {
+                errors.add(BidderError.badInput(e.getMessage()));
+            }
         }
 
         return CollectionUtils.isNotEmpty(processedImps)
                 ? bidRequest.toBuilder()
                   .imp(processedImps)
-                  .ext(makeReqExt(imps.getFirst()))
+                  .ext(requestExt)
                   .build()
                 : null;
     }
@@ -190,7 +182,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
                 .bidfloor(resolveBidFloor(imp.getBidfloor(), openxImpExt.getCustomFloor()))
                 .ext(makeImpExt(imp.getExt(), MapUtils.isNotEmpty(openxImpExt.getCustomParams())));
 
-        if (resolveImpType(imp) == OpenxImpType.video
+        if (imp.getVideo() != null
                 && prebidImpExt != null
                 && Objects.equals(prebidImpExt.getIsRewardedInventory(), 1)) {
             impBuilder.video(imp.getVideo().toBuilder()
