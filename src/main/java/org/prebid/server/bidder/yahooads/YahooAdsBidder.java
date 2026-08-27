@@ -171,8 +171,7 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
         final String resolvedGpp = gpp == null ? gppToPromote(ext) : gpp;
 
         final List<Integer> gppSid = regs.getGppSid();
-        final List<Integer> promotedGppSid = CollectionUtils.isEmpty(gppSid) ? gppSidToPromote(ext) : null;
-        final List<Integer> resolvedGppSid = promotedGppSid == null ? gppSid : promotedGppSid;
+        final List<Integer> resolvedGppSid = CollectionUtils.isEmpty(gppSid) ? gppSidToPromote(ext) : gppSid;
 
         final ExtRegs modifiedExt = copy(ext);
         if (resolvedGpp != null) {
