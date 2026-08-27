@@ -1473,6 +1473,7 @@ public class ExchangeService {
             if (CollectionUtils.isEmpty(bidderBids)) {
                 metrics.updateAdapterRequestNobidMetrics(bidder, account);
             } else {
+                metrics.updateAccountRequestGotbidsMetric(account.getId());
                 metrics.updateAdapterRequestGotbidsMetrics(bidder, account);
 
                 for (final BidderBid bidderBid : bidderBids) {
