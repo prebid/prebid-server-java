@@ -1,5 +1,8 @@
 package org.prebid.server.bidder.openx;
 
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
+
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
@@ -99,13 +102,12 @@ public class OpenxBidder implements Bidder<BidRequest> {
             BidRequest bidRequest,
             List<Imp> imps,
             List<BidderError> errors) {
-        final List<BidRequest> bidRequests = new ArrayList<>();
 
         final BidRequest request = createSingleRequest(imps, bidRequest, errors);
         if (request != null) {
-            bidRequests.add(request);
+            return singletonList(request);
         }
-        return bidRequests;
+        return emptyList();
     }
 
     private static BidType resolveBidType(Imp imp) {
@@ -162,7 +164,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
                     requestExt = makeReqExt(impExt.getBidder());
                 }
             } catch (PreBidException e) {
-                errors.add(BidderError.badInput("imp id=" + imp.getId() + ": " + e.getMessage()));
+                errors.add(BidderError.badInput("imp id=%s: %s".formatted(imp.getId(), e.getMessage())));
             }
         }
 
@@ -235,7 +237,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
 
     private List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
         return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
-                ? Collections.emptyList()
+                ? emptyList()
                 : bidsFromResponse(bidRequest, bidResponse);
     }
 

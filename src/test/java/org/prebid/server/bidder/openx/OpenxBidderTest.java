@@ -99,6 +99,7 @@ public class OpenxBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
+                        .id("impId1")
                         .banner(Banner.builder().build())
                         .build()))
                 .build();
@@ -109,7 +110,7 @@ public class OpenxBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.badInput("imp id=null: openx parameters section is missing"));
+                .containsExactly(BidderError.badInput("imp id=impId1: openx parameters section is missing"));
     }
 
     @Test
@@ -117,6 +118,7 @@ public class OpenxBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
+                        .id("impId1")
                         .banner(Banner.builder().build())
                         .ext(mapper.createObjectNode())
                         .build()))
@@ -128,7 +130,7 @@ public class OpenxBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.badInput("imp id=null: openx parameters section is missing"));
+                .containsExactly(BidderError.badInput("imp id=impId1: openx parameters section is missing"));
     }
 
     @Test
@@ -136,6 +138,7 @@ public class OpenxBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
+                        .id("impId1")
                         .video(Video.builder().build())
                         .ext(mapper.valueToTree(
                                 ExtPrebid.of(null, null)))
@@ -148,7 +151,7 @@ public class OpenxBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.badInput("imp id=null: openx parameters section is missing"));
+                .containsExactly(BidderError.badInput("imp id=impId1: openx parameters section is missing"));
     }
 
     @Test
@@ -156,6 +159,7 @@ public class OpenxBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
+                        .id("impId1")
                         .banner(Banner.builder().build())
                         .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
                         .build()))
@@ -167,7 +171,7 @@ public class OpenxBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors().getFirst().getMessage())
-                .startsWith("imp id=null: Cannot deserialize value of");
+                .startsWith("imp id=impId1: Cannot deserialize value of");
     }
 
     @Test
