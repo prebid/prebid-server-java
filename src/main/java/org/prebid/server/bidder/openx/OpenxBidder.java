@@ -1,8 +1,5 @@
 package org.prebid.server.bidder.openx;
 
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
-
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
@@ -105,9 +102,9 @@ public class OpenxBidder implements Bidder<BidRequest> {
 
         final BidRequest request = createSingleRequest(imps, bidRequest, errors);
         if (request != null) {
-            return singletonList(request);
+            return Collections.singletonList(request);
         }
-        return emptyList();
+        return Collections.emptyList();
     }
 
     private static BidType resolveBidType(Imp imp) {
@@ -237,7 +234,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
 
     private List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
         return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
-                ? emptyList()
+                ? Collections.emptyList()
                 : bidsFromResponse(bidRequest, bidResponse);
     }
 
