@@ -97,11 +97,11 @@ public class OpenxBidder implements Bidder<BidRequest> {
 
     private List<BidRequest> makeRequests(
             BidRequest bidRequest,
-            List<Imp> supportedImps,
+            List<Imp> imps,
             List<BidderError> errors) {
         final List<BidRequest> bidRequests = new ArrayList<>();
 
-        final BidRequest request = createSingleRequest(supportedImps, bidRequest, errors);
+        final BidRequest request = createSingleRequest(imps, bidRequest, errors);
         if (request != null) {
             bidRequests.add(request);
         }
