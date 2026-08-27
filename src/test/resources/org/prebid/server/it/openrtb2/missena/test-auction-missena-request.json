@@ -11,7 +11,7 @@
         "missena": {
           "apiKey": "apiKey",
           "placement": "placement",
-          "test": "test"
+          "sample": "sample"
         }
       }
     }

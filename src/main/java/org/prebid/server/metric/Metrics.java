@@ -277,6 +277,10 @@ public class Metrics extends UpdatableMetrics {
         updateAccountRequestsMetrics(accountId, MetricName.rejected_by_account_fetch_failed);
     }
 
+    public void updateAccountRequestGotbidsMetric(String accountId) {
+        updateAccountRequestsMetrics(accountId, MetricName.gotbids);
+    }
+
     private void updateAccountRequestsMetrics(String accountId, MetricName metricName) {
         forAccount(accountId).requests().incCounter(metricName);
     }

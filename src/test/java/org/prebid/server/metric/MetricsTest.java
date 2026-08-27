@@ -602,6 +602,15 @@ public class MetricsTest {
     }
 
     @Test
+    public void updateAccountRequestGotbidsMetricsShouldIncrementMetric() {
+        // when
+        metrics.updateAccountRequestGotbidsMetric(ACCOUNT_ID);
+
+        // then
+        assertThat(metricRegistry.counter("account.accountId.requests.gotbids").getCount()).isOne();
+    }
+
+    @Test
     public void updateAdapterBidMetricsShouldUpdateMetrics() {
         // when
         metrics.updateAdapterBidMetrics(MAGNITE, Account.empty(ACCOUNT_ID), 1234L, true, "banner");

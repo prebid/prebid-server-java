@@ -1,0 +1,25 @@
+{
+  "id": "test-request-banner",
+  "cur": "EUR",
+  "seatbid": [
+    {
+      "seat": "adswag",
+      "bid": [
+        {
+          "id": "req-abc-1",
+          "impid": "test-imp-banner",
+          "price": 2.50,
+          "burl": "https://ads.adswag.ai/v1/win?sc=c2ln&sig=YWJj&price=${AUCTION_PRICE}",
+          "cid": "cmp-test-1",
+          "crid": "cr-test-1",
+          "adomain": ["advertiser.example"],
+          "ext": {
+            "adswag": {
+              "serve_url": "https://ads.adswag.ai/v1/ad?sc=c2ln&sig=YWJj"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
