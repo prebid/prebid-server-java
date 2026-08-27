@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests.module.pbruleengine
 
+import org.prebid.server.functional.model.bidder.Amx
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.bidder.Openx
@@ -9,7 +10,6 @@ import org.prebid.server.functional.model.config.PbRulesEngine
 import org.prebid.server.functional.model.config.PbsModulesConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.pricefloors.Country
-import org.prebid.server.functional.model.request.auction.Amx
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.DistributionChannel

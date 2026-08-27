@@ -11,6 +11,7 @@ import org.prebid.server.functional.model.request.setuid.SetuidRequest
 import org.prebid.server.functional.model.response.cookiesync.UserSyncInfo
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.util.MetricsUtil
 import org.prebid.server.functional.testcontainers.Dependencies
 import org.prebid.server.functional.tests.privacy.PrivacyBaseSpec
 import org.prebid.server.functional.util.PBSUtils
@@ -163,7 +164,7 @@ class GdprSetUidSpec extends PrivacyBaseSpec {
 
         and: "Metric should be increased usersync.BIDDER.tcf.blocked"
         def metric = prebidServerService.sendCollectedMetricsRequest()
-        assert metric["usersync.${GENERIC.value}.tcf.blocked"] == 1
+        assert metric[MetricsUtil.UserSync.tcfBlocked(GENERIC)] == 1
     }
 
     def "PBS setuid should failed with tcf when purpose access device enforced for account"() {
@@ -205,7 +206,7 @@ class GdprSetUidSpec extends PrivacyBaseSpec {
 
         and: "Metric should be increased usersync.BIDDER.tcf.blocked"
         def metric = prebidServerService.sendCollectedMetricsRequest()
-        assert metric["usersync.${GENERIC.value}.tcf.blocked"] == 1
+        assert metric[MetricsUtil.UserSync.tcfBlocked(GENERIC)] == 1
     }
 
     def "PBS setuid should failed with tcf when purpose access device enforced for host"() {
@@ -251,7 +252,7 @@ class GdprSetUidSpec extends PrivacyBaseSpec {
 
         and: "Metric should be increased usersync.BIDDER.tcf.blocked"
         def metric = prebidServerService.sendCollectedMetricsRequest()
-        assert metric["usersync.${GENERIC.value}.tcf.blocked"] == 1
+        assert metric[MetricsUtil.UserSync.tcfBlocked(GENERIC)] == 1
 
         cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsConfig)
