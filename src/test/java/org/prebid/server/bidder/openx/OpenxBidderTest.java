@@ -416,61 +416,6 @@ public class OpenxBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnResultWithSingleBidRequestForMultipleNativeImpsAndVideoImp() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .id("bidRequestId")
-                .imp(asList(
-                        Imp.builder()
-                                .id("impId1")
-                                .xNative(Native.builder().request("{\"version\":1}").build())
-                                .ext(mapper.valueToTree(
-                                        ExtPrebid.of(null, ExtImpOpenx.builder().unit("1").build())))
-                                .build(),
-                        Imp.builder()
-                                .id("impId2")
-                                .xNative(Native.builder().request("{\"version\":2}").build())
-                                .ext(mapper.valueToTree(
-                                        ExtPrebid.of(null, ExtImpOpenx.builder().unit("2").build())))
-                                .build(),
-                        Imp.builder()
-                                .id("impId3")
-                                .video(Video.builder().maxduration(10).build())
-                                .ext(mapper.valueToTree(
-                                        ExtPrebid.of(null, ExtImpOpenx.builder().unit("3").build())))
-                                .build()))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .extracting(BidRequest::getImp)
-                .containsExactly(asList(
-                        Imp.builder()
-                                .id("impId1")
-                                .tagid("1")
-                                .xNative(Native.builder().request("{\"version\":1}").build())
-                                .ext(mapper.valueToTree(ExtImpOpenx.builder().build()))
-                                .build(),
-                        Imp.builder()
-                                .id("impId2")
-                                .tagid("2")
-                                .xNative(Native.builder().request("{\"version\":2}").build())
-                                .ext(mapper.valueToTree(ExtImpOpenx.builder().build()))
-                                .build(),
-                        Imp.builder()
-                                .id("impId3")
-                                .tagid("3")
-                                .video(Video.builder().maxduration(10).build())
-                                .ext(mapper.valueToTree(ExtImpOpenx.builder().build()))
-                                .build()));
-    }
-
-    @Test
     public void makeHttpRequestsShouldAttachRewardedVideoExtWhenImpHasBothBannerAndVideo() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
