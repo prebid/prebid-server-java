@@ -64,14 +64,14 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
         final List<BidderError> errors = new ArrayList<>();
 
         final Regs regs = bidRequest.getRegs();
-        final Regs promotedRegs = regs != null ? promoteRegsExtToTopLevel(regs) : null;
+        final Regs modifiedRegs = regs != null ? modifyRegs(regs) : null;
 
         final List<Imp> impList = bidRequest.getImp();
         for (int i = 0; i < impList.size(); i++) {
             try {
                 final Imp imp = impList.get(i);
                 final ExtImpYahooAds extImpYahooAds = parseAndValidateImpExt(imp.getExt(), i);
-                final BidRequest modifiedRequest = modifyRequest(bidRequest, imp, extImpYahooAds, promotedRegs);
+                final BidRequest modifiedRequest = modifyRequest(bidRequest, imp, extImpYahooAds, modifiedRegs);
                 bidRequests.add(makeHttpRequest(modifiedRequest));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
@@ -161,75 +161,60 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private static Regs promoteRegsExtToTopLevel(Regs regs) {
+    private Regs modifyRegs(Regs regs) {
         final ExtRegs ext = regs.getExt();
-        if (ext == null || ext.getProperties().isEmpty()) {
+        if (ext == null || !(ext.containsProperty(GPP_PROPERTY) || ext.containsProperty(GPP_SID_PROPERTY))) {
             return regs;
         }
 
-        final String promotedGpp = gppToPromote(regs, ext);
-        final List<Integer> promotedGppSid = gppSidToPromote(regs, ext);
+        final String gpp = regs.getGpp();
+        final String resolvedGpp = gpp == null ? gppToPromote(ext) : gpp;
 
-        final boolean gppSuperseded = ext.containsProperty(GPP_PROPERTY)
-                && (promotedGpp != null || regs.getGpp() != null);
-        final boolean gppSidSuperseded = ext.containsProperty(GPP_SID_PROPERTY)
-                && (promotedGppSid != null || !CollectionUtils.isEmpty(regs.getGppSid()));
+        final List<Integer> gppSid = regs.getGppSid();
+        final List<Integer> promotedGppSid = CollectionUtils.isEmpty(gppSid) ? gppSidToPromote(ext) : null;
+        final List<Integer> resolvedGppSid = promotedGppSid == null ? gppSid : promotedGppSid;
 
-        if (!gppSuperseded && !gppSidSuperseded) {
-            return regs;
+        final ExtRegs modifiedExt = copy(ext);
+        if (resolvedGpp != null) {
+            modifiedExt.removeProperty(GPP_PROPERTY);
+        }
+        if (CollectionUtils.isNotEmpty(resolvedGppSid)) {
+            modifiedExt.removeProperty(GPP_SID_PROPERTY);
         }
 
-        final Regs.RegsBuilder builder = regs.toBuilder();
-        if (promotedGpp != null) {
-            builder.gpp(promotedGpp);
-        }
-        if (promotedGppSid != null) {
-            builder.gppSid(promotedGppSid);
-        }
-        return builder
-                .ext(removeSupersededKeys(ext, gppSuperseded, gppSidSuperseded))
+        return regs.toBuilder()
+                .gpp(resolvedGpp)
+                .gppSid(resolvedGppSid)
+                .ext(isExtEmpty(modifiedExt) ? null : modifiedExt)
                 .build();
     }
 
-    private static String gppToPromote(Regs regs, ExtRegs ext) {
-        if (regs.getGpp() != null) {
-            return null;
-        }
-        final JsonNode node = ext.getProperties().get(GPP_PROPERTY);
+    private static String gppToPromote(ExtRegs ext) {
+        final JsonNode node = ext.getProperty(GPP_PROPERTY);
         return node != null && node.isTextual() ? node.asText() : null;
     }
 
-    private static List<Integer> gppSidToPromote(Regs regs, ExtRegs ext) {
-        if (!CollectionUtils.isEmpty(regs.getGppSid())) {
-            return null;
-        }
-        final JsonNode node = ext.getProperties().get(GPP_SID_PROPERTY);
+    private static List<Integer> gppSidToPromote(ExtRegs ext) {
+        final JsonNode node = ext.getProperty(GPP_SID_PROPERTY);
         if (node == null || !node.isArray() || node.isEmpty()) {
             return null;
         }
+
         final List<Integer> sids = new ArrayList<>(node.size());
         for (final JsonNode elem : node) {
             if (!elem.isIntegralNumber() || !elem.canConvertToInt()) {
                 return null;
             }
-            sids.add(elem.asInt());
+            sids.add(elem.intValue());
         }
+
         return sids;
     }
 
-    private static ExtRegs removeSupersededKeys(ExtRegs ext,
-                                                boolean gppSuperseded,
-                                                boolean gppSidSuperseded) {
-        final ExtRegs result = ExtRegs.of(
-                ext.getGdpr(), ext.getUsPrivacy(), ext.getGpc(), ext.getDsa());
-        ext.getProperties().forEach((key, value) -> {
-            final boolean isSupersededKey = (gppSuperseded && GPP_PROPERTY.equals(key))
-                    || (gppSidSuperseded && GPP_SID_PROPERTY.equals(key));
-            if (!isSupersededKey) {
-                result.addProperty(key, value);
-            }
-        });
-        return isExtEmpty(result) ? null : result;
+    private ExtRegs copy(ExtRegs ext) {
+        final ExtRegs result = ExtRegs.of(ext.getGdpr(), ext.getUsPrivacy(), ext.getGpc(), ext.getDsa());
+        mapper.fillExtension(result, ext.getProperties());
+        return result;
     }
 
     private static boolean isExtEmpty(ExtRegs ext) {
