@@ -24,7 +24,6 @@ import org.prebid.server.proto.openrtb.ext.request.synapsehx.ExtImpSynapseHX;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.UnaryOperator;
@@ -85,22 +84,6 @@ public class SynapseHXBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).satisfiesExactly(
                 error -> assertThat(error.getMessage()).startsWith("Failed to parse bidder parameters"));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnErrorWhenRequestHasNoImps() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                bidRequestBuilder -> bidRequestBuilder.imp(new ArrayList<>()),
-                identity());
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).satisfiesExactly(
-                error -> assertThat(error.getMessage()).isEqualTo("Request has no imps"));
     }
 
     @Test

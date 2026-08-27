@@ -55,10 +55,6 @@ public class SynapseHXBidder implements Bidder<BidRequest> {
 
     @Override
     public final Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
-        if (bidRequest.getImp().isEmpty()) {
-            return Result.withError(BidderError.badInput("Request has no imps"));
-        }
-
         final Imp firstImp = bidRequest.getImp().getFirst();
         final String uri;
 
@@ -113,6 +109,7 @@ public class SynapseHXBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
                 .map(bid -> makeBidderBid(bid, bidResponse, bidderErrors))
                 .filter(Objects::nonNull)
                 .toList();
