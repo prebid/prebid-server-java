@@ -9,7 +9,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -25,8 +24,8 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -46,11 +45,11 @@ public class SynapseHXBidder implements Bidder<BidRequest> {
 
     private static final String OPENRTB_VERSION = "2.6";
 
-    private final String endpoint;
+    private final Uri endpoint;
     private final JacksonMapper mapper;
 
     public SynapseHXBidder(String endpoint, JacksonMapper mapper) {
-        this.endpoint = HttpUtil.validateUrl(Objects.requireNonNull(endpoint));
+        this.endpoint = Uri.of(endpoint);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -87,11 +86,7 @@ public class SynapseHXBidder implements Bidder<BidRequest> {
     }
 
     private String makeUri(String tenantId) {
-        try {
-            return new URIBuilder(endpoint).addParameter("pid", tenantId).toString();
-        } catch (URISyntaxException e) {
-            throw new PreBidException("Invalid endpoint URI: %s".formatted(e.getMessage()));
-        }
+        return endpoint.addQueryParam("pid", tenantId).expand();
     }
 
     @Override
