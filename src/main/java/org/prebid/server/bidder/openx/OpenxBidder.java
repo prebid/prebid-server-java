@@ -68,18 +68,17 @@ public class OpenxBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
-        final Map<OpenxImpType, List<Imp>> differentiatedImps = bidRequest.getImp().stream()
-                .collect(Collectors.groupingBy(OpenxBidder::resolveImpType));
+        final Map<Boolean, List<Imp>> partitionedImps = bidRequest.getImp().stream()
+                .filter(Objects::nonNull)
+                .collect(Collectors.partitioningBy(OpenxBidder::isSupportedImpType));
 
         final List<BidderError> processingErrors = new ArrayList<>();
         final List<BidRequest> outgoingRequests = makeRequests(
                 bidRequest,
-                differentiatedImps.get(OpenxImpType.banner),
-                differentiatedImps.get(OpenxImpType.video),
-                differentiatedImps.get(OpenxImpType.xNative),
+                partitionedImps.get(Boolean.TRUE),
                 processingErrors);
 
-        final List<BidderError> errors = errors(differentiatedImps.get(OpenxImpType.other), processingErrors);
+        final List<BidderError> errors = errors(partitionedImps.get(Boolean.FALSE), processingErrors);
 
         return Result.of(createHttpRequests(outgoingRequests), errors);
     }
@@ -96,30 +95,19 @@ public class OpenxBidder implements Bidder<BidRequest> {
 
     private List<BidRequest> makeRequests(
             BidRequest bidRequest,
-            List<Imp> bannerImps,
-            List<Imp> videoImps,
-            List<Imp> nativeImps,
+            List<Imp> supportedImps,
             List<BidderError> errors) {
         final List<BidRequest> bidRequests = new ArrayList<>();
-        // single request for all banner and native imps
-        final List<Imp> bannerAndNativeImps = Stream.of(bannerImps, nativeImps)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .toList();
-        final BidRequest bannerAndNativeImpsRequest = createSingleRequest(bannerAndNativeImps, bidRequest, errors);
-        if (bannerAndNativeImpsRequest != null) {
-            bidRequests.add(bannerAndNativeImpsRequest);
-        }
 
-        if (CollectionUtils.isNotEmpty(videoImps)) {
-            // single request for each video imp
-            bidRequests.addAll(videoImps.stream()
-                    .map(Collections::singletonList)
-                    .map(imps -> createSingleRequest(imps, bidRequest, errors))
-                    .filter(Objects::nonNull)
-                    .toList());
+        final BidRequest request = createSingleRequest(supportedImps, bidRequest, errors);
+        if (request != null) {
+            bidRequests.add(request);
         }
         return bidRequests;
+    }
+
+    private static boolean isSupportedImpType(Imp imp) {
+        return imp.getBanner() != null ||  imp.getVideo() != null || imp.getXNative() != null;
     }
 
     private static OpenxImpType resolveImpType(Imp imp) {
