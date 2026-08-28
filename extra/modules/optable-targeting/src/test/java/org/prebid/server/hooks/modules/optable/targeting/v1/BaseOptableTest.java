@@ -10,12 +10,14 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Segment;
+import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Uid;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import org.apache.commons.io.IOUtils;
@@ -40,6 +42,7 @@ import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
+import org.prebid.server.settings.model.Account;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.io.IOException;
@@ -71,7 +74,31 @@ public abstract class BaseOptableTest {
         return moduleContext;
     }
 
-    protected AuctionContext givenAuctionContext(ActivityInfrastructure activityInfrastructure, Timeout timeout) {
+    protected ModuleContext givenModuleContext(List<Audience> audiences, Future<TargetingResult> optableTargetingCall) {
+        final ModuleContext moduleContext = givenModuleContext(audiences);
+        moduleContext.setOptableTargetingCall(optableTargetingCall);
+        return moduleContext;
+    }
+
+    protected Eid givenId5Eid(String refValue) {
+        final ObjectNode uidExt = mapper.createObjectNode();
+        uidExt.set("optable", mapper.createObjectNode().set("ref", TextNode.valueOf(refValue)));
+        return Eid.builder()
+                .source("id5-sync.com")
+                .inserter("optable.co")
+                .uids(List.of(Uid.builder().id("id").ext(uidExt).build()))
+                .build();
+    }
+
+    protected ObjectNode givenRefsObject(String refValue, String signature) {
+        final ObjectNode refs = mapper.createObjectNode();
+        refs.set(refValue, mapper.createObjectNode().set("signature", TextNode.valueOf(signature)));
+        return refs;
+    }
+
+    protected AuctionContext givenAuctionContext(ActivityInfrastructure activityInfrastructure,
+                                                 Timeout timeout,
+                                                 Account account) {
         final GppModel gppModel = new GppModel();
         final TcfContext tcfContext = TcfContext.builder().build();
         final GppContext gppContext = new GppContext(
@@ -80,6 +107,7 @@ public abstract class BaseOptableTest {
 
         return AuctionContext.builder()
                 .bidRequest(givenBidRequest())
+                .account(account)
                 .activityInfrastructure(activityInfrastructure)
                 .privacyContext(PrivacyContext.of(Privacy.builder().build(), tcfContext, "8.8.8.8"))
                 .gppContext(gppContext)
@@ -87,18 +115,32 @@ public abstract class BaseOptableTest {
                 .build();
     }
 
+    protected AuctionContext givenAuctionContext(ActivityInfrastructure activityInfrastructure, Timeout timeout) {
+        return givenAuctionContext(activityInfrastructure, timeout, null);
+    }
+
     protected BidRequest givenBidRequest() {
         return givenBidRequestWithUserEids(null);
     }
 
     protected static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer) {
-        return bidRequestCustomizer.apply(BidRequest.builder().id("requestId")).build();
+        return bidRequestCustomizer.apply(BidRequest.builder().id("requestId").site(Site.builder().build())).build();
     }
 
     protected BidRequest givenBidRequestWithUserEids(List<Eid> eids) {
         return BidRequest.builder()
                 .user(givenUser(eids))
                 .device(givenDevice())
+                .site(Site.builder().build())
+                .cur(List.of("USD"))
+                .build();
+    }
+
+    protected BidRequest givenBidRequestWithUser(User user) {
+        return BidRequest.builder()
+                .user(user)
+                .device(givenDevice())
+                .site(Site.builder().build())
                 .cur(List.of("USD"))
                 .build();
     }
@@ -107,6 +149,7 @@ public abstract class BaseOptableTest {
         return BidRequest.builder()
                 .user(givenUserWithData(data))
                 .device(givenDevice())
+                .site(Site.builder().build())
                 .cur(List.of("USD"))
                 .build();
     }
@@ -148,17 +191,22 @@ public abstract class BaseOptableTest {
     }
 
     protected TargetingResult givenTargetingResult(List<Eid> eids, List<Data> data) {
+        return givenTargetingResult(eids, data, null);
+    }
+
+    protected TargetingResult givenTargetingResult(List<Eid> eids, List<Data> data, ObjectNode refs) {
         return new TargetingResult(
                 List.of(new Audience(
                         "provider",
                         List.of(new AudienceId("id")),
                         "keyspace",
                         1)),
-                new Ortb2(new org.prebid.server.hooks.modules.optable.targeting.model.openrtb.User(eids, data)));
+                new Ortb2(new org.prebid.server.hooks.modules.optable.targeting.model.openrtb.User(eids, data)),
+                refs);
     }
 
     protected TargetingResult givenEmptyTargetingResult() {
-        return new TargetingResult(Collections.emptyList(), new Ortb2(null));
+        return new TargetingResult(Collections.emptyList(), new Ortb2(null), null);
     }
 
     protected User givenUser() {
@@ -245,6 +293,7 @@ public abstract class BaseOptableTest {
         optableTargetingProperties.setApiKey(key);
         optableTargetingProperties.setPpidMapping(Map.of("c", "id"));
         optableTargetingProperties.setAdserverTargeting(true);
+        optableTargetingProperties.setEnrichWeb(true);
         optableTargetingProperties.setTimeout(100L);
         optableTargetingProperties.setCache(cacheProperties);
 
@@ -252,6 +301,10 @@ public abstract class BaseOptableTest {
     }
 
     protected Query givenQuery() {
-        return Query.of("?que", "ry");
+        return Query.of("?que", "r", "y", "");
+    }
+
+    protected ObjectNode givenAccountConfig(String key, String tenant, String origin, boolean cacheEnabled) {
+        return mapper.valueToTree(givenOptableTargetingProperties(key, tenant, origin, cacheEnabled));
     }
 }
