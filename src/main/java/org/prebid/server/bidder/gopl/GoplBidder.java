@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.sspbc;
+package org.prebid.server.bidder.gopl;
 
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.Bid;
@@ -25,14 +25,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-public class SspbcBidder implements Bidder<SspbcRequest> {
+public class GoplBidder implements Bidder<GoplRequest> {
 
-    private static final String ADAPTER_VERSION = "6.0";
+    private static final String ADAPTER_VERSION = "7.0";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
-    public SspbcBidder(String endpointUrl, JacksonMapper mapper) {
+    public GoplBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = resolveEndpointUrl(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -42,13 +42,13 @@ public class SspbcBidder implements Bidder<SspbcRequest> {
     }
 
     @Override
-    public Result<List<HttpRequest<SspbcRequest>>> makeHttpRequests(BidRequest request) {
+    public Result<List<HttpRequest<GoplRequest>>> makeHttpRequests(BidRequest request) {
         return Result.withValue(createHttpRequest(request));
     }
 
-    private HttpRequest<SspbcRequest> createHttpRequest(BidRequest request) {
-        final SspbcRequest outgoingRequest = SspbcRequest.of(request);
-        return HttpRequest.<SspbcRequest>builder()
+    private HttpRequest<GoplRequest> createHttpRequest(BidRequest request) {
+        final GoplRequest outgoingRequest = GoplRequest.of(request);
+        return HttpRequest.<GoplRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
                 .headers(HttpUtil.headers())
@@ -59,7 +59,7 @@ public class SspbcBidder implements Bidder<SspbcRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(BidderCall<SspbcRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<GoplRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.withValues(extractBids(bidResponse));

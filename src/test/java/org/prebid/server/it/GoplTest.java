@@ -13,23 +13,23 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static java.util.Collections.singletonList;
 
-public class SspbcTest extends IntegrationTest {
+public class GoplTest extends IntegrationTest {
 
     @Test
-    public void openrtb2AuctionShouldRespondWithBidsFromTheSspbcBidder() throws IOException, JSONException {
+    public void openrtb2AuctionShouldRespondWithBidsFromTheGoplBidder() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/sspbc-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/gopl-exchange"))
                 .withRequestBody(equalToJson(
-                        jsonFrom("openrtb2/sspbc/test-sspbc-bid-request.json")))
+                        jsonFrom("openrtb2/gopl/test-gopl-bid-request.json")))
                 .willReturn(aResponse().withBody(
-                        jsonFrom("openrtb2/sspbc/test-sspbc-bid-response.json"))));
+                        jsonFrom("openrtb2/gopl/test-gopl-bid-response.json"))));
 
         // when
-        final Response response = responseFor("openrtb2/sspbc/test-auction-sspbc-request.json",
+        final Response response = responseFor("openrtb2/gopl/test-auction-gopl-request.json",
                 Endpoint.openrtb2_auction);
 
         // then
-        assertJsonEquals("openrtb2/sspbc/test-auction-sspbc-response.json", response,
-                singletonList("sspbc"));
+        assertJsonEquals("openrtb2/gopl/test-auction-gopl-response.json", response,
+                singletonList("gopl"));
     }
 }
