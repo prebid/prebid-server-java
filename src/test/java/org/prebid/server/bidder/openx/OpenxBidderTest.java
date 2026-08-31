@@ -99,6 +99,7 @@ public class OpenxBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
+                        .id("impId1")
                         .banner(Banner.builder().build())
                         .build()))
                 .build();
@@ -109,7 +110,7 @@ public class OpenxBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.badInput("openx parameters section is missing"));
+                .containsExactly(BidderError.badInput("imp id=impId1: openx parameters section is missing"));
     }
 
     @Test
@@ -117,6 +118,7 @@ public class OpenxBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
+                        .id("impId1")
                         .banner(Banner.builder().build())
                         .ext(mapper.createObjectNode())
                         .build()))
@@ -128,7 +130,7 @@ public class OpenxBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.badInput("openx parameters section is missing"));
+                .containsExactly(BidderError.badInput("imp id=impId1: openx parameters section is missing"));
     }
 
     @Test
@@ -136,6 +138,7 @@ public class OpenxBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
+                        .id("impId1")
                         .video(Video.builder().build())
                         .ext(mapper.valueToTree(
                                 ExtPrebid.of(null, null)))
@@ -148,7 +151,7 @@ public class OpenxBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.badInput("openx parameters section is missing"));
+                .containsExactly(BidderError.badInput("imp id=impId1: openx parameters section is missing"));
     }
 
     @Test
@@ -156,6 +159,7 @@ public class OpenxBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
+                        .id("impId1")
                         .banner(Banner.builder().build())
                         .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
                         .build()))
@@ -167,7 +171,7 @@ public class OpenxBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors().getFirst().getMessage())
-                .startsWith("Cannot deserialize value of");
+                .startsWith("imp id=impId1: Cannot deserialize value of");
     }
 
     @Test
@@ -233,10 +237,9 @@ public class OpenxBidderTest extends VertxTest {
                 .containsExactly(BidderError.badInput(
                         "OpenX only supports banner, video and native imps. Ignoring imp id=impId1"));
 
-        assertThat(result.getValue()).hasSize(3)
+        assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .containsExactly(
-                        // check if all banner imps are part of single bidRequest
                         BidRequest.builder()
                                 .id("bidRequestId")
                                 .imp(asList(
@@ -262,46 +265,20 @@ public class OpenxBidderTest extends VertxTest {
                                                                 .customParams(
                                                                         givenCustomParams("foo2", "bar2"))
                                                                 .build()))
-                                                .build()))
-                                .ext(jacksonMapper.fillExtension(
-                                        ExtRequest.empty(),
-                                        OpenxRequestExt.of("se-demo-d.openx.net", null, "hb_pbs_1.0.0")))
-                                .user(User.builder()
-                                        .ext(ExtUser.builder().consent("consent").build())
-                                        .build())
-                                .regs(Regs.builder().coppa(0).ext(ExtRegs.of(1, null, null, null)).build())
-                                .build(),
-                        // check if each of video imps is a part of separate bidRequest and impId3 is rewarded video
-                        BidRequest.builder()
-                                .id("bidRequestId")
-                                .imp(singletonList(
+                                                .build(),
                                         Imp.builder()
                                                 .id("impId3")
                                                 .video(Video.builder()
                                                         .ext(mapper.valueToTree(OpenxVideoExt.of(1)))
                                                         .build())
                                                 .tagid("555555")
-                                                // check if each of video imps is a part of separate bidRequest
                                                 .bidfloor(BigDecimal.valueOf(0.1))
                                                 .ext(mapper.valueToTree(
                                                         ExtImpOpenx.builder()
                                                                 .customParams(
                                                                         givenCustomParams("foo3", "bar3"))
                                                                 .build()))
-                                                .build()))
-
-                                .ext(jacksonMapper.fillExtension(
-                                        ExtRequest.empty(),
-                                        OpenxRequestExt.of("se-demo-d.openx.net", null, "hb_pbs_1.0.0")))
-                                .user(User.builder()
-                                        .ext(ExtUser.builder().consent("consent").build())
-                                        .build())
-                                .regs(Regs.builder().coppa(0).ext(ExtRegs.of(1, null, null, null)).build())
-                                .build(),
-                        // check if each of video imps is a part of separate bidRequest
-                        BidRequest.builder()
-                                .id("bidRequestId")
-                                .imp(singletonList(
+                                                .build(),
                                         Imp.builder()
                                                 .id("impId4")
                                                 .video(Video.builder().build())
@@ -313,95 +290,6 @@ public class OpenxBidderTest extends VertxTest {
                                                                 .build()))
                                                 .build()))
                                 .ext(jacksonMapper.fillExtension(
-                                        ExtRequest.empty(), OpenxRequestExt.of(null, "PLATFORM", "hb_pbs_1.0.0")))
-                                .user(User.builder()
-                                        .ext(ExtUser.builder().consent("consent").build())
-                                        .build())
-                                .regs(Regs.builder().coppa(0).ext(ExtRegs.of(1, null, null, null)).build())
-                                .build());
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnResultWithSingleBidRequestForMultipleBannerAndNativeImps() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .id("bidRequestId")
-                .imp(asList(
-                        Imp.builder()
-                                .id("impId4")
-                                .banner(Banner.builder().build())
-                                .ext(mapper.valueToTree(
-                                        ExtPrebid.of(null,
-                                                ExtImpOpenx.builder()
-                                                        .customParams(givenCustomParams("foo4", "bar4"))
-                                                        .delDomain("se-demo-d.openx.net")
-                                                        .unit("4").build()))).build(),
-                        Imp.builder()
-                                .id("impId5")
-                                .xNative(Native.builder().request("{\"testreq\":1}").build())
-                                .ext(mapper.valueToTree(
-                                        ExtPrebid.of(null,
-                                                ExtImpOpenx.builder()
-                                                        .customParams(givenCustomParams("foo5", "bar5"))
-                                                        .delDomain("se-demo-d.openx.net")
-                                                        .unit("5").build()))).build(),
-                        Imp.builder()
-                                .id("impId6")
-                                .xNative(Native.builder().build())
-                                .ext(mapper.valueToTree(
-                                        ExtPrebid.of(null,
-                                                ExtImpOpenx.builder()
-                                                        .customParams(givenCustomParams("foo6", "bar6"))
-                                                        .delDomain("se-demo-d.openx.net")
-                                                        .unit("6").build()))).build()))
-                .user(User.builder().ext(ExtUser.builder().consent("consent").build()).build())
-                .regs(Regs.builder().coppa(0).ext(ExtRegs.of(1, null, null, null)).build())
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .containsExactly(
-                        // check if all native and banner imps are part of single bidRequest
-                        BidRequest.builder()
-                                .id("bidRequestId")
-                                .imp(asList(
-                                        Imp.builder()
-                                                .id("impId4")
-                                                .tagid("4")
-                                                .banner(Banner.builder().build())
-                                                .ext(mapper.valueToTree(
-                                                        ExtImpOpenx.builder()
-                                                                .customParams(
-                                                                        givenCustomParams("foo4", "bar4"))
-                                                                .build()))
-                                                .build(),
-                                        Imp.builder()
-                                                .id("impId5")
-                                                .tagid("5")
-                                                .xNative(Native.builder().request("{\"testreq\":1}").build())
-                                                .ext(mapper.valueToTree(
-                                                        ExtImpOpenx.builder()
-                                                                .customParams(
-                                                                        givenCustomParams("foo5", "bar5"))
-                                                                .build()))
-                                                .build(),
-                                        Imp.builder()
-                                                .id("impId6")
-                                                .tagid("6")
-                                                .xNative(Native.builder().build())
-                                                .ext(mapper.valueToTree(
-                                                        ExtImpOpenx.builder()
-                                                                .customParams(
-                                                                        givenCustomParams("foo6", "bar6"))
-                                                                .build()))
-                                                .build()))
-                                .ext(jacksonMapper.fillExtension(
                                         ExtRequest.empty(),
                                         OpenxRequestExt.of("se-demo-d.openx.net", null, "hb_pbs_1.0.0")))
                                 .user(User.builder()
@@ -412,7 +300,7 @@ public class OpenxBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnResultWithSingleBidRequestForMultiFormatImps() {
+    public void makeHttpRequestsShouldReturnResultWithSingleBidRequestForMultipleImpsWithDifferentFormat() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .id("bidRequestId")
@@ -420,16 +308,20 @@ public class OpenxBidderTest extends VertxTest {
                         Imp.builder()
                                 .id("impId1")
                                 .banner(Banner.builder().w(320).h(200).build())
-                                .video(Video.builder().maxduration(10).build())
                                 .ext(mapper.valueToTree(
                                         ExtPrebid.of(null, ExtImpOpenx.builder().unit("1").build())))
                                 .build(),
                         Imp.builder()
                                 .id("impId2")
-                                .banner(Banner.builder().w(300).h(150).build())
                                 .xNative(Native.builder().request("{\"version\":1}").build())
                                 .ext(mapper.valueToTree(
                                         ExtPrebid.of(null, ExtImpOpenx.builder().unit("2").build())))
+                                .build(),
+                        Imp.builder()
+                                .id("impId3")
+                                .video(Video.builder().maxduration(10).build())
+                                .ext(mapper.valueToTree(
+                                        ExtPrebid.of(null, ExtImpOpenx.builder().unit("3").build())))
                                 .build()))
                 .user(User.builder().ext(ExtUser.builder().consent("consent").build()).build())
                 .regs(Regs.builder().coppa(0).ext(ExtRegs.of(1, null, null, null)).build())
@@ -444,23 +336,24 @@ public class OpenxBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .containsExactly(
-                        // check if all native and banner imps are part of single bidRequest
                         BidRequest.builder()
                                 .id("bidRequestId")
                                 .imp(asList(
-                                        // verify banner and video media types are preserved in a single imp
                                         Imp.builder()
                                                 .id("impId1")
                                                 .tagid("1")
                                                 .banner(Banner.builder().w(320).h(200).build())
-                                                .video(Video.builder().maxduration(10).build())
                                                 .ext(mapper.valueToTree(ExtImpOpenx.builder().build())).build(),
-                                        // verify banner and native media types are preserved in a single imp
                                         Imp.builder()
                                                 .id("impId2")
                                                 .tagid("2")
-                                                .banner(Banner.builder().w(300).h(150).build())
                                                 .xNative(Native.builder().request("{\"version\":1}").build())
+                                                .ext(mapper.valueToTree(ExtImpOpenx.builder().build()))
+                                                .build(),
+                                        Imp.builder()
+                                                .id("impId3")
+                                                .tagid("3")
+                                                .video(Video.builder().maxduration(10).build())
                                                 .ext(mapper.valueToTree(ExtImpOpenx.builder().build()))
                                                 .build()))
                                 .ext(jacksonMapper.fillExtension(
@@ -471,6 +364,123 @@ public class OpenxBidderTest extends VertxTest {
                                         .build())
                                 .regs(Regs.builder().coppa(0).ext(ExtRegs.of(1, null, null, null)).build())
                                 .build());
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSkipMalformedFirstImpAndDeriveRequestExtFromLaterValidImp() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .id("bidRequestId")
+                .imp(asList(
+                        Imp.builder()
+                                .id("badImp")
+                                .banner(Banner.builder().build())
+                                .build(),
+                        Imp.builder()
+                                .id("anotherBadImp")
+                                .banner(Banner.builder().build())
+                                .build(),
+                        Imp.builder()
+                                .id("goodImp")
+                                .banner(Banner.builder().build())
+                                .ext(mapper.valueToTree(
+                                        ExtPrebid.of(null,
+                                                ExtImpOpenx.builder()
+                                                        .delDomain("se-demo-d.openx.net")
+                                                        .platform("PLATFORM")
+                                                        .unit("555555").build())))
+                                .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(2)
+                .containsExactly(
+                        BidderError.badInput("imp id=badImp: openx parameters section is missing"),
+                        BidderError.badInput("imp id=anotherBadImp: openx parameters section is missing"));
+
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .containsExactly(
+                        BidRequest.builder()
+                                .id("bidRequestId")
+                                .imp(singletonList(
+                                        Imp.builder()
+                                                .id("goodImp")
+                                                .banner(Banner.builder().build())
+                                                .tagid("555555")
+                                                .ext(mapper.valueToTree(ExtImpOpenx.builder().build()))
+                                                .build()))
+                                .ext(jacksonMapper.fillExtension(
+                                        ExtRequest.empty(),
+                                        OpenxRequestExt.of("se-demo-d.openx.net", "PLATFORM", "hb_pbs_1.0.0")))
+                                .build());
+    }
+
+    @Test
+    public void makeHttpRequestsShouldAttachRewardedVideoExtWhenImpHasBothBannerAndVideo() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .id("bidRequestId")
+                .imp(singletonList(Imp.builder()
+                        .id("impId1")
+                        .banner(Banner.builder().build())
+                        .video(Video.builder().build())
+                        .ext(mapper.valueToTree(
+                                ExtPrebid.of(
+                                        ExtImpPrebid.builder().isRewardedInventory(1).build(),
+                                        ExtImpOpenx.builder().unit("1").build())))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .containsExactly(Imp.builder()
+                        .id("impId1")
+                        .tagid("1")
+                        .banner(Banner.builder().build())
+                        .video(Video.builder().ext(mapper.valueToTree(OpenxVideoExt.of(1))).build())
+                        .ext(mapper.valueToTree(ExtImpOpenx.builder().build()))
+                        .build());
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotAttachRewardedVideoExtWhenImpHasNoVideo() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .id("bidRequestId")
+                .imp(singletonList(Imp.builder()
+                        .id("impId1")
+                        .banner(Banner.builder().build())
+                        .ext(mapper.valueToTree(
+                                ExtPrebid.of(
+                                        ExtImpPrebid.builder().isRewardedInventory(1).build(),
+                                        ExtImpOpenx.builder().unit("1").build())))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .containsExactly(Imp.builder()
+                        .id("impId1")
+                        .tagid("1")
+                        .banner(Banner.builder().build())
+                        .ext(mapper.valueToTree(ExtImpOpenx.builder().build()))
+                        .build());
     }
 
     @Test
