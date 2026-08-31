@@ -1464,6 +1464,7 @@ public class ExchangeService {
                 .map(AuctionParticipation::getBidderResponse)
                 .toList();
 
+        boolean hasBids = false;
         for (BidderResponse bidderResponse : bidderResponses) {
             final String bidder = aliases.resolveBidder(bidderResponse.getBidder());
 
@@ -1473,7 +1474,7 @@ public class ExchangeService {
             if (CollectionUtils.isEmpty(bidderBids)) {
                 metrics.updateAdapterRequestNobidMetrics(bidder, account);
             } else {
-                metrics.updateAccountRequestGotbidsMetric(account.getId());
+                hasBids = true;
                 metrics.updateAdapterRequestGotbidsMetrics(bidder, account);
 
                 for (final BidderBid bidderBid : bidderBids) {
@@ -1492,6 +1493,10 @@ public class ExchangeService {
                         .map(ExchangeService::bidderErrorTypeToMetric)
                         .forEach(errorMetric -> metrics.updateAdapterRequestErrorMetric(bidder, errorMetric));
             }
+        }
+
+        if (hasBids) {
+            metrics.updateAccountRequestGotbidsMetric(account.getId());
         }
 
         return auctionParticipations;
