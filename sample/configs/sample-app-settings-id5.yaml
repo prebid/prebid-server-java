@@ -1,0 +1,33 @@
+accounts:
+  - id: "1001"
+    status: active
+    hooks:
+      execution-plan:
+        {
+          "endpoints": {
+            "/openrtb2/auction": {
+              "stages": {
+                "processed-auction-request": {
+                  "groups": [
+                    {
+                      "timeout": 500,
+                      "hook-sequence": [
+                        { "module-code": "id5-user-id", "hook-impl-code": "id5-user-id-fetch-hook" }
+                      ]
+                    }
+                  ]
+                },
+                "bidder-request": {
+                  "groups": [
+                    {
+                      "timeout": 500,
+                      "hook-sequence": [
+                        { "module-code": "id5-user-id", "hook-impl-code": "id5-user-id-inject-hook" }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
