@@ -1,0 +1,27 @@
+{
+  "id": "test-request-id",
+  "imp": [
+    {
+      "id": "test-imp-id",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          }
+        ]
+      },
+      "ext": {
+        "prebid": {
+          "bidder": {
+            "adplayx": {
+              "apptoken": "test_app_token",
+              "placementid": "test_placement_id"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "tmax": 1000
+}

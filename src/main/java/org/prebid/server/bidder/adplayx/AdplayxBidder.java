@@ -6,7 +6,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -15,14 +15,17 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.adplayx.ExtImpAdplayx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -30,13 +33,14 @@ import java.util.Objects;
 public class AdplayxBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpAdplayx>> ADPLAYX_EXT_TYPE_REFERENCE =
-            new TypeReference<>() { };
+            new TypeReference<>() {
+            };
 
-    private final String endpointUrl;
+    private final Uri endpointUri;
     private final JacksonMapper mapper;
 
     public AdplayxBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUri = Uri.of(HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl)));
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -56,18 +60,11 @@ public class AdplayxBidder implements Bidder<BidRequest> {
 
                 final String uri = buildEndpointUrl(extImp);
 
-                // Clone bid request for this impression
                 final BidRequest outgoingRequest = request.toBuilder()
                         .imp(Collections.singletonList(imp))
                         .build();
 
-                httpRequests.add(HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(uri)
-                        .headers(HttpUtil.headers())
-                        .body(mapper.encodeToBytes(outgoingRequest))
-                        .payload(outgoingRequest)
-                        .build());
+                httpRequests.add(BidderUtil.defaultRequest(outgoingRequest, uri, mapper));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -85,7 +82,7 @@ public class AdplayxBidder implements Bidder<BidRequest> {
     }
 
     private String buildEndpointUrl(ExtImpAdplayx extImp) {
-        return Uri.of(endpointUrl)
+        return endpointUri.parameterized()
                 .addQueryParam("apptoken", extImp.getApptoken())
                 .addQueryParam("placementid", StringUtils.trimToNull(extImp.getPlacementid()))
                 .toString();
@@ -93,35 +90,42 @@ public class AdplayxBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
-        final String responseBody = httpCall.getResponse().getBody();
-        if (StringUtils.isBlank(responseBody)) {
-            return Result.empty();
-        }
-
+        final List<BidderError> errors = new ArrayList<>();
         try {
-            final BidResponse bidResponse = mapper.decodeValue(responseBody, BidResponse.class);
-            if (bidResponse == null || bidResponse.getSeatbid() == null) {
-                return Result.empty();
-            }
-
-            final List<BidderError> errors = new ArrayList<>();
-            final List<BidderBid> bidderBids = new ArrayList<>();
-
-            for (final SeatBid seatBid : bidResponse.getSeatbid()) {
-                for (final Bid bid : seatBid.getBid()) {
-                    try {
-                        final BidType bidType = getBidType(bid.getImpid(), bidRequest.getImp());
-                        bidderBids.add(BidderBid.of(bid, bidType, bidResponse.getCur()));
-                    } catch (final PreBidException e) {
-                        errors.add(BidderError.badServerResponse(e.getMessage()));
-                    }
-                }
-            }
-
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            final List<Imp> imps = httpCall.getRequest().getPayload().getImp();
+            final List<BidderBid> bidderBids = extractBids(bidResponse, errors, imps);
             return Result.of(bidderBids, errors);
-        } catch (final Exception e) {
-            return Result.withError(BidderError.badServerResponse("Failed to decode response: " + e.getMessage()));
+        } catch (DecodeException e) {
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
+    }
+
+    private List<BidderBid> extractBids(BidResponse bidResponse, List<BidderError> errors, List<Imp> imps) {
+        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
+            return Collections.emptyList();
+        }
+
+        return bidResponse.getSeatbid().stream()
+                .filter(Objects::nonNull)
+                .map(SeatBid::getBid)
+                .filter(Objects::nonNull)
+                .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
+                .map(bid -> resolveBidderBid(bidResponse.getCur(), imps, bid, errors))
+                .filter(Objects::nonNull)
+                .toList();
+    }
+
+    private BidderBid resolveBidderBid(String currency, List<Imp> imps, Bid bid, List<BidderError> errors) {
+        final BidType bidType;
+        try {
+            bidType = getBidType(bid.getImpid(), imps);
+        } catch (PreBidException e) {
+            errors.add(BidderError.badServerResponse(e.getMessage()));
+            return null;
+        }
+        return BidderBid.of(bid, bidType, currency);
     }
 
     private BidType getBidType(String impId, List<Imp> imps) {
@@ -141,6 +145,6 @@ public class AdplayxBidder implements Bidder<BidRequest> {
                 }
             }
         }
-        throw new PreBidException("Failed to find impression with id: " + impId);
+        throw new PreBidException("Failed to find impression \"%s\"".formatted(impId));
     }
 }
