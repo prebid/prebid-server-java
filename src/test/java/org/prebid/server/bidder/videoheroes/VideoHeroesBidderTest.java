@@ -38,7 +38,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class VideoHeroesBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.endpoint.com/?partner={{PublisherID}}";
+    private static final String ENDPOINT_URL = "https://test.endpoint.com/?partner={PublisherID}";
 
     private final VideoHeroesBidder target = new VideoHeroesBidder(ENDPOINT_URL, jacksonMapper);
 

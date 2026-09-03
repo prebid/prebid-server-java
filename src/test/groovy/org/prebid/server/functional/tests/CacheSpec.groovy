@@ -574,10 +574,10 @@ class CacheSpec extends BaseSpec {
         verifyAll(bidResponse?.seatbid[0]?.bid[0]?.ext?.prebid?.targeting as Map) {
             it.get("hb_cache_id")
             it.get("hb_cache_id_generic")
-            it.get("hb_cache_path") == CACHE_PATH
-            it.get("hb_cache_host") == CACHE_HOST
-            it.get("hb_cache_path_generic") == CACHE_PATH
-            it.get("hb_cache_host_generic") == CACHE_HOST
+            it.get("hb_cache_path") == this.CACHE_PATH
+            it.get("hb_cache_host") == this.CACHE_HOST
+            it.get("hb_cache_path_generic") == this.CACHE_PATH
+            it.get("hb_cache_host_generic") == this.CACHE_HOST
         }
 
         and: "Debug should contain http call"
@@ -610,9 +610,9 @@ class CacheSpec extends BaseSpec {
         verifyAll(bidResponse.seatbid[0].bid[0].ext.prebid.targeting) {
             it.get("hb_cache_id")
             it.get("hb_cache_id_generic")
-            it.get("hb_cache_path") == INTERNAL_CACHE_PATH
+            it.get("hb_cache_path") == this.INTERNAL_CACHE_PATH
             it.get("hb_cache_host") == networkServiceContainer.hostAndPort.toString()
-            it.get("hb_cache_path_generic") == INTERNAL_CACHE_PATH
+            it.get("hb_cache_path_generic") == this.INTERNAL_CACHE_PATH
             it.get("hb_cache_host_generic") == networkServiceContainer.hostAndPort.toString()
         }
 

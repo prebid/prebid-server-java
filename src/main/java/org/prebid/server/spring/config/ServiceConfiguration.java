@@ -5,6 +5,7 @@ import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
 import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClientOptions;
+import io.vertx.core.http.PoolOptions;
 import io.vertx.core.net.JksOptions;
 import lombok.Data;
 import org.apache.commons.lang3.ObjectUtils;
@@ -77,6 +78,7 @@ import org.prebid.server.bidder.BidderErrorNotifier;
 import org.prebid.server.bidder.BidderRequestCompletionTrackerFactory;
 import org.prebid.server.bidder.HttpBidderRequestEnricher;
 import org.prebid.server.bidder.HttpBidderRequester;
+import org.prebid.server.bidder.UsersyncInfoFactory;
 import org.prebid.server.cache.BasicPbcStorageService;
 import org.prebid.server.cache.CoreCacheService;
 import org.prebid.server.cache.PbcStorageService;
@@ -139,7 +141,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 import org.springframework.context.annotation.ScopedProxyMode;
 
-import jakarta.validation.constraints.Min;
 import java.io.IOException;
 import java.time.Clock;
 import java.util.ArrayList;
@@ -469,7 +470,6 @@ public class ServiceConfiguration {
 
     @Bean
     AuctionRequestFactory auctionRequestFactory(
-            @Value("${auction.max-request-size}") @Min(0) int maxRequestSize,
             Ortb2RequestFactory ortb2RequestFactory,
             StoredRequestProcessor storedRequestProcessor,
             ProfilesProcessor profilesProcessor,
@@ -486,7 +486,6 @@ public class ServiceConfiguration {
             BidAdjustmentsEnricher bidAdjustmentsEnricher) {
 
         return new AuctionRequestFactory(
-                maxRequestSize,
                 ortb2RequestFactory,
                 storedRequestProcessor,
                 profilesProcessor,
@@ -556,7 +555,6 @@ public class ServiceConfiguration {
 
     @Bean
     VideoRequestFactory videoRequestFactory(
-            @Value("${auction.max-request-size}") int maxRequestSize,
             @Value("${video.stored-request-required}") boolean enforceStoredRequest,
             @Value("${auction.video.escape-log-cache-regex:#{null}}") String escapeLogCacheRegex,
             Ortb2RequestFactory ortb2RequestFactory,
@@ -569,7 +567,6 @@ public class ServiceConfiguration {
             GeoLocationServiceWrapper geoLocationServiceWrapper) {
 
         return new VideoRequestFactory(
-                maxRequestSize,
                 enforceStoredRequest,
                 escapeLogCacheRegex,
                 ortb2RequestFactory,
@@ -661,8 +658,7 @@ public class ServiceConfiguration {
             Metrics metrics,
             HttpClientProperties httpClientProperties,
             @Qualifier("httpClientCircuitBreakerProperties")
-            HttpClientCircuitBreakerProperties circuitBreakerProperties,
-            Clock clock) {
+            HttpClientCircuitBreakerProperties circuitBreakerProperties) {
 
         final HttpClient httpClient = createBasicHttpClient(vertx, httpClientProperties);
 
@@ -673,17 +669,18 @@ public class ServiceConfiguration {
                 circuitBreakerProperties.getOpeningThreshold(),
                 circuitBreakerProperties.getOpeningIntervalMs(),
                 circuitBreakerProperties.getClosingIntervalMs(),
-                circuitBreakerProperties.getIdleExpireHours(),
-                clock);
+                circuitBreakerProperties.getIdleExpireHours());
     }
 
     private static BasicHttpClient createBasicHttpClient(Vertx vertx, HttpClientProperties httpClientProperties) {
+        final PoolOptions poolOptions = new PoolOptions()
+                .setHttp1MaxSize(httpClientProperties.getMaxPoolSize())
+                .setCleanerPeriod(httpClientProperties.getPoolCleanerPeriodMs());
+
         final HttpClientOptions options = new HttpClientOptions()
-                .setMaxPoolSize(httpClientProperties.getMaxPoolSize())
                 .setIdleTimeoutUnit(TimeUnit.MILLISECONDS)
                 .setIdleTimeout(httpClientProperties.getIdleTimeoutMs())
-                .setPoolCleanerPeriod(httpClientProperties.getPoolCleanerPeriodMs())
-                .setDecompressionSupported(httpClientProperties.getUseCompression())
+                .setDecompressionSupported(httpClientProperties.getUseDecompression())
                 .setConnectTimeout(httpClientProperties.getConnectTimeoutMs())
                 // Vert.x's HttpClientRequest needs this value to be 2 for redirections to be followed once,
                 // 3 for twice, and so on
@@ -699,7 +696,7 @@ public class ServiceConfiguration {
                     .setKeyCertOptions(jksOptions);
         }
 
-        return new BasicHttpClient(vertx, vertx.createHttpClient(options));
+        return new BasicHttpClient(vertx, vertx.createHttpClient(options, poolOptions));
     }
 
     @Bean
@@ -757,24 +754,29 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    UsersyncInfoFactory usersyncInfoFactory(@Value("${external-url}") String externalUrl) {
+        return new UsersyncInfoFactory(externalUrl);
+    }
+
+    @Bean
     CookieSyncService cookieSyncService(
-            @Value("${external-url}") String externalUrl,
             @Value("${cookie-sync.default-limit:#{2}}") Integer defaultLimit,
             @Value("${cookie-sync.max-limit:#{null}}") Integer maxLimit,
             BidderCatalog bidderCatalog,
             HostVendorTcfDefinerService hostVendorTcfDefinerService,
             CcpaEnforcement ccpaEnforcement,
+            UsersyncInfoFactory usersyncInfoFactory,
             UidsCookieService uidsCookieService,
             CoopSyncProvider coopSyncProvider,
             Metrics metrics) {
 
         return new CookieSyncService(
-                externalUrl,
                 defaultLimit,
                 ObjectUtils.defaultIfNull(maxLimit, Integer.MAX_VALUE),
                 bidderCatalog,
                 hostVendorTcfDefinerService,
                 ccpaEnforcement,
+                usersyncInfoFactory,
                 uidsCookieService,
                 coopSyncProvider,
                 metrics);
@@ -891,7 +893,6 @@ public class ServiceConfiguration {
 
     @Bean
     BidResponseCreator bidResponseCreator(
-            @Value("${logging.sampling-rate:0.01}") double logSamplingRate,
             CoreCacheService coreCacheService,
             BidderCatalog bidderCatalog,
             VastModifier vastModifier,
@@ -905,13 +906,11 @@ public class ServiceConfiguration {
             @Value("${auction.enforce-random-bid-id:false}") boolean enforceRandomBidId,
             Clock clock,
             JacksonMapper mapper,
-            Metrics metrics,
             @Value("${cache.banner-ttl-seconds:#{null}}") Integer bannerCacheTtl,
             @Value("${cache.video-ttl-seconds:#{null}}") Integer videoCacheTtl,
             CacheDefaultTtlProperties cacheDefaultTtlProperties) {
 
         return new BidResponseCreator(
-                logSamplingRate,
                 coreCacheService,
                 bidderCatalog,
                 vastModifier,
@@ -926,7 +925,6 @@ public class ServiceConfiguration {
                 enforceRandomBidId,
                 clock,
                 mapper,
-                metrics,
                 CacheTtl.of(bannerCacheTtl, videoCacheTtl),
                 cacheDefaultTtlProperties);
     }

@@ -71,5 +71,4 @@ public class HuaweiAppBuilder {
 
         return bundleName;
     }
-
 }

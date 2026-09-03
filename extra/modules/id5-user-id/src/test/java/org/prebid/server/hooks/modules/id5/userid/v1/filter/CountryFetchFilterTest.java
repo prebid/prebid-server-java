@@ -43,7 +43,7 @@ class CountryFetchFilterTest {
                 .geoInfo(GeoInfo.builder().vendor("test").country("PL").build())
                 .build();
         final AuctionInvocationContext invocation = AuctionInvocationContextImpl.of(
-                InvocationContextImpl.of(timeout, Endpoint.openrtb2_auction),
+                InvocationContextImpl.of(timeout, null, Endpoint.openrtb2_auction),
                 auctionContext,
                 false,
                 null,
@@ -69,7 +69,7 @@ class CountryFetchFilterTest {
                 .account(Account.builder().id("acc").build())
                 .build();
         final AuctionInvocationContext invocation = AuctionInvocationContextImpl.of(
-                InvocationContextImpl.of(timeout, Endpoint.openrtb2_auction),
+                InvocationContextImpl.of(timeout, null, Endpoint.openrtb2_auction),
                 auctionContext,
                 false,
                 null,
@@ -92,7 +92,7 @@ class CountryFetchFilterTest {
                 .account(Account.builder().id("acc").build())
                 .build();
         final AuctionInvocationContext invocation = AuctionInvocationContextImpl.of(
-                InvocationContextImpl.of(timeout, Endpoint.openrtb2_auction),
+                InvocationContextImpl.of(timeout, null, Endpoint.openrtb2_auction),
                 auctionContext,
                 false,
                 null,
@@ -119,7 +119,7 @@ class CountryFetchFilterTest {
                 .account(Account.builder().id("acc").build())
                 .build();
         final AuctionInvocationContext invocation = AuctionInvocationContextImpl.of(
-                InvocationContextImpl.of(timeout, Endpoint.openrtb2_auction),
+                InvocationContextImpl.of(timeout, null, Endpoint.openrtb2_auction),
                 auctionContext,
                 false,
                 null,

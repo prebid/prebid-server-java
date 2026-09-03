@@ -500,7 +500,7 @@ class HttpFetchClientTest {
                 .build();
 
         return AuctionInvocationContextImpl.of(
-                InvocationContextImpl.of(timeout,
+                InvocationContextImpl.of(timeout, null,
                         org.prebid.server.model.Endpoint.openrtb2_auction),
                 contextWithActivity, debugEnabled, null, null);
     }

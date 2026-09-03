@@ -28,7 +28,7 @@ class SamplingFetchFilterTest {
         final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(null);
         final Timeout timeout = new TimeoutFactory(Clock.systemUTC()).create(1000);
         final AuctionInvocationContext invocation = AuctionInvocationContextImpl.of(
-                InvocationContextImpl.of(timeout, Endpoint.openrtb2_auction),
+                InvocationContextImpl.of(timeout, null, Endpoint.openrtb2_auction),
                 AuctionContext.builder().account(Account.builder().id("acc").build()).build(),
                 false,
                 null,
@@ -50,7 +50,7 @@ class SamplingFetchFilterTest {
         final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(null);
         final Timeout timeout = new TimeoutFactory(Clock.systemUTC()).create(1000);
         final AuctionInvocationContext invocation = AuctionInvocationContextImpl.of(
-                InvocationContextImpl.of(timeout, Endpoint.openrtb2_auction),
+                InvocationContextImpl.of(timeout, null, Endpoint.openrtb2_auction),
                 AuctionContext.builder().account(Account.builder().id("acc").build()).build(),
                 false,
                 null,

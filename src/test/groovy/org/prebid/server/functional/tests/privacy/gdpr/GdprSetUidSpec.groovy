@@ -30,13 +30,11 @@ import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.DEV
 
 class GdprSetUidSpec extends PrivacyBaseSpec {
 
-    private static final boolean CORS_SUPPORT = false
     private static final String USER_SYNC_URL = "$Dependencies.networkServiceContainer.rootUri/generic-usersync"
     private static final UserSyncInfo.Type USER_SYNC_TYPE = REDIRECT
     private static final Map<String, String> VENDOR_GENERIC_PBS_CONFIG = GENERIC_VENDOR_CONFIG +
             ["gdpr.purposes.p1.enforce-purpose"                                       : NO.value,
-             "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url"         : USER_SYNC_URL,
-             "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.support-cors": CORS_SUPPORT.toString()]
+             "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url"         : USER_SYNC_URL]
     private static final String TCF_ERROR_MESSAGE = "The gdpr_consent param prevents cookies from being saved"
     private static final int UNAVAILABLE_FOR_LEGAL_REASONS_CODE = 451
 
@@ -92,7 +90,7 @@ class GdprSetUidSpec extends PrivacyBaseSpec {
         def setuidRequest = SetuidRequest.defaultSetuidRequest.tap {
             it.account = PBSUtils.randomNumber.toString()
             it.uid = UUID.randomUUID().toString()
-            it.bidder = GENER_X
+            it.bidder = GENERIC
             it.gdpr = "1"
             it.gdprConsent = new TcfConsent.Builder()
                     .setPurposesLITransparency(DEVICE_ACCESS)
@@ -101,9 +99,9 @@ class GdprSetUidSpec extends PrivacyBaseSpec {
                     .build()
         }
 
-        and: "Default uids cookie with gener_x bidder"
+        and: "Default uids cookie with generic bidder"
         def uidsCookie = UidsCookie.defaultUidsCookie.tap {
-            it.tempUIDs = [(GENER_X): defaultUidWithExpiry]
+            it.tempUIDs = [(GENERIC): defaultUidWithExpiry]
         }
 
         and: "Save account config with purpose into DB"
@@ -163,7 +161,7 @@ class GdprSetUidSpec extends PrivacyBaseSpec {
         assert exception.statusCode == UNAVAILABLE_FOR_LEGAL_REASONS_CODE
         assert exception.responseBody == TCF_ERROR_MESSAGE
 
-        and: "Metric should be increased usersync.FAMILY.tcf.blocked"
+        and: "Metric should be increased usersync.BIDDER.tcf.blocked"
         def metric = prebidServerService.sendCollectedMetricsRequest()
         assert metric["usersync.${GENERIC.value}.tcf.blocked"] == 1
     }
@@ -205,7 +203,7 @@ class GdprSetUidSpec extends PrivacyBaseSpec {
         assert exception.statusCode == UNAVAILABLE_FOR_LEGAL_REASONS_CODE
         assert exception.responseBody == TCF_ERROR_MESSAGE
 
-        and: "Metric should be increased usersync.FAMILY.tcf.blocked"
+        and: "Metric should be increased usersync.BIDDER.tcf.blocked"
         def metric = prebidServerService.sendCollectedMetricsRequest()
         assert metric["usersync.${GENERIC.value}.tcf.blocked"] == 1
     }
@@ -251,7 +249,7 @@ class GdprSetUidSpec extends PrivacyBaseSpec {
         assert exception.statusCode == UNAVAILABLE_FOR_LEGAL_REASONS_CODE
         assert exception.responseBody == TCF_ERROR_MESSAGE
 
-        and: "Metric should be increased usersync.FAMILY.tcf.blocked"
+        and: "Metric should be increased usersync.BIDDER.tcf.blocked"
         def metric = prebidServerService.sendCollectedMetricsRequest()
         assert metric["usersync.${GENERIC.value}.tcf.blocked"] == 1
 

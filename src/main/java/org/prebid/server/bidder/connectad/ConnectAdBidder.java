@@ -1,12 +1,15 @@
 package org.prebid.server.bidder.connectad;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
@@ -31,13 +34,19 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class ConnectAdBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpConnectAd>> CONNECTAD_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
+    private static final String BIDDER_EXT_KEY = "bidder";
+    private static final String NETWORK_ID_FIELD = "networkId";
+    private static final String SITE_ID_FIELD = "siteId";
     private static final String HTTPS_PREFIX = "https";
 
     private final String endpointUrl;
@@ -58,7 +67,7 @@ public class ConnectAdBidder implements Bidder<BidRequest> {
         for (Imp imp : request.getImp()) {
             try {
                 final ExtImpConnectAd impExt = parseImpExt(imp);
-                final Imp updatedImp = updateImp(imp, secure, impExt.getSiteId(), impExt.getBidFloor());
+                final Imp updatedImp = updateImp(imp, secure, impExt);
                 processedImps.add(updatedImp);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
@@ -91,27 +100,40 @@ public class ConnectAdBidder implements Bidder<BidRequest> {
         } catch (IllegalArgumentException e) {
             throw new PreBidException("Impression id=%s, has invalid Ext".formatted(imp.getId()));
         }
-        final String siteId = extImpConnectAd.getSiteId();
-        if (siteId == null) {
+        if (extImpConnectAd.getSiteId() == null) {
             throw new PreBidException("Impression id=%s, has no siteId present".formatted(imp.getId()));
         }
         return extImpConnectAd;
     }
 
-    private Imp updateImp(Imp imp, Integer secure, String siteId, BigDecimal bidFloor) {
+    private static Imp updateImp(Imp imp, int secure, ExtImpConnectAd extImpConnectAd) {
+        final BigDecimal bidFloor = extImpConnectAd.getBidFloor();
         final boolean isValidBidFloor = BidderUtil.isValidPrice(bidFloor);
         return imp.toBuilder()
                 .banner(updateBanner(imp.getBanner()))
-                .tagid(siteId)
+                .tagid(String.valueOf(extImpConnectAd.getSiteId()))
                 .secure(secure)
                 .bidfloor(isValidBidFloor ? bidFloor : imp.getBidfloor())
                 .bidfloorcur(isValidBidFloor ? "USD" : imp.getBidfloorcur())
+                .ext(modifyImpExt(imp.getExt()))
                 .build();
+    }
+
+    private static ObjectNode modifyImpExt(ObjectNode impExt) {
+        final ObjectNode modifiedExt = impExt.deepCopy();
+        final JsonNode bidder = modifiedExt.get(BIDDER_EXT_KEY);
+        if (bidder.has(NETWORK_ID_FIELD)) {
+            modifiedExt.set(NETWORK_ID_FIELD, bidder.get(NETWORK_ID_FIELD));
+        }
+        if (bidder.has(SITE_ID_FIELD)) {
+            modifiedExt.set(SITE_ID_FIELD, bidder.get(SITE_ID_FIELD));
+        }
+        return modifiedExt;
     }
 
     private static Banner updateBanner(Banner banner) {
         if (banner == null) {
-            throw new PreBidException("We need a Banner Object in the request");
+            return null;
         }
 
         if (banner.getW() != null || banner.getH() != null) {
@@ -153,16 +175,19 @@ public class ConnectAdBidder implements Bidder<BidRequest> {
     public final Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.withValues(extractBids(bidResponse));
+            return Result.withValues(extractBids(bidResponse, bidRequest));
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private List<BidderBid> extractBids(BidResponse bidResponse) {
+    private List<BidderBid> extractBids(BidResponse bidResponse, BidRequest bidRequest) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
+
+        final Map<String, Imp> impIdToImp = bidRequest.getImp().stream()
+                .collect(Collectors.toMap(Imp::getId, Function.identity()));
 
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
@@ -170,7 +195,22 @@ public class ConnectAdBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(bid, BidType.banner, bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, getBidType(bid, impIdToImp), bidResponse.getCur()))
                 .toList();
+    }
+
+    private static BidType getBidType(Bid bid, Map<String, Imp> impIdToImp) {
+        final Integer mType = bid.getMtype();
+        if (mType == null) {
+            return BidderUtil.getBidType(bid, impIdToImp);
+        }
+
+        return switch (mType) {
+            case 1 -> BidType.banner;
+            case 2 -> BidType.video;
+            case 3 -> BidType.audio;
+            case 4 -> BidType.xNative;
+            default -> BidType.banner;
+        };
     }
 }

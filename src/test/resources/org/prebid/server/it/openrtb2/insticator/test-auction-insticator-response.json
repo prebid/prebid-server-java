@@ -19,7 +19,8 @@
             "prebid": {
               "type": "banner",
               "meta": {
-                "adaptercode": "insticator"
+                "adaptercode": "insticator",
+                "seat": "dsp_seat"
               }
             },
             "origbidcpm": 3.33

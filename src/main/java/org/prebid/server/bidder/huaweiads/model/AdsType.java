@@ -36,5 +36,4 @@ public enum AdsType {
                 .findFirst()
                 .orElse(UNKNOWN);
     }
-
 }

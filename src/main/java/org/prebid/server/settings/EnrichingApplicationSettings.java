@@ -39,8 +39,8 @@ public class EnrichingApplicationSettings implements ApplicationSettings {
                                         JacksonMapper mapper) {
 
         this.enforceValidAccount = enforceValidAccount;
-        this.activitiesConfigResolver = Objects.requireNonNull(activitiesConfigResolver);
         this.priceFloorsConfigResolver = Objects.requireNonNull(priceFloorsConfigResolver);
+        this.activitiesConfigResolver = Objects.requireNonNull(activitiesConfigResolver);
         this.delegate = Objects.requireNonNull(delegate);
         this.jsonMerger = Objects.requireNonNull(jsonMerger);
 

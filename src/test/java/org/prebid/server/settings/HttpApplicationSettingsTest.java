@@ -2,8 +2,6 @@ package org.prebid.server.settings;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.vertx.core.Future;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.utils.URIBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,7 +22,6 @@ import org.prebid.server.settings.proto.response.HttpFetcherResponse;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
-import java.net.URISyntaxException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -332,7 +329,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
     }
 
     @Test
-    public void getStoredDataShouldSendHttpRequestWithRfc3986CompatibleParams() throws URISyntaxException {
+    public void getStoredDataShouldSendHttpRequestWithRfc3986CompatibleParams() {
         // given
         givenHttpClientReturnsResponse(200, null);
         httpApplicationSettings = new HttpApplicationSettings(
@@ -344,23 +341,17 @@ public class HttpApplicationSettingsTest extends VertxTest {
                 jacksonMapper);
 
         // when
-        httpApplicationSettings.getStoredData(null, Set.of("id1", "id2"), Set.of("id1", "id2"), timeout);
+        httpApplicationSettings.getStoredData(
+                null,
+                new HashSet<>(Set.of("id1", "id2")),
+                new HashSet<>(Set.of("id1", "id2")),
+                timeout);
 
         // then
         final ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
         verify(httpClient).get(captor.capture(), any(), anyLong());
-
-        final URIBuilder uriBuilder = new URIBuilder(captor.getValue());
-        assertThat(uriBuilder.getHost()).isEqualTo("stored-requests.com");
-        assertThat(uriBuilder.getPath()).isEqualTo("/something");
-        assertThat(uriBuilder.getQueryParams())
-                .extracting(NameValuePair::getName, NameValuePair::getValue)
-                .containsExactlyInAnyOrder(
-                        tuple("id", "1"),
-                        tuple("request-id", "id1"),
-                        tuple("request-id", "id2"),
-                        tuple("imp-id", "id1"),
-                        tuple("imp-id", "id2"));
+        assertThat(captor.getValue())
+                .isEqualTo("http://stored-requests.com/something?id=1&request-id=id2%2Cid1&imp-id=id2%2Cid1");
     }
 
     @Test

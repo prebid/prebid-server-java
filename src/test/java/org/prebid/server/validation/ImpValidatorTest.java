@@ -54,7 +54,7 @@ import static org.mockito.Mockito.verify;
 @ExtendWith(MockitoExtension.class)
 public class ImpValidatorTest extends VertxTest {
 
-    private static final String RUBICON = "rubicon";
+    private static final String MAGNITE = "magnite";
 
     @Mock
     private BidderParamValidator bidderParamValidator;
@@ -67,8 +67,8 @@ public class ImpValidatorTest extends VertxTest {
     public void setUp() {
         target = new ImpValidator(bidderParamValidator, bidderCatalog, jacksonMapper);
 
-        given(bidderCatalog.isValidName(RUBICON)).willReturn(true);
-        given(bidderCatalog.isActive(RUBICON)).willReturn(true);
+        given(bidderCatalog.isValidName(MAGNITE)).willReturn(true);
+        given(bidderCatalog.isActive(MAGNITE)).willReturn(true);
     }
 
     @Test
@@ -146,7 +146,7 @@ public class ImpValidatorTest extends VertxTest {
                         .format(null)
                         .build())
                 .ext(mapper.valueToTree(
-                        singletonMap("prebid", singletonMap("bidder", singletonMap("rubicon", 0)))))
+                        singletonMap("prebid", singletonMap("bidder", singletonMap("magnite", 0)))))
                 .build());
 
         // when & then
@@ -169,7 +169,7 @@ public class ImpValidatorTest extends VertxTest {
                         .format(null)
                         .build())
                 .ext(mapper.valueToTree(
-                        singletonMap("prebid", singletonMap("bidder", singletonMap("rubicon", 0)))))
+                        singletonMap("prebid", singletonMap("bidder", singletonMap("magnite", 0)))))
                 .build());
 
         // when & then
@@ -185,7 +185,7 @@ public class ImpValidatorTest extends VertxTest {
                         .format(emptyList())
                         .build())
                 .ext(mapper.valueToTree(
-                        singletonMap("prebid", singletonMap("bidder", singletonMap("rubicon", 0)))))
+                        singletonMap("prebid", singletonMap("bidder", singletonMap("magnite", 0)))))
                 .build());
 
         // when & then
@@ -205,7 +205,7 @@ public class ImpValidatorTest extends VertxTest {
                         .format(emptyList())
                         .build())
                 .ext(mapper.valueToTree(
-                        singletonMap("prebid", singletonMap("bidder", singletonMap("rubicon", 0)))))
+                        singletonMap("prebid", singletonMap("bidder", singletonMap("magnite", 0)))))
                 .build());
 
         // when & then
@@ -225,7 +225,7 @@ public class ImpValidatorTest extends VertxTest {
                         .format(emptyList())
                         .build())
                 .ext(mapper.valueToTree(
-                        singletonMap("prebid", singletonMap("bidder", singletonMap("rubicon", 0)))))
+                        singletonMap("prebid", singletonMap("bidder", singletonMap("magnite", 0)))))
                 .build());
 
         // when & then
@@ -246,7 +246,7 @@ public class ImpValidatorTest extends VertxTest {
                         .format(emptyList())
                         .build())
                 .ext(mapper.valueToTree(
-                        singletonMap("prebid", singletonMap("bidder", singletonMap("rubicon", 0)))))
+                        singletonMap("prebid", singletonMap("bidder", singletonMap("magnite", 0)))))
                 .build());
 
         // when & then
@@ -267,7 +267,7 @@ public class ImpValidatorTest extends VertxTest {
                         .format(singletonList(Format.builder().build()))
                         .build())
                 .ext(mapper.valueToTree(
-                        singletonMap("prebid", singletonMap("bidder", singletonMap("rubicon", 0)))))
+                        singletonMap("prebid", singletonMap("bidder", singletonMap("magnite", 0)))))
                 .build());
 
         // when & then
@@ -288,7 +288,7 @@ public class ImpValidatorTest extends VertxTest {
                         .format(singletonList(Format.builder().w(1).h(1).build()))
                         .build())
                 .ext(mapper.valueToTree(
-                        singletonMap("prebid", singletonMap("bidder", singletonMap("rubicon", 0)))))
+                        singletonMap("prebid", singletonMap("bidder", singletonMap("magnite", 0)))))
                 .build());
 
         // when & then
@@ -306,7 +306,7 @@ public class ImpValidatorTest extends VertxTest {
                         .format(emptyList())
                         .build())
                 .ext(mapper.valueToTree(
-                        singletonMap("prebid", singletonMap("bidder", singletonMap("rubicon", 0)))))
+                        singletonMap("prebid", singletonMap("bidder", singletonMap("magnite", 0)))))
                 .build());
 
         // when & then
@@ -327,7 +327,7 @@ public class ImpValidatorTest extends VertxTest {
                         .format(singletonList(Format.builder().build()))
                         .build())
                 .ext(mapper.valueToTree(
-                        singletonMap("prebid", singletonMap("bidder", singletonMap("rubicon", 0)))))
+                        singletonMap("prebid", singletonMap("bidder", singletonMap("magnite", 0)))))
                 .build());
 
         // when & then
@@ -347,7 +347,7 @@ public class ImpValidatorTest extends VertxTest {
                         .format(emptyList())
                         .build())
                 .ext(mapper.valueToTree(
-                        singletonMap("prebid", singletonMap("bidder", singletonMap("rubicon", 0)))))
+                        singletonMap("prebid", singletonMap("bidder", singletonMap("magnite", 0)))))
                 .build());
 
         // when & then
@@ -368,7 +368,7 @@ public class ImpValidatorTest extends VertxTest {
                         .format(singletonList(Format.builder().build()))
                         .build())
                 .ext(mapper.valueToTree(
-                        singletonMap("prebid", singletonMap("bidder", singletonMap("rubicon", 0)))))
+                        singletonMap("prebid", singletonMap("bidder", singletonMap("magnite", 0)))))
                 .build());
 
         // when & then
@@ -387,7 +387,7 @@ public class ImpValidatorTest extends VertxTest {
                         .w(600)
                         .format(emptyList())
                         .build())
-                .ext(mapper.valueToTree(singletonMap("prebid", singletonMap("bidder", singletonMap("rubicon", 0)))))
+                .ext(mapper.valueToTree(singletonMap("prebid", singletonMap("bidder", singletonMap("magnite", 0)))))
                 .build());
 
         // when & then
@@ -408,7 +408,7 @@ public class ImpValidatorTest extends VertxTest {
                         .format(singletonList(Format.builder().build()))
                         .build())
                 .ext(mapper.valueToTree(
-                        singletonMap("prebid", singletonMap("bidder", singletonMap("rubicon", 0)))))
+                        singletonMap("prebid", singletonMap("bidder", singletonMap("magnite", 0)))))
                 .build());
 
         // when & then
@@ -1298,15 +1298,15 @@ public class ImpValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateImpsShouldReturnValidationMessageWhenMetricValueIsNotValid() {
+    public void validateImpsShouldReturnValidationMessageWhenMetricValueNullOrEmpty() {
         // given
         final List<Imp> givenImps = singletonList(validImpBuilder()
-                .metric(singletonList(Metric.builder().type("viewability").value(2.0f).build())).build());
+                .metric(singletonList(Metric.builder().type("viewability").value(null).build())).build());
 
         // when & then
         assertThatThrownBy(() -> target.validateImps(givenImps, Collections.emptyMap(), null))
                 .isInstanceOf(ValidationException.class)
-                .hasMessage("request.imp[0].metric[0].value must be in the range [0.0, 1.0]");
+                .hasMessage("Missing request.imp[0].metric[0].value");
     }
 
     @Test
@@ -1367,7 +1367,7 @@ public class ImpValidatorTest extends VertxTest {
         // given
         final ObjectNode prebid = mapper.valueToTree(ExtImpPrebid.builder()
                 .storedBidResponse(singletonList(ExtStoredBidResponse.of(null, "id")))
-                .bidder(mapper.createObjectNode().put("rubicon", 1))
+                .bidder(mapper.createObjectNode().put("magnite", 1))
                 .build());
 
         final List<Imp> givenImps = singletonList(validImpBuilder()
@@ -1384,7 +1384,7 @@ public class ImpValidatorTest extends VertxTest {
         // given
         final ObjectNode prebid = mapper.valueToTree(ExtImpPrebid.builder()
                 .storedBidResponse(singletonList(ExtStoredBidResponse.of("bidder", null)))
-                .bidder(mapper.createObjectNode().put("rubicon", 1))
+                .bidder(mapper.createObjectNode().put("magnite", 1))
                 .build());
 
         final List<Imp> givenImps = singletonList(validImpBuilder()
@@ -1402,7 +1402,7 @@ public class ImpValidatorTest extends VertxTest {
         // given
         final ObjectNode prebid = mapper.valueToTree(ExtImpPrebid.builder()
                 .storedBidResponse(singletonList(ExtStoredBidResponse.of("bidder", "id")))
-                .bidder(mapper.createObjectNode().put("rubicon", 1))
+                .bidder(mapper.createObjectNode().put("magnite", 1))
                 .build());
 
         given(bidderCatalog.isValidName(eq("bidder"))).willReturn(false);
@@ -1421,7 +1421,7 @@ public class ImpValidatorTest extends VertxTest {
         // given
         final ObjectNode prebid = mapper.valueToTree(ExtImpPrebid.builder()
                 .storedBidResponse(singletonList(ExtStoredBidResponse.of("bidder", "id")))
-                .bidder(mapper.createObjectNode().put("rubicon", 1))
+                .bidder(mapper.createObjectNode().put("magnite", 1))
                 .build());
 
         given(bidderCatalog.isValidName(eq("bidder"))).willReturn(true);
@@ -1468,7 +1468,7 @@ public class ImpValidatorTest extends VertxTest {
 
         // given
         final List<Imp> givenImps = givenValidImps();
-        given(bidderCatalog.isValidName(eq(RUBICON))).willReturn(false);
+        given(bidderCatalog.isValidName(eq(MAGNITE))).willReturn(false);
 
         final List<String> debugMessages = new ArrayList<>();
 
@@ -1477,8 +1477,8 @@ public class ImpValidatorTest extends VertxTest {
 
         // then
         assertThat(debugMessages)
-                .containsExactly("WARNING: request.imp[0].ext.prebid.bidder.rubicon was dropped with a reason: "
-                                + "request.imp[0].ext.prebid.bidder contains unknown bidder: rubicon",
+                .containsExactly("WARNING: request.imp[0].ext.prebid.bidder.magnite was dropped with a reason: "
+                                + "request.imp[0].ext.prebid.bidder contains unknown bidder: magnite",
                         "WARNING: request.imp[0].ext must contain at least one valid bidder");
 
         assertThat(givenImps)
@@ -1504,8 +1504,8 @@ public class ImpValidatorTest extends VertxTest {
         assertThat(debugMessages)
                 .containsExactly(
                         """
-                                WARNING: request.imp[0].ext.prebid.bidder.rubicon was dropped with a reason: \
-                                request.imp[0].ext.prebid.bidder.rubicon failed validation.
+                                WARNING: request.imp[0].ext.prebid.bidder.magnite was dropped with a reason: \
+                                request.imp[0].ext.prebid.bidder.magnite failed validation.
                                 errorMessage1
                                 errorMessage2""",
                         "WARNING: request.imp[0].ext must contain at least one valid bidder");
@@ -1532,7 +1532,7 @@ public class ImpValidatorTest extends VertxTest {
         final List<String> debugMessages = new ArrayList<>();
 
         // when
-        target.validateImps(givenImps, Map.of("someAlias", "rubicon"), debugMessages);
+        target.validateImps(givenImps, Map.of("someAlias", "magnite"), debugMessages);
 
         // then
         assertThat(debugMessages)
@@ -1560,7 +1560,7 @@ public class ImpValidatorTest extends VertxTest {
         // given
         final List<Imp> givenImps = singletonList(validImpBuilder()
                 .ext(mapper.valueToTree(singletonMap("prebid",
-                        Map.of("imp", singletonMap("unknownBidder", 0), "bidder", singletonMap("rubicon", 0)))))
+                        Map.of("imp", singletonMap("unknownBidder", 0), "bidder", singletonMap("magnite", 0)))))
                 .build());
 
         given(bidderCatalog.isValidName(eq("unknownBidder"))).willReturn(false);
@@ -1588,13 +1588,13 @@ public class ImpValidatorTest extends VertxTest {
         // given
         final List<Imp> givenImps = singletonList(validImpBuilder()
                 .ext(mapper.valueToTree(singletonMap("prebid",
-                        Map.of("imp", singletonMap("rubiconAlias", 0), "bidder", singletonMap("rubicon", 0)))))
+                        Map.of("imp", singletonMap("magniteAlias", 0), "bidder", singletonMap("magnite", 0)))))
                 .build());
 
         final List<String> debugMessages = new ArrayList<>();
 
         // when
-        target.validateImps(givenImps, Map.of("rubiconAlias", "rubicon"), debugMessages);
+        target.validateImps(givenImps, Map.of("magniteAlias", "magnite"), debugMessages);
 
         // then
         assertThat(debugMessages).isEmpty();
@@ -1603,7 +1603,7 @@ public class ImpValidatorTest extends VertxTest {
                 .extracting(Imp::getExt)
                 .extracting(impExt -> impExt.get("prebid"))
                 .extracting(prebid -> prebid.get("imp"))
-                .containsOnly(mapper.createObjectNode().put("rubiconAlias", 0));
+                .containsOnly(mapper.createObjectNode().put("magniteAlias", 0));
     }
 
     @Test
@@ -1682,7 +1682,7 @@ public class ImpValidatorTest extends VertxTest {
                         .format(emptyList())
                         .build())
                 .ext(mapper.valueToTree(
-                        singletonMap("prebid", singletonMap("bidder", singletonMap("rubicon", 0)))))
+                        singletonMap("prebid", singletonMap("bidder", singletonMap("magnite", 0)))))
                 .build();
 
         // when & then
@@ -1702,7 +1702,7 @@ public class ImpValidatorTest extends VertxTest {
                         .format(emptyList())
                         .build())
                 .ext(mapper.valueToTree(
-                        singletonMap("prebid", singletonMap("bidder", singletonMap("rubicon", 0)))))
+                        singletonMap("prebid", singletonMap("bidder", singletonMap("magnite", 0)))))
                 .build();
 
         // when & then
@@ -1722,7 +1722,7 @@ public class ImpValidatorTest extends VertxTest {
                         .format(singletonList(Format.builder().build()))
                         .build())
                 .ext(mapper.valueToTree(
-                        singletonMap("prebid", singletonMap("bidder", singletonMap("rubicon", 0)))))
+                        singletonMap("prebid", singletonMap("bidder", singletonMap("magnite", 0)))))
                 .build();
 
         // when & then
@@ -1795,7 +1795,7 @@ public class ImpValidatorTest extends VertxTest {
                         .format(null)
                         .build())
                 .ext(mapper.valueToTree(
-                        singletonMap("prebid", singletonMap("bidder", singletonMap("rubicon", 0)))))
+                        singletonMap("prebid", singletonMap("bidder", singletonMap("magnite", 0)))))
                 .build();
 
         // when & then
@@ -1817,7 +1817,7 @@ public class ImpValidatorTest extends VertxTest {
                         .format(null)
                         .build())
                 .ext(mapper.valueToTree(
-                        singletonMap("prebid", singletonMap("bidder", singletonMap("rubicon", 0)))))
+                        singletonMap("prebid", singletonMap("bidder", singletonMap("magnite", 0)))))
                 .build();
 
         // when & then
@@ -1833,7 +1833,7 @@ public class ImpValidatorTest extends VertxTest {
                         .format(emptyList())
                         .build())
                 .ext(mapper.valueToTree(
-                        singletonMap("prebid", singletonMap("bidder", singletonMap("rubicon", 0)))))
+                        singletonMap("prebid", singletonMap("bidder", singletonMap("magnite", 0)))))
                 .build();
 
         // when & then
@@ -1852,7 +1852,7 @@ public class ImpValidatorTest extends VertxTest {
                         .format(emptyList())
                         .build())
                 .ext(mapper.valueToTree(
-                        singletonMap("prebid", singletonMap("bidder", singletonMap("rubicon", 0)))))
+                        singletonMap("prebid", singletonMap("bidder", singletonMap("magnite", 0)))))
                 .build();
 
         // when & then
@@ -1873,7 +1873,7 @@ public class ImpValidatorTest extends VertxTest {
                         .format(singletonList(Format.builder().w(1).h(1).build()))
                         .build())
                 .ext(mapper.valueToTree(
-                        singletonMap("prebid", singletonMap("bidder", singletonMap("rubicon", 0)))))
+                        singletonMap("prebid", singletonMap("bidder", singletonMap("magnite", 0)))))
                 .build();
 
         // when & then
@@ -1891,7 +1891,7 @@ public class ImpValidatorTest extends VertxTest {
                         .format(emptyList())
                         .build())
                 .ext(mapper.valueToTree(
-                        singletonMap("prebid", singletonMap("bidder", singletonMap("rubicon", 0)))))
+                        singletonMap("prebid", singletonMap("bidder", singletonMap("magnite", 0)))))
                 .build();
 
         // when & then
@@ -1911,7 +1911,7 @@ public class ImpValidatorTest extends VertxTest {
                         .format(singletonList(Format.builder().build()))
                         .build())
                 .ext(mapper.valueToTree(
-                        singletonMap("prebid", singletonMap("bidder", singletonMap("rubicon", 0)))))
+                        singletonMap("prebid", singletonMap("bidder", singletonMap("magnite", 0)))))
                 .build();
 
         // when & then
@@ -1931,7 +1931,7 @@ public class ImpValidatorTest extends VertxTest {
                         .format(emptyList())
                         .build())
                 .ext(mapper.valueToTree(
-                        singletonMap("prebid", singletonMap("bidder", singletonMap("rubicon", 0)))))
+                        singletonMap("prebid", singletonMap("bidder", singletonMap("magnite", 0)))))
                 .build();
 
         // when & then
@@ -1951,7 +1951,7 @@ public class ImpValidatorTest extends VertxTest {
                         .format(singletonList(Format.builder().build()))
                         .build())
                 .ext(mapper.valueToTree(
-                        singletonMap("prebid", singletonMap("bidder", singletonMap("rubicon", 0)))))
+                        singletonMap("prebid", singletonMap("bidder", singletonMap("magnite", 0)))))
                 .build();
 
         // when & then
@@ -1970,7 +1970,7 @@ public class ImpValidatorTest extends VertxTest {
                         .w(600)
                         .format(emptyList())
                         .build())
-                .ext(mapper.valueToTree(singletonMap("prebid", singletonMap("bidder", singletonMap("rubicon", 0)))))
+                .ext(mapper.valueToTree(singletonMap("prebid", singletonMap("bidder", singletonMap("magnite", 0)))))
                 .build();
 
         // when & then
@@ -1990,7 +1990,7 @@ public class ImpValidatorTest extends VertxTest {
                         .format(singletonList(Format.builder().build()))
                         .build())
                 .ext(mapper.valueToTree(
-                        singletonMap("prebid", singletonMap("bidder", singletonMap("rubicon", 0)))))
+                        singletonMap("prebid", singletonMap("bidder", singletonMap("magnite", 0)))))
                 .build();
 
         // when & then
@@ -2370,15 +2370,15 @@ public class ImpValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateImpShouldReturnValidationMessageWhenMetricValueIsNotValid() {
+    public void validateImpShouldReturnValidationMessageWhenMetricValueNullOrEmpty() {
         // given
         final Imp givenImp = validImpBuilder()
-                .metric(singletonList(Metric.builder().type("viewability").value(2.0f).build())).build();
+                .metric(singletonList(Metric.builder().type("viewability").value(null).build())).build();
 
         // when & then
         assertThatThrownBy(() -> target.validateImp(givenImp))
                 .isInstanceOf(ValidationException.class)
-                .hasMessage("imp[id=200].metric[0].value must be in the range [0.0, 1.0]");
+                .hasMessage("Missing imp[id=200].metric[0].value");
     }
 
     private static List<Imp> givenImps(UnaryOperator<Native.NativeBuilder> nativeCustomizer) {
@@ -2426,7 +2426,7 @@ public class ImpValidatorTest extends VertxTest {
                         .format(singletonList(Format.builder().wmin(1).wratio(5).hratio(1).build()))
                         .build())
                 .pmp(Pmp.builder().deals(singletonList(Deal.builder().id("1").build())).build())
-                .ext(mapper.valueToTree(singletonMap("prebid", singletonMap("bidder", singletonMap("rubicon", 0)))));
+                .ext(mapper.valueToTree(singletonMap("prebid", singletonMap("bidder", singletonMap("magnite", 0)))));
     }
 
 }

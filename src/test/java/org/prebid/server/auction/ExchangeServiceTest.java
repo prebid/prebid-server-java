@@ -29,6 +29,7 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.assertj.core.api.InstanceOfAssertFactories;
@@ -39,6 +40,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
@@ -85,6 +87,7 @@ import org.prebid.server.hooks.execution.model.ExecutionStatus;
 import org.prebid.server.hooks.execution.model.GroupExecutionOutcome;
 import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.hooks.execution.model.HookExecutionOutcome;
+import org.prebid.server.hooks.execution.model.HookHttpEndpoint;
 import org.prebid.server.hooks.execution.model.HookId;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
 import org.prebid.server.hooks.execution.model.Stage;
@@ -101,7 +104,6 @@ import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
-import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.model.UpdateResult;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
@@ -111,7 +113,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfig;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigOrtb;
 import org.prebid.server.proto.openrtb.ext.request.ExtDooh;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
-import org.prebid.server.proto.openrtb.ext.request.ExtImpAuctionEnvironment;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestCurrency;
@@ -150,7 +151,6 @@ import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceInvocationRes
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceStage;
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceStageOutcome;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
-import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAlternateBidderCodes;
 import org.prebid.server.settings.model.AccountAlternateBidderCodesBidder;
@@ -177,12 +177,16 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
 
 import static java.math.BigDecimal.ONE;
 import static java.math.BigDecimal.TEN;
+import static java.math.BigDecimal.TWO;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
+import static java.util.Collections.emptySet;
+import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static java.util.function.UnaryOperator.identity;
@@ -209,7 +213,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.prebid.server.auction.model.BidRejectionReason.ERROR_GENERAL;
+import static org.prebid.server.auction.model.BidRejectionReason.ERROR_TIMED_OUT;
 import static org.prebid.server.auction.model.BidRejectionReason.NO_BID;
+import static org.prebid.server.auction.model.BidRejectionReason.REQUEST_BLOCKED_GENERAL;
+import static org.prebid.server.auction.model.BidRejectionReason.REQUEST_BLOCKED_PRIVACY;
 import static org.prebid.server.auction.model.BidRejectionReason.REQUEST_BLOCKED_UNSUPPORTED_MEDIA_TYPE;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
@@ -1298,51 +1306,6 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(result.getBidResponse().getSeatbid()).hasSize(2)
                 .extracting(seatBid -> seatBid.getBid().size())
                 .containsOnly(1, 1);
-    }
-
-    @Test
-    public void shouldPropagateFledgeResponseWithBidderAlias() {
-        // given
-        final FledgeAuctionConfig fledgeAuctionConfig = givenFledgeAuctionConfig("impId");
-        given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), any(), anyBoolean()))
-                .willReturn(Future.succeededFuture(givenEmptySeatBid()
-                        .toBuilder()
-                        .fledgeAuctionConfigs(List.of(fledgeAuctionConfig))
-                        .build()));
-
-        final BidRequest bidRequest = givenBidRequest(
-                singletonList(Imp.builder()
-                        .id("impId")
-                        .ext(mapper.valueToTree(
-                                Map.of("prebid", singletonMap("bidder", singletonMap("bidderAlias", 1)),
-                                        "ae", 1)))
-                        .build()),
-                builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .aliases(singletonMap("bidderAlias", "bidder"))
-                        .build())));
-
-        // when
-        target.holdAuction(givenRequestContext(bidRequest));
-
-        verify(httpBidderRequester, times(1))
-                .requestBids(any(), any(), any(), any(), any(), any(), anyBoolean());
-
-        // then
-        final BidRequest capturedBidRequest = captureBidRequest();
-
-        assertThat(capturedBidRequest.getImp())
-                .extracting(Imp::getExt)
-                .containsOnly(mapper.valueToTree(ExtPrebid.of(null, 1,
-                        ExtImpAuctionEnvironment.ON_DEVICE_IG_AUCTION_FLEDGE)));
-
-        final List<AuctionParticipation> auctionParticipations = captureAuctionParticipations();
-
-        assertThat(auctionParticipations)
-                .hasSize(1)
-                .extracting(AuctionParticipation::getBidderResponse)
-                .extracting(BidderResponse::getSeatBid)
-                .extracting(BidderSeatBid::getFledgeAuctionConfigs)
-                .containsExactly(List.of(fledgeAuctionConfig));
     }
 
     @Test
@@ -3285,10 +3248,10 @@ public class ExchangeServiceTest extends VertxTest {
                         .bids(singletonList(givenBidderBid(Bid.builder().impid("impId").price(TEN).build())))
                         .errors(asList(
                                 // two identical errors to verify corresponding metric is submitted only once
-                                BidderError.badInput("rubicon error"),
-                                BidderError.badInput("rubicon error"),
-                                BidderError.badServerResponse("rubicon error"),
-                                BidderError.failedToRequestBids("rubicon failed to request bids"),
+                                BidderError.badInput("magnite error"),
+                                BidderError.badInput("magnite error"),
+                                BidderError.badServerResponse("magnite error"),
+                                BidderError.failedToRequestBids("magnite failed to request bids"),
                                 BidderError.timeout("timeout error"),
                                 BidderError.generic("timeout error")))
                         .build()));
@@ -3353,7 +3316,7 @@ public class ExchangeServiceTest extends VertxTest {
     public void shouldReturnEmptyBidResponseWhenRequestIsRejected() {
         // given
         final AuctionContext auctionContext = AuctionContext.builder()
-                .hookExecutionContext(HookExecutionContext.of(Endpoint.openrtb2_auction))
+                .hookExecutionContext(HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION))
                 .debugContext(DebugContext.empty())
                 .requestRejected(true)
                 .build();
@@ -3380,7 +3343,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
         final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
                 .hookExecutionContext(HookExecutionContext.of(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         stageOutcomes(givenAppliedToImpl(identity()))))
                 .debugContext(DebugContext.of(true, true, null))
                 .build();
@@ -3448,7 +3411,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
         final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
                 .hookExecutionContext(HookExecutionContext.of(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         stageOutcomes(givenAppliedToImpl(identity()))))
                 .debugContext(DebugContext.of(false, false, TraceLevel.basic))
                 .build();
@@ -3542,7 +3505,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
         final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
                 .hookExecutionContext(HookExecutionContext.of(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         stageOutcomes(givenAppliedToImpl(identity()))))
                 .debugContext(DebugContext.of(false, false, TraceLevel.verbose))
                 .build();
@@ -3580,7 +3543,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
         final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
                 .hookExecutionContext(HookExecutionContext.of(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         stageOutcomes(givenAppliedToImpl(appliedToImplBuilder -> appliedToImplBuilder
                                 .impIds(asList("impId1", "impId2"))
                                 .response(true)
@@ -3627,7 +3590,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
         final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
                 .hookExecutionContext(HookExecutionContext.of(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         stageOutcomes(null)))
                 .debugContext(DebugContext.of(false, false, TraceLevel.verbose))
                 .build();
@@ -3665,7 +3628,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
         final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
                 .hookExecutionContext(HookExecutionContext.of(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         stageOutcomes(givenAppliedToImpl(identity()))))
                 .debugContext(DebugContext.of(true, true, TraceLevel.basic))
                 .build();
@@ -3687,7 +3650,7 @@ public class ExchangeServiceTest extends VertxTest {
         // given
         final AuctionContext auctionContext = AuctionContext.builder()
                 .hookExecutionContext(HookExecutionContext.of(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         stageOutcomes(givenAppliedToImpl(identity()))))
                 .debugContext(DebugContext.of(true, true, TraceLevel.basic))
                 .requestRejected(true)
@@ -3714,7 +3677,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
         final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
                 .hookExecutionContext(HookExecutionContext.of(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         new EnumMap<>(singletonMap(
                                 Stage.entrypoint,
                                 singletonList(StageExecutionOutcome.of("http-request", emptyList()))))))
@@ -3751,7 +3714,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .build();
         final AuctionContext auctionContext = givenRequestContext(bidRequest, account).toBuilder()
                 .hookExecutionContext(HookExecutionContext.of(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         stageOutcomes(givenAppliedToImpl(identity()))))
                 .build();
 
@@ -3790,7 +3753,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .build())));
         final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
                 .hookExecutionContext(HookExecutionContext.of(
-                        Endpoint.openrtb2_auction,
+                        HookHttpEndpoint.POST_AUCTION,
                         stageOutcomes(givenAppliedToImpl(identity()))))
                 .build();
 
@@ -4185,6 +4148,408 @@ public class ExchangeServiceTest extends VertxTest {
         verify(metrics, times(3)).updateAdapterRequestErrorMetric("bidder", MetricName.unknown_error);
     }
 
+    @Test
+    public void shouldWaitForPrimaryBidders() {
+        // given
+        doReturn(Promise.promise().future()).when(httpBidderRequester)
+                .requestBids(any(), argThat(bidderRequest -> bidderRequest.getBidder().equals("primary")),
+                        any(), any(), any(), any(), anyBoolean());
+
+        doReturn(Future.succeededFuture(givenSeatBid(emptyList()))).when(httpBidderRequester)
+                .requestBids(any(), argThat(bidderRequest -> bidderRequest.getBidder().equals("secondary")),
+                        any(), any(), any(), any(), anyBoolean());
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(Map.of("primary", 1, "secondary", 2)));
+        final Account account = Account.builder()
+                .auction(AccountAuctionConfig.builder().secondaryBidders(singleton("secondary")).build())
+                .build();
+        final AuctionContext auctionContext = givenRequestContext(bidRequest, account);
+
+        // when
+        final Future<AuctionContext> result = target.holdAuction(auctionContext);
+
+        // then
+        assertThat(result.isComplete()).isFalse();
+    }
+
+    @Test
+    public void shouldNotWaitForSecondaryBidders() {
+        // given
+        doReturn(Future.succeededFuture(givenSeatBid(emptyList()))).when(httpBidderRequester)
+                .requestBids(any(), argThat(bidderRequest -> bidderRequest.getBidder().equals("primary")),
+                        any(), any(), any(), any(), anyBoolean());
+
+        doReturn(Promise.promise().future()).when(httpBidderRequester)
+                .requestBids(any(), argThat(bidderRequest -> bidderRequest.getBidder().equals("secondary")),
+                        any(), any(), any(), any(), anyBoolean());
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(Map.of("primary", 1, "secondary", 2)));
+        final Account account = Account.builder()
+                .auction(AccountAuctionConfig.builder().secondaryBidders(singleton("secondary")).build())
+                .build();
+        final AuctionContext auctionContext = givenRequestContext(bidRequest, account);
+
+        // when
+        final Future<AuctionContext> result = target.holdAuction(auctionContext);
+
+        // then
+        assertThat(result.succeeded()).isTrue();
+    }
+
+    @Test
+    public void shouldWaitForSecondaryBiddersWhenThereAreNoPrimaryBidders() {
+        // given
+        doReturn(Future.succeededFuture(givenSeatBid(emptyList()))).when(httpBidderRequester)
+                .requestBids(any(), argThat(bidderRequest -> bidderRequest.getBidder().equals("secondaryCompleted")),
+                        any(), any(), any(), any(), anyBoolean());
+
+        doReturn(Promise.promise().future()).when(httpBidderRequester)
+                .requestBids(any(), argThat(bidderRequest -> bidderRequest.getBidder().equals("secondaryUncompleted")),
+                        any(), any(), any(), any(), anyBoolean());
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(
+                Map.of("secondaryCompleted", 2, "secondaryUncompleted", 3)));
+        final Account account = Account.builder()
+                .auction(AccountAuctionConfig.builder()
+                        .secondaryBidders(Set.of("secondaryCompleted", "secondaryUncompleted"))
+                        .build())
+                .build();
+        final AuctionContext auctionContext = givenRequestContext(bidRequest, account);
+
+        // when
+        final Future<AuctionContext> result = target.holdAuction(auctionContext);
+
+        // then
+        assertThat(result.isComplete()).isFalse();
+    }
+
+    @Test
+    public void shouldReturnEmptyBidResponseWithTimeoutWarningForUncompletedSecondaryBidders() {
+        // given
+        doReturn(Future.succeededFuture(givenSeatBid(emptyList()))).when(httpBidderRequester)
+                .requestBids(any(), argThat(bidderRequest -> bidderRequest.getBidder().equals("primary")),
+                        any(), any(), any(), any(), anyBoolean());
+
+        doReturn(Promise.promise().future()).when(httpBidderRequester)
+                .requestBids(any(), argThat(bidderRequest -> bidderRequest.getBidder().equals("secondary")),
+                        any(), any(), any(), any(), anyBoolean());
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(
+                Map.of("primary", 1, "secondary", 2)));
+        final Account account = Account.builder()
+                .auction(AccountAuctionConfig.builder()
+                        .secondaryBidders(Set.of("secondary"))
+                        .build())
+                .build();
+        final AuctionContext auctionContext = givenRequestContext(bidRequest, account);
+
+        // when
+        target.holdAuction(auctionContext);
+
+        // then
+        final ArgumentCaptor<List<AuctionParticipation>> captor = ArgumentCaptor.forClass(List.class);
+        verify(storedResponseProcessor).updateStoredBidResponse(captor.capture());
+        assertThat(captor.getValue())
+                .filteredOn(AuctionParticipation::getBidder, "secondary")
+                .extracting(AuctionParticipation::getBidderResponse)
+                .extracting(BidderResponse::getSeatBid)
+                .hasSize(1)
+                .allSatisfy(seatBid -> {
+                    assertThat(seatBid.getBids()).isEmpty();
+                    assertThat(seatBid.getWarnings()).containsExactly(
+                            BidderError.of("secondary bidder timed out, auction proceeded", BidderError.Type.timeout));
+                });
+    }
+
+    @Test
+    public void shouldReturnBidsFromCompletedPrimaryAndSecondaryBidders() {
+        // given
+        final BidderSeatBid primaryBidderSeatBid = givenSingleSeatBid(givenBidderBid(Bid.builder().price(ONE).build()));
+        doReturn(Future.succeededFuture(primaryBidderSeatBid)).when(httpBidderRequester)
+                .requestBids(any(), argThat(bidderRequest -> bidderRequest.getBidder().equals("primary")),
+                        any(), any(), any(), any(), anyBoolean());
+
+        final BidderSeatBid completedSecondaryBidderSeatBid = givenSingleSeatBid(
+                givenBidderBid(Bid.builder().price(TWO).build()));
+        doReturn(Future.succeededFuture(completedSecondaryBidderSeatBid)).when(httpBidderRequester)
+                .requestBids(any(), argThat(bidderRequest -> bidderRequest.getBidder().equals("secondaryCompleted")),
+                        any(), any(), any(), any(), anyBoolean());
+
+        doReturn(Promise.promise().future()).when(httpBidderRequester)
+                .requestBids(any(), argThat(bidderRequest -> bidderRequest.getBidder().equals("secondaryUncompleted")),
+                        any(), any(), any(), any(), anyBoolean());
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(
+                Map.of("primary", 1, "secondaryCompleted", 2, "secondaryUncompleted", 3)));
+        final Account account = Account.builder()
+                .auction(AccountAuctionConfig.builder()
+                        .secondaryBidders(Set.of("secondaryCompleted", "secondaryUncompleted"))
+                        .build())
+                .build();
+        final AuctionContext auctionContext = givenRequestContext(bidRequest, account);
+
+        // when
+        target.holdAuction(auctionContext);
+
+        // then
+        final ArgumentCaptor<List<AuctionParticipation>> captor = ArgumentCaptor.forClass(List.class);
+        verify(storedResponseProcessor).updateStoredBidResponse(captor.capture());
+        assertThat(captor.getValue())
+                .filteredOn(AuctionParticipation::getBidder, "primary")
+                .extracting(AuctionParticipation::getBidderResponse)
+                .extracting(BidderResponse::getSeatBid)
+                .flatExtracting(BidderSeatBid::getBids)
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getPrice)
+                .containsExactly(ONE);
+
+        assertThat(captor.getValue())
+                .filteredOn(AuctionParticipation::getBidder, "secondaryCompleted")
+                .extracting(AuctionParticipation::getBidderResponse)
+                .extracting(BidderResponse::getSeatBid)
+                .flatExtracting(BidderSeatBid::getBids)
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getPrice)
+                .containsExactly(TWO);
+    }
+
+    @Test
+    public void shouldDiscardBidRejectionsFromUncompletedSecondaryBiddersAndReplaceThemWithTimeout() {
+        // given
+        doReturn(Future.succeededFuture(givenSeatBid(emptyList()))).when(httpBidderRequester)
+                .requestBids(any(), argThat(bidderRequest -> bidderRequest.getBidder().equals("primary")),
+                        any(), any(), any(), any(), anyBoolean());
+
+        doAnswer(givenHttpBidderRequesterAnswerWithRejection(ERROR_GENERAL, Promise.<BidderSeatBid>promise().future()))
+                .when(httpBidderRequester)
+                .requestBids(any(), argThat(bidderRequest -> bidderRequest.getBidder().equals("secondary")),
+                        any(), any(), any(), any(), anyBoolean());
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(
+                Map.of("primary", 1, "secondary", 2)));
+        final Account account = Account.builder()
+                .auction(AccountAuctionConfig.builder()
+                        .secondaryBidders(Set.of("secondary"))
+                        .build())
+                .build();
+
+        final AuctionContext auctionContext = givenRequestContext(bidRequest, account);
+
+        // when
+        final AuctionContext result = target.holdAuction(auctionContext).result();
+
+        // then
+        assertThat(result.getBidRejectionTrackers().get("secondary").getRejected())
+                .extracting(Rejection::reason)
+                .containsExactlyInAnyOrder(ERROR_TIMED_OUT);
+    }
+
+    @Test
+    public void shouldRetainPreviousBidRejectionsFromUncompletedSecondaryBidders() {
+        // given
+        doReturn(Future.succeededFuture(givenSeatBid(emptyList()))).when(httpBidderRequester)
+                .requestBids(any(), argThat(bidderRequest -> bidderRequest.getBidder().equals("primary")),
+                        any(), any(), any(), any(), anyBoolean());
+
+        doReturn(Promise.promise().future()).when(httpBidderRequester)
+                .requestBids(any(), argThat(bidderRequest -> bidderRequest.getBidder().equals("secondary")),
+                        any(), any(), any(), any(), anyBoolean());
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(
+                Map.of("primary", 1, "secondary", 2)));
+        final Account account = Account.builder()
+                .auction(AccountAuctionConfig.builder()
+                        .secondaryBidders(Set.of("secondary"))
+                        .build())
+                .build();
+
+        final Map<String, BidRejectionTracker> bidRejectionTrackers = new HashMap<>();
+        bidRejectionTrackers.put("secondary", givenBidRejectionTrackerWithRejection(REQUEST_BLOCKED_GENERAL));
+
+        final AuctionContext auctionContext = givenRequestContext(bidRequest, account)
+                .toBuilder()
+                .bidRejectionTrackers(bidRejectionTrackers)
+                .build();
+
+        // when
+        final AuctionContext result = target.holdAuction(auctionContext).result();
+
+        // then
+        assertThat(result.getBidRejectionTrackers().get("secondary").getRejected())
+                .extracting(Rejection::reason)
+                .containsExactlyInAnyOrder(REQUEST_BLOCKED_GENERAL, ERROR_TIMED_OUT);
+    }
+
+    @Test
+    public void shouldRetainBidRejectionsFromPrimaryAndCompletedSecondaryBidders() {
+        // given
+        doAnswer(givenHttpBidderRequesterAnswerWithRejection(
+                ERROR_GENERAL, Future.succeededFuture(givenSeatBid(emptyList()))))
+                .when(httpBidderRequester)
+                .requestBids(any(), argThat(bidderRequest -> bidderRequest.getBidder().equals("primary")),
+                        any(), any(), any(), any(), anyBoolean());
+
+        doAnswer(givenHttpBidderRequesterAnswerWithRejection(
+                ERROR_GENERAL, Future.succeededFuture(givenSeatBid(emptyList()))))
+                .when(httpBidderRequester)
+                .requestBids(any(), argThat(bidderRequest -> bidderRequest.getBidder().equals("secondarySucceeded")),
+                        any(), any(), any(), any(), anyBoolean());
+
+        doAnswer(givenHttpBidderRequesterAnswerWithRejection(
+                ERROR_GENERAL, Future.failedFuture("failed")))
+                .when(httpBidderRequester)
+                .requestBids(any(), argThat(bidderRequest -> bidderRequest.getBidder().equals("secondaryFailed")),
+                        any(), any(), any(), any(), anyBoolean());
+
+        doReturn(Promise.promise().future()).when(httpBidderRequester)
+                .requestBids(any(), argThat(bidderRequest -> bidderRequest.getBidder().equals("secondaryUncompleted")),
+                        any(), any(), any(), any(), anyBoolean());
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(
+                Map.of("primary", 1, "secondarySucceeded", 2, "secondaryFailed", 3, "secondaryUncompleted", 4)));
+        final Account account = Account.builder()
+                .auction(AccountAuctionConfig.builder()
+                        .secondaryBidders(Set.of("secondarySucceeded", "secondaryFailed", "secondaryUncompleted"))
+                        .build())
+                .build();
+
+        final Map<String, BidRejectionTracker> bidRejectionTrackers = new HashMap<>();
+        bidRejectionTrackers.put("primary", givenBidRejectionTrackerWithRejection(REQUEST_BLOCKED_GENERAL));
+        bidRejectionTrackers.put("secondarySucceeded", givenBidRejectionTrackerWithRejection(REQUEST_BLOCKED_GENERAL));
+        bidRejectionTrackers.put("secondaryFailed", givenBidRejectionTrackerWithRejection(REQUEST_BLOCKED_GENERAL));
+
+        final AuctionContext auctionContext = givenRequestContext(bidRequest, account)
+                .toBuilder()
+                .bidRejectionTrackers(bidRejectionTrackers)
+                .build();
+
+        // when
+        final AuctionContext result = target.holdAuction(auctionContext).result();
+
+        // then
+        assertThat(result.getBidRejectionTrackers())
+                .extractingByKeys("primary", "secondarySucceeded", "secondaryFailed")
+                .extracting(BidRejectionTracker::getRejected)
+                .extracting(rejections -> rejections.stream().map(Rejection::reason).collect(Collectors.toSet()))
+                .hasSize(3)
+                .containsOnly(Set.of(REQUEST_BLOCKED_GENERAL, ERROR_GENERAL));
+    }
+
+    @Test
+    public void shouldUseRequestLevelSecondaryBiddersOverAccountLevel() {
+        // given
+        doReturn(Future.succeededFuture(givenSeatBid(emptyList()))).when(httpBidderRequester)
+                .requestBids(any(), argThat(bidderRequest -> bidderRequest.getBidder().equals("secondaryAccount")),
+                        any(), any(), any(), any(), anyBoolean());
+
+        doReturn(Promise.promise().future()).when(httpBidderRequester)
+                .requestBids(any(), argThat(bidderRequest -> bidderRequest.getBidder().equals("secondaryRequest")),
+                        any(), any(), any(), any(), anyBoolean());
+
+        final BidRequest bidRequest = givenBidRequest(
+                givenSingleImp(Map.of("secondaryAccount", 1, "secondaryRequest", 2)),
+                builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .secondaryBidders(Set.of("secondaryRequest"))
+                        .build())));
+
+        final Account account = Account.builder()
+                .auction(AccountAuctionConfig.builder()
+                        .secondaryBidders(Set.of("secondaryAccount"))
+                        .build())
+                .build();
+        final AuctionContext auctionContext = givenRequestContext(bidRequest, account);
+
+        // when
+        final Future<AuctionContext> result = target.holdAuction(auctionContext);
+
+        // then
+        assertThat(result.succeeded()).isTrue();
+    }
+
+    @Test
+    public void shouldTreatEmptyRequestLevelSecondaryBiddersAsOverrideOfAccountLevel() {
+        // given
+        doReturn(Promise.promise().future()).when(httpBidderRequester)
+                .requestBids(any(), argThat(bidderRequest -> bidderRequest.getBidder().equals("bidderA")),
+                        any(), any(), any(), any(), anyBoolean());
+
+        doReturn(Future.succeededFuture(givenSeatBid(emptyList()))).when(httpBidderRequester)
+                .requestBids(any(), argThat(bidderRequest -> bidderRequest.getBidder().equals("bidderB")),
+                        any(), any(), any(), any(), anyBoolean());
+
+        final BidRequest bidRequest = givenBidRequest(
+                givenSingleImp(Map.of("bidderA", 1, "bidderB", 2)),
+                builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .secondaryBidders(emptySet())
+                        .build())));
+
+        final Account account = Account.builder()
+                .auction(AccountAuctionConfig.builder()
+                        .secondaryBidders(Set.of("bidderA"))
+                        .build())
+                .build();
+        final AuctionContext auctionContext = givenRequestContext(bidRequest, account);
+
+        // when
+        final Future<AuctionContext> result = target.holdAuction(auctionContext);
+
+        // then
+        assertThat(result.isComplete()).isFalse();
+    }
+
+    @Test
+    public void shouldFallBackToAccountLevelSecondaryBiddersWhenRequestLevelIsAbsent() {
+        // given
+        doReturn(Future.succeededFuture(givenSeatBid(emptyList()))).when(httpBidderRequester)
+                .requestBids(any(), argThat(bidderRequest -> bidderRequest.getBidder().equals("primary")),
+                        any(), any(), any(), any(), anyBoolean());
+
+        doReturn(Promise.promise().future()).when(httpBidderRequester)
+                .requestBids(any(), argThat(bidderRequest -> bidderRequest.getBidder().equals("secondary")),
+                        any(), any(), any(), any(), anyBoolean());
+
+        final BidRequest bidRequest = givenBidRequest(
+                givenSingleImp(Map.of("primary", 1, "secondary", 2)),
+                builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder().build())));
+
+        final Account account = Account.builder()
+                .auction(AccountAuctionConfig.builder()
+                        .secondaryBidders(Set.of("secondary"))
+                        .build())
+                .build();
+        final AuctionContext auctionContext = givenRequestContext(bidRequest, account);
+
+        // when
+        final Future<AuctionContext> result = target.holdAuction(auctionContext);
+
+        // then
+        assertThat(result.succeeded()).isTrue();
+    }
+
+    @Test
+    public void shouldRetainBidRejectionsForBiddersThatWereRejectedBeforeBidderFutureSplit() {
+        // given
+        final BidderPrivacyResult restrictedPrivacy = BidderPrivacyResult.builder()
+                .requestBidder("testBidder")
+                .blockedRequestByTcf(true)
+                .build();
+        given(privacyEnforcementService.mask(any(), any(), any()))
+                .willReturn(Future.succeededFuture(singletonList(restrictedPrivacy)));
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(Map.of("testBidder", 1)));
+        final AuctionContext auctionContext = givenRequestContext(bidRequest);
+
+        // when
+        final AuctionContext result = target.holdAuction(auctionContext).result();
+
+        // then
+        assertThat(result.getBidRejectionTrackers())
+                .extractingByKeys("testBidder")
+                .extracting(BidRejectionTracker::getRejected)
+                .extracting(rejections -> rejections.stream().map(Rejection::reason).collect(Collectors.toSet()))
+                .containsExactly(singleton(REQUEST_BLOCKED_PRIVACY));
+    }
+
     private void givenTarget(boolean enabledStrictAppSiteDoohValidation) {
         target = new ExchangeService(
                 0,
@@ -4235,7 +4600,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .account(account)
                 .requestTypeMetric(MetricName.openrtb2web)
                 .timeoutContext(TimeoutContext.of(clock.millis(), timeout, 90))
-                .hookExecutionContext(HookExecutionContext.of(Endpoint.openrtb2_auction))
+                .hookExecutionContext(HookExecutionContext.of(HookHttpEndpoint.POST_AUCTION))
                 .debugContext(DebugContext.empty())
                 .bidRejectionTrackers(new HashMap<>())
                 .activityInfrastructure(activityInfrastructure)
@@ -4327,13 +4692,6 @@ public class ExchangeServiceTest extends VertxTest {
                         .id("bidId")
                         .price(BigDecimal.ONE)
                         .ext(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.builder().build(), null))))
-                .build();
-    }
-
-    private static FledgeAuctionConfig givenFledgeAuctionConfig(String impId) {
-        return FledgeAuctionConfig.builder()
-                .impId(impId)
-                .config(mapper.createObjectNode().put("references", impId))
                 .build();
     }
 
@@ -4461,5 +4819,21 @@ public class ExchangeServiceTest extends VertxTest {
                                         .build()))))));
 
         return new EnumMap<>(stageOutcomes);
+    }
+
+    private static Answer<Future<BidderSeatBid>> givenHttpBidderRequesterAnswerWithRejection(
+            BidRejectionReason bidRejectionReason,
+            Future<BidderSeatBid> answer) {
+
+        return invocation -> {
+            final BidRejectionTracker bidRejectionTracker = invocation.getArgument(2, BidRejectionTracker.class);
+            bidRejectionTracker.rejectAll(bidRejectionReason);
+            return answer;
+        };
+    }
+
+    private static BidRejectionTracker givenBidRejectionTrackerWithRejection(BidRejectionReason bidRejectionReason) {
+        return new BidRejectionTracker(null, singleton(UUID.randomUUID().toString()), 0.0)
+                .rejectAll(bidRejectionReason);
     }
 }

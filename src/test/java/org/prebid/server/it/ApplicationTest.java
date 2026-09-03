@@ -66,10 +66,10 @@ import static org.assertj.core.api.Assertions.within;
 public class ApplicationTest extends IntegrationTest {
 
     private static final String APPNEXUS = "appnexus";
-    private static final String APPNEXUS_COOKIE_FAMILY = "adnxs";
-    private static final String RUBICON = "rubicon";
+    private static final String MAGNITE = "magnite";
     private static final String GENERIC = "generic";
     private static final String GENERIC_ALIAS = "genericAlias";
+    private static final String MAGNITE_COOKIE = "rubicon";
 
     private static final int ADMIN_PORT = 8060;
 
@@ -77,7 +77,7 @@ public class ApplicationTest extends IntegrationTest {
             .setBaseUri("http://localhost")
             .setPort(ADMIN_PORT)
             .setConfig(RestAssuredConfig.config()
-                    .objectMapperConfig(new ObjectMapperConfig(new Jackson2Mapper((aClass, s) -> mapper))))
+                    .objectMapperConfig(new ObjectMapperConfig(new Jackson2Mapper((_, _) -> mapper))))
             .build();
 
     @Test
@@ -85,7 +85,7 @@ public class ApplicationTest extends IntegrationTest {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/generic-exchange"))
                 .withHeader("Accept", equalTo("application/json"))
-                .withHeader("Content-Type", equalTo("application/json;charset=UTF-8"))
+                .withHeader("Content-Type", equalTo("application/json;charset=utf-8"))
                 .withRequestBody(equalToJson(
                         jsonFrom("openrtb2/generic_core_functionality/test-generic-bid-request.json")))
                 .willReturn(aResponse().withBody(
@@ -130,18 +130,14 @@ public class ApplicationTest extends IntegrationTest {
 
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/genericAlias-exchange"))
                 .withRequestBody(equalToJson(
-                        jsonFrom(
-                                "openrtb2/multi_bid/test-genericAlias-bid-request-1.json"
-                        )))
+                        jsonFrom("openrtb2/multi_bid/test-genericAlias-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom(
                         "openrtb2/multi_bid/test-genericAlias-bid-response-1.json"))));
 
         // pre-bid cache
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
                 .withRequestBody(equalToBidCacheRequest(
-                        jsonFrom(
-                                "openrtb2/multi_bid/test-cache-generic-genericAlias-request.json"
-                        )))
+                        jsonFrom("openrtb2/multi_bid/test-cache-generic-genericAlias-request.json")))
                 .willReturn(aResponse()
                         .withTransformers("cache-response-transformer")
                         .withTransformerParameter("matcherName",
@@ -300,7 +296,7 @@ public class ApplicationTest extends IntegrationTest {
         final CookieSyncResponse cookieSyncResponse = given(SPEC)
                 .cookies("host-cookie-name", "host-cookie-uid")
                 .body(CookieSyncRequest.builder()
-                        .bidders(Set.of(RUBICON, APPNEXUS))
+                        .bidders(Set.of(MAGNITE, APPNEXUS))
                         .gdpr(1)
                         .gdprConsent(gdprConsent)
                         .usPrivacy("1YNN")
@@ -317,30 +313,30 @@ public class ApplicationTest extends IntegrationTest {
         assertThat(cookieSyncResponse.getStatus()).isEqualTo(CookieSyncStatus.OK);
         assertThat(cookieSyncResponse.getBidderStatus()).containsExactlyInAnyOrder(
                 BidderUsersyncStatus.builder()
-                        .bidder(RUBICON)
+                        .bidder(MAGNITE)
                         .noCookie(true)
                         .usersync(UsersyncInfo.of(
-                                "http://localhost:8080/setuid?bidder=rubicon"
+                                "http://localhost:8080/setuid?bidder=magnite"
                                         + "&gdpr=1&gdpr_consent=" + gdprConsent
                                         + "&us_privacy=1YNN"
                                         + "&gpp="
                                         + "&gpp_sid="
                                         + "&f=i"
                                         + "&uid=host-cookie-uid",
-                                UsersyncMethodType.REDIRECT, false))
+                                UsersyncMethodType.REDIRECT))
                         .build(),
                 BidderUsersyncStatus.builder()
-                        .bidder(APPNEXUS_COOKIE_FAMILY)
+                        .bidder(APPNEXUS)
                         .noCookie(true)
                         .usersync(UsersyncInfo.of(
-                                "//usersync-url/getuid?http%3A%2F%2Flocalhost%3A8080%2Fsetuid%3Fbidder"
-                                        + "%3Dadnxs%26gdpr%3D1%26gdpr_consent%3D" + gdprConsent
+                                "http://usersync-url/getuid?http%3A%2F%2Flocalhost%3A8080%2Fsetuid%3Fbidder"
+                                        + "%3Dappnexus%26gdpr%3D1%26gdpr_consent%3D" + gdprConsent
                                         + "%26us_privacy%3D1YNN"
                                         + "%26gpp%3D"
                                         + "%26gpp_sid%3D"
-                                        + "%26f%3Db"
+                                        + "%26f%3Di"
                                         + "%26uid%3D%24UID",
-                                UsersyncMethodType.IFRAME, false))
+                                UsersyncMethodType.REDIRECT))
                         .build());
     }
 
@@ -353,7 +349,7 @@ public class ApplicationTest extends IntegrationTest {
                 .cookie("uids", "eyAidGVtcFVJRHMiOnsgInJ1Ymljb24iOnsgInVpZCI6Iko1VkxDV1FQ"
                         + "LTI2LUNXRlQiLCAiZXhwaXJlcyI6IjIwMjMtMTItMDVUMTk6MDA6MDUuMTAzMzI5LTAzOjAwIiB9IH0gfQ==")
                 // this constant is ok to use as long as it coincides with family name
-                .queryParam("bidder", RUBICON)
+                .queryParam("bidder", MAGNITE)
                 .queryParam("uid", "updatedUid")
                 .queryParam("gdpr", "1")
                 .queryParam("gdpr_consent", "CPBCKiyPBCKiyAAAAAENA0CAAIAAAAAAACiQAaQAwAAgAgABoAAAAAA")
@@ -374,9 +370,9 @@ public class ApplicationTest extends IntegrationTest {
                 .extracting(Map::keySet)
                 .extracting(ArrayList::new)
                 .asList()
-                .containsExactly(RUBICON);
-        assertThat(uids.getUids().get(RUBICON).getUid()).isEqualTo("updatedUid");
-        assertThat(uids.getUids().get(RUBICON).getExpires().toInstant())
+                .containsExactly(MAGNITE_COOKIE);
+        assertThat(uids.getUids().get(MAGNITE_COOKIE).getUid()).isEqualTo("updatedUid");
+        assertThat(uids.getUids().get(MAGNITE_COOKIE).getExpires().toInstant())
                 .isCloseTo(Instant.now().plus(14, ChronoUnit.DAYS), within(10, ChronoUnit.SECONDS));
     }
 
@@ -464,10 +460,6 @@ public class ApplicationTest extends IntegrationTest {
 
         final List<String> bidders = getBidderNamesFromParamFiles();
         final Map<String, String> aliases = getBidderAliasesFromConfigFiles();
-        //todo: necessary since the config file is not a source of truth in terms of defining aliases for the bidders
-        // the suggestion is eventually resolving static json file name from the bidder config file
-        // and not from the name hard-coded in the Configuration class
-        aliases.put("cadent_aperture_mx", "emx_digital");
         final Map<String, JsonNode> expectedMap = CollectionUtils.union(bidders, aliases.keySet()).stream()
                 .collect(Collectors.toMap(
                         Function.identity(),
@@ -523,7 +515,7 @@ public class ApplicationTest extends IntegrationTest {
     public void infoBidderDetailsShouldReturnMetadataForBidder() throws IOException {
         given(SPEC)
                 .when()
-                .get("/info/bidders/rubicon")
+                .get("/info/bidders/magnite")
                 .then()
                 .assertThat()
                 .body(Matchers.equalTo(jsonFrom("info-bidders/test-info-bidder-details-response.json")));
@@ -665,7 +657,7 @@ public class ApplicationTest extends IntegrationTest {
                 .param("level", "error")
                 .param("duration", "1000")
                 .param("account", "1001")
-                .param("bidderCode", "rubicon")
+                .param("bidderCode", MAGNITE)
                 .post("/pbs-admin/tracelog")
                 .then()
                 .assertThat()

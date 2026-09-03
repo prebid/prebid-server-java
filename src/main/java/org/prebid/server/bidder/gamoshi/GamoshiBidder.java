@@ -23,6 +23,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.gamoshi.ExtImpGamoshi;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.Uri;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -34,11 +35,13 @@ import java.util.stream.Collectors;
 
 public class GamoshiBidder implements Bidder<BidRequest> {
 
-    private final String endpointUrl;
+    private static final String SUPPLY_PARTNER_MACRO = "SupplyPartnerId";
+
+    private final Uri endpointUrl;
     private final JacksonMapper mapper;
 
     public GamoshiBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointUrl = Uri.of(endpointUrl);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -57,7 +60,7 @@ public class GamoshiBidder implements Bidder<BidRequest> {
 
         if (validImps.isEmpty()) {
             errors.add(BidderError.badInput("No valid impressions in the bid request"));
-            return Result.of(Collections.<HttpRequest<BidRequest>>emptyList(), errors);
+            return Result.of(Collections.emptyList(), errors);
         }
 
         final ExtImpGamoshi firstImpExt;
@@ -69,9 +72,9 @@ public class GamoshiBidder implements Bidder<BidRequest> {
 
         final BidRequest outgoingRequest = request.toBuilder().imp(validImps).build();
 
-        final String requestUrl = endpointUrl + "/r/"
-                + HttpUtil.validatePathSegment(firstImpExt.getSupplyPartnerId())
-                + "/bidr?bidder=prebid-server";
+        final String requestUrl = endpointUrl
+                .replaceMacro(SUPPLY_PARTNER_MACRO, firstImpExt.getSupplyPartnerId())
+                .expand();
         final MultiMap headers = resolveHeaders(request.getDevice());
 
         return Result.of(Collections.singletonList(

@@ -283,6 +283,7 @@
         "externalurl": "http://localhost:8080",
         "gvlid": 1,
         "datacenter": "local",
+        "http_method": "POST",
         "endpoint": "/openrtb2/video"
       },
       "targeting": {
@@ -302,9 +303,6 @@
           "withcategory": true,
           "translatecategories": false
         }
-      },
-      "cache": {
-        "vastxml": {}
       },
       "channel": {
         "name": "web"

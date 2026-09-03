@@ -186,7 +186,7 @@ class Id5IdFetchHookTest {
     private static AuctionInvocationContextImpl createAuctionContext() {
         final Timeout timeout = new TimeoutFactory(Clock.systemUTC()).create(1000);
         return AuctionInvocationContextImpl.of(
-                InvocationContextImpl.of(timeout, Endpoint.openrtb2_auction),
+                InvocationContextImpl.of(timeout, null, Endpoint.openrtb2_auction),
                 AuctionContext.builder().account(Account.builder().id("acc").build()).build(),
                 false,
                 null,

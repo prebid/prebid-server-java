@@ -15,9 +15,9 @@ enum BidderName {
     GENERIC_CAMEL_CASE("GeNerIc"),
     GENERIC("generic"),
     GENER_X("gener_x"),
-    RUBICON("rubicon"),
+    MAGNITE("magnite"),
     APPNEXUS("appnexus"),
-    RUBICON_ALIAS("rubiconAlias"),
+    MAGNITE_ALIAS("magniteAlias"),
     OPENX("openx"),
     OPENX_ALIAS("openxalias"),
     ACEEX("aceex"),
@@ -29,7 +29,7 @@ enum BidderName {
     MEDIANET("medianet"),
     AMX("amx"),
     AMX_CAMEL_CASE("AmX"),
-    AMX_UPPER_CASE("AMX"),
+    AMX_UPPER_CASE("AMX")
 
     @JsonValue
     final String value

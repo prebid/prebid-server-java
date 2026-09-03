@@ -2,25 +2,30 @@ adapters:
   connectad:
     # Please uncomment the appropriate endpoint URL for your datacenter
     # Europe
-    endpoint: "http://bidder.connectad.io/API?src=pbs"
+    endpoint: "https://bidder.connectad.io/API?src=pbs"
+    ortb-version: "2.6"
     # North/South America
-    # endpoint: "http://bidder-us.connectad.io/API?src=pbs"
+    # endpoint: "https://bidder-us.connectad.io/API?src=pbs"
     # APAC
-    # endpoint: "http://bidder-apac.connectad.io/API?src=pbs"
+    # endpoint: "https://bidder-apac.connectad.io/API?src=pbs"
     endpoint-compression: gzip
     meta-info:
       maintainer-email: support@connectad.io
       app-media-types:
         - banner
+        - video
+        - native
+        - audio
       site-media-types:
         - banner
+        - video
+        - native
+        - audio
       supported-vendors:
       vendor-id: 138
     usersync:
       cookie-family-name: connectad
       redirect:
-        url: https://sync.connectad.io/ImageSyncer?gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&cb={{redirect_url}}
-        support-cors: false
+        url: https://sync.connectad.io/ImageSyncer?gdpr={gdpr}&consent={gdpr_consent}&us_privacy={us_privacy}&gpp={gpp}&gpp_sid={gpp_sid}&cb={redirect_url}
       iframe:
-        url: https://sync.connectad.io/iFrameSyncer?gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&cb={{redirect_url}}
-        support-cors: false
+        url: https://sync.connectad.io/iFrameSyncer?gdpr={gdpr}&consent={gdpr_consent}&us_privacy={us_privacy}&gpp={gpp}&gpp_sid={gpp_sid}&cb={redirect_url}

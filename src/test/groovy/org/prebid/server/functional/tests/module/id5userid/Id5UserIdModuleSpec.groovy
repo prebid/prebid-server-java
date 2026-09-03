@@ -1,8 +1,7 @@
 package org.prebid.server.functional.tests.module.id5userid
 
-import org.mockserver.model.HttpRequest
-import org.mockserver.model.HttpResponse
-import org.mockserver.model.MediaType
+import com.github.tomakehurst.wiremock.matching.RequestPattern
+import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder
 import org.prebid.server.functional.model.bidder.AppNexus
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.request.auction.BidRequest
@@ -10,12 +9,18 @@ import org.prebid.server.functional.model.request.auction.Eid
 import org.prebid.server.functional.model.request.auction.Uid
 import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.testcontainers.container.NetworkServiceContainer
 import org.prebid.server.functional.testcontainers.scaffolding.Bidder
 import org.prebid.server.functional.testcontainers.scaffolding.NetworkScaffolding
 import org.prebid.server.functional.tests.module.ModuleBaseSpec
-import org.testcontainers.containers.MockServerContainer
 
-import static org.prebid.server.functional.model.ModuleName.ID5_USER_ID
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse
+import static com.github.tomakehurst.wiremock.client.WireMock.post
+import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching
+import static org.apache.http.HttpStatus.SC_OK
+import static org.prebid.server.functional.model.config.ModuleName.ID5_USER_ID
 import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
 
 class Id5UserIdModuleSpec extends ModuleBaseSpec {
@@ -38,8 +43,9 @@ class Id5UserIdModuleSpec extends ModuleBaseSpec {
                     "hooks.${ID5_USER_ID.code}.account-filter.exclude": "true",
                     "hooks.${ID5_USER_ID.code}.account-filter.values" : BLOCKED_ACCOUNT
             ]) + [
-                    "adapters.generic.aliases.alias.enabled" : "true",
-                    "adapters.generic.aliases.alias.endpoint": "${networkServiceContainer.rootUri}${ALIAS_ENDPOINT}".toString(),
+                    "adapters.generic.aliases.alias.enabled"            : "true",
+                    "adapters.generic.aliases.alias.meta-info.vendor-id": "0",
+                    "adapters.generic.aliases.alias.endpoint"           : "${networkServiceContainer.rootUri}${ALIAS_ENDPOINT}".toString(),
                     "adapters.appnexus.enabled"              : "true",
                     "adapters.appnexus.endpoint"             : "${networkServiceContainer.rootUri}${APPNEXUS_ENDPOINT}".toString()
             ]
@@ -150,8 +156,8 @@ class Id5UserIdModuleSpec extends ModuleBaseSpec {
 
         private static final String ID5_FETCH_ENDPOINT = "/id5-fetch"
 
-        Id5FetchService(MockServerContainer mockServerContainer) {
-            super(mockServerContainer, ID5_FETCH_ENDPOINT)
+        Id5FetchService(NetworkServiceContainer networkServiceContainer) {
+            super(networkServiceContainer, ID5_FETCH_ENDPOINT)
         }
 
         void setFetchResponse(String id5Value) {
@@ -170,24 +176,30 @@ class Id5UserIdModuleSpec extends ModuleBaseSpec {
               }
             }
             """
-            mockServerClient.when(HttpRequest.request().withMethod("POST").withPath("${endpoint}/.*"))
-                    .respond(HttpResponse.response().withStatusCode(200)
-                            .withBody(responseBody, MediaType.APPLICATION_JSON))
+            wireMockClient.register(post(urlPathMatching("${endpoint}/.*"))
+                    .willReturn(aResponse()
+                            .withStatus(SC_OK)
+                            .withHeader("Content-Type", "application/json")
+                            .withBody(responseBody)))
+        }
+
+        int getRequestCount() {
+            getRequestCount(postRequestedFor(urlPathMatching("${endpoint}/.*")))
         }
 
         @Override
-        protected HttpRequest getRequest(String value) {
-            HttpRequest.request().withMethod("POST").withPath("${endpoint}/${value}")
+        protected RequestPatternBuilder getRequest(String value) {
+            postRequestedFor(urlPathEqualTo("${endpoint}/${value}"))
         }
 
         @Override
-        protected HttpRequest getRequest() {
-            HttpRequest.request().withMethod("POST").withPath("${endpoint}/.*")
+        protected RequestPattern getRequest() {
+            postRequestedFor(urlPathMatching("${endpoint}/.*")).build()
         }
 
         @Override
         void reset() {
-            super.reset("${endpoint}/.*" as String)
+            wireMockClient.resetRequests()
         }
 
         @Override

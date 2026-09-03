@@ -7,7 +7,7 @@ enum ErrorType {
     GENERAL("general"),
     GENERIC("generic"),
     GENERIC_CAMEL_CASE("GeNerIc"),
-    RUBICON("rubicon"),
+    MAGNITE("magnite"),
     APPNEXUS("appnexus"),
     PREBID("prebid"),
     CACHE("cache"),
@@ -16,7 +16,7 @@ enum ErrorType {
     IX("ix"),
     OPENX("openx"),
     AMX("amx"),
-    AMX_UPPER_CASE("AMX"),
+    AMX_UPPER_CASE("AMX")
 
     @JsonValue
     final String value
